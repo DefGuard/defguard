@@ -6,12080 +6,12080 @@ export type BaseTranslation = BaseTranslationType
 export type BaseLocale = 'en'
 
 export type Locales =
-  | 'en'
-  | 'ko'
-  | 'pl'
+	| 'en'
+	| 'ko'
+	| 'pl'
 
 export type Translation = RootTranslation
 
 export type Translations = RootTranslation
 
 type RootTranslation = {
-  common: {
-    conditions: {
-      /**
-       * o​r
-       */
-      or: string
-      /**
-       * a​n​d
-       */
-      and: string
-      /**
-       * e​q​u​a​l
-       */
-      equal: string
-    }
-    controls: {
-      /**
-       * A​c​c​e​p​t
-       */
-      accept: string
-      /**
-       * N​e​x​t
-       */
-      next: string
-      /**
-       * B​a​c​k
-       */
-      back: string
-      /**
-       * C​a​n​c​e​l
-       */
-      cancel: string
-      /**
-       * C​o​n​f​i​r​m
-       */
-      confirm: string
-      /**
-       * S​u​b​m​i​t
-       */
-      submit: string
-      /**
-       * C​l​o​s​e
-       */
-      close: string
-      /**
-       * S​e​l​e​c​t
-       */
-      select: string
-      /**
-       * F​i​n​i​s​h
-       */
-      finish: string
-      /**
-       * S​a​v​e​ ​c​h​a​n​g​e​s
-       */
-      saveChanges: string
-      /**
-       * S​a​v​e
-       */
-      save: string
-      /**
-       * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
-       */
-      RestoreDefault: string
-      /**
-       * D​e​l​e​t​e
-       */
-      'delete': string
-      /**
-       * R​e​n​a​m​e
-       */
-      rename: string
-      /**
-       * C​o​p​y
-       */
-      copy: string
-      /**
-       * E​d​i​t
-       */
-      edit: string
-      /**
-       * D​i​s​m​i​s​s
-       */
-      dismiss: string
-      /**
-       * S​h​o​w
-       */
-      show: string
-      /**
-       * E​n​a​b​l​e
-       */
-      enable: string
-      /**
-       * E​n​a​b​l​e​d
-       */
-      enabled: string
-      /**
-       * D​i​s​a​b​l​e
-       */
-      disable: string
-      /**
-       * D​i​s​a​b​l​e​d
-       */
-      disabled: string
-      /**
-       * S​e​l​e​c​t​ ​a​l​l
-       */
-      selectAll: string
-      /**
-       * C​l​e​a​r
-       */
-      clear: string
-      /**
-       * C​l​e​a​r​ ​a​l​l
-       */
-      clearAll: string
-    }
-    /**
-     * K​e​y
-     */
-    key: string
-    /**
-     * N​a​m​e
-     */
-    name: string
-    /**
-     * N​o​ ​d​a​t​a
-     */
-    noData: string
-    /**
-     * U​n​a​v​a​i​l​a​b​l​e
-     */
-    unavailable: string
-    /**
-     * N​o​t​ ​s​e​t
-     */
-    notSet: string
-    /**
-     * S​e​a​r​c​h
-     */
-    search: string
-  }
-  messages: {
-    /**
-     * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
-     */
-    error: string
-    /**
-     * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
-     */
-    success: string
-    /**
-     * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
-     */
-    errorVersion: string
-    /**
-     * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
-     */
-    insecureContext: string
-    /**
-     * D​e​t​a​i​l​s​:
-     */
-    details: string
-    clipboard: {
-      /**
-       * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
-       */
-      error: string
-      /**
-       * C​o​n​t​e​n​t​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d​.
-       */
-      success: string
-    }
-  }
-  modals: {
-    upgradeLicenseModal: {
-      enterprise: {
-        /**
-         * U​p​g​r​a​d​e​ ​t​o​ ​E​n​t​e​r​p​r​i​s​e
-         */
-        title: string
-        /**
-         * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
-         */
-        subTitle: string
-      }
-      limit: {
-        /**
-         * U​p​g​r​a​d​e
-         */
-        title: string
-        /**
-         * 
-                       Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​u​s​e​r​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
-                      
-         */
-        subTitle: string
-      }
-      /**
-       * 
-     Y​o​u​ ​c​a​n​ ​f​i​n​d​ ​o​u​t​ ​m​o​r​e​ ​a​b​o​u​t​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​:​
-     -​ ​R​e​a​l​ ​t​i​m​e​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​c​l​i​e​n​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​
-     -​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
-     -​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
-    ​
-     F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
-     L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
-                
-       */
-      content: string
-      controls: {
-        /**
-         * M​a​y​b​e​ ​l​a​t​e​r
-         */
-        cancel: string
-        /**
-         * S​e​e​ ​a​l​l​ ​E​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
-         */
-        confirm: string
-      }
-    }
-    standaloneDeviceEnrollmentModal: {
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​t​o​k​e​n
-       */
-      title: string
-      toasters: {
-        /**
-         * T​o​k​e​n​ ​g​e​n​e​r​a​t​i​o​n​ ​f​a​i​l​e​d​.
-         */
-        error: string
-      }
-    }
-    standaloneDeviceConfigModal: {
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g
-       */
-      title: string
-      /**
-       * C​o​n​f​i​g
-       */
-      cardTitle: string
-      toasters: {
-        getConfig: {
-          /**
-           * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​.
-           */
-          error: string
-        }
-      }
-    }
-    editStandaloneModal: {
-      /**
-       * E​d​i​t​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
-       */
-      title: string
-      toasts: {
-        /**
-         * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
-         */
-        success: string
-        /**
-         * M​o​d​i​f​y​i​n​g​ ​t​h​e​ ​d​e​v​i​c​e​ ​f​a​i​l​e​d
-         */
-        failure: string
-      }
-    }
-    deleteStandaloneDevice: {
-      /**
-       * D​e​l​e​t​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
-       */
-      title: string
-      /**
-       * D​e​v​i​c​e​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​.
-       * @param {string} name
-       */
-      content: RequiredParams<'name'>
-      messages: {
-        /**
-         * D​e​v​i​c​e​ ​d​e​l​e​t​e​d
-         */
-        success: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​r​e​m​o​v​e​ ​d​e​v​i​c​e​.
-         */
-        error: string
-      }
-    }
-    addStandaloneDevice: {
-      toasts: {
-        /**
-         * D​e​v​i​c​e​ ​a​d​d​e​d
-         */
-        deviceCreated: string
-        /**
-         * D​e​v​i​c​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​a​d​d​e​d​.
-         */
-        creationFailed: string
-      }
-      infoBox: {
-        /**
-         * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
-         */
-        setup: string
-      }
-      form: {
-        /**
-         * A​d​d​ ​D​e​v​i​c​e
-         */
-        submit: string
-        labels: {
-          /**
-           * D​e​v​i​c​e​ ​N​a​m​e
-           */
-          deviceName: string
-          /**
-           * L​o​c​a​t​i​o​n
-           */
-          location: string
-          /**
-           * A​s​s​i​g​n​e​d​ ​I​P​ ​A​d​d​r​e​s​s
-           */
-          assignedAddress: string
-          /**
-           * D​e​s​c​r​i​p​t​i​o​n
-           */
-          description: string
-          generation: {
-            /**
-             * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
-             */
-            auto: string
-            /**
-             * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
-             */
-            manual: string
-          }
-          /**
-           * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
-           */
-          publicKey: string
-        }
-      }
-      steps: {
-        method: {
-          /**
-           * C​h​o​o​s​e​ ​a​ ​p​r​e​f​e​r​r​e​d​ ​m​e​t​h​o​d
-           */
-          title: string
-          cards: {
-            cli: {
-              /**
-               * D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
-               */
-              title: string
-              /**
-               * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​b​e​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​.
-               */
-              subtitle: string
-              /**
-               * D​e​f​g​u​a​r​d​ ​C​L​I​ ​d​o​w​n​l​o​a​d​ ​a​n​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n
-               */
-              docs: string
-            }
-            manual: {
-              /**
-               * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-               */
-              title: string
-              /**
-               * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​C​L​I​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
-               */
-              subtitle: string
-            }
-          }
-        }
-        manual: {
-          /**
-           * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-           */
-          title: string
-          finish: {
-            /**
-             * D​o​w​n​l​o​a​d​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​t​o​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​n​d​ ​i​m​p​o​r​t​ ​i​t​ ​i​n​t​o​ ​y​o​u​r​ ​V​P​N​ ​c​l​i​e​n​t​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​s​e​t​u​p​.
-             */
-            messageTop: string
-            /**
-             * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
-             */
-            ctaInstruction: string
-            /**
-             * 
-                                   P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​D​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​a​n​d​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​i​r​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​b​u​t​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​ ​l​a​t​e​r​.​
-                                  
-             */
-            warningMessage: string
-            actionCard: {
-              /**
-               * C​o​n​f​i​g
-               */
-              title: string
-            }
-          }
-        }
-        cli: {
-          /**
-           * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
-           */
-          title: string
-          finish: {
-            /**
-             * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​y​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​i​t​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
-             */
-            topMessage: string
-            /**
-             * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
-             */
-            downloadButton: string
-            /**
-             * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
-             */
-            commandCopy: string
-          }
-          setup: {
-            /**
-             * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
-             */
-            stepMessage: string
-            form: {
-              /**
-               * A​d​d​ ​D​e​v​i​c​e
-               */
-              submit: string
-            }
-          }
-        }
-      }
-    }
-    updatesNotificationToaster: {
-      /**
-       * N​e​w​ ​v​e​r​s​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​{​v​e​r​s​i​o​n​}
-       * @param {string} version
-       */
-      title: RequiredParams<'version'>
-      controls: {
-        /**
-         * S​e​e​ ​w​h​a​t​'​s​ ​n​e​w
-         */
-        more: string
-      }
-    }
-    enterpriseUpgradeToaster: {
-      /**
-       * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​l​i​m​i​t​.
-       */
-      title: string
-      /**
-       * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
-                         f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
-                         e​x​i​s​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
-       */
-      message: string
-      /**
-       * S​e​e​ ​a​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
-       */
-      link: string
-    }
-    updatesNotification: {
-      header: {
-        /**
-         * U​p​d​a​t​e​ ​A​v​a​i​l​a​b​l​e
-         */
-        title: string
-        /**
-         * n​e​w​ ​v​e​r​s​i​o​n​ ​{​v​e​r​s​i​o​n​}
-         * @param {string} version
-         */
-        newVersion: RequiredParams<'version'>
-        /**
-         * c​r​i​t​i​c​a​l​ ​u​p​d​a​t​e
-         */
-        criticalBadge: string
-      }
-      controls: {
-        /**
-         * V​i​s​i​t​ ​r​e​l​e​a​s​e​ ​p​a​g​e
-         */
-        visitRelease: string
-      }
-    }
-    addGroup: {
-      /**
-       * A​d​d​ ​g​r​o​u​p
-       */
-      title: string
-      /**
-       * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
-       */
-      selectAll: string
-      /**
-       * G​r​o​u​p​ ​n​a​m​e
-       */
-      groupName: string
-      /**
-       * F​i​l​t​e​r​/​S​e​a​r​c​h
-       */
-      searchPlaceholder: string
-      /**
-       * C​r​e​a​t​e​ ​g​r​o​u​p
-       */
-      submit: string
-      /**
-       * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
-       */
-      groupSettings: string
-      /**
-       * A​d​m​i​n​ ​g​r​o​u​p
-       */
-      adminGroup: string
-    }
-    editGroup: {
-      /**
-       * E​d​i​t​ ​g​r​o​u​p
-       */
-      title: string
-      /**
-       * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
-       */
-      selectAll: string
-      /**
-       * G​r​o​u​p​ ​n​a​m​e
-       */
-      groupName: string
-      /**
-       * F​i​l​t​e​r​/​S​e​a​r​c​h
-       */
-      searchPlaceholder: string
-      /**
-       * U​p​d​a​t​e​ ​g​r​o​u​p
-       */
-      submit: string
-      /**
-       * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
-       */
-      groupSettings: string
-      /**
-       * A​d​m​i​n​ ​g​r​o​u​p
-       */
-      adminGroup: string
-    }
-    deleteGroup: {
-      /**
-       * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
-       * @param {string} name
-       */
-      title: RequiredParams<'name'>
-      /**
-       * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
-       */
-      subTitle: string
-      /**
-       * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
-       */
-      locationListHeader: string
-      /**
-       * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
-       */
-      locationListFooter: string
-      /**
-       * D​e​l​e​t​e​ ​g​r​o​u​p
-       */
-      submit: string
-      /**
-       * C​a​n​c​e​l
-       */
-      cancel: string
-    }
-    deviceConfig: {
-      /**
-       * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
-       */
-      title: string
-    }
-    changePasswordSelf: {
-      /**
-       * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
-       */
-      title: string
-      messages: {
-        /**
-         * P​a​s​s​w​o​r​d​ ​h​a​s​ ​b​e​e​n​ ​c​h​a​n​g​e​d
-         */
-        success: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​d​ ​p​a​s​s​w​o​r​d
-         */
-        error: string
-      }
-      form: {
-        labels: {
-          /**
-           * N​e​w​ ​p​a​s​s​w​o​r​d
-           */
-          newPassword: string
-          /**
-           * C​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d
-           */
-          oldPassword: string
-          /**
-           * C​o​n​f​i​r​m​ ​n​e​w​ ​p​a​s​s​w​o​r​d
-           */
-          repeat: string
-        }
-      }
-      controls: {
-        /**
-         * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
-         */
-        submit: string
-        /**
-         * C​a​n​c​e​l
-         */
-        cancel: string
-      }
-    }
-    startEnrollment: {
-      /**
-       * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
-       */
-      title: string
-      /**
-       * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
-       */
-      desktopTitle: string
-      messages: {
-        /**
-         * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
-         */
-        success: string
-        /**
-         * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
-         */
-        successDesktop: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
-         */
-        error: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
-         */
-        errorDesktop: string
-      }
-      form: {
-        email: {
-          /**
-           * E​m​a​i​l
-           */
-          label: string
-        }
-        mode: {
-          options: {
-            /**
-             * S​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l
-             */
-            email: string
-            /**
-             * D​e​l​i​v​e​r​ ​t​o​k​e​n​ ​y​o​u​r​s​e​l​f
-             */
-            manual: string
-          }
-        }
-        /**
-         * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
-         */
-        submit: string
-        /**
-         * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
-         */
-        submitDesktop: string
-        /**
-         * C​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​t​o​ ​s​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l​.​ ​G​o​ ​t​o​ ​S​e​t​t​i​n​g​s​ ​-​>​ ​S​M​T​P​.
-         */
-        smtpDisabled: string
-      }
-      tokenCard: {
-        /**
-         * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
-         */
-        title: string
-      }
-      urlCard: {
-        /**
-         * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
-         */
-        title: string
-      }
-    }
-    deleteNetwork: {
-      /**
-       * D​e​l​e​t​e​ ​{​n​a​m​e​}​ ​l​o​c​a​t​i​o​n
-       * @param {string} name
-       */
-      title: RequiredParams<'name'>
-      /**
-       * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.
-       */
-      subTitle: string
-      /**
-       * D​e​l​e​t​e​ ​l​o​c​a​t​i​o​n
-       */
-      submit: string
-      /**
-       * C​a​n​c​e​l
-       */
-      cancel: string
-    }
-    changeWebhook: {
-      messages: {
-        /**
-         * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
-         */
-        success: string
-      }
-    }
-    manageWebAuthNKeys: {
-      /**
-       * S​e​c​u​r​i​t​y​ ​k​e​y​s
-       */
-      title: string
-      messages: {
-        /**
-         * W​e​b​A​u​t​h​N​ ​k​e​y​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
-         */
-        deleted: string
-        /**
-         * K​e​y​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
-         */
-        duplicateKeyError: string
-      }
-      /**
-       * 
-                     <​p​>​
-                         S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
-                         i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
-                         s​e​c​u​r​i​t​y​ ​k​e​y​.​
-                     <​/​p​>​
+	common: {
+		conditions: {
+			/**
+			 * o​r
+			 */
+			or: string
+			/**
+			 * a​n​d
+			 */
+			and: string
+			/**
+			 * e​q​u​a​l
+			 */
+			equal: string
+		}
+		controls: {
+			/**
+			 * A​c​c​e​p​t
+			 */
+			accept: string
+			/**
+			 * N​e​x​t
+			 */
+			next: string
+			/**
+			 * B​a​c​k
+			 */
+			back: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+			/**
+			 * C​o​n​f​i​r​m
+			 */
+			confirm: string
+			/**
+			 * S​u​b​m​i​t
+			 */
+			submit: string
+			/**
+			 * C​l​o​s​e
+			 */
+			close: string
+			/**
+			 * S​e​l​e​c​t
+			 */
+			select: string
+			/**
+			 * F​i​n​i​s​h
+			 */
+			finish: string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			saveChanges: string
+			/**
+			 * S​a​v​e
+			 */
+			save: string
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			RestoreDefault: string
+			/**
+			 * D​e​l​e​t​e
+			 */
+			'delete': string
+			/**
+			 * R​e​n​a​m​e
+			 */
+			rename: string
+			/**
+			 * C​o​p​y
+			 */
+			copy: string
+			/**
+			 * E​d​i​t
+			 */
+			edit: string
+			/**
+			 * D​i​s​m​i​s​s
+			 */
+			dismiss: string
+			/**
+			 * S​h​o​w
+			 */
+			show: string
+			/**
+			 * E​n​a​b​l​e
+			 */
+			enable: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e
+			 */
+			disable: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l
+			 */
+			selectAll: string
+			/**
+			 * C​l​e​a​r
+			 */
+			clear: string
+			/**
+			 * C​l​e​a​r​ ​a​l​l
+			 */
+			clearAll: string
+		}
+		/**
+		 * K​e​y
+		 */
+		key: string
+		/**
+		 * N​a​m​e
+		 */
+		name: string
+		/**
+		 * N​o​ ​d​a​t​a
+		 */
+		noData: string
+		/**
+		 * U​n​a​v​a​i​l​a​b​l​e
+		 */
+		unavailable: string
+		/**
+		 * N​o​t​ ​s​e​t
+		 */
+		notSet: string
+		/**
+		 * S​e​a​r​c​h
+		 */
+		search: string
+	}
+	messages: {
+		/**
+		 * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
+		 */
+		error: string
+		/**
+		 * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
+		 */
+		success: string
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
+		 */
+		errorVersion: string
+		/**
+		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
+		 */
+		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
+		clipboard: {
+			/**
+			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
+			 */
+			error: string
+			/**
+			 * C​o​n​t​e​n​t​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d​.
+			 */
+			success: string
+		}
+	}
+	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * U​p​g​r​a​d​e​ ​t​o​ ​E​n​t​e​r​p​r​i​s​e
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
+				 */
+				subTitle: string
+			}
+			limit: {
+				/**
+				 * U​p​g​r​a​d​e
+				 */
+				title: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​u​s​e​r​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				subTitle: string
+			}
+			/**
+			 * 
+		​Y​o​u​ ​c​a​n​ ​f​i​n​d​ ​o​u​t​ ​m​o​r​e​ ​a​b​o​u​t​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​:​
+		​-​ ​R​e​a​l​ ​t​i​m​e​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​c​l​i​e​n​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​
+		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
+		​-​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
+		​
+		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
+		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
+		​ ​ ​ ​ ​ ​ 
+			 */
+			content: string
+			controls: {
+				/**
+				 * M​a​y​b​e​ ​l​a​t​e​r
+				 */
+				cancel: string
+				/**
+				 * S​e​e​ ​a​l​l​ ​E​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+				 */
+				confirm: string
+			}
+		}
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​t​o​k​e​n
+			 */
+			title: string
+			toasters: {
+				/**
+				 * T​o​k​e​n​ ​g​e​n​e​r​a​t​i​o​n​ ​f​a​i​l​e​d​.
+				 */
+				error: string
+			}
+		}
+		standaloneDeviceConfigModal: {
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g
+			 */
+			title: string
+			/**
+			 * C​o​n​f​i​g
+			 */
+			cardTitle: string
+			toasters: {
+				getConfig: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​.
+					 */
+					error: string
+				}
+			}
+		}
+		editStandaloneModal: {
+			/**
+			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+				 */
+				success: string
+				/**
+				 * M​o​d​i​f​y​i​n​g​ ​t​h​e​ ​d​e​v​i​c​e​ ​f​a​i​l​e​d
+				 */
+				failure: string
+			}
+		}
+		deleteStandaloneDevice: {
+			/**
+			 * D​e​l​e​t​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			/**
+			 * D​e​v​i​c​e​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​.
+			 * @param {string} name
+			 */
+			content: RequiredParams<'name'>
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​r​e​m​o​v​e​ ​d​e​v​i​c​e​.
+				 */
+				error: string
+			}
+		}
+		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​a​d​d​e​d
+				 */
+				deviceCreated: string
+				/**
+				 * D​e​v​i​c​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​a​d​d​e​d​.
+				 */
+				creationFailed: string
+			}
+			infoBox: {
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+				 */
+				setup: string
+			}
+			form: {
+				/**
+				 * A​d​d​ ​D​e​v​i​c​e
+				 */
+				submit: string
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * A​s​s​i​g​n​e​d​ ​I​P​ ​A​d​d​r​e​s​s
+					 */
+					assignedAddress: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					generation: {
+						/**
+						 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+						 */
+						auto: string
+						/**
+						 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+						 */
+						manual: string
+					}
+					/**
+					 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+					 */
+					publicKey: string
+				}
+			}
+			steps: {
+				method: {
+					/**
+					 * C​h​o​o​s​e​ ​a​ ​p​r​e​f​e​r​r​e​d​ ​m​e​t​h​o​d
+					 */
+					title: string
+					cards: {
+						cli: {
+							/**
+							 * D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​b​e​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​.
+							 */
+							subtitle: string
+							/**
+							 * D​e​f​g​u​a​r​d​ ​C​L​I​ ​d​o​w​n​l​o​a​d​ ​a​n​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n
+							 */
+							docs: string
+						}
+						manual: {
+							/**
+							 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​C​L​I​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+							 */
+							subtitle: string
+						}
+					}
+				}
+				manual: {
+					/**
+					 * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+					finish: {
+						/**
+						 * D​o​w​n​l​o​a​d​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​t​o​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​n​d​ ​i​m​p​o​r​t​ ​i​t​ ​i​n​t​o​ ​y​o​u​r​ ​V​P​N​ ​c​l​i​e​n​t​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​s​e​t​u​p​.
+						 */
+						messageTop: string
+						/**
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
+						 */
+						ctaInstruction: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​D​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​a​n​d​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​i​r​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​b​u​t​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​ ​l​a​t​e​r​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						warningMessage: string
+						actionCard: {
+							/**
+							 * C​o​n​f​i​g
+							 */
+							title: string
+						}
+					}
+				}
+				cli: {
+					/**
+					 * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+					 */
+					title: string
+					finish: {
+						/**
+						 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​y​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​i​t​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+						 */
+						topMessage: string
+						/**
+						 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+						 */
+						downloadButton: string
+						/**
+						 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+						 */
+						commandCopy: string
+					}
+					setup: {
+						/**
+						 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+						 */
+						stepMessage: string
+						form: {
+							/**
+							 * A​d​d​ ​D​e​v​i​c​e
+							 */
+							submit: string
+						}
+					}
+				}
+			}
+		}
+		updatesNotificationToaster: {
+			/**
+			 * N​e​w​ ​v​e​r​s​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			title: RequiredParams<'version'>
+			controls: {
+				/**
+				 * S​e​e​ ​w​h​a​t​'​s​ ​n​e​w
+				 */
+				more: string
+			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​l​i​m​i​t​.
+			 */
+			title: string
+			/**
+			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​i​s​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+			 */
+			message: string
+			/**
+			 * S​e​e​ ​a​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+			 */
+			link: string
+		}
+		updatesNotification: {
+			header: {
+				/**
+				 * U​p​d​a​t​e​ ​A​v​a​i​l​a​b​l​e
+				 */
+				title: string
+				/**
+				 * n​e​w​ ​v​e​r​s​i​o​n​ ​{​v​e​r​s​i​o​n​}
+				 * @param {string} version
+				 */
+				newVersion: RequiredParams<'version'>
+				/**
+				 * c​r​i​t​i​c​a​l​ ​u​p​d​a​t​e
+				 */
+				criticalBadge: string
+			}
+			controls: {
+				/**
+				 * V​i​s​i​t​ ​r​e​l​e​a​s​e​ ​p​a​g​e
+				 */
+				visitRelease: string
+			}
+		}
+		addGroup: {
+			/**
+			 * A​d​d​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * C​r​e​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
+		}
+		editGroup: {
+			/**
+			 * E​d​i​t​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * U​p​d​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
+		}
+		deleteGroup: {
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
+			 */
+			subTitle: string
+			/**
+			 * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
+			 */
+			locationListHeader: string
+			/**
+			 * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
+			 */
+			locationListFooter: string
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
+		deviceConfig: {
+			/**
+			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
+			 */
+			title: string
+		}
+		changePasswordSelf: {
+			/**
+			 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+			 */
+			title: string
+			messages: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​h​a​s​ ​b​e​e​n​ ​c​h​a​n​g​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​d​ ​p​a​s​s​w​o​r​d
+				 */
+				error: string
+			}
+			form: {
+				labels: {
+					/**
+					 * N​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					newPassword: string
+					/**
+					 * C​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d
+					 */
+					oldPassword: string
+					/**
+					 * C​o​n​f​i​r​m​ ​n​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					repeat: string
+				}
+			}
+			controls: {
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				submit: string
+				/**
+				 * C​a​n​c​e​l
+				 */
+				cancel: string
+			}
+		}
+		startEnrollment: {
+			/**
+			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+			 */
+			title: string
+			/**
+			 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+			 */
+			desktopTitle: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+				 */
+				success: string
+				/**
+				 * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 */
+				successDesktop: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				errorDesktop: string
+			}
+			form: {
+				email: {
+					/**
+					 * E​m​a​i​l
+					 */
+					label: string
+				}
+				mode: {
+					options: {
+						/**
+						 * S​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l
+						 */
+						email: string
+						/**
+						 * D​e​l​i​v​e​r​ ​t​o​k​e​n​ ​y​o​u​r​s​e​l​f
+						 */
+						manual: string
+					}
+				}
+				/**
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				submit: string
+				/**
+				 * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
+				 */
+				submitDesktop: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​t​o​ ​s​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l​.​ ​G​o​ ​t​o​ ​S​e​t​t​i​n​g​s​ ​-​>​ ​S​M​T​P​.
+				 */
+				smtpDisabled: string
+			}
+			tokenCard: {
+				/**
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				title: string
+			}
+			urlCard: {
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
+				 */
+				title: string
+			}
+		}
+		deleteNetwork: {
+			/**
+			 * D​e​l​e​t​e​ ​{​n​a​m​e​}​ ​l​o​c​a​t​i​o​n
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.
+			 */
+			subTitle: string
+			/**
+			 * D​e​l​e​t​e​ ​l​o​c​a​t​i​o​n
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
+		changeWebhook: {
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+		}
+		manageWebAuthNKeys: {
+			/**
+			 * S​e​c​u​r​i​t​y​ ​k​e​y​s
+			 */
+			title: string
+			messages: {
+				/**
+				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
+				 */
+				deleted: string
+				/**
+				 * K​e​y​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
+				 */
+				duplicateKeyError: string
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​c​u​r​i​t​y​ ​k​e​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
-       */
-      infoMessage: string
-      form: {
-        messages: {
-          /**
-           * S​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d​.
-           */
-          success: string
-        }
-        fields: {
-          name: {
-            /**
-             * N​e​w​ ​k​e​y​ ​n​a​m​e
-             */
-            label: string
-          }
-        }
-        controls: {
-          /**
-           * A​d​d​ ​n​e​w​ ​K​e​y
-           */
-          submit: string
-        }
-      }
-    }
-    recoveryCodes: {
-      /**
-       * R​e​c​o​v​e​r​y​ ​c​o​d​e​s
-       */
-      title: string
-      /**
-       * I​ ​h​a​v​e​ ​s​a​v​e​d​ ​m​y​ ​c​o​d​e​s
-       */
-      submit: string
-      messages: {
-        /**
-         * C​o​d​e​s​ ​c​o​p​i​e​d​.
-         */
-        copied: string
-      }
-      /**
-       * 
-                     <​p​>​
-                         T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
-                         w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
-                         s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
-                     <​/​p​>​
+			 */
+			infoMessage: string
+			form: {
+				messages: {
+					/**
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d​.
+					 */
+					success: string
+				}
+				fields: {
+					name: {
+						/**
+						 * N​e​w​ ​k​e​y​ ​n​a​m​e
+						 */
+						label: string
+					}
+				}
+				controls: {
+					/**
+					 * A​d​d​ ​n​e​w​ ​K​e​y
+					 */
+					submit: string
+				}
+			}
+		}
+		recoveryCodes: {
+			/**
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​s
+			 */
+			title: string
+			/**
+			 * I​ ​h​a​v​e​ ​s​a​v​e​d​ ​m​y​ ​c​o​d​e​s
+			 */
+			submit: string
+			messages: {
+				/**
+				 * C​o​d​e​s​ ​c​o​p​i​e​d​.
+				 */
+				copied: string
+			}
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
-       */
-      infoMessage: string
-    }
-    registerTOTP: {
-      /**
-       * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​A​p​p​ ​S​e​t​u​p
-       */
-      title: string
-      /**
-       * 
-                     <​p​>​
-                         T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
-                         e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
-                     <​/​p​>​
+			 */
+			infoMessage: string
+		}
+		registerTOTP: {
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​A​p​p​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
-       */
-      infoMessage: string
-      messages: {
-        /**
-         * T​O​T​P​ ​p​a​t​h​ ​c​o​p​i​e​d​.
-         */
-        totpCopied: string
-        /**
-         * T​O​T​P​ ​E​n​a​b​l​e​d
-         */
-        success: string
-      }
-      /**
-       * C​o​p​y​ ​T​O​T​P​ ​p​a​t​h
-       */
-      copyPath: string
-      form: {
-        fields: {
-          code: {
-            /**
-             * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
-             */
-            label: string
-            /**
-             * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
-             */
-            error: string
-          }
-        }
-        controls: {
-          /**
-           * V​e​r​i​f​y​ ​c​o​d​e
-           */
-          submit: string
-        }
-      }
-    }
-    registerEmailMFA: {
-      /**
-       * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
-       */
-      title: string
-      /**
-       * 
-                     <​p​>​
-                         T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
-                     <​/​p​>​
+			 */
+			infoMessage: string
+			messages: {
+				/**
+				 * T​O​T​P​ ​p​a​t​h​ ​c​o​p​i​e​d​.
+				 */
+				totpCopied: string
+				/**
+				 * T​O​T​P​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+			}
+			/**
+			 * C​o​p​y​ ​T​O​T​P​ ​p​a​t​h
+			 */
+			copyPath: string
+			form: {
+				fields: {
+					code: {
+						/**
+						 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+				}
+			}
+		}
+		registerEmailMFA: {
+			/**
+			 * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
+			 */
+			title: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
-       * @param {string} email
-       */
-      infoMessage: RequiredParams<'email'>
-      messages: {
-        /**
-         * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
-         */
-        success: string
-        /**
-         * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
-         */
-        resend: string
-      }
-      form: {
-        fields: {
-          code: {
-            /**
-             * E​m​a​i​l​ ​c​o​d​e
-             */
-            label: string
-            /**
-             * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
-             */
-            error: string
-          }
-        }
-        controls: {
-          /**
-           * V​e​r​i​f​y​ ​c​o​d​e
-           */
-          submit: string
-          /**
-           * R​e​s​e​n​d​ ​e​m​a​i​l
-           */
-          resend: string
-        }
-      }
-    }
-    editDevice: {
-      /**
-       * E​d​i​t​ ​d​e​v​i​c​e
-       */
-      title: string
-      messages: {
-        /**
-         * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​u​p​d​a​t​e​d​.
-         */
-        success: string
-      }
-      form: {
-        fields: {
-          name: {
-            /**
-             * D​e​v​i​c​e​ ​N​a​m​e
-             */
-            label: string
-          }
-          publicKey: {
-            /**
-             * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​G​u​a​r​d​)
-             */
-            label: string
-          }
-        }
-        controls: {
-          /**
-           * E​d​i​t​ ​d​e​v​i​c​e
-           */
-          submit: string
-        }
-      }
-    }
-    deleteDevice: {
-      /**
-       * D​e​l​e​t​e​ ​d​e​v​i​c​e
-       */
-      title: string
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​d​e​v​i​c​e​N​a​m​e​}​ ​d​e​v​i​c​e​ ​?
-       * @param {unknown} deviceName
-       */
-      message: RequiredParams<'deviceName'>
-      /**
-       * D​e​l​e​t​e​ ​d​e​v​i​c​e
-       */
-      submit: string
-      messages: {
-        /**
-         * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
-         */
-        success: string
-      }
-    }
-    keyDetails: {
-      /**
-       * Y​u​b​i​K​e​y​ ​d​e​t​a​i​l​s
-       */
-      title: string
-      /**
-       * D​o​w​n​l​o​a​d​ ​a​l​l​ ​k​e​y​s
-       */
-      downloadAll: string
-    }
-    deleteUser: {
-      /**
-       * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
-       */
-      title: string
-      controls: {
-        /**
-         * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
-         */
-        submit: string
-      }
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
-       * @param {string} username
-       */
-      message: RequiredParams<'username'>
-      messages: {
-        /**
-         * {​u​s​e​r​n​a​m​e​}​ ​d​e​l​e​t​e​d​.
-         * @param {string} username
-         */
-        success: RequiredParams<'username'>
-      }
-    }
-    disableUser: {
-      /**
-       * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
-       */
-      title: string
-      controls: {
-        /**
-         * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
-         */
-        submit: string
-      }
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
-       * @param {string} username
-       */
-      message: RequiredParams<'username'>
-      messages: {
-        /**
-         * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
-         * @param {string} username
-         */
-        success: RequiredParams<'username'>
-      }
-    }
-    enableUser: {
-      /**
-       * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
-       */
-      title: string
-      controls: {
-        /**
-         * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
-         */
-        submit: string
-      }
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
-       * @param {string} username
-       */
-      message: RequiredParams<'username'>
-      messages: {
-        /**
-         * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
-         * @param {string} username
-         */
-        success: RequiredParams<'username'>
-      }
-    }
-    deleteProvisioner: {
-      /**
-       * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
-       */
-      title: string
-      controls: {
-        /**
-         * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
-         */
-        submit: string
-      }
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​i​d​}​ ​p​r​o​v​i​s​i​o​n​e​r​?
-       * @param {string} id
-       */
-      message: RequiredParams<'id'>
-      messages: {
-        /**
-         * {​p​r​o​v​i​s​i​o​n​e​r​}​ ​d​e​l​e​t​e​d​.
-         * @param {string} provisioner
-         */
-        success: RequiredParams<'provisioner'>
-      }
-    }
-    changeUserPassword: {
-      messages: {
-        /**
-         * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​.
-         */
-        success: string
-      }
-      /**
-       * C​h​a​n​g​e​ ​u​s​e​r​ ​p​a​s​s​w​o​r​d
-       */
-      title: string
-      form: {
-        controls: {
-          /**
-           * S​a​v​e​ ​n​e​w​ ​p​a​s​s​w​o​r​d
-           */
-          submit: string
-        }
-        fields: {
-          newPassword: {
-            /**
-             * N​e​w​ ​p​a​s​s​w​o​r​d
-             */
-            label: string
-          }
-          confirmPassword: {
-            /**
-             * R​e​p​e​a​t​ ​p​a​s​s​w​o​r​d
-             */
-            label: string
-          }
-        }
-      }
-    }
-    provisionKeys: {
-      /**
-       * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​:
-       */
-      title: string
-      /**
-       * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​y​u​b​i​k​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
-       */
-      warning: string
-      /**
-       * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
-                                     p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
-                                     <​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
-       */
-      infoBox: string
-      /**
-       * S​e​l​e​c​t​ ​o​n​e​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y​:
-       */
-      selectionLabel: string
-      noData: {
-        /**
-         * N​o​ ​w​o​r​k​e​r​s​ ​f​o​u​n​d​,​ ​w​a​i​t​i​n​g​.​.​.
-         */
-        workers: string
-      }
-      controls: {
-        /**
-         * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
-         */
-        submit: string
-      }
-      messages: {
-        /**
-         * K​e​y​s​ ​p​r​o​v​i​s​i​o​n​e​d
-         */
-        success: string
-        /**
-         * E​r​r​o​r​ ​w​h​i​l​e​ ​g​e​t​t​i​n​g​ ​w​o​r​k​e​r​ ​s​t​a​t​u​s​.
-         */
-        errorStatus: string
-      }
-    }
-    addUser: {
-      /**
-       * A​d​d​ ​n​e​w​ ​u​s​e​r
-       */
-      title: string
-      messages: {
-        /**
-         * U​s​e​r​ ​a​d​d​e​d
-         */
-        userAdded: string
-      }
-      form: {
-        /**
-         * A​d​d​ ​u​s​e​r
-         */
-        submit: string
-        fields: {
-          username: {
-            /**
-             * l​o​g​i​n
-             */
-            placeholder: string
-            /**
-             * L​o​g​i​n
-             */
-            label: string
-          }
-          password: {
-            /**
-             * P​a​s​s​w​o​r​d
-             */
-            placeholder: string
-            /**
-             * P​a​s​s​w​o​r​d
-             */
-            label: string
-          }
-          email: {
-            /**
-             * U​s​e​r​ ​e​-​m​a​i​l
-             */
-            placeholder: string
-            /**
-             * U​s​e​r​ ​e​-​m​a​i​l
-             */
-            label: string
-          }
-          firstName: {
-            /**
-             * F​i​r​s​t​ ​n​a​m​e
-             */
-            placeholder: string
-            /**
-             * F​i​r​s​t​ ​n​a​m​e
-             */
-            label: string
-          }
-          lastName: {
-            /**
-             * L​a​s​t​ ​n​a​m​e
-             */
-            placeholder: string
-            /**
-             * L​a​s​t​ ​n​a​m​e
-             */
-            label: string
-          }
-          phone: {
-            /**
-             * P​h​o​n​e
-             */
-            placeholder: string
-            /**
-             * P​h​o​n​e
-             */
-            label: string
-          }
-          enableEnrollment: {
-            /**
-             * U​s​e​ ​u​s​e​r​ ​s​e​l​f​-​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
-             */
-            label: string
-            /**
-             * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
-             */
-            link: string
-          }
-        }
-      }
-    }
-    webhookModal: {
-      title: {
-        /**
-         * A​d​d​ ​w​e​b​h​o​o​k​.
-         */
-        addWebhook: string
-        /**
-         * E​d​i​t​ ​w​e​b​h​o​o​k
-         */
-        editWebhook: string
-      }
-      messages: {
-        /**
-         * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
-         */
-        clientIdCopy: string
-        /**
-         * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
-         */
-        clientSecretCopy: string
-      }
-      form: {
-        /**
-         * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
-         */
-        triggers: string
-        messages: {
-          /**
-           * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
-           */
-          successAdd: string
-          /**
-           * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
-           */
-          successModify: string
-        }
-        error: {
-          /**
-           * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-           */
-          urlRequired: string
-          /**
-           * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
-           */
-          validUrl: string
-          /**
-           * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​t​r​i​g​g​e​r​.
-           */
-          scopeValidation: string
-          /**
-           * T​o​k​e​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-           */
-          tokenRequired: string
-        }
-        fields: {
-          description: {
-            /**
-             * D​e​s​c​r​i​p​t​i​o​n
-             */
-            label: string
-            /**
-             * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
-             */
-            placeholder: string
-          }
-          token: {
-            /**
-             * S​e​c​r​e​t​ ​t​o​k​e​n
-             */
-            label: string
-            /**
-             * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
-             */
-            placeholder: string
-          }
-          url: {
-            /**
-             * W​e​b​h​o​o​k​ ​U​R​L
-             */
-            label: string
-            /**
-             * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
-             */
-            placeholder: string
-          }
-          userCreated: {
-            /**
-             * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
-             */
-            label: string
-          }
-          userDeleted: {
-            /**
-             * U​s​e​r​ ​d​e​l​e​t​e​d
-             */
-            label: string
-          }
-          userModified: {
-            /**
-             * U​s​e​r​ ​m​o​d​i​f​i​e​d
-             */
-            label: string
-          }
-          hwkeyProvision: {
-            /**
-             * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
-             */
-            label: string
-          }
-        }
-      }
-    }
-    deleteWebhook: {
-      /**
-       * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
-       */
-      title: string
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
-       * @param {string} name
-       */
-      message: RequiredParams<'name'>
-      /**
-       * D​e​l​e​t​e
-       */
-      submit: string
-      messages: {
-        /**
-         * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
-         */
-        success: string
-      }
-    }
-  }
-  addDevicePage: {
-    /**
-     * A​d​d​ ​d​e​v​i​c​e
-     */
-    title: string
-    helpers: {
-      /**
-       * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
-       */
-      setupOpt: string
-      /**
-       * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
-       */
-      client: string
-    }
-    messages: {
-      /**
-       * D​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      deviceAdded: string
-    }
-    steps: {
-      setupMethod: {
-        remote: {
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
-           */
-          title: string
-          /**
-           * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
-           */
-          subTitle: string
-          /**
-           * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
-           */
-          link: string
-        }
-        manual: {
-          /**
-           * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-           */
-          title: string
-          /**
-           * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
-           */
-          subTitle: string
-          /**
-           * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-           */
-          link: string
-        }
-      }
-      configDevice: {
-        /**
-         * C​o​n​f​i​g​u​r​e​ ​d​e​v​i​c​e
-         */
-        title: string
-        messages: {
-          /**
-           * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
-           */
-          copyConfig: string
-        }
-        helpers: {
-          /**
-           * 
-                 <​p​>​
-                     P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
-                     s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
-                     p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
-                     f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
-                 <​/​p​>​
-    	
-           */
-          warningAutoMode: string
-          /**
-           * 
-                 <​p​>​
-                     P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
-                 <​/​p​>​
-    	
-           */
-          warningManualMode: string
-          /**
-           * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​n​y​ ​n​e​t​w​o​r​k​.
-           */
-          warningNoNetworks: string
-          /**
-           * 
-                     <​p​>​
-                         Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
-                     <​/​p​>
-           */
-          qrHelper: string
-        }
-        /**
-         * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
-         */
-        qrInfo: string
-        /**
-         * D​e​v​i​c​e​ ​N​a​m​e
-         */
-        inputNameLabel: string
-        /**
-         * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
-         */
-        qrLabel: string
-      }
-      setupDevice: {
-        /**
-         * C​r​e​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e
-         */
-        title: string
-        /**
-         * 
-                       <​p​>​
-                           Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
-                           <​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
-                       <​/​p​>​
-  	
-         * @param {string} addDevicesDocs
-         */
-        infoMessage: RequiredParams<'addDevicesDocs'>
-        options: {
-          /**
-           * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
-           */
-          auto: string
-          /**
-           * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
-           */
-          manual: string
-        }
-        form: {
-          fields: {
-            name: {
-              /**
-               * D​e​v​i​c​e​ ​N​a​m​e
-               */
-              label: string
-            }
-            publicKey: {
-              /**
-               * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
-               */
-              label: string
-            }
-          }
-          errors: {
-            name: {
-              /**
-               * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
-               */
-              duplicatedName: string
-            }
-          }
-        }
-      }
-      copyToken: {
-        /**
-         * C​l​i​e​n​t​ ​a​c​t​i​v​a​t​i​o​n
-         */
-        title: string
-        /**
-         * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
-         */
-        tokenCardTitle: string
-        /**
-         * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
-         */
-        urlCardTitle: string
-      }
-    }
-  }
-  userPage: {
-    title: {
-      /**
-       * U​s​e​r​ ​P​r​o​f​i​l​e
-       */
-      view: string
-      /**
-       * E​d​i​t​ ​U​s​e​r​ ​P​r​o​f​i​l​e
-       */
-      edit: string
-    }
-    messages: {
-      /**
-       * U​s​e​r​ ​u​p​d​a​t​e​d​.
-       */
-      editSuccess: string
-      /**
-       * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
-       */
-      failedToFetchUserData: string
-      /**
-       * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​.
-       */
-      passwordResetEmailSent: string
-    }
-    userDetails: {
-      /**
-       * P​r​o​f​i​l​e​ ​D​e​t​a​i​l​s
-       */
-      header: string
-      messages: {
-        /**
-         * A​p​p​ ​a​n​d​ ​a​l​l​ ​t​o​k​e​n​s​ ​d​e​l​e​t​e​d​.
-         */
-        deleteApp: string
-      }
-      warningModals: {
-        /**
-         * W​a​r​n​i​n​g
-         */
-        title: string
-        content: {
-          /**
-           * C​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​ ​u​s​e​r​ ​h​a​s​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​i​t​,​ ​t​h​e​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
-           */
-          usernameChange: string
-          /**
-           * I​f​ ​y​o​u​ ​a​r​e​ ​u​s​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​ ​(​O​I​D​C​)​ ​p​r​o​v​i​d​e​r​s​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​u​s​e​r​s​,​ ​c​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​'​s​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​m​a​y​ ​h​a​v​e​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​t​h​e​i​r​ ​a​b​i​l​i​t​y​ ​t​o​ ​l​o​g​ ​i​n​ ​t​o​ ​D​e​f​g​u​a​r​d​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
-           */
-          emailChange: string
-        }
-        buttons: {
-          /**
-           * P​r​o​c​e​e​d
-           */
-          proceed: string
-          /**
-           * C​a​n​c​e​l
-           */
-          cancel: string
-        }
-      }
-      fields: {
-        username: {
-          /**
-           * U​s​e​r​n​a​m​e
-           */
-          label: string
-        }
-        firstName: {
-          /**
-           * F​i​r​s​t​ ​n​a​m​e
-           */
-          label: string
-        }
-        lastName: {
-          /**
-           * L​a​s​t​ ​n​a​m​e
-           */
-          label: string
-        }
-        phone: {
-          /**
-           * P​h​o​n​e​ ​n​u​m​b​e​r
-           */
-          label: string
-        }
-        email: {
-          /**
-           * E​-​m​a​i​l
-           */
-          label: string
-        }
-        status: {
-          /**
-           * S​t​a​t​u​s
-           */
-          label: string
-          /**
-           * A​c​t​i​v​e
-           */
-          active: string
-          /**
-           * D​i​s​a​b​l​e​d
-           */
-          disabled: string
-        }
-        groups: {
-          /**
-           * U​s​e​r​ ​g​r​o​u​p​s
-           */
-          label: string
-          /**
-           * N​o​ ​g​r​o​u​p​s
-           */
-          noData: string
-        }
-        apps: {
-          /**
-           * A​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
-           */
-          label: string
-          /**
-           * N​o​ ​a​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
-           */
-          noData: string
-        }
-      }
-    }
-    userAuthInfo: {
-      /**
-       * P​a​s​s​w​o​r​d​ ​a​n​d​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
-       */
-      header: string
-      password: {
-        /**
-         * P​a​s​s​w​o​r​d​ ​s​e​t​t​i​n​g​s
-         */
-        header: string
-        /**
-         * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
-         */
-        changePassword: string
-        /**
-         * {​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​u​p​d​a​t​e​ ​r​e​q​u​i​r​e​d
-         * @param {string} ldapName
-         */
-        ldap_change_heading: RequiredParams<'ldapName'>
-        /**
-         * D​e​f​g​u​a​r​d​ ​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​ ​i​n​ ​p​l​a​i​n​ ​t​e​x​t​,​ ​s​o​ ​w​e​ ​c​a​n​’​t​ ​r​e​t​r​i​e​v​e​ ​i​t​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​t​h​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​c​r​e​d​e​n​t​i​a​l​s​.​ ​T​o​ ​e​n​a​b​l​e​ ​{​l​d​a​p​N​a​m​e​}​ ​l​o​g​i​n​ ​t​o​ ​o​t​h​e​r​ ​s​e​r​v​i​c​e​s​,​ ​p​l​e​a​s​e​ ​u​p​d​a​t​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​p​a​s​s​w​o​r​d​ ​f​o​r​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​t​o​ ​b​e​ ​s​e​t​ ​—​ ​y​o​u​ ​c​a​n​ ​r​e​-​e​n​t​e​r​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d​ ​i​f​ ​y​o​u​ ​w​i​s​h​.​ ​T​h​i​s​ ​s​t​e​p​ ​i​s​ ​n​e​c​e​s​s​a​r​y​ ​t​o​ ​e​n​s​u​r​e​ ​c​o​n​s​i​s​t​e​n​t​ ​a​n​d​ ​s​e​c​u​r​e​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​c​r​o​s​s​ ​b​o​t​h​ ​s​y​s​t​e​m​s​.
-         * @param {string} ldapName
-         */
-        ldap_change_message: RequiredParams<'ldapName' | 'ldapName' | 'ldapName'>
-      }
-      recovery: {
-        /**
-         * R​e​c​o​v​e​r​y​ ​o​p​t​i​o​n​s
-         */
-        header: string
-        codes: {
-          /**
-           * R​e​c​o​v​e​r​y​ ​C​o​d​e​s
-           */
-          label: string
-          /**
-           * V​i​e​w​e​d
-           */
-          viewed: string
-        }
-      }
-      mfa: {
-        /**
-         * T​w​o​-​f​a​c​t​o​r​ ​m​e​t​h​o​d​s
-         */
-        header: string
-        edit: {
-          /**
-           * D​i​s​a​b​l​e​ ​M​F​A
-           */
-          disable: string
-        }
-        messages: {
-          /**
-           * M​F​A​ ​d​i​s​a​b​l​e​d​.
-           */
-          mfaDisabled: string
-          /**
-           * O​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​ ​d​i​s​a​b​l​e​d​.
-           */
-          OTPDisabled: string
-          /**
-           * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
-           */
-          EmailMFADisabled: string
-          /**
-           * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
-           */
-          changeMFAMethod: string
-        }
-        securityKey: {
-          /**
-           * s​e​c​u​r​i​t​y​ ​k​e​y
-           */
-          singular: string
-          /**
-           * s​e​c​u​r​i​t​y​ ​k​e​y​s
-           */
-          plural: string
-        }
-        /**
-         * d​e​f​a​u​l​t
-         */
-        'default': string
-        /**
-         * E​n​a​b​l​e​d
-         */
-        enabled: string
-        /**
-         * D​i​s​a​b​l​e​d
-         */
-        disabled: string
-        labels: {
-          /**
-           * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
-           */
-          totp: string
-          /**
-           * E​m​a​i​l
-           */
-          email: string
-          /**
-           * S​e​c​u​r​i​t​y​ ​k​e​y​s
-           */
-          webauth: string
-        }
-        editMode: {
-          /**
-           * E​n​a​b​l​e
-           */
-          enable: string
-          /**
-           * D​i​s​a​b​l​e
-           */
-          disable: string
-          /**
-           * M​a​k​e​ ​d​e​f​a​u​l​t
-           */
-          makeDefault: string
-          webauth: {
-            /**
-             * M​a​n​a​g​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​s
-             */
-            manage: string
-          }
-        }
-      }
-    }
-    controls: {
-      /**
-       * E​d​i​t​ ​p​r​o​f​i​l​e
-       */
-      editButton: string
-      /**
-       * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
-       */
-      deleteAccount: string
-    }
-    devices: {
-      /**
-       * U​s​e​r​ ​d​e​v​i​c​e​s
-       */
-      header: string
-      addDevice: {
-        /**
-         * A​d​d​ ​n​e​w​ ​d​e​v​i​c​e
-         */
-        web: string
-        /**
-         * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
-         */
-        desktop: string
-      }
-      card: {
-        labels: {
-          /**
-           * P​u​b​l​i​c​ ​I​P
-           */
-          publicIP: string
-          /**
-           * C​o​n​n​e​c​t​e​d​ ​t​h​r​o​u​g​h
-           */
-          connectedThrough: string
-          /**
-           * C​o​n​n​e​c​t​e​d​ ​d​a​t​e
-           */
-          connectionDate: string
-          /**
-           * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
-           */
-          lastLocation: string
-          /**
-           * L​a​s​t​ ​c​o​n​n​e​c​t​e​d
-           */
-          lastConnected: string
-          /**
-           * A​s​s​i​g​n​e​d​ ​I​P
-           */
-          assignedIp: string
-          /**
-           * a​c​t​i​v​e
-           */
-          active: string
-          /**
-           * N​e​v​e​r​ ​c​o​n​n​e​c​t​e​d
-           */
-          noData: string
-        }
-        edit: {
-          /**
-           * E​d​i​t​ ​d​e​v​i​c​e
-           */
-          edit: string
-          /**
-           * D​e​l​e​t​e​ ​d​e​v​i​c​e
-           */
-          'delete': string
-          /**
-           * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-           */
-          showConfigurations: string
-        }
-      }
-    }
-    yubiKey: {
-      /**
-       * U​s​e​r​ ​Y​u​b​i​K​e​y
-       */
-      header: string
-      /**
-       * P​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
-       */
-      provision: string
-      keys: {
-        /**
-         * P​G​P​ ​k​e​y
-         */
-        pgp: string
-        /**
-         * S​S​H​ ​k​e​y
-         */
-        ssh: string
-      }
-      noLicense: {
-        /**
-         * Y​u​b​i​K​e​y​ ​m​o​d​u​l​e
-         */
-        moduleName: string
-        /**
-         * T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y
-         */
-        line1: string
-        /**
-         * m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
-         */
-        line2: string
-      }
-    }
-    authenticationKeys: {
-      /**
-       * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
-       */
-      header: string
-      /**
-       * A​d​d​ ​n​e​w​ ​K​e​y
-       */
-      addKey: string
-      keysList: {
-        common: {
-          /**
-           * R​e​n​a​m​e
-           */
-          rename: string
-          /**
-           * K​e​y
-           */
-          key: string
-          /**
-           * D​o​w​n​l​o​a​d
-           */
-          download: string
-          /**
-           * C​o​p​y
-           */
-          copy: string
-          /**
-           * S​e​r​i​a​l​ ​N​u​m​b​e​r
-           */
-          serialNumber: string
-          /**
-           * D​e​l​e​t​e
-           */
-          'delete': string
-        }
-      }
-      deleteModal: {
-        /**
-         * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
-         */
-        title: string
-        /**
-         * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
-         * @param {string} name
-         */
-        confirmMessage: RequiredParams<'name'>
-      }
-      addModal: {
-        /**
-         * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
-         */
-        header: string
-        /**
-         * K​e​y​ ​T​y​p​e
-         */
-        keyType: string
-        keyForm: {
-          placeholders: {
-            /**
-             * K​e​y​ ​N​a​m​e
-             */
-            title: string
-            key: {
-              /**
-               * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
-               */
-              ssh: string
-              /**
-               * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
-               */
-              gpg: string
-            }
-          }
-          labels: {
-            /**
-             * N​a​m​e
-             */
-            title: string
-            /**
-             * K​e​y
-             */
-            key: string
-          }
-          /**
-           * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
-           * @param {string} name
-           */
-          submit: RequiredParams<'name'>
-        }
-        yubikeyForm: {
-          selectWorker: {
-            /**
-             * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
-             */
-            info: string
-            /**
-             * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
-             */
-            selectLabel: string
-            /**
-             * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
-             */
-            noData: string
-            /**
-             * A​v​a​i​l​a​b​l​e
-             */
-            available: string
-            /**
-             * U​n​a​v​a​i​l​a​b​l​e
-             */
-            unavailable: string
-          }
-          provisioning: {
-            /**
-             * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
-             */
-            inProgress: string
-            /**
-             * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
-             */
-            error: string
-            /**
-             * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
-             */
-            success: string
-          }
-          /**
-           * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
-           */
-          submit: string
-        }
-        messages: {
-          /**
-           * K​e​y​ ​a​d​d​e​d​.
-           */
-          keyAdded: string
-          /**
-           * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
-           */
-          keyExists: string
-          /**
-           * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
-           */
-          unsupportedKeyFormat: string
-          /**
-           * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
-           */
-          genericError: string
-        }
-      }
-    }
-    apiTokens: {
-      /**
-       * U​s​e​r​ ​A​P​I​ ​T​o​k​e​n​s
-       */
-      header: string
-      /**
-       * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
-       */
-      addToken: string
-      tokensList: {
-        common: {
-          /**
-           * R​e​n​a​m​e
-           */
-          rename: string
-          /**
-           * T​o​k​e​n
-           */
-          token: string
-          /**
-           * C​o​p​y
-           */
-          copy: string
-          /**
-           * D​e​l​e​t​e
-           */
-          'delete': string
-          /**
-           * C​r​e​a​t​e​d​ ​a​t
-           */
-          createdAt: string
-        }
-      }
-      deleteModal: {
-        /**
-         * D​e​l​e​t​e​ ​A​P​I​ ​T​o​k​e​n
-         */
-        title: string
-        /**
-         * A​P​I​ ​t​o​k​e​n​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
-         * @param {string} name
-         */
-        confirmMessage: RequiredParams<'name'>
-      }
-      addModal: {
-        /**
-         * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
-         */
-        header: string
-        tokenForm: {
-          placeholders: {
-            /**
-             * A​P​I​ ​T​o​k​e​n​ ​N​a​m​e
-             */
-            name: string
-          }
-          labels: {
-            /**
-             * N​a​m​e
-             */
-            name: string
-          }
-          /**
-           * A​d​d​ ​A​P​I​ ​t​o​k​e​n
-           */
-          submit: string
-        }
-        copyToken: {
-          /**
-           * P​l​e​a​s​e​ ​c​o​p​y​ ​t​h​e​ ​A​P​I​ ​t​o​k​e​n​ ​b​e​l​o​w​ ​n​o​w​.​ ​Y​o​u​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​e​ ​i​t​ ​a​g​a​i​n​.
-           */
-          warningMessage: string
-          /**
-           * C​o​p​y​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
-           */
-          header: string
-        }
-        messages: {
-          /**
-           * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d​.
-           */
-          tokenAdded: string
-          /**
-           * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​A​P​I​ ​t​o​k​e​n​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
-           */
-          genericError: string
-        }
-      }
-    }
-  }
-  usersOverview: {
-    /**
-     * U​s​e​r​s
-     */
-    pageTitle: string
-    grid: {
-      /**
-       * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
-       */
-      usersTitle: string
-      /**
-       * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
-       */
-      devicesTitle: string
-    }
-    search: {
-      /**
-       * F​i​n​d​ ​u​s​e​r​s
-       */
-      placeholder: string
-    }
-    filterLabels: {
-      /**
-       * A​l​l​ ​u​s​e​r​s
-       */
-      all: string
-      /**
-       * A​d​m​i​n​s​ ​o​n​l​y
-       */
-      admin: string
-      /**
-       * U​s​e​r​s​ ​o​n​l​y
-       */
-      users: string
-    }
-    /**
-     * A​l​l​ ​u​s​e​r​s
-     */
-    usersCount: string
-    /**
-     * A​d​d​ ​n​e​w
-     */
-    addNewUser: string
-    list: {
-      headers: {
-        /**
-         * U​s​e​r​ ​n​a​m​e
-         */
-        name: string
-        /**
-         * L​o​g​i​n
-         */
-        username: string
-        /**
-         * P​h​o​n​e
-         */
-        phone: string
-        /**
-         * A​c​t​i​o​n​s
-         */
-        actions: string
-      }
-      editButton: {
-        /**
-         * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
-         */
-        changePassword: string
-        /**
-         * E​d​i​t​ ​a​c​c​o​u​n​t
-         */
-        edit: string
-        /**
-         * A​d​d​ ​Y​u​b​i​K​e​y
-         */
-        addYubikey: string
-        /**
-         * A​d​d​ ​S​S​H​ ​K​e​y
-         */
-        addSSH: string
-        /**
-         * A​d​d​ ​G​P​G​ ​K​e​y
-         */
-        addGPG: string
-        /**
-         * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
-         */
-        'delete': string
-        /**
-         * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
-         */
-        startEnrollment: string
-        /**
-         * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
-         */
-        activateDesktop: string
-        /**
-         * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
-         */
-        resetPassword: string
-      }
-    }
-  }
-  navigation: {
-    bar: {
-      /**
-       * V​P​N​ ​O​v​e​r​v​i​e​w
-       */
-      overview: string
-      /**
-       * U​s​e​r​s
-       */
-      users: string
-      /**
-       * Y​u​b​i​K​e​y​s
-       */
-      provisioners: string
-      /**
-       * W​e​b​h​o​o​k​s
-       */
-      webhooks: string
-      /**
-       * O​p​e​n​I​D​ ​A​p​p​s
-       */
-      openId: string
-      /**
-       * M​y​ ​P​r​o​f​i​l​e
-       */
-      myProfile: string
-      /**
-       * S​e​t​t​i​n​g​s
-       */
-      settings: string
-      /**
-       * L​o​g​ ​o​u​t
-       */
-      logOut: string
-      /**
-       * E​n​r​o​l​l​m​e​n​t
-       */
-      enrollment: string
-      /**
-       * S​u​p​p​o​r​t
-       */
-      support: string
-      /**
-       * G​r​o​u​p​s
-       */
-      groups: string
-      /**
-       * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
-       */
-      devices: string
-      /**
-       * A​c​c​e​s​s​ ​C​o​n​t​r​o​l
-       */
-      acl: string
-      /**
-       * A​c​t​i​v​i​t​y
-       */
-      activity: string
-    }
-    mobileTitles: {
-      /**
-       * A​c​t​i​v​i​t​y
-       */
-      activity: string
-      /**
-       * G​r​o​u​p​s
-       */
-      groups: string
-      /**
-       * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
-       */
-      wizard: string
-      /**
-       * U​s​e​r​s
-       */
-      users: string
-      /**
-       * S​e​t​t​i​n​g​s
-       */
-      settings: string
-      /**
-       * U​s​e​r​ ​P​r​o​f​i​l​e
-       */
-      user: string
-      /**
-       * Y​u​b​i​k​e​y
-       */
-      provisioners: string
-      /**
-       * W​e​b​h​o​o​k​s
-       */
-      webhooks: string
-      /**
-       * O​p​e​n​I​d​ ​A​p​p​s
-       */
-      openId: string
-      /**
-       * L​o​c​a​t​i​o​n​ ​O​v​e​r​v​i​e​w
-       */
-      overview: string
-      /**
-       * E​d​i​t​ ​L​o​c​a​t​i​o​n
-       */
-      networkSettings: string
-      /**
-       * E​n​r​o​l​l​m​e​n​t
-       */
-      enrollment: string
-      /**
-       * S​u​p​p​o​r​t
-       */
-      support: string
-      /**
-       * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
-       */
-      devices: string
-    }
-    /**
-     * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​5
-     */
-    copyright: string
-    version: {
-      /**
-       * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
-       * @param {string} version
-       */
-      open: RequiredParams<'version'>
-      /**
-       * v​{​v​e​r​s​i​o​n​}
-       * @param {string} version
-       */
-      closed: RequiredParams<'version'>
-    }
-  }
-  form: {
-    /**
-     * D​o​w​n​l​o​a​d
-     */
-    download: string
-    /**
-     * C​o​p​y
-     */
-    copy: string
-    /**
-     * S​a​v​e​ ​c​h​a​n​g​e​s
-     */
-    saveChanges: string
-    /**
-     * S​u​b​m​i​t
-     */
-    submit: string
-    /**
-     * S​i​g​n​ ​i​n
-     */
-    login: string
-    /**
-     * C​a​n​c​e​l
-     */
-    cancel: string
-    /**
-     * C​l​o​s​e
-     */
-    close: string
-    placeholders: {
-      /**
-       * P​a​s​s​w​o​r​d
-       */
-      password: string
-      /**
-       * U​s​e​r​n​a​m​e
-       */
-      username: string
-      /**
-       * U​s​e​r​n​a​m​e​ ​o​r​ ​e​m​a​i​l
-       */
-      username_or_email: string
-    }
-    error: {
-      /**
-       * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
-       */
-      reservedName: string
-      /**
-       * I​P​ ​i​s​ ​i​n​v​a​l​i​d​.
-       */
-      invalidIp: string
-      /**
-       * I​P​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
-       */
-      reservedIp: string
-      /**
-       * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
-       */
-      forbiddenCharacter: string
-      /**
-       * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
-       */
-      usernameTaken: string
-      /**
-       * K​e​y​ ​i​s​ ​i​n​v​a​l​i​d​.
-       */
-      invalidKey: string
-      /**
-       * F​i​e​l​d​ ​i​s​ ​i​n​v​a​l​i​d​.
-       */
-      invalid: string
-      /**
-       * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-       */
-      required: string
-      /**
-       * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
-       */
-      invalidCode: string
-      /**
-       * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
-       */
-      maximumLength: string
-      /**
-       * F​i​e​l​d​ ​l​e​n​g​t​h​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​{​l​e​n​g​t​h​}
-       * @param {number} length
-       */
-      maximumLengthOf: RequiredParams<'length'>
-      /**
-       * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​n​o​t​ ​r​e​a​c​h​e​d​.
-       */
-      minimumLength: string
-      /**
-       * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​o​f​ ​{​l​e​n​g​t​h​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
-       * @param {number} length
-       */
-      minimumLengthOf: RequiredParams<'length'>
-      /**
-       * N​o​ ​s​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​s​ ​a​r​e​ ​a​l​l​o​w​e​d​.
-       */
-      noSpecialChars: string
-      /**
-       * O​n​e​ ​d​i​g​i​t​ ​r​e​q​u​i​r​e​d​.
-       */
-      oneDigit: string
-      /**
-       * S​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
-       */
-      oneSpecial: string
-      /**
-       * O​n​e​ ​u​p​p​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
-       */
-      oneUppercase: string
-      /**
-       * O​n​e​ ​l​o​w​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
-       */
-      oneLowercase: string
-      /**
-       * M​a​x​i​m​u​m​ ​p​o​r​t​ ​i​s​ ​6​5​5​3​5​.
-       */
-      portMax: string
-      /**
-       * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​e​n​d​p​o​i​n​t​.
-       */
-      endpoint: string
-      /**
-       * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​.
-       */
-      address: string
-      /**
-       * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​ ​w​i​t​h​ ​a​ ​n​e​t​m​a​s​k​.
-       */
-      addressNetmask: string
-      /**
-       * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
-       */
-      validPort: string
-      /**
-       * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
-       */
-      validCode: string
-      /**
-       * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
-       */
-      allowedIps: string
-      /**
-       * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
-       */
-      startFromNumber: string
-      /**
-       * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
-       */
-      repeat: string
-      /**
-       * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
-       */
-      number: string
-      /**
-       * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
-       * @param {number} value
-       */
-      minimumValue: RequiredParams<'value'>
-      /**
-       * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
-       * @param {number} value
-       */
-      maximumValue: RequiredParams<'value'>
-      /**
-       * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​a​ ​f​e​w​ ​m​i​n​u​t​e​s​.
-       */
-      tooManyBadLoginAttempts: string
-    }
-    floatingErrors: {
-      /**
-       * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​:
-       */
-      title: string
-    }
-  }
-  components: {
-    aclDefaultPolicySelect: {
-      /**
-       * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
-       */
-      label: string
-      options: {
-        /**
-         * A​l​l​o​w
-         */
-        allow: string
-        /**
-         * D​e​n​y
-         */
-        deny: string
-      }
-    }
-    standaloneDeviceTokenModalContent: {
-      /**
-       * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
-       */
-      headerMessage: string
-      /**
-       * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
-       */
-      downloadButton: string
-      expandableCard: {
-        /**
-         * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
-         */
-        title: string
-      }
-    }
-    deviceConfigsCard: {
-      /**
-       * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
-       */
-      cardTitle: string
-      messages: {
-        /**
-         * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
-         */
-        copyConfig: string
-      }
-    }
-    gatewaysStatus: {
-      /**
-       * G​a​t​e​w​a​y​s
-       */
-      label: string
-      states: {
-        /**
-         * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
-         * @param {number} count
-         */
-        all: RequiredParams<'count'>
-        /**
-         * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
-         * @param {number} count
-         */
-        some: RequiredParams<'count'>
-        /**
-         * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
-         */
-        none: string
-        /**
-         * S​t​a​t​u​s​ ​c​h​e​c​k​ ​f​a​i​l​e​d
-         */
-        error: string
-      }
-      messages: {
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
-         */
-        error: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​g​a​t​e​w​a​y
-         */
-        deleteError: string
-      }
-    }
-    noLicenseBox: {
-      footer: {
-        /**
-         * G​e​t​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e
-         */
-        get: string
-        /**
-         * b​y​ ​c​o​n​t​a​c​t​i​n​g​:
-         */
-        contact: string
-      }
-    }
-  }
-  settingsPage: {
-    /**
-     * S​e​t​t​i​n​g​s
-     */
-    title: string
-    tabs: {
-      /**
-       * S​M​T​P
-       */
-      smtp: string
-      /**
-       * G​l​o​b​a​l​ ​s​e​t​t​i​n​g​s
-       */
-      global: string
-      /**
-       * L​D​A​P
-       */
-      ldap: string
-      /**
-       * O​p​e​n​I​D
-       */
-      openid: string
-      /**
-       * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
-       */
-      enterprise: string
-      /**
-       * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
-       */
-      gatewayNotifications: string
-    }
-    messages: {
-      /**
-       * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
-       */
-      editSuccess: string
-      /**
-       * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
-       */
-      challengeSuccess: string
-    }
-    enterpriseOnly: {
-      /**
-       * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
-       */
-      title: string
-      /**
-       * Y​o​u​r​ ​c​u​r​r​e​n​t​ ​l​i​c​e​n​s​e​ ​h​a​s​ ​e​x​p​i​r​e​d​.
-       */
-      currentExpired: string
-      /**
-       * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
-       */
-      subtitle: string
-      /**
-       * w​e​b​s​i​t​e
-       */
-      website: string
-    }
-    ldapSettings: {
-      /**
-       * L​D​A​P​ ​S​e​t​t​i​n​g​s
-       */
-      title: string
-      sync: {
-        /**
-         * L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
-         */
-        header: string
-        /**
-         * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​i​n​t​e​g​r​a​t​i​o​n​/​t​w​o​-​w​a​y​-​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
-         */
-        info: string
-        /**
-         * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
-         */
-        info_enterprise: string
-        helpers: {
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​p​u​l​l​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​L​D​A​P​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​ ​i​t​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
-           */
-          heading: string
-          /**
-           * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​p​u​l​l​ ​L​D​A​P​ ​u​s​e​r​ ​d​a​t​a​ ​a​t​ ​t​h​e​ ​s​p​e​c​i​f​i​e​d​ ​i​n​t​e​r​v​a​l​.
-           */
-          sync_enabled: string
-          /**
-           * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​ ​o​f​
-                             u​s​e​r​ ​d​a​t​a​,​ ​m​e​a​n​i​n​g​ ​t​h​a​t​ ​i​f​ ​L​D​A​P​ ​i​s​ ​s​e​l​e​c​t​e​d​,​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​ ​b​e​ ​o​v​e​r​w​r​i​t​t​e​n​ ​w​i​t​h​ ​t​h​e​ ​L​D​A​P​
-                             d​a​t​a​ ​i​n​ ​c​a​s​e​ ​o​f​ ​a​ ​d​e​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​I​f​ ​D​e​f​g​u​a​r​d​ ​w​a​s​ ​s​e​l​e​c​t​e​d​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y​,​ ​i​t​'​s​ ​d​a​t​a​ ​w​i​l​l​
-                             o​v​e​r​w​r​i​t​e​ ​L​D​A​P​ ​d​a​t​a​ ​i​f​ ​n​e​c​e​s​s​a​r​y​.​
-                             M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​t​h​e​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​t​o​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​e​ ​i​m​p​l​i​c​a​t​i​o​n​s​ ​o​f​ ​t​h​i​s​
-                             s​e​t​t​i​n​g​.
-           */
-          authority: string
-          /**
-           * T​h​e​ ​i​n​t​e​r​v​a​l​ ​w​i​t​h​ ​w​h​i​c​h​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​t​t​e​m​p​t​e​d​.
-           */
-          interval: string
-          /**
-           * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​o​n​l​y​ ​u​s​e​r​s​ ​b​e​l​o​n​g​i​n​g​ ​t​o​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​g​r​o​u​p​s​.​ ​P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​s​.​ ​I​f​ ​e​m​p​t​y​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
-           */
-          groups: string
-        }
-      }
-      form: {
-        labels: {
-          /**
-           * E​n​a​b​l​e​ ​L​D​A​P​ ​i​n​t​e​g​r​a​t​i​o​n
-           */
-          ldap_enable: string
-          /**
-           * U​R​L
-           */
-          ldap_url: string
-          /**
-           * B​i​n​d​ ​U​s​e​r​n​a​m​e
-           */
-          ldap_bind_username: string
-          /**
-           * B​i​n​d​ ​P​a​s​s​w​o​r​d
-           */
-          ldap_bind_password: string
-          /**
-           * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
-           */
-          ldap_member_attr: string
-          /**
-           * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
-           */
-          ldap_username_attr: string
-          /**
-           * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
-           */
-          ldap_user_obj_class: string
-          /**
-           * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
-           */
-          ldap_user_search_base: string
-          /**
-           * A​d​d​i​t​i​o​n​a​l​ ​U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s​e​s
-           */
-          ldap_user_auxiliary_obj_classes: string
-          /**
-           * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
-           */
-          ldap_groupname_attr: string
-          /**
-           * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
-           */
-          ldap_group_search_base: string
-          /**
-           * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
-           */
-          ldap_group_member_attr: string
-          /**
-           * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
-           */
-          ldap_group_obj_class: string
-          /**
-           * E​n​a​b​l​e​ ​L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
-           */
-          ldap_sync_enabled: string
-          /**
-           * C​o​n​s​i​d​e​r​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​s​o​u​r​c​e​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
-           */
-          ldap_authoritative_source: string
-          /**
-           * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
-           */
-          ldap_sync_interval: string
-          /**
-           * U​s​e​ ​S​t​a​r​t​T​L​S
-           */
-          ldap_use_starttls: string
-          /**
-           * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
-           */
-          ldap_tls_verify_cert: string
-          /**
-           * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
-           */
-          ldap_uses_ad: string
-          /**
-           * U​s​e​r​ ​R​D​N​ ​A​t​t​r​i​b​u​t​e
-           */
-          ldap_user_rdn_attr: string
-          /**
-           * L​i​m​i​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​t​o​ ​t​h​e​s​e​ ​g​r​o​u​p​s
-           */
-          ldap_sync_groups: string
-        }
-        helpers: {
-          /**
-           * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​u​s​e​r​.
-           */
-          ldap_user_obj_class: string
-          /**
-           * T​h​e​ ​a​d​d​i​t​i​o​n​a​l​ ​o​b​j​e​c​t​ ​c​l​a​s​s​e​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​e​y​ ​m​a​y​ ​a​l​s​o​ ​i​n​f​l​u​e​n​c​e​ ​t​h​e​ ​a​d​d​e​d​ ​u​s​e​r​'​s​ ​a​t​t​r​i​b​u​t​e​s​ ​(​e​.​g​.​ ​s​i​m​p​l​e​S​e​c​u​r​i​t​y​O​b​j​e​c​t​ ​c​l​a​s​s​ ​w​i​l​l​ ​a​d​d​ ​u​s​e​r​P​a​s​s​w​o​r​d​ ​a​t​t​r​i​b​u​t​e​)​.
-           */
-          ldap_user_auxiliary_obj_classes: string
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​u​s​e​r​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
-           */
-          user_settings: string
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​c​o​n​n​e​c​t​s​ ​t​o​ ​y​o​u​r​ ​L​D​A​P​ ​s​e​r​v​e​r​.​ ​E​n​c​r​y​p​t​e​d​ ​c​o​n​n​e​c​t​i​o​n​s​ ​a​r​e​ ​a​l​s​o​ ​s​u​p​p​o​r​t​e​d​ ​(​S​t​a​r​t​T​L​S​,​ ​L​D​A​P​S​)​.
-           */
-          connection_settings: string
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​g​r​o​u​p​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​g​r​o​u​p​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​g​r​o​u​p​s​.
-           */
-          group_settings: string
-          /**
-           * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​r​e​p​r​e​s​e​n​t​s​ ​a​ ​g​r​o​u​p​ ​i​n​ ​L​D​A​P​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​g​r​o​u​p​.
-           */
-          ldap_group_obj_class: string
-          /**
-           * I​f​ ​y​o​u​r​ ​u​s​e​r​'​s​ ​R​D​N​ ​a​t​t​r​i​b​u​t​e​ ​i​s​ ​d​i​f​f​e​r​e​n​t​ ​t​h​a​n​ ​y​o​u​r​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​,​ ​p​l​e​a​s​e​ ​p​r​o​v​i​d​e​ ​i​t​ ​h​e​r​e​,​ ​o​t​h​e​r​w​i​s​e​ ​l​e​a​v​e​ ​i​t​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​ ​a​s​ ​t​h​e​ ​u​s​e​r​'​s​ ​R​D​N​.
-           */
-          ldap_user_rdn_attr: string
-        }
-        headings: {
-          /**
-           * U​s​e​r​ ​s​e​t​t​i​n​g​s
-           */
-          user_settings: string
-          /**
-           * C​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s
-           */
-          connection_settings: string
-          /**
-           * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
-           */
-          group_settings: string
-        }
-        /**
-         * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-         */
-        'delete': string
-      }
-      test: {
-        /**
-         * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
-         */
-        title: string
-        /**
-         * T​e​s​t
-         */
-        submit: string
-        messages: {
-          /**
-           * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
-           */
-          success: string
-          /**
-           * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
-           */
-          error: string
-        }
-      }
-    }
-    openIdSettings: {
-      /**
-       * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s
-       */
-      heading: string
-      general: {
-        /**
-         * G​e​n​e​r​a​l​ ​s​e​t​t​i​n​g​s
-         */
-        title: string
-        /**
-         * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
-         */
-        helper: string
-        createAccount: {
-          /**
-           * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
-           */
-          label: string
-          /**
-           * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
-           */
-          helper: string
-        }
-        usernameHandling: {
-          /**
-           * U​s​e​r​n​a​m​e​ ​h​a​n​d​l​i​n​g
-           */
-          label: string
-          /**
-           * C​o​n​f​i​g​u​r​e​ ​t​h​e​ ​m​e​t​h​o​d​ ​f​o​r​ ​h​a​n​d​l​i​n​g​ ​i​n​v​a​l​i​d​ ​c​h​a​r​a​c​t​e​r​s​ ​i​n​ ​u​s​e​r​n​a​m​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​.
-           */
-          helper: string
-          options: {
-            /**
-             * R​e​m​o​v​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
-             */
-            remove: string
-            /**
-             * R​e​p​l​a​c​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
-             */
-            replace: string
-            /**
-             * P​r​u​n​e​ ​e​m​a​i​l​ ​d​o​m​a​i​n
-             */
-            prune_email: string
-          }
-        }
-      }
-      form: {
-        /**
-         * C​l​i​e​n​t​ ​s​e​t​t​i​n​g​s
-         */
-        title: string
-        /**
-         * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
-         */
-        helper: string
-        /**
-         * C​u​s​t​o​m
-         */
-        custom: string
-        /**
-         * N​o​n​e
-         */
-        none: string
-        /**
-         * M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​e​x​t​e​r​n​a​l​-​o​p​e​n​i​d​-​p​r​o​v​i​d​e​r​s​)​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
-         */
-        documentation: string
-        /**
-         * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
-         */
-        'delete': string
-        directory_sync_settings: {
-          /**
-           * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s
-           */
-          title: string
-          /**
-           * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​'​ ​s​t​a​t​u​s​ ​a​n​d​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
-           */
-          helper: string
-          /**
-           * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
-           */
-          notSupported: string
-          connectionTest: {
-            /**
-             * C​o​n​n​e​c​t​i​o​n​ ​s​u​c​c​e​s​s​f​u​l
-             */
-            success: string
-            /**
-             * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:
-             */
-            error: string
-          }
-        }
-        selects: {
-          synchronize: {
-            /**
-             * A​l​l
-             */
-            all: string
-            /**
-             * U​s​e​r​s
-             */
-            users: string
-            /**
-             * G​r​o​u​p​s
-             */
-            groups: string
-          }
-          behavior: {
-            /**
-             * K​e​e​p
-             */
-            keep: string
-            /**
-             * D​i​s​a​b​l​e
-             */
-            disable: string
-            /**
-             * D​e​l​e​t​e
-             */
-            'delete': string
-          }
-        }
-        labels: {
-          provider: {
-            /**
-             * P​r​o​v​i​d​e​r
-             */
-            label: string
-            /**
-             * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
-             */
-            helper: string
-          }
-          client_id: {
-            /**
-             * C​l​i​e​n​t​ ​I​D
-             */
-            label: string
-            /**
-             * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
-             */
-            helper: string
-          }
-          client_secret: {
-            /**
-             * C​l​i​e​n​t​ ​S​e​c​r​e​t
-             */
-            label: string
-            /**
-             * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
-             */
-            helper: string
-          }
-          base_url: {
-            /**
-             * B​a​s​e​ ​U​R​L
-             */
-            label: string
-            /**
-             * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
-             */
-            helper: string
-          }
-          display_name: {
-            /**
-             * D​i​s​p​l​a​y​ ​N​a​m​e
-             */
-            label: string
-            /**
-             * N​a​m​e​ ​o​f​ ​t​h​e​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​t​o​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​l​o​g​i​n​'​s​ ​p​a​g​e​ ​b​u​t​t​o​n​.​ ​I​f​ ​n​o​t​ ​p​r​o​v​i​d​e​d​,​ ​t​h​e​ ​b​u​t​t​o​n​ ​w​i​l​l​ ​d​i​s​p​l​a​y​ ​g​e​n​e​r​i​c​ ​'​L​o​g​i​n​ ​w​i​t​h​ ​O​I​D​C​'​ ​t​e​x​t​.
-             */
-            helper: string
-          }
-          enable_directory_sync: {
-            /**
-             * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
-             */
-            label: string
-          }
-          sync_target: {
-            /**
-             * S​y​n​c​h​r​o​n​i​z​e
-             */
-            label: string
-            /**
-             * W​h​a​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​f​r​o​m​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​b​e​t​w​e​e​n​ ​s​y​n​c​h​r​o​n​i​z​i​n​g​ ​b​o​t​h​ ​u​s​e​r​s​'​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​s​,​ ​o​r​ ​n​a​r​r​o​w​ ​i​t​ ​d​o​w​n​ ​t​o​ ​j​u​s​t​ ​o​n​e​ ​o​f​ ​t​h​e​s​e​.
-             */
-            helper: string
-          }
-          sync_interval: {
-            /**
-             * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
-             */
-            label: string
-            /**
-             * I​n​t​e​r​v​a​l​ ​i​n​ ​s​e​c​o​n​d​s​ ​b​e​t​w​e​e​n​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​s​.
-             */
-            helper: string
-          }
-          user_behavior: {
-            /**
-             * U​s​e​r​ ​b​e​h​a​v​i​o​r
-             */
-            label: string
-            /**
-             * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​u​s​e​r​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​,​ ​d​i​s​a​b​l​i​n​g​,​ ​o​r​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
-             */
-            helper: string
-          }
-          admin_behavior: {
-            /**
-             * A​d​m​i​n​ ​b​e​h​a​v​i​o​r
-             */
-            label: string
-            /**
-             * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​D​e​f​g​u​a​r​d​ ​a​d​m​i​n​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​ ​t​h​e​m​,​ ​d​i​s​a​b​l​i​n​g​ ​t​h​e​m​ ​o​r​ ​c​o​m​p​l​e​t​e​l​y​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
-             */
-            helper: string
-          }
-          admin_email: {
-            /**
-             * A​d​m​i​n​ ​e​m​a​i​l
-             */
-            label: string
-            /**
-             * E​m​a​i​l​ ​a​d​d​r​e​s​s​ ​o​f​ ​t​h​e​ ​a​c​c​o​u​n​t​ ​o​n​ ​w​h​i​c​h​ ​b​e​h​a​l​f​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​c​h​e​c​k​s​ ​w​i​l​l​ ​b​e​ ​p​e​r​f​o​r​m​e​d​,​ ​e​.​g​.​ ​t​h​e​ ​p​e​r​s​o​n​ ​w​h​o​ ​s​e​t​u​p​ ​t​h​e​ ​G​o​o​g​l​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​.​ ​S​e​e​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
-             */
-            helper: string
-          }
-          service_account_used: {
-            /**
-             * S​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​i​n​ ​u​s​e
-             */
-            label: string
-            /**
-             * T​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​c​u​r​r​e​n​t​l​y​ ​b​e​i​n​g​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​Y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​i​t​ ​b​y​ ​u​p​l​o​a​d​i​n​g​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​.
-             */
-            helper: string
-          }
-          service_account_key_file: {
-            /**
-             * S​e​r​v​i​c​e​ ​A​c​c​o​u​n​t​ ​K​e​y​ ​f​i​l​e
-             */
-            label: string
-            /**
-             * U​p​l​o​a​d​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​ ​t​o​ ​s​e​t​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​N​O​T​E​:​ ​T​h​e​ ​u​p​l​o​a​d​e​d​ ​f​i​l​e​ ​w​o​n​'​t​ ​b​e​ ​v​i​s​i​b​l​e​ ​a​f​t​e​r​ ​s​a​v​i​n​g​ ​t​h​e​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​r​e​l​o​a​d​i​n​g​ ​t​h​e​ ​p​a​g​e​ ​a​s​ ​i​t​'​s​ ​c​o​n​t​e​n​t​s​ ​a​r​e​ ​s​e​n​s​i​t​i​v​e​ ​a​n​d​ ​a​r​e​ ​n​e​v​e​r​ ​s​e​n​t​ ​b​a​c​k​ ​t​o​ ​t​h​e​ ​d​a​s​h​b​o​a​r​d​.
-             */
-            helper: string
-            /**
-             * F​i​l​e​ ​u​p​l​o​a​d​e​d
-             */
-            uploaded: string
-            /**
-             * U​p​l​o​a​d​ ​a​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e
-             */
-            uploadPrompt: string
-          }
-          okta_client_id: {
-            /**
-             * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​I​D
-             */
-            label: string
-            /**
-             * C​l​i​e​n​t​ ​I​D​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​.
-             */
-            helper: string
-          }
-          okta_client_key: {
-            /**
-             * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​P​r​i​v​a​t​e​ ​K​e​y
-             */
-            label: string
-            /**
-             * C​l​i​e​n​t​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​ ​i​n​ ​t​h​e​ ​J​W​K​ ​f​o​r​m​a​t​.​ ​I​t​ ​w​o​n​'​t​ ​b​e​ ​s​h​o​w​n​ ​a​g​a​i​n​ ​h​e​r​e​.
-             */
-            helper: string
-          }
-          group_match: {
-            /**
-             * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
-             */
-            label: string
-            /**
-             * P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​ ​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​ ​n​a​m​e​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.​ ​I​f​ ​l​e​f​t​ ​e​m​p​t​y​,​ ​a​l​l​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​v​i​d​e​r​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
-             */
-            helper: string
-          }
-        }
-      }
-    }
-    modulesVisibility: {
-      /**
-       * M​o​d​u​l​e​s​ ​V​i​s​i​b​i​l​i​t​y
-       */
-      header: string
-      /**
-       * <​p​>​
-                             I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
-                         <​/​p​>​
-                         <​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-                             R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
-                         <​/​a​>
-       * @param {string} documentationLink
-       */
-      helper: RequiredParams<'documentationLink'>
-      fields: {
-        wireguard_enabled: {
-          /**
-           * W​i​r​e​G​u​a​r​d​ ​V​P​N
-           */
-          label: string
-        }
-        webhooks_enabled: {
-          /**
-           * W​e​b​h​o​o​k​s
-           */
-          label: string
-        }
-        worker_enabled: {
-          /**
-           * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g
-           */
-          label: string
-        }
-        openid_enabled: {
-          /**
-           * O​p​e​n​I​D​ ​C​o​n​n​e​c​t
-           */
-          label: string
-        }
-      }
-    }
-    defaultNetworkSelect: {
-      /**
-       * D​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w
-       */
-      header: string
-      /**
-       * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w​.​<​/​p​>​
-                         <​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-                             R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
-                         <​/​a​>
-       * @param {string} documentationLink
-       */
-      helper: RequiredParams<'documentationLink'>
-      filterLabels: {
-        /**
-         * G​r​i​d​ ​v​i​e​w
-         */
-        grid: string
-        /**
-         * L​i​s​t​ ​v​i​e​w
-         */
-        list: string
-      }
-    }
-    instanceBranding: {
-      /**
-       * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
-       */
-      header: string
-      form: {
-        /**
-         * N​a​m​e​ ​&​ ​L​o​g​o​:
-         */
-        title: string
-        fields: {
-          instanceName: {
-            /**
-             * I​n​s​t​a​n​c​e​ ​n​a​m​e
-             */
-            label: string
-            /**
-             * D​e​f​g​u​a​r​d
-             */
-            placeholder: string
-          }
-          mainLogoUrl: {
-            /**
-             * L​o​g​i​n​ ​l​o​g​o​ ​u​r​l
-             */
-            label: string
-            /**
-             * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x
-             */
-            helper: string
-            /**
-             * D​e​f​a​u​l​t​ ​i​m​a​g​e
-             */
-            placeholder: string
-          }
-          navLogoUrl: {
-            /**
-             * M​e​n​u​ ​&​ ​n​a​v​i​g​a​t​i​o​n​ ​s​m​a​l​l​ ​l​o​g​o
-             */
-            label: string
-            /**
-             * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x
-             */
-            helper: string
-            /**
-             * D​e​f​a​u​l​t​ ​i​m​a​g​e
-             */
-            placeholder: string
-          }
-        }
-        controls: {
-          /**
-           * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
-           */
-          restoreDefault: string
-          /**
-           * S​a​v​e​ ​c​h​a​n​g​e​s
-           */
-          submit: string
-        }
-      }
-      /**
-       * 
-                             <​p​>​
-                             H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
-                             i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
-                         <​/​p​>​
-                         <​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-                             R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
-                         <​/​a​>​
-            ​
-       * @param {string} documentationLink
-       */
-      helper: RequiredParams<'documentationLink'>
-    }
-    license: {
-      /**
-       * E​n​t​e​r​p​r​i​s​e
-       */
-      header: string
-      helpers: {
-        enterpriseHeader: {
-          /**
-           * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
-           */
-          text: string
-          /**
-           * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
-           */
-          link: string
-        }
-        licenseKey: {
-          /**
-           * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
-           */
-          text: string
-          /**
-           * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
-           */
-          link: string
-        }
-      }
-      form: {
-        /**
-         * L​i​c​e​n​s​e
-         */
-        title: string
-        fields: {
-          key: {
-            /**
-             * L​i​c​e​n​s​e​ ​k​e​y
-             */
-            label: string
-            /**
-             * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
-             */
-            placeholder: string
-          }
-        }
-      }
-      licenseInfo: {
-        /**
-         * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
-         */
-        title: string
-        status: {
-          /**
-           * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
-           */
-          noLicense: string
-          /**
-           * E​x​p​i​r​e​d
-           */
-          expired: string
-          /**
-           * L​i​m​i​t​s​ ​E​x​c​e​e​d​e​d
-           */
-          limitsExceeded: string
-          /**
-           * A​c​t​i​v​e
-           */
-          active: string
-        }
-        /**
-         * <​p​>​Y​o​u​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​,​ ​a​s​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​e​x​c​e​e​d​e​d​ ​a​n​y​ ​o​f​ ​t​h​e​ ​u​s​a​g​e​ ​l​i​m​i​t​s​ ​y​e​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​'​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​'​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​.​<​/​p​>
-         */
-        licenseNotRequired: string
-        types: {
-          subscription: {
-            /**
-             * S​u​b​s​c​r​i​p​t​i​o​n
-             */
-            label: string
-            /**
-             * A​ ​l​i​c​e​n​s​e​ ​t​h​a​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w​s​ ​a​t​ ​r​e​g​u​l​a​r​ ​i​n​t​e​r​v​a​l​s
-             */
-            helper: string
-          }
-          offline: {
-            /**
-             * O​f​f​l​i​n​e
-             */
-            label: string
-            /**
-             * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​v​a​l​i​d​ ​u​n​t​i​l​ ​t​h​e​ ​e​x​p​i​r​y​ ​d​a​t​e​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w
-             */
-            helper: string
-          }
-        }
-        fields: {
-          status: {
-            /**
-             * S​t​a​t​u​s
-             */
-            label: string
-            /**
-             * A​c​t​i​v​e
-             */
-            active: string
-            /**
-             * E​x​p​i​r​e​d
-             */
-            expired: string
-            /**
-             * A​ ​s​u​b​s​c​r​i​p​t​i​o​n​ ​l​i​c​e​n​s​e​ ​i​s​ ​c​o​n​s​i​d​e​r​e​d​ ​v​a​l​i​d​ ​f​o​r​ ​s​o​m​e​ ​t​i​m​e​ ​a​f​t​e​r​ ​t​h​e​ ​e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​ ​t​o​ ​a​c​c​o​u​n​t​ ​f​o​r​ ​p​o​s​s​i​b​l​e​ ​a​u​t​o​m​a​t​i​c​ ​p​a​y​m​e​n​t​ ​d​e​l​a​y​s​.
-             */
-            subscriptionHelper: string
-          }
-          type: {
-            /**
-             * T​y​p​e
-             */
-            label: string
-          }
-          validUntil: {
-            /**
-             * V​a​l​i​d​ ​u​n​t​i​l
-             */
-            label: string
-          }
-        }
-      }
-    }
-    smtp: {
-      form: {
-        /**
-         * S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-         */
-        title: string
-        sections: {
-          /**
-           * S​e​r​v​e​r​ ​s​e​t​t​i​n​g​s
-           */
-          server: string
-        }
-        fields: {
-          encryption: {
-            /**
-             * E​n​c​r​y​p​t​i​o​n
-             */
-            label: string
-          }
-          server: {
-            /**
-             * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
-             */
-            label: string
-            /**
-             * A​d​d​r​e​s​s
-             */
-            placeholder: string
-          }
-          port: {
-            /**
-             * S​e​r​v​e​r​ ​p​o​r​t
-             */
-            label: string
-            /**
-             * P​o​r​t
-             */
-            placeholder: string
-          }
-          user: {
-            /**
-             * S​e​r​v​e​r​ ​u​s​e​r​n​a​m​e
-             */
-            label: string
-            /**
-             * U​s​e​r​n​a​m​e
-             */
-            placeholder: string
-          }
-          password: {
-            /**
-             * S​e​r​v​e​r​ ​p​a​s​s​w​o​r​d
-             */
-            label: string
-            /**
-             * P​a​s​s​w​o​r​d
-             */
-            placeholder: string
-          }
-          sender: {
-            /**
-             * S​e​n​d​e​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
-             */
-            label: string
-            /**
-             * A​d​d​r​e​s​s
-             */
-            placeholder: string
-            /**
-             * 
-                                       <​p​>​
-                                           S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
-                                           E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
-                                       <​/​p​>​
-                                  
-             */
-            helper: string
-          }
-        }
-        controls: {
-          /**
-           * S​a​v​e​ ​c​h​a​n​g​e​s
-           */
-          submit: string
-        }
-      }
-      /**
-       * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-       */
-      'delete': string
-      testForm: {
-        /**
-         * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
-         */
-        title: string
-        /**
-         * E​n​t​e​r​ ​r​e​c​i​p​e​n​t​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
-         */
-        subtitle: string
-        fields: {
-          to: {
-            /**
-             * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l​ ​t​o
-             */
-            label: string
-            /**
-             * A​d​d​r​e​s​s
-             */
-            placeholder: string
-          }
-        }
-        controls: {
-          /**
-           * S​e​n​d
-           */
-          submit: string
-          /**
-           * R​e​s​e​n​d
-           */
-          resend: string
-          /**
-           * R​e​t​r​y
-           */
-          retry: string
-          /**
-           * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
-           */
-          success: string
-          /**
-           * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
-           */
-          error: string
-        }
-        success: {
-          /**
-           * T​e​s​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​ ​s​u​c​c​e​s​s​u​l​l​y​.
-           */
-          message: string
-        }
-        error: {
-          /**
-           * T​h​e​r​e​ ​w​a​s​ ​a​n​ ​e​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​h​e​ ​t​e​s​t​ ​e​m​a​i​l​.​ ​P​l​e​a​s​e​ ​c​h​e​c​k​ ​y​o​u​r​ ​S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
-           */
-          message: string
-          /**
-           * E​r​r​o​r​:​ ​{​e​r​r​o​r​}
-           * @param {string} error
-           */
-          fullError: RequiredParams<'error'>
-        }
-      }
-      /**
-       * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.
-       */
-      helper: string
-    }
-    enrollment: {
-      /**
-       * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.
-       */
-      helper: string
-      vpnOptionality: {
-        /**
-         * V​P​N​ ​s​t​e​p​ ​o​p​t​i​o​n​a​l​i​t​y
-         */
-        header: string
-        /**
-         * Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​c​r​e​a​t​i​n​g​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​o​r​ ​m​a​n​d​a​t​o​r​y​ ​d​u​r​i​n​g​ ​e​n​r​o​l​l​m​e​n​t
-         */
-        helper: string
-      }
-      welcomeMessage: {
-        /**
-         * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
-         */
-        header: string
-        /**
-         * 
-                       <​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
-                       <​u​l​>​
-                           <​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
-                           <​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
-                           <​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
-                       <​/​u​l​>​
-                      
-         */
-        helper: string
-      }
-      welcomeEmail: {
-        /**
-         * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
-         */
-        header: string
-        /**
-         * 
-                       <​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
-                       <​u​l​>​
-                           <​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
-                           <​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
-                           <​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
-                       <​/​u​l​>​
-                      
-         */
-        helper: string
-      }
-      form: {
-        controls: {
-          /**
-           * S​a​v​e​ ​c​h​a​n​g​e​s
-           */
-          submit: string
-        }
-        welcomeMessage: {
-          /**
-           * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
-           */
-          helper: string
-          /**
-           * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
-           */
-          placeholder: string
-        }
-        welcomeEmail: {
-          /**
-           * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​r​e​u​s​e​ ​t​h​e​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e​ ​h​e​r​e​.
-           */
-          helper: string
-          /**
-           * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
-           */
-          placeholder: string
-        }
-        welcomeEmailSubject: {
-          /**
-           * S​u​b​j​e​c​t
-           */
-          label: string
-        }
-        useMessageAsEmail: {
-          /**
-           * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
-           */
-          label: string
-        }
-      }
-    }
-    enterprise: {
-      /**
-       * E​n​t​e​r​p​r​i​s​e​ ​F​e​a​t​u​r​e​s
-       */
-      header: string
-      /**
-       * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.
-       */
-      helper: string
-      fields: {
-        deviceManagement: {
-          /**
-           * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
-           */
-          label: string
-          /**
-           * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
-           */
-          helper: string
-        }
-        disableAllTraffic: {
-          /**
-           * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
-           */
-          label: string
-          /**
-           * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
-           */
-          helper: string
-        }
-        manualConfig: {
-          /**
-           * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
-           */
-          label: string
-          /**
-           * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
-           */
-          helper: string
-        }
-      }
-    }
-    gatewayNotifications: {
-      /**
-       * T​o​ ​e​n​a​b​l​e​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
-       */
-      smtpWarning: string
-      /**
-       * N​o​t​i​f​i​c​a​t​i​o​n​s
-       */
-      header: string
-      sections: {
-        /**
-         * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
-         */
-        gateway: string
-      }
-      /**
-       * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.
-       */
-      helper: string
-      form: {
-        /**
-         * S​a​v​e​ ​c​h​a​n​g​e​s
-         */
-        submit: string
-        fields: {
-          disconnectNotificationsEnabled: {
-            /**
-             * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
-             */
-            label: string
-            /**
-             * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​d​i​s​c​o​n​n​e​c​t​e​d
-             */
-            help: string
-          }
-          inactivityThreshold: {
-            /**
-             * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e​ ​[​m​i​n​u​t​e​s​]
-             */
-            label: string
-            /**
-             * T​i​m​e​ ​(​i​n​ ​m​i​n​u​t​e​s​)​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
-             */
-            help: string
-          }
-          reconnectNotificationsEnabled: {
-            /**
-             * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​r​e​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
-             */
-            label: string
-            /**
-             * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​r​e​c​o​n​n​e​c​t​e​d
-             */
-            help: string
-          }
-        }
-      }
-    }
-  }
-  openidOverview: {
-    /**
-     * O​p​e​n​I​D​ ​A​p​p​s
-     */
-    pageTitle: string
-    search: {
-      /**
-       * F​i​n​d​ ​a​p​p​s
-       */
-      placeholder: string
-    }
-    filterLabels: {
-      /**
-       * A​l​l​ ​a​p​p​s
-       */
-      all: string
-      /**
-       * E​n​a​b​l​e​d
-       */
-      enabled: string
-      /**
-       * D​i​s​a​b​l​e​d
-       */
-      disabled: string
-    }
-    /**
-     * A​l​l​ ​a​p​p​s
-     */
-    clientCount: string
-    /**
-     * A​d​d​ ​n​e​w
-     */
-    addNewApp: string
-    list: {
-      headers: {
-        /**
-         * N​a​m​e
-         */
-        name: string
-        /**
-         * S​t​a​t​u​s
-         */
-        status: string
-        /**
-         * A​c​t​i​o​n​s
-         */
-        actions: string
-      }
-      editButton: {
-        /**
-         * E​d​i​t​ ​a​p​p
-         */
-        edit: string
-        /**
-         * D​e​l​e​t​e​ ​a​p​p
-         */
-        'delete': string
-        /**
-         * D​i​s​a​b​l​e
-         */
-        disable: string
-        /**
-         * E​n​a​b​l​e
-         */
-        enable: string
-        /**
-         * C​o​p​y​ ​c​l​i​e​n​t​ ​I​D
-         */
-        copy: string
-      }
-      status: {
-        /**
-         * E​n​a​b​l​e​d
-         */
-        enabled: string
-        /**
-         * D​i​s​a​b​l​e​d
-         */
-        disabled: string
-      }
-    }
-    messages: {
-      /**
-       * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
-       */
-      copySuccess: string
-      /**
-       * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
-       */
-      noLicenseMessage: string
-      /**
-       * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d​.
-       */
-      noClientsFound: string
-    }
-    deleteApp: {
-      /**
-       * D​e​l​e​t​e​ ​a​p​p
-       */
-      title: string
-      /**
-       * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p​ ​?
-       * @param {string} appName
-       */
-      message: RequiredParams<'appName'>
-      /**
-       * D​e​l​e​t​e​ ​a​p​p
-       */
-      submit: string
-      messages: {
-        /**
-         * A​p​p​ ​d​e​l​e​t​e​d​.
-         */
-        success: string
-      }
-    }
-    enableApp: {
-      messages: {
-        /**
-         * A​p​p​ ​e​n​a​b​l​e​d​.
-         */
-        success: string
-      }
-    }
-    disableApp: {
-      messages: {
-        /**
-         * A​p​p​ ​d​i​s​a​b​l​e​d​.
-         */
-        success: string
-      }
-    }
-    modals: {
-      openidClientModal: {
-        title: {
-          /**
-           * A​d​d​ ​A​p​p​l​i​c​a​t​i​o​n
-           */
-          addApp: string
-          /**
-           * E​d​i​t​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p
-           * @param {string} appName
-           */
-          editApp: RequiredParams<'appName'>
-        }
-        /**
-         * S​c​o​p​e​s​:
-         */
-        scopes: string
-        messages: {
-          /**
-           * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
-           */
-          clientIdCopy: string
-          /**
-           * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
-           */
-          clientSecretCopy: string
-        }
-        form: {
-          messages: {
-            /**
-             * A​p​p​ ​c​r​e​a​t​e​d​.
-             */
-            successAdd: string
-            /**
-             * A​p​p​ ​m​o​d​i​f​i​e​d​.
-             */
-            successModify: string
-          }
-          error: {
-            /**
-             * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-             */
-            urlRequired: string
-            /**
-             * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
-             */
-            validUrl: string
-            /**
-             * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
-             */
-            scopeValidation: string
-          }
-          fields: {
-            name: {
-              /**
-               * A​p​p​ ​n​a​m​e
-               */
-              label: string
-            }
-            redirectUri: {
-              /**
-               * R​e​d​i​r​e​c​t​ ​U​R​L​ ​{​c​o​u​n​t​}
-               * @param {number} count
-               */
-              label: RequiredParams<'count'>
-              /**
-               * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​r​e​d​i​r​e​c​t
-               */
-              placeholder: string
-            }
-            openid: {
-              /**
-               * O​p​e​n​I​D
-               */
-              label: string
-            }
-            profile: {
-              /**
-               * P​r​o​f​i​l​e
-               */
-              label: string
-            }
-            email: {
-              /**
-               * E​m​a​i​l
-               */
-              label: string
-            }
-            phone: {
-              /**
-               * P​h​o​n​e
-               */
-              label: string
-            }
-            groups: {
-              /**
-               * G​r​o​u​p​s
-               */
-              label: string
-            }
-          }
-          controls: {
-            /**
-             * A​d​d​ ​U​R​L
-             */
-            addUrl: string
-          }
-        }
-        /**
-         * C​l​i​e​n​t​ ​I​D
-         */
-        clientId: string
-        /**
-         * C​l​i​e​n​t​ ​s​e​c​r​e​t
-         */
-        clientSecret: string
-      }
-    }
-  }
-  webhooksOverview: {
-    /**
-     * W​e​b​h​o​o​k​s
-     */
-    pageTitle: string
-    search: {
-      /**
-       * F​i​n​d​ ​w​e​b​h​o​o​k​s​ ​b​y​ ​u​r​l
-       */
-      placeholder: string
-    }
-    filterLabels: {
-      /**
-       * A​l​l​ ​w​e​b​h​o​o​k​s
-       */
-      all: string
-      /**
-       * E​n​a​b​l​e​d
-       */
-      enabled: string
-      /**
-       * D​i​s​a​b​l​e​d
-       */
-      disabled: string
-    }
-    /**
-     * A​l​l​ ​w​e​b​h​o​o​k​s
-     */
-    webhooksCount: string
-    /**
-     * A​d​d​ ​n​e​w
-     */
-    addNewWebhook: string
-    /**
-     * N​o​ ​w​e​b​h​o​o​k​s​ ​f​o​u​n​d​.
-     */
-    noWebhooksFound: string
-    list: {
-      headers: {
-        /**
-         * N​a​m​e
-         */
-        name: string
-        /**
-         * D​e​s​c​r​i​p​t​i​o​n
-         */
-        description: string
-        /**
-         * S​t​a​t​u​s
-         */
-        status: string
-        /**
-         * A​c​t​i​o​n​s
-         */
-        actions: string
-      }
-      editButton: {
-        /**
-         * E​d​i​t
-         */
-        edit: string
-        /**
-         * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
-         */
-        'delete': string
-        /**
-         * D​i​s​a​b​l​e
-         */
-        disable: string
-        /**
-         * E​n​a​b​l​e
-         */
-        enable: string
-      }
-      status: {
-        /**
-         * E​n​a​b​l​e​d
-         */
-        enabled: string
-        /**
-         * D​i​s​a​b​l​e​d
-         */
-        disabled: string
-      }
-    }
-  }
-  provisionersOverview: {
-    /**
-     * P​r​o​v​i​s​i​o​n​e​r​s
-     */
-    pageTitle: string
-    search: {
-      /**
-       * F​i​n​d​ ​p​r​o​v​i​s​i​o​n​e​r​s
-       */
-      placeholder: string
-    }
-    filterLabels: {
-      /**
-       * A​l​l
-       */
-      all: string
-      /**
-       * A​v​a​i​l​a​b​l​e
-       */
-      available: string
-      /**
-       * U​n​a​v​a​i​l​a​b​l​e
-       */
-      unavailable: string
-    }
-    /**
-     * A​l​l​ ​p​r​o​v​i​s​i​o​n​e​r​s
-     */
-    provisionersCount: string
-    /**
-     * N​o​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​f​o​u​n​d​.
-     */
-    noProvisionersFound: string
-    /**
-     * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
-     */
-    noLicenseMessage: string
-    provisioningStation: {
-      /**
-       * Y​u​b​i​K​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n
-       */
-      header: string
-      /**
-       * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
-                     p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
-                     m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
-       */
-      content: string
-      dockerCard: {
-        /**
-         * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
-         */
-        title: string
-      }
-      tokenCard: {
-        /**
-         * A​c​c​e​s​s​ ​t​o​k​e​n
-         */
-        title: string
-      }
-    }
-    list: {
-      headers: {
-        /**
-         * N​a​m​e
-         */
-        name: string
-        /**
-         * I​P​ ​a​d​d​r​e​s​s
-         */
-        ip: string
-        /**
-         * S​t​a​t​u​s
-         */
-        status: string
-        /**
-         * A​c​t​i​o​n​s
-         */
-        actions: string
-      }
-      editButton: {
-        /**
-         * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
-         */
-        'delete': string
-      }
-      status: {
-        /**
-         * A​v​a​i​l​a​b​l​e
-         */
-        available: string
-        /**
-         * U​n​a​v​a​i​l​a​b​l​e
-         */
-        unavailable: string
-      }
-    }
-    messages: {
-      copy: {
-        /**
-         * T​o​k​e​n​ ​c​o​p​i​e​d
-         */
-        token: string
-        /**
-         * C​o​m​m​a​n​d​ ​c​o​p​i​e​d
-         */
-        command: string
-      }
-    }
-  }
-  openidAllow: {
-    /**
-     * {​n​a​m​e​}​ ​w​o​u​l​d​ ​l​i​k​e​ ​t​o​:
-     * @param {string} name
-     */
-    header: RequiredParams<'name'>
-    scopes: {
-      /**
-       * U​s​e​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​d​a​t​a​ ​f​o​r​ ​f​u​t​u​r​e​ ​l​o​g​i​n​s​.
-       */
-      openid: string
-      /**
-       * K​n​o​w​ ​b​a​s​i​c​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​l​i​k​e​ ​n​a​m​e​,​ ​p​r​o​f​i​l​e​ ​p​i​c​t​u​r​e​ ​e​t​c​.
-       */
-      profile: string
-      /**
-       * K​n​o​w​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
-       */
-      email: string
-      /**
-       * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
-       */
-      phone: string
-      /**
-       * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
-       */
-      groups: string
-    }
-    controls: {
-      /**
-       * A​c​c​e​p​t
-       */
-      accept: string
-      /**
-       * C​a​n​c​e​l
-       */
-      cancel: string
-    }
-  }
-  networkOverview: {
-    networkSelection: {
-      /**
-       * A​l​l​ ​l​o​c​a​t​i​o​n​s​ ​s​u​m​m​a​r​y
-       */
-      all: string
-      /**
-       * S​e​l​e​c​t​ ​l​o​c​a​t​i​o​n
-       */
-      placeholder: string
-    }
-    /**
-     * {​v​a​l​u​e​}​h​ ​p​e​r​i​o​d
-     * @param {number} value
-     */
-    timeRangeSelectionLabel: RequiredParams<'value'>
-    /**
-     * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
-     */
-    pageTitle: string
-    controls: {
-      /**
-       * E​d​i​t​ ​L​o​c​a​t​i​o​n​s​ ​s​e​t​t​i​n​g​s
-       */
-      editNetworks: string
-      selectNetwork: {
-        /**
-         * L​o​a​d​i​n​g​ ​l​o​c​a​t​i​o​n​s
-         */
-        placeholder: string
-      }
-    }
-    filterLabels: {
-      /**
-       * G​r​i​d​ ​v​i​e​w
-       */
-      grid: string
-      /**
-       * L​i​s​t​ ​v​i​e​w
-       */
-      list: string
-    }
-    gatewayStatus: {
-      /**
-       * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
-       * @param {number} count
-       */
-      all: RequiredParams<'count'>
-      /**
-       * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
-       * @param {number} count
-       */
-      some: RequiredParams<'count'>
-      /**
-       * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
-       */
-      none: string
-    }
-    stats: {
-      /**
-       * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
-       */
-      currentlyActiveUsers: string
-      /**
-       * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-       */
-      currentlyActiveNetworkDevices: string
-      /**
-       * T​o​t​a​l​ ​u​s​e​r​ ​d​e​v​i​c​e​s​:​ ​{​c​o​u​n​t​}
-       * @param {number} count
-       */
-      totalUserDevices: RequiredParams<'count'>
-      /**
-       * A​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
-       * @param {number} hour
-       */
-      activeNetworkDevices: RequiredParams<'hour'>
-      /**
-       * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​h
-       * @param {number} hour
-       */
-      activeUsersFilter: RequiredParams<'hour'>
-      /**
-       * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
-       * @param {number} hour
-       */
-      activeDevicesFilter: RequiredParams<'hour'>
-      /**
-       * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
-       * @param {number} hour
-       */
-      activityIn: RequiredParams<'hour'>
-      /**
-       * N​e​t​w​o​r​k​ ​u​s​a​g​e
-       */
-      networkUsage: string
-      /**
-       * P​e​a​k
-       */
-      peak: string
-      /**
-       * I​n​:
-       */
-      'in': string
-      /**
-       * O​u​t​:
-       */
-      out: string
-      /**
-       * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d
-       */
-      gatewayDisconnected: string
-    }
-    cardsLabels: {
-      /**
-       * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
-       */
-      users: string
-      /**
-       * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
-       */
-      devices: string
-    }
-  }
-  connectedUsersOverview: {
-    /**
-     * C​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
-     */
-    pageTitle: string
-    /**
-     * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​a​r​e​ ​n​o​ ​c​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
-     */
-    noUsersMessage: string
-    userList: {
-      /**
-       * U​s​e​r​n​a​m​e
-       */
-      username: string
-      /**
-       * D​e​v​i​c​e
-       */
-      device: string
-      /**
-       * C​o​n​n​e​c​t​e​d
-       */
-      connected: string
-      /**
-       * D​e​v​i​c​e​ ​l​o​c​a​t​i​o​n
-       */
-      deviceLocation: string
-      /**
-       * N​e​t​w​o​r​k​ ​u​s​a​g​e
-       */
-      networkUsage: string
-    }
-  }
-  networkPage: {
-    /**
-     * E​d​i​t​ ​L​o​c​a​t​i​o​n
-     */
-    pageTitle: string
-    /**
-     * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
-     */
-    addNetwork: string
-    controls: {
-      networkSelect: {
-        /**
-         * L​o​c​a​t​i​o​n​ ​c​h​o​i​c​e
-         */
-        label: string
-      }
-    }
-  }
-  activityOverview: {
-    /**
-     * A​c​t​i​v​i​t​y​ ​s​t​r​e​a​m
-     */
-    header: string
-    /**
-     * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​i​s​ ​n​o​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d
-     */
-    noData: string
-  }
-  networkConfiguration: {
-    messages: {
-      'delete': {
-        /**
-         * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
-         */
-        success: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​n​e​t​w​o​r​k
-         */
-        error: string
-      }
-    }
-    /**
-     * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-     */
-    header: string
-    /**
-     * L​o​c​a​t​i​o​n​ ​i​m​p​o​r​t
-     */
-    importHeader: string
-    form: {
-      helpers: {
-        /**
-         * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)​.​ ​Y​o​u​ ​c​a​n​ ​o​p​t​i​o​n​a​l​l​y​ ​s​p​e​c​i​f​y​ ​m​u​l​t​i​p​l​e​ ​a​d​d​r​e​s​s​e​s​ ​s​e​p​a​r​a​t​e​d​ ​b​y​ ​a​ ​c​o​m​m​a​.​ ​T​h​e​ ​f​i​r​s​t​ ​a​d​d​r​e​s​s​ ​i​s​ ​t​h​e​ ​p​r​i​m​a​r​y​ ​a​d​d​r​e​s​s​,​ ​a​n​d​ ​t​h​i​s​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​s​s​i​g​n​m​e​n​t​ ​f​o​r​ ​d​e​v​i​c​e​s​.​ ​T​h​e​ ​o​t​h​e​r​ ​I​P​ ​a​d​d​r​e​s​s​e​s​ ​a​r​e​ ​a​u​x​i​l​i​a​r​y​ ​a​n​d​ ​a​r​e​ ​n​o​t​ ​m​a​n​a​g​e​d​ ​b​y​ ​D​e​f​g​u​a​r​d​.
-         */
-        address: string
-        /**
-         * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
-         */
-        gateway: string
-        /**
-         * S​p​e​c​i​f​y​ ​t​h​e​ ​D​N​S​ ​r​e​s​o​l​v​e​r​s​ ​t​o​ ​q​u​e​r​y​ ​w​h​e​n​ ​t​h​e​ ​w​i​r​e​g​u​a​r​d​ ​i​n​t​e​r​f​a​c​e​ ​i​s​ ​u​p​.
-         */
-        dns: string
-        /**
-         * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
-         */
-        allowedIps: string
-        /**
-         * B​y​ ​d​e​f​a​u​l​t​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​l​l​o​w​e​d​ ​t​o​ ​c​o​n​n​e​c​t​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.​ ​I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​t​r​i​c​t​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​t​o​ ​a​ ​s​p​e​c​i​f​i​c​ ​g​r​o​u​p​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​i​t​ ​b​e​l​o​w​.
-         */
-        allowedGroups: string
-        /**
-         * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
-         */
-        aclFeatureDisabled: string
-      }
-      messages: {
-        /**
-         * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
-         */
-        networkModified: string
-        /**
-         * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
-         */
-        networkCreated: string
-      }
-      fields: {
-        name: {
-          /**
-           * L​o​c​a​t​i​o​n​ ​n​a​m​e
-           */
-          label: string
-        }
-        address: {
-          /**
-           * G​a​t​e​w​a​y​ ​V​P​N​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
-           */
-          label: string
-        }
-        endpoint: {
-          /**
-           * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
-           */
-          label: string
-        }
-        allowedIps: {
-          /**
-           * A​l​l​o​w​e​d​ ​I​p​s
-           */
-          label: string
-        }
-        port: {
-          /**
-           * G​a​t​e​w​a​y​ ​p​o​r​t
-           */
-          label: string
-        }
-        dns: {
-          /**
-           * D​N​S
-           */
-          label: string
-        }
-        allowedGroups: {
-          /**
-           * A​l​l​o​w​e​d​ ​g​r​o​u​p​s
-           */
-          label: string
-          /**
-           * A​l​l​ ​g​r​o​u​p​s
-           */
-          placeholder: string
-        }
-        mfa_enabled: {
-          /**
-           * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
-           */
-          label: string
-        }
-        keepalive_interval: {
-          /**
-           * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
-           */
-          label: string
-        }
-        peer_disconnect_threshold: {
-          /**
-           * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
-           */
-          label: string
-        }
-        acl_enabled: {
-          /**
-           * E​n​a​b​l​e​ ​A​C​L​ ​f​o​r​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n
-           */
-          label: string
-        }
-        acl_default_allow: {
-          /**
-           * D​e​f​a​u​l​t​ ​A​C​L​ ​p​o​l​i​c​y
-           */
-          label: string
-        }
-      }
-      controls: {
-        /**
-         * S​a​v​e​ ​c​h​a​n​g​e​s
-         */
-        submit: string
-        /**
-         * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
-         */
-        cancel: string
-        /**
-         * R​e​m​o​v​e​ ​l​o​c​a​t​i​o​n
-         */
-        'delete': string
-      }
-    }
-  }
-  gatewaySetup: {
-    header: {
-      /**
-       * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
-       */
-      main: string
-      /**
-       * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
-       */
-      dockerBasedGatewaySetup: string
-      /**
-       * F​r​o​m​ ​P​a​c​k​a​g​e
-       */
-      fromPackage: string
-      /**
-       * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
-       */
-      oneLineInstall: string
-    }
-    card: {
-      /**
-       * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
-       */
-      title: string
-      /**
-       * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
-       */
-      authToken: string
-    }
-    button: {
-      /**
-       * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
-       */
-      availablePackages: string
-    }
-    controls: {
-      /**
-       * C​h​e​c​k​ ​c​o​n​n​e​c​t​i​o​n​ ​s​t​a​t​u​s
-       */
-      status: string
-    }
-    messages: {
-      /**
-       * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
-                             M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
-                             T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-                             b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
-       * @param {string} setupGatewayDocs
-       */
-      runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
-      /**
-       * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
-       */
-      createNetwork: string
-      /**
-       * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
-       */
-      noConnection: string
-      /**
-       * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
-       */
-      connected: string
-      /**
-       * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
-       */
-      statusError: string
-      /**
-       * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
-                         y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
-       */
-      oneLineInstall: string
-      /**
-       * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​
-                         a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
-       * @param {string} setupGatewayDocs
-       */
-      fromPackage: RequiredParams<'setupGatewayDocs'>
-      /**
-       * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​
-                         p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
-                         F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
-       * @param {string} setupGatewayDocs
-       */
-      authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
-      /**
-       * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
-       * @param {string} setupGatewayDocs
-       */
-      dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
-    }
-  }
-  loginPage: {
-    /**
-     * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
-     */
-    pageTitle: string
-    /**
-     * S​i​g​n​ ​i​n​ ​w​i​t​h
-     */
-    oidcLogin: string
-    callback: {
-      /**
-       * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
-       */
-      'return': string
-      /**
-       * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
-       */
-      error: string
-    }
-    mfa: {
-      /**
-       * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
-       */
-      title: string
-      controls: {
-        /**
-         * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
-         */
-        useAuthenticator: string
-        /**
-         * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
-         */
-        useWebauthn: string
-        /**
-         * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
-         */
-        useRecoveryCode: string
-        /**
-         * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
-         */
-        useEmail: string
-      }
-      email: {
-        /**
-         * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
-         */
-        header: string
-        form: {
-          labels: {
-            /**
-             * C​o​d​e
-             */
-            code: string
-          }
-          controls: {
-            /**
-             * R​e​s​e​n​d​ ​C​o​d​e
-             */
-            resendCode: string
-          }
-        }
-      }
-      totp: {
-        /**
-         * U​s​e​ ​c​o​d​e​ ​f​r​o​m​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​p​p​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​p​r​o​c​e​e​d​.
-         */
-        header: string
-        form: {
-          fields: {
-            code: {
-              /**
-               * E​n​t​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
-               */
-              placeholder: string
-            }
-          }
-          controls: {
-            /**
-             * U​s​e​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
-             */
-            submit: string
-          }
-        }
-      }
-      recoveryCode: {
-        /**
-         * E​n​t​e​r​ ​o​n​e​ ​o​f​ ​a​c​t​i​v​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​l​o​g​ ​i​n​.
-         */
-        header: string
-        form: {
-          fields: {
-            code: {
-              /**
-               * R​e​c​o​v​e​r​y​ ​c​o​d​e
-               */
-              placeholder: string
-            }
-          }
-          controls: {
-            /**
-             * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e
-             */
-            submit: string
-          }
-        }
-      }
-      webauthn: {
-        /**
-         * W​h​e​n​ ​y​o​u​ ​a​r​e​ ​r​e​a​d​y​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​,​ ​p​r​e​s​s​ ​t​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​.
-         */
-        header: string
-        controls: {
-          /**
-           * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y
-           */
-          submit: string
-        }
-        messages: {
-          /**
-           * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
-           */
-          error: string
-        }
-      }
-    }
-  }
-  wizard: {
-    /**
-     * L​o​c​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
-     */
-    completed: string
-    configuration: {
-      /**
-       * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
-       */
-      successMessage: string
-    }
-    welcome: {
-      /**
-       * W​e​l​c​o​m​e​ ​t​o​ ​l​o​c​a​t​i​o​n​ ​w​i​z​a​r​d​!
-       */
-      header: string
-      /**
-       * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​ ​u​s​i​n​g​ ​V​P​N​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​f​i​r​s​t​ ​l​o​c​a​t​i​o​n​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​c​l​i​c​k​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
-       */
-      sub: string
-      /**
-       * S​e​t​u​p​ ​l​o​c​a​t​i​o​n
-       */
-      button: string
-    }
-    navigation: {
-      /**
-       * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
-       */
-      top: string
-      titles: {
-        /**
-         * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
-         */
-        welcome: string
-        /**
-         * C​h​o​s​e​ ​L​o​c​a​t​i​o​n​ ​s​e​t​u​p
-         */
-        choseNetworkSetup: string
-        /**
-         * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​l​o​c​a​t​i​o​n
-         */
-        importConfig: string
-        /**
-         * C​o​n​f​i​g​u​r​e​ ​l​o​c​a​t​i​o​n
-         */
-        manualConfig: string
-        /**
-         * M​a​p​ ​i​m​p​o​r​t​e​d​ ​d​e​v​i​c​e​s
-         */
-        mapDevices: string
-      }
-      buttons: {
-        /**
-         * N​e​x​t
-         */
-        next: string
-        /**
-         * B​a​c​k
-         */
-        back: string
-      }
-    }
-    deviceMap: {
-      messages: {
-        /**
-         * D​e​v​i​c​e​s​ ​a​d​d​e​d
-         */
-        crateSuccess: string
-        /**
-         * P​l​e​a​s​e​ ​f​i​l​l​ ​m​a​r​k​e​d​ ​f​i​e​l​d​s​.
-         */
-        errorsInForm: string
-      }
-      list: {
-        headers: {
-          /**
-           * D​e​v​i​c​e​ ​N​a​m​e
-           */
-          deviceName: string
-          /**
-           * I​P
-           */
-          deviceIP: string
-          /**
-           * U​s​e​r
-           */
-          user: string
-        }
-      }
-    }
-    wizardType: {
-      manual: {
-        /**
-         * M​a​n​u​a​l​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
-         */
-        title: string
-        /**
-         * M​a​n​u​a​l​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
-         */
-        description: string
-      }
-      'import': {
-        /**
-         * I​m​p​o​r​t​ ​F​r​o​m​ ​F​i​l​e
-         */
-        title: string
-        /**
-         * I​m​p​o​r​t​ ​f​r​o​m​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​ ​f​i​l​e
-         */
-        description: string
-      }
-      /**
-       * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
-       */
-      createNetwork: string
-    }
-    common: {
-      /**
-       * S​e​l​e​c​t
-       */
-      select: string
-    }
-    locations: {
-      form: {
-        /**
-         * N​a​m​e
-         */
-        name: string
-        /**
-         * I​P​ ​a​d​d​r​e​s​s
-         */
-        ip: string
-        /**
-         * U​s​e​r
-         */
-        user: string
-        /**
-         * F​i​l​e
-         */
-        fileName: string
-        /**
-         * S​e​l​e​c​t​ ​f​i​l​e
-         */
-        selectFile: string
-        messages: {
-          /**
-           * D​e​v​i​c​e​s​ ​c​r​e​a​t​e​d
-           */
-          devicesCreated: string
-        }
-        validation: {
-          /**
-           * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
-           */
-          invalidAddress: string
-        }
-      }
-    }
-  }
-  layout: {
-    select: {
-      /**
-       * A​d​d​ ​n​e​w​ ​+
-       */
-      addNewOptionDefault: string
-    }
-  }
-  redirectPage: {
-    /**
-     * Y​o​u​ ​h​a​v​e​ ​b​e​e​n​ ​l​o​g​g​e​d​ ​i​n
-     */
-    title: string
-    /**
-     * Y​o​u​ ​w​i​l​l​ ​b​e​ ​r​e​d​i​r​e​c​t​e​d​ ​i​n​ ​a​ ​m​o​m​e​n​t​.​.​.
-     */
-    subtitle: string
-  }
-  enrollmentPage: {
-    /**
-     * E​n​r​o​l​l​m​e​n​t
-     */
-    title: string
-    controls: {
-      /**
-       * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
-       */
-      'default': string
-      /**
-       * S​a​v​e​ ​c​h​a​n​g​e​s
-       */
-      save: string
-    }
-    messages: {
-      edit: {
-        /**
-         * S​e​t​t​i​n​g​s​ ​c​h​a​n​g​e​d
-         */
-        success: string
-        /**
-         * S​a​v​e​ ​f​a​i​l​e​d
-         */
-        error: string
-      }
-    }
-    /**
-     * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​i​z​e​ ​i​t​ ​h​e​r​e​.
-     */
-    messageBox: string
-    settings: {
-      welcomeMessage: {
-        /**
-         * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
-         */
-        title: string
-        /**
-         * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​u​s​e​r​ ​i​n​ ​s​e​r​v​i​c​e​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​s​a​m​e​ ​m​e​s​s​a​g​e​ ​a​s​ ​i​n​ ​t​h​e​ ​e​-​m​a​i​l​.
-         */
-        messageBox: string
-      }
-      vpnOptionality: {
-        /**
-         * V​P​N​ ​s​e​t​ ​o​p​t​i​o​n​a​l​l​i​t​y
-         */
-        title: string
-        select: {
-          options: {
-            /**
-             * O​p​t​i​o​n​a​l
-             */
-            optional: string
-            /**
-             * M​a​n​d​a​t​o​r​y
-             */
-            mandatory: string
-          }
-        }
-      }
-      welcomeEmail: {
-        /**
-         * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
-         */
-        title: string
-        subject: {
-          /**
-           * E​-​m​a​i​l​ ​s​u​b​j​e​c​t
-           */
-          label: string
-        }
-        /**
-         * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
-         */
-        messageBox: string
-        controls: {
-          /**
-           * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
-           */
-          duplicateWelcome: string
-        }
-      }
-    }
-  }
-  supportPage: {
-    /**
-     * S​u​p​p​o​r​t
-     */
-    title: string
-    modals: {
-      confirmDataSend: {
-        /**
-         * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
-         */
-        title: string
-        /**
-         * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
-         */
-        subTitle: string
-        /**
-         * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
-         */
-        submit: string
-      }
-    }
-    debugDataCard: {
-      /**
-       * S​u​p​p​o​r​t​ ​d​a​t​a
-       */
-      title: string
-      /**
-       * 
-     I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
-     *​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
-     *​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
+			 * @param {string} email
+			 */
+			infoMessage: RequiredParams<'email'>
+			messages: {
+				/**
+				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
+				 */
+				success: string
+				/**
+				 * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
+				 */
+				resend: string
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * E​m​a​i​l​ ​c​o​d​e
+						 */
+						label: string
+						/**
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
+						 */
+						error: string
+					}
+				}
+				controls: {
+					/**
+					 * V​e​r​i​f​y​ ​c​o​d​e
+					 */
+					submit: string
+					/**
+					 * R​e​s​e​n​d​ ​e​m​a​i​l
+					 */
+					resend: string
+				}
+			}
+		}
+		editDevice: {
+			/**
+			 * E​d​i​t​ ​d​e​v​i​c​e
+			 */
+			title: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​u​p​d​a​t​e​d​.
+				 */
+				success: string
+			}
+			form: {
+				fields: {
+					name: {
+						/**
+						 * D​e​v​i​c​e​ ​N​a​m​e
+						 */
+						label: string
+					}
+					publicKey: {
+						/**
+						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​G​u​a​r​d​)
+						 */
+						label: string
+					}
+				}
+				controls: {
+					/**
+					 * E​d​i​t​ ​d​e​v​i​c​e
+					 */
+					submit: string
+				}
+			}
+		}
+		deleteDevice: {
+			/**
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​d​e​v​i​c​e​N​a​m​e​}​ ​d​e​v​i​c​e​ ​?
+			 * @param {unknown} deviceName
+			 */
+			message: RequiredParams<'deviceName'>
+			/**
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		keyDetails: {
+			/**
+			 * Y​u​b​i​K​e​y​ ​d​e​t​a​i​l​s
+			 */
+			title: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​a​l​l​ ​k​e​y​s
+			 */
+			downloadAll: string
+		}
+		deleteUser: {
+			/**
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		disableUser: {
+			/**
+			 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		enableUser: {
+			/**
+			 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		deleteProvisioner: {
+			/**
+			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​i​d​}​ ​p​r​o​v​i​s​i​o​n​e​r​?
+			 * @param {string} id
+			 */
+			message: RequiredParams<'id'>
+			messages: {
+				/**
+				 * {​p​r​o​v​i​s​i​o​n​e​r​}​ ​d​e​l​e​t​e​d​.
+				 * @param {string} provisioner
+				 */
+				success: RequiredParams<'provisioner'>
+			}
+		}
+		changeUserPassword: {
+			messages: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​.
+				 */
+				success: string
+			}
+			/**
+			 * C​h​a​n​g​e​ ​u​s​e​r​ ​p​a​s​s​w​o​r​d
+			 */
+			title: string
+			form: {
+				controls: {
+					/**
+					 * S​a​v​e​ ​n​e​w​ ​p​a​s​s​w​o​r​d
+					 */
+					submit: string
+				}
+				fields: {
+					newPassword: {
+						/**
+						 * N​e​w​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+					confirmPassword: {
+						/**
+						 * R​e​p​e​a​t​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		provisionKeys: {
+			/**
+			 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​:
+			 */
+			title: string
+			/**
+			 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​y​u​b​i​k​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+			 */
+			warning: string
+			/**
+			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+			 */
+			infoBox: string
+			/**
+			 * S​e​l​e​c​t​ ​o​n​e​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y​:
+			 */
+			selectionLabel: string
+			noData: {
+				/**
+				 * N​o​ ​w​o​r​k​e​r​s​ ​f​o​u​n​d​,​ ​w​a​i​t​i​n​g​.​.​.
+				 */
+				workers: string
+			}
+			controls: {
+				/**
+				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 */
+				submit: string
+			}
+			messages: {
+				/**
+				 * K​e​y​s​ ​p​r​o​v​i​s​i​o​n​e​d
+				 */
+				success: string
+				/**
+				 * E​r​r​o​r​ ​w​h​i​l​e​ ​g​e​t​t​i​n​g​ ​w​o​r​k​e​r​ ​s​t​a​t​u​s​.
+				 */
+				errorStatus: string
+			}
+		}
+		addUser: {
+			/**
+			 * A​d​d​ ​n​e​w​ ​u​s​e​r
+			 */
+			title: string
+			messages: {
+				/**
+				 * U​s​e​r​ ​a​d​d​e​d
+				 */
+				userAdded: string
+			}
+			form: {
+				/**
+				 * A​d​d​ ​u​s​e​r
+				 */
+				submit: string
+				fields: {
+					username: {
+						/**
+						 * l​o​g​i​n
+						 */
+						placeholder: string
+						/**
+						 * L​o​g​i​n
+						 */
+						label: string
+					}
+					password: {
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						placeholder: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						label: string
+					}
+					email: {
+						/**
+						 * U​s​e​r​ ​e​-​m​a​i​l
+						 */
+						placeholder: string
+						/**
+						 * U​s​e​r​ ​e​-​m​a​i​l
+						 */
+						label: string
+					}
+					firstName: {
+						/**
+						 * F​i​r​s​t​ ​n​a​m​e
+						 */
+						placeholder: string
+						/**
+						 * F​i​r​s​t​ ​n​a​m​e
+						 */
+						label: string
+					}
+					lastName: {
+						/**
+						 * L​a​s​t​ ​n​a​m​e
+						 */
+						placeholder: string
+						/**
+						 * L​a​s​t​ ​n​a​m​e
+						 */
+						label: string
+					}
+					phone: {
+						/**
+						 * P​h​o​n​e
+						 */
+						placeholder: string
+						/**
+						 * P​h​o​n​e
+						 */
+						label: string
+					}
+					enableEnrollment: {
+						/**
+						 * U​s​e​ ​u​s​e​r​ ​s​e​l​f​-​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
+						 */
+						label: string
+						/**
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
+						 */
+						link: string
+					}
+				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * A​d​d​ ​w​e​b​h​o​o​k​.
+				 */
+				addWebhook: string
+				/**
+				 * E​d​i​t​ ​w​e​b​h​o​o​k
+				 */
+				editWebhook: string
+			}
+			messages: {
+				/**
+				 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+				 */
+				clientIdCopy: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+				 */
+				clientSecretCopy: string
+			}
+			form: {
+				/**
+				 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
+				 */
+				triggers: string
+				messages: {
+					/**
+					 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
+					 */
+					successAdd: string
+					/**
+					 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
+					 */
+					successModify: string
+				}
+				error: {
+					/**
+					 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					urlRequired: string
+					/**
+					 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+					 */
+					validUrl: string
+					/**
+					 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​t​r​i​g​g​e​r​.
+					 */
+					scopeValidation: string
+					/**
+					 * T​o​k​e​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+					 */
+					tokenRequired: string
+				}
+				fields: {
+					description: {
+						/**
+						 * D​e​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
+						 */
+						placeholder: string
+					}
+					token: {
+						/**
+						 * S​e​c​r​e​t​ ​t​o​k​e​n
+						 */
+						label: string
+						/**
+						 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
+						 */
+						placeholder: string
+					}
+					url: {
+						/**
+						 * W​e​b​h​o​o​k​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​w​e​b​h​o​o​k
+						 */
+						placeholder: string
+					}
+					userCreated: {
+						/**
+						 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
+						 */
+						label: string
+					}
+					userDeleted: {
+						/**
+						 * U​s​e​r​ ​d​e​l​e​t​e​d
+						 */
+						label: string
+					}
+					userModified: {
+						/**
+						 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+						 */
+						label: string
+					}
+					hwkeyProvision: {
+						/**
+						 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
+			 * @param {string} name
+			 */
+			message: RequiredParams<'name'>
+			/**
+			 * D​e​l​e​t​e
+			 */
+			submit: string
+			messages: {
+				/**
+				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+	}
+	addDevicePage: {
+		/**
+		 * A​d​d​ ​d​e​v​i​c​e
+		 */
+		title: string
+		helpers: {
+			/**
+			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
+			 */
+			setupOpt: string
+			/**
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
+			 */
+			client: string
+		}
+		messages: {
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			deviceAdded: string
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
+					 */
+					title: string
+					/**
+					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+				manual: {
+					/**
+					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+					/**
+					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+					 */
+					subTitle: string
+					/**
+					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					link: string
+				}
+			}
+			configDevice: {
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​d​e​v​i​c​e
+				 */
+				title: string
+				messages: {
+					/**
+					 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+					 */
+					copyConfig: string
+				}
+				helpers: {
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningAutoMode: string
+					/**
+					 * 
+				​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
+				​ ​ ​ ​ ​<​/​p​>​
+			
+					 */
+					warningManualMode: string
+					/**
+					 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​n​y​ ​n​e​t​w​o​r​k​.
+					 */
+					warningNoNetworks: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​<​p​>​
+				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
+				​ ​ ​ ​ ​ ​ ​<​/​p​>
+					 */
+					qrHelper: string
+				}
+				/**
+				 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				qrInfo: string
+				/**
+				 * D​e​v​i​c​e​ ​N​a​m​e
+				 */
+				inputNameLabel: string
+				/**
+				 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
+				 */
+				qrLabel: string
+			}
+			setupDevice: {
+				/**
+				 * C​r​e​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e
+				 */
+				title: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		
+				 * @param {string} addDevicesDocs
+				 */
+				infoMessage: RequiredParams<'addDevicesDocs'>
+				options: {
+					/**
+					 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+					 */
+					auto: string
+					/**
+					 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+					 */
+					manual: string
+				}
+				form: {
+					fields: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​N​a​m​e
+							 */
+							label: string
+						}
+						publicKey: {
+							/**
+							 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+							 */
+							label: string
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
+							 */
+							duplicatedName: string
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * C​l​i​e​n​t​ ​a​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
+				 */
+				tokenCardTitle: string
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
+				 */
+				urlCardTitle: string
+			}
+		}
+	}
+	userPage: {
+		title: {
+			/**
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			view: string
+			/**
+			 * E​d​i​t​ ​U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			edit: string
+		}
+		messages: {
+			/**
+			 * U​s​e​r​ ​u​p​d​a​t​e​d​.
+			 */
+			editSuccess: string
+			/**
+			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
+			 */
+			failedToFetchUserData: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​.
+			 */
+			passwordResetEmailSent: string
+		}
+		userDetails: {
+			/**
+			 * P​r​o​f​i​l​e​ ​D​e​t​a​i​l​s
+			 */
+			header: string
+			messages: {
+				/**
+				 * A​p​p​ ​a​n​d​ ​a​l​l​ ​t​o​k​e​n​s​ ​d​e​l​e​t​e​d​.
+				 */
+				deleteApp: string
+			}
+			warningModals: {
+				/**
+				 * W​a​r​n​i​n​g
+				 */
+				title: string
+				content: {
+					/**
+					 * C​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​ ​u​s​e​r​ ​h​a​s​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​i​t​,​ ​t​h​e​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					usernameChange: string
+					/**
+					 * I​f​ ​y​o​u​ ​a​r​e​ ​u​s​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​ ​(​O​I​D​C​)​ ​p​r​o​v​i​d​e​r​s​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​u​s​e​r​s​,​ ​c​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​'​s​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​m​a​y​ ​h​a​v​e​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​t​h​e​i​r​ ​a​b​i​l​i​t​y​ ​t​o​ ​l​o​g​ ​i​n​ ​t​o​ ​D​e​f​g​u​a​r​d​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					emailChange: string
+				}
+				buttons: {
+					/**
+					 * P​r​o​c​e​e​d
+					 */
+					proceed: string
+					/**
+					 * C​a​n​c​e​l
+					 */
+					cancel: string
+				}
+			}
+			fields: {
+				username: {
+					/**
+					 * U​s​e​r​n​a​m​e
+					 */
+					label: string
+				}
+				firstName: {
+					/**
+					 * F​i​r​s​t​ ​n​a​m​e
+					 */
+					label: string
+				}
+				lastName: {
+					/**
+					 * L​a​s​t​ ​n​a​m​e
+					 */
+					label: string
+				}
+				phone: {
+					/**
+					 * P​h​o​n​e​ ​n​u​m​b​e​r
+					 */
+					label: string
+				}
+				email: {
+					/**
+					 * E​-​m​a​i​l
+					 */
+					label: string
+				}
+				status: {
+					/**
+					 * S​t​a​t​u​s
+					 */
+					label: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * D​i​s​a​b​l​e​d
+					 */
+					disabled: string
+				}
+				groups: {
+					/**
+					 * U​s​e​r​ ​g​r​o​u​p​s
+					 */
+					label: string
+					/**
+					 * N​o​ ​g​r​o​u​p​s
+					 */
+					noData: string
+				}
+				apps: {
+					/**
+					 * A​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
+					 */
+					label: string
+					/**
+					 * N​o​ ​a​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
+					 */
+					noData: string
+				}
+			}
+		}
+		userAuthInfo: {
+			/**
+			 * P​a​s​s​w​o​r​d​ ​a​n​d​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			header: string
+			password: {
+				/**
+				 * P​a​s​s​w​o​r​d​ ​s​e​t​t​i​n​g​s
+				 */
+				header: string
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				changePassword: string
+				/**
+				 * {​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​u​p​d​a​t​e​ ​r​e​q​u​i​r​e​d
+				 * @param {string} ldapName
+				 */
+				ldap_change_heading: RequiredParams<'ldapName'>
+				/**
+				 * D​e​f​g​u​a​r​d​ ​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​ ​i​n​ ​p​l​a​i​n​ ​t​e​x​t​,​ ​s​o​ ​w​e​ ​c​a​n​’​t​ ​r​e​t​r​i​e​v​e​ ​i​t​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​t​h​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​c​r​e​d​e​n​t​i​a​l​s​.​ ​T​o​ ​e​n​a​b​l​e​ ​{​l​d​a​p​N​a​m​e​}​ ​l​o​g​i​n​ ​t​o​ ​o​t​h​e​r​ ​s​e​r​v​i​c​e​s​,​ ​p​l​e​a​s​e​ ​u​p​d​a​t​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​p​a​s​s​w​o​r​d​ ​f​o​r​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​t​o​ ​b​e​ ​s​e​t​ ​—​ ​y​o​u​ ​c​a​n​ ​r​e​-​e​n​t​e​r​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d​ ​i​f​ ​y​o​u​ ​w​i​s​h​.​ ​T​h​i​s​ ​s​t​e​p​ ​i​s​ ​n​e​c​e​s​s​a​r​y​ ​t​o​ ​e​n​s​u​r​e​ ​c​o​n​s​i​s​t​e​n​t​ ​a​n​d​ ​s​e​c​u​r​e​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​c​r​o​s​s​ ​b​o​t​h​ ​s​y​s​t​e​m​s​.
+				 * @param {string} ldapName
+				 */
+				ldap_change_message: RequiredParams<'ldapName' | 'ldapName' | 'ldapName'>
+			}
+			recovery: {
+				/**
+				 * R​e​c​o​v​e​r​y​ ​o​p​t​i​o​n​s
+				 */
+				header: string
+				codes: {
+					/**
+					 * R​e​c​o​v​e​r​y​ ​C​o​d​e​s
+					 */
+					label: string
+					/**
+					 * V​i​e​w​e​d
+					 */
+					viewed: string
+				}
+			}
+			mfa: {
+				/**
+				 * T​w​o​-​f​a​c​t​o​r​ ​m​e​t​h​o​d​s
+				 */
+				header: string
+				edit: {
+					/**
+					 * D​i​s​a​b​l​e​ ​M​F​A
+					 */
+					disable: string
+				}
+				messages: {
+					/**
+					 * M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					mfaDisabled: string
+					/**
+					 * O​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​ ​d​i​s​a​b​l​e​d​.
+					 */
+					OTPDisabled: string
+					/**
+					 * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
+					 */
+					EmailMFADisabled: string
+					/**
+					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
+					 */
+					changeMFAMethod: string
+				}
+				securityKey: {
+					/**
+					 * s​e​c​u​r​i​t​y​ ​k​e​y
+					 */
+					singular: string
+					/**
+					 * s​e​c​u​r​i​t​y​ ​k​e​y​s
+					 */
+					plural: string
+				}
+				/**
+				 * d​e​f​a​u​l​t
+				 */
+				'default': string
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+				labels: {
+					/**
+					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
+					 */
+					totp: string
+					/**
+					 * E​m​a​i​l
+					 */
+					email: string
+					/**
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
+					 */
+					webauth: string
+				}
+				editMode: {
+					/**
+					 * E​n​a​b​l​e
+					 */
+					enable: string
+					/**
+					 * D​i​s​a​b​l​e
+					 */
+					disable: string
+					/**
+					 * M​a​k​e​ ​d​e​f​a​u​l​t
+					 */
+					makeDefault: string
+					webauth: {
+						/**
+						 * M​a​n​a​g​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​s
+						 */
+						manage: string
+					}
+				}
+			}
+		}
+		controls: {
+			/**
+			 * E​d​i​t​ ​p​r​o​f​i​l​e
+			 */
+			editButton: string
+			/**
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+			 */
+			deleteAccount: string
+		}
+		devices: {
+			/**
+			 * U​s​e​r​ ​d​e​v​i​c​e​s
+			 */
+			header: string
+			addDevice: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​d​e​v​i​c​e
+				 */
+				web: string
+				/**
+				 * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
+				 */
+				desktop: string
+			}
+			card: {
+				labels: {
+					/**
+					 * P​u​b​l​i​c​ ​I​P
+					 */
+					publicIP: string
+					/**
+					 * C​o​n​n​e​c​t​e​d​ ​t​h​r​o​u​g​h
+					 */
+					connectedThrough: string
+					/**
+					 * C​o​n​n​e​c​t​e​d​ ​d​a​t​e
+					 */
+					connectionDate: string
+					/**
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
+					 */
+					lastLocation: string
+					/**
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d
+					 */
+					lastConnected: string
+					/**
+					 * A​s​s​i​g​n​e​d​ ​I​P
+					 */
+					assignedIp: string
+					/**
+					 * a​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * N​e​v​e​r​ ​c​o​n​n​e​c​t​e​d
+					 */
+					noData: string
+				}
+				edit: {
+					/**
+					 * E​d​i​t​ ​d​e​v​i​c​e
+					 */
+					edit: string
+					/**
+					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
+					 */
+					'delete': string
+					/**
+					 * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					showConfigurations: string
+				}
+			}
+		}
+		yubiKey: {
+			/**
+			 * U​s​e​r​ ​Y​u​b​i​K​e​y
+			 */
+			header: string
+			/**
+			 * P​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+			 */
+			provision: string
+			keys: {
+				/**
+				 * P​G​P​ ​k​e​y
+				 */
+				pgp: string
+				/**
+				 * S​S​H​ ​k​e​y
+				 */
+				ssh: string
+			}
+			noLicense: {
+				/**
+				 * Y​u​b​i​K​e​y​ ​m​o​d​u​l​e
+				 */
+				moduleName: string
+				/**
+				 * T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y
+				 */
+				line1: string
+				/**
+				 * m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+				 */
+				line2: string
+			}
+		}
+		authenticationKeys: {
+			/**
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​K​e​y
+			 */
+			addKey: string
+			keysList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * K​e​y
+					 */
+					key: string
+					/**
+					 * D​o​w​n​l​o​a​d
+					 */
+					download: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
+					 */
+					serialNumber: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				title: string
+				/**
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				header: string
+				/**
+				 * K​e​y​ ​T​y​p​e
+				 */
+				keyType: string
+				keyForm: {
+					placeholders: {
+						/**
+						 * K​e​y​ ​N​a​m​e
+						 */
+						title: string
+						key: {
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
+							 */
+							ssh: string
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
+							 */
+							gpg: string
+						}
+					}
+					labels: {
+						/**
+						 * N​a​m​e
+						 */
+						title: string
+						/**
+						 * K​e​y
+						 */
+						key: string
+					}
+					/**
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
+					 * @param {string} name
+					 */
+					submit: RequiredParams<'name'>
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+						 */
+						info: string
+						/**
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+						 */
+						selectLabel: string
+						/**
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
+						 */
+						noData: string
+						/**
+						 * A​v​a​i​l​a​b​l​e
+						 */
+						available: string
+						/**
+						 * U​n​a​v​a​i​l​a​b​l​e
+						 */
+						unavailable: string
+					}
+					provisioning: {
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
+						 */
+						inProgress: string
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
+						 */
+						error: string
+						/**
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+						 */
+						success: string
+					}
+					/**
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * K​e​y​ ​a​d​d​e​d​.
+					 */
+					keyAdded: string
+					/**
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
+					 */
+					keyExists: string
+					/**
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
+					 */
+					unsupportedKeyFormat: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
+		apiTokens: {
+			/**
+			 * U​s​e​r​ ​A​P​I​ ​T​o​k​e​n​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+			 */
+			addToken: string
+			tokensList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * T​o​k​e​n
+					 */
+					token: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+					/**
+					 * C​r​e​a​t​e​d​ ​a​t
+					 */
+					createdAt: string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​P​I​ ​T​o​k​e​n
+				 */
+				title: string
+				/**
+				 * A​P​I​ ​t​o​k​e​n​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+				 */
+				header: string
+				tokenForm: {
+					placeholders: {
+						/**
+						 * A​P​I​ ​T​o​k​e​n​ ​N​a​m​e
+						 */
+						name: string
+					}
+					labels: {
+						/**
+						 * N​a​m​e
+						 */
+						name: string
+					}
+					/**
+					 * A​d​d​ ​A​P​I​ ​t​o​k​e​n
+					 */
+					submit: string
+				}
+				copyToken: {
+					/**
+					 * P​l​e​a​s​e​ ​c​o​p​y​ ​t​h​e​ ​A​P​I​ ​t​o​k​e​n​ ​b​e​l​o​w​ ​n​o​w​.​ ​Y​o​u​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​e​ ​i​t​ ​a​g​a​i​n​.
+					 */
+					warningMessage: string
+					/**
+					 * C​o​p​y​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+					 */
+					header: string
+				}
+				messages: {
+					/**
+					 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d​.
+					 */
+					tokenAdded: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​A​P​I​ ​t​o​k​e​n​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
+	}
+	usersOverview: {
+		/**
+		 * U​s​e​r​s
+		 */
+		pageTitle: string
+		grid: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			usersTitle: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devicesTitle: string
+		}
+		search: {
+			/**
+			 * F​i​n​d​ ​u​s​e​r​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​u​s​e​r​s
+			 */
+			all: string
+			/**
+			 * A​d​m​i​n​s​ ​o​n​l​y
+			 */
+			admin: string
+			/**
+			 * U​s​e​r​s​ ​o​n​l​y
+			 */
+			users: string
+		}
+		/**
+		 * A​l​l​ ​u​s​e​r​s
+		 */
+		usersCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewUser: string
+		list: {
+			headers: {
+				/**
+				 * U​s​e​r​ ​n​a​m​e
+				 */
+				name: string
+				/**
+				 * L​o​g​i​n
+				 */
+				username: string
+				/**
+				 * P​h​o​n​e
+				 */
+				phone: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
+				 */
+				changePassword: string
+				/**
+				 * E​d​i​t​ ​a​c​c​o​u​n​t
+				 */
+				edit: string
+				/**
+				 * A​d​d​ ​Y​u​b​i​K​e​y
+				 */
+				addYubikey: string
+				/**
+				 * A​d​d​ ​S​S​H​ ​K​e​y
+				 */
+				addSSH: string
+				/**
+				 * A​d​d​ ​G​P​G​ ​K​e​y
+				 */
+				addGPG: string
+				/**
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
+				 */
+				'delete': string
+				/**
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				startEnrollment: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
+				 */
+				activateDesktop: string
+				/**
+				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
+				 */
+				resetPassword: string
+			}
+		}
+	}
+	navigation: {
+		bar: {
+			/**
+			 * V​P​N​ ​O​v​e​r​v​i​e​w
+			 */
+			overview: string
+			/**
+			 * U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * Y​u​b​i​K​e​y​s
+			 */
+			provisioners: string
+			/**
+			 * W​e​b​h​o​o​k​s
+			 */
+			webhooks: string
+			/**
+			 * O​p​e​n​I​D​ ​A​p​p​s
+			 */
+			openId: string
+			/**
+			 * M​y​ ​P​r​o​f​i​l​e
+			 */
+			myProfile: string
+			/**
+			 * S​e​t​t​i​n​g​s
+			 */
+			settings: string
+			/**
+			 * L​o​g​ ​o​u​t
+			 */
+			logOut: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+			/**
+			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l
+			 */
+			acl: string
+			/**
+			 * A​c​t​i​v​i​t​y
+			 */
+			activity: string
+		}
+		mobileTitles: {
+			/**
+			 * A​c​t​i​v​i​t​y
+			 */
+			activity: string
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
+			/**
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
+			 */
+			wizard: string
+			/**
+			 * U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * S​e​t​t​i​n​g​s
+			 */
+			settings: string
+			/**
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
+			 */
+			user: string
+			/**
+			 * Y​u​b​i​k​e​y
+			 */
+			provisioners: string
+			/**
+			 * W​e​b​h​o​o​k​s
+			 */
+			webhooks: string
+			/**
+			 * O​p​e​n​I​d​ ​A​p​p​s
+			 */
+			openId: string
+			/**
+			 * L​o​c​a​t​i​o​n​ ​O​v​e​r​v​i​e​w
+			 */
+			overview: string
+			/**
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n
+			 */
+			networkSettings: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			support: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+		}
+		/**
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​5
+		 */
+		copyright: string
+		version: {
+			/**
+			 * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			open: RequiredParams<'version'>
+			/**
+			 * v​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			closed: RequiredParams<'version'>
+		}
+	}
+	form: {
+		/**
+		 * D​o​w​n​l​o​a​d
+		 */
+		download: string
+		/**
+		 * C​o​p​y
+		 */
+		copy: string
+		/**
+		 * S​a​v​e​ ​c​h​a​n​g​e​s
+		 */
+		saveChanges: string
+		/**
+		 * S​u​b​m​i​t
+		 */
+		submit: string
+		/**
+		 * S​i​g​n​ ​i​n
+		 */
+		login: string
+		/**
+		 * C​a​n​c​e​l
+		 */
+		cancel: string
+		/**
+		 * C​l​o​s​e
+		 */
+		close: string
+		placeholders: {
+			/**
+			 * P​a​s​s​w​o​r​d
+			 */
+			password: string
+			/**
+			 * U​s​e​r​n​a​m​e
+			 */
+			username: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​o​r​ ​e​m​a​i​l
+			 */
+			username_or_email: string
+		}
+		error: {
+			/**
+			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
+			 */
+			reservedName: string
+			/**
+			 * I​P​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidIp: string
+			/**
+			 * I​P​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
+			 */
+			reservedIp: string
+			/**
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 */
+			forbiddenCharacter: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
+			 */
+			usernameTaken: string
+			/**
+			 * K​e​y​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidKey: string
+			/**
+			 * F​i​e​l​d​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalid: string
+			/**
+			 * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+			 */
+			required: string
+			/**
+			 * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidCode: string
+			/**
+			 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
+			 */
+			maximumLength: string
+			/**
+			 * F​i​e​l​d​ ​l​e​n​g​t​h​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​{​l​e​n​g​t​h​}
+			 * @param {number} length
+			 */
+			maximumLengthOf: RequiredParams<'length'>
+			/**
+			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 */
+			minimumLength: string
+			/**
+			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​o​f​ ​{​l​e​n​g​t​h​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} length
+			 */
+			minimumLengthOf: RequiredParams<'length'>
+			/**
+			 * N​o​ ​s​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​s​ ​a​r​e​ ​a​l​l​o​w​e​d​.
+			 */
+			noSpecialChars: string
+			/**
+			 * O​n​e​ ​d​i​g​i​t​ ​r​e​q​u​i​r​e​d​.
+			 */
+			oneDigit: string
+			/**
+			 * S​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
+			 */
+			oneSpecial: string
+			/**
+			 * O​n​e​ ​u​p​p​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
+			 */
+			oneUppercase: string
+			/**
+			 * O​n​e​ ​l​o​w​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
+			 */
+			oneLowercase: string
+			/**
+			 * M​a​x​i​m​u​m​ ​p​o​r​t​ ​i​s​ ​6​5​5​3​5​.
+			 */
+			portMax: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​e​n​d​p​o​i​n​t​.
+			 */
+			endpoint: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​.
+			 */
+			address: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​ ​w​i​t​h​ ​a​ ​n​e​t​m​a​s​k​.
+			 */
+			addressNetmask: string
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
+			 */
+			validPort: string
+			/**
+			 * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
+			 */
+			validCode: string
+			/**
+			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
+			 */
+			allowedIps: string
+			/**
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
+			 */
+			startFromNumber: string
+			/**
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
+			 */
+			repeat: string
+			/**
+			 * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
+			 */
+			number: string
+			/**
+			 * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} value
+			 */
+			minimumValue: RequiredParams<'value'>
+			/**
+			 * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
+			 * @param {number} value
+			 */
+			maximumValue: RequiredParams<'value'>
+			/**
+			 * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​a​ ​f​e​w​ ​m​i​n​u​t​e​s​.
+			 */
+			tooManyBadLoginAttempts: string
+		}
+		floatingErrors: {
+			/**
+			 * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​:
+			 */
+			title: string
+		}
+	}
+	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
+			 */
+			label: string
+			options: {
+				/**
+				 * A​l​l​o​w
+				 */
+				allow: string
+				/**
+				 * D​e​n​y
+				 */
+				deny: string
+			}
+		}
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+			 */
+			headerMessage: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+			 */
+			downloadButton: string
+			expandableCard: {
+				/**
+				 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+				 */
+				title: string
+			}
+		}
+		deviceConfigsCard: {
+			/**
+			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
+			 */
+			cardTitle: string
+			messages: {
+				/**
+				 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
+				 */
+				copyConfig: string
+			}
+		}
+		gatewaysStatus: {
+			/**
+			 * G​a​t​e​w​a​y​s
+			 */
+			label: string
+			states: {
+				/**
+				 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
+				 */
+				all: RequiredParams<'count'>
+				/**
+				 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
+				 */
+				some: RequiredParams<'count'>
+				/**
+				 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
+				 */
+				none: string
+				/**
+				 * S​t​a​t​u​s​ ​c​h​e​c​k​ ​f​a​i​l​e​d
+				 */
+				error: string
+			}
+			messages: {
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
+				 */
+				error: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​g​a​t​e​w​a​y
+				 */
+				deleteError: string
+			}
+		}
+		noLicenseBox: {
+			footer: {
+				/**
+				 * G​e​t​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e
+				 */
+				get: string
+				/**
+				 * b​y​ ​c​o​n​t​a​c​t​i​n​g​:
+				 */
+				contact: string
+			}
+		}
+	}
+	settingsPage: {
+		/**
+		 * S​e​t​t​i​n​g​s
+		 */
+		title: string
+		tabs: {
+			/**
+			 * S​M​T​P
+			 */
+			smtp: string
+			/**
+			 * G​l​o​b​a​l​ ​s​e​t​t​i​n​g​s
+			 */
+			global: string
+			/**
+			 * L​D​A​P
+			 */
+			ldap: string
+			/**
+			 * O​p​e​n​I​D
+			 */
+			openid: string
+			/**
+			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
+			 */
+			enterprise: string
+			/**
+			 * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			gatewayNotifications: string
+		}
+		messages: {
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			editSuccess: string
+			/**
+			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
+			 */
+			challengeSuccess: string
+		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * Y​o​u​r​ ​c​u​r​r​e​n​t​ ​l​i​c​e​n​s​e​ ​h​a​s​ ​e​x​p​i​r​e​d​.
+			 */
+			currentExpired: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
+		}
+		ldapSettings: {
+			/**
+			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
+			 */
+			title: string
+			sync: {
+				/**
+				 * L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+				 */
+				header: string
+				/**
+				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​i​n​t​e​g​r​a​t​i​o​n​/​t​w​o​-​w​a​y​-​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
+				 */
+				info: string
+				/**
+				 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+				 */
+				info_enterprise: string
+				helpers: {
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​p​u​l​l​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​L​D​A​P​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​ ​i​t​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
+					 */
+					heading: string
+					/**
+					 * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​p​u​l​l​ ​L​D​A​P​ ​u​s​e​r​ ​d​a​t​a​ ​a​t​ ​t​h​e​ ​s​p​e​c​i​f​i​e​d​ ​i​n​t​e​r​v​a​l​.
+					 */
+					sync_enabled: string
+					/**
+					 * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​ ​o​f​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​u​s​e​r​ ​d​a​t​a​,​ ​m​e​a​n​i​n​g​ ​t​h​a​t​ ​i​f​ ​L​D​A​P​ ​i​s​ ​s​e​l​e​c​t​e​d​,​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​ ​b​e​ ​o​v​e​r​w​r​i​t​t​e​n​ ​w​i​t​h​ ​t​h​e​ ​L​D​A​P​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​a​t​a​ ​i​n​ ​c​a​s​e​ ​o​f​ ​a​ ​d​e​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​I​f​ ​D​e​f​g​u​a​r​d​ ​w​a​s​ ​s​e​l​e​c​t​e​d​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y​,​ ​i​t​'​s​ ​d​a​t​a​ ​w​i​l​l​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​o​v​e​r​w​r​i​t​e​ ​L​D​A​P​ ​d​a​t​a​ ​i​f​ ​n​e​c​e​s​s​a​r​y​.​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​t​h​e​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​t​o​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​e​ ​i​m​p​l​i​c​a​t​i​o​n​s​ ​o​f​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​t​t​i​n​g​.
+					 */
+					authority: string
+					/**
+					 * T​h​e​ ​i​n​t​e​r​v​a​l​ ​w​i​t​h​ ​w​h​i​c​h​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​t​t​e​m​p​t​e​d​.
+					 */
+					interval: string
+					/**
+					 * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​o​n​l​y​ ​u​s​e​r​s​ ​b​e​l​o​n​g​i​n​g​ ​t​o​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​g​r​o​u​p​s​.​ ​P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​s​.​ ​I​f​ ​e​m​p​t​y​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
+					 */
+					groups: string
+				}
+			}
+			form: {
+				labels: {
+					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​i​n​t​e​g​r​a​t​i​o​n
+					 */
+					ldap_enable: string
+					/**
+					 * U​R​L
+					 */
+					ldap_url: string
+					/**
+					 * B​i​n​d​ ​U​s​e​r​n​a​m​e
+					 */
+					ldap_bind_username: string
+					/**
+					 * B​i​n​d​ ​P​a​s​s​w​o​r​d
+					 */
+					ldap_bind_password: string
+					/**
+					 * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_member_attr: string
+					/**
+					 * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_username_attr: string
+					/**
+					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_user_search_base: string
+					/**
+					 * A​d​d​i​t​i​o​n​a​l​ ​U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s​e​s
+					 */
+					ldap_user_auxiliary_obj_classes: string
+					/**
+					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_groupname_attr: string
+					/**
+					 * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
+					 */
+					ldap_group_search_base: string
+					/**
+					 * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_group_member_attr: string
+					/**
+					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 */
+					ldap_group_obj_class: string
+					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+					 */
+					ldap_sync_enabled: string
+					/**
+					 * C​o​n​s​i​d​e​r​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​s​o​u​r​c​e​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
+					 */
+					ldap_authoritative_source: string
+					/**
+					 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
+					 */
+					ldap_sync_interval: string
+					/**
+					 * U​s​e​ ​S​t​a​r​t​T​L​S
+					 */
+					ldap_use_starttls: string
+					/**
+					 * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
+					 */
+					ldap_tls_verify_cert: string
+					/**
+					 * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
+					 */
+					ldap_uses_ad: string
+					/**
+					 * U​s​e​r​ ​R​D​N​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_user_rdn_attr: string
+					/**
+					 * L​i​m​i​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​t​o​ ​t​h​e​s​e​ ​g​r​o​u​p​s
+					 */
+					ldap_sync_groups: string
+				}
+				helpers: {
+					/**
+					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​u​s​e​r​.
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * T​h​e​ ​a​d​d​i​t​i​o​n​a​l​ ​o​b​j​e​c​t​ ​c​l​a​s​s​e​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​e​y​ ​m​a​y​ ​a​l​s​o​ ​i​n​f​l​u​e​n​c​e​ ​t​h​e​ ​a​d​d​e​d​ ​u​s​e​r​'​s​ ​a​t​t​r​i​b​u​t​e​s​ ​(​e​.​g​.​ ​s​i​m​p​l​e​S​e​c​u​r​i​t​y​O​b​j​e​c​t​ ​c​l​a​s​s​ ​w​i​l​l​ ​a​d​d​ ​u​s​e​r​P​a​s​s​w​o​r​d​ ​a​t​t​r​i​b​u​t​e​)​.
+					 */
+					ldap_user_auxiliary_obj_classes: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​u​s​e​r​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
+					 */
+					user_settings: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​c​o​n​n​e​c​t​s​ ​t​o​ ​y​o​u​r​ ​L​D​A​P​ ​s​e​r​v​e​r​.​ ​E​n​c​r​y​p​t​e​d​ ​c​o​n​n​e​c​t​i​o​n​s​ ​a​r​e​ ​a​l​s​o​ ​s​u​p​p​o​r​t​e​d​ ​(​S​t​a​r​t​T​L​S​,​ ​L​D​A​P​S​)​.
+					 */
+					connection_settings: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​g​r​o​u​p​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​g​r​o​u​p​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​g​r​o​u​p​s​.
+					 */
+					group_settings: string
+					/**
+					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​r​e​p​r​e​s​e​n​t​s​ ​a​ ​g​r​o​u​p​ ​i​n​ ​L​D​A​P​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​g​r​o​u​p​.
+					 */
+					ldap_group_obj_class: string
+					/**
+					 * I​f​ ​y​o​u​r​ ​u​s​e​r​'​s​ ​R​D​N​ ​a​t​t​r​i​b​u​t​e​ ​i​s​ ​d​i​f​f​e​r​e​n​t​ ​t​h​a​n​ ​y​o​u​r​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​,​ ​p​l​e​a​s​e​ ​p​r​o​v​i​d​e​ ​i​t​ ​h​e​r​e​,​ ​o​t​h​e​r​w​i​s​e​ ​l​e​a​v​e​ ​i​t​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​ ​a​s​ ​t​h​e​ ​u​s​e​r​'​s​ ​R​D​N​.
+					 */
+					ldap_user_rdn_attr: string
+				}
+				headings: {
+					/**
+					 * U​s​e​r​ ​s​e​t​t​i​n​g​s
+					 */
+					user_settings: string
+					/**
+					 * C​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s
+					 */
+					connection_settings: string
+					/**
+					 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+					 */
+					group_settings: string
+				}
+				/**
+				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				'delete': string
+			}
+			test: {
+				/**
+				 * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
+				 */
+				title: string
+				/**
+				 * T​e​s​t
+				 */
+				submit: string
+				messages: {
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+					 */
+					success: string
+					/**
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
+					 */
+					error: string
+				}
+			}
+		}
+		openIdSettings: {
+			/**
+			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s
+			 */
+			heading: string
+			general: {
+				/**
+				 * G​e​n​e​r​a​l​ ​s​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				helper: string
+				createAccount: {
+					/**
+					 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
+					 */
+					label: string
+					/**
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
+					 */
+					helper: string
+				}
+				usernameHandling: {
+					/**
+					 * U​s​e​r​n​a​m​e​ ​h​a​n​d​l​i​n​g
+					 */
+					label: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​t​h​e​ ​m​e​t​h​o​d​ ​f​o​r​ ​h​a​n​d​l​i​n​g​ ​i​n​v​a​l​i​d​ ​c​h​a​r​a​c​t​e​r​s​ ​i​n​ ​u​s​e​r​n​a​m​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​.
+					 */
+					helper: string
+					options: {
+						/**
+						 * R​e​m​o​v​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
+						 */
+						remove: string
+						/**
+						 * R​e​p​l​a​c​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
+						 */
+						replace: string
+						/**
+						 * P​r​u​n​e​ ​e​m​a​i​l​ ​d​o​m​a​i​n
+						 */
+						prune_email: string
+					}
+				}
+			}
+			form: {
+				/**
+				 * C​l​i​e​n​t​ ​s​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+				 */
+				helper: string
+				/**
+				 * C​u​s​t​o​m
+				 */
+				custom: string
+				/**
+				 * N​o​n​e
+				 */
+				none: string
+				/**
+				 * M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​e​x​t​e​r​n​a​l​-​o​p​e​n​i​d​-​p​r​o​v​i​d​e​r​s​)​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+				 */
+				documentation: string
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
+				 */
+				'delete': string
+				directory_sync_settings: {
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s
+					 */
+					title: string
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​'​ ​s​t​a​t​u​s​ ​a​n​d​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
+					 */
+					helper: string
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
+					 */
+					notSupported: string
+					connectionTest: {
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​s​u​c​c​e​s​s​f​u​l
+						 */
+						success: string
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:
+						 */
+						error: string
+					}
+				}
+				selects: {
+					synchronize: {
+						/**
+						 * A​l​l
+						 */
+						all: string
+						/**
+						 * U​s​e​r​s
+						 */
+						users: string
+						/**
+						 * G​r​o​u​p​s
+						 */
+						groups: string
+					}
+					behavior: {
+						/**
+						 * K​e​e​p
+						 */
+						keep: string
+						/**
+						 * D​i​s​a​b​l​e
+						 */
+						disable: string
+						/**
+						 * D​e​l​e​t​e
+						 */
+						'delete': string
+					}
+				}
+				labels: {
+					provider: {
+						/**
+						 * P​r​o​v​i​d​e​r
+						 */
+						label: string
+						/**
+						 * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
+						 */
+						helper: string
+					}
+					client_id: {
+						/**
+						 * C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					client_secret: {
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					base_url: {
+						/**
+						 * B​a​s​e​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+						 */
+						helper: string
+					}
+					display_name: {
+						/**
+						 * D​i​s​p​l​a​y​ ​N​a​m​e
+						 */
+						label: string
+						/**
+						 * N​a​m​e​ ​o​f​ ​t​h​e​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​t​o​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​l​o​g​i​n​'​s​ ​p​a​g​e​ ​b​u​t​t​o​n​.​ ​I​f​ ​n​o​t​ ​p​r​o​v​i​d​e​d​,​ ​t​h​e​ ​b​u​t​t​o​n​ ​w​i​l​l​ ​d​i​s​p​l​a​y​ ​g​e​n​e​r​i​c​ ​'​L​o​g​i​n​ ​w​i​t​h​ ​O​I​D​C​'​ ​t​e​x​t​.
+						 */
+						helper: string
+					}
+					enable_directory_sync: {
+						/**
+						 * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+						 */
+						label: string
+					}
+					sync_target: {
+						/**
+						 * S​y​n​c​h​r​o​n​i​z​e
+						 */
+						label: string
+						/**
+						 * W​h​a​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​f​r​o​m​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​b​e​t​w​e​e​n​ ​s​y​n​c​h​r​o​n​i​z​i​n​g​ ​b​o​t​h​ ​u​s​e​r​s​'​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​s​,​ ​o​r​ ​n​a​r​r​o​w​ ​i​t​ ​d​o​w​n​ ​t​o​ ​j​u​s​t​ ​o​n​e​ ​o​f​ ​t​h​e​s​e​.
+						 */
+						helper: string
+					}
+					sync_interval: {
+						/**
+						 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
+						 */
+						label: string
+						/**
+						 * I​n​t​e​r​v​a​l​ ​i​n​ ​s​e​c​o​n​d​s​ ​b​e​t​w​e​e​n​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​s​.
+						 */
+						helper: string
+					}
+					user_behavior: {
+						/**
+						 * U​s​e​r​ ​b​e​h​a​v​i​o​r
+						 */
+						label: string
+						/**
+						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​u​s​e​r​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​,​ ​d​i​s​a​b​l​i​n​g​,​ ​o​r​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
+						 */
+						helper: string
+					}
+					admin_behavior: {
+						/**
+						 * A​d​m​i​n​ ​b​e​h​a​v​i​o​r
+						 */
+						label: string
+						/**
+						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​D​e​f​g​u​a​r​d​ ​a​d​m​i​n​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​ ​t​h​e​m​,​ ​d​i​s​a​b​l​i​n​g​ ​t​h​e​m​ ​o​r​ ​c​o​m​p​l​e​t​e​l​y​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
+						 */
+						helper: string
+					}
+					admin_email: {
+						/**
+						 * A​d​m​i​n​ ​e​m​a​i​l
+						 */
+						label: string
+						/**
+						 * E​m​a​i​l​ ​a​d​d​r​e​s​s​ ​o​f​ ​t​h​e​ ​a​c​c​o​u​n​t​ ​o​n​ ​w​h​i​c​h​ ​b​e​h​a​l​f​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​c​h​e​c​k​s​ ​w​i​l​l​ ​b​e​ ​p​e​r​f​o​r​m​e​d​,​ ​e​.​g​.​ ​t​h​e​ ​p​e​r​s​o​n​ ​w​h​o​ ​s​e​t​u​p​ ​t​h​e​ ​G​o​o​g​l​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​.​ ​S​e​e​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
+						 */
+						helper: string
+					}
+					service_account_used: {
+						/**
+						 * S​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​i​n​ ​u​s​e
+						 */
+						label: string
+						/**
+						 * T​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​c​u​r​r​e​n​t​l​y​ ​b​e​i​n​g​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​Y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​i​t​ ​b​y​ ​u​p​l​o​a​d​i​n​g​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​.
+						 */
+						helper: string
+					}
+					service_account_key_file: {
+						/**
+						 * S​e​r​v​i​c​e​ ​A​c​c​o​u​n​t​ ​K​e​y​ ​f​i​l​e
+						 */
+						label: string
+						/**
+						 * U​p​l​o​a​d​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​ ​t​o​ ​s​e​t​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​N​O​T​E​:​ ​T​h​e​ ​u​p​l​o​a​d​e​d​ ​f​i​l​e​ ​w​o​n​'​t​ ​b​e​ ​v​i​s​i​b​l​e​ ​a​f​t​e​r​ ​s​a​v​i​n​g​ ​t​h​e​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​r​e​l​o​a​d​i​n​g​ ​t​h​e​ ​p​a​g​e​ ​a​s​ ​i​t​'​s​ ​c​o​n​t​e​n​t​s​ ​a​r​e​ ​s​e​n​s​i​t​i​v​e​ ​a​n​d​ ​a​r​e​ ​n​e​v​e​r​ ​s​e​n​t​ ​b​a​c​k​ ​t​o​ ​t​h​e​ ​d​a​s​h​b​o​a​r​d​.
+						 */
+						helper: string
+						/**
+						 * F​i​l​e​ ​u​p​l​o​a​d​e​d
+						 */
+						uploaded: string
+						/**
+						 * U​p​l​o​a​d​ ​a​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e
+						 */
+						uploadPrompt: string
+					}
+					okta_client_id: {
+						/**
+						 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​.
+						 */
+						helper: string
+					}
+					okta_client_key: {
+						/**
+						 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​P​r​i​v​a​t​e​ ​K​e​y
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​ ​i​n​ ​t​h​e​ ​J​W​K​ ​f​o​r​m​a​t​.​ ​I​t​ ​w​o​n​'​t​ ​b​e​ ​s​h​o​w​n​ ​a​g​a​i​n​ ​h​e​r​e​.
+						 */
+						helper: string
+					}
+					group_match: {
+						/**
+						 * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
+						 */
+						label: string
+						/**
+						 * P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​ ​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​ ​n​a​m​e​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.​ ​I​f​ ​l​e​f​t​ ​e​m​p​t​y​,​ ​a​l​l​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​v​i​d​e​r​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
+						 */
+						helper: string
+					}
+				}
+			}
+		}
+		modulesVisibility: {
+			/**
+			 * M​o​d​u​l​e​s​ ​V​i​s​i​b​i​l​i​t​y
+			 */
+			header: string
+			/**
+			 * <​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 * @param {string} documentationLink
+			 */
+			helper: RequiredParams<'documentationLink'>
+			fields: {
+				wireguard_enabled: {
+					/**
+					 * W​i​r​e​G​u​a​r​d​ ​V​P​N
+					 */
+					label: string
+				}
+				webhooks_enabled: {
+					/**
+					 * W​e​b​h​o​o​k​s
+					 */
+					label: string
+				}
+				worker_enabled: {
+					/**
+					 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g
+					 */
+					label: string
+				}
+				openid_enabled: {
+					/**
+					 * O​p​e​n​I​D​ ​C​o​n​n​e​c​t
+					 */
+					label: string
+				}
+			}
+		}
+		defaultNetworkSelect: {
+			/**
+			 * D​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w​.​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
+			 * @param {string} documentationLink
+			 */
+			helper: RequiredParams<'documentationLink'>
+			filterLabels: {
+				/**
+				 * G​r​i​d​ ​v​i​e​w
+				 */
+				grid: string
+				/**
+				 * L​i​s​t​ ​v​i​e​w
+				 */
+				list: string
+			}
+		}
+		instanceBranding: {
+			/**
+			 * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
+			 */
+			header: string
+			form: {
+				/**
+				 * N​a​m​e​ ​&​ ​L​o​g​o​:
+				 */
+				title: string
+				fields: {
+					instanceName: {
+						/**
+						 * I​n​s​t​a​n​c​e​ ​n​a​m​e
+						 */
+						label: string
+						/**
+						 * D​e​f​g​u​a​r​d
+						 */
+						placeholder: string
+					}
+					mainLogoUrl: {
+						/**
+						 * L​o​g​i​n​ ​l​o​g​o​ ​u​r​l
+						 */
+						label: string
+						/**
+						 * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x
+						 */
+						helper: string
+						/**
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
+						 */
+						placeholder: string
+					}
+					navLogoUrl: {
+						/**
+						 * M​e​n​u​ ​&​ ​n​a​v​i​g​a​t​i​o​n​ ​s​m​a​l​l​ ​l​o​g​o
+						 */
+						label: string
+						/**
+						 * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x
+						 */
+						helper: string
+						/**
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+					 */
+					restoreDefault: string
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+			}
+			/**
+			 * 
+		​	​	​	​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>​
+		​	​	​
+			 * @param {string} documentationLink
+			 */
+			helper: RequiredParams<'documentationLink'>
+		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
+					 */
+					link: string
+				}
+				licenseKey: {
+					/**
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
+					 */
+					link: string
+				}
+			}
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
+			licenseInfo: {
+				/**
+				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
+				 */
+				title: string
+				status: {
+					/**
+					 * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
+					 */
+					noLicense: string
+					/**
+					 * E​x​p​i​r​e​d
+					 */
+					expired: string
+					/**
+					 * L​i​m​i​t​s​ ​E​x​c​e​e​d​e​d
+					 */
+					limitsExceeded: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+				}
+				/**
+				 * <​p​>​Y​o​u​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​,​ ​a​s​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​e​x​c​e​e​d​e​d​ ​a​n​y​ ​o​f​ ​t​h​e​ ​u​s​a​g​e​ ​l​i​m​i​t​s​ ​y​e​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​'​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​'​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​.​<​/​p​>
+				 */
+				licenseNotRequired: string
+				types: {
+					subscription: {
+						/**
+						 * S​u​b​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * A​ ​l​i​c​e​n​s​e​ ​t​h​a​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w​s​ ​a​t​ ​r​e​g​u​l​a​r​ ​i​n​t​e​r​v​a​l​s
+						 */
+						helper: string
+					}
+					offline: {
+						/**
+						 * O​f​f​l​i​n​e
+						 */
+						label: string
+						/**
+						 * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​v​a​l​i​d​ ​u​n​t​i​l​ ​t​h​e​ ​e​x​p​i​r​y​ ​d​a​t​e​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w
+						 */
+						helper: string
+					}
+				}
+				fields: {
+					status: {
+						/**
+						 * S​t​a​t​u​s
+						 */
+						label: string
+						/**
+						 * A​c​t​i​v​e
+						 */
+						active: string
+						/**
+						 * E​x​p​i​r​e​d
+						 */
+						expired: string
+						/**
+						 * A​ ​s​u​b​s​c​r​i​p​t​i​o​n​ ​l​i​c​e​n​s​e​ ​i​s​ ​c​o​n​s​i​d​e​r​e​d​ ​v​a​l​i​d​ ​f​o​r​ ​s​o​m​e​ ​t​i​m​e​ ​a​f​t​e​r​ ​t​h​e​ ​e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​ ​t​o​ ​a​c​c​o​u​n​t​ ​f​o​r​ ​p​o​s​s​i​b​l​e​ ​a​u​t​o​m​a​t​i​c​ ​p​a​y​m​e​n​t​ ​d​e​l​a​y​s​.
+						 */
+						subscriptionHelper: string
+					}
+					type: {
+						/**
+						 * T​y​p​e
+						 */
+						label: string
+					}
+					validUntil: {
+						/**
+						 * V​a​l​i​d​ ​u​n​t​i​l
+						 */
+						label: string
+					}
+				}
+			}
+		}
+		smtp: {
+			form: {
+				/**
+				 * S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				title: string
+				sections: {
+					/**
+					 * S​e​r​v​e​r​ ​s​e​t​t​i​n​g​s
+					 */
+					server: string
+				}
+				fields: {
+					encryption: {
+						/**
+						 * E​n​c​r​y​p​t​i​o​n
+						 */
+						label: string
+					}
+					server: {
+						/**
+						 * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+					port: {
+						/**
+						 * S​e​r​v​e​r​ ​p​o​r​t
+						 */
+						label: string
+						/**
+						 * P​o​r​t
+						 */
+						placeholder: string
+					}
+					user: {
+						/**
+						 * S​e​r​v​e​r​ ​u​s​e​r​n​a​m​e
+						 */
+						label: string
+						/**
+						 * U​s​e​r​n​a​m​e
+						 */
+						placeholder: string
+					}
+					password: {
+						/**
+						 * S​e​r​v​e​r​ ​p​a​s​s​w​o​r​d
+						 */
+						label: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						placeholder: string
+					}
+					sender: {
+						/**
+						 * S​e​n​d​e​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						helper: string
+					}
+				}
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+			}
+			/**
+			 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+			 */
+			'delete': string
+			testForm: {
+				/**
+				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
+				 */
+				title: string
+				/**
+				 * E​n​t​e​r​ ​r​e​c​i​p​e​n​t​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
+				 */
+				subtitle: string
+				fields: {
+					to: {
+						/**
+						 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l​ ​t​o
+						 */
+						label: string
+						/**
+						 * A​d​d​r​e​s​s
+						 */
+						placeholder: string
+					}
+				}
+				controls: {
+					/**
+					 * S​e​n​d
+					 */
+					submit: string
+					/**
+					 * R​e​s​e​n​d
+					 */
+					resend: string
+					/**
+					 * R​e​t​r​y
+					 */
+					retry: string
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
+					 */
+					success: string
+					/**
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+					 */
+					error: string
+				}
+				success: {
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​ ​s​u​c​c​e​s​s​u​l​l​y​.
+					 */
+					message: string
+				}
+				error: {
+					/**
+					 * T​h​e​r​e​ ​w​a​s​ ​a​n​ ​e​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​h​e​ ​t​e​s​t​ ​e​m​a​i​l​.​ ​P​l​e​a​s​e​ ​c​h​e​c​k​ ​y​o​u​r​ ​S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+					 */
+					message: string
+					/**
+					 * E​r​r​o​r​:​ ​{​e​r​r​o​r​}
+					 * @param {string} error
+					 */
+					fullError: RequiredParams<'error'>
+				}
+			}
+			/**
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.
+			 */
+			helper: string
+		}
+		enrollment: {
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.
+			 */
+			helper: string
+			vpnOptionality: {
+				/**
+				 * V​P​N​ ​s​t​e​p​ ​o​p​t​i​o​n​a​l​i​t​y
+				 */
+				header: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​c​r​e​a​t​i​n​g​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​o​r​ ​m​a​n​d​a​t​o​r​y​ ​d​u​r​i​n​g​ ​e​n​r​o​l​l​m​e​n​t
+				 */
+				helper: string
+			}
+			welcomeMessage: {
+				/**
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			welcomeEmail: {
+				/**
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
+				 */
+				header: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				helper: string
+			}
+			form: {
+				controls: {
+					/**
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
+					 */
+					submit: string
+				}
+				welcomeMessage: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					placeholder: string
+				}
+				welcomeEmail: {
+					/**
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​r​e​u​s​e​ ​t​h​e​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e​ ​h​e​r​e​.
+					 */
+					helper: string
+					/**
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
+					 */
+					placeholder: string
+				}
+				welcomeEmailSubject: {
+					/**
+					 * S​u​b​j​e​c​t
+					 */
+					label: string
+				}
+				useMessageAsEmail: {
+					/**
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					label: string
+				}
+			}
+		}
+		enterprise: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e​ ​F​e​a​t​u​r​e​s
+			 */
+			header: string
+			/**
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.
+			 */
+			helper: string
+			fields: {
+				deviceManagement: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 */
+					helper: string
+				}
+				disableAllTraffic: {
+					/**
+					 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
+					 */
+					helper: string
+				}
+				manualConfig: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
+					 */
+					helper: string
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * T​o​ ​e​n​a​b​l​e​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
+			 */
+			smtpWarning: string
+			/**
+			 * N​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			header: string
+			sections: {
+				/**
+				 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+				 */
+				gateway: string
+			}
+			/**
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.
+			 */
+			helper: string
+			form: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​d​i​s​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
+					inactivityThreshold: {
+						/**
+						 * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e​ ​[​m​i​n​u​t​e​s​]
+						 */
+						label: string
+						/**
+						 * T​i​m​e​ ​(​i​n​ ​m​i​n​u​t​e​s​)​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
+						 */
+						help: string
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​r​e​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​r​e​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
+				}
+			}
+		}
+	}
+	openidOverview: {
+		/**
+		 * O​p​e​n​I​D​ ​A​p​p​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​a​p​p​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​a​p​p​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​a​p​p​s
+		 */
+		clientCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewApp: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t​ ​a​p​p
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​a​p​p
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+				/**
+				 * C​o​p​y​ ​c​l​i​e​n​t​ ​I​D
+				 */
+				copy: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+		messages: {
+			/**
+			 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+			 */
+			copySuccess: string
+			/**
+			 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+			 */
+			noLicenseMessage: string
+			/**
+			 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d​.
+			 */
+			noClientsFound: string
+		}
+		deleteApp: {
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p​ ​?
+			 * @param {string} appName
+			 */
+			message: RequiredParams<'appName'>
+			/**
+			 * D​e​l​e​t​e​ ​a​p​p
+			 */
+			submit: string
+			messages: {
+				/**
+				 * A​p​p​ ​d​e​l​e​t​e​d​.
+				 */
+				success: string
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​e​n​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * A​p​p​ ​d​i​s​a​b​l​e​d​.
+				 */
+				success: string
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * A​d​d​ ​A​p​p​l​i​c​a​t​i​o​n
+					 */
+					addApp: string
+					/**
+					 * E​d​i​t​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p
+					 * @param {string} appName
+					 */
+					editApp: RequiredParams<'appName'>
+				}
+				/**
+				 * S​c​o​p​e​s​:
+				 */
+				scopes: string
+				messages: {
+					/**
+					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
+					 */
+					clientIdCopy: string
+					/**
+					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
+					 */
+					clientSecretCopy: string
+				}
+				form: {
+					messages: {
+						/**
+						 * A​p​p​ ​c​r​e​a​t​e​d​.
+						 */
+						successAdd: string
+						/**
+						 * A​p​p​ ​m​o​d​i​f​i​e​d​.
+						 */
+						successModify: string
+					}
+					error: {
+						/**
+						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
+						 */
+						urlRequired: string
+						/**
+						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
+						 */
+						validUrl: string
+						/**
+						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
+						 */
+						scopeValidation: string
+					}
+					fields: {
+						name: {
+							/**
+							 * A​p​p​ ​n​a​m​e
+							 */
+							label: string
+						}
+						redirectUri: {
+							/**
+							 * R​e​d​i​r​e​c​t​ ​U​R​L​ ​{​c​o​u​n​t​}
+							 * @param {number} count
+							 */
+							label: RequiredParams<'count'>
+							/**
+							 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​r​e​d​i​r​e​c​t
+							 */
+							placeholder: string
+						}
+						openid: {
+							/**
+							 * O​p​e​n​I​D
+							 */
+							label: string
+						}
+						profile: {
+							/**
+							 * P​r​o​f​i​l​e
+							 */
+							label: string
+						}
+						email: {
+							/**
+							 * E​m​a​i​l
+							 */
+							label: string
+						}
+						phone: {
+							/**
+							 * P​h​o​n​e
+							 */
+							label: string
+						}
+						groups: {
+							/**
+							 * G​r​o​u​p​s
+							 */
+							label: string
+						}
+					}
+					controls: {
+						/**
+						 * A​d​d​ ​U​R​L
+						 */
+						addUrl: string
+					}
+				}
+				/**
+				 * C​l​i​e​n​t​ ​I​D
+				 */
+				clientId: string
+				/**
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t
+				 */
+				clientSecret: string
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * W​e​b​h​o​o​k​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​w​e​b​h​o​o​k​s​ ​b​y​ ​u​r​l
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l​ ​w​e​b​h​o​o​k​s
+			 */
+			all: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
+		/**
+		 * A​l​l​ ​w​e​b​h​o​o​k​s
+		 */
+		webhooksCount: string
+		/**
+		 * A​d​d​ ​n​e​w
+		 */
+		addNewWebhook: string
+		/**
+		 * N​o​ ​w​e​b​h​o​o​k​s​ ​f​o​u​n​d​.
+		 */
+		noWebhooksFound: string
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * E​d​i​t
+				 */
+				edit: string
+				/**
+				 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
+				 */
+				'delete': string
+				/**
+				 * D​i​s​a​b​l​e
+				 */
+				disable: string
+				/**
+				 * E​n​a​b​l​e
+				 */
+				enable: string
+			}
+			status: {
+				/**
+				 * E​n​a​b​l​e​d
+				 */
+				enabled: string
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+			}
+		}
+	}
+	provisionersOverview: {
+		/**
+		 * P​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		pageTitle: string
+		search: {
+			/**
+			 * F​i​n​d​ ​p​r​o​v​i​s​i​o​n​e​r​s
+			 */
+			placeholder: string
+		}
+		filterLabels: {
+			/**
+			 * A​l​l
+			 */
+			all: string
+			/**
+			 * A​v​a​i​l​a​b​l​e
+			 */
+			available: string
+			/**
+			 * U​n​a​v​a​i​l​a​b​l​e
+			 */
+			unavailable: string
+		}
+		/**
+		 * A​l​l​ ​p​r​o​v​i​s​i​o​n​e​r​s
+		 */
+		provisionersCount: string
+		/**
+		 * N​o​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​f​o​u​n​d​.
+		 */
+		noProvisionersFound: string
+		/**
+		 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
+		 */
+		noLicenseMessage: string
+		provisioningStation: {
+			/**
+			 * Y​u​b​i​K​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n
+			 */
+			header: string
+			/**
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
+		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
+			 */
+			content: string
+			dockerCard: {
+				/**
+				 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
+				 */
+				title: string
+			}
+			tokenCard: {
+				/**
+				 * A​c​c​e​s​s​ ​t​o​k​e​n
+				 */
+				title: string
+			}
+		}
+		list: {
+			headers: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * A​c​t​i​o​n​s
+				 */
+				actions: string
+			}
+			editButton: {
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
+				 */
+				'delete': string
+			}
+			status: {
+				/**
+				 * A​v​a​i​l​a​b​l​e
+				 */
+				available: string
+				/**
+				 * U​n​a​v​a​i​l​a​b​l​e
+				 */
+				unavailable: string
+			}
+		}
+		messages: {
+			copy: {
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d
+				 */
+				token: string
+				/**
+				 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d
+				 */
+				command: string
+			}
+		}
+	}
+	openidAllow: {
+		/**
+		 * {​n​a​m​e​}​ ​w​o​u​l​d​ ​l​i​k​e​ ​t​o​:
+		 * @param {string} name
+		 */
+		header: RequiredParams<'name'>
+		scopes: {
+			/**
+			 * U​s​e​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​d​a​t​a​ ​f​o​r​ ​f​u​t​u​r​e​ ​l​o​g​i​n​s​.
+			 */
+			openid: string
+			/**
+			 * K​n​o​w​ ​b​a​s​i​c​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​l​i​k​e​ ​n​a​m​e​,​ ​p​r​o​f​i​l​e​ ​p​i​c​t​u​r​e​ ​e​t​c​.
+			 */
+			profile: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
+			 */
+			email: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
+			 */
+			phone: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
+			 */
+			groups: string
+		}
+		controls: {
+			/**
+			 * A​c​c​e​p​t
+			 */
+			accept: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
+	}
+	networkOverview: {
+		networkSelection: {
+			/**
+			 * A​l​l​ ​l​o​c​a​t​i​o​n​s​ ​s​u​m​m​a​r​y
+			 */
+			all: string
+			/**
+			 * S​e​l​e​c​t​ ​l​o​c​a​t​i​o​n
+			 */
+			placeholder: string
+		}
+		/**
+		 * {​v​a​l​u​e​}​h​ ​p​e​r​i​o​d
+		 * @param {number} value
+		 */
+		timeRangeSelectionLabel: RequiredParams<'value'>
+		/**
+		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
+		 */
+		pageTitle: string
+		controls: {
+			/**
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n​s​ ​s​e​t​t​i​n​g​s
+			 */
+			editNetworks: string
+			selectNetwork: {
+				/**
+				 * L​o​a​d​i​n​g​ ​l​o​c​a​t​i​o​n​s
+				 */
+				placeholder: string
+			}
+		}
+		filterLabels: {
+			/**
+			 * G​r​i​d​ ​v​i​e​w
+			 */
+			grid: string
+			/**
+			 * L​i​s​t​ ​v​i​e​w
+			 */
+			list: string
+		}
+		gatewayStatus: {
+			/**
+			 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			all: RequiredParams<'count'>
+			/**
+			 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			some: RequiredParams<'count'>
+			/**
+			 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
+			 */
+			none: string
+		}
+		stats: {
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
+			 */
+			currentlyActiveUsers: string
+			/**
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+			 */
+			currentlyActiveNetworkDevices: string
+			/**
+			 * T​o​t​a​l​ ​u​s​e​r​ ​d​e​v​i​c​e​s​:​ ​{​c​o​u​n​t​}
+			 * @param {number} count
+			 */
+			totalUserDevices: RequiredParams<'count'>
+			/**
+			 * A​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
+			 * @param {number} hour
+			 */
+			activeNetworkDevices: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​h
+			 * @param {number} hour
+			 */
+			activeUsersFilter: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
+			 * @param {number} hour
+			 */
+			activeDevicesFilter: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
+			 * @param {number} hour
+			 */
+			activityIn: RequiredParams<'hour'>
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+			/**
+			 * P​e​a​k
+			 */
+			peak: string
+			/**
+			 * I​n​:
+			 */
+			'in': string
+			/**
+			 * O​u​t​:
+			 */
+			out: string
+			/**
+			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d
+			 */
+			gatewayDisconnected: string
+		}
+		cardsLabels: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * C​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		pageTitle: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​a​r​e​ ​n​o​ ​c​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
+		 */
+		noUsersMessage: string
+		userList: {
+			/**
+			 * U​s​e​r​n​a​m​e
+			 */
+			username: string
+			/**
+			 * D​e​v​i​c​e
+			 */
+			device: string
+			/**
+			 * C​o​n​n​e​c​t​e​d
+			 */
+			connected: string
+			/**
+			 * D​e​v​i​c​e​ ​l​o​c​a​t​i​o​n
+			 */
+			deviceLocation: string
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+		}
+	}
+	networkPage: {
+		/**
+		 * E​d​i​t​ ​L​o​c​a​t​i​o​n
+		 */
+		pageTitle: string
+		/**
+		 * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
+		 */
+		addNetwork: string
+		controls: {
+			networkSelect: {
+				/**
+				 * L​o​c​a​t​i​o​n​ ​c​h​o​i​c​e
+				 */
+				label: string
+			}
+		}
+	}
+	activityOverview: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​s​t​r​e​a​m
+		 */
+		header: string
+		/**
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​i​s​ ​n​o​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d
+		 */
+		noData: string
+	}
+	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​n​e​t​w​o​r​k
+				 */
+				error: string
+			}
+		}
+		/**
+		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		header: string
+		/**
+		 * L​o​c​a​t​i​o​n​ ​i​m​p​o​r​t
+		 */
+		importHeader: string
+		form: {
+			helpers: {
+				/**
+				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)​.​ ​Y​o​u​ ​c​a​n​ ​o​p​t​i​o​n​a​l​l​y​ ​s​p​e​c​i​f​y​ ​m​u​l​t​i​p​l​e​ ​a​d​d​r​e​s​s​e​s​ ​s​e​p​a​r​a​t​e​d​ ​b​y​ ​a​ ​c​o​m​m​a​.​ ​T​h​e​ ​f​i​r​s​t​ ​a​d​d​r​e​s​s​ ​i​s​ ​t​h​e​ ​p​r​i​m​a​r​y​ ​a​d​d​r​e​s​s​,​ ​a​n​d​ ​t​h​i​s​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​s​s​i​g​n​m​e​n​t​ ​f​o​r​ ​d​e​v​i​c​e​s​.​ ​T​h​e​ ​o​t​h​e​r​ ​I​P​ ​a​d​d​r​e​s​s​e​s​ ​a​r​e​ ​a​u​x​i​l​i​a​r​y​ ​a​n​d​ ​a​r​e​ ​n​o​t​ ​m​a​n​a​g​e​d​ ​b​y​ ​D​e​f​g​u​a​r​d​.
+				 */
+				address: string
+				/**
+				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
+				 */
+				gateway: string
+				/**
+				 * S​p​e​c​i​f​y​ ​t​h​e​ ​D​N​S​ ​r​e​s​o​l​v​e​r​s​ ​t​o​ ​q​u​e​r​y​ ​w​h​e​n​ ​t​h​e​ ​w​i​r​e​g​u​a​r​d​ ​i​n​t​e​r​f​a​c​e​ ​i​s​ ​u​p​.
+				 */
+				dns: string
+				/**
+				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
+				 */
+				allowedIps: string
+				/**
+				 * B​y​ ​d​e​f​a​u​l​t​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​l​l​o​w​e​d​ ​t​o​ ​c​o​n​n​e​c​t​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.​ ​I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​t​r​i​c​t​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​t​o​ ​a​ ​s​p​e​c​i​f​i​c​ ​g​r​o​u​p​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​i​t​ ​b​e​l​o​w​.
+				 */
+				allowedGroups: string
+				/**
+				 * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
+				 */
+				aclFeatureDisabled: string
+			}
+			messages: {
+				/**
+				 * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
+				 */
+				networkModified: string
+				/**
+				 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
+				 */
+				networkCreated: string
+			}
+			fields: {
+				name: {
+					/**
+					 * L​o​c​a​t​i​o​n​ ​n​a​m​e
+					 */
+					label: string
+				}
+				address: {
+					/**
+					 * G​a​t​e​w​a​y​ ​V​P​N​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
+					 */
+					label: string
+				}
+				endpoint: {
+					/**
+					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
+					 */
+					label: string
+				}
+				allowedIps: {
+					/**
+					 * A​l​l​o​w​e​d​ ​I​p​s
+					 */
+					label: string
+				}
+				port: {
+					/**
+					 * G​a​t​e​w​a​y​ ​p​o​r​t
+					 */
+					label: string
+				}
+				dns: {
+					/**
+					 * D​N​S
+					 */
+					label: string
+				}
+				allowedGroups: {
+					/**
+					 * A​l​l​o​w​e​d​ ​g​r​o​u​p​s
+					 */
+					label: string
+					/**
+					 * A​l​l​ ​g​r​o​u​p​s
+					 */
+					placeholder: string
+				}
+				mfa_enabled: {
+					/**
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				keepalive_interval: {
+					/**
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
+					 */
+					label: string
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
+					 */
+					label: string
+				}
+				acl_enabled: {
+					/**
+					 * E​n​a​b​l​e​ ​A​C​L​ ​f​o​r​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				acl_default_allow: {
+					/**
+					 * D​e​f​a​u​l​t​ ​A​C​L​ ​p​o​l​i​c​y
+					 */
+					label: string
+				}
+			}
+			controls: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				/**
+				 * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
+				 */
+				cancel: string
+				/**
+				 * R​e​m​o​v​e​ ​l​o​c​a​t​i​o​n
+				 */
+				'delete': string
+			}
+		}
+	}
+	gatewaySetup: {
+		header: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+			 */
+			main: string
+			/**
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
+			 */
+			dockerBasedGatewaySetup: string
+			/**
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
+			 */
+			fromPackage: string
+			/**
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
+			 */
+			oneLineInstall: string
+		}
+		card: {
+			/**
+			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
+			 */
+			title: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+			 */
+			authToken: string
+		}
+		button: {
+			/**
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
+			 */
+			availablePackages: string
+		}
+		controls: {
+			/**
+			 * C​h​e​c​k​ ​c​o​n​n​e​c​t​i​o​n​ ​s​t​a​t​u​s
+			 */
+			status: string
+		}
+		messages: {
+			/**
+			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
+			 */
+			createNetwork: string
+			/**
+			 * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
+			 */
+			noConnection: string
+			/**
+			 * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
+			 */
+			connected: string
+			/**
+			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
+			 */
+			statusError: string
+			/**
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
+			 */
+			oneLineInstall: string
+			/**
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			fromPackage: RequiredParams<'setupGatewayDocs'>
+			/**
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
+		}
+	}
+	loginPage: {
+		/**
+		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
+		 */
+		pageTitle: string
+		/**
+		 * S​i​g​n​ ​i​n​ ​w​i​t​h
+		 */
+		oidcLogin: string
+		callback: {
+			/**
+			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
+			 */
+			'return': string
+			/**
+			 * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
+			 */
+			error: string
+		}
+		mfa: {
+			/**
+			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			title: string
+			controls: {
+				/**
+				 * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
+				 */
+				useAuthenticator: string
+				/**
+				 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
+				 */
+				useWebauthn: string
+				/**
+				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
+				 */
+				useRecoveryCode: string
+				/**
+				 * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
+				 */
+				useEmail: string
+			}
+			email: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					labels: {
+						/**
+						 * C​o​d​e
+						 */
+						code: string
+					}
+					controls: {
+						/**
+						 * R​e​s​e​n​d​ ​C​o​d​e
+						 */
+						resendCode: string
+					}
+				}
+			}
+			totp: {
+				/**
+				 * U​s​e​ ​c​o​d​e​ ​f​r​o​m​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​p​p​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​p​r​o​c​e​e​d​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * E​n​t​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * E​n​t​e​r​ ​o​n​e​ ​o​f​ ​a​c​t​i​v​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​l​o​g​ ​i​n​.
+				 */
+				header: string
+				form: {
+					fields: {
+						code: {
+							/**
+							 * R​e​c​o​v​e​r​y​ ​c​o​d​e
+							 */
+							placeholder: string
+						}
+					}
+					controls: {
+						/**
+						 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e
+						 */
+						submit: string
+					}
+				}
+			}
+			webauthn: {
+				/**
+				 * W​h​e​n​ ​y​o​u​ ​a​r​e​ ​r​e​a​d​y​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​,​ ​p​r​e​s​s​ ​t​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​.
+				 */
+				header: string
+				controls: {
+					/**
+					 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
+					 */
+					error: string
+				}
+			}
+		}
+	}
+	wizard: {
+		/**
+		 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
+		 */
+		completed: string
+		configuration: {
+			/**
+			 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
+			 */
+			successMessage: string
+		}
+		welcome: {
+			/**
+			 * W​e​l​c​o​m​e​ ​t​o​ ​l​o​c​a​t​i​o​n​ ​w​i​z​a​r​d​!
+			 */
+			header: string
+			/**
+			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​ ​u​s​i​n​g​ ​V​P​N​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​f​i​r​s​t​ ​l​o​c​a​t​i​o​n​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​c​l​i​c​k​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
+			 */
+			sub: string
+			/**
+			 * S​e​t​u​p​ ​l​o​c​a​t​i​o​n
+			 */
+			button: string
+		}
+		navigation: {
+			/**
+			 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
+			 */
+			top: string
+			titles: {
+				/**
+				 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
+				 */
+				welcome: string
+				/**
+				 * C​h​o​s​e​ ​L​o​c​a​t​i​o​n​ ​s​e​t​u​p
+				 */
+				choseNetworkSetup: string
+				/**
+				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​l​o​c​a​t​i​o​n
+				 */
+				importConfig: string
+				/**
+				 * C​o​n​f​i​g​u​r​e​ ​l​o​c​a​t​i​o​n
+				 */
+				manualConfig: string
+				/**
+				 * M​a​p​ ​i​m​p​o​r​t​e​d​ ​d​e​v​i​c​e​s
+				 */
+				mapDevices: string
+			}
+			buttons: {
+				/**
+				 * N​e​x​t
+				 */
+				next: string
+				/**
+				 * B​a​c​k
+				 */
+				back: string
+			}
+		}
+		deviceMap: {
+			messages: {
+				/**
+				 * D​e​v​i​c​e​s​ ​a​d​d​e​d
+				 */
+				crateSuccess: string
+				/**
+				 * P​l​e​a​s​e​ ​f​i​l​l​ ​m​a​r​k​e​d​ ​f​i​e​l​d​s​.
+				 */
+				errorsInForm: string
+			}
+			list: {
+				headers: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * I​P
+					 */
+					deviceIP: string
+					/**
+					 * U​s​e​r
+					 */
+					user: string
+				}
+			}
+		}
+		wizardType: {
+			manual: {
+				/**
+				 * M​a​n​u​a​l​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * M​a​n​u​a​l​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				description: string
+			}
+			'import': {
+				/**
+				 * I​m​p​o​r​t​ ​F​r​o​m​ ​F​i​l​e
+				 */
+				title: string
+				/**
+				 * I​m​p​o​r​t​ ​f​r​o​m​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​ ​f​i​l​e
+				 */
+				description: string
+			}
+			/**
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
+			 */
+			createNetwork: string
+		}
+		common: {
+			/**
+			 * S​e​l​e​c​t
+			 */
+			select: string
+		}
+		locations: {
+			form: {
+				/**
+				 * N​a​m​e
+				 */
+				name: string
+				/**
+				 * I​P​ ​a​d​d​r​e​s​s
+				 */
+				ip: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * F​i​l​e
+				 */
+				fileName: string
+				/**
+				 * S​e​l​e​c​t​ ​f​i​l​e
+				 */
+				selectFile: string
+				messages: {
+					/**
+					 * D​e​v​i​c​e​s​ ​c​r​e​a​t​e​d
+					 */
+					devicesCreated: string
+				}
+				validation: {
+					/**
+					 * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
+					 */
+					invalidAddress: string
+				}
+			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * A​d​d​ ​n​e​w​ ​+
+			 */
+			addNewOptionDefault: string
+		}
+	}
+	redirectPage: {
+		/**
+		 * Y​o​u​ ​h​a​v​e​ ​b​e​e​n​ ​l​o​g​g​e​d​ ​i​n
+		 */
+		title: string
+		/**
+		 * Y​o​u​ ​w​i​l​l​ ​b​e​ ​r​e​d​i​r​e​c​t​e​d​ ​i​n​ ​a​ ​m​o​m​e​n​t​.​.​.
+		 */
+		subtitle: string
+	}
+	enrollmentPage: {
+		/**
+		 * E​n​r​o​l​l​m​e​n​t
+		 */
+		title: string
+		controls: {
+			/**
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
+			 */
+			'default': string
+			/**
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
+			 */
+			save: string
+		}
+		messages: {
+			edit: {
+				/**
+				 * S​e​t​t​i​n​g​s​ ​c​h​a​n​g​e​d
+				 */
+				success: string
+				/**
+				 * S​a​v​e​ ​f​a​i​l​e​d
+				 */
+				error: string
+			}
+		}
+		/**
+		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​i​z​e​ ​i​t​ ​h​e​r​e​.
+		 */
+		messageBox: string
+		settings: {
+			welcomeMessage: {
+				/**
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​u​s​e​r​ ​i​n​ ​s​e​r​v​i​c​e​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​s​a​m​e​ ​m​e​s​s​a​g​e​ ​a​s​ ​i​n​ ​t​h​e​ ​e​-​m​a​i​l​.
+				 */
+				messageBox: string
+			}
+			vpnOptionality: {
+				/**
+				 * V​P​N​ ​s​e​t​ ​o​p​t​i​o​n​a​l​l​i​t​y
+				 */
+				title: string
+				select: {
+					options: {
+						/**
+						 * O​p​t​i​o​n​a​l
+						 */
+						optional: string
+						/**
+						 * M​a​n​d​a​t​o​r​y
+						 */
+						mandatory: string
+					}
+				}
+			}
+			welcomeEmail: {
+				/**
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
+				 */
+				title: string
+				subject: {
+					/**
+					 * E​-​m​a​i​l​ ​s​u​b​j​e​c​t
+					 */
+					label: string
+				}
+				/**
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
+				 */
+				messageBox: string
+				controls: {
+					/**
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
+					 */
+					duplicateWelcome: string
+				}
+			}
+		}
+	}
+	supportPage: {
+		/**
+		 * S​u​p​p​o​r​t
+		 */
+		title: string
+		modals: {
+			confirmDataSend: {
+				/**
+				 * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
+				 */
+				subTitle: string
+				/**
+				 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+				 */
+				submit: string
+			}
+		}
+		debugDataCard: {
+			/**
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			title: string
+			/**
+			 * 
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
 	
-       */
-      body: string
-      /**
-       * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
-       */
-      downloadSupportData: string
-      /**
-       * D​o​w​n​l​o​a​d​ ​l​o​g​s
-       */
-      downloadLogs: string
-      /**
-       * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
-       */
-      sendMail: string
-      /**
-       * E​m​a​i​l​ ​s​e​n​t
-       */
-      mailSent: string
-      /**
-       * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
-       */
-      mailError: string
-    }
-    supportCard: {
-      /**
-       * S​u​p​p​o​r​t
-       */
-      title: string
-      /**
-       * 
-     B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​)​
-    ​
-     T​o​ ​s​u​b​m​i​t​:​
-     *​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
-     *​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
-    ​
-     A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
+			 */
+			body: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			downloadSupportData: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
+			 */
+			downloadLogs: string
+			/**
+			 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
+			 */
+			sendMail: string
+			/**
+			 * E​m​a​i​l​ ​s​e​n​t
+			 */
+			mailSent: string
+			/**
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
+			 */
+			mailError: string
+		}
+		supportCard: {
+			/**
+			 * S​u​p​p​o​r​t
+			 */
+			title: string
+			/**
+			 * 
+		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​)​
+		​
+		​T​o​ ​s​u​b​m​i​t​:​
+		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
+		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
+		​
+		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
 	
-       */
-      body: string
-    }
-  }
-  devicesPage: {
-    /**
-     * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
-     */
-    title: string
-    search: {
-      /**
-       * F​i​n​d
-       */
-      placeholder: string
-    }
-    bar: {
-      /**
-       * A​l​l​ ​d​e​v​i​c​e​s
-       */
-      itemsCount: string
-      filters: {
-      }
-      actions: {
-        /**
-         * A​d​d​ ​n​e​w
-         */
-        addNewDevice: string
-      }
-    }
-    list: {
-      columns: {
-        labels: {
-          /**
-           * D​e​v​i​c​e​ ​N​a​m​e
-           */
-          name: string
-          /**
-           * L​o​c​a​t​i​o​n
-           */
-          location: string
-          /**
-           * I​P​ ​A​d​d​r​e​s​s​e​s
-           */
-          assignedIps: string
-          /**
-           * D​e​s​c​r​i​p​t​i​o​n
-           */
-          description: string
-          /**
-           * A​d​d​e​d​ ​B​y
-           */
-          addedBy: string
-          /**
-           * A​d​d​ ​D​a​t​e
-           */
-          addedAt: string
-          /**
-           * E​d​i​t
-           */
-          edit: string
-        }
-      }
-      edit: {
-        actionLabels: {
-          /**
-           * V​i​e​w​ ​c​o​n​f​i​g
-           */
-          config: string
-          /**
-           * G​e​n​e​r​a​t​e​ ​a​u​t​h​ ​t​o​k​e​n
-           */
-          generateToken: string
-        }
-      }
-    }
-  }
-  acl: {
-    messageBoxes: {
-      aclAliasKind: {
-        component: {
-          /**
-           * C​o​m​p​o​n​e​n​t
-           */
-          name: string
-          /**
-           * c​o​m​b​i​n​e​d​ ​w​i​t​h​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​ ​d​e​s​t​i​n​a​t​i​o​n​ ​f​i​e​l​d​s​ ​i​n​ ​A​C​L
-           */
-          description: string
-        }
-        destination: {
-          /**
-           * D​e​s​t​i​n​a​t​i​o​n
-           */
-          name: string
-          /**
-           * t​r​a​n​s​l​a​t​e​d​ ​i​n​t​o​ ​a​ ​s​e​p​a​r​a​t​e​ ​s​e​t​ ​o​f​ ​f​i​r​e​w​a​l​l​ ​r​u​l​e​s
-           */
-          description: string
-        }
-      }
-      networkSelectionIndicatorsHelper: {
-        /**
-         * 
-                           L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
-                          
-         */
-        denied: string
-        /**
-         * 
-                           L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
-                          
-         */
-        allowed: string
-        /**
-         * 
-                           L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
-                          
-         */
-        unmanaged: string
-      }
-    }
-    /**
-     * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
-     */
-    sharedTitle: string
-    fieldsSelectionLabels: {
-      /**
-       * A​l​l​ ​p​o​r​t​s
-       */
-      ports: string
-      /**
-       * A​l​l​ ​p​r​o​t​o​c​o​l​s
-       */
-      protocols: string
-    }
-    ruleStatus: {
-      /**
-       * N​e​w
-       */
-      'new': string
-      /**
-       * A​p​p​l​i​e​d
-       */
-      applied: string
-      /**
-       * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
-       */
-      modified: string
-      /**
-       * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
-       */
-      deleted: string
-      /**
-       * E​n​a​b​l​e​d
-       */
-      enabled: string
-      /**
-       * D​i​s​a​b​l​e​d
-       */
-      disabled: string
-      /**
-       * E​x​p​i​r​e​d
-       */
-      expired: string
-    }
-    listPage: {
-      message: {
-        /**
-         * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
-         */
-        changeDiscarded: string
-        /**
-         * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​ ​a​d​d​e​d
-         */
-        changeAdded: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
-         */
-        changeFail: string
-        /**
-         * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-         */
-        applyChanges: string
-        /**
-         * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-         */
-        applyFail: string
-      }
-      rules: {
-        modals: {
-          applyConfirm: {
-            /**
-             * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-             */
-            title: string
-            /**
-             * {​c​o​u​n​t​}​ ​c​h​a​n​g​e​s​ ​w​i​l​l​ ​b​e​ ​d​e​p​l​o​y​e​d
-             * @param {number} count
-             */
-            subtitle: RequiredParams<'count'>
-            /**
-             * D​e​p​l​o​y​ ​c​h​a​n​g​e​s
-             */
-            submit: string
-          }
-          filterGroupsModal: {
-            groupHeaders: {
-              /**
-               * A​l​i​a​s​e​s
-               */
-              alias: string
-              /**
-               * L​o​c​a​t​i​o​n​s
-               */
-              location: string
-              /**
-               * G​r​o​u​p​s
-               */
-              groups: string
-              /**
-               * S​t​a​t​u​s
-               */
-              status: string
-            }
-            /**
-             * S​a​v​e​ ​F​i​l​t​e​r
-             */
-            submit: string
-          }
-        }
-        listControls: {
-          /**
-           * F​i​n​d​ ​n​a​m​e
-           */
-          searchPlaceholder: string
-          /**
-           * A​d​d​ ​n​e​w
-           */
-          addNew: string
-          filter: {
-            /**
-             * F​i​l​t​e​r
-             */
-            nothingApplied: string
-            /**
-             * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            applied: RequiredParams<'count'>
-          }
-          apply: {
-            /**
-             * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-             */
-            noChanges: string
-            /**
-             * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            all: RequiredParams<'count'>
-            /**
-             * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            selective: RequiredParams<'count'>
-          }
-        }
-        list: {
-          pendingList: {
-            /**
-             * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
-             */
-            title: string
-            /**
-             * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-             */
-            noData: string
-            /**
-             * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
-             */
-            noDataSearch: string
-          }
-          deployedList: {
-            /**
-             * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
-             */
-            title: string
-            /**
-             * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
-             */
-            noData: string
-            /**
-             * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
-             */
-            noDataSearch: string
-          }
-          headers: {
-            /**
-             * R​u​l​e​ ​n​a​m​e
-             */
-            name: string
-            /**
-             * I​D
-             */
-            id: string
-            /**
-             * D​e​s​t​i​n​a​t​i​o​n
-             */
-            destination: string
-            /**
-             * A​l​l​o​w​e​d
-             */
-            allowed: string
-            /**
-             * D​e​n​i​e​d
-             */
-            denied: string
-            /**
-             * L​o​c​a​t​i​o​n​s
-             */
-            locations: string
-            /**
-             * S​t​a​t​u​s
-             */
-            status: string
-            /**
-             * E​d​i​t
-             */
-            edit: string
-          }
-          tags: {
-            /**
-             * A​l​l
-             */
-            all: string
-            /**
-             * A​l​l​ ​d​e​n​i​e​d
-             */
-            allDenied: string
-            /**
-             * A​l​l​ ​a​l​l​o​w​e​d
-             */
-            allAllowed: string
-          }
-          editMenu: {
-            /**
-             * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
-             */
-            discard: string
-            /**
-             * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
-             */
-            'delete': string
-          }
-        }
-      }
-      aliases: {
-        message: {
-          /**
-           * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-           */
-          rulesApply: string
-          /**
-           * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-           */
-          rulesApplyFail: string
-          /**
-           * A​l​i​a​s​ ​d​e​l​e​t​e​d
-           */
-          aliasDeleted: string
-          /**
-           * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
-           */
-          aliasDeleteFail: string
-        }
-        modals: {
-          applyConfirm: {
-            /**
-             * C​o​n​f​i​r​m​ ​A​l​i​a​s​ ​D​e​p​l​o​y​m​e​n​t
-             */
-            title: string
-            /**
-             * T​h​e​ ​u​p​d​a​t​e​d​ ​a​l​i​a​s​e​s​ ​w​i​l​l​ ​m​o​d​i​f​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​c​u​r​r​e​n​t​l​y​ ​d​e​p​l​o​y​e​d​ ​o​n​ ​t​h​e​ ​g​a​t​e​w​a​y​.​
-           P​l​e​a​s​e​ ​e​n​s​u​r​e​ ​t​h​e​s​e​ ​c​h​a​n​g​e​s​ ​a​r​e​ ​i​n​t​e​n​d​e​d​ ​b​e​f​o​r​e​ ​p​r​o​c​e​e​d​i​n​g​.
-             */
-            message: string
-            /**
-             * A​f​f​e​c​t​e​d​ ​R​u​l​e​s
-             */
-            listLabel: string
-            /**
-             * D​e​p​l​o​y​ ​C​h​a​n​g​e​s
-             */
-            submit: string
-          }
-          deleteBlock: {
-            /**
-             * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
-             */
-            title: string
-            /**
-             * 
-           T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
-      	
-             * @param {number} rulesCount
-             */
-            content: RequiredParams<'rulesCount'>
-          }
-          filterGroupsModal: {
-            groupLabels: {
-              /**
-               * R​u​l​e​s
-               */
-              rules: string
-              /**
-               * S​t​a​t​u​s
-               */
-              status: string
-            }
-          }
-          create: {
-            labels: {
-              /**
-               * A​l​i​a​s​ ​n​a​m​e
-               */
-              name: string
-              /**
-               * A​l​i​a​s​ ​k​i​n​d
-               */
-              kind: string
-              /**
-               * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
-               */
-              ip: string
-              /**
-               * P​o​r​t​s​ ​o​r​ ​P​o​r​t​ ​R​a​n​g​e​s
-               */
-              ports: string
-              /**
-               * P​r​o​t​o​c​o​l​s
-               */
-              protocols: string
-            }
-            placeholders: {
-              /**
-               * A​l​l​ ​P​r​o​t​o​c​o​l​s
-               */
-              protocols: string
-              /**
-               * A​l​l​ ​P​o​r​t​s
-               */
-              ports: string
-              /**
-               * A​l​l​ ​I​P​s
-               */
-              ip: string
-            }
-            kindOptions: {
-              /**
-               * D​e​s​t​i​n​a​t​i​o​n
-               */
-              destination: string
-              /**
-               * C​o​m​p​o​n​e​n​t
-               */
-              component: string
-            }
-            controls: {
-              /**
-               * C​a​n​c​e​l
-               */
-              cancel: string
-              /**
-               * E​d​i​t​ ​A​l​i​a​s
-               */
-              edit: string
-              /**
-               * C​r​e​a​t​e​ ​A​l​i​a​s
-               */
-              create: string
-            }
-            messages: {
-              /**
-               * A​l​i​a​s​ ​m​o​d​i​f​i​e​d
-               */
-              modified: string
-              /**
-               * A​l​i​a​s​ ​c​r​e​a​t​e​d
-               */
-              created: string
-            }
-          }
-        }
-        listControls: {
-          /**
-           * F​i​n​d​ ​n​a​m​e
-           */
-          searchPlaceholder: string
-          /**
-           * A​d​d​ ​n​e​w
-           */
-          addNew: string
-          filter: {
-            /**
-             * F​i​l​t​e​r
-             */
-            nothingApplied: string
-            /**
-             * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            applied: RequiredParams<'count'>
-          }
-          apply: {
-            /**
-             * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-             */
-            noChanges: string
-            /**
-             * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            all: RequiredParams<'count'>
-            /**
-             * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
-             * @param {number} count
-             */
-            selective: RequiredParams<'count'>
-          }
-        }
-        list: {
-          pendingList: {
-            /**
-             * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
-             */
-            title: string
-            /**
-             * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-             */
-            noData: string
-            /**
-             * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
-             */
-            noDataSearch: string
-          }
-          deployedList: {
-            /**
-             * D​e​p​l​o​y​e​d​ ​A​l​i​a​s​e​s
-             */
-            title: string
-            /**
-             * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s
-             */
-            noData: string
-            /**
-             * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s​ ​f​o​u​n​d
-             */
-            noDataSearch: string
-          }
-          headers: {
-            /**
-             * I​D
-             */
-            id: string
-            /**
-             * A​l​i​a​s​ ​n​a​m​e
-             */
-            name: string
-            /**
-             * A​l​i​a​s​ ​k​i​n​d
-             */
-            kind: string
-            /**
-             * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
-             */
-            ip: string
-            /**
-             * P​o​r​t​s
-             */
-            ports: string
-            /**
-             * P​r​o​t​o​c​o​l​s
-             */
-            protocols: string
-            /**
-             * S​t​a​t​u​s
-             */
-            status: string
-            /**
-             * E​d​i​t
-             */
-            edit: string
-            /**
-             * R​u​l​e​s
-             */
-            rules: string
-          }
-          status: {
-            /**
-             * A​p​p​l​i​e​d
-             */
-            applied: string
-            /**
-             * M​o​d​i​f​i​e​d
-             */
-            changed: string
-          }
-          tags: {
-            /**
-             * A​l​l​ ​d​e​n​i​e​d
-             */
-            allDenied: string
-            /**
-             * A​l​l​ ​a​l​l​o​w​e​d
-             */
-            allAllowed: string
-          }
-          editMenu: {
-            /**
-             * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
-             */
-            discardChanges: string
-            /**
-             * D​e​l​e​t​e​ ​a​l​i​a​s
-             */
-            'delete': string
-          }
-        }
-      }
-    }
-    createPage: {
-      formError: {
-        /**
-         * C​o​n​f​l​i​c​t​i​n​g​ ​m​e​m​b​e​r​s
-         */
-        allowDenyConflict: string
-        /**
-         * M​u​s​t​ ​c​o​n​f​i​g​u​r​e​ ​s​o​m​e​ ​a​l​l​o​w​e​d​ ​u​s​e​r​s​,​ ​g​r​o​u​p​s​ ​o​r​ ​d​e​v​i​c​e​s
-         */
-        allowNotConfigured: string
-      }
-      infoBox: {
-        /**
-         * 
-                       S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​U​s​e​r​s​,​ ​G​r​o​u​p​s​ ​o​r​ ​D​e​v​i​c​e​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
-         */
-        allowInstructions: string
-        /**
-         * 
-                       S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
-         */
-        destinationInstructions: string
-      }
-      message: {
-        /**
-         * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
-         */
-        create: string
-        /**
-         * R​u​l​e​ ​c​r​e​a​t​i​o​n​ ​f​a​i​l​e​d
-         */
-        createFail: string
-      }
-      headers: {
-        /**
-         * R​u​l​e
-         */
-        rule: string
-        /**
-         * C​r​e​a​t​e​ ​R​u​l​e
-         */
-        createRule: string
-        /**
-         * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
-         */
-        allowed: string
-        /**
-         * D​e​n​i​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
-         */
-        denied: string
-        /**
-         * D​e​s​t​i​n​a​t​i​o​n
-         */
-        destination: string
-      }
-      labels: {
-        /**
-         * R​u​l​e​ ​n​a​m​e
-         */
-        name: string
-        /**
-         * P​r​i​o​r​i​t​y
-         */
-        priority: string
-        /**
-         * S​t​a​t​u​s
-         */
-        status: string
-        /**
-         * L​o​c​a​t​i​o​n​s
-         */
-        locations: string
-        /**
-         * A​l​l​o​w​ ​a​l​l​ ​u​s​e​r​s
-         */
-        allowAllUsers: string
-        /**
-         * I​n​c​l​u​d​e​ ​a​l​l​ ​l​o​c​a​t​i​o​n​s
-         */
-        allowAllNetworks: string
-        /**
-         * A​l​l​o​w​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        allowAllNetworkDevices: string
-        /**
-         * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
-         */
-        denyAllUsers: string
-        /**
-         * D​e​n​y​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        denyAllNetworkDevices: string
-        /**
-         * U​s​e​r​s
-         */
-        users: string
-        /**
-         * G​r​o​u​p​s
-         */
-        groups: string
-        /**
-         * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        devices: string
-        /**
-         * P​r​o​t​o​c​o​l​s
-         */
-        protocols: string
-        /**
-         * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​o​r​ ​a​d​d​r​e​s​s
-         */
-        manualIp: string
-        /**
-         * P​o​r​t​s
-         */
-        ports: string
-        /**
-         * A​l​i​a​s​e​s
-         */
-        aliases: string
-        /**
-         * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
-         */
-        expires: string
-      }
-      placeholders: {
-        /**
-         * A​l​l​ ​p​r​o​t​o​c​o​l​s
-         */
-        allProtocols: string
-        /**
-         * A​l​l​ ​I​P​s
-         */
-        allIps: string
-      }
-    }
-  }
-  enums: {
-    auditEventType: {
-      /**
-       * U​s​e​r​ ​l​o​g​i​n
-       */
-      user_login: string
-      /**
-       * U​s​e​r​ ​l​o​g​o​u​t
-       */
-      user_logout: string
-      /**
-       * U​s​e​r​ ​a​d​d​e​d
-       */
-      user_added: string
-      /**
-       * U​s​e​r​ ​r​e​m​o​v​e​d
-       */
-      user_removed: string
-      /**
-       * U​s​e​r​ ​m​o​d​i​f​i​e​d
-       */
-      user_modified: string
-      /**
-       * M​F​A​ ​e​n​a​b​l​e​d
-       */
-      mfa_enabled: string
-      /**
-       * M​F​A​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_disabled: string
-      /**
-       * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
-       */
-      mfa_totp_enabled: string
-      /**
-       * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_totp_disabled: string
-      /**
-       * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
-       */
-      mfa_email_enabled: string
-      /**
-       * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_email_disabled: string
-      /**
-       * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
-       */
-      mfa_security_key_added: string
-      /**
-       * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
-       */
-      mfa_security_key_removed: string
-      /**
-       * D​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      device_added: string
-      /**
-       * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
-       */
-      device_removed: string
-      /**
-       * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
-       */
-      device_modified: string
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      network_device_added: string
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
-       */
-      network_device_removed: string
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
-       */
-      network_device_modified: string
-    }
-    auditModule: {
-      /**
-       * D​e​f​g​u​a​r​d
-       */
-      defguard: string
-      /**
-       * C​l​i​e​n​t
-       */
-      client: string
-      /**
-       * E​n​r​o​l​l​m​e​n​t
-       */
-      enrollment: string
-      /**
-       * V​P​N
-       */
-      vpn: string
-    }
-  }
+			 */
+			body: string
+		}
+	}
+	devicesPage: {
+		/**
+		 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+		 */
+		title: string
+		search: {
+			/**
+			 * F​i​n​d
+			 */
+			placeholder: string
+		}
+		bar: {
+			/**
+			 * A​l​l​ ​d​e​v​i​c​e​s
+			 */
+			itemsCount: string
+			filters: {
+			}
+			actions: {
+				/**
+				 * A​d​d​ ​n​e​w
+				 */
+				addNewDevice: string
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					name: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * I​P​ ​A​d​d​r​e​s​s​e​s
+					 */
+					assignedIps: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					/**
+					 * A​d​d​e​d​ ​B​y
+					 */
+					addedBy: string
+					/**
+					 * A​d​d​ ​D​a​t​e
+					 */
+					addedAt: string
+					/**
+					 * E​d​i​t
+					 */
+					edit: string
+				}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * V​i​e​w​ ​c​o​n​f​i​g
+					 */
+					config: string
+					/**
+					 * G​e​n​e​r​a​t​e​ ​a​u​t​h​ ​t​o​k​e​n
+					 */
+					generateToken: string
+				}
+			}
+		}
+	}
+	acl: {
+		messageBoxes: {
+			aclAliasKind: {
+				component: {
+					/**
+					 * C​o​m​p​o​n​e​n​t
+					 */
+					name: string
+					/**
+					 * c​o​m​b​i​n​e​d​ ​w​i​t​h​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​ ​d​e​s​t​i​n​a​t​i​o​n​ ​f​i​e​l​d​s​ ​i​n​ ​A​C​L
+					 */
+					description: string
+				}
+				destination: {
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					name: string
+					/**
+					 * t​r​a​n​s​l​a​t​e​d​ ​i​n​t​o​ ​a​ ​s​e​p​a​r​a​t​e​ ​s​e​t​ ​o​f​ ​f​i​r​e​w​a​l​l​ ​r​u​l​e​s
+					 */
+					description: string
+				}
+			}
+			networkSelectionIndicatorsHelper: {
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				denied: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				allowed: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				unmanaged: string
+			}
+		}
+		/**
+		 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
+		 */
+		sharedTitle: string
+		fieldsSelectionLabels: {
+			/**
+			 * A​l​l​ ​p​o​r​t​s
+			 */
+			ports: string
+			/**
+			 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+			 */
+			protocols: string
+		}
+		ruleStatus: {
+			/**
+			 * N​e​w
+			 */
+			'new': string
+			/**
+			 * A​p​p​l​i​e​d
+			 */
+			applied: string
+			/**
+			 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+			 */
+			modified: string
+			/**
+			 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
+			 */
+			deleted: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+			/**
+			 * E​x​p​i​r​e​d
+			 */
+			expired: string
+		}
+		listPage: {
+			message: {
+				/**
+				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
+				 */
+				changeDiscarded: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​ ​a​d​d​e​d
+				 */
+				changeAdded: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
+				 */
+				changeFail: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				applyChanges: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				applyFail: string
+			}
+			rules: {
+				modals: {
+					applyConfirm: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * {​c​o​u​n​t​}​ ​c​h​a​n​g​e​s​ ​w​i​l​l​ ​b​e​ ​d​e​p​l​o​y​e​d
+						 * @param {number} count
+						 */
+						subtitle: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​c​h​a​n​g​e​s
+						 */
+						submit: string
+					}
+					filterGroupsModal: {
+						groupHeaders: {
+							/**
+							 * A​l​i​a​s​e​s
+							 */
+							alias: string
+							/**
+							 * L​o​c​a​t​i​o​n​s
+							 */
+							location: string
+							/**
+							 * G​r​o​u​p​s
+							 */
+							groups: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+						/**
+						 * S​a​v​e​ ​F​i​l​t​e​r
+						 */
+						submit: string
+					}
+				}
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * R​u​l​e​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * D​e​s​t​i​n​a​t​i​o​n
+						 */
+						destination: string
+						/**
+						 * A​l​l​o​w​e​d
+						 */
+						allowed: string
+						/**
+						 * D​e​n​i​e​d
+						 */
+						denied: string
+						/**
+						 * L​o​c​a​t​i​o​n​s
+						 */
+						locations: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+					tags: {
+						/**
+						 * A​l​l
+						 */
+						all: string
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
+						 */
+						discard: string
+						/**
+						 * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
+						 */
+						'delete': string
+					}
+				}
+			}
+			aliases: {
+				message: {
+					/**
+					 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+					 */
+					rulesApply: string
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+					 */
+					rulesApplyFail: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​e​d
+					 */
+					aliasDeleted: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
+					 */
+					aliasDeleteFail: string
+				}
+				modals: {
+					applyConfirm: {
+						/**
+						 * C​o​n​f​i​r​m​ ​A​l​i​a​s​ ​D​e​p​l​o​y​m​e​n​t
+						 */
+						title: string
+						/**
+						 * T​h​e​ ​u​p​d​a​t​e​d​ ​a​l​i​a​s​e​s​ ​w​i​l​l​ ​m​o​d​i​f​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​c​u​r​r​e​n​t​l​y​ ​d​e​p​l​o​y​e​d​ ​o​n​ ​t​h​e​ ​g​a​t​e​w​a​y​.​
+					​P​l​e​a​s​e​ ​e​n​s​u​r​e​ ​t​h​e​s​e​ ​c​h​a​n​g​e​s​ ​a​r​e​ ​i​n​t​e​n​d​e​d​ ​b​e​f​o​r​e​ ​p​r​o​c​e​e​d​i​n​g​.
+						 */
+						message: string
+						/**
+						 * A​f​f​e​c​t​e​d​ ​R​u​l​e​s
+						 */
+						listLabel: string
+						/**
+						 * D​e​p​l​o​y​ ​C​h​a​n​g​e​s
+						 */
+						submit: string
+					}
+					deleteBlock: {
+						/**
+						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
+						 */
+						title: string
+						/**
+						 * 
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
+				
+						 * @param {number} rulesCount
+						 */
+						content: RequiredParams<'rulesCount'>
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * R​u​l​e​s
+							 */
+							rules: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+					}
+					create: {
+						labels: {
+							/**
+							 * A​l​i​a​s​ ​n​a​m​e
+							 */
+							name: string
+							/**
+							 * A​l​i​a​s​ ​k​i​n​d
+							 */
+							kind: string
+							/**
+							 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+							 */
+							ip: string
+							/**
+							 * P​o​r​t​s​ ​o​r​ ​P​o​r​t​ ​R​a​n​g​e​s
+							 */
+							ports: string
+							/**
+							 * P​r​o​t​o​c​o​l​s
+							 */
+							protocols: string
+						}
+						placeholders: {
+							/**
+							 * A​l​l​ ​P​r​o​t​o​c​o​l​s
+							 */
+							protocols: string
+							/**
+							 * A​l​l​ ​P​o​r​t​s
+							 */
+							ports: string
+							/**
+							 * A​l​l​ ​I​P​s
+							 */
+							ip: string
+						}
+						kindOptions: {
+							/**
+							 * D​e​s​t​i​n​a​t​i​o​n
+							 */
+							destination: string
+							/**
+							 * C​o​m​p​o​n​e​n​t
+							 */
+							component: string
+						}
+						controls: {
+							/**
+							 * C​a​n​c​e​l
+							 */
+							cancel: string
+							/**
+							 * E​d​i​t​ ​A​l​i​a​s
+							 */
+							edit: string
+							/**
+							 * C​r​e​a​t​e​ ​A​l​i​a​s
+							 */
+							create: string
+						}
+						messages: {
+							/**
+							 * A​l​i​a​s​ ​m​o​d​i​f​i​e​d
+							 */
+							modified: string
+							/**
+							 * A​l​i​a​s​ ​c​r​e​a​t​e​d
+							 */
+							created: string
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​A​l​i​a​s​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * A​l​i​a​s​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * A​l​i​a​s​ ​k​i​n​d
+						 */
+						kind: string
+						/**
+						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 */
+						ip: string
+						/**
+						 * P​o​r​t​s
+						 */
+						ports: string
+						/**
+						 * P​r​o​t​o​c​o​l​s
+						 */
+						protocols: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+						/**
+						 * R​u​l​e​s
+						 */
+						rules: string
+					}
+					status: {
+						/**
+						 * A​p​p​l​i​e​d
+						 */
+						applied: string
+						/**
+						 * M​o​d​i​f​i​e​d
+						 */
+						changed: string
+					}
+					tags: {
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
+						 */
+						discardChanges: string
+						/**
+						 * D​e​l​e​t​e​ ​a​l​i​a​s
+						 */
+						'delete': string
+					}
+				}
+			}
+		}
+		createPage: {
+			formError: {
+				/**
+				 * C​o​n​f​l​i​c​t​i​n​g​ ​m​e​m​b​e​r​s
+				 */
+				allowDenyConflict: string
+				/**
+				 * M​u​s​t​ ​c​o​n​f​i​g​u​r​e​ ​s​o​m​e​ ​a​l​l​o​w​e​d​ ​u​s​e​r​s​,​ ​g​r​o​u​p​s​ ​o​r​ ​d​e​v​i​c​e​s
+				 */
+				allowNotConfigured: string
+			}
+			infoBox: {
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​U​s​e​r​s​,​ ​G​r​o​u​p​s​ ​o​r​ ​D​e​v​i​c​e​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+				 */
+				allowInstructions: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+				 */
+				destinationInstructions: string
+			}
+			message: {
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+				 */
+				create: string
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​i​o​n​ ​f​a​i​l​e​d
+				 */
+				createFail: string
+			}
+			headers: {
+				/**
+				 * R​u​l​e
+				 */
+				rule: string
+				/**
+				 * C​r​e​a​t​e​ ​R​u​l​e
+				 */
+				createRule: string
+				/**
+				 * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				allowed: string
+				/**
+				 * D​e​n​i​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				denied: string
+				/**
+				 * D​e​s​t​i​n​a​t​i​o​n
+				 */
+				destination: string
+			}
+			labels: {
+				/**
+				 * R​u​l​e​ ​n​a​m​e
+				 */
+				name: string
+				/**
+				 * P​r​i​o​r​i​t​y
+				 */
+				priority: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * L​o​c​a​t​i​o​n​s
+				 */
+				locations: string
+				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				allowAllUsers: string
+				/**
+				 * I​n​c​l​u​d​e​ ​a​l​l​ ​l​o​c​a​t​i​o​n​s
+				 */
+				allowAllNetworks: string
+				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				allowAllNetworkDevices: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				denyAllUsers: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				denyAllNetworkDevices: string
+				/**
+				 * U​s​e​r​s
+				 */
+				users: string
+				/**
+				 * G​r​o​u​p​s
+				 */
+				groups: string
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				devices: string
+				/**
+				 * P​r​o​t​o​c​o​l​s
+				 */
+				protocols: string
+				/**
+				 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​o​r​ ​a​d​d​r​e​s​s
+				 */
+				manualIp: string
+				/**
+				 * P​o​r​t​s
+				 */
+				ports: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+				/**
+				 * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
+				 */
+				expires: string
+			}
+			placeholders: {
+				/**
+				 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+				 */
+				allProtocols: string
+				/**
+				 * A​l​l​ ​I​P​s
+				 */
+				allIps: string
+			}
+		}
+	}
+	enums: {
+		auditEventType: {
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n
+			 */
+			user_login: string
+			/**
+			 * U​s​e​r​ ​l​o​g​o​u​t
+			 */
+			user_logout: string
+			/**
+			 * U​s​e​r​ ​a​d​d​e​d
+			 */
+			user_added: string
+			/**
+			 * U​s​e​r​ ​r​e​m​o​v​e​d
+			 */
+			user_removed: string
+			/**
+			 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			user_modified: string
+			/**
+			 * M​F​A​ ​e​n​a​b​l​e​d
+			 */
+			mfa_enabled: string
+			/**
+			 * M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_disabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
+			 */
+			mfa_totp_enabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_totp_disabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
+			 */
+			mfa_email_enabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_email_disabled: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			mfa_security_key_added: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			mfa_security_key_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			device_added: string
+			/**
+			 * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			device_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			device_modified: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			network_device_added: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			network_device_removed: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			network_device_modified: string
+		}
+		auditModule: {
+			/**
+			 * D​e​f​g​u​a​r​d
+			 */
+			defguard: string
+			/**
+			 * C​l​i​e​n​t
+			 */
+			client: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * V​P​N
+			 */
+			vpn: string
+		}
+	}
 }
 
 export type TranslationFunctions = {
-  common: {
-    conditions: {
-      /**
-       * or
-       */
-      or: () => LocalizedString
-      /**
-       * and
-       */
-      and: () => LocalizedString
-      /**
-       * equal
-       */
-      equal: () => LocalizedString
-    }
-    controls: {
-      /**
-       * Accept
-       */
-      accept: () => LocalizedString
-      /**
-       * Next
-       */
-      next: () => LocalizedString
-      /**
-       * Back
-       */
-      back: () => LocalizedString
-      /**
-       * Cancel
-       */
-      cancel: () => LocalizedString
-      /**
-       * Confirm
-       */
-      confirm: () => LocalizedString
-      /**
-       * Submit
-       */
-      submit: () => LocalizedString
-      /**
-       * Close
-       */
-      close: () => LocalizedString
-      /**
-       * Select
-       */
-      select: () => LocalizedString
-      /**
-       * Finish
-       */
-      finish: () => LocalizedString
-      /**
-       * Save changes
-       */
-      saveChanges: () => LocalizedString
-      /**
-       * Save
-       */
-      save: () => LocalizedString
-      /**
-       * Restore default
-       */
-      RestoreDefault: () => LocalizedString
-      /**
-       * Delete
-       */
-      'delete': () => LocalizedString
-      /**
-       * Rename
-       */
-      rename: () => LocalizedString
-      /**
-       * Copy
-       */
-      copy: () => LocalizedString
-      /**
-       * Edit
-       */
-      edit: () => LocalizedString
-      /**
-       * Dismiss
-       */
-      dismiss: () => LocalizedString
-      /**
-       * Show
-       */
-      show: () => LocalizedString
-      /**
-       * Enable
-       */
-      enable: () => LocalizedString
-      /**
-       * Enabled
-       */
-      enabled: () => LocalizedString
-      /**
-       * Disable
-       */
-      disable: () => LocalizedString
-      /**
-       * Disabled
-       */
-      disabled: () => LocalizedString
-      /**
-       * Select all
-       */
-      selectAll: () => LocalizedString
-      /**
-       * Clear
-       */
-      clear: () => LocalizedString
-      /**
-       * Clear all
-       */
-      clearAll: () => LocalizedString
-    }
-    /**
-     * Key
-     */
-    key: () => LocalizedString
-    /**
-     * Name
-     */
-    name: () => LocalizedString
-    /**
-     * No data
-     */
-    noData: () => LocalizedString
-    /**
-     * Unavailable
-     */
-    unavailable: () => LocalizedString
-    /**
-     * Not set
-     */
-    notSet: () => LocalizedString
-    /**
-     * Search
-     */
-    search: () => LocalizedString
-  }
-  messages: {
-    /**
-     * Error has occurred.
-     */
-    error: () => LocalizedString
-    /**
-     * Operation succeeded
-     */
-    success: () => LocalizedString
-    /**
-     * Failed to get application version.
-     */
-    errorVersion: () => LocalizedString
-    /**
-     * Context is not secure.
-     */
-    insecureContext: () => LocalizedString
-    /**
-     * Details:
-     */
-    details: () => LocalizedString
-    clipboard: {
-      /**
-       * Clipboard is not accessible.
-       */
-      error: () => LocalizedString
-      /**
-       * Content copied to clipboard.
-       */
-      success: () => LocalizedString
-    }
-  }
-  modals: {
-    upgradeLicenseModal: {
-      enterprise: {
-        /**
-         * Upgrade to Enterprise
-         */
-        title: () => LocalizedString
-        /**
-         * This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
-         */
-        subTitle: () => LocalizedString
-      }
-      limit: {
-        /**
-         * Upgrade
-         */
-        title: () => LocalizedString
-        /**
-         * 
-              You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
-              
-         */
-        subTitle: () => LocalizedString
-      }
-      /**
-       * 
-    You can find out more about features like:
-    - Real time and automatic client synchronization
-    - External SSO
-    - Controlling VPN clients behavior
+	common: {
+		conditions: {
+			/**
+			 * or
+			 */
+			or: () => LocalizedString
+			/**
+			 * and
+			 */
+			and: () => LocalizedString
+			/**
+			 * equal
+			 */
+			equal: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Accept
+			 */
+			accept: () => LocalizedString
+			/**
+			 * Next
+			 */
+			next: () => LocalizedString
+			/**
+			 * Back
+			 */
+			back: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+			/**
+			 * Confirm
+			 */
+			confirm: () => LocalizedString
+			/**
+			 * Submit
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Close
+			 */
+			close: () => LocalizedString
+			/**
+			 * Select
+			 */
+			select: () => LocalizedString
+			/**
+			 * Finish
+			 */
+			finish: () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			saveChanges: () => LocalizedString
+			/**
+			 * Save
+			 */
+			save: () => LocalizedString
+			/**
+			 * Restore default
+			 */
+			RestoreDefault: () => LocalizedString
+			/**
+			 * Delete
+			 */
+			'delete': () => LocalizedString
+			/**
+			 * Rename
+			 */
+			rename: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			copy: () => LocalizedString
+			/**
+			 * Edit
+			 */
+			edit: () => LocalizedString
+			/**
+			 * Dismiss
+			 */
+			dismiss: () => LocalizedString
+			/**
+			 * Show
+			 */
+			show: () => LocalizedString
+			/**
+			 * Enable
+			 */
+			enable: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disable
+			 */
+			disable: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+			/**
+			 * Select all
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Clear
+			 */
+			clear: () => LocalizedString
+			/**
+			 * Clear all
+			 */
+			clearAll: () => LocalizedString
+		}
+		/**
+		 * Key
+		 */
+		key: () => LocalizedString
+		/**
+		 * Name
+		 */
+		name: () => LocalizedString
+		/**
+		 * No data
+		 */
+		noData: () => LocalizedString
+		/**
+		 * Unavailable
+		 */
+		unavailable: () => LocalizedString
+		/**
+		 * Not set
+		 */
+		notSet: () => LocalizedString
+		/**
+		 * Search
+		 */
+		search: () => LocalizedString
+	}
+	messages: {
+		/**
+		 * Error has occurred.
+		 */
+		error: () => LocalizedString
+		/**
+		 * Operation succeeded
+		 */
+		success: () => LocalizedString
+		/**
+		 * Failed to get application version.
+		 */
+		errorVersion: () => LocalizedString
+		/**
+		 * Context is not secure.
+		 */
+		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
+		clipboard: {
+			/**
+			 * Clipboard is not accessible.
+			 */
+			error: () => LocalizedString
+			/**
+			 * Content copied to clipboard.
+			 */
+			success: () => LocalizedString
+		}
+	}
+	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * Upgrade to Enterprise
+				 */
+				title: () => LocalizedString
+				/**
+				 * This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
+				 */
+				subTitle: () => LocalizedString
+			}
+			limit: {
+				/**
+				 * Upgrade
+				 */
+				title: () => LocalizedString
+				/**
+				 * 
+			        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
+			        
+				 */
+				subTitle: () => LocalizedString
+			}
+			/**
+			 * 
+		You can find out more about features like:
+		- Real time and automatic client synchronization
+		- External SSO
+		- Controlling VPN clients behavior
 	
-    Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
-    Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
-          
-       */
-      content: () => LocalizedString
-      controls: {
-        /**
-         * Maybe later
-         */
-        cancel: () => LocalizedString
-        /**
-         * See all Enterprise plans
-         */
-        confirm: () => LocalizedString
-      }
-    }
-    standaloneDeviceEnrollmentModal: {
-      /**
-       * Network device token
-       */
-      title: () => LocalizedString
-      toasters: {
-        /**
-         * Token generation failed.
-         */
-        error: () => LocalizedString
-      }
-    }
-    standaloneDeviceConfigModal: {
-      /**
-       * Network device config
-       */
-      title: () => LocalizedString
-      /**
-       * Config
-       */
-      cardTitle: () => LocalizedString
-      toasters: {
-        getConfig: {
-          /**
-           * Failed to get device config.
-           */
-          error: () => LocalizedString
-        }
-      }
-    }
-    editStandaloneModal: {
-      /**
-       * Edit network device
-       */
-      title: () => LocalizedString
-      toasts: {
-        /**
-         * Device modified
-         */
-        success: () => LocalizedString
-        /**
-         * Modifying the device failed
-         */
-        failure: () => LocalizedString
-      }
-    }
-    deleteStandaloneDevice: {
-      /**
-       * Delete network device
-       */
-      title: () => LocalizedString
-      /**
-       * Device {name} will be deleted.
-       */
-      content: (arg: { name: string }) => LocalizedString
-      messages: {
-        /**
-         * Device deleted
-         */
-        success: () => LocalizedString
-        /**
-         * Failed to remove device.
-         */
-        error: () => LocalizedString
-      }
-    }
-    addStandaloneDevice: {
-      toasts: {
-        /**
-         * Device added
-         */
-        deviceCreated: () => LocalizedString
-        /**
-         * Device could not be added.
-         */
-        creationFailed: () => LocalizedString
-      }
-      infoBox: {
-        /**
-         * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
-         */
-        setup: () => LocalizedString
-      }
-      form: {
-        /**
-         * Add Device
-         */
-        submit: () => LocalizedString
-        labels: {
-          /**
-           * Device Name
-           */
-          deviceName: () => LocalizedString
-          /**
-           * Location
-           */
-          location: () => LocalizedString
-          /**
-           * Assigned IP Address
-           */
-          assignedAddress: () => LocalizedString
-          /**
-           * Description
-           */
-          description: () => LocalizedString
-          generation: {
-            /**
-             * Generate key pair
-             */
-            auto: () => LocalizedString
-            /**
-             * Use my own public key
-             */
-            manual: () => LocalizedString
-          }
-          /**
-           * Provide Your Public Key
-           */
-          publicKey: () => LocalizedString
-        }
-      }
-      steps: {
-        method: {
-          /**
-           * Choose a preferred method
-           */
-          title: () => LocalizedString
-          cards: {
-            cli: {
-              /**
-               * Defguard Command Line Client
-               */
-              title: () => LocalizedString
-              /**
-               * When using defguard-cli your device will be automatically configured.
-               */
-              subtitle: () => LocalizedString
-              /**
-               * Defguard CLI download and documentation
-               */
-              docs: () => LocalizedString
-            }
-            manual: {
-              /**
-               * Manual WireGuard Client
-               */
-              title: () => LocalizedString
-              /**
-               * If your device does not support our CLI binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN location configuration will require manual changes in device configuration.
-               */
-              subtitle: () => LocalizedString
-            }
-          }
-        }
-        manual: {
-          /**
-           * Add new VPN device using WireGuard Client
-           */
-          title: () => LocalizedString
-          finish: {
-            /**
-             * Download the provided configuration file to your device and import it into your VPN client to complete the setup.
-             */
-            messageTop: () => LocalizedString
-            /**
-             * Use provided configuration file below by scanning QR code or importing it as file on your device's WireGuard app.
-             */
-            ctaInstruction: () => LocalizedString
-            /**
-             * 
-                      Please remember that Defguard **doesn't store private keys**. We will securely generate the public and private key pair in your browser, but only store the public key in Defguard database. Please download the configuration generated with the private key for the device, as it will not be accessible later.
-                      
-             */
-            warningMessage: () => LocalizedString
-            actionCard: {
-              /**
-               * Config
-               */
-              title: () => LocalizedString
-            }
-          }
-        }
-        cli: {
-          /**
-           * Add device using Defguard Command Line Client
-           */
-          title: () => LocalizedString
-          finish: {
-            /**
-             * First download Defguard command line client binary and install it on your server.
-             */
-            topMessage: () => LocalizedString
-            /**
-             * Download Defguard CLI Client
-             */
-            downloadButton: () => LocalizedString
-            /**
-             * Copy and paste this command in your terminal on the device
-             */
-            commandCopy: () => LocalizedString
-          }
-          setup: {
-            /**
-             * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
-             */
-            stepMessage: () => LocalizedString
-            form: {
-              /**
-               * Add Device
-               */
-              submit: () => LocalizedString
-            }
-          }
-        }
-      }
-    }
-    updatesNotificationToaster: {
-      /**
-       * New version available {version}
-       */
-      title: (arg: { version: string }) => LocalizedString
-      controls: {
-        /**
-         * See what's new
-         */
-        more: () => LocalizedString
-      }
-    }
-    enterpriseUpgradeToaster: {
-      /**
-       * You've reached the enterprise functionality limit.
-       */
-      title: () => LocalizedString
-      /**
-       * You've exceeded the limit of your current Defguard plan and the enterprise
-              features will be disabled. Purchase an enterprise license or upgrade your
-              existing one to continue using these features.
-       */
-      message: () => LocalizedString
-      /**
-       * See all enterprise plans
-       */
-      link: () => LocalizedString
-    }
-    updatesNotification: {
-      header: {
-        /**
-         * Update Available
-         */
-        title: () => LocalizedString
-        /**
-         * new version {version}
-         */
-        newVersion: (arg: { version: string }) => LocalizedString
-        /**
-         * critical update
-         */
-        criticalBadge: () => LocalizedString
-      }
-      controls: {
-        /**
-         * Visit release page
-         */
-        visitRelease: () => LocalizedString
-      }
-    }
-    addGroup: {
-      /**
-       * Add group
-       */
-      title: () => LocalizedString
-      /**
-       * Select all users
-       */
-      selectAll: () => LocalizedString
-      /**
-       * Group name
-       */
-      groupName: () => LocalizedString
-      /**
-       * Filter/Search
-       */
-      searchPlaceholder: () => LocalizedString
-      /**
-       * Create group
-       */
-      submit: () => LocalizedString
-      /**
-       * Group settings
-       */
-      groupSettings: () => LocalizedString
-      /**
-       * Admin group
-       */
-      adminGroup: () => LocalizedString
-    }
-    editGroup: {
-      /**
-       * Edit group
-       */
-      title: () => LocalizedString
-      /**
-       * Select all users
-       */
-      selectAll: () => LocalizedString
-      /**
-       * Group name
-       */
-      groupName: () => LocalizedString
-      /**
-       * Filter/Search
-       */
-      searchPlaceholder: () => LocalizedString
-      /**
-       * Update group
-       */
-      submit: () => LocalizedString
-      /**
-       * Group settings
-       */
-      groupSettings: () => LocalizedString
-      /**
-       * Admin group
-       */
-      adminGroup: () => LocalizedString
-    }
-    deleteGroup: {
-      /**
-       * Delete group {name}
-       */
-      title: (arg: { name: string }) => LocalizedString
-      /**
-       * This action will permanently delete this group.
-       */
-      subTitle: () => LocalizedString
-      /**
-       * This group is currently assigned to following VPN Locations:
-       */
-      locationListHeader: () => LocalizedString
-      /**
-       * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
-       */
-      locationListFooter: () => LocalizedString
-      /**
-       * Delete group
-       */
-      submit: () => LocalizedString
-      /**
-       * Cancel
-       */
-      cancel: () => LocalizedString
-    }
-    deviceConfig: {
-      /**
-       * Device VPN configurations
-       */
-      title: () => LocalizedString
-    }
-    changePasswordSelf: {
-      /**
-       * Change password
-       */
-      title: () => LocalizedString
-      messages: {
-        /**
-         * Password has been changed
-         */
-        success: () => LocalizedString
-        /**
-         * Failed to changed password
-         */
-        error: () => LocalizedString
-      }
-      form: {
-        labels: {
-          /**
-           * New password
-           */
-          newPassword: () => LocalizedString
-          /**
-           * Current password
-           */
-          oldPassword: () => LocalizedString
-          /**
-           * Confirm new password
-           */
-          repeat: () => LocalizedString
-        }
-      }
-      controls: {
-        /**
-         * Change password
-         */
-        submit: () => LocalizedString
-        /**
-         * Cancel
-         */
-        cancel: () => LocalizedString
-      }
-    }
-    startEnrollment: {
-      /**
-       * Start enrollment
-       */
-      title: () => LocalizedString
-      /**
-       * Desktop activation
-       */
-      desktopTitle: () => LocalizedString
-      messages: {
-        /**
-         * User enrollment started
-         */
-        success: () => LocalizedString
-        /**
-         * Desktop configuration started
-         */
-        successDesktop: () => LocalizedString
-        /**
-         * Failed to start user enrollment
-         */
-        error: () => LocalizedString
-        /**
-         * Failed to start desktop activation
-         */
-        errorDesktop: () => LocalizedString
-      }
-      form: {
-        email: {
-          /**
-           * Email
-           */
-          label: () => LocalizedString
-        }
-        mode: {
-          options: {
-            /**
-             * Send token by email
-             */
-            email: () => LocalizedString
-            /**
-             * Deliver token yourself
-             */
-            manual: () => LocalizedString
-          }
-        }
-        /**
-         * Start enrollment
-         */
-        submit: () => LocalizedString
-        /**
-         * Activate desktop
-         */
-        submitDesktop: () => LocalizedString
-        /**
-         * Configure SMTP to send token by email. Go to Settings -> SMTP.
-         */
-        smtpDisabled: () => LocalizedString
-      }
-      tokenCard: {
-        /**
-         * Activation token
-         */
-        title: () => LocalizedString
-      }
-      urlCard: {
-        /**
-         * Defguard Instance URL
-         */
-        title: () => LocalizedString
-      }
-    }
-    deleteNetwork: {
-      /**
-       * Delete {name} location
-       */
-      title: (arg: { name: string }) => LocalizedString
-      /**
-       * This action will permanently delete this location.
-       */
-      subTitle: () => LocalizedString
-      /**
-       * Delete location
-       */
-      submit: () => LocalizedString
-      /**
-       * Cancel
-       */
-      cancel: () => LocalizedString
-    }
-    changeWebhook: {
-      messages: {
-        /**
-         * Webhook changed.
-         */
-        success: () => LocalizedString
-      }
-    }
-    manageWebAuthNKeys: {
-      /**
-       * Security keys
-       */
-      title: () => LocalizedString
-      messages: {
-        /**
-         * WebAuthN key has been deleted.
-         */
-        deleted: () => LocalizedString
-        /**
-         * Key is already registered
-         */
-        duplicateKeyError: () => LocalizedString
-      }
-      /**
-       * 
-            <p>
-              Security keys can be used as your second factor of authentication
-              instead of a verification code. Learn more about configuring a
-              security key.
-            </p>
+		Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+		Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
+		      
+			 */
+			content: () => LocalizedString
+			controls: {
+				/**
+				 * Maybe later
+				 */
+				cancel: () => LocalizedString
+				/**
+				 * See all Enterprise plans
+				 */
+				confirm: () => LocalizedString
+			}
+		}
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * Network device token
+			 */
+			title: () => LocalizedString
+			toasters: {
+				/**
+				 * Token generation failed.
+				 */
+				error: () => LocalizedString
+			}
+		}
+		standaloneDeviceConfigModal: {
+			/**
+			 * Network device config
+			 */
+			title: () => LocalizedString
+			/**
+			 * Config
+			 */
+			cardTitle: () => LocalizedString
+			toasters: {
+				getConfig: {
+					/**
+					 * Failed to get device config.
+					 */
+					error: () => LocalizedString
+				}
+			}
+		}
+		editStandaloneModal: {
+			/**
+			 * Edit network device
+			 */
+			title: () => LocalizedString
+			toasts: {
+				/**
+				 * Device modified
+				 */
+				success: () => LocalizedString
+				/**
+				 * Modifying the device failed
+				 */
+				failure: () => LocalizedString
+			}
+		}
+		deleteStandaloneDevice: {
+			/**
+			 * Delete network device
+			 */
+			title: () => LocalizedString
+			/**
+			 * Device {name} will be deleted.
+			 */
+			content: (arg: { name: string }) => LocalizedString
+			messages: {
+				/**
+				 * Device deleted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to remove device.
+				 */
+				error: () => LocalizedString
+			}
+		}
+		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * Device added
+				 */
+				deviceCreated: () => LocalizedString
+				/**
+				 * Device could not be added.
+				 */
+				creationFailed: () => LocalizedString
+			}
+			infoBox: {
+				/**
+				 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+				 */
+				setup: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Add Device
+				 */
+				submit: () => LocalizedString
+				labels: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * Assigned IP Address
+					 */
+					assignedAddress: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					generation: {
+						/**
+						 * Generate key pair
+						 */
+						auto: () => LocalizedString
+						/**
+						 * Use my own public key
+						 */
+						manual: () => LocalizedString
+					}
+					/**
+					 * Provide Your Public Key
+					 */
+					publicKey: () => LocalizedString
+				}
+			}
+			steps: {
+				method: {
+					/**
+					 * Choose a preferred method
+					 */
+					title: () => LocalizedString
+					cards: {
+						cli: {
+							/**
+							 * Defguard Command Line Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * When using defguard-cli your device will be automatically configured.
+							 */
+							subtitle: () => LocalizedString
+							/**
+							 * Defguard CLI download and documentation
+							 */
+							docs: () => LocalizedString
+						}
+						manual: {
+							/**
+							 * Manual WireGuard Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * If your device does not support our CLI binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN location configuration will require manual changes in device configuration.
+							 */
+							subtitle: () => LocalizedString
+						}
+					}
+				}
+				manual: {
+					/**
+					 * Add new VPN device using WireGuard Client
+					 */
+					title: () => LocalizedString
+					finish: {
+						/**
+						 * Download the provided configuration file to your device and import it into your VPN client to complete the setup.
+						 */
+						messageTop: () => LocalizedString
+						/**
+						 * Use provided configuration file below by scanning QR code or importing it as file on your device's WireGuard app.
+						 */
+						ctaInstruction: () => LocalizedString
+						/**
+						 * 
+					            Please remember that Defguard **doesn't store private keys**. We will securely generate the public and private key pair in your browser, but only store the public key in Defguard database. Please download the configuration generated with the private key for the device, as it will not be accessible later.
+					            
+						 */
+						warningMessage: () => LocalizedString
+						actionCard: {
+							/**
+							 * Config
+							 */
+							title: () => LocalizedString
+						}
+					}
+				}
+				cli: {
+					/**
+					 * Add device using Defguard Command Line Client
+					 */
+					title: () => LocalizedString
+					finish: {
+						/**
+						 * First download Defguard command line client binary and install it on your server.
+						 */
+						topMessage: () => LocalizedString
+						/**
+						 * Download Defguard CLI Client
+						 */
+						downloadButton: () => LocalizedString
+						/**
+						 * Copy and paste this command in your terminal on the device
+						 */
+						commandCopy: () => LocalizedString
+					}
+					setup: {
+						/**
+						 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+						 */
+						stepMessage: () => LocalizedString
+						form: {
+							/**
+							 * Add Device
+							 */
+							submit: () => LocalizedString
+						}
+					}
+				}
+			}
+		}
+		updatesNotificationToaster: {
+			/**
+			 * New version available {version}
+			 */
+			title: (arg: { version: string }) => LocalizedString
+			controls: {
+				/**
+				 * See what's new
+				 */
+				more: () => LocalizedString
+			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * You've reached the enterprise functionality limit.
+			 */
+			title: () => LocalizedString
+			/**
+			 * You've exceeded the limit of your current Defguard plan and the enterprise
+		          features will be disabled. Purchase an enterprise license or upgrade your
+		          existing one to continue using these features.
+			 */
+			message: () => LocalizedString
+			/**
+			 * See all enterprise plans
+			 */
+			link: () => LocalizedString
+		}
+		updatesNotification: {
+			header: {
+				/**
+				 * Update Available
+				 */
+				title: () => LocalizedString
+				/**
+				 * new version {version}
+				 */
+				newVersion: (arg: { version: string }) => LocalizedString
+				/**
+				 * critical update
+				 */
+				criticalBadge: () => LocalizedString
+			}
+			controls: {
+				/**
+				 * Visit release page
+				 */
+				visitRelease: () => LocalizedString
+			}
+		}
+		addGroup: {
+			/**
+			 * Add group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Create group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
+		}
+		editGroup: {
+			/**
+			 * Edit group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Update group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
+		}
+		deleteGroup: {
+			/**
+			 * Delete group {name}
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this group.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * This group is currently assigned to following VPN Locations:
+			 */
+			locationListHeader: () => LocalizedString
+			/**
+			 * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
+			 */
+			locationListFooter: () => LocalizedString
+			/**
+			 * Delete group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
+		deviceConfig: {
+			/**
+			 * Device VPN configurations
+			 */
+			title: () => LocalizedString
+		}
+		changePasswordSelf: {
+			/**
+			 * Change password
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * Password has been changed
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to changed password
+				 */
+				error: () => LocalizedString
+			}
+			form: {
+				labels: {
+					/**
+					 * New password
+					 */
+					newPassword: () => LocalizedString
+					/**
+					 * Current password
+					 */
+					oldPassword: () => LocalizedString
+					/**
+					 * Confirm new password
+					 */
+					repeat: () => LocalizedString
+				}
+			}
+			controls: {
+				/**
+				 * Change password
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Cancel
+				 */
+				cancel: () => LocalizedString
+			}
+		}
+		startEnrollment: {
+			/**
+			 * Start enrollment
+			 */
+			title: () => LocalizedString
+			/**
+			 * Desktop activation
+			 */
+			desktopTitle: () => LocalizedString
+			messages: {
+				/**
+				 * User enrollment started
+				 */
+				success: () => LocalizedString
+				/**
+				 * Desktop configuration started
+				 */
+				successDesktop: () => LocalizedString
+				/**
+				 * Failed to start user enrollment
+				 */
+				error: () => LocalizedString
+				/**
+				 * Failed to start desktop activation
+				 */
+				errorDesktop: () => LocalizedString
+			}
+			form: {
+				email: {
+					/**
+					 * Email
+					 */
+					label: () => LocalizedString
+				}
+				mode: {
+					options: {
+						/**
+						 * Send token by email
+						 */
+						email: () => LocalizedString
+						/**
+						 * Deliver token yourself
+						 */
+						manual: () => LocalizedString
+					}
+				}
+				/**
+				 * Start enrollment
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Activate desktop
+				 */
+				submitDesktop: () => LocalizedString
+				/**
+				 * Configure SMTP to send token by email. Go to Settings -> SMTP.
+				 */
+				smtpDisabled: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Activation token
+				 */
+				title: () => LocalizedString
+			}
+			urlCard: {
+				/**
+				 * Defguard Instance URL
+				 */
+				title: () => LocalizedString
+			}
+		}
+		deleteNetwork: {
+			/**
+			 * Delete {name} location
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this location.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * Delete location
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
+		changeWebhook: {
+			messages: {
+				/**
+				 * Webhook changed.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		manageWebAuthNKeys: {
+			/**
+			 * Security keys
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * WebAuthN key has been deleted.
+				 */
+				deleted: () => LocalizedString
+				/**
+				 * Key is already registered
+				 */
+				duplicateKeyError: () => LocalizedString
+			}
+			/**
+			 * 
+		        <p>
+		          Security keys can be used as your second factor of authentication
+		          instead of a verification code. Learn more about configuring a
+		          security key.
+		        </p>
 	
-       */
-      infoMessage: () => LocalizedString
-      form: {
-        messages: {
-          /**
-           * Security key added.
-           */
-          success: () => LocalizedString
-        }
-        fields: {
-          name: {
-            /**
-             * New key name
-             */
-            label: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Add new Key
-           */
-          submit: () => LocalizedString
-        }
-      }
-    }
-    recoveryCodes: {
-      /**
-       * Recovery codes
-       */
-      title: () => LocalizedString
-      /**
-       * I have saved my codes
-       */
-      submit: () => LocalizedString
-      messages: {
-        /**
-         * Codes copied.
-         */
-        copied: () => LocalizedString
-      }
-      /**
-       * 
-            <p>
-              Treat your recovery codes with the same level of attention as you
-              would your password! We recommend saving them with a password manager
-              such as Lastpass, bitwarden or Keeper.
-            </p>
+			 */
+			infoMessage: () => LocalizedString
+			form: {
+				messages: {
+					/**
+					 * Security key added.
+					 */
+					success: () => LocalizedString
+				}
+				fields: {
+					name: {
+						/**
+						 * New key name
+						 */
+						label: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Add new Key
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		recoveryCodes: {
+			/**
+			 * Recovery codes
+			 */
+			title: () => LocalizedString
+			/**
+			 * I have saved my codes
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Codes copied.
+				 */
+				copied: () => LocalizedString
+			}
+			/**
+			 * 
+		        <p>
+		          Treat your recovery codes with the same level of attention as you
+		          would your password! We recommend saving them with a password manager
+		          such as Lastpass, bitwarden or Keeper.
+		        </p>
 	
-       */
-      infoMessage: () => LocalizedString
-    }
-    registerTOTP: {
-      /**
-       * Authenticator App Setup
-       */
-      title: () => LocalizedString
-      /**
-       * 
-            <p>
-              To setup your MFA, scan this QR code with your authenticator app, then
-              enter the code in the field below:
-            </p>
+			 */
+			infoMessage: () => LocalizedString
+		}
+		registerTOTP: {
+			/**
+			 * Authenticator App Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA, scan this QR code with your authenticator app, then
+		          enter the code in the field below:
+		        </p>
 	
-       */
-      infoMessage: () => LocalizedString
-      messages: {
-        /**
-         * TOTP path copied.
-         */
-        totpCopied: () => LocalizedString
-        /**
-         * TOTP Enabled
-         */
-        success: () => LocalizedString
-      }
-      /**
-       * Copy TOTP path
-       */
-      copyPath: () => LocalizedString
-      form: {
-        fields: {
-          code: {
-            /**
-             * Authenticator code
-             */
-            label: () => LocalizedString
-            /**
-             * Code is invalid
-             */
-            error: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Verify code
-           */
-          submit: () => LocalizedString
-        }
-      }
-    }
-    registerEmailMFA: {
-      /**
-       * Email MFA Setup
-       */
-      title: () => LocalizedString
-      /**
-       * 
-            <p>
-              To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
-            </p>
+			 */
+			infoMessage: () => LocalizedString
+			messages: {
+				/**
+				 * TOTP path copied.
+				 */
+				totpCopied: () => LocalizedString
+				/**
+				 * TOTP Enabled
+				 */
+				success: () => LocalizedString
+			}
+			/**
+			 * Copy TOTP path
+			 */
+			copyPath: () => LocalizedString
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Authenticator code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		registerEmailMFA: {
+			/**
+			 * Email MFA Setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
+		        </p>
 	
-       */
-      infoMessage: (arg: { email: string }) => LocalizedString
-      messages: {
-        /**
-         * Email MFA Enabled
-         */
-        success: () => LocalizedString
-        /**
-         * Verification code resent
-         */
-        resend: () => LocalizedString
-      }
-      form: {
-        fields: {
-          code: {
-            /**
-             * Email code
-             */
-            label: () => LocalizedString
-            /**
-             * Code is invalid
-             */
-            error: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Verify code
-           */
-          submit: () => LocalizedString
-          /**
-           * Resend email
-           */
-          resend: () => LocalizedString
-        }
-      }
-    }
-    editDevice: {
-      /**
-       * Edit device
-       */
-      title: () => LocalizedString
-      messages: {
-        /**
-         * Device has been updated.
-         */
-        success: () => LocalizedString
-      }
-      form: {
-        fields: {
-          name: {
-            /**
-             * Device Name
-             */
-            label: () => LocalizedString
-          }
-          publicKey: {
-            /**
-             * Device Public Key (WireGuard)
-             */
-            label: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Edit device
-           */
-          submit: () => LocalizedString
-        }
-      }
-    }
-    deleteDevice: {
-      /**
-       * Delete device
-       */
-      title: () => LocalizedString
-      /**
-       * Do you want to delete {deviceName} device ?
-       */
-      message: (arg: { deviceName: unknown }) => LocalizedString
-      /**
-       * Delete device
-       */
-      submit: () => LocalizedString
-      messages: {
-        /**
-         * Device has been deleted.
-         */
-        success: () => LocalizedString
-      }
-    }
-    keyDetails: {
-      /**
-       * YubiKey details
-       */
-      title: () => LocalizedString
-      /**
-       * Download all keys
-       */
-      downloadAll: () => LocalizedString
-    }
-    deleteUser: {
-      /**
-       * Delete account
-       */
-      title: () => LocalizedString
-      controls: {
-        /**
-         * Delete account
-         */
-        submit: () => LocalizedString
-      }
-      /**
-       * Do you want to delete {username} account permanently ?
-       */
-      message: (arg: { username: string }) => LocalizedString
-      messages: {
-        /**
-         * {username} deleted.
-         */
-        success: (arg: { username: string }) => LocalizedString
-      }
-    }
-    disableUser: {
-      /**
-       * Disable account
-       */
-      title: () => LocalizedString
-      controls: {
-        /**
-         * Disable account
-         */
-        submit: () => LocalizedString
-      }
-      /**
-       * Do you want to disable {username} account?
-       */
-      message: (arg: { username: string }) => LocalizedString
-      messages: {
-        /**
-         * {username} disabled.
-         */
-        success: (arg: { username: string }) => LocalizedString
-      }
-    }
-    enableUser: {
-      /**
-       * Enable account
-       */
-      title: () => LocalizedString
-      controls: {
-        /**
-         * Enable account
-         */
-        submit: () => LocalizedString
-      }
-      /**
-       * Do you want to enable {username} account?
-       */
-      message: (arg: { username: string }) => LocalizedString
-      messages: {
-        /**
-         * {username} enabled.
-         */
-        success: (arg: { username: string }) => LocalizedString
-      }
-    }
-    deleteProvisioner: {
-      /**
-       * Delete provisioner
-       */
-      title: () => LocalizedString
-      controls: {
-        /**
-         * Delete provisioner
-         */
-        submit: () => LocalizedString
-      }
-      /**
-       * Do you want to delete {id} provisioner?
-       */
-      message: (arg: { id: string }) => LocalizedString
-      messages: {
-        /**
-         * {provisioner} deleted.
-         */
-        success: (arg: { provisioner: string }) => LocalizedString
-      }
-    }
-    changeUserPassword: {
-      messages: {
-        /**
-         * Password changed.
-         */
-        success: () => LocalizedString
-      }
-      /**
-       * Change user password
-       */
-      title: () => LocalizedString
-      form: {
-        controls: {
-          /**
-           * Save new password
-           */
-          submit: () => LocalizedString
-        }
-        fields: {
-          newPassword: {
-            /**
-             * New password
-             */
-            label: () => LocalizedString
-          }
-          confirmPassword: {
-            /**
-             * Repeat password
-             */
-            label: () => LocalizedString
-          }
-        }
-      }
-    }
-    provisionKeys: {
-      /**
-       * Yubikey provisioning:
-       */
-      title: () => LocalizedString
-      /**
-       * Please be advised that this operation wll wipe openpgp application on yubikey and reconfigure it.
-       */
-      warning: () => LocalizedString
-      /**
-       * The selected provisioner must have a <b>clean</b> YubiKey
-                    plugged in be provisioned. To clean a used YubiKey
-                    <b>gpg --card-edit </b> before provisioning.
-       */
-      infoBox: () => LocalizedString
-      /**
-       * Select one of the following provisioners to provision a YubiKey:
-       */
-      selectionLabel: () => LocalizedString
-      noData: {
-        /**
-         * No workers found, waiting...
-         */
-        workers: () => LocalizedString
-      }
-      controls: {
-        /**
-         * Provision YubiKey
-         */
-        submit: () => LocalizedString
-      }
-      messages: {
-        /**
-         * Keys provisioned
-         */
-        success: () => LocalizedString
-        /**
-         * Error while getting worker status.
-         */
-        errorStatus: () => LocalizedString
-      }
-    }
-    addUser: {
-      /**
-       * Add new user
-       */
-      title: () => LocalizedString
-      messages: {
-        /**
-         * User added
-         */
-        userAdded: () => LocalizedString
-      }
-      form: {
-        /**
-         * Add user
-         */
-        submit: () => LocalizedString
-        fields: {
-          username: {
-            /**
-             * login
-             */
-            placeholder: () => LocalizedString
-            /**
-             * Login
-             */
-            label: () => LocalizedString
-          }
-          password: {
-            /**
-             * Password
-             */
-            placeholder: () => LocalizedString
-            /**
-             * Password
-             */
-            label: () => LocalizedString
-          }
-          email: {
-            /**
-             * User e-mail
-             */
-            placeholder: () => LocalizedString
-            /**
-             * User e-mail
-             */
-            label: () => LocalizedString
-          }
-          firstName: {
-            /**
-             * First name
-             */
-            placeholder: () => LocalizedString
-            /**
-             * First name
-             */
-            label: () => LocalizedString
-          }
-          lastName: {
-            /**
-             * Last name
-             */
-            placeholder: () => LocalizedString
-            /**
-             * Last name
-             */
-            label: () => LocalizedString
-          }
-          phone: {
-            /**
-             * Phone
-             */
-            placeholder: () => LocalizedString
-            /**
-             * Phone
-             */
-            label: () => LocalizedString
-          }
-          enableEnrollment: {
-            /**
-             * Use user self-enrollment process
-             */
-            label: () => LocalizedString
-            /**
-             * <a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>
-             */
-            link: () => LocalizedString
-          }
-        }
-      }
-    }
-    webhookModal: {
-      title: {
-        /**
-         * Add webhook.
-         */
-        addWebhook: () => LocalizedString
-        /**
-         * Edit webhook
-         */
-        editWebhook: () => LocalizedString
-      }
-      messages: {
-        /**
-         * Client ID copied.
-         */
-        clientIdCopy: () => LocalizedString
-        /**
-         * Client secret copied.
-         */
-        clientSecretCopy: () => LocalizedString
-      }
-      form: {
-        /**
-         * Trigger events:
-         */
-        triggers: () => LocalizedString
-        messages: {
-          /**
-           * Webhook created.
-           */
-          successAdd: () => LocalizedString
-          /**
-           * Webhook modified.
-           */
-          successModify: () => LocalizedString
-        }
-        error: {
-          /**
-           * URL is required.
-           */
-          urlRequired: () => LocalizedString
-          /**
-           * Must be a valid URL.
-           */
-          validUrl: () => LocalizedString
-          /**
-           * Must have at least one trigger.
-           */
-          scopeValidation: () => LocalizedString
-          /**
-           * Token is required.
-           */
-          tokenRequired: () => LocalizedString
-        }
-        fields: {
-          description: {
-            /**
-             * Description
-             */
-            label: () => LocalizedString
-            /**
-             * Webhook to create gmail account on new user
-             */
-            placeholder: () => LocalizedString
-          }
-          token: {
-            /**
-             * Secret token
-             */
-            label: () => LocalizedString
-            /**
-             * Authorization token
-             */
-            placeholder: () => LocalizedString
-          }
-          url: {
-            /**
-             * Webhook URL
-             */
-            label: () => LocalizedString
-            /**
-             * https://example.com/webhook
-             */
-            placeholder: () => LocalizedString
-          }
-          userCreated: {
-            /**
-             * New user Created
-             */
-            label: () => LocalizedString
-          }
-          userDeleted: {
-            /**
-             * User deleted
-             */
-            label: () => LocalizedString
-          }
-          userModified: {
-            /**
-             * User modified
-             */
-            label: () => LocalizedString
-          }
-          hwkeyProvision: {
-            /**
-             * User Yubikey provision
-             */
-            label: () => LocalizedString
-          }
-        }
-      }
-    }
-    deleteWebhook: {
-      /**
-       * Delete webhook
-       */
-      title: () => LocalizedString
-      /**
-       * Do you want to delete {name} webhook ?
-       */
-      message: (arg: { name: string }) => LocalizedString
-      /**
-       * Delete
-       */
-      submit: () => LocalizedString
-      messages: {
-        /**
-         * Webhook deleted.
-         */
-        success: () => LocalizedString
-      }
-    }
-  }
-  addDevicePage: {
-    /**
-     * Add device
-     */
-    title: () => LocalizedString
-    helpers: {
-      /**
-       * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
-       */
-      setupOpt: () => LocalizedString
-      /**
-       * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
-       */
-      client: () => LocalizedString
-    }
-    messages: {
-      /**
-       * Device added
-       */
-      deviceAdded: () => LocalizedString
-    }
-    steps: {
-      setupMethod: {
-        remote: {
-          /**
-           * Configure Desktop Client
-           */
-          title: () => LocalizedString
-          /**
-           * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
-           */
-          subTitle: () => LocalizedString
-          /**
-           * Download defguard Client
-           */
-          link: () => LocalizedString
-        }
-        manual: {
-          /**
-           * Manual WireGuard Client
-           */
-          title: () => LocalizedString
-          /**
-           * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
-           */
-          subTitle: () => LocalizedString
-          /**
-           * Download WireGuard Client
-           */
-          link: () => LocalizedString
-        }
-      }
-      configDevice: {
-        /**
-         * Configure device
-         */
-        title: () => LocalizedString
-        messages: {
-          /**
-           * Configuration has been copied to the clipboard
-           */
-          copyConfig: () => LocalizedString
-        }
-        helpers: {
-          /**
-           * 
-            <p>
-              Please be advised that you have to download the configuration now,
-              since <strong>we do not</strong> store your private key. After this
-              page is closed, you <strong>will not be able</strong> to get your
-              full configuration file (with private keys, only blank template).
-            </p>
-    	
-           */
-          warningAutoMode: () => LocalizedString
-          /**
-           * 
-            <p>
-              Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
-            </p>
-    	
-           */
-          warningManualMode: () => LocalizedString
-          /**
-           * You don't have access to any network.
-           */
-          warningNoNetworks: () => LocalizedString
-          /**
-           * 
-              <p>
-                You can setup your device faster with wireguard application by scanning this QR code.
-              </p>
-           */
-          qrHelper: () => LocalizedString
-        }
-        /**
-         * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
-         */
-        qrInfo: () => LocalizedString
-        /**
-         * Device Name
-         */
-        inputNameLabel: () => LocalizedString
-        /**
-         * WireGuard Config File
-         */
-        qrLabel: () => LocalizedString
-      }
-      setupDevice: {
-        /**
-         * Create VPN device
-         */
-        title: () => LocalizedString
-        /**
-         * 
-              <p>
-                You need to configure WireGuardVPN on your device, please visit&nbsp;
-                <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
-              </p>
-  	
-         */
-        infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
-        options: {
-          /**
-           * Generate key pair
-           */
-          auto: () => LocalizedString
-          /**
-           * Use my own public key
-           */
-          manual: () => LocalizedString
-        }
-        form: {
-          fields: {
-            name: {
-              /**
-               * Device Name
-               */
-              label: () => LocalizedString
-            }
-            publicKey: {
-              /**
-               * Provide Your Public Key
-               */
-              label: () => LocalizedString
-            }
-          }
-          errors: {
-            name: {
-              /**
-               * Device with this name already exists
-               */
-              duplicatedName: () => LocalizedString
-            }
-          }
-        }
-      }
-      copyToken: {
-        /**
-         * Client activation
-         */
-        title: () => LocalizedString
-        /**
-         * Activation token
-         */
-        tokenCardTitle: () => LocalizedString
-        /**
-         * Defguard Instance URL
-         */
-        urlCardTitle: () => LocalizedString
-      }
-    }
-  }
-  userPage: {
-    title: {
-      /**
-       * User Profile
-       */
-      view: () => LocalizedString
-      /**
-       * Edit User Profile
-       */
-      edit: () => LocalizedString
-    }
-    messages: {
-      /**
-       * User updated.
-       */
-      editSuccess: () => LocalizedString
-      /**
-       * Could not get user information.
-       */
-      failedToFetchUserData: () => LocalizedString
-      /**
-       * Password reset email has been sent.
-       */
-      passwordResetEmailSent: () => LocalizedString
-    }
-    userDetails: {
-      /**
-       * Profile Details
-       */
-      header: () => LocalizedString
-      messages: {
-        /**
-         * App and all tokens deleted.
-         */
-        deleteApp: () => LocalizedString
-      }
-      warningModals: {
-        /**
-         * Warning
-         */
-        title: () => LocalizedString
-        content: {
-          /**
-           * Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
-           */
-          usernameChange: () => LocalizedString
-          /**
-           * If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?
-           */
-          emailChange: () => LocalizedString
-        }
-        buttons: {
-          /**
-           * Proceed
-           */
-          proceed: () => LocalizedString
-          /**
-           * Cancel
-           */
-          cancel: () => LocalizedString
-        }
-      }
-      fields: {
-        username: {
-          /**
-           * Username
-           */
-          label: () => LocalizedString
-        }
-        firstName: {
-          /**
-           * First name
-           */
-          label: () => LocalizedString
-        }
-        lastName: {
-          /**
-           * Last name
-           */
-          label: () => LocalizedString
-        }
-        phone: {
-          /**
-           * Phone number
-           */
-          label: () => LocalizedString
-        }
-        email: {
-          /**
-           * E-mail
-           */
-          label: () => LocalizedString
-        }
-        status: {
-          /**
-           * Status
-           */
-          label: () => LocalizedString
-          /**
-           * Active
-           */
-          active: () => LocalizedString
-          /**
-           * Disabled
-           */
-          disabled: () => LocalizedString
-        }
-        groups: {
-          /**
-           * User groups
-           */
-          label: () => LocalizedString
-          /**
-           * No groups
-           */
-          noData: () => LocalizedString
-        }
-        apps: {
-          /**
-           * Authorized apps
-           */
-          label: () => LocalizedString
-          /**
-           * No authorized apps
-           */
-          noData: () => LocalizedString
-        }
-      }
-    }
-    userAuthInfo: {
-      /**
-       * Password and authentication
-       */
-      header: () => LocalizedString
-      password: {
-        /**
-         * Password settings
-         */
-        header: () => LocalizedString
-        /**
-         * Change password
-         */
-        changePassword: () => LocalizedString
-        /**
-         * {ldapName} password update required
-         */
-        ldap_change_heading: (arg: { ldapName: string }) => LocalizedString
-        /**
-         * Defguard doesn't store your password in plain text, so we can’t retrieve it for automatic synchronization with your {ldapName} credentials. To enable {ldapName} login to other services, please update your Defguard password for your {ldapName} password to be set — you can re-enter your current password if you wish. This step is necessary to ensure consistent and secure authentication across both systems.
-         */
-        ldap_change_message: (arg: { ldapName: string }) => LocalizedString
-      }
-      recovery: {
-        /**
-         * Recovery options
-         */
-        header: () => LocalizedString
-        codes: {
-          /**
-           * Recovery Codes
-           */
-          label: () => LocalizedString
-          /**
-           * Viewed
-           */
-          viewed: () => LocalizedString
-        }
-      }
-      mfa: {
-        /**
-         * Two-factor methods
-         */
-        header: () => LocalizedString
-        edit: {
-          /**
-           * Disable MFA
-           */
-          disable: () => LocalizedString
-        }
-        messages: {
-          /**
-           * MFA disabled.
-           */
-          mfaDisabled: () => LocalizedString
-          /**
-           * One time password disabled.
-           */
-          OTPDisabled: () => LocalizedString
-          /**
-           * Email MFA disabled.
-           */
-          EmailMFADisabled: () => LocalizedString
-          /**
-           * MFA method changed
-           */
-          changeMFAMethod: () => LocalizedString
-        }
-        securityKey: {
-          /**
-           * security key
-           */
-          singular: () => LocalizedString
-          /**
-           * security keys
-           */
-          plural: () => LocalizedString
-        }
-        /**
-         * default
-         */
-        'default': () => LocalizedString
-        /**
-         * Enabled
-         */
-        enabled: () => LocalizedString
-        /**
-         * Disabled
-         */
-        disabled: () => LocalizedString
-        labels: {
-          /**
-           * Time based one time passwords
-           */
-          totp: () => LocalizedString
-          /**
-           * Email
-           */
-          email: () => LocalizedString
-          /**
-           * Security keys
-           */
-          webauth: () => LocalizedString
-        }
-        editMode: {
-          /**
-           * Enable
-           */
-          enable: () => LocalizedString
-          /**
-           * Disable
-           */
-          disable: () => LocalizedString
-          /**
-           * Make default
-           */
-          makeDefault: () => LocalizedString
-          webauth: {
-            /**
-             * Manage security keys
-             */
-            manage: () => LocalizedString
-          }
-        }
-      }
-    }
-    controls: {
-      /**
-       * Edit profile
-       */
-      editButton: () => LocalizedString
-      /**
-       * Delete account
-       */
-      deleteAccount: () => LocalizedString
-    }
-    devices: {
-      /**
-       * User devices
-       */
-      header: () => LocalizedString
-      addDevice: {
-        /**
-         * Add new device
-         */
-        web: () => LocalizedString
-        /**
-         * Add this device
-         */
-        desktop: () => LocalizedString
-      }
-      card: {
-        labels: {
-          /**
-           * Public IP
-           */
-          publicIP: () => LocalizedString
-          /**
-           * Connected through
-           */
-          connectedThrough: () => LocalizedString
-          /**
-           * Connected date
-           */
-          connectionDate: () => LocalizedString
-          /**
-           * Last connected from
-           */
-          lastLocation: () => LocalizedString
-          /**
-           * Last connected
-           */
-          lastConnected: () => LocalizedString
-          /**
-           * Assigned IP
-           */
-          assignedIp: () => LocalizedString
-          /**
-           * active
-           */
-          active: () => LocalizedString
-          /**
-           * Never connected
-           */
-          noData: () => LocalizedString
-        }
-        edit: {
-          /**
-           * Edit device
-           */
-          edit: () => LocalizedString
-          /**
-           * Delete device
-           */
-          'delete': () => LocalizedString
-          /**
-           * Show configuration
-           */
-          showConfigurations: () => LocalizedString
-        }
-      }
-    }
-    yubiKey: {
-      /**
-       * User YubiKey
-       */
-      header: () => LocalizedString
-      /**
-       * Provision a YubiKey
-       */
-      provision: () => LocalizedString
-      keys: {
-        /**
-         * PGP key
-         */
-        pgp: () => LocalizedString
-        /**
-         * SSH key
-         */
-        ssh: () => LocalizedString
-      }
-      noLicense: {
-        /**
-         * YubiKey module
-         */
-        moduleName: () => LocalizedString
-        /**
-         * This is enterprise module for YubiKey
-         */
-        line1: () => LocalizedString
-        /**
-         * management and provisioning.
-         */
-        line2: () => LocalizedString
-      }
-    }
-    authenticationKeys: {
-      /**
-       * User Authentication Keys
-       */
-      header: () => LocalizedString
-      /**
-       * Add new Key
-       */
-      addKey: () => LocalizedString
-      keysList: {
-        common: {
-          /**
-           * Rename
-           */
-          rename: () => LocalizedString
-          /**
-           * Key
-           */
-          key: () => LocalizedString
-          /**
-           * Download
-           */
-          download: () => LocalizedString
-          /**
-           * Copy
-           */
-          copy: () => LocalizedString
-          /**
-           * Serial Number
-           */
-          serialNumber: () => LocalizedString
-          /**
-           * Delete
-           */
-          'delete': () => LocalizedString
-        }
-      }
-      deleteModal: {
-        /**
-         * Delete Authentication Key
-         */
-        title: () => LocalizedString
-        /**
-         * Key {name} will be deleted permanently.
-         */
-        confirmMessage: (arg: { name: string }) => LocalizedString
-      }
-      addModal: {
-        /**
-         * Add new Authentication Key
-         */
-        header: () => LocalizedString
-        /**
-         * Key Type
-         */
-        keyType: () => LocalizedString
-        keyForm: {
-          placeholders: {
-            /**
-             * Key Name
-             */
-            title: () => LocalizedString
-            key: {
-              /**
-               * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
-               */
-              ssh: () => LocalizedString
-              /**
-               * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
-               */
-              gpg: () => LocalizedString
-            }
-          }
-          labels: {
-            /**
-             * Name
-             */
-            title: () => LocalizedString
-            /**
-             * Key
-             */
-            key: () => LocalizedString
-          }
-          /**
-           * Add {name} key
-           */
-          submit: (arg: { name: string }) => LocalizedString
-        }
-        yubikeyForm: {
-          selectWorker: {
-            /**
-             * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
-             */
-            info: () => LocalizedString
-            /**
-             * Select on of the following provisioners to provision a YubiKey
-             */
-            selectLabel: () => LocalizedString
-            /**
-             * No workers are registered right now.
-             */
-            noData: () => LocalizedString
-            /**
-             * Available
-             */
-            available: () => LocalizedString
-            /**
-             * Unavailable
-             */
-            unavailable: () => LocalizedString
-          }
-          provisioning: {
-            /**
-             * Provisioning in progress, please wait.
-             */
-            inProgress: () => LocalizedString
-            /**
-             * Provisioning failed !
-             */
-            error: () => LocalizedString
-            /**
-             * Yubikey provisioned successfully
-             */
-            success: () => LocalizedString
-          }
-          /**
-           * Provision Yubikey
-           */
-          submit: () => LocalizedString
-        }
-        messages: {
-          /**
-           * Key added.
-           */
-          keyAdded: () => LocalizedString
-          /**
-           * Key has already been added.
-           */
-          keyExists: () => LocalizedString
-          /**
-           * Unsupported key format.
-           */
-          unsupportedKeyFormat: () => LocalizedString
-          /**
-           * Could not add the key. Please try again later.
-           */
-          genericError: () => LocalizedString
-        }
-      }
-    }
-    apiTokens: {
-      /**
-       * User API Tokens
-       */
-      header: () => LocalizedString
-      /**
-       * Add new API Token
-       */
-      addToken: () => LocalizedString
-      tokensList: {
-        common: {
-          /**
-           * Rename
-           */
-          rename: () => LocalizedString
-          /**
-           * Token
-           */
-          token: () => LocalizedString
-          /**
-           * Copy
-           */
-          copy: () => LocalizedString
-          /**
-           * Delete
-           */
-          'delete': () => LocalizedString
-          /**
-           * Created at
-           */
-          createdAt: () => LocalizedString
-        }
-      }
-      deleteModal: {
-        /**
-         * Delete API Token
-         */
-        title: () => LocalizedString
-        /**
-         * API token {name} will be deleted permanently.
-         */
-        confirmMessage: (arg: { name: string }) => LocalizedString
-      }
-      addModal: {
-        /**
-         * Add new API Token
-         */
-        header: () => LocalizedString
-        tokenForm: {
-          placeholders: {
-            /**
-             * API Token Name
-             */
-            name: () => LocalizedString
-          }
-          labels: {
-            /**
-             * Name
-             */
-            name: () => LocalizedString
-          }
-          /**
-           * Add API token
-           */
-          submit: () => LocalizedString
-        }
-        copyToken: {
-          /**
-           * Please copy the API token below now. You won't be able to see it again.
-           */
-          warningMessage: () => LocalizedString
-          /**
-           * Copy new API Token
-           */
-          header: () => LocalizedString
-        }
-        messages: {
-          /**
-           * API token added.
-           */
-          tokenAdded: () => LocalizedString
-          /**
-           * Could not add API token. Please try again later.
-           */
-          genericError: () => LocalizedString
-        }
-      }
-    }
-  }
-  usersOverview: {
-    /**
-     * Users
-     */
-    pageTitle: () => LocalizedString
-    grid: {
-      /**
-       * Connected Users
-       */
-      usersTitle: () => LocalizedString
-      /**
-       * Connected Network Devices
-       */
-      devicesTitle: () => LocalizedString
-    }
-    search: {
-      /**
-       * Find users
-       */
-      placeholder: () => LocalizedString
-    }
-    filterLabels: {
-      /**
-       * All users
-       */
-      all: () => LocalizedString
-      /**
-       * Admins only
-       */
-      admin: () => LocalizedString
-      /**
-       * Users only
-       */
-      users: () => LocalizedString
-    }
-    /**
-     * All users
-     */
-    usersCount: () => LocalizedString
-    /**
-     * Add new
-     */
-    addNewUser: () => LocalizedString
-    list: {
-      headers: {
-        /**
-         * User name
-         */
-        name: () => LocalizedString
-        /**
-         * Login
-         */
-        username: () => LocalizedString
-        /**
-         * Phone
-         */
-        phone: () => LocalizedString
-        /**
-         * Actions
-         */
-        actions: () => LocalizedString
-      }
-      editButton: {
-        /**
-         * Change password
-         */
-        changePassword: () => LocalizedString
-        /**
-         * Edit account
-         */
-        edit: () => LocalizedString
-        /**
-         * Add YubiKey
-         */
-        addYubikey: () => LocalizedString
-        /**
-         * Add SSH Key
-         */
-        addSSH: () => LocalizedString
-        /**
-         * Add GPG Key
-         */
-        addGPG: () => LocalizedString
-        /**
-         * Delete account
-         */
-        'delete': () => LocalizedString
-        /**
-         * Start enrollment
-         */
-        startEnrollment: () => LocalizedString
-        /**
-         * Configure Desktop Client
-         */
-        activateDesktop: () => LocalizedString
-        /**
-         * Reset password
-         */
-        resetPassword: () => LocalizedString
-      }
-    }
-  }
-  navigation: {
-    bar: {
-      /**
-       * VPN Overview
-       */
-      overview: () => LocalizedString
-      /**
-       * Users
-       */
-      users: () => LocalizedString
-      /**
-       * YubiKeys
-       */
-      provisioners: () => LocalizedString
-      /**
-       * Webhooks
-       */
-      webhooks: () => LocalizedString
-      /**
-       * OpenID Apps
-       */
-      openId: () => LocalizedString
-      /**
-       * My Profile
-       */
-      myProfile: () => LocalizedString
-      /**
-       * Settings
-       */
-      settings: () => LocalizedString
-      /**
-       * Log out
-       */
-      logOut: () => LocalizedString
-      /**
-       * Enrollment
-       */
-      enrollment: () => LocalizedString
-      /**
-       * Support
-       */
-      support: () => LocalizedString
-      /**
-       * Groups
-       */
-      groups: () => LocalizedString
-      /**
-       * Network Devices
-       */
-      devices: () => LocalizedString
-      /**
-       * Access Control
-       */
-      acl: () => LocalizedString
-      /**
-       * Activity
-       */
-      activity: () => LocalizedString
-    }
-    mobileTitles: {
-      /**
-       * Activity
-       */
-      activity: () => LocalizedString
-      /**
-       * Groups
-       */
-      groups: () => LocalizedString
-      /**
-       * Create location
-       */
-      wizard: () => LocalizedString
-      /**
-       * Users
-       */
-      users: () => LocalizedString
-      /**
-       * Settings
-       */
-      settings: () => LocalizedString
-      /**
-       * User Profile
-       */
-      user: () => LocalizedString
-      /**
-       * Yubikey
-       */
-      provisioners: () => LocalizedString
-      /**
-       * Webhooks
-       */
-      webhooks: () => LocalizedString
-      /**
-       * OpenId Apps
-       */
-      openId: () => LocalizedString
-      /**
-       * Location Overview
-       */
-      overview: () => LocalizedString
-      /**
-       * Edit Location
-       */
-      networkSettings: () => LocalizedString
-      /**
-       * Enrollment
-       */
-      enrollment: () => LocalizedString
-      /**
-       * Support
-       */
-      support: () => LocalizedString
-      /**
-       * Network Devices
-       */
-      devices: () => LocalizedString
-    }
-    /**
-     * Copyright ©2023-2025
-     */
-    copyright: () => LocalizedString
-    version: {
-      /**
-       * Application version: {version}
-       */
-      open: (arg: { version: string }) => LocalizedString
-      /**
-       * v{version}
-       */
-      closed: (arg: { version: string }) => LocalizedString
-    }
-  }
-  form: {
-    /**
-     * Download
-     */
-    download: () => LocalizedString
-    /**
-     * Copy
-     */
-    copy: () => LocalizedString
-    /**
-     * Save changes
-     */
-    saveChanges: () => LocalizedString
-    /**
-     * Submit
-     */
-    submit: () => LocalizedString
-    /**
-     * Sign in
-     */
-    login: () => LocalizedString
-    /**
-     * Cancel
-     */
-    cancel: () => LocalizedString
-    /**
-     * Close
-     */
-    close: () => LocalizedString
-    placeholders: {
-      /**
-       * Password
-       */
-      password: () => LocalizedString
-      /**
-       * Username
-       */
-      username: () => LocalizedString
-      /**
-       * Username or email
-       */
-      username_or_email: () => LocalizedString
-    }
-    error: {
-      /**
-       * Name is already taken.
-       */
-      reservedName: () => LocalizedString
-      /**
-       * IP is invalid.
-       */
-      invalidIp: () => LocalizedString
-      /**
-       * IP is already in use.
-       */
-      reservedIp: () => LocalizedString
-      /**
-       * Field contains forbidden characters.
-       */
-      forbiddenCharacter: () => LocalizedString
-      /**
-       * Username is already in use.
-       */
-      usernameTaken: () => LocalizedString
-      /**
-       * Key is invalid.
-       */
-      invalidKey: () => LocalizedString
-      /**
-       * Field is invalid.
-       */
-      invalid: () => LocalizedString
-      /**
-       * Field is required.
-       */
-      required: () => LocalizedString
-      /**
-       * Submitted code is invalid.
-       */
-      invalidCode: () => LocalizedString
-      /**
-       * Maximum length exceeded.
-       */
-      maximumLength: () => LocalizedString
-      /**
-       * Field length cannot exceed {length}
-       */
-      maximumLengthOf: (arg: { length: number }) => LocalizedString
-      /**
-       * Minimum length not reached.
-       */
-      minimumLength: () => LocalizedString
-      /**
-       * Minimum length of {length} not reached.
-       */
-      minimumLengthOf: (arg: { length: number }) => LocalizedString
-      /**
-       * No special characters are allowed.
-       */
-      noSpecialChars: () => LocalizedString
-      /**
-       * One digit required.
-       */
-      oneDigit: () => LocalizedString
-      /**
-       * Special character required.
-       */
-      oneSpecial: () => LocalizedString
-      /**
-       * One uppercase character required.
-       */
-      oneUppercase: () => LocalizedString
-      /**
-       * One lowercase character required.
-       */
-      oneLowercase: () => LocalizedString
-      /**
-       * Maximum port is 65535.
-       */
-      portMax: () => LocalizedString
-      /**
-       * Enter a valid endpoint.
-       */
-      endpoint: () => LocalizedString
-      /**
-       * Enter a valid address.
-       */
-      address: () => LocalizedString
-      /**
-       * Enter a valid address with a netmask.
-       */
-      addressNetmask: () => LocalizedString
-      /**
-       * Enter a valid port.
-       */
-      validPort: () => LocalizedString
-      /**
-       * Code should have 6 digits.
-       */
-      validCode: () => LocalizedString
-      /**
-       * Only valid IP or domain is allowed.
-       */
-      allowedIps: () => LocalizedString
-      /**
-       * Cannot start from number.
-       */
-      startFromNumber: () => LocalizedString
-      /**
-       * Fields don't match.
-       */
-      repeat: () => LocalizedString
-      /**
-       * Expected a valid number.
-       */
-      number: () => LocalizedString
-      /**
-       * Minimum value of {value} not reached.
-       */
-      minimumValue: (arg: { value: number }) => LocalizedString
-      /**
-       * Maximum value of {value} exceeded.
-       */
-      maximumValue: (arg: { value: number }) => LocalizedString
-      /**
-       * Too many bad login attempts. Please try again in a few minutes.
-       */
-      tooManyBadLoginAttempts: () => LocalizedString
-    }
-    floatingErrors: {
-      /**
-       * Please correct the following:
-       */
-      title: () => LocalizedString
-    }
-  }
-  components: {
-    aclDefaultPolicySelect: {
-      /**
-       * Default ACL Policy
-       */
-      label: () => LocalizedString
-      options: {
-        /**
-         * Allow
-         */
-        allow: () => LocalizedString
-        /**
-         * Deny
-         */
-        deny: () => LocalizedString
-      }
-    }
-    standaloneDeviceTokenModalContent: {
-      /**
-       * First download defguard command line client binaries and install them on your server.
-       */
-      headerMessage: () => LocalizedString
-      /**
-       * Download Defguard CLI Client
-       */
-      downloadButton: () => LocalizedString
-      expandableCard: {
-        /**
-         * Copy and paste this command in your terminal on the device
-         */
-        title: () => LocalizedString
-      }
-    }
-    deviceConfigsCard: {
-      /**
-       * WireGuard Config for location:
-       */
-      cardTitle: () => LocalizedString
-      messages: {
-        /**
-         * Configuration copied to the clipboard
-         */
-        copyConfig: () => LocalizedString
-      }
-    }
-    gatewaysStatus: {
-      /**
-       * Gateways
-       */
-      label: () => LocalizedString
-      states: {
-        /**
-         * All ({count}) Connected
-         */
-        all: (arg: { count: number }) => LocalizedString
-        /**
-         * Some ({count}) Connected
-         */
-        some: (arg: { count: number }) => LocalizedString
-        /**
-         * None connected
-         */
-        none: () => LocalizedString
-        /**
-         * Status check failed
-         */
-        error: () => LocalizedString
-      }
-      messages: {
-        /**
-         * Failed to get gateways status
-         */
-        error: () => LocalizedString
-        /**
-         * Failed to delete gateway
-         */
-        deleteError: () => LocalizedString
-      }
-    }
-    noLicenseBox: {
-      footer: {
-        /**
-         * Get an enterprise license
-         */
-        get: () => LocalizedString
-        /**
-         * by contacting:
-         */
-        contact: () => LocalizedString
-      }
-    }
-  }
-  settingsPage: {
-    /**
-     * Settings
-     */
-    title: () => LocalizedString
-    tabs: {
-      /**
-       * SMTP
-       */
-      smtp: () => LocalizedString
-      /**
-       * Global settings
-       */
-      global: () => LocalizedString
-      /**
-       * LDAP
-       */
-      ldap: () => LocalizedString
-      /**
-       * OpenID
-       */
-      openid: () => LocalizedString
-      /**
-       * Enterprise features
-       */
-      enterprise: () => LocalizedString
-      /**
-       * Gateway notifications
-       */
-      gatewayNotifications: () => LocalizedString
-    }
-    messages: {
-      /**
-       * Settings updated
-       */
-      editSuccess: () => LocalizedString
-      /**
-       * Challenge message changed
-       */
-      challengeSuccess: () => LocalizedString
-    }
-    enterpriseOnly: {
-      /**
-       * This feature is available only in Defguard Enterprise.
-       */
-      title: () => LocalizedString
-      /**
-       * Your current license has expired.
-       */
-      currentExpired: () => LocalizedString
-      /**
-       * To learn more, visit our 
-       */
-      subtitle: () => LocalizedString
-      /**
-       * website
-       */
-      website: () => LocalizedString
-    }
-    ldapSettings: {
-      /**
-       * LDAP Settings
-       */
-      title: () => LocalizedString
-      sync: {
-        /**
-         * LDAP two-way synchronization
-         */
-        header: () => LocalizedString
-        /**
-         * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).
-         */
-        info: () => LocalizedString
-        /**
-         * This feature is available only in Defguard Enterprise.
-         */
-        info_enterprise: () => LocalizedString
-        helpers: {
-          /**
-           * Configure LDAP synchronization settings here. If configured, Defguard will pull user information from LDAP and synchronize it with local users.
-           */
-          heading: () => LocalizedString
-          /**
-           * If enabled, Defguard will attempt to pull LDAP user data at the specified interval.
-           */
-          sync_enabled: () => LocalizedString
-          /**
-           * Defguard will use the selected server as the authoritative source of
-                  user data, meaning that if LDAP is selected, Defguard data will be overwritten with the LDAP
-                  data in case of a desynchronization. If Defguard was selected as the authority, it's data will
-                  overwrite LDAP data if necessary.
-                  Make sure to check the documentation to understand the implications of this
-                  setting.
-           */
-          authority: () => LocalizedString
-          /**
-           * The interval with which the synchronization will be attempted.
-           */
-          interval: () => LocalizedString
-          /**
-           * Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.
-           */
-          groups: () => LocalizedString
-        }
-      }
-      form: {
-        labels: {
-          /**
-           * Enable LDAP integration
-           */
-          ldap_enable: () => LocalizedString
-          /**
-           * URL
-           */
-          ldap_url: () => LocalizedString
-          /**
-           * Bind Username
-           */
-          ldap_bind_username: () => LocalizedString
-          /**
-           * Bind Password
-           */
-          ldap_bind_password: () => LocalizedString
-          /**
-           * Member Attribute
-           */
-          ldap_member_attr: () => LocalizedString
-          /**
-           * Username Attribute
-           */
-          ldap_username_attr: () => LocalizedString
-          /**
-           * User Object Class
-           */
-          ldap_user_obj_class: () => LocalizedString
-          /**
-           * User Search Base
-           */
-          ldap_user_search_base: () => LocalizedString
-          /**
-           * Additional User Object Classes
-           */
-          ldap_user_auxiliary_obj_classes: () => LocalizedString
-          /**
-           * Groupname Attribute
-           */
-          ldap_groupname_attr: () => LocalizedString
-          /**
-           * Group Search Base
-           */
-          ldap_group_search_base: () => LocalizedString
-          /**
-           * Group Member Attribute
-           */
-          ldap_group_member_attr: () => LocalizedString
-          /**
-           * Group Object Class
-           */
-          ldap_group_obj_class: () => LocalizedString
-          /**
-           * Enable LDAP two-way synchronization
-           */
-          ldap_sync_enabled: () => LocalizedString
-          /**
-           * Consider the following source as the authority
-           */
-          ldap_authoritative_source: () => LocalizedString
-          /**
-           * Synchronization interval
-           */
-          ldap_sync_interval: () => LocalizedString
-          /**
-           * Use StartTLS
-           */
-          ldap_use_starttls: () => LocalizedString
-          /**
-           * Verify TLS certificate
-           */
-          ldap_tls_verify_cert: () => LocalizedString
-          /**
-           * LDAP server is Active Directory
-           */
-          ldap_uses_ad: () => LocalizedString
-          /**
-           * User RDN Attribute
-           */
-          ldap_user_rdn_attr: () => LocalizedString
-          /**
-           * Limit synchronization to these groups
-           */
-          ldap_sync_groups: () => LocalizedString
-        }
-        helpers: {
-          /**
-           * The object class that will be added to the user object during its creation. This is used to determine if an LDAP object is a user.
-           */
-          ldap_user_obj_class: () => LocalizedString
-          /**
-           * The additional object classes that will be added to the user object during its creation. They may also influence the added user's attributes (e.g. simpleSecurityObject class will add userPassword attribute).
-           */
-          ldap_user_auxiliary_obj_classes: () => LocalizedString
-          /**
-           * Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.
-           */
-          user_settings: () => LocalizedString
-          /**
-           * Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).
-           */
-          connection_settings: () => LocalizedString
-          /**
-           * Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.
-           */
-          group_settings: () => LocalizedString
-          /**
-           * The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.
-           */
-          ldap_group_obj_class: () => LocalizedString
-          /**
-           * If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.
-           */
-          ldap_user_rdn_attr: () => LocalizedString
-        }
-        headings: {
-          /**
-           * User settings
-           */
-          user_settings: () => LocalizedString
-          /**
-           * Connection settings
-           */
-          connection_settings: () => LocalizedString
-          /**
-           * Group settings
-           */
-          group_settings: () => LocalizedString
-        }
-        /**
-         * Delete configuration
-         */
-        'delete': () => LocalizedString
-      }
-      test: {
-        /**
-         * Test LDAP Connection
-         */
-        title: () => LocalizedString
-        /**
-         * Test
-         */
-        submit: () => LocalizedString
-        messages: {
-          /**
-           * LDAP connected successfully
-           */
-          success: () => LocalizedString
-          /**
-           * LDAP connection rejected
-           */
-          error: () => LocalizedString
-        }
-      }
-    }
-    openIdSettings: {
-      /**
-       * External OpenID settings
-       */
-      heading: () => LocalizedString
-      general: {
-        /**
-         * General settings
-         */
-        title: () => LocalizedString
-        /**
-         * Here you can change general OpenID behavior in your Defguard instance.
-         */
-        helper: () => LocalizedString
-        createAccount: {
-          /**
-           * Automatically create user account when logging in for the first time through external OpenID.
-           */
-          label: () => LocalizedString
-          /**
-           * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
-           */
-          helper: () => LocalizedString
-        }
-        usernameHandling: {
-          /**
-           * Username handling
-           */
-          label: () => LocalizedString
-          /**
-           * Configure the method for handling invalid characters in usernames provided by your identity provider.
-           */
-          helper: () => LocalizedString
-          options: {
-            /**
-             * Remove forbidden characters
-             */
-            remove: () => LocalizedString
-            /**
-             * Replace forbidden characters
-             */
-            replace: () => LocalizedString
-            /**
-             * Prune email domain
-             */
-            prune_email: () => LocalizedString
-          }
-        }
-      }
-      form: {
-        /**
-         * Client settings
-         */
-        title: () => LocalizedString
-        /**
-         * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
-         */
-        helper: () => LocalizedString
-        /**
-         * Custom
-         */
-        custom: () => LocalizedString
-        /**
-         * None
-         */
-        none: () => LocalizedString
-        /**
-         * Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.
-         */
-        documentation: () => LocalizedString
-        /**
-         * Delete provider
-         */
-        'delete': () => LocalizedString
-        directory_sync_settings: {
-          /**
-           * Directory synchronization settings
-           */
-          title: () => LocalizedString
-          /**
-           * Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.
-           */
-          helper: () => LocalizedString
-          /**
-           * Directory sync is not supported for this provider.
-           */
-          notSupported: () => LocalizedString
-          connectionTest: {
-            /**
-             * Connection successful
-             */
-            success: () => LocalizedString
-            /**
-             * Connection failed with error:
-             */
-            error: () => LocalizedString
-          }
-        }
-        selects: {
-          synchronize: {
-            /**
-             * All
-             */
-            all: () => LocalizedString
-            /**
-             * Users
-             */
-            users: () => LocalizedString
-            /**
-             * Groups
-             */
-            groups: () => LocalizedString
-          }
-          behavior: {
-            /**
-             * Keep
-             */
-            keep: () => LocalizedString
-            /**
-             * Disable
-             */
-            disable: () => LocalizedString
-            /**
-             * Delete
-             */
-            'delete': () => LocalizedString
-          }
-        }
-        labels: {
-          provider: {
-            /**
-             * Provider
-             */
-            label: () => LocalizedString
-            /**
-             * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
-             */
-            helper: () => LocalizedString
-          }
-          client_id: {
-            /**
-             * Client ID
-             */
-            label: () => LocalizedString
-            /**
-             * Client ID provided by your OpenID provider.
-             */
-            helper: () => LocalizedString
-          }
-          client_secret: {
-            /**
-             * Client Secret
-             */
-            label: () => LocalizedString
-            /**
-             * Client Secret provided by your OpenID provider.
-             */
-            helper: () => LocalizedString
-          }
-          base_url: {
-            /**
-             * Base URL
-             */
-            label: () => LocalizedString
-            /**
-             * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
-             */
-            helper: () => LocalizedString
-          }
-          display_name: {
-            /**
-             * Display Name
-             */
-            label: () => LocalizedString
-            /**
-             * Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.
-             */
-            helper: () => LocalizedString
-          }
-          enable_directory_sync: {
-            /**
-             * Enable directory synchronization
-             */
-            label: () => LocalizedString
-          }
-          sync_target: {
-            /**
-             * Synchronize
-             */
-            label: () => LocalizedString
-            /**
-             * What to synchronize from the external provider. You can choose between synchronizing both users' state and group memberships, or narrow it down to just one of these.
-             */
-            helper: () => LocalizedString
-          }
-          sync_interval: {
-            /**
-             * Synchronization interval
-             */
-            label: () => LocalizedString
-            /**
-             * Interval in seconds between directory synchronizations.
-             */
-            helper: () => LocalizedString
-          }
-          user_behavior: {
-            /**
-             * User behavior
-             */
-            label: () => LocalizedString
-            /**
-             * Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.
-             */
-            helper: () => LocalizedString
-          }
-          admin_behavior: {
-            /**
-             * Admin behavior
-             */
-            label: () => LocalizedString
-            /**
-             * Choose how to handle Defguard admins that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.
-             */
-            helper: () => LocalizedString
-          }
-          admin_email: {
-            /**
-             * Admin email
-             */
-            label: () => LocalizedString
-            /**
-             * Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.
-             */
-            helper: () => LocalizedString
-          }
-          service_account_used: {
-            /**
-             * Service account in use
-             */
-            label: () => LocalizedString
-            /**
-             * The service account currently being used for synchronization. You can change it by uploading a new service account key file.
-             */
-            helper: () => LocalizedString
-          }
-          service_account_key_file: {
-            /**
-             * Service Account Key file
-             */
-            label: () => LocalizedString
-            /**
-             * Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.
-             */
-            helper: () => LocalizedString
-            /**
-             * File uploaded
-             */
-            uploaded: () => LocalizedString
-            /**
-             * Upload a service account key file
-             */
-            uploadPrompt: () => LocalizedString
-          }
-          okta_client_id: {
-            /**
-             * Directory Sync Client ID
-             */
-            label: () => LocalizedString
-            /**
-             * Client ID for the Okta directory sync application.
-             */
-            helper: () => LocalizedString
-          }
-          okta_client_key: {
-            /**
-             * Directory Sync Client Private Key
-             */
-            label: () => LocalizedString
-            /**
-             * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
-             */
-            helper: () => LocalizedString
-          }
-          group_match: {
-            /**
-             * Sync only matching groups
-             */
-            label: () => LocalizedString
-            /**
-             * Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.
-             */
-            helper: () => LocalizedString
-          }
-        }
-      }
-    }
-    modulesVisibility: {
-      /**
-       * Modules Visibility
-       */
-      header: () => LocalizedString
-      /**
-       * <p>
-                If your not using some modules you can disable their visibility.
-              </p>
-              <a href="{documentationLink}" target="_blank">
-                Read more in documentation.
-              </a>
-       */
-      helper: (arg: { documentationLink: string }) => LocalizedString
-      fields: {
-        wireguard_enabled: {
-          /**
-           * WireGuard VPN
-           */
-          label: () => LocalizedString
-        }
-        webhooks_enabled: {
-          /**
-           * Webhooks
-           */
-          label: () => LocalizedString
-        }
-        worker_enabled: {
-          /**
-           * Yubikey provisioning
-           */
-          label: () => LocalizedString
-        }
-        openid_enabled: {
-          /**
-           * OpenID Connect
-           */
-          label: () => LocalizedString
-        }
-      }
-    }
-    defaultNetworkSelect: {
-      /**
-       * Default location view
-       */
-      header: () => LocalizedString
-      /**
-       * <p>Here you can change your default location view.</p>
-              <a href="{documentationLink}" target="_blank">
-                Read more in documentation.
-              </a>
-       */
-      helper: (arg: { documentationLink: string }) => LocalizedString
-      filterLabels: {
-        /**
-         * Grid view
-         */
-        grid: () => LocalizedString
-        /**
-         * List view
-         */
-        list: () => LocalizedString
-      }
-    }
-    instanceBranding: {
-      /**
-       * Instance Branding
-       */
-      header: () => LocalizedString
-      form: {
-        /**
-         * Name & Logo:
-         */
-        title: () => LocalizedString
-        fields: {
-          instanceName: {
-            /**
-             * Instance name
-             */
-            label: () => LocalizedString
-            /**
-             * Defguard
-             */
-            placeholder: () => LocalizedString
-          }
-          mainLogoUrl: {
-            /**
-             * Login logo url
-             */
-            label: () => LocalizedString
-            /**
-             * Maximum picture size is 250x100  px
-             */
-            helper: () => LocalizedString
-            /**
-             * Default image
-             */
-            placeholder: () => LocalizedString
-          }
-          navLogoUrl: {
-            /**
-             * Menu & navigation small logo
-             */
-            label: () => LocalizedString
-            /**
-             * Maximum picture size is 100x100 px
-             */
-            helper: () => LocalizedString
-            /**
-             * Default image
-             */
-            placeholder: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Restore default
-           */
-          restoreDefault: () => LocalizedString
-          /**
-           * Save changes
-           */
-          submit: () => LocalizedString
-        }
-      }
-      /**
-       * 
-                <p>
-                Here you can add url of your logo and name for your defguard
-                instance it will be displayed instead of defguard.
-              </p>
-              <a href="{documentationLink}" target="_blank">
-                Read more in documentation.
-              </a>
-      	
-       */
-      helper: (arg: { documentationLink: string }) => LocalizedString
-    }
-    license: {
-      /**
-       * Enterprise
-       */
-      header: () => LocalizedString
-      helpers: {
-        enterpriseHeader: {
-          /**
-           * Here you can manage your Defguard Enterprise version license.
-           */
-          text: () => LocalizedString
-          /**
-           * To learn more about Defguard Enterprise, visit our webiste.
-           */
-          link: () => LocalizedString
-        }
-        licenseKey: {
-          /**
-           * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
-           */
-          text: () => LocalizedString
-          /**
-           * You can purchase the license here.
-           */
-          link: () => LocalizedString
-        }
-      }
-      form: {
-        /**
-         * License
-         */
-        title: () => LocalizedString
-        fields: {
-          key: {
-            /**
-             * License key
-             */
-            label: () => LocalizedString
-            /**
-             * Your Defguard license key
-             */
-            placeholder: () => LocalizedString
-          }
-        }
-      }
-      licenseInfo: {
-        /**
-         * License information
-         */
-        title: () => LocalizedString
-        status: {
-          /**
-           * No valid license
-           */
-          noLicense: () => LocalizedString
-          /**
-           * Expired
-           */
-          expired: () => LocalizedString
-          /**
-           * Limits Exceeded
-           */
-          limitsExceeded: () => LocalizedString
-          /**
-           * Active
-           */
-          active: () => LocalizedString
-        }
-        /**
-         * <p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>
-         */
-        licenseNotRequired: () => LocalizedString
-        types: {
-          subscription: {
-            /**
-             * Subscription
-             */
-            label: () => LocalizedString
-            /**
-             * A license that automatically renews at regular intervals
-             */
-            helper: () => LocalizedString
-          }
-          offline: {
-            /**
-             * Offline
-             */
-            label: () => LocalizedString
-            /**
-             * The license is valid until the expiry date and does not automatically renew
-             */
-            helper: () => LocalizedString
-          }
-        }
-        fields: {
-          status: {
-            /**
-             * Status
-             */
-            label: () => LocalizedString
-            /**
-             * Active
-             */
-            active: () => LocalizedString
-            /**
-             * Expired
-             */
-            expired: () => LocalizedString
-            /**
-             * A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.
-             */
-            subscriptionHelper: () => LocalizedString
-          }
-          type: {
-            /**
-             * Type
-             */
-            label: () => LocalizedString
-          }
-          validUntil: {
-            /**
-             * Valid until
-             */
-            label: () => LocalizedString
-          }
-        }
-      }
-    }
-    smtp: {
-      form: {
-        /**
-         * SMTP configuration
-         */
-        title: () => LocalizedString
-        sections: {
-          /**
-           * Server settings
-           */
-          server: () => LocalizedString
-        }
-        fields: {
-          encryption: {
-            /**
-             * Encryption
-             */
-            label: () => LocalizedString
-          }
-          server: {
-            /**
-             * Server address
-             */
-            label: () => LocalizedString
-            /**
-             * Address
-             */
-            placeholder: () => LocalizedString
-          }
-          port: {
-            /**
-             * Server port
-             */
-            label: () => LocalizedString
-            /**
-             * Port
-             */
-            placeholder: () => LocalizedString
-          }
-          user: {
-            /**
-             * Server username
-             */
-            label: () => LocalizedString
-            /**
-             * Username
-             */
-            placeholder: () => LocalizedString
-          }
-          password: {
-            /**
-             * Server password
-             */
-            label: () => LocalizedString
-            /**
-             * Password
-             */
-            placeholder: () => LocalizedString
-          }
-          sender: {
-            /**
-             * Sender email address
-             */
-            label: () => LocalizedString
-            /**
-             * Address
-             */
-            placeholder: () => LocalizedString
-            /**
-             * 
-                        <p>
-                          System messages will be sent from this address.
-                          E.g. no-reply@my-company.com.
-                        </p>
-                      
-             */
-            helper: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Save changes
-           */
-          submit: () => LocalizedString
-        }
-      }
-      /**
-       * Delete configuration
-       */
-      'delete': () => LocalizedString
-      testForm: {
-        /**
-         * Send test email
-         */
-        title: () => LocalizedString
-        /**
-         * Enter recipent email address
-         */
-        subtitle: () => LocalizedString
-        fields: {
-          to: {
-            /**
-             * Send test email to
-             */
-            label: () => LocalizedString
-            /**
-             * Address
-             */
-            placeholder: () => LocalizedString
-          }
-        }
-        controls: {
-          /**
-           * Send
-           */
-          submit: () => LocalizedString
-          /**
-           * Resend
-           */
-          resend: () => LocalizedString
-          /**
-           * Retry
-           */
-          retry: () => LocalizedString
-          /**
-           * Test email sent
-           */
-          success: () => LocalizedString
-          /**
-           * Error sending email
-           */
-          error: () => LocalizedString
-        }
-        success: {
-          /**
-           * Test email has been sent successully.
-           */
-          message: () => LocalizedString
-        }
-        error: {
-          /**
-           * There was an error sending the test email. Please check your SMTP configuration and try again.
-           */
-          message: () => LocalizedString
-          /**
-           * Error: {error}
-           */
-          fullError: (arg: { error: string }) => LocalizedString
-        }
-      }
-      /**
-       * Here you can configure SMTP server used to send system messages to the users.
-       */
-      helper: () => LocalizedString
-    }
-    enrollment: {
-      /**
-       * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.
-       */
-      helper: () => LocalizedString
-      vpnOptionality: {
-        /**
-         * VPN step optionality
-         */
-        header: () => LocalizedString
-        /**
-         * You can choose whether creating a VPN device is optional or mandatory during enrollment
-         */
-        helper: () => LocalizedString
-      }
-      welcomeMessage: {
-        /**
-         * Welcome message
-         */
-        header: () => LocalizedString
-        /**
-         * 
-              <p>In this text input you can use Markdown:</p>
-              <ul>
-                <li>Headings start with a hash #</li>
-                <li>Use asterisks for <i>*italics*</i></li>
-                <li>Use two asterisks for <b>**bold**</b></li>
-              </ul>
-              
-         */
-        helper: () => LocalizedString
-      }
-      welcomeEmail: {
-        /**
-         * Welcome e-mail
-         */
-        header: () => LocalizedString
-        /**
-         * 
-              <p>In this text input you can use Markdown:</p>
-              <ul>
-                <li>Headings start with a hash #</li>
-                <li>Use asterisks for <i>*italics*</i></li>
-                <li>Use two asterisks for <b>**bold**</b></li>
-              </ul>
-              
-         */
-        helper: () => LocalizedString
-      }
-      form: {
-        controls: {
-          /**
-           * Save changes
-           */
-          submit: () => LocalizedString
-        }
-        welcomeMessage: {
-          /**
-           * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
-           */
-          helper: () => LocalizedString
-          /**
-           * Please input welcome message
-           */
-          placeholder: () => LocalizedString
-        }
-        welcomeEmail: {
-          /**
-           * This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.
-           */
-          helper: () => LocalizedString
-          /**
-           * Please input welcome email
-           */
-          placeholder: () => LocalizedString
-        }
-        welcomeEmailSubject: {
-          /**
-           * Subject
-           */
-          label: () => LocalizedString
-        }
-        useMessageAsEmail: {
-          /**
-           * Same as welcome message
-           */
-          label: () => LocalizedString
-        }
-      }
-    }
-    enterprise: {
-      /**
-       * Enterprise Features
-       */
-      header: () => LocalizedString
-      /**
-       * Here you can change enterprise settings.
-       */
-      helper: () => LocalizedString
-      fields: {
-        deviceManagement: {
-          /**
-           * Disable users' ability to manage their devices
-           */
-          label: () => LocalizedString
-          /**
-           * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
-           */
-          helper: () => LocalizedString
-        }
-        disableAllTraffic: {
-          /**
-           * Disable the option to route all traffic through VPN
-           */
-          label: () => LocalizedString
-          /**
-           * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
-           */
-          helper: () => LocalizedString
-        }
-        manualConfig: {
-          /**
-           * Disable users' ability to manually configure WireGuard client
-           */
-          label: () => LocalizedString
-          /**
-           * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
-           */
-          helper: () => LocalizedString
-        }
-      }
-    }
-    gatewayNotifications: {
-      /**
-       * To enable notifications you must first configure an SMTP server
-       */
-      smtpWarning: () => LocalizedString
-      /**
-       * Notifications
-       */
-      header: () => LocalizedString
-      sections: {
-        /**
-         * Gateway disconnect notifications
-         */
-        gateway: () => LocalizedString
-      }
-      /**
-       * Here you can manage email notifications.
-       */
-      helper: () => LocalizedString
-      form: {
-        /**
-         * Save changes
-         */
-        submit: () => LocalizedString
-        fields: {
-          disconnectNotificationsEnabled: {
-            /**
-             * Enable gateway disconnect notifications
-             */
-            label: () => LocalizedString
-            /**
-             * Send email notification to admin users once a gateway is disconnected
-             */
-            help: () => LocalizedString
-          }
-          inactivityThreshold: {
-            /**
-             * Gateway inactivity time [minutes]
-             */
-            label: () => LocalizedString
-            /**
-             * Time (in minutes) that a gateway needs to stay disconnected before a notification is sent
-             */
-            help: () => LocalizedString
-          }
-          reconnectNotificationsEnabled: {
-            /**
-             * Enable gateway reconnect notifications
-             */
-            label: () => LocalizedString
-            /**
-             * Send email notification to admin users once a gateway is reconnected
-             */
-            help: () => LocalizedString
-          }
-        }
-      }
-    }
-  }
-  openidOverview: {
-    /**
-     * OpenID Apps
-     */
-    pageTitle: () => LocalizedString
-    search: {
-      /**
-       * Find apps
-       */
-      placeholder: () => LocalizedString
-    }
-    filterLabels: {
-      /**
-       * All apps
-       */
-      all: () => LocalizedString
-      /**
-       * Enabled
-       */
-      enabled: () => LocalizedString
-      /**
-       * Disabled
-       */
-      disabled: () => LocalizedString
-    }
-    /**
-     * All apps
-     */
-    clientCount: () => LocalizedString
-    /**
-     * Add new
-     */
-    addNewApp: () => LocalizedString
-    list: {
-      headers: {
-        /**
-         * Name
-         */
-        name: () => LocalizedString
-        /**
-         * Status
-         */
-        status: () => LocalizedString
-        /**
-         * Actions
-         */
-        actions: () => LocalizedString
-      }
-      editButton: {
-        /**
-         * Edit app
-         */
-        edit: () => LocalizedString
-        /**
-         * Delete app
-         */
-        'delete': () => LocalizedString
-        /**
-         * Disable
-         */
-        disable: () => LocalizedString
-        /**
-         * Enable
-         */
-        enable: () => LocalizedString
-        /**
-         * Copy client ID
-         */
-        copy: () => LocalizedString
-      }
-      status: {
-        /**
-         * Enabled
-         */
-        enabled: () => LocalizedString
-        /**
-         * Disabled
-         */
-        disabled: () => LocalizedString
-      }
-    }
-    messages: {
-      /**
-       * Client ID copied.
-       */
-      copySuccess: () => LocalizedString
-      /**
-       * You don't have a license for this feature.
-       */
-      noLicenseMessage: () => LocalizedString
-      /**
-       * No results found.
-       */
-      noClientsFound: () => LocalizedString
-    }
-    deleteApp: {
-      /**
-       * Delete app
-       */
-      title: () => LocalizedString
-      /**
-       * Do you want to delete {appName} app ?
-       */
-      message: (arg: { appName: string }) => LocalizedString
-      /**
-       * Delete app
-       */
-      submit: () => LocalizedString
-      messages: {
-        /**
-         * App deleted.
-         */
-        success: () => LocalizedString
-      }
-    }
-    enableApp: {
-      messages: {
-        /**
-         * App enabled.
-         */
-        success: () => LocalizedString
-      }
-    }
-    disableApp: {
-      messages: {
-        /**
-         * App disabled.
-         */
-        success: () => LocalizedString
-      }
-    }
-    modals: {
-      openidClientModal: {
-        title: {
-          /**
-           * Add Application
-           */
-          addApp: () => LocalizedString
-          /**
-           * Edit {appName} app
-           */
-          editApp: (arg: { appName: string }) => LocalizedString
-        }
-        /**
-         * Scopes:
-         */
-        scopes: () => LocalizedString
-        messages: {
-          /**
-           * Client ID copied.
-           */
-          clientIdCopy: () => LocalizedString
-          /**
-           * Client secret copied.
-           */
-          clientSecretCopy: () => LocalizedString
-        }
-        form: {
-          messages: {
-            /**
-             * App created.
-             */
-            successAdd: () => LocalizedString
-            /**
-             * App modified.
-             */
-            successModify: () => LocalizedString
-          }
-          error: {
-            /**
-             * URL is required.
-             */
-            urlRequired: () => LocalizedString
-            /**
-             * Must be a valid URL.
-             */
-            validUrl: () => LocalizedString
-            /**
-             * Must have at least one scope.
-             */
-            scopeValidation: () => LocalizedString
-          }
-          fields: {
-            name: {
-              /**
-               * App name
-               */
-              label: () => LocalizedString
-            }
-            redirectUri: {
-              /**
-               * Redirect URL {count}
-               */
-              label: (arg: { count: number }) => LocalizedString
-              /**
-               * https://example.com/redirect
-               */
-              placeholder: () => LocalizedString
-            }
-            openid: {
-              /**
-               * OpenID
-               */
-              label: () => LocalizedString
-            }
-            profile: {
-              /**
-               * Profile
-               */
-              label: () => LocalizedString
-            }
-            email: {
-              /**
-               * Email
-               */
-              label: () => LocalizedString
-            }
-            phone: {
-              /**
-               * Phone
-               */
-              label: () => LocalizedString
-            }
-            groups: {
-              /**
-               * Groups
-               */
-              label: () => LocalizedString
-            }
-          }
-          controls: {
-            /**
-             * Add URL
-             */
-            addUrl: () => LocalizedString
-          }
-        }
-        /**
-         * Client ID
-         */
-        clientId: () => LocalizedString
-        /**
-         * Client secret
-         */
-        clientSecret: () => LocalizedString
-      }
-    }
-  }
-  webhooksOverview: {
-    /**
-     * Webhooks
-     */
-    pageTitle: () => LocalizedString
-    search: {
-      /**
-       * Find webhooks by url
-       */
-      placeholder: () => LocalizedString
-    }
-    filterLabels: {
-      /**
-       * All webhooks
-       */
-      all: () => LocalizedString
-      /**
-       * Enabled
-       */
-      enabled: () => LocalizedString
-      /**
-       * Disabled
-       */
-      disabled: () => LocalizedString
-    }
-    /**
-     * All webhooks
-     */
-    webhooksCount: () => LocalizedString
-    /**
-     * Add new
-     */
-    addNewWebhook: () => LocalizedString
-    /**
-     * No webhooks found.
-     */
-    noWebhooksFound: () => LocalizedString
-    list: {
-      headers: {
-        /**
-         * Name
-         */
-        name: () => LocalizedString
-        /**
-         * Description
-         */
-        description: () => LocalizedString
-        /**
-         * Status
-         */
-        status: () => LocalizedString
-        /**
-         * Actions
-         */
-        actions: () => LocalizedString
-      }
-      editButton: {
-        /**
-         * Edit
-         */
-        edit: () => LocalizedString
-        /**
-         * Delete webhook
-         */
-        'delete': () => LocalizedString
-        /**
-         * Disable
-         */
-        disable: () => LocalizedString
-        /**
-         * Enable
-         */
-        enable: () => LocalizedString
-      }
-      status: {
-        /**
-         * Enabled
-         */
-        enabled: () => LocalizedString
-        /**
-         * Disabled
-         */
-        disabled: () => LocalizedString
-      }
-    }
-  }
-  provisionersOverview: {
-    /**
-     * Provisioners
-     */
-    pageTitle: () => LocalizedString
-    search: {
-      /**
-       * Find provisioners
-       */
-      placeholder: () => LocalizedString
-    }
-    filterLabels: {
-      /**
-       * All
-       */
-      all: () => LocalizedString
-      /**
-       * Available
-       */
-      available: () => LocalizedString
-      /**
-       * Unavailable
-       */
-      unavailable: () => LocalizedString
-    }
-    /**
-     * All provisioners
-     */
-    provisionersCount: () => LocalizedString
-    /**
-     * No provisioners found.
-     */
-    noProvisionersFound: () => LocalizedString
-    /**
-     * You don't have a license for this feature.
-     */
-    noLicenseMessage: () => LocalizedString
-    provisioningStation: {
-      /**
-       * YubiKey provisioning station
-       */
-      header: () => LocalizedString
-      /**
-       * In order to be able to provision your YubiKeys, first you need to set up
-            physical machine with USB slot. Run provided command on your chosen
-            machine to register it and start provisioning your keys.
-       */
-      content: () => LocalizedString
-      dockerCard: {
-        /**
-         * Provisioning station docker setup command
-         */
-        title: () => LocalizedString
-      }
-      tokenCard: {
-        /**
-         * Access token
-         */
-        title: () => LocalizedString
-      }
-    }
-    list: {
-      headers: {
-        /**
-         * Name
-         */
-        name: () => LocalizedString
-        /**
-         * IP address
-         */
-        ip: () => LocalizedString
-        /**
-         * Status
-         */
-        status: () => LocalizedString
-        /**
-         * Actions
-         */
-        actions: () => LocalizedString
-      }
-      editButton: {
-        /**
-         * Delete provisioner
-         */
-        'delete': () => LocalizedString
-      }
-      status: {
-        /**
-         * Available
-         */
-        available: () => LocalizedString
-        /**
-         * Unavailable
-         */
-        unavailable: () => LocalizedString
-      }
-    }
-    messages: {
-      copy: {
-        /**
-         * Token copied
-         */
-        token: () => LocalizedString
-        /**
-         * Command copied
-         */
-        command: () => LocalizedString
-      }
-    }
-  }
-  openidAllow: {
-    /**
-     * {name} would like to:
-     */
-    header: (arg: { name: string }) => LocalizedString
-    scopes: {
-      /**
-       * Use your profile data for future logins.
-       */
-      openid: () => LocalizedString
-      /**
-       * Know basic information from your profile like name, profile picture etc.
-       */
-      profile: () => LocalizedString
-      /**
-       * Know your email address.
-       */
-      email: () => LocalizedString
-      /**
-       * Know your phone number.
-       */
-      phone: () => LocalizedString
-      /**
-       * Know your groups membership.
-       */
-      groups: () => LocalizedString
-    }
-    controls: {
-      /**
-       * Accept
-       */
-      accept: () => LocalizedString
-      /**
-       * Cancel
-       */
-      cancel: () => LocalizedString
-    }
-  }
-  networkOverview: {
-    networkSelection: {
-      /**
-       * All locations summary
-       */
-      all: () => LocalizedString
-      /**
-       * Select location
-       */
-      placeholder: () => LocalizedString
-    }
-    /**
-     * {value}h period
-     */
-    timeRangeSelectionLabel: (arg: { value: number }) => LocalizedString
-    /**
-     * Location overview
-     */
-    pageTitle: () => LocalizedString
-    controls: {
-      /**
-       * Edit Locations settings
-       */
-      editNetworks: () => LocalizedString
-      selectNetwork: {
-        /**
-         * Loading locations
-         */
-        placeholder: () => LocalizedString
-      }
-    }
-    filterLabels: {
-      /**
-       * Grid view
-       */
-      grid: () => LocalizedString
-      /**
-       * List view
-       */
-      list: () => LocalizedString
-    }
-    gatewayStatus: {
-      /**
-       * All ({count}) Connected
-       */
-      all: (arg: { count: number }) => LocalizedString
-      /**
-       * Some ({count}) Connected
-       */
-      some: (arg: { count: number }) => LocalizedString
-      /**
-       * None connected
-       */
-      none: () => LocalizedString
-    }
-    stats: {
-      /**
-       * Currently active users
-       */
-      currentlyActiveUsers: () => LocalizedString
-      /**
-       * Currently active network devices
-       */
-      currentlyActiveNetworkDevices: () => LocalizedString
-      /**
-       * Total user devices: {count}
-       */
-      totalUserDevices: (arg: { count: number }) => LocalizedString
-      /**
-       * Active network devices in {hour}h
-       */
-      activeNetworkDevices: (arg: { hour: number }) => LocalizedString
-      /**
-       * Active users in {hour}h
-       */
-      activeUsersFilter: (arg: { hour: number }) => LocalizedString
-      /**
-       * Active devices in {hour}h
-       */
-      activeDevicesFilter: (arg: { hour: number }) => LocalizedString
-      /**
-       * Activity in {hour}H
-       */
-      activityIn: (arg: { hour: number }) => LocalizedString
-      /**
-       * Network usage
-       */
-      networkUsage: () => LocalizedString
-      /**
-       * Peak
-       */
-      peak: () => LocalizedString
-      /**
-       * In:
-       */
-      'in': () => LocalizedString
-      /**
-       * Out:
-       */
-      out: () => LocalizedString
-      /**
-       * Gateway disconnected
-       */
-      gatewayDisconnected: () => LocalizedString
-    }
-    cardsLabels: {
-      /**
-       * Connected Users
-       */
-      users: () => LocalizedString
-      /**
-       * Connected Network Devices
-       */
-      devices: () => LocalizedString
-    }
-  }
-  connectedUsersOverview: {
-    /**
-     * Connected users
-     */
-    pageTitle: () => LocalizedString
-    /**
-     * Currently there are no connected users
-     */
-    noUsersMessage: () => LocalizedString
-    userList: {
-      /**
-       * Username
-       */
-      username: () => LocalizedString
-      /**
-       * Device
-       */
-      device: () => LocalizedString
-      /**
-       * Connected
-       */
-      connected: () => LocalizedString
-      /**
-       * Device location
-       */
-      deviceLocation: () => LocalizedString
-      /**
-       * Network usage
-       */
-      networkUsage: () => LocalizedString
-    }
-  }
-  networkPage: {
-    /**
-     * Edit Location
-     */
-    pageTitle: () => LocalizedString
-    /**
-     * + Add new location
-     */
-    addNetwork: () => LocalizedString
-    controls: {
-      networkSelect: {
-        /**
-         * Location choice
-         */
-        label: () => LocalizedString
-      }
-    }
-  }
-  activityOverview: {
-    /**
-     * Activity stream
-     */
-    header: () => LocalizedString
-    /**
-     * Currently there is no activity detected
-     */
-    noData: () => LocalizedString
-  }
-  networkConfiguration: {
-    messages: {
-      'delete': {
-        /**
-         * Network deleted
-         */
-        success: () => LocalizedString
-        /**
-         * Failed to delete network
-         */
-        error: () => LocalizedString
-      }
-    }
-    /**
-     * Location configuration
-     */
-    header: () => LocalizedString
-    /**
-     * Location import
-     */
-    importHeader: () => LocalizedString
-    form: {
-      helpers: {
-        /**
-         * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.
-         */
-        address: () => LocalizedString
-        /**
-         * Gateway public address, used by VPN users to connect
-         */
-        gateway: () => LocalizedString
-        /**
-         * Specify the DNS resolvers to query when the wireguard interface is up.
-         */
-        dns: () => LocalizedString
-        /**
-         * List of addresses/masks that should be routed through the VPN network.
-         */
-        allowedIps: () => LocalizedString
-        /**
-         * By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.
-         */
-        allowedGroups: () => LocalizedString
-        /**
-         * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
-         */
-        aclFeatureDisabled: () => LocalizedString
-      }
-      messages: {
-        /**
-         * Location modified.
-         */
-        networkModified: () => LocalizedString
-        /**
-         * Location created
-         */
-        networkCreated: () => LocalizedString
-      }
-      fields: {
-        name: {
-          /**
-           * Location name
-           */
-          label: () => LocalizedString
-        }
-        address: {
-          /**
-           * Gateway VPN IP address and netmask
-           */
-          label: () => LocalizedString
-        }
-        endpoint: {
-          /**
-           * Gateway address
-           */
-          label: () => LocalizedString
-        }
-        allowedIps: {
-          /**
-           * Allowed Ips
-           */
-          label: () => LocalizedString
-        }
-        port: {
-          /**
-           * Gateway port
-           */
-          label: () => LocalizedString
-        }
-        dns: {
-          /**
-           * DNS
-           */
-          label: () => LocalizedString
-        }
-        allowedGroups: {
-          /**
-           * Allowed groups
-           */
-          label: () => LocalizedString
-          /**
-           * All groups
-           */
-          placeholder: () => LocalizedString
-        }
-        mfa_enabled: {
-          /**
-           * Require MFA for this Location
-           */
-          label: () => LocalizedString
-        }
-        keepalive_interval: {
-          /**
-           * Keepalive interval [seconds]
-           */
-          label: () => LocalizedString
-        }
-        peer_disconnect_threshold: {
-          /**
-           * Peer disconnect threshold [seconds]
-           */
-          label: () => LocalizedString
-        }
-        acl_enabled: {
-          /**
-           * Enable ACL for this location
-           */
-          label: () => LocalizedString
-        }
-        acl_default_allow: {
-          /**
-           * Default ACL policy
-           */
-          label: () => LocalizedString
-        }
-      }
-      controls: {
-        /**
-         * Save changes
-         */
-        submit: () => LocalizedString
-        /**
-         * Back to Overview
-         */
-        cancel: () => LocalizedString
-        /**
-         * Remove location
-         */
-        'delete': () => LocalizedString
-      }
-    }
-  }
-  gatewaySetup: {
-    header: {
-      /**
-       * Gateway server setup
-       */
-      main: () => LocalizedString
-      /**
-       * Docker Based Gateway Setup
-       */
-      dockerBasedGatewaySetup: () => LocalizedString
-      /**
-       * From Package
-       */
-      fromPackage: () => LocalizedString
-      /**
-       * One Line Install
-       */
-      oneLineInstall: () => LocalizedString
-    }
-    card: {
-      /**
-       * Docker based gateway setup
-       */
-      title: () => LocalizedString
-      /**
-       * Authentication Token
-       */
-      authToken: () => LocalizedString
-    }
-    button: {
-      /**
-       * Available Packages
-       */
-      availablePackages: () => LocalizedString
-    }
-    controls: {
-      /**
-       * Check connection status
-       */
-      status: () => LocalizedString
-    }
-    messages: {
-      /**
-       * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-                More details can be found in the [documentation]({setupGatewayDocs}).
-                There are several ways to deploy the gateway server,
-                below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
-       */
-      runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
-      /**
-       * Please create the network before running the gateway process.
-       */
-      createNetwork: () => LocalizedString
-      /**
-       * No connection established, please run provided command.
-       */
-      noConnection: () => LocalizedString
-      /**
-       * Gateway connected.
-       */
-      connected: () => LocalizedString
-      /**
-       * Failed to get gateway status
-       */
-      statusError: () => LocalizedString
-      /**
-       * If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
-              you don't need to do anything.
-       */
-      oneLineInstall: () => LocalizedString
-      /**
-       * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml`
-              according to the [documentation]({setupGatewayDocs}).
-       */
-      fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
-      /**
-       * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
-              provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
-              For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
-       */
-      authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
-      /**
-       * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
-       */
-      dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
-    }
-  }
-  loginPage: {
-    /**
-     * Enter your credentials
-     */
-    pageTitle: () => LocalizedString
-    /**
-     * Sign in with
-     */
-    oidcLogin: () => LocalizedString
-    callback: {
-      /**
-       * Go back to login
-       */
-      'return': () => LocalizedString
-      /**
-       * An error occurred during external OpenID login
-       */
-      error: () => LocalizedString
-    }
-    mfa: {
-      /**
-       * Two-factor authentication
-       */
-      title: () => LocalizedString
-      controls: {
-        /**
-         * Use Authenticator app instead
-         */
-        useAuthenticator: () => LocalizedString
-        /**
-         * Use security key instead
-         */
-        useWebauthn: () => LocalizedString
-        /**
-         * Use recovery code instead
-         */
-        useRecoveryCode: () => LocalizedString
-        /**
-         * Use E-mail instead
-         */
-        useEmail: () => LocalizedString
-      }
-      email: {
-        /**
-         * Use code we sent to your e-mail to proceed.
-         */
-        header: () => LocalizedString
-        form: {
-          labels: {
-            /**
-             * Code
-             */
-            code: () => LocalizedString
-          }
-          controls: {
-            /**
-             * Resend Code
-             */
-            resendCode: () => LocalizedString
-          }
-        }
-      }
-      totp: {
-        /**
-         * Use code from your authentication app and click button to proceed.
-         */
-        header: () => LocalizedString
-        form: {
-          fields: {
-            code: {
-              /**
-               * Enter Authenticator code
-               */
-              placeholder: () => LocalizedString
-            }
-          }
-          controls: {
-            /**
-             * Use authenticator code
-             */
-            submit: () => LocalizedString
-          }
-        }
-      }
-      recoveryCode: {
-        /**
-         * Enter one of active recovery codes and click button to log in.
-         */
-        header: () => LocalizedString
-        form: {
-          fields: {
-            code: {
-              /**
-               * Recovery code
-               */
-              placeholder: () => LocalizedString
-            }
-          }
-          controls: {
-            /**
-             * Use recovery code
-             */
-            submit: () => LocalizedString
-          }
-        }
-      }
-      webauthn: {
-        /**
-         * When you are ready to authenticate, press the button below.
-         */
-        header: () => LocalizedString
-        controls: {
-          /**
-           * Use security key
-           */
-          submit: () => LocalizedString
-        }
-        messages: {
-          /**
-           * Failed to read key. Please try again.
-           */
-          error: () => LocalizedString
-        }
-      }
-    }
-  }
-  wizard: {
-    /**
-     * Location setup completed
-     */
-    completed: () => LocalizedString
-    configuration: {
-      /**
-       * Location created
-       */
-      successMessage: () => LocalizedString
-    }
-    welcome: {
-      /**
-       * Welcome to location wizard!
-       */
-      header: () => LocalizedString
-      /**
-       * Before you start using VPN you need to setup your first location. When in doubt click on <React> icon.
-       */
-      sub: () => LocalizedString
-      /**
-       * Setup location
-       */
-      button: () => LocalizedString
-    }
-    navigation: {
-      /**
-       * Location setup
-       */
-      top: () => LocalizedString
-      titles: {
-        /**
-         * Location setup
-         */
-        welcome: () => LocalizedString
-        /**
-         * Chose Location setup
-         */
-        choseNetworkSetup: () => LocalizedString
-        /**
-         * Import existing location
-         */
-        importConfig: () => LocalizedString
-        /**
-         * Configure location
-         */
-        manualConfig: () => LocalizedString
-        /**
-         * Map imported devices
-         */
-        mapDevices: () => LocalizedString
-      }
-      buttons: {
-        /**
-         * Next
-         */
-        next: () => LocalizedString
-        /**
-         * Back
-         */
-        back: () => LocalizedString
-      }
-    }
-    deviceMap: {
-      messages: {
-        /**
-         * Devices added
-         */
-        crateSuccess: () => LocalizedString
-        /**
-         * Please fill marked fields.
-         */
-        errorsInForm: () => LocalizedString
-      }
-      list: {
-        headers: {
-          /**
-           * Device Name
-           */
-          deviceName: () => LocalizedString
-          /**
-           * IP
-           */
-          deviceIP: () => LocalizedString
-          /**
-           * User
-           */
-          user: () => LocalizedString
-        }
-      }
-    }
-    wizardType: {
-      manual: {
-        /**
-         * Manual Configuration
-         */
-        title: () => LocalizedString
-        /**
-         * Manual location configuration
-         */
-        description: () => LocalizedString
-      }
-      'import': {
-        /**
-         * Import From File
-         */
-        title: () => LocalizedString
-        /**
-         * Import from WireGuard config file
-         */
-        description: () => LocalizedString
-      }
-      /**
-       * Create location
-       */
-      createNetwork: () => LocalizedString
-    }
-    common: {
-      /**
-       * Select
-       */
-      select: () => LocalizedString
-    }
-    locations: {
-      form: {
-        /**
-         * Name
-         */
-        name: () => LocalizedString
-        /**
-         * IP address
-         */
-        ip: () => LocalizedString
-        /**
-         * User
-         */
-        user: () => LocalizedString
-        /**
-         * File
-         */
-        fileName: () => LocalizedString
-        /**
-         * Select file
-         */
-        selectFile: () => LocalizedString
-        messages: {
-          /**
-           * Devices created
-           */
-          devicesCreated: () => LocalizedString
-        }
-        validation: {
-          /**
-           * Invalid address
-           */
-          invalidAddress: () => LocalizedString
-        }
-      }
-    }
-  }
-  layout: {
-    select: {
-      /**
-       * Add new +
-       */
-      addNewOptionDefault: () => LocalizedString
-    }
-  }
-  redirectPage: {
-    /**
-     * You have been logged in
-     */
-    title: () => LocalizedString
-    /**
-     * You will be redirected in a moment...
-     */
-    subtitle: () => LocalizedString
-  }
-  enrollmentPage: {
-    /**
-     * Enrollment
-     */
-    title: () => LocalizedString
-    controls: {
-      /**
-       * Restore default
-       */
-      'default': () => LocalizedString
-      /**
-       * Save changes
-       */
-      save: () => LocalizedString
-    }
-    messages: {
-      edit: {
-        /**
-         * Settings changed
-         */
-        success: () => LocalizedString
-        /**
-         * Save failed
-         */
-        error: () => LocalizedString
-      }
-    }
-    /**
-     * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.
-     */
-    messageBox: () => LocalizedString
-    settings: {
-      welcomeMessage: {
-        /**
-         * Welcome message
-         */
-        title: () => LocalizedString
-        /**
-         * This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.
-         */
-        messageBox: () => LocalizedString
-      }
-      vpnOptionality: {
-        /**
-         * VPN set optionallity
-         */
-        title: () => LocalizedString
-        select: {
-          options: {
-            /**
-             * Optional
-             */
-            optional: () => LocalizedString
-            /**
-             * Mandatory
-             */
-            mandatory: () => LocalizedString
-          }
-        }
-      }
-      welcomeEmail: {
-        /**
-         * Welcome e-mail
-         */
-        title: () => LocalizedString
-        subject: {
-          /**
-           * E-mail subject
-           */
-          label: () => LocalizedString
-        }
-        /**
-         * This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.
-         */
-        messageBox: () => LocalizedString
-        controls: {
-          /**
-           * Same as welcome message
-           */
-          duplicateWelcome: () => LocalizedString
-        }
-      }
-    }
-  }
-  supportPage: {
-    /**
-     * Support
-     */
-    title: () => LocalizedString
-    modals: {
-      confirmDataSend: {
-        /**
-         * Send Support Data
-         */
-        title: () => LocalizedString
-        /**
-         * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
-         */
-        subTitle: () => LocalizedString
-        /**
-         * Send support data
-         */
-        submit: () => LocalizedString
-      }
-    }
-    debugDataCard: {
-      /**
-       * Support data
-       */
-      title: () => LocalizedString
-      /**
-       * 
-    If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
-    * Either you can configure SMTP settings and click "Send support data"
-    * Or click "Download support data" and create a bug report in our GitHub attaching this file.
+			 */
+			infoMessage: (arg: { email: string }) => LocalizedString
+			messages: {
+				/**
+				 * Email MFA Enabled
+				 */
+				success: () => LocalizedString
+				/**
+				 * Verification code resent
+				 */
+				resend: () => LocalizedString
+			}
+			form: {
+				fields: {
+					code: {
+						/**
+						 * Email code
+						 */
+						label: () => LocalizedString
+						/**
+						 * Code is invalid
+						 */
+						error: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Verify code
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Resend email
+					 */
+					resend: () => LocalizedString
+				}
+			}
+		}
+		editDevice: {
+			/**
+			 * Edit device
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * Device has been updated.
+				 */
+				success: () => LocalizedString
+			}
+			form: {
+				fields: {
+					name: {
+						/**
+						 * Device Name
+						 */
+						label: () => LocalizedString
+					}
+					publicKey: {
+						/**
+						 * Device Public Key (WireGuard)
+						 */
+						label: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Edit device
+					 */
+					submit: () => LocalizedString
+				}
+			}
+		}
+		deleteDevice: {
+			/**
+			 * Delete device
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {deviceName} device ?
+			 */
+			message: (arg: { deviceName: unknown }) => LocalizedString
+			/**
+			 * Delete device
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Device has been deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		keyDetails: {
+			/**
+			 * YubiKey details
+			 */
+			title: () => LocalizedString
+			/**
+			 * Download all keys
+			 */
+			downloadAll: () => LocalizedString
+		}
+		deleteUser: {
+			/**
+			 * Delete account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Delete account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to delete {username} account permanently ?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} deleted.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		disableUser: {
+			/**
+			 * Disable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Disable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to disable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} disabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		enableUser: {
+			/**
+			 * Enable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Enable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to enable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} enabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		deleteProvisioner: {
+			/**
+			 * Delete provisioner
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Delete provisioner
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to delete {id} provisioner?
+			 */
+			message: (arg: { id: string }) => LocalizedString
+			messages: {
+				/**
+				 * {provisioner} deleted.
+				 */
+				success: (arg: { provisioner: string }) => LocalizedString
+			}
+		}
+		changeUserPassword: {
+			messages: {
+				/**
+				 * Password changed.
+				 */
+				success: () => LocalizedString
+			}
+			/**
+			 * Change user password
+			 */
+			title: () => LocalizedString
+			form: {
+				controls: {
+					/**
+					 * Save new password
+					 */
+					submit: () => LocalizedString
+				}
+				fields: {
+					newPassword: {
+						/**
+						 * New password
+						 */
+						label: () => LocalizedString
+					}
+					confirmPassword: {
+						/**
+						 * Repeat password
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		provisionKeys: {
+			/**
+			 * Yubikey provisioning:
+			 */
+			title: () => LocalizedString
+			/**
+			 * Please be advised that this operation wll wipe openpgp application on yubikey and reconfigure it.
+			 */
+			warning: () => LocalizedString
+			/**
+			 * The selected provisioner must have a <b>clean</b> YubiKey
+		                plugged in be provisioned. To clean a used YubiKey
+		                <b>gpg --card-edit </b> before provisioning.
+			 */
+			infoBox: () => LocalizedString
+			/**
+			 * Select one of the following provisioners to provision a YubiKey:
+			 */
+			selectionLabel: () => LocalizedString
+			noData: {
+				/**
+				 * No workers found, waiting...
+				 */
+				workers: () => LocalizedString
+			}
+			controls: {
+				/**
+				 * Provision YubiKey
+				 */
+				submit: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Keys provisioned
+				 */
+				success: () => LocalizedString
+				/**
+				 * Error while getting worker status.
+				 */
+				errorStatus: () => LocalizedString
+			}
+		}
+		addUser: {
+			/**
+			 * Add new user
+			 */
+			title: () => LocalizedString
+			messages: {
+				/**
+				 * User added
+				 */
+				userAdded: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Add user
+				 */
+				submit: () => LocalizedString
+				fields: {
+					username: {
+						/**
+						 * login
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Login
+						 */
+						label: () => LocalizedString
+					}
+					password: {
+						/**
+						 * Password
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Password
+						 */
+						label: () => LocalizedString
+					}
+					email: {
+						/**
+						 * User e-mail
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * User e-mail
+						 */
+						label: () => LocalizedString
+					}
+					firstName: {
+						/**
+						 * First name
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * First name
+						 */
+						label: () => LocalizedString
+					}
+					lastName: {
+						/**
+						 * Last name
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Last name
+						 */
+						label: () => LocalizedString
+					}
+					phone: {
+						/**
+						 * Phone
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * Phone
+						 */
+						label: () => LocalizedString
+					}
+					enableEnrollment: {
+						/**
+						 * Use user self-enrollment process
+						 */
+						label: () => LocalizedString
+						/**
+						 * <a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>
+						 */
+						link: () => LocalizedString
+					}
+				}
+			}
+		}
+		webhookModal: {
+			title: {
+				/**
+				 * Add webhook.
+				 */
+				addWebhook: () => LocalizedString
+				/**
+				 * Edit webhook
+				 */
+				editWebhook: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Client ID copied.
+				 */
+				clientIdCopy: () => LocalizedString
+				/**
+				 * Client secret copied.
+				 */
+				clientSecretCopy: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Trigger events:
+				 */
+				triggers: () => LocalizedString
+				messages: {
+					/**
+					 * Webhook created.
+					 */
+					successAdd: () => LocalizedString
+					/**
+					 * Webhook modified.
+					 */
+					successModify: () => LocalizedString
+				}
+				error: {
+					/**
+					 * URL is required.
+					 */
+					urlRequired: () => LocalizedString
+					/**
+					 * Must be a valid URL.
+					 */
+					validUrl: () => LocalizedString
+					/**
+					 * Must have at least one trigger.
+					 */
+					scopeValidation: () => LocalizedString
+					/**
+					 * Token is required.
+					 */
+					tokenRequired: () => LocalizedString
+				}
+				fields: {
+					description: {
+						/**
+						 * Description
+						 */
+						label: () => LocalizedString
+						/**
+						 * Webhook to create gmail account on new user
+						 */
+						placeholder: () => LocalizedString
+					}
+					token: {
+						/**
+						 * Secret token
+						 */
+						label: () => LocalizedString
+						/**
+						 * Authorization token
+						 */
+						placeholder: () => LocalizedString
+					}
+					url: {
+						/**
+						 * Webhook URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * https://example.com/webhook
+						 */
+						placeholder: () => LocalizedString
+					}
+					userCreated: {
+						/**
+						 * New user Created
+						 */
+						label: () => LocalizedString
+					}
+					userDeleted: {
+						/**
+						 * User deleted
+						 */
+						label: () => LocalizedString
+					}
+					userModified: {
+						/**
+						 * User modified
+						 */
+						label: () => LocalizedString
+					}
+					hwkeyProvision: {
+						/**
+						 * User Yubikey provision
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		deleteWebhook: {
+			/**
+			 * Delete webhook
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {name} webhook ?
+			 */
+			message: (arg: { name: string }) => LocalizedString
+			/**
+			 * Delete
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * Webhook deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+	}
+	addDevicePage: {
+		/**
+		 * Add device
+		 */
+		title: () => LocalizedString
+		helpers: {
+			/**
+			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
+			 */
+			setupOpt: () => LocalizedString
+			/**
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
+			 */
+			client: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * Device added
+			 */
+			deviceAdded: () => LocalizedString
+		}
+		steps: {
+			setupMethod: {
+				remote: {
+					/**
+					 * Configure Desktop Client
+					 */
+					title: () => LocalizedString
+					/**
+					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download defguard Client
+					 */
+					link: () => LocalizedString
+				}
+				manual: {
+					/**
+					 * Manual WireGuard Client
+					 */
+					title: () => LocalizedString
+					/**
+					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
+					 */
+					subTitle: () => LocalizedString
+					/**
+					 * Download WireGuard Client
+					 */
+					link: () => LocalizedString
+				}
+			}
+			configDevice: {
+				/**
+				 * Configure device
+				 */
+				title: () => LocalizedString
+				messages: {
+					/**
+					 * Configuration has been copied to the clipboard
+					 */
+					copyConfig: () => LocalizedString
+				}
+				helpers: {
+					/**
+					 * 
+				    <p>
+				      Please be advised that you have to download the configuration now,
+				      since <strong>we do not</strong> store your private key. After this
+				      page is closed, you <strong>will not be able</strong> to get your
+				      full configuration file (with private keys, only blank template).
+				    </p>
+			
+					 */
+					warningAutoMode: () => LocalizedString
+					/**
+					 * 
+				    <p>
+				      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
+				    </p>
+			
+					 */
+					warningManualMode: () => LocalizedString
+					/**
+					 * You don't have access to any network.
+					 */
+					warningNoNetworks: () => LocalizedString
+					/**
+					 * 
+				      <p>
+				        You can setup your device faster with wireguard application by scanning this QR code.
+				      </p>
+					 */
+					qrHelper: () => LocalizedString
+				}
+				/**
+				 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
+				 */
+				qrInfo: () => LocalizedString
+				/**
+				 * Device Name
+				 */
+				inputNameLabel: () => LocalizedString
+				/**
+				 * WireGuard Config File
+				 */
+				qrLabel: () => LocalizedString
+			}
+			setupDevice: {
+				/**
+				 * Create VPN device
+				 */
+				title: () => LocalizedString
+				/**
+				 * 
+			        <p>
+			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
+			        </p>
+		
+				 */
+				infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
+				options: {
+					/**
+					 * Generate key pair
+					 */
+					auto: () => LocalizedString
+					/**
+					 * Use my own public key
+					 */
+					manual: () => LocalizedString
+				}
+				form: {
+					fields: {
+						name: {
+							/**
+							 * Device Name
+							 */
+							label: () => LocalizedString
+						}
+						publicKey: {
+							/**
+							 * Provide Your Public Key
+							 */
+							label: () => LocalizedString
+						}
+					}
+					errors: {
+						name: {
+							/**
+							 * Device with this name already exists
+							 */
+							duplicatedName: () => LocalizedString
+						}
+					}
+				}
+			}
+			copyToken: {
+				/**
+				 * Client activation
+				 */
+				title: () => LocalizedString
+				/**
+				 * Activation token
+				 */
+				tokenCardTitle: () => LocalizedString
+				/**
+				 * Defguard Instance URL
+				 */
+				urlCardTitle: () => LocalizedString
+			}
+		}
+	}
+	userPage: {
+		title: {
+			/**
+			 * User Profile
+			 */
+			view: () => LocalizedString
+			/**
+			 * Edit User Profile
+			 */
+			edit: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * User updated.
+			 */
+			editSuccess: () => LocalizedString
+			/**
+			 * Could not get user information.
+			 */
+			failedToFetchUserData: () => LocalizedString
+			/**
+			 * Password reset email has been sent.
+			 */
+			passwordResetEmailSent: () => LocalizedString
+		}
+		userDetails: {
+			/**
+			 * Profile Details
+			 */
+			header: () => LocalizedString
+			messages: {
+				/**
+				 * App and all tokens deleted.
+				 */
+				deleteApp: () => LocalizedString
+			}
+			warningModals: {
+				/**
+				 * Warning
+				 */
+				title: () => LocalizedString
+				content: {
+					/**
+					 * Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
+					 */
+					usernameChange: () => LocalizedString
+					/**
+					 * If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?
+					 */
+					emailChange: () => LocalizedString
+				}
+				buttons: {
+					/**
+					 * Proceed
+					 */
+					proceed: () => LocalizedString
+					/**
+					 * Cancel
+					 */
+					cancel: () => LocalizedString
+				}
+			}
+			fields: {
+				username: {
+					/**
+					 * Username
+					 */
+					label: () => LocalizedString
+				}
+				firstName: {
+					/**
+					 * First name
+					 */
+					label: () => LocalizedString
+				}
+				lastName: {
+					/**
+					 * Last name
+					 */
+					label: () => LocalizedString
+				}
+				phone: {
+					/**
+					 * Phone number
+					 */
+					label: () => LocalizedString
+				}
+				email: {
+					/**
+					 * E-mail
+					 */
+					label: () => LocalizedString
+				}
+				status: {
+					/**
+					 * Status
+					 */
+					label: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Disabled
+					 */
+					disabled: () => LocalizedString
+				}
+				groups: {
+					/**
+					 * User groups
+					 */
+					label: () => LocalizedString
+					/**
+					 * No groups
+					 */
+					noData: () => LocalizedString
+				}
+				apps: {
+					/**
+					 * Authorized apps
+					 */
+					label: () => LocalizedString
+					/**
+					 * No authorized apps
+					 */
+					noData: () => LocalizedString
+				}
+			}
+		}
+		userAuthInfo: {
+			/**
+			 * Password and authentication
+			 */
+			header: () => LocalizedString
+			password: {
+				/**
+				 * Password settings
+				 */
+				header: () => LocalizedString
+				/**
+				 * Change password
+				 */
+				changePassword: () => LocalizedString
+				/**
+				 * {ldapName} password update required
+				 */
+				ldap_change_heading: (arg: { ldapName: string }) => LocalizedString
+				/**
+				 * Defguard doesn't store your password in plain text, so we can’t retrieve it for automatic synchronization with your {ldapName} credentials. To enable {ldapName} login to other services, please update your Defguard password for your {ldapName} password to be set — you can re-enter your current password if you wish. This step is necessary to ensure consistent and secure authentication across both systems.
+				 */
+				ldap_change_message: (arg: { ldapName: string }) => LocalizedString
+			}
+			recovery: {
+				/**
+				 * Recovery options
+				 */
+				header: () => LocalizedString
+				codes: {
+					/**
+					 * Recovery Codes
+					 */
+					label: () => LocalizedString
+					/**
+					 * Viewed
+					 */
+					viewed: () => LocalizedString
+				}
+			}
+			mfa: {
+				/**
+				 * Two-factor methods
+				 */
+				header: () => LocalizedString
+				edit: {
+					/**
+					 * Disable MFA
+					 */
+					disable: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * MFA disabled.
+					 */
+					mfaDisabled: () => LocalizedString
+					/**
+					 * One time password disabled.
+					 */
+					OTPDisabled: () => LocalizedString
+					/**
+					 * Email MFA disabled.
+					 */
+					EmailMFADisabled: () => LocalizedString
+					/**
+					 * MFA method changed
+					 */
+					changeMFAMethod: () => LocalizedString
+				}
+				securityKey: {
+					/**
+					 * security key
+					 */
+					singular: () => LocalizedString
+					/**
+					 * security keys
+					 */
+					plural: () => LocalizedString
+				}
+				/**
+				 * default
+				 */
+				'default': () => LocalizedString
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+				labels: {
+					/**
+					 * Time based one time passwords
+					 */
+					totp: () => LocalizedString
+					/**
+					 * Email
+					 */
+					email: () => LocalizedString
+					/**
+					 * Security keys
+					 */
+					webauth: () => LocalizedString
+				}
+				editMode: {
+					/**
+					 * Enable
+					 */
+					enable: () => LocalizedString
+					/**
+					 * Disable
+					 */
+					disable: () => LocalizedString
+					/**
+					 * Make default
+					 */
+					makeDefault: () => LocalizedString
+					webauth: {
+						/**
+						 * Manage security keys
+						 */
+						manage: () => LocalizedString
+					}
+				}
+			}
+		}
+		controls: {
+			/**
+			 * Edit profile
+			 */
+			editButton: () => LocalizedString
+			/**
+			 * Delete account
+			 */
+			deleteAccount: () => LocalizedString
+		}
+		devices: {
+			/**
+			 * User devices
+			 */
+			header: () => LocalizedString
+			addDevice: {
+				/**
+				 * Add new device
+				 */
+				web: () => LocalizedString
+				/**
+				 * Add this device
+				 */
+				desktop: () => LocalizedString
+			}
+			card: {
+				labels: {
+					/**
+					 * Public IP
+					 */
+					publicIP: () => LocalizedString
+					/**
+					 * Connected through
+					 */
+					connectedThrough: () => LocalizedString
+					/**
+					 * Connected date
+					 */
+					connectionDate: () => LocalizedString
+					/**
+					 * Last connected from
+					 */
+					lastLocation: () => LocalizedString
+					/**
+					 * Last connected
+					 */
+					lastConnected: () => LocalizedString
+					/**
+					 * Assigned IP
+					 */
+					assignedIp: () => LocalizedString
+					/**
+					 * active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Never connected
+					 */
+					noData: () => LocalizedString
+				}
+				edit: {
+					/**
+					 * Edit device
+					 */
+					edit: () => LocalizedString
+					/**
+					 * Delete device
+					 */
+					'delete': () => LocalizedString
+					/**
+					 * Show configuration
+					 */
+					showConfigurations: () => LocalizedString
+				}
+			}
+		}
+		yubiKey: {
+			/**
+			 * User YubiKey
+			 */
+			header: () => LocalizedString
+			/**
+			 * Provision a YubiKey
+			 */
+			provision: () => LocalizedString
+			keys: {
+				/**
+				 * PGP key
+				 */
+				pgp: () => LocalizedString
+				/**
+				 * SSH key
+				 */
+				ssh: () => LocalizedString
+			}
+			noLicense: {
+				/**
+				 * YubiKey module
+				 */
+				moduleName: () => LocalizedString
+				/**
+				 * This is enterprise module for YubiKey
+				 */
+				line1: () => LocalizedString
+				/**
+				 * management and provisioning.
+				 */
+				line2: () => LocalizedString
+			}
+		}
+		authenticationKeys: {
+			/**
+			 * User Authentication Keys
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new Key
+			 */
+			addKey: () => LocalizedString
+			keysList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Key
+					 */
+					key: () => LocalizedString
+					/**
+					 * Download
+					 */
+					download: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Serial Number
+					 */
+					serialNumber: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete Authentication Key
+				 */
+				title: () => LocalizedString
+				/**
+				 * Key {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new Authentication Key
+				 */
+				header: () => LocalizedString
+				/**
+				 * Key Type
+				 */
+				keyType: () => LocalizedString
+				keyForm: {
+					placeholders: {
+						/**
+						 * Key Name
+						 */
+						title: () => LocalizedString
+						key: {
+							/**
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
+							 */
+							ssh: () => LocalizedString
+							/**
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
+							 */
+							gpg: () => LocalizedString
+						}
+					}
+					labels: {
+						/**
+						 * Name
+						 */
+						title: () => LocalizedString
+						/**
+						 * Key
+						 */
+						key: () => LocalizedString
+					}
+					/**
+					 * Add {name} key
+					 */
+					submit: (arg: { name: string }) => LocalizedString
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
+						 */
+						info: () => LocalizedString
+						/**
+						 * Select on of the following provisioners to provision a YubiKey
+						 */
+						selectLabel: () => LocalizedString
+						/**
+						 * No workers are registered right now.
+						 */
+						noData: () => LocalizedString
+						/**
+						 * Available
+						 */
+						available: () => LocalizedString
+						/**
+						 * Unavailable
+						 */
+						unavailable: () => LocalizedString
+					}
+					provisioning: {
+						/**
+						 * Provisioning in progress, please wait.
+						 */
+						inProgress: () => LocalizedString
+						/**
+						 * Provisioning failed !
+						 */
+						error: () => LocalizedString
+						/**
+						 * Yubikey provisioned successfully
+						 */
+						success: () => LocalizedString
+					}
+					/**
+					 * Provision Yubikey
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Key added.
+					 */
+					keyAdded: () => LocalizedString
+					/**
+					 * Key has already been added.
+					 */
+					keyExists: () => LocalizedString
+					/**
+					 * Unsupported key format.
+					 */
+					unsupportedKeyFormat: () => LocalizedString
+					/**
+					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
+		apiTokens: {
+			/**
+			 * User API Tokens
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new API Token
+			 */
+			addToken: () => LocalizedString
+			tokensList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Token
+					 */
+					token: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+					/**
+					 * Created at
+					 */
+					createdAt: () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete API Token
+				 */
+				title: () => LocalizedString
+				/**
+				 * API token {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new API Token
+				 */
+				header: () => LocalizedString
+				tokenForm: {
+					placeholders: {
+						/**
+						 * API Token Name
+						 */
+						name: () => LocalizedString
+					}
+					labels: {
+						/**
+						 * Name
+						 */
+						name: () => LocalizedString
+					}
+					/**
+					 * Add API token
+					 */
+					submit: () => LocalizedString
+				}
+				copyToken: {
+					/**
+					 * Please copy the API token below now. You won't be able to see it again.
+					 */
+					warningMessage: () => LocalizedString
+					/**
+					 * Copy new API Token
+					 */
+					header: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * API token added.
+					 */
+					tokenAdded: () => LocalizedString
+					/**
+					 * Could not add API token. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
+	}
+	usersOverview: {
+		/**
+		 * Users
+		 */
+		pageTitle: () => LocalizedString
+		grid: {
+			/**
+			 * Connected Users
+			 */
+			usersTitle: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devicesTitle: () => LocalizedString
+		}
+		search: {
+			/**
+			 * Find users
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All users
+			 */
+			all: () => LocalizedString
+			/**
+			 * Admins only
+			 */
+			admin: () => LocalizedString
+			/**
+			 * Users only
+			 */
+			users: () => LocalizedString
+		}
+		/**
+		 * All users
+		 */
+		usersCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewUser: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * User name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Login
+				 */
+				username: () => LocalizedString
+				/**
+				 * Phone
+				 */
+				phone: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Change password
+				 */
+				changePassword: () => LocalizedString
+				/**
+				 * Edit account
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Add YubiKey
+				 */
+				addYubikey: () => LocalizedString
+				/**
+				 * Add SSH Key
+				 */
+				addSSH: () => LocalizedString
+				/**
+				 * Add GPG Key
+				 */
+				addGPG: () => LocalizedString
+				/**
+				 * Delete account
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Start enrollment
+				 */
+				startEnrollment: () => LocalizedString
+				/**
+				 * Configure Desktop Client
+				 */
+				activateDesktop: () => LocalizedString
+				/**
+				 * Reset password
+				 */
+				resetPassword: () => LocalizedString
+			}
+		}
+	}
+	navigation: {
+		bar: {
+			/**
+			 * VPN Overview
+			 */
+			overview: () => LocalizedString
+			/**
+			 * Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * YubiKeys
+			 */
+			provisioners: () => LocalizedString
+			/**
+			 * Webhooks
+			 */
+			webhooks: () => LocalizedString
+			/**
+			 * OpenID Apps
+			 */
+			openId: () => LocalizedString
+			/**
+			 * My Profile
+			 */
+			myProfile: () => LocalizedString
+			/**
+			 * Settings
+			 */
+			settings: () => LocalizedString
+			/**
+			 * Log out
+			 */
+			logOut: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
+			/**
+			 * Access Control
+			 */
+			acl: () => LocalizedString
+			/**
+			 * Activity
+			 */
+			activity: () => LocalizedString
+		}
+		mobileTitles: {
+			/**
+			 * Activity
+			 */
+			activity: () => LocalizedString
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
+			/**
+			 * Create location
+			 */
+			wizard: () => LocalizedString
+			/**
+			 * Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Settings
+			 */
+			settings: () => LocalizedString
+			/**
+			 * User Profile
+			 */
+			user: () => LocalizedString
+			/**
+			 * Yubikey
+			 */
+			provisioners: () => LocalizedString
+			/**
+			 * Webhooks
+			 */
+			webhooks: () => LocalizedString
+			/**
+			 * OpenId Apps
+			 */
+			openId: () => LocalizedString
+			/**
+			 * Location Overview
+			 */
+			overview: () => LocalizedString
+			/**
+			 * Edit Location
+			 */
+			networkSettings: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * Support
+			 */
+			support: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
+		}
+		/**
+		 * Copyright ©2023-2025
+		 */
+		copyright: () => LocalizedString
+		version: {
+			/**
+			 * Application version: {version}
+			 */
+			open: (arg: { version: string }) => LocalizedString
+			/**
+			 * v{version}
+			 */
+			closed: (arg: { version: string }) => LocalizedString
+		}
+	}
+	form: {
+		/**
+		 * Download
+		 */
+		download: () => LocalizedString
+		/**
+		 * Copy
+		 */
+		copy: () => LocalizedString
+		/**
+		 * Save changes
+		 */
+		saveChanges: () => LocalizedString
+		/**
+		 * Submit
+		 */
+		submit: () => LocalizedString
+		/**
+		 * Sign in
+		 */
+		login: () => LocalizedString
+		/**
+		 * Cancel
+		 */
+		cancel: () => LocalizedString
+		/**
+		 * Close
+		 */
+		close: () => LocalizedString
+		placeholders: {
+			/**
+			 * Password
+			 */
+			password: () => LocalizedString
+			/**
+			 * Username
+			 */
+			username: () => LocalizedString
+			/**
+			 * Username or email
+			 */
+			username_or_email: () => LocalizedString
+		}
+		error: {
+			/**
+			 * Name is already taken.
+			 */
+			reservedName: () => LocalizedString
+			/**
+			 * IP is invalid.
+			 */
+			invalidIp: () => LocalizedString
+			/**
+			 * IP is already in use.
+			 */
+			reservedIp: () => LocalizedString
+			/**
+			 * Field contains forbidden characters.
+			 */
+			forbiddenCharacter: () => LocalizedString
+			/**
+			 * Username is already in use.
+			 */
+			usernameTaken: () => LocalizedString
+			/**
+			 * Key is invalid.
+			 */
+			invalidKey: () => LocalizedString
+			/**
+			 * Field is invalid.
+			 */
+			invalid: () => LocalizedString
+			/**
+			 * Field is required.
+			 */
+			required: () => LocalizedString
+			/**
+			 * Submitted code is invalid.
+			 */
+			invalidCode: () => LocalizedString
+			/**
+			 * Maximum length exceeded.
+			 */
+			maximumLength: () => LocalizedString
+			/**
+			 * Field length cannot exceed {length}
+			 */
+			maximumLengthOf: (arg: { length: number }) => LocalizedString
+			/**
+			 * Minimum length not reached.
+			 */
+			minimumLength: () => LocalizedString
+			/**
+			 * Minimum length of {length} not reached.
+			 */
+			minimumLengthOf: (arg: { length: number }) => LocalizedString
+			/**
+			 * No special characters are allowed.
+			 */
+			noSpecialChars: () => LocalizedString
+			/**
+			 * One digit required.
+			 */
+			oneDigit: () => LocalizedString
+			/**
+			 * Special character required.
+			 */
+			oneSpecial: () => LocalizedString
+			/**
+			 * One uppercase character required.
+			 */
+			oneUppercase: () => LocalizedString
+			/**
+			 * One lowercase character required.
+			 */
+			oneLowercase: () => LocalizedString
+			/**
+			 * Maximum port is 65535.
+			 */
+			portMax: () => LocalizedString
+			/**
+			 * Enter a valid endpoint.
+			 */
+			endpoint: () => LocalizedString
+			/**
+			 * Enter a valid address.
+			 */
+			address: () => LocalizedString
+			/**
+			 * Enter a valid address with a netmask.
+			 */
+			addressNetmask: () => LocalizedString
+			/**
+			 * Enter a valid port.
+			 */
+			validPort: () => LocalizedString
+			/**
+			 * Code should have 6 digits.
+			 */
+			validCode: () => LocalizedString
+			/**
+			 * Only valid IP or domain is allowed.
+			 */
+			allowedIps: () => LocalizedString
+			/**
+			 * Cannot start from number.
+			 */
+			startFromNumber: () => LocalizedString
+			/**
+			 * Fields don't match.
+			 */
+			repeat: () => LocalizedString
+			/**
+			 * Expected a valid number.
+			 */
+			number: () => LocalizedString
+			/**
+			 * Minimum value of {value} not reached.
+			 */
+			minimumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Maximum value of {value} exceeded.
+			 */
+			maximumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Too many bad login attempts. Please try again in a few minutes.
+			 */
+			tooManyBadLoginAttempts: () => LocalizedString
+		}
+		floatingErrors: {
+			/**
+			 * Please correct the following:
+			 */
+			title: () => LocalizedString
+		}
+	}
+	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * Default ACL Policy
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Allow
+				 */
+				allow: () => LocalizedString
+				/**
+				 * Deny
+				 */
+				deny: () => LocalizedString
+			}
+		}
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * First download defguard command line client binaries and install them on your server.
+			 */
+			headerMessage: () => LocalizedString
+			/**
+			 * Download Defguard CLI Client
+			 */
+			downloadButton: () => LocalizedString
+			expandableCard: {
+				/**
+				 * Copy and paste this command in your terminal on the device
+				 */
+				title: () => LocalizedString
+			}
+		}
+		deviceConfigsCard: {
+			/**
+			 * WireGuard Config for location:
+			 */
+			cardTitle: () => LocalizedString
+			messages: {
+				/**
+				 * Configuration copied to the clipboard
+				 */
+				copyConfig: () => LocalizedString
+			}
+		}
+		gatewaysStatus: {
+			/**
+			 * Gateways
+			 */
+			label: () => LocalizedString
+			states: {
+				/**
+				 * All ({count}) Connected
+				 */
+				all: (arg: { count: number }) => LocalizedString
+				/**
+				 * Some ({count}) Connected
+				 */
+				some: (arg: { count: number }) => LocalizedString
+				/**
+				 * None connected
+				 */
+				none: () => LocalizedString
+				/**
+				 * Status check failed
+				 */
+				error: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Failed to get gateways status
+				 */
+				error: () => LocalizedString
+				/**
+				 * Failed to delete gateway
+				 */
+				deleteError: () => LocalizedString
+			}
+		}
+		noLicenseBox: {
+			footer: {
+				/**
+				 * Get an enterprise license
+				 */
+				get: () => LocalizedString
+				/**
+				 * by contacting:
+				 */
+				contact: () => LocalizedString
+			}
+		}
+	}
+	settingsPage: {
+		/**
+		 * Settings
+		 */
+		title: () => LocalizedString
+		tabs: {
+			/**
+			 * SMTP
+			 */
+			smtp: () => LocalizedString
+			/**
+			 * Global settings
+			 */
+			global: () => LocalizedString
+			/**
+			 * LDAP
+			 */
+			ldap: () => LocalizedString
+			/**
+			 * OpenID
+			 */
+			openid: () => LocalizedString
+			/**
+			 * Enterprise features
+			 */
+			enterprise: () => LocalizedString
+			/**
+			 * Gateway notifications
+			 */
+			gatewayNotifications: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * Settings updated
+			 */
+			editSuccess: () => LocalizedString
+			/**
+			 * Challenge message changed
+			 */
+			challengeSuccess: () => LocalizedString
+		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * Your current license has expired.
+			 */
+			currentExpired: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
+		}
+		ldapSettings: {
+			/**
+			 * LDAP Settings
+			 */
+			title: () => LocalizedString
+			sync: {
+				/**
+				 * LDAP two-way synchronization
+				 */
+				header: () => LocalizedString
+				/**
+				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).
+				 */
+				info: () => LocalizedString
+				/**
+				 * This feature is available only in Defguard Enterprise.
+				 */
+				info_enterprise: () => LocalizedString
+				helpers: {
+					/**
+					 * Configure LDAP synchronization settings here. If configured, Defguard will pull user information from LDAP and synchronize it with local users.
+					 */
+					heading: () => LocalizedString
+					/**
+					 * If enabled, Defguard will attempt to pull LDAP user data at the specified interval.
+					 */
+					sync_enabled: () => LocalizedString
+					/**
+					 * Defguard will use the selected server as the authoritative source of
+				          user data, meaning that if LDAP is selected, Defguard data will be overwritten with the LDAP
+				          data in case of a desynchronization. If Defguard was selected as the authority, it's data will
+				          overwrite LDAP data if necessary.
+				          Make sure to check the documentation to understand the implications of this
+				          setting.
+					 */
+					authority: () => LocalizedString
+					/**
+					 * The interval with which the synchronization will be attempted.
+					 */
+					interval: () => LocalizedString
+					/**
+					 * Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.
+					 */
+					groups: () => LocalizedString
+				}
+			}
+			form: {
+				labels: {
+					/**
+					 * Enable LDAP integration
+					 */
+					ldap_enable: () => LocalizedString
+					/**
+					 * URL
+					 */
+					ldap_url: () => LocalizedString
+					/**
+					 * Bind Username
+					 */
+					ldap_bind_username: () => LocalizedString
+					/**
+					 * Bind Password
+					 */
+					ldap_bind_password: () => LocalizedString
+					/**
+					 * Member Attribute
+					 */
+					ldap_member_attr: () => LocalizedString
+					/**
+					 * Username Attribute
+					 */
+					ldap_username_attr: () => LocalizedString
+					/**
+					 * User Object Class
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * User Search Base
+					 */
+					ldap_user_search_base: () => LocalizedString
+					/**
+					 * Additional User Object Classes
+					 */
+					ldap_user_auxiliary_obj_classes: () => LocalizedString
+					/**
+					 * Groupname Attribute
+					 */
+					ldap_groupname_attr: () => LocalizedString
+					/**
+					 * Group Search Base
+					 */
+					ldap_group_search_base: () => LocalizedString
+					/**
+					 * Group Member Attribute
+					 */
+					ldap_group_member_attr: () => LocalizedString
+					/**
+					 * Group Object Class
+					 */
+					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * Enable LDAP two-way synchronization
+					 */
+					ldap_sync_enabled: () => LocalizedString
+					/**
+					 * Consider the following source as the authority
+					 */
+					ldap_authoritative_source: () => LocalizedString
+					/**
+					 * Synchronization interval
+					 */
+					ldap_sync_interval: () => LocalizedString
+					/**
+					 * Use StartTLS
+					 */
+					ldap_use_starttls: () => LocalizedString
+					/**
+					 * Verify TLS certificate
+					 */
+					ldap_tls_verify_cert: () => LocalizedString
+					/**
+					 * LDAP server is Active Directory
+					 */
+					ldap_uses_ad: () => LocalizedString
+					/**
+					 * User RDN Attribute
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
+					/**
+					 * Limit synchronization to these groups
+					 */
+					ldap_sync_groups: () => LocalizedString
+				}
+				helpers: {
+					/**
+					 * The object class that will be added to the user object during its creation. This is used to determine if an LDAP object is a user.
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * The additional object classes that will be added to the user object during its creation. They may also influence the added user's attributes (e.g. simpleSecurityObject class will add userPassword attribute).
+					 */
+					ldap_user_auxiliary_obj_classes: () => LocalizedString
+					/**
+					 * Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.
+					 */
+					user_settings: () => LocalizedString
+					/**
+					 * Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).
+					 */
+					connection_settings: () => LocalizedString
+					/**
+					 * Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.
+					 */
+					group_settings: () => LocalizedString
+					/**
+					 * The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.
+					 */
+					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
+				}
+				headings: {
+					/**
+					 * User settings
+					 */
+					user_settings: () => LocalizedString
+					/**
+					 * Connection settings
+					 */
+					connection_settings: () => LocalizedString
+					/**
+					 * Group settings
+					 */
+					group_settings: () => LocalizedString
+				}
+				/**
+				 * Delete configuration
+				 */
+				'delete': () => LocalizedString
+			}
+			test: {
+				/**
+				 * Test LDAP Connection
+				 */
+				title: () => LocalizedString
+				/**
+				 * Test
+				 */
+				submit: () => LocalizedString
+				messages: {
+					/**
+					 * LDAP connected successfully
+					 */
+					success: () => LocalizedString
+					/**
+					 * LDAP connection rejected
+					 */
+					error: () => LocalizedString
+				}
+			}
+		}
+		openIdSettings: {
+			/**
+			 * External OpenID settings
+			 */
+			heading: () => LocalizedString
+			general: {
+				/**
+				 * General settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can change general OpenID behavior in your Defguard instance.
+				 */
+				helper: () => LocalizedString
+				createAccount: {
+					/**
+					 * Automatically create user account when logging in for the first time through external OpenID.
+					 */
+					label: () => LocalizedString
+					/**
+					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
+				usernameHandling: {
+					/**
+					 * Username handling
+					 */
+					label: () => LocalizedString
+					/**
+					 * Configure the method for handling invalid characters in usernames provided by your identity provider.
+					 */
+					helper: () => LocalizedString
+					options: {
+						/**
+						 * Remove forbidden characters
+						 */
+						remove: () => LocalizedString
+						/**
+						 * Replace forbidden characters
+						 */
+						replace: () => LocalizedString
+						/**
+						 * Prune email domain
+						 */
+						prune_email: () => LocalizedString
+					}
+				}
+			}
+			form: {
+				/**
+				 * Client settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
+				 */
+				helper: () => LocalizedString
+				/**
+				 * Custom
+				 */
+				custom: () => LocalizedString
+				/**
+				 * None
+				 */
+				none: () => LocalizedString
+				/**
+				 * Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.
+				 */
+				documentation: () => LocalizedString
+				/**
+				 * Delete provider
+				 */
+				'delete': () => LocalizedString
+				directory_sync_settings: {
+					/**
+					 * Directory synchronization settings
+					 */
+					title: () => LocalizedString
+					/**
+					 * Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Directory sync is not supported for this provider.
+					 */
+					notSupported: () => LocalizedString
+					connectionTest: {
+						/**
+						 * Connection successful
+						 */
+						success: () => LocalizedString
+						/**
+						 * Connection failed with error:
+						 */
+						error: () => LocalizedString
+					}
+				}
+				selects: {
+					synchronize: {
+						/**
+						 * All
+						 */
+						all: () => LocalizedString
+						/**
+						 * Users
+						 */
+						users: () => LocalizedString
+						/**
+						 * Groups
+						 */
+						groups: () => LocalizedString
+					}
+					behavior: {
+						/**
+						 * Keep
+						 */
+						keep: () => LocalizedString
+						/**
+						 * Disable
+						 */
+						disable: () => LocalizedString
+						/**
+						 * Delete
+						 */
+						'delete': () => LocalizedString
+					}
+				}
+				labels: {
+					provider: {
+						/**
+						 * Provider
+						 */
+						label: () => LocalizedString
+						/**
+						 * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
+						 */
+						helper: () => LocalizedString
+					}
+					client_id: {
+						/**
+						 * Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					client_secret: {
+						/**
+						 * Client Secret
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client Secret provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					base_url: {
+						/**
+						 * Base URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
+						 */
+						helper: () => LocalizedString
+					}
+					display_name: {
+						/**
+						 * Display Name
+						 */
+						label: () => LocalizedString
+						/**
+						 * Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.
+						 */
+						helper: () => LocalizedString
+					}
+					enable_directory_sync: {
+						/**
+						 * Enable directory synchronization
+						 */
+						label: () => LocalizedString
+					}
+					sync_target: {
+						/**
+						 * Synchronize
+						 */
+						label: () => LocalizedString
+						/**
+						 * What to synchronize from the external provider. You can choose between synchronizing both users' state and group memberships, or narrow it down to just one of these.
+						 */
+						helper: () => LocalizedString
+					}
+					sync_interval: {
+						/**
+						 * Synchronization interval
+						 */
+						label: () => LocalizedString
+						/**
+						 * Interval in seconds between directory synchronizations.
+						 */
+						helper: () => LocalizedString
+					}
+					user_behavior: {
+						/**
+						 * User behavior
+						 */
+						label: () => LocalizedString
+						/**
+						 * Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.
+						 */
+						helper: () => LocalizedString
+					}
+					admin_behavior: {
+						/**
+						 * Admin behavior
+						 */
+						label: () => LocalizedString
+						/**
+						 * Choose how to handle Defguard admins that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.
+						 */
+						helper: () => LocalizedString
+					}
+					admin_email: {
+						/**
+						 * Admin email
+						 */
+						label: () => LocalizedString
+						/**
+						 * Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.
+						 */
+						helper: () => LocalizedString
+					}
+					service_account_used: {
+						/**
+						 * Service account in use
+						 */
+						label: () => LocalizedString
+						/**
+						 * The service account currently being used for synchronization. You can change it by uploading a new service account key file.
+						 */
+						helper: () => LocalizedString
+					}
+					service_account_key_file: {
+						/**
+						 * Service Account Key file
+						 */
+						label: () => LocalizedString
+						/**
+						 * Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.
+						 */
+						helper: () => LocalizedString
+						/**
+						 * File uploaded
+						 */
+						uploaded: () => LocalizedString
+						/**
+						 * Upload a service account key file
+						 */
+						uploadPrompt: () => LocalizedString
+					}
+					okta_client_id: {
+						/**
+						 * Directory Sync Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID for the Okta directory sync application.
+						 */
+						helper: () => LocalizedString
+					}
+					okta_client_key: {
+						/**
+						 * Directory Sync Client Private Key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
+					}
+					group_match: {
+						/**
+						 * Sync only matching groups
+						 */
+						label: () => LocalizedString
+						/**
+						 * Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.
+						 */
+						helper: () => LocalizedString
+					}
+				}
+			}
+		}
+		modulesVisibility: {
+			/**
+			 * Modules Visibility
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>
+		            If your not using some modules you can disable their visibility.
+		          </p>
+		          <a href="{documentationLink}" target="_blank">
+		            Read more in documentation.
+		          </a>
+			 */
+			helper: (arg: { documentationLink: string }) => LocalizedString
+			fields: {
+				wireguard_enabled: {
+					/**
+					 * WireGuard VPN
+					 */
+					label: () => LocalizedString
+				}
+				webhooks_enabled: {
+					/**
+					 * Webhooks
+					 */
+					label: () => LocalizedString
+				}
+				worker_enabled: {
+					/**
+					 * Yubikey provisioning
+					 */
+					label: () => LocalizedString
+				}
+				openid_enabled: {
+					/**
+					 * OpenID Connect
+					 */
+					label: () => LocalizedString
+				}
+			}
+		}
+		defaultNetworkSelect: {
+			/**
+			 * Default location view
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can change your default location view.</p>
+		          <a href="{documentationLink}" target="_blank">
+		            Read more in documentation.
+		          </a>
+			 */
+			helper: (arg: { documentationLink: string }) => LocalizedString
+			filterLabels: {
+				/**
+				 * Grid view
+				 */
+				grid: () => LocalizedString
+				/**
+				 * List view
+				 */
+				list: () => LocalizedString
+			}
+		}
+		instanceBranding: {
+			/**
+			 * Instance Branding
+			 */
+			header: () => LocalizedString
+			form: {
+				/**
+				 * Name & Logo:
+				 */
+				title: () => LocalizedString
+				fields: {
+					instanceName: {
+						/**
+						 * Instance name
+						 */
+						label: () => LocalizedString
+						/**
+						 * Defguard
+						 */
+						placeholder: () => LocalizedString
+					}
+					mainLogoUrl: {
+						/**
+						 * Login logo url
+						 */
+						label: () => LocalizedString
+						/**
+						 * Maximum picture size is 250x100  px
+						 */
+						helper: () => LocalizedString
+						/**
+						 * Default image
+						 */
+						placeholder: () => LocalizedString
+					}
+					navLogoUrl: {
+						/**
+						 * Menu & navigation small logo
+						 */
+						label: () => LocalizedString
+						/**
+						 * Maximum picture size is 100x100 px
+						 */
+						helper: () => LocalizedString
+						/**
+						 * Default image
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Restore default
+					 */
+					restoreDefault: () => LocalizedString
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			/**
+			 * 
+					      <p>
+		            Here you can add url of your logo and name for your defguard
+		            instance it will be displayed instead of defguard.
+		          </p>
+		          <a href="{documentationLink}" target="_blank">
+		            Read more in documentation.
+		          </a>
+				
+			 */
+			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * Here you can manage your Defguard Enterprise version license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * To learn more about Defguard Enterprise, visit our webiste.
+					 */
+					link: () => LocalizedString
+				}
+				licenseKey: {
+					/**
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * You can purchase the license here.
+					 */
+					link: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
+			licenseInfo: {
+				/**
+				 * License information
+				 */
+				title: () => LocalizedString
+				status: {
+					/**
+					 * No valid license
+					 */
+					noLicense: () => LocalizedString
+					/**
+					 * Expired
+					 */
+					expired: () => LocalizedString
+					/**
+					 * Limits Exceeded
+					 */
+					limitsExceeded: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+				}
+				/**
+				 * <p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>
+				 */
+				licenseNotRequired: () => LocalizedString
+				types: {
+					subscription: {
+						/**
+						 * Subscription
+						 */
+						label: () => LocalizedString
+						/**
+						 * A license that automatically renews at regular intervals
+						 */
+						helper: () => LocalizedString
+					}
+					offline: {
+						/**
+						 * Offline
+						 */
+						label: () => LocalizedString
+						/**
+						 * The license is valid until the expiry date and does not automatically renew
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				fields: {
+					status: {
+						/**
+						 * Status
+						 */
+						label: () => LocalizedString
+						/**
+						 * Active
+						 */
+						active: () => LocalizedString
+						/**
+						 * Expired
+						 */
+						expired: () => LocalizedString
+						/**
+						 * A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.
+						 */
+						subscriptionHelper: () => LocalizedString
+					}
+					type: {
+						/**
+						 * Type
+						 */
+						label: () => LocalizedString
+					}
+					validUntil: {
+						/**
+						 * Valid until
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
+		}
+		smtp: {
+			form: {
+				/**
+				 * SMTP configuration
+				 */
+				title: () => LocalizedString
+				sections: {
+					/**
+					 * Server settings
+					 */
+					server: () => LocalizedString
+				}
+				fields: {
+					encryption: {
+						/**
+						 * Encryption
+						 */
+						label: () => LocalizedString
+					}
+					server: {
+						/**
+						 * Server address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+					port: {
+						/**
+						 * Server port
+						 */
+						label: () => LocalizedString
+						/**
+						 * Port
+						 */
+						placeholder: () => LocalizedString
+					}
+					user: {
+						/**
+						 * Server username
+						 */
+						label: () => LocalizedString
+						/**
+						 * Username
+						 */
+						placeholder: () => LocalizedString
+					}
+					password: {
+						/**
+						 * Server password
+						 */
+						label: () => LocalizedString
+						/**
+						 * Password
+						 */
+						placeholder: () => LocalizedString
+					}
+					sender: {
+						/**
+						 * Sender email address
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+						/**
+						 * 
+					              <p>
+					                System messages will be sent from this address.
+					                E.g. no-reply@my-company.com.
+					              </p>
+					            
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+			}
+			/**
+			 * Delete configuration
+			 */
+			'delete': () => LocalizedString
+			testForm: {
+				/**
+				 * Send test email
+				 */
+				title: () => LocalizedString
+				/**
+				 * Enter recipent email address
+				 */
+				subtitle: () => LocalizedString
+				fields: {
+					to: {
+						/**
+						 * Send test email to
+						 */
+						label: () => LocalizedString
+						/**
+						 * Address
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+				controls: {
+					/**
+					 * Send
+					 */
+					submit: () => LocalizedString
+					/**
+					 * Resend
+					 */
+					resend: () => LocalizedString
+					/**
+					 * Retry
+					 */
+					retry: () => LocalizedString
+					/**
+					 * Test email sent
+					 */
+					success: () => LocalizedString
+					/**
+					 * Error sending email
+					 */
+					error: () => LocalizedString
+				}
+				success: {
+					/**
+					 * Test email has been sent successully.
+					 */
+					message: () => LocalizedString
+				}
+				error: {
+					/**
+					 * There was an error sending the test email. Please check your SMTP configuration and try again.
+					 */
+					message: () => LocalizedString
+					/**
+					 * Error: {error}
+					 */
+					fullError: (arg: { error: string }) => LocalizedString
+				}
+			}
+			/**
+			 * Here you can configure SMTP server used to send system messages to the users.
+			 */
+			helper: () => LocalizedString
+		}
+		enrollment: {
+			/**
+			 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.
+			 */
+			helper: () => LocalizedString
+			vpnOptionality: {
+				/**
+				 * VPN step optionality
+				 */
+				header: () => LocalizedString
+				/**
+				 * You can choose whether creating a VPN device is optional or mandatory during enrollment
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeMessage: {
+				/**
+				 * Welcome message
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			welcomeEmail: {
+				/**
+				 * Welcome e-mail
+				 */
+				header: () => LocalizedString
+				/**
+				 * 
+			        <p>In this text input you can use Markdown:</p>
+			        <ul>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
+			        </ul>
+			        
+				 */
+				helper: () => LocalizedString
+			}
+			form: {
+				controls: {
+					/**
+					 * Save changes
+					 */
+					submit: () => LocalizedString
+				}
+				welcomeMessage: {
+					/**
+					 * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome message
+					 */
+					placeholder: () => LocalizedString
+				}
+				welcomeEmail: {
+					/**
+					 * This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Please input welcome email
+					 */
+					placeholder: () => LocalizedString
+				}
+				welcomeEmailSubject: {
+					/**
+					 * Subject
+					 */
+					label: () => LocalizedString
+				}
+				useMessageAsEmail: {
+					/**
+					 * Same as welcome message
+					 */
+					label: () => LocalizedString
+				}
+			}
+		}
+		enterprise: {
+			/**
+			 * Enterprise Features
+			 */
+			header: () => LocalizedString
+			/**
+			 * Here you can change enterprise settings.
+			 */
+			helper: () => LocalizedString
+			fields: {
+				deviceManagement: {
+					/**
+					 * Disable users' ability to manage their devices
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
+				}
+				disableAllTraffic: {
+					/**
+					 * Disable the option to route all traffic through VPN
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
+					 */
+					helper: () => LocalizedString
+				}
+				manualConfig: {
+					/**
+					 * Disable users' ability to manually configure WireGuard client
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
+					 */
+					helper: () => LocalizedString
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * To enable notifications you must first configure an SMTP server
+			 */
+			smtpWarning: () => LocalizedString
+			/**
+			 * Notifications
+			 */
+			header: () => LocalizedString
+			sections: {
+				/**
+				 * Gateway disconnect notifications
+				 */
+				gateway: () => LocalizedString
+			}
+			/**
+			 * Here you can manage email notifications.
+			 */
+			helper: () => LocalizedString
+			form: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway disconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is disconnected
+						 */
+						help: () => LocalizedString
+					}
+					inactivityThreshold: {
+						/**
+						 * Gateway inactivity time [minutes]
+						 */
+						label: () => LocalizedString
+						/**
+						 * Time (in minutes) that a gateway needs to stay disconnected before a notification is sent
+						 */
+						help: () => LocalizedString
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway reconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is reconnected
+						 */
+						help: () => LocalizedString
+					}
+				}
+			}
+		}
+	}
+	openidOverview: {
+		/**
+		 * OpenID Apps
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find apps
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All apps
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All apps
+		 */
+		clientCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewApp: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit app
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete app
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+				/**
+				 * Copy client ID
+				 */
+				copy: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+		messages: {
+			/**
+			 * Client ID copied.
+			 */
+			copySuccess: () => LocalizedString
+			/**
+			 * You don't have a license for this feature.
+			 */
+			noLicenseMessage: () => LocalizedString
+			/**
+			 * No results found.
+			 */
+			noClientsFound: () => LocalizedString
+		}
+		deleteApp: {
+			/**
+			 * Delete app
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to delete {appName} app ?
+			 */
+			message: (arg: { appName: string }) => LocalizedString
+			/**
+			 * Delete app
+			 */
+			submit: () => LocalizedString
+			messages: {
+				/**
+				 * App deleted.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		enableApp: {
+			messages: {
+				/**
+				 * App enabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		disableApp: {
+			messages: {
+				/**
+				 * App disabled.
+				 */
+				success: () => LocalizedString
+			}
+		}
+		modals: {
+			openidClientModal: {
+				title: {
+					/**
+					 * Add Application
+					 */
+					addApp: () => LocalizedString
+					/**
+					 * Edit {appName} app
+					 */
+					editApp: (arg: { appName: string }) => LocalizedString
+				}
+				/**
+				 * Scopes:
+				 */
+				scopes: () => LocalizedString
+				messages: {
+					/**
+					 * Client ID copied.
+					 */
+					clientIdCopy: () => LocalizedString
+					/**
+					 * Client secret copied.
+					 */
+					clientSecretCopy: () => LocalizedString
+				}
+				form: {
+					messages: {
+						/**
+						 * App created.
+						 */
+						successAdd: () => LocalizedString
+						/**
+						 * App modified.
+						 */
+						successModify: () => LocalizedString
+					}
+					error: {
+						/**
+						 * URL is required.
+						 */
+						urlRequired: () => LocalizedString
+						/**
+						 * Must be a valid URL.
+						 */
+						validUrl: () => LocalizedString
+						/**
+						 * Must have at least one scope.
+						 */
+						scopeValidation: () => LocalizedString
+					}
+					fields: {
+						name: {
+							/**
+							 * App name
+							 */
+							label: () => LocalizedString
+						}
+						redirectUri: {
+							/**
+							 * Redirect URL {count}
+							 */
+							label: (arg: { count: number }) => LocalizedString
+							/**
+							 * https://example.com/redirect
+							 */
+							placeholder: () => LocalizedString
+						}
+						openid: {
+							/**
+							 * OpenID
+							 */
+							label: () => LocalizedString
+						}
+						profile: {
+							/**
+							 * Profile
+							 */
+							label: () => LocalizedString
+						}
+						email: {
+							/**
+							 * Email
+							 */
+							label: () => LocalizedString
+						}
+						phone: {
+							/**
+							 * Phone
+							 */
+							label: () => LocalizedString
+						}
+						groups: {
+							/**
+							 * Groups
+							 */
+							label: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Add URL
+						 */
+						addUrl: () => LocalizedString
+					}
+				}
+				/**
+				 * Client ID
+				 */
+				clientId: () => LocalizedString
+				/**
+				 * Client secret
+				 */
+				clientSecret: () => LocalizedString
+			}
+		}
+	}
+	webhooksOverview: {
+		/**
+		 * Webhooks
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find webhooks by url
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All webhooks
+			 */
+			all: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
+		/**
+		 * All webhooks
+		 */
+		webhooksCount: () => LocalizedString
+		/**
+		 * Add new
+		 */
+		addNewWebhook: () => LocalizedString
+		/**
+		 * No webhooks found.
+		 */
+		noWebhooksFound: () => LocalizedString
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Edit
+				 */
+				edit: () => LocalizedString
+				/**
+				 * Delete webhook
+				 */
+				'delete': () => LocalizedString
+				/**
+				 * Disable
+				 */
+				disable: () => LocalizedString
+				/**
+				 * Enable
+				 */
+				enable: () => LocalizedString
+			}
+			status: {
+				/**
+				 * Enabled
+				 */
+				enabled: () => LocalizedString
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+			}
+		}
+	}
+	provisionersOverview: {
+		/**
+		 * Provisioners
+		 */
+		pageTitle: () => LocalizedString
+		search: {
+			/**
+			 * Find provisioners
+			 */
+			placeholder: () => LocalizedString
+		}
+		filterLabels: {
+			/**
+			 * All
+			 */
+			all: () => LocalizedString
+			/**
+			 * Available
+			 */
+			available: () => LocalizedString
+			/**
+			 * Unavailable
+			 */
+			unavailable: () => LocalizedString
+		}
+		/**
+		 * All provisioners
+		 */
+		provisionersCount: () => LocalizedString
+		/**
+		 * No provisioners found.
+		 */
+		noProvisionersFound: () => LocalizedString
+		/**
+		 * You don't have a license for this feature.
+		 */
+		noLicenseMessage: () => LocalizedString
+		provisioningStation: {
+			/**
+			 * YubiKey provisioning station
+			 */
+			header: () => LocalizedString
+			/**
+			 * In order to be able to provision your YubiKeys, first you need to set up
+		        physical machine with USB slot. Run provided command on your chosen
+		        machine to register it and start provisioning your keys.
+			 */
+			content: () => LocalizedString
+			dockerCard: {
+				/**
+				 * Provisioning station docker setup command
+				 */
+				title: () => LocalizedString
+			}
+			tokenCard: {
+				/**
+				 * Access token
+				 */
+				title: () => LocalizedString
+			}
+		}
+		list: {
+			headers: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Actions
+				 */
+				actions: () => LocalizedString
+			}
+			editButton: {
+				/**
+				 * Delete provisioner
+				 */
+				'delete': () => LocalizedString
+			}
+			status: {
+				/**
+				 * Available
+				 */
+				available: () => LocalizedString
+				/**
+				 * Unavailable
+				 */
+				unavailable: () => LocalizedString
+			}
+		}
+		messages: {
+			copy: {
+				/**
+				 * Token copied
+				 */
+				token: () => LocalizedString
+				/**
+				 * Command copied
+				 */
+				command: () => LocalizedString
+			}
+		}
+	}
+	openidAllow: {
+		/**
+		 * {name} would like to:
+		 */
+		header: (arg: { name: string }) => LocalizedString
+		scopes: {
+			/**
+			 * Use your profile data for future logins.
+			 */
+			openid: () => LocalizedString
+			/**
+			 * Know basic information from your profile like name, profile picture etc.
+			 */
+			profile: () => LocalizedString
+			/**
+			 * Know your email address.
+			 */
+			email: () => LocalizedString
+			/**
+			 * Know your phone number.
+			 */
+			phone: () => LocalizedString
+			/**
+			 * Know your groups membership.
+			 */
+			groups: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Accept
+			 */
+			accept: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
+	}
+	networkOverview: {
+		networkSelection: {
+			/**
+			 * All locations summary
+			 */
+			all: () => LocalizedString
+			/**
+			 * Select location
+			 */
+			placeholder: () => LocalizedString
+		}
+		/**
+		 * {value}h period
+		 */
+		timeRangeSelectionLabel: (arg: { value: number }) => LocalizedString
+		/**
+		 * Location overview
+		 */
+		pageTitle: () => LocalizedString
+		controls: {
+			/**
+			 * Edit Locations settings
+			 */
+			editNetworks: () => LocalizedString
+			selectNetwork: {
+				/**
+				 * Loading locations
+				 */
+				placeholder: () => LocalizedString
+			}
+		}
+		filterLabels: {
+			/**
+			 * Grid view
+			 */
+			grid: () => LocalizedString
+			/**
+			 * List view
+			 */
+			list: () => LocalizedString
+		}
+		gatewayStatus: {
+			/**
+			 * All ({count}) Connected
+			 */
+			all: (arg: { count: number }) => LocalizedString
+			/**
+			 * Some ({count}) Connected
+			 */
+			some: (arg: { count: number }) => LocalizedString
+			/**
+			 * None connected
+			 */
+			none: () => LocalizedString
+		}
+		stats: {
+			/**
+			 * Currently active users
+			 */
+			currentlyActiveUsers: () => LocalizedString
+			/**
+			 * Currently active network devices
+			 */
+			currentlyActiveNetworkDevices: () => LocalizedString
+			/**
+			 * Total user devices: {count}
+			 */
+			totalUserDevices: (arg: { count: number }) => LocalizedString
+			/**
+			 * Active network devices in {hour}h
+			 */
+			activeNetworkDevices: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active users in {hour}h
+			 */
+			activeUsersFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active devices in {hour}h
+			 */
+			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Activity in {hour}H
+			 */
+			activityIn: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+			/**
+			 * Peak
+			 */
+			peak: () => LocalizedString
+			/**
+			 * In:
+			 */
+			'in': () => LocalizedString
+			/**
+			 * Out:
+			 */
+			out: () => LocalizedString
+			/**
+			 * Gateway disconnected
+			 */
+			gatewayDisconnected: () => LocalizedString
+		}
+		cardsLabels: {
+			/**
+			 * Connected Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devices: () => LocalizedString
+		}
+	}
+	connectedUsersOverview: {
+		/**
+		 * Connected users
+		 */
+		pageTitle: () => LocalizedString
+		/**
+		 * Currently there are no connected users
+		 */
+		noUsersMessage: () => LocalizedString
+		userList: {
+			/**
+			 * Username
+			 */
+			username: () => LocalizedString
+			/**
+			 * Device
+			 */
+			device: () => LocalizedString
+			/**
+			 * Connected
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Device location
+			 */
+			deviceLocation: () => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+		}
+	}
+	networkPage: {
+		/**
+		 * Edit Location
+		 */
+		pageTitle: () => LocalizedString
+		/**
+		 * + Add new location
+		 */
+		addNetwork: () => LocalizedString
+		controls: {
+			networkSelect: {
+				/**
+				 * Location choice
+				 */
+				label: () => LocalizedString
+			}
+		}
+	}
+	activityOverview: {
+		/**
+		 * Activity stream
+		 */
+		header: () => LocalizedString
+		/**
+		 * Currently there is no activity detected
+		 */
+		noData: () => LocalizedString
+	}
+	networkConfiguration: {
+		messages: {
+			'delete': {
+				/**
+				 * Network deleted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to delete network
+				 */
+				error: () => LocalizedString
+			}
+		}
+		/**
+		 * Location configuration
+		 */
+		header: () => LocalizedString
+		/**
+		 * Location import
+		 */
+		importHeader: () => LocalizedString
+		form: {
+			helpers: {
+				/**
+				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.
+				 */
+				address: () => LocalizedString
+				/**
+				 * Gateway public address, used by VPN users to connect
+				 */
+				gateway: () => LocalizedString
+				/**
+				 * Specify the DNS resolvers to query when the wireguard interface is up.
+				 */
+				dns: () => LocalizedString
+				/**
+				 * List of addresses/masks that should be routed through the VPN network.
+				 */
+				allowedIps: () => LocalizedString
+				/**
+				 * By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.
+				 */
+				allowedGroups: () => LocalizedString
+				/**
+				 * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
+				 */
+				aclFeatureDisabled: () => LocalizedString
+			}
+			messages: {
+				/**
+				 * Location modified.
+				 */
+				networkModified: () => LocalizedString
+				/**
+				 * Location created
+				 */
+				networkCreated: () => LocalizedString
+			}
+			fields: {
+				name: {
+					/**
+					 * Location name
+					 */
+					label: () => LocalizedString
+				}
+				address: {
+					/**
+					 * Gateway VPN IP address and netmask
+					 */
+					label: () => LocalizedString
+				}
+				endpoint: {
+					/**
+					 * Gateway address
+					 */
+					label: () => LocalizedString
+				}
+				allowedIps: {
+					/**
+					 * Allowed Ips
+					 */
+					label: () => LocalizedString
+				}
+				port: {
+					/**
+					 * Gateway port
+					 */
+					label: () => LocalizedString
+				}
+				dns: {
+					/**
+					 * DNS
+					 */
+					label: () => LocalizedString
+				}
+				allowedGroups: {
+					/**
+					 * Allowed groups
+					 */
+					label: () => LocalizedString
+					/**
+					 * All groups
+					 */
+					placeholder: () => LocalizedString
+				}
+				mfa_enabled: {
+					/**
+					 * Require MFA for this Location
+					 */
+					label: () => LocalizedString
+				}
+				keepalive_interval: {
+					/**
+					 * Keepalive interval [seconds]
+					 */
+					label: () => LocalizedString
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * Peer disconnect threshold [seconds]
+					 */
+					label: () => LocalizedString
+				}
+				acl_enabled: {
+					/**
+					 * Enable ACL for this location
+					 */
+					label: () => LocalizedString
+				}
+				acl_default_allow: {
+					/**
+					 * Default ACL policy
+					 */
+					label: () => LocalizedString
+				}
+			}
+			controls: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Back to Overview
+				 */
+				cancel: () => LocalizedString
+				/**
+				 * Remove location
+				 */
+				'delete': () => LocalizedString
+			}
+		}
+	}
+	gatewaySetup: {
+		header: {
+			/**
+			 * Gateway server setup
+			 */
+			main: () => LocalizedString
+			/**
+			 * Docker Based Gateway Setup
+			 */
+			dockerBasedGatewaySetup: () => LocalizedString
+			/**
+			 * From Package
+			 */
+			fromPackage: () => LocalizedString
+			/**
+			 * One Line Install
+			 */
+			oneLineInstall: () => LocalizedString
+		}
+		card: {
+			/**
+			 * Docker based gateway setup
+			 */
+			title: () => LocalizedString
+			/**
+			 * Authentication Token
+			 */
+			authToken: () => LocalizedString
+		}
+		button: {
+			/**
+			 * Available Packages
+			 */
+			availablePackages: () => LocalizedString
+		}
+		controls: {
+			/**
+			 * Check connection status
+			 */
+			status: () => LocalizedString
+		}
+		messages: {
+			/**
+			 * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the [documentation]({setupGatewayDocs}).
+		            There are several ways to deploy the gateway server,
+		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
+			 */
+			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Please create the network before running the gateway process.
+			 */
+			createNetwork: () => LocalizedString
+			/**
+			 * No connection established, please run provided command.
+			 */
+			noConnection: () => LocalizedString
+			/**
+			 * Gateway connected.
+			 */
+			connected: () => LocalizedString
+			/**
+			 * Failed to get gateway status
+			 */
+			statusError: () => LocalizedString
+			/**
+			 * If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
+		          you don't need to do anything.
+			 */
+			oneLineInstall: () => LocalizedString
+			/**
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml`
+		          according to the [documentation]({setupGatewayDocs}).
+			 */
+			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
+		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
+		}
+	}
+	loginPage: {
+		/**
+		 * Enter your credentials
+		 */
+		pageTitle: () => LocalizedString
+		/**
+		 * Sign in with
+		 */
+		oidcLogin: () => LocalizedString
+		callback: {
+			/**
+			 * Go back to login
+			 */
+			'return': () => LocalizedString
+			/**
+			 * An error occurred during external OpenID login
+			 */
+			error: () => LocalizedString
+		}
+		mfa: {
+			/**
+			 * Two-factor authentication
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Use Authenticator app instead
+				 */
+				useAuthenticator: () => LocalizedString
+				/**
+				 * Use security key instead
+				 */
+				useWebauthn: () => LocalizedString
+				/**
+				 * Use recovery code instead
+				 */
+				useRecoveryCode: () => LocalizedString
+				/**
+				 * Use E-mail instead
+				 */
+				useEmail: () => LocalizedString
+			}
+			email: {
+				/**
+				 * Use code we sent to your e-mail to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					labels: {
+						/**
+						 * Code
+						 */
+						code: () => LocalizedString
+					}
+					controls: {
+						/**
+						 * Resend Code
+						 */
+						resendCode: () => LocalizedString
+					}
+				}
+			}
+			totp: {
+				/**
+				 * Use code from your authentication app and click button to proceed.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Enter Authenticator code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use authenticator code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			recoveryCode: {
+				/**
+				 * Enter one of active recovery codes and click button to log in.
+				 */
+				header: () => LocalizedString
+				form: {
+					fields: {
+						code: {
+							/**
+							 * Recovery code
+							 */
+							placeholder: () => LocalizedString
+						}
+					}
+					controls: {
+						/**
+						 * Use recovery code
+						 */
+						submit: () => LocalizedString
+					}
+				}
+			}
+			webauthn: {
+				/**
+				 * When you are ready to authenticate, press the button below.
+				 */
+				header: () => LocalizedString
+				controls: {
+					/**
+					 * Use security key
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Failed to read key. Please try again.
+					 */
+					error: () => LocalizedString
+				}
+			}
+		}
+	}
+	wizard: {
+		/**
+		 * Location setup completed
+		 */
+		completed: () => LocalizedString
+		configuration: {
+			/**
+			 * Location created
+			 */
+			successMessage: () => LocalizedString
+		}
+		welcome: {
+			/**
+			 * Welcome to location wizard!
+			 */
+			header: () => LocalizedString
+			/**
+			 * Before you start using VPN you need to setup your first location. When in doubt click on <React> icon.
+			 */
+			sub: () => LocalizedString
+			/**
+			 * Setup location
+			 */
+			button: () => LocalizedString
+		}
+		navigation: {
+			/**
+			 * Location setup
+			 */
+			top: () => LocalizedString
+			titles: {
+				/**
+				 * Location setup
+				 */
+				welcome: () => LocalizedString
+				/**
+				 * Chose Location setup
+				 */
+				choseNetworkSetup: () => LocalizedString
+				/**
+				 * Import existing location
+				 */
+				importConfig: () => LocalizedString
+				/**
+				 * Configure location
+				 */
+				manualConfig: () => LocalizedString
+				/**
+				 * Map imported devices
+				 */
+				mapDevices: () => LocalizedString
+			}
+			buttons: {
+				/**
+				 * Next
+				 */
+				next: () => LocalizedString
+				/**
+				 * Back
+				 */
+				back: () => LocalizedString
+			}
+		}
+		deviceMap: {
+			messages: {
+				/**
+				 * Devices added
+				 */
+				crateSuccess: () => LocalizedString
+				/**
+				 * Please fill marked fields.
+				 */
+				errorsInForm: () => LocalizedString
+			}
+			list: {
+				headers: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * IP
+					 */
+					deviceIP: () => LocalizedString
+					/**
+					 * User
+					 */
+					user: () => LocalizedString
+				}
+			}
+		}
+		wizardType: {
+			manual: {
+				/**
+				 * Manual Configuration
+				 */
+				title: () => LocalizedString
+				/**
+				 * Manual location configuration
+				 */
+				description: () => LocalizedString
+			}
+			'import': {
+				/**
+				 * Import From File
+				 */
+				title: () => LocalizedString
+				/**
+				 * Import from WireGuard config file
+				 */
+				description: () => LocalizedString
+			}
+			/**
+			 * Create location
+			 */
+			createNetwork: () => LocalizedString
+		}
+		common: {
+			/**
+			 * Select
+			 */
+			select: () => LocalizedString
+		}
+		locations: {
+			form: {
+				/**
+				 * Name
+				 */
+				name: () => LocalizedString
+				/**
+				 * IP address
+				 */
+				ip: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * File
+				 */
+				fileName: () => LocalizedString
+				/**
+				 * Select file
+				 */
+				selectFile: () => LocalizedString
+				messages: {
+					/**
+					 * Devices created
+					 */
+					devicesCreated: () => LocalizedString
+				}
+				validation: {
+					/**
+					 * Invalid address
+					 */
+					invalidAddress: () => LocalizedString
+				}
+			}
+		}
+	}
+	layout: {
+		select: {
+			/**
+			 * Add new +
+			 */
+			addNewOptionDefault: () => LocalizedString
+		}
+	}
+	redirectPage: {
+		/**
+		 * You have been logged in
+		 */
+		title: () => LocalizedString
+		/**
+		 * You will be redirected in a moment...
+		 */
+		subtitle: () => LocalizedString
+	}
+	enrollmentPage: {
+		/**
+		 * Enrollment
+		 */
+		title: () => LocalizedString
+		controls: {
+			/**
+			 * Restore default
+			 */
+			'default': () => LocalizedString
+			/**
+			 * Save changes
+			 */
+			save: () => LocalizedString
+		}
+		messages: {
+			edit: {
+				/**
+				 * Settings changed
+				 */
+				success: () => LocalizedString
+				/**
+				 * Save failed
+				 */
+				error: () => LocalizedString
+			}
+		}
+		/**
+		 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.
+		 */
+		messageBox: () => LocalizedString
+		settings: {
+			welcomeMessage: {
+				/**
+				 * Welcome message
+				 */
+				title: () => LocalizedString
+				/**
+				 * This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.
+				 */
+				messageBox: () => LocalizedString
+			}
+			vpnOptionality: {
+				/**
+				 * VPN set optionallity
+				 */
+				title: () => LocalizedString
+				select: {
+					options: {
+						/**
+						 * Optional
+						 */
+						optional: () => LocalizedString
+						/**
+						 * Mandatory
+						 */
+						mandatory: () => LocalizedString
+					}
+				}
+			}
+			welcomeEmail: {
+				/**
+				 * Welcome e-mail
+				 */
+				title: () => LocalizedString
+				subject: {
+					/**
+					 * E-mail subject
+					 */
+					label: () => LocalizedString
+				}
+				/**
+				 * This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.
+				 */
+				messageBox: () => LocalizedString
+				controls: {
+					/**
+					 * Same as welcome message
+					 */
+					duplicateWelcome: () => LocalizedString
+				}
+			}
+		}
+	}
+	supportPage: {
+		/**
+		 * Support
+		 */
+		title: () => LocalizedString
+		modals: {
+			confirmDataSend: {
+				/**
+				 * Send Support Data
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
+				 */
+				subTitle: () => LocalizedString
+				/**
+				 * Send support data
+				 */
+				submit: () => LocalizedString
+			}
+		}
+		debugDataCard: {
+			/**
+			 * Support data
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
 	
-       */
-      body: () => LocalizedString
-      /**
-       * Download support data
-       */
-      downloadSupportData: () => LocalizedString
-      /**
-       * Download logs
-       */
-      downloadLogs: () => LocalizedString
-      /**
-       * Send support data
-       */
-      sendMail: () => LocalizedString
-      /**
-       * Email sent
-       */
-      mailSent: () => LocalizedString
-      /**
-       * Error sending email
-       */
-      mailError: () => LocalizedString
-    }
-    supportCard: {
-      /**
-       * Support
-       */
-      title: () => LocalizedString
-      /**
-       * 
-    Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [docs.defguard.net](https://docs.defguard.net/)
+			 */
+			body: () => LocalizedString
+			/**
+			 * Download support data
+			 */
+			downloadSupportData: () => LocalizedString
+			/**
+			 * Download logs
+			 */
+			downloadLogs: () => LocalizedString
+			/**
+			 * Send support data
+			 */
+			sendMail: () => LocalizedString
+			/**
+			 * Email sent
+			 */
+			mailSent: () => LocalizedString
+			/**
+			 * Error sending email
+			 */
+			mailError: () => LocalizedString
+		}
+		supportCard: {
+			/**
+			 * Support
+			 */
+			title: () => LocalizedString
+			/**
+			 * 
+		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [docs.defguard.net](https://docs.defguard.net/)
 	
-    To submit:
-    * Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-    * Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+		To submit:
+		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
 	
-    Any other requests you can reach us at: support@defguard.net
+		Any other requests you can reach us at: support@defguard.net
 	
-       */
-      body: () => LocalizedString
-    }
-  }
-  devicesPage: {
-    /**
-     * Network Devices
-     */
-    title: () => LocalizedString
-    search: {
-      /**
-       * Find
-       */
-      placeholder: () => LocalizedString
-    }
-    bar: {
-      /**
-       * All devices
-       */
-      itemsCount: () => LocalizedString
-      filters: {
-      }
-      actions: {
-        /**
-         * Add new
-         */
-        addNewDevice: () => LocalizedString
-      }
-    }
-    list: {
-      columns: {
-        labels: {
-          /**
-           * Device Name
-           */
-          name: () => LocalizedString
-          /**
-           * Location
-           */
-          location: () => LocalizedString
-          /**
-           * IP Addresses
-           */
-          assignedIps: () => LocalizedString
-          /**
-           * Description
-           */
-          description: () => LocalizedString
-          /**
-           * Added By
-           */
-          addedBy: () => LocalizedString
-          /**
-           * Add Date
-           */
-          addedAt: () => LocalizedString
-          /**
-           * Edit
-           */
-          edit: () => LocalizedString
-        }
-      }
-      edit: {
-        actionLabels: {
-          /**
-           * View config
-           */
-          config: () => LocalizedString
-          /**
-           * Generate auth token
-           */
-          generateToken: () => LocalizedString
-        }
-      }
-    }
-  }
-  acl: {
-    messageBoxes: {
-      aclAliasKind: {
-        component: {
-          /**
-           * Component
-           */
-          name: () => LocalizedString
-          /**
-           * combined with manually configured destination fields in ACL
-           */
-          description: () => LocalizedString
-        }
-        destination: {
-          /**
-           * Destination
-           */
-          name: () => LocalizedString
-          /**
-           * translated into a separate set of firewall rules
-           */
-          description: () => LocalizedString
-        }
-      }
-      networkSelectionIndicatorsHelper: {
-        /**
-         * 
-                Location access **denied** by default - must be explicitly allowed
-                
-         */
-        denied: () => LocalizedString
-        /**
-         * 
-                Location access **allowed** by default - can be explicitly denied
-                
-         */
-        allowed: () => LocalizedString
-        /**
-         * 
-                Location access unmanaged (ACL disabled)
-                
-         */
-        unmanaged: () => LocalizedString
-      }
-    }
-    /**
-     * Access Control List
-     */
-    sharedTitle: () => LocalizedString
-    fieldsSelectionLabels: {
-      /**
-       * All ports
-       */
-      ports: () => LocalizedString
-      /**
-       * All protocols
-       */
-      protocols: () => LocalizedString
-    }
-    ruleStatus: {
-      /**
-       * New
-       */
-      'new': () => LocalizedString
-      /**
-       * Applied
-       */
-      applied: () => LocalizedString
-      /**
-       * Pending Change
-       */
-      modified: () => LocalizedString
-      /**
-       * Pending Deletion
-       */
-      deleted: () => LocalizedString
-      /**
-       * Enabled
-       */
-      enabled: () => LocalizedString
-      /**
-       * Disabled
-       */
-      disabled: () => LocalizedString
-      /**
-       * Expired
-       */
-      expired: () => LocalizedString
-    }
-    listPage: {
-      message: {
-        /**
-         * Change discarded
-         */
-        changeDiscarded: () => LocalizedString
-        /**
-         * Pending change added
-         */
-        changeAdded: () => LocalizedString
-        /**
-         * Failed to make change
-         */
-        changeFail: () => LocalizedString
-        /**
-         * Pending changes applied
-         */
-        applyChanges: () => LocalizedString
-        /**
-         * Failed to apply changes
-         */
-        applyFail: () => LocalizedString
-      }
-      rules: {
-        modals: {
-          applyConfirm: {
-            /**
-             * Deploy pending changes
-             */
-            title: () => LocalizedString
-            /**
-             * {count} changes will be deployed
-             */
-            subtitle: (arg: { count: number }) => LocalizedString
-            /**
-             * Deploy changes
-             */
-            submit: () => LocalizedString
-          }
-          filterGroupsModal: {
-            groupHeaders: {
-              /**
-               * Aliases
-               */
-              alias: () => LocalizedString
-              /**
-               * Locations
-               */
-              location: () => LocalizedString
-              /**
-               * Groups
-               */
-              groups: () => LocalizedString
-              /**
-               * Status
-               */
-              status: () => LocalizedString
-            }
-            /**
-             * Save Filter
-             */
-            submit: () => LocalizedString
-          }
-        }
-        listControls: {
-          /**
-           * Find name
-           */
-          searchPlaceholder: () => LocalizedString
-          /**
-           * Add new
-           */
-          addNew: () => LocalizedString
-          filter: {
-            /**
-             * Filter
-             */
-            nothingApplied: () => LocalizedString
-            /**
-             * Filters ({count})
-             */
-            applied: (arg: { count: number }) => LocalizedString
-          }
-          apply: {
-            /**
-             * Deploy pending changes
-             */
-            noChanges: () => LocalizedString
-            /**
-             * Deploy pending changes ({count})
-             */
-            all: (arg: { count: number }) => LocalizedString
-            /**
-             * Deploy selected changes ({count})
-             */
-            selective: (arg: { count: number }) => LocalizedString
-          }
-        }
-        list: {
-          pendingList: {
-            /**
-             * Pending Changes
-             */
-            title: () => LocalizedString
-            /**
-             * No pending changes
-             */
-            noData: () => LocalizedString
-            /**
-             * No pending changes found
-             */
-            noDataSearch: () => LocalizedString
-          }
-          deployedList: {
-            /**
-             * Deployed Rules
-             */
-            title: () => LocalizedString
-            /**
-             * No deployed rules
-             */
-            noData: () => LocalizedString
-            /**
-             * No deployed rules found
-             */
-            noDataSearch: () => LocalizedString
-          }
-          headers: {
-            /**
-             * Rule name
-             */
-            name: () => LocalizedString
-            /**
-             * ID
-             */
-            id: () => LocalizedString
-            /**
-             * Destination
-             */
-            destination: () => LocalizedString
-            /**
-             * Allowed
-             */
-            allowed: () => LocalizedString
-            /**
-             * Denied
-             */
-            denied: () => LocalizedString
-            /**
-             * Locations
-             */
-            locations: () => LocalizedString
-            /**
-             * Status
-             */
-            status: () => LocalizedString
-            /**
-             * Edit
-             */
-            edit: () => LocalizedString
-          }
-          tags: {
-            /**
-             * All
-             */
-            all: () => LocalizedString
-            /**
-             * All denied
-             */
-            allDenied: () => LocalizedString
-            /**
-             * All allowed
-             */
-            allAllowed: () => LocalizedString
-          }
-          editMenu: {
-            /**
-             * Discard Changes
-             */
-            discard: () => LocalizedString
-            /**
-             * Mark for Deletion
-             */
-            'delete': () => LocalizedString
-          }
-        }
-      }
-      aliases: {
-        message: {
-          /**
-           * Pending changes applied
-           */
-          rulesApply: () => LocalizedString
-          /**
-           * Failed to apply changes
-           */
-          rulesApplyFail: () => LocalizedString
-          /**
-           * Alias deleted
-           */
-          aliasDeleted: () => LocalizedString
-          /**
-           * Alias deletion failed
-           */
-          aliasDeleteFail: () => LocalizedString
-        }
-        modals: {
-          applyConfirm: {
-            /**
-             * Confirm Alias Deployment
-             */
-            title: () => LocalizedString
-            /**
-             * The updated aliases will modify the following rule(s) currently deployed on the gateway.
-          Please ensure these changes are intended before proceeding.
-             */
-            message: () => LocalizedString
-            /**
-             * Affected Rules
-             */
-            listLabel: () => LocalizedString
-            /**
-             * Deploy Changes
-             */
-            submit: () => LocalizedString
-          }
-          deleteBlock: {
-            /**
-             * Deletion blocked
-             */
-            title: () => LocalizedString
-            /**
-             * 
-          This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
-      	
-             */
-            content: (arg: { rulesCount: number }) => LocalizedString
-          }
-          filterGroupsModal: {
-            groupLabels: {
-              /**
-               * Rules
-               */
-              rules: () => LocalizedString
-              /**
-               * Status
-               */
-              status: () => LocalizedString
-            }
-          }
-          create: {
-            labels: {
-              /**
-               * Alias name
-               */
-              name: () => LocalizedString
-              /**
-               * Alias kind
-               */
-              kind: () => LocalizedString
-              /**
-               * IPv4/6 CIDR range address
-               */
-              ip: () => LocalizedString
-              /**
-               * Ports or Port Ranges
-               */
-              ports: () => LocalizedString
-              /**
-               * Protocols
-               */
-              protocols: () => LocalizedString
-            }
-            placeholders: {
-              /**
-               * All Protocols
-               */
-              protocols: () => LocalizedString
-              /**
-               * All Ports
-               */
-              ports: () => LocalizedString
-              /**
-               * All IPs
-               */
-              ip: () => LocalizedString
-            }
-            kindOptions: {
-              /**
-               * Destination
-               */
-              destination: () => LocalizedString
-              /**
-               * Component
-               */
-              component: () => LocalizedString
-            }
-            controls: {
-              /**
-               * Cancel
-               */
-              cancel: () => LocalizedString
-              /**
-               * Edit Alias
-               */
-              edit: () => LocalizedString
-              /**
-               * Create Alias
-               */
-              create: () => LocalizedString
-            }
-            messages: {
-              /**
-               * Alias modified
-               */
-              modified: () => LocalizedString
-              /**
-               * Alias created
-               */
-              created: () => LocalizedString
-            }
-          }
-        }
-        listControls: {
-          /**
-           * Find name
-           */
-          searchPlaceholder: () => LocalizedString
-          /**
-           * Add new
-           */
-          addNew: () => LocalizedString
-          filter: {
-            /**
-             * Filter
-             */
-            nothingApplied: () => LocalizedString
-            /**
-             * Filters ({count})
-             */
-            applied: (arg: { count: number }) => LocalizedString
-          }
-          apply: {
-            /**
-             * Deploy pending changes
-             */
-            noChanges: () => LocalizedString
-            /**
-             * Deploy pending changes ({count})
-             */
-            all: (arg: { count: number }) => LocalizedString
-            /**
-             * Deploy selected changes ({count})
-             */
-            selective: (arg: { count: number }) => LocalizedString
-          }
-        }
-        list: {
-          pendingList: {
-            /**
-             * Pending Changes
-             */
-            title: () => LocalizedString
-            /**
-             * No pending changes
-             */
-            noData: () => LocalizedString
-            /**
-             * No pending changes found
-             */
-            noDataSearch: () => LocalizedString
-          }
-          deployedList: {
-            /**
-             * Deployed Aliases
-             */
-            title: () => LocalizedString
-            /**
-             * No deployed aliases
-             */
-            noData: () => LocalizedString
-            /**
-             * No deployed aliases found
-             */
-            noDataSearch: () => LocalizedString
-          }
-          headers: {
-            /**
-             * ID
-             */
-            id: () => LocalizedString
-            /**
-             * Alias name
-             */
-            name: () => LocalizedString
-            /**
-             * Alias kind
-             */
-            kind: () => LocalizedString
-            /**
-             * Ipv4/6 CIDR range address
-             */
-            ip: () => LocalizedString
-            /**
-             * Ports
-             */
-            ports: () => LocalizedString
-            /**
-             * Protocols
-             */
-            protocols: () => LocalizedString
-            /**
-             * Status
-             */
-            status: () => LocalizedString
-            /**
-             * Edit
-             */
-            edit: () => LocalizedString
-            /**
-             * Rules
-             */
-            rules: () => LocalizedString
-          }
-          status: {
-            /**
-             * Applied
-             */
-            applied: () => LocalizedString
-            /**
-             * Modified
-             */
-            changed: () => LocalizedString
-          }
-          tags: {
-            /**
-             * All denied
-             */
-            allDenied: () => LocalizedString
-            /**
-             * All allowed
-             */
-            allAllowed: () => LocalizedString
-          }
-          editMenu: {
-            /**
-             * Discard changes
-             */
-            discardChanges: () => LocalizedString
-            /**
-             * Delete alias
-             */
-            'delete': () => LocalizedString
-          }
-        }
-      }
-    }
-    createPage: {
-      formError: {
-        /**
-         * Conflicting members
-         */
-        allowDenyConflict: () => LocalizedString
-        /**
-         * Must configure some allowed users, groups or devices
-         */
-        allowNotConfigured: () => LocalizedString
-      }
-      infoBox: {
-        /**
-         * 
-              Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
-         */
-        allowInstructions: () => LocalizedString
-        /**
-         * 
-              Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
-         */
-        destinationInstructions: () => LocalizedString
-      }
-      message: {
-        /**
-         * Rule created and added to pending changes
-         */
-        create: () => LocalizedString
-        /**
-         * Rule creation failed
-         */
-        createFail: () => LocalizedString
-      }
-      headers: {
-        /**
-         * Rule
-         */
-        rule: () => LocalizedString
-        /**
-         * Create Rule
-         */
-        createRule: () => LocalizedString
-        /**
-         * Allowed Users/Groups/Devices
-         */
-        allowed: () => LocalizedString
-        /**
-         * Denied Users/Groups/Devices
-         */
-        denied: () => LocalizedString
-        /**
-         * Destination
-         */
-        destination: () => LocalizedString
-      }
-      labels: {
-        /**
-         * Rule name
-         */
-        name: () => LocalizedString
-        /**
-         * Priority
-         */
-        priority: () => LocalizedString
-        /**
-         * Status
-         */
-        status: () => LocalizedString
-        /**
-         * Locations
-         */
-        locations: () => LocalizedString
-        /**
-         * Allow all users
-         */
-        allowAllUsers: () => LocalizedString
-        /**
-         * Include all locations
-         */
-        allowAllNetworks: () => LocalizedString
-        /**
-         * Allow all network devices
-         */
-        allowAllNetworkDevices: () => LocalizedString
-        /**
-         * Deny all users
-         */
-        denyAllUsers: () => LocalizedString
-        /**
-         * Deny all network devices
-         */
-        denyAllNetworkDevices: () => LocalizedString
-        /**
-         * Users
-         */
-        users: () => LocalizedString
-        /**
-         * Groups
-         */
-        groups: () => LocalizedString
-        /**
-         * Network devices
-         */
-        devices: () => LocalizedString
-        /**
-         * Protocols
-         */
-        protocols: () => LocalizedString
-        /**
-         * IPv4/6 CIDR range or address
-         */
-        manualIp: () => LocalizedString
-        /**
-         * Ports
-         */
-        ports: () => LocalizedString
-        /**
-         * Aliases
-         */
-        aliases: () => LocalizedString
-        /**
-         * Expiration Date
-         */
-        expires: () => LocalizedString
-      }
-      placeholders: {
-        /**
-         * All protocols
-         */
-        allProtocols: () => LocalizedString
-        /**
-         * All IPs
-         */
-        allIps: () => LocalizedString
-      }
-    }
-  }
-  enums: {
-    auditEventType: {
-      /**
-       * User login
-       */
-      user_login: () => LocalizedString
-      /**
-       * User logout
-       */
-      user_logout: () => LocalizedString
-      /**
-       * User added
-       */
-      user_added: () => LocalizedString
-      /**
-       * User removed
-       */
-      user_removed: () => LocalizedString
-      /**
-       * User modified
-       */
-      user_modified: () => LocalizedString
-      /**
-       * MFA enabled
-       */
-      mfa_enabled: () => LocalizedString
-      /**
-       * MFA disabled
-       */
-      mfa_disabled: () => LocalizedString
-      /**
-       * MFA TOTP enabled
-       */
-      mfa_totp_enabled: () => LocalizedString
-      /**
-       * MFA TOTP disabled
-       */
-      mfa_totp_disabled: () => LocalizedString
-      /**
-       * MFA email enabled
-       */
-      mfa_email_enabled: () => LocalizedString
-      /**
-       * MFA email disabled
-       */
-      mfa_email_disabled: () => LocalizedString
-      /**
-       * MFA security key added
-       */
-      mfa_security_key_added: () => LocalizedString
-      /**
-       * MFA security key removed
-       */
-      mfa_security_key_removed: () => LocalizedString
-      /**
-       * Device added
-       */
-      device_added: () => LocalizedString
-      /**
-       * Device removed
-       */
-      device_removed: () => LocalizedString
-      /**
-       * Device modified
-       */
-      device_modified: () => LocalizedString
-      /**
-       * Network device added
-       */
-      network_device_added: () => LocalizedString
-      /**
-       * Network device removed
-       */
-      network_device_removed: () => LocalizedString
-      /**
-       * Network device modified
-       */
-      network_device_modified: () => LocalizedString
-    }
-    auditModule: {
-      /**
-       * Defguard
-       */
-      defguard: () => LocalizedString
-      /**
-       * Client
-       */
-      client: () => LocalizedString
-      /**
-       * Enrollment
-       */
-      enrollment: () => LocalizedString
-      /**
-       * VPN
-       */
-      vpn: () => LocalizedString
-    }
-  }
+			 */
+			body: () => LocalizedString
+		}
+	}
+	devicesPage: {
+		/**
+		 * Network Devices
+		 */
+		title: () => LocalizedString
+		search: {
+			/**
+			 * Find
+			 */
+			placeholder: () => LocalizedString
+		}
+		bar: {
+			/**
+			 * All devices
+			 */
+			itemsCount: () => LocalizedString
+			filters: {
+			}
+			actions: {
+				/**
+				 * Add new
+				 */
+				addNewDevice: () => LocalizedString
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * Device Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * IP Addresses
+					 */
+					assignedIps: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					/**
+					 * Added By
+					 */
+					addedBy: () => LocalizedString
+					/**
+					 * Add Date
+					 */
+					addedAt: () => LocalizedString
+					/**
+					 * Edit
+					 */
+					edit: () => LocalizedString
+				}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * View config
+					 */
+					config: () => LocalizedString
+					/**
+					 * Generate auth token
+					 */
+					generateToken: () => LocalizedString
+				}
+			}
+		}
+	}
+	acl: {
+		messageBoxes: {
+			aclAliasKind: {
+				component: {
+					/**
+					 * Component
+					 */
+					name: () => LocalizedString
+					/**
+					 * combined with manually configured destination fields in ACL
+					 */
+					description: () => LocalizedString
+				}
+				destination: {
+					/**
+					 * Destination
+					 */
+					name: () => LocalizedString
+					/**
+					 * translated into a separate set of firewall rules
+					 */
+					description: () => LocalizedString
+				}
+			}
+			networkSelectionIndicatorsHelper: {
+				/**
+				 * 
+			          Location access **denied** by default - must be explicitly allowed
+			          
+				 */
+				denied: () => LocalizedString
+				/**
+				 * 
+			          Location access **allowed** by default - can be explicitly denied
+			          
+				 */
+				allowed: () => LocalizedString
+				/**
+				 * 
+			          Location access unmanaged (ACL disabled)
+			          
+				 */
+				unmanaged: () => LocalizedString
+			}
+		}
+		/**
+		 * Access Control List
+		 */
+		sharedTitle: () => LocalizedString
+		fieldsSelectionLabels: {
+			/**
+			 * All ports
+			 */
+			ports: () => LocalizedString
+			/**
+			 * All protocols
+			 */
+			protocols: () => LocalizedString
+		}
+		ruleStatus: {
+			/**
+			 * New
+			 */
+			'new': () => LocalizedString
+			/**
+			 * Applied
+			 */
+			applied: () => LocalizedString
+			/**
+			 * Pending Change
+			 */
+			modified: () => LocalizedString
+			/**
+			 * Pending Deletion
+			 */
+			deleted: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+			/**
+			 * Expired
+			 */
+			expired: () => LocalizedString
+		}
+		listPage: {
+			message: {
+				/**
+				 * Change discarded
+				 */
+				changeDiscarded: () => LocalizedString
+				/**
+				 * Pending change added
+				 */
+				changeAdded: () => LocalizedString
+				/**
+				 * Failed to make change
+				 */
+				changeFail: () => LocalizedString
+				/**
+				 * Pending changes applied
+				 */
+				applyChanges: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				applyFail: () => LocalizedString
+			}
+			rules: {
+				modals: {
+					applyConfirm: {
+						/**
+						 * Deploy pending changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * {count} changes will be deployed
+						 */
+						subtitle: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy changes
+						 */
+						submit: () => LocalizedString
+					}
+					filterGroupsModal: {
+						groupHeaders: {
+							/**
+							 * Aliases
+							 */
+							alias: () => LocalizedString
+							/**
+							 * Locations
+							 */
+							location: () => LocalizedString
+							/**
+							 * Groups
+							 */
+							groups: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+						/**
+						 * Save Filter
+						 */
+						submit: () => LocalizedString
+					}
+				}
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Rules
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed rules
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed rules found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * Rule name
+						 */
+						name: () => LocalizedString
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Destination
+						 */
+						destination: () => LocalizedString
+						/**
+						 * Allowed
+						 */
+						allowed: () => LocalizedString
+						/**
+						 * Denied
+						 */
+						denied: () => LocalizedString
+						/**
+						 * Locations
+						 */
+						locations: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All
+						 */
+						all: () => LocalizedString
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard Changes
+						 */
+						discard: () => LocalizedString
+						/**
+						 * Mark for Deletion
+						 */
+						'delete': () => LocalizedString
+					}
+				}
+			}
+			aliases: {
+				message: {
+					/**
+					 * Pending changes applied
+					 */
+					rulesApply: () => LocalizedString
+					/**
+					 * Failed to apply changes
+					 */
+					rulesApplyFail: () => LocalizedString
+					/**
+					 * Alias deleted
+					 */
+					aliasDeleted: () => LocalizedString
+					/**
+					 * Alias deletion failed
+					 */
+					aliasDeleteFail: () => LocalizedString
+				}
+				modals: {
+					applyConfirm: {
+						/**
+						 * Confirm Alias Deployment
+						 */
+						title: () => LocalizedString
+						/**
+						 * The updated aliases will modify the following rule(s) currently deployed on the gateway.
+					Please ensure these changes are intended before proceeding.
+						 */
+						message: () => LocalizedString
+						/**
+						 * Affected Rules
+						 */
+						listLabel: () => LocalizedString
+						/**
+						 * Deploy Changes
+						 */
+						submit: () => LocalizedString
+					}
+					deleteBlock: {
+						/**
+						 * Deletion blocked
+						 */
+						title: () => LocalizedString
+						/**
+						 * 
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
+				
+						 */
+						content: (arg: { rulesCount: number }) => LocalizedString
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * Rules
+							 */
+							rules: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+					}
+					create: {
+						labels: {
+							/**
+							 * Alias name
+							 */
+							name: () => LocalizedString
+							/**
+							 * Alias kind
+							 */
+							kind: () => LocalizedString
+							/**
+							 * IPv4/6 CIDR range address
+							 */
+							ip: () => LocalizedString
+							/**
+							 * Ports or Port Ranges
+							 */
+							ports: () => LocalizedString
+							/**
+							 * Protocols
+							 */
+							protocols: () => LocalizedString
+						}
+						placeholders: {
+							/**
+							 * All Protocols
+							 */
+							protocols: () => LocalizedString
+							/**
+							 * All Ports
+							 */
+							ports: () => LocalizedString
+							/**
+							 * All IPs
+							 */
+							ip: () => LocalizedString
+						}
+						kindOptions: {
+							/**
+							 * Destination
+							 */
+							destination: () => LocalizedString
+							/**
+							 * Component
+							 */
+							component: () => LocalizedString
+						}
+						controls: {
+							/**
+							 * Cancel
+							 */
+							cancel: () => LocalizedString
+							/**
+							 * Edit Alias
+							 */
+							edit: () => LocalizedString
+							/**
+							 * Create Alias
+							 */
+							create: () => LocalizedString
+						}
+						messages: {
+							/**
+							 * Alias modified
+							 */
+							modified: () => LocalizedString
+							/**
+							 * Alias created
+							 */
+							created: () => LocalizedString
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Aliases
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed aliases
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed aliases found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Alias name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Alias kind
+						 */
+						kind: () => LocalizedString
+						/**
+						 * Ipv4/6 CIDR range address
+						 */
+						ip: () => LocalizedString
+						/**
+						 * Ports
+						 */
+						ports: () => LocalizedString
+						/**
+						 * Protocols
+						 */
+						protocols: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+						/**
+						 * Rules
+						 */
+						rules: () => LocalizedString
+					}
+					status: {
+						/**
+						 * Applied
+						 */
+						applied: () => LocalizedString
+						/**
+						 * Modified
+						 */
+						changed: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard changes
+						 */
+						discardChanges: () => LocalizedString
+						/**
+						 * Delete alias
+						 */
+						'delete': () => LocalizedString
+					}
+				}
+			}
+		}
+		createPage: {
+			formError: {
+				/**
+				 * Conflicting members
+				 */
+				allowDenyConflict: () => LocalizedString
+				/**
+				 * Must configure some allowed users, groups or devices
+				 */
+				allowNotConfigured: () => LocalizedString
+			}
+			infoBox: {
+				/**
+				 * 
+			        Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+				 */
+				allowInstructions: () => LocalizedString
+				/**
+				 * 
+			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+				 */
+				destinationInstructions: () => LocalizedString
+			}
+			message: {
+				/**
+				 * Rule created and added to pending changes
+				 */
+				create: () => LocalizedString
+				/**
+				 * Rule creation failed
+				 */
+				createFail: () => LocalizedString
+			}
+			headers: {
+				/**
+				 * Rule
+				 */
+				rule: () => LocalizedString
+				/**
+				 * Create Rule
+				 */
+				createRule: () => LocalizedString
+				/**
+				 * Allowed Users/Groups/Devices
+				 */
+				allowed: () => LocalizedString
+				/**
+				 * Denied Users/Groups/Devices
+				 */
+				denied: () => LocalizedString
+				/**
+				 * Destination
+				 */
+				destination: () => LocalizedString
+			}
+			labels: {
+				/**
+				 * Rule name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Priority
+				 */
+				priority: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Locations
+				 */
+				locations: () => LocalizedString
+				/**
+				 * Allow all users
+				 */
+				allowAllUsers: () => LocalizedString
+				/**
+				 * Include all locations
+				 */
+				allowAllNetworks: () => LocalizedString
+				/**
+				 * Allow all network devices
+				 */
+				allowAllNetworkDevices: () => LocalizedString
+				/**
+				 * Deny all users
+				 */
+				denyAllUsers: () => LocalizedString
+				/**
+				 * Deny all network devices
+				 */
+				denyAllNetworkDevices: () => LocalizedString
+				/**
+				 * Users
+				 */
+				users: () => LocalizedString
+				/**
+				 * Groups
+				 */
+				groups: () => LocalizedString
+				/**
+				 * Network devices
+				 */
+				devices: () => LocalizedString
+				/**
+				 * Protocols
+				 */
+				protocols: () => LocalizedString
+				/**
+				 * IPv4/6 CIDR range or address
+				 */
+				manualIp: () => LocalizedString
+				/**
+				 * Ports
+				 */
+				ports: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+				/**
+				 * Expiration Date
+				 */
+				expires: () => LocalizedString
+			}
+			placeholders: {
+				/**
+				 * All protocols
+				 */
+				allProtocols: () => LocalizedString
+				/**
+				 * All IPs
+				 */
+				allIps: () => LocalizedString
+			}
+		}
+	}
+	enums: {
+		auditEventType: {
+			/**
+			 * User login
+			 */
+			user_login: () => LocalizedString
+			/**
+			 * User logout
+			 */
+			user_logout: () => LocalizedString
+			/**
+			 * User added
+			 */
+			user_added: () => LocalizedString
+			/**
+			 * User removed
+			 */
+			user_removed: () => LocalizedString
+			/**
+			 * User modified
+			 */
+			user_modified: () => LocalizedString
+			/**
+			 * MFA enabled
+			 */
+			mfa_enabled: () => LocalizedString
+			/**
+			 * MFA disabled
+			 */
+			mfa_disabled: () => LocalizedString
+			/**
+			 * MFA TOTP enabled
+			 */
+			mfa_totp_enabled: () => LocalizedString
+			/**
+			 * MFA TOTP disabled
+			 */
+			mfa_totp_disabled: () => LocalizedString
+			/**
+			 * MFA email enabled
+			 */
+			mfa_email_enabled: () => LocalizedString
+			/**
+			 * MFA email disabled
+			 */
+			mfa_email_disabled: () => LocalizedString
+			/**
+			 * MFA security key added
+			 */
+			mfa_security_key_added: () => LocalizedString
+			/**
+			 * MFA security key removed
+			 */
+			mfa_security_key_removed: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			device_added: () => LocalizedString
+			/**
+			 * Device removed
+			 */
+			device_removed: () => LocalizedString
+			/**
+			 * Device modified
+			 */
+			device_modified: () => LocalizedString
+			/**
+			 * Network device added
+			 */
+			network_device_added: () => LocalizedString
+			/**
+			 * Network device removed
+			 */
+			network_device_removed: () => LocalizedString
+			/**
+			 * Network device modified
+			 */
+			network_device_modified: () => LocalizedString
+		}
+		auditModule: {
+			/**
+			 * Defguard
+			 */
+			defguard: () => LocalizedString
+			/**
+			 * Client
+			 */
+			client: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * VPN
+			 */
+			vpn: () => LocalizedString
+		}
+	}
 }
 
 export type Formatters = {}
