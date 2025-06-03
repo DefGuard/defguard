@@ -62,6 +62,8 @@ services:
 
   vector:
     image: timberio/vector:latest-alpine
+    profiles:
+      - observability
     container_name: vector
     volumes:
       - ./configs/vector.toml:/etc/vector/vector.toml:ro
@@ -73,6 +75,8 @@ services:
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.14.0
+    profiles:
+      - observability
     ports:
       - "8002:8002"
     volumes:

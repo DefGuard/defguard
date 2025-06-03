@@ -21,7 +21,7 @@ pub async fn run_audit_stream_manager(
     audit_messages_rx: Receiver<Bytes>,
 ) -> anyhow::Result<()> {
     loop {
-        let mut handles_set = JoinSet::<()>::new();
+        let mut handles = JoinSet::<()>::new();
         let cancel_token = Arc::new(CancellationToken::new());
         if is_enterprise_enabled() {
             let streams = AuditStream::all(&pool).await?;
@@ -33,30 +33,24 @@ pub async fn run_audit_stream_manager(
                                 stream_config,
                                 audit_stream.name.clone(),
                             );
-                            if let Err(e) = run_http_stream_task(
+                            handles.spawn(run_http_stream_task(
                                 http_config,
-                                &audit_messages_rx,
+                                audit_messages_rx.resubscribe(),
                                 cancel_token.clone(),
-                                &mut handles_set,
-                            ) {
-                                error!("Audit stream {0} failed to start vector http task. Reason: {e}", &audit_stream.name);
-                            }
+                            ));
                         }
                         AuditStreamConfig::LogstashHttp(stream_config) => {
                             let http_config = HttpAuditStreamConfig::from_logstash(
                                 stream_config,
                                 audit_stream.name.clone(),
                             );
-                            if let Err(e) = run_http_stream_task(
+                            handles.spawn(run_http_stream_task(
                                 http_config,
-                                &audit_messages_rx,
+                                audit_messages_rx.resubscribe(),
                                 cancel_token.clone(),
-                                &mut handles_set,
-                            ) {
-                                error!("Audit stream {0} failed to start logstash http task. Reason: {e}", &audit_stream.name);
-                            }
+                            ));
                         }
-                    }
+                    };
                 } else {
                     error!(
                         "Failed to deserialize config for audit stream {0}",
@@ -86,7 +80,7 @@ pub async fn run_audit_stream_manager(
             }
         }
         cancel_token.cancel();
-        while (handles_set.join_next().await).is_some() {}
+        handles.join_all().await;
         debug!("All audit streaming tasks closed.");
     }
 }
