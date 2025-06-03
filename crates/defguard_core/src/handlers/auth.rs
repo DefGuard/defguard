@@ -305,17 +305,29 @@ pub(crate) async fn authenticate(
 /// Logout - forget the session cookie.
 pub async fn logout(
     cookies: CookieJar,
-    session_info: SessionInfo,
-    context: ApiRequestContext,
+    session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     // remove auth cookie
     let cookies = cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
+    let user = User::find_by_id(&appstate.pool, session.user_id)
+        .await?
+        .ok_or_else(|| WebError::BadRequest(format!("User {} does not exist", session.user_id)))?;
     // remove stored session
-    session_info.session.delete(&appstate.pool).await?;
+    session.delete(&appstate.pool).await?;
 
     appstate.send_event(ApiEvent {
-        context,
+        // User may not be fully authenticated so we can't use
+        // context extractor in this handler since it requires
+        // the `SessionInfo` object.
+        context: ApiRequestContext::new(
+            user.id,
+            user.username,
+            insecure_ip,
+            user_agent.to_string(),
+        ),
         kind: ApiEventType::UserLogout,
     })?;
 
