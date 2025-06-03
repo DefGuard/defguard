@@ -12,6 +12,7 @@ use crate::{
         User,
     },
     enterprise::ldap::utils::ldap_change_password,
+    events::BidiStreamEvent,
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
@@ -23,17 +24,23 @@ use crate::{
 pub(super) struct PasswordResetServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
-    // ldap_feature_active: bool,
+    #[allow(dead_code)]
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(pool: PgPool, mail_tx: UnboundedSender<Mail>) -> Self {
+    pub fn new(
+        pool: PgPool,
+        mail_tx: UnboundedSender<Mail>,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    ) -> Self {
         // FIXME: check if LDAP feature is enabled
         // let ldap_feature_active = true;
         Self {
             pool,
             mail_tx,
+            bidi_event_tx,
             // ldap_feature_active,
         }
     }

@@ -14,6 +14,7 @@ use defguard_core::{
         User, UserDetails,
     },
     enterprise::license::{set_cached_license, License},
+    events::ApiEvent,
     grpc::{GatewayMap, WorkerState},
     handlers::Auth,
     mail::Mail,
@@ -143,6 +144,7 @@ pub(crate) async fn make_base_client(
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {
+    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -194,9 +196,13 @@ pub(crate) async fn make_base_client(
         gateway_state,
         pool,
         failed_logins,
+        api_event_tx,
     );
 
-    (TestClient::new(webapp, listener), client_state)
+    (
+        TestClient::new(webapp, listener, api_event_rx),
+        client_state,
+    )
 }
 
 /// Make an instance url based on the listener

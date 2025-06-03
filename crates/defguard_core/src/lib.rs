@@ -29,7 +29,9 @@ use enterprise::handlers::{
         test_dirsync_connection,
     },
 };
+use events::ApiEvent;
 use handlers::{
+    audit_log::get_audit_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -138,6 +140,7 @@ pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
+pub mod events;
 pub mod globals;
 pub mod grpc;
 pub mod handlers;
@@ -317,6 +320,7 @@ pub fn build_webapp(
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    event_tx: UnboundedSender<ApiEvent>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -442,7 +446,9 @@ pub fn build_webapp(
             .route("/webhook/{id}", delete(delete_webhook))
             .route("/webhook/{id}", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // audit log
+            .route("/audit_log", get(get_audit_log_events)),
     );
 
     // Enterprise features
@@ -582,6 +588,7 @@ pub fn build_webapp(
             wireguard_tx,
             mail_tx,
             failed_logins,
+            event_tx,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -608,6 +615,7 @@ pub async fn run_web_server(
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    event_tx: UnboundedSender<ApiEvent>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -618,6 +626,7 @@ pub async fn run_web_server(
         gateway_state,
         pool,
         failed_logins,
+        event_tx,
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);

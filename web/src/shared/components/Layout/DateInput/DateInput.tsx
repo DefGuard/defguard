@@ -6,6 +6,8 @@ import { forwardRef, HTMLAttributes } from 'react';
 import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
 import { FieldError } from '../../../defguard-ui/components/Layout/FieldError/FieldError';
+import { InteractionBox } from '../../../defguard-ui/components/Layout/InteractionBox/InteractionBox';
+import SvgIconX from '../../../defguard-ui/components/svg/IconX';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { DateInputProps } from './types';
 
@@ -16,7 +18,7 @@ const pickerToOutput = (value: Date | null): string | null => {
 
 const inputToPicker = (value: string | null): Date | null => {
   if (typeof value === 'string') {
-    return dayjs(value).utc().toDate();
+    return dayjs.utc(value).local().toDate();
   }
   return null;
 };
@@ -28,6 +30,7 @@ export const DateInput = ({
   errorMessage,
   disabled = false,
   showTimeSelection = false,
+  clearable = false,
 }: DateInputProps) => {
   const showError = !disabled ? isPresent(errorMessage) : false;
 
@@ -50,6 +53,10 @@ export const DateInput = ({
             }}
             customInput={
               <DisplayField
+                clearable={clearable}
+                onClear={() => {
+                  onChange(null);
+                }}
                 selected={selected}
                 className={clsx({
                   disabled,
@@ -61,6 +68,7 @@ export const DateInput = ({
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             renderDayContents={(day, _) => <CustomDay day={day} />}
             closeOnScroll
+            portalId="datepicker-root"
           />
           {showTimeSelection && (
             <DatePicker
@@ -85,6 +93,7 @@ export const DateInput = ({
               timeFormat="HH:mm"
               timeIntervals={15}
               closeOnScroll
+              portalId="datepicker-root"
             />
           )}
         </div>
@@ -160,17 +169,34 @@ const CustomHeader = ({
 type DisplayProps = {
   selected?: string | null;
   displayFormat?: string;
+  clearable?: boolean;
+  onClear?: () => void;
 } & HTMLAttributes<HTMLButtonElement>;
 
 const DisplayField = forwardRef<HTMLButtonElement, DisplayProps>(
-  ({ selected, className, displayFormat, ...rest }, ref) => {
+  ({ selected, className, displayFormat, onClear, clearable = false, ...rest }, ref) => {
     return (
-      <div className={clsx('date-input-container', className)}>
+      <div
+        className={clsx('date-input-container', className, {
+          clearable: clearable,
+        })}
+      >
         <button {...rest} className="date-input" ref={ref} type="button">
           {selected !== null && (
             <span>{dayjs(selected).format(displayFormat ?? 'L')}</span>
           )}
         </button>
+        {clearable && isPresent(onClear) && selected !== null && (
+          <InteractionBox
+            preventDefault
+            stopPropagation
+            onClick={() => {
+              onClear?.();
+            }}
+          >
+            <SvgIconX />
+          </InteractionBox>
+        )}
       </div>
     );
   },

@@ -29,6 +29,7 @@ use crate::{
         limits::update_counts,
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     mail::Mail,
     server_config, templates,
 };
@@ -275,6 +276,7 @@ pub async fn get_user(
 pub async fn add_user(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
 ) -> ApiResult {
@@ -338,6 +340,12 @@ pub async fn add_user(
     if !user_info.enrolled {
         warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
     }
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::UserAdded {
+            username: user.username,
+        },
+    })?;
     Ok(ApiResponse {
         json: json!(&user_info),
         status: StatusCode::CREATED,

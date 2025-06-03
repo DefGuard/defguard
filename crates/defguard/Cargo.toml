@@ -10,6 +10,8 @@ rust-version.workspace = true
 [dependencies]
 # internal crates
 defguard_core = { workspace = true }
+defguard_event_router = { workspace = true }
+defguard_event_logger = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }

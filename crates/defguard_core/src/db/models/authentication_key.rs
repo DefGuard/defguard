@@ -6,7 +6,7 @@ use crate::db::{Id, NoId};
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum AuthenticationKeyType {
+pub enum AuthenticationKeyType {
     Ssh,
     Gpg,
 }
