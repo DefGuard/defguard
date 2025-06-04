@@ -123,6 +123,18 @@ pub enum ApiEventType {
         location_id: Id,
         location: String,
     },
+    AuditStreamCreated {
+        stream_id: Id,
+        stream_name: String,
+    },
+    AuditStreamModified {
+        stream_id: Id,
+        stream_name: String,
+    },
+    AuditStreamRemoved {
+        stream_id: Id,
+        stream_name: String,
+    },
 }
 
 /// Events from Web API

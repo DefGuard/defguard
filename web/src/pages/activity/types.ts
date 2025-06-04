@@ -25,7 +25,10 @@ export type AuditEventType =
   | 'device_removed'
   | 'network_device_added'
   | 'network_device_modified'
-  | 'network_device_removed';
+  | 'network_device_removed'
+  | 'audit_stream_created'
+  | 'audit_stream_modified'
+  | 'audit_stream_removed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -46,4 +49,7 @@ export const auditEventTypeValues: AuditEventType[] = [
   'network_device_added',
   'network_device_modified',
   'network_device_removed',
+  'audit_stream_created',
+  'audit_stream_modified',
+  'audit_stream_removed',
 ];

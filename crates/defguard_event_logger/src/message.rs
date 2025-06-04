@@ -1,6 +1,5 @@
-use std::net::IpAddr;
-
 use chrono::NaiveDateTime;
+use std::net::IpAddr;
 
 use defguard_core::{
     db::{models::authentication_key::AuthenticationKeyType, Device, Id, WireguardNetwork},
@@ -207,6 +206,19 @@ pub enum DefguardEvent {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    // audit stream management
+    AuditStreamCreated {
+        stream_id: Id,
+        stream_name: String,
+    },
+    AuditStreamModified {
+        stream_id: Id,
+        stream_name: String,
+    },
+    AuditStreamRemoved {
+        stream_id: Id,
+        stream_name: String,
+    },
 }
 
 /// Represents audit events related to client applications

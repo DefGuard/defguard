@@ -1,0 +1,54 @@
+#audit-stream-settings {
+  .controls {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: var(--spacing-m);
+
+    column-gap: var(--spacing-s);
+
+    .btn.add {
+      svg {
+        path {
+          fill: var(--surface-icon-secondary);
+        }
+      }
+    }
+  }
+
+  .list {
+    ul {
+      list-style: none;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xs);
+    }
+  }
+
+  .list-item {
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    min-height: 50px;
+    box-sizing: border-box;
+    padding: 5px var(--spacing-xs);
+    background-color: var(--surface-default-modal);
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 40px;
+    align-items: center;
+    box-shadow: 0px 5px 7.5px 0px rgba(0, 0, 0, 0);
+    transition-property: box-shadow, border;
+
+    @include animate-standard();
+
+    &:hover {
+      border-color: var(--border-separator);
+      box-shadow: 0px 5px 7.5px 0px rgba(0, 0, 0, 0.08);
+    }
+
+    p {
+      @include typography(app-input);
+    }
+  }
+}

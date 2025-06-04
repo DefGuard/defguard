@@ -1,0 +1,12 @@
+root = true
+
+[*.{rs,sql,toml}]
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+end_of_line = lf
+
+[*.{rs}]
+indent_style = tab
+indent_size = 4
+rulers = 100
