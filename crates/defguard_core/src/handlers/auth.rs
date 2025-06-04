@@ -528,6 +528,8 @@ pub async fn webauthn_start(mut session: Session, State(appstate): State<AppStat
 pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(pubkey): Json<PublicKeyCredential>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -549,6 +551,21 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+                appstate.emit_event(ApiEvent {
+                    // User may not be fully authenticated so we can't use
+                    // context extractor in this handler since it requires
+                    // the `SessionInfo` object.
+                    context: ApiRequestContext::new(
+                        user.id,
+                        user.username,
+                        insecure_ip,
+                        user_agent.to_string(),
+                    ),
+                    kind: ApiEventType::UserMfaLogin {
+                        mfa_method: MFAMethod::Webauthn,
+                    },
+                })?;
+
                 if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                     debug!("Found OpenID session cookie.");
                     let redirect_url = openid_cookie.value().to_string();
@@ -655,6 +672,8 @@ pub async fn totp_disable(
 pub async fn totp_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -667,6 +686,20 @@ pub async fn totp_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified TOTP for user {username}");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                kind: ApiEventType::UserMfaLogin {
+                    mfa_method: MFAMethod::OneTimePassword,
+                },
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
@@ -800,6 +833,8 @@ pub async fn request_email_mfa_code(
 pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -812,6 +847,20 @@ pub async fn email_mfa_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified email MFA code for user {username}");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                kind: ApiEventType::UserMfaLogin {
+                    mfa_method: MFAMethod::Email,
+                },
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
@@ -850,6 +899,8 @@ pub async fn email_mfa_code(
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(recovery_code): Json<RecoveryCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -865,6 +916,18 @@ pub async fn recovery_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Authenticated user {username} with recovery code");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                kind: ApiEventType::RecoveryCodeUsed,
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
