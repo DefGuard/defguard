@@ -312,7 +312,7 @@ pub async fn run_event_logger(
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                             ),
                             VpnEvent::DisconnectedFromLocation { location, device } => (
-                                EventType::VpnClientConnected,
+                                EventType::VpnClientDisconnected,
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                             ),
                         };
