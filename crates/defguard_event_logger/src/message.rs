@@ -77,7 +77,6 @@ pub enum DefguardEvent {
     UserLogout,
     RecoveryCodeUsed,
     PasswordChanged,
-    MfaFailed,
     // user MFA management
     MfaDisabled,
     MfaTotpEnabled,

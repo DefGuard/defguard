@@ -112,7 +112,6 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::RecoveryCodeUsed => todo!(),
                             DefguardEvent::PasswordChanged => todo!(),
-                            DefguardEvent::MfaFailed => todo!(),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
                             DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
