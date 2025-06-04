@@ -80,9 +80,6 @@ pub enum DefguardEvent {
     MfaFailed,
     // user MFA management
     MfaDisabled,
-    MfaDefaultChanged {
-        mfa_method: MFAMethod,
-    },
     MfaTotpEnabled,
     MfaTotpDisabled,
     MfaEmailEnabled,
