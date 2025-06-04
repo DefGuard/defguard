@@ -21,6 +21,9 @@ use enterprise::handlers::{
         update_acl_alias, update_acl_rule,
     },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+    audit_stream::{
+        create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
+    },
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
@@ -461,11 +464,22 @@ pub fn build_webapp(
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
+
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
             .route("/enterprise_info", get(check_enterprise_info))
             .route("/test_directory_sync", get(test_dirsync_connection)),
+    );
+
+    // audit stream
+    let webapp = webapp.nest(
+        "/api/v1/audit_stream",
+        Router::new()
+            .route("/", get(get_audit_stream))
+            .route("/", post(create_audit_stream))
+            .route("/{id}", delete(delete_audit_stream))
+            .route("/{id}", put(modify_audit_stream)),
     );
 
     #[cfg(feature = "openid")]

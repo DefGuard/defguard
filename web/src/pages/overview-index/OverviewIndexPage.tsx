@@ -34,6 +34,7 @@ export const OverviewIndexPage = () => {
   const { data, isLoading, isStale } = useQuery({
     queryKey: ['network'],
     queryFn: getNetworks,
+    placeholderData: (perv) => perv,
   });
 
   const resetWizard = useWizardStore((state) => state.resetState);
@@ -43,6 +44,10 @@ export const OverviewIndexPage = () => {
     if (isPresent(data) && data.length === 0 && !isLoading && !isStale) {
       resetWizard();
       navigate('/admin/wizard', { replace: true });
+    }
+    if (isPresent(data) && data.length === 1) {
+      const network = data[0];
+      navigate(`/admin/overview/${network.id}`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isLoading, isStale]);

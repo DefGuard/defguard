@@ -19,4 +19,5 @@ dotenvy = "0.15"
 secrecy = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+bytes = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

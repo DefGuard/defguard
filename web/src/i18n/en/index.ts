@@ -8,6 +8,8 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      addNew: 'Add new',
+      add: 'Add',
       accept: 'Accept',
       next: 'Next',
       back: 'Back',
@@ -1013,6 +1015,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       username_or_email: 'Username or email',
     },
     error: {
+      urlInvalid: 'Enter valid URL',
       reservedName: 'Name is already taken.',
       invalidIp: 'IP is invalid.',
       reservedIp: 'IP is already in use.',
@@ -1100,6 +1103,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
+      auditStream: 'Audit logs streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1110,6 +1114,41 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
+    },
+    auditStreamSettings: {
+      messages: {
+        destinationCrud: {
+          create: '{destination: string} destination added',
+          modify: '{destination: string} destination modified',
+          delete: '{destination: string} destination removed',
+        },
+      },
+      modals: {
+        selectDestination: {
+          title: 'Select destination',
+        },
+        vector: {
+          create: 'Add Vector destination',
+          modify: 'Edit Vector destination',
+        },
+        logstash: {
+          create: 'Add Logstash destination',
+          modify: 'Edit Logstash destination',
+        },
+        shared: {
+          formLabels: {
+            name: 'Name',
+            url: 'Url',
+            username: 'Username',
+            password: 'Password',
+            cert: 'Certificate',
+          },
+        },
+      },
+      title: 'Audit logs streaming',
+      list: {
+        noData: 'No destinations',
+      },
     },
     ldapSettings: {
       title: 'LDAP Settings',
@@ -2524,6 +2563,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       network_device_added: 'Network device added',
       network_device_removed: 'Network device removed',
       network_device_modified: 'Network device modified',
+      audit_stream_created: 'Audit stream created',
+      audit_stream_modified: 'Audit stream modified',
+      audit_stream_removed: 'Audit stream removed',
     },
     auditModule: {
       defguard: 'Defguard',

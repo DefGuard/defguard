@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useLocation } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
@@ -44,10 +44,25 @@ export const Navigation = () => {
   const networksPresent = useAppStore((state) => state.appInfo?.network_present);
   const resetUserProfile = useUserProfileStore((state) => state.reset);
   const queryClient = useQueryClient();
+  const isAdmin = useAuthStore((s) => s.user?.is_admin ?? false);
 
   const {
     auth: { logout },
+    network: { getNetworks },
   } = useApi();
+
+  const { data: networks } = useQuery({
+    queryKey: ['network'],
+    queryFn: getNetworks,
+    enabled: isAdmin,
+  });
+
+  const onlyOneNetworkPresent = useMemo(() => {
+    if (networks) {
+      return networks.length === 1;
+    }
+    return false;
+  }, [networks]);
 
   const { mutate: logOutMutation } = useMutation({
     mutationFn: logout,
@@ -69,7 +84,16 @@ export const Navigation = () => {
       };
     }
 
-    const overviewLink = networksPresent ? '/admin/overview' : '/admin/wizard';
+    let overviewLink = '/admin/overview';
+
+    if (!networksPresent) {
+      overviewLink = '/admin/overview';
+    }
+
+    if (networks && onlyOneNetworkPresent) {
+      const networkId = networks[0].id;
+      overviewLink = `/admin/overview/${networkId}`;
+    }
 
     let bottom: NavigationItem[] = [
       {
@@ -199,7 +223,9 @@ export const Navigation = () => {
   }, [
     LL.navigation.bar,
     currentUser,
+    networks,
     networksPresent,
+    onlyOneNetworkPresent,
     queryClient,
     resetUserProfile,
     settings?.openid_enabled,

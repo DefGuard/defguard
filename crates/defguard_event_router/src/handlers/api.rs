@@ -7,7 +7,6 @@ use crate::{error::EventRouterError, EventRouter};
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
         debug!("Processing API event: {event:?}");
-
         let logger_event = match event.kind {
             ApiEventType::UserLogin => LoggerEvent::Defguard(DefguardEvent::UserLogin),
             ApiEventType::UserLogout => LoggerEvent::Defguard(DefguardEvent::UserLogout),
@@ -93,6 +92,39 @@ impl EventRouter {
                 location_id,
                 location,
             }),
+            ApiEventType::AuditStreamCreated {
+                stream_id,
+                stream_name,
+            } => {
+                // Notify stream manager about configuration changes
+                self.audit_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated {
+                    stream_id,
+                    stream_name,
+                })
+            }
+            ApiEventType::AuditStreamModified {
+                stream_id,
+                stream_name,
+            } => {
+                // Notify stream manager about configuration changes
+                self.audit_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamModified {
+                    stream_id,
+                    stream_name,
+                })
+            }
+            ApiEventType::AuditStreamRemoved {
+                stream_id,
+                stream_name,
+            } => {
+                // Notify stream manager about configuration changes
+                self.audit_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved {
+                    stream_id,
+                    stream_name,
+                })
+            }
         };
         self.log_event(event.context, logger_event)
     }
