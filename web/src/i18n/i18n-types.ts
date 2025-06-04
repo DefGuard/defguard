@@ -6194,6 +6194,14 @@ type RootTranslation = {
 			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
 			 */
 			audit_stream_removed: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_connected: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_disconnected: string
 		}
 		auditModule: {
 			/**
@@ -12335,6 +12343,14 @@ export type TranslationFunctions = {
 			 * Audit stream removed
 			 */
 			audit_stream_removed: () => LocalizedString
+			/**
+			 * VPN client connected
+			 */
+			vpn_client_connected: () => LocalizedString
+			/**
+			 * VPN client disconnected
+			 */
+			vpn_client_disconnected: () => LocalizedString
 		}
 		auditModule: {
 			/**

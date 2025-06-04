@@ -32,7 +32,9 @@ export type AuditEventType =
   | 'network_device_removed'
   | 'audit_stream_created'
   | 'audit_stream_modified'
-  | 'audit_stream_removed';
+  | 'audit_stream_removed'
+  | 'vpn_client_connected'
+  | 'vpn_client_disconnected';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -60,4 +62,6 @@ export const auditEventTypeValues: AuditEventType[] = [
   'audit_stream_created',
   'audit_stream_modified',
   'audit_stream_removed',
+  'vpn_client_connected',
+  'vpn_client_disconnected',
 ];

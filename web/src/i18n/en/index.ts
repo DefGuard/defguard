@@ -2570,6 +2570,8 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       audit_stream_created: 'Audit stream created',
       audit_stream_modified: 'Audit stream modified',
       audit_stream_removed: 'Audit stream removed',
+      vpn_client_connected: 'VPN client connected',
+      vpn_client_disconnected: 'VPN client disconnected',
     },
     auditModule: {
       defguard: 'Defguard',
