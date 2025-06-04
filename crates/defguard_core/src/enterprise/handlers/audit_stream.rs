@@ -60,7 +60,7 @@ pub async fn create_audit_stream(
     info!("User {session_username} created audit stream");
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::AuditStreamCreated {
+        event: ApiEventType::AuditStreamCreated {
             stream_id: stream.id,
             stream_name: stream.name,
         },
@@ -92,7 +92,7 @@ pub async fn modify_audit_stream(
         info!("User {session_username} modified audit stream");
         appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::AuditStreamModified {
+            event: ApiEventType::AuditStreamModified {
                 stream_id: stream.id,
                 stream_name: stream.name,
             },
@@ -121,7 +121,7 @@ pub async fn delete_audit_stream(
         stream.delete(&appstate.pool).await?;
         appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::AuditStreamRemoved {
+            event: ApiEventType::AuditStreamRemoved {
                 stream_id,
                 stream_name,
             },

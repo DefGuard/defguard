@@ -342,7 +342,7 @@ pub async fn add_user(
     }
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::UserAdded {
+        event: ApiEventType::UserAdded {
             username: user.username,
         },
     })?;
@@ -737,7 +737,7 @@ pub async fn modify_user(
     info!("User {} updated user {username}", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::UserModified {
+        event: ApiEventType::UserModified {
             username: user.username,
         },
     })?;
@@ -809,7 +809,7 @@ pub async fn delete_user(
         info!("User {} deleted user {}", session.user.username, &username);
         appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::UserRemoved { username },
+            event: ApiEventType::UserRemoved { username },
         })?;
         Ok(ApiResponse::default())
     } else {

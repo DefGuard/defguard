@@ -7,7 +7,7 @@ use crate::{error::EventRouterError, EventRouter};
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
         debug!("Processing API event: {event:?}");
-        let logger_event = match event.kind {
+        let logger_event = match event.event {
             ApiEventType::UserLogin => LoggerEvent::Defguard(DefguardEvent::UserLogin),
             ApiEventType::UserLoginFailed => LoggerEvent::Defguard(DefguardEvent::UserLoginFailed),
             ApiEventType::UserMfaLogin { mfa_method } => {

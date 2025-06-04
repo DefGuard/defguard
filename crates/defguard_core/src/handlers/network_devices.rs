@@ -637,7 +637,7 @@ pub(crate) async fn add_network_device(
     );
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::NetworkDeviceAdded {
+        event: ApiEventType::NetworkDeviceAdded {
             device_id: device.id,
             device_name: device.name.clone(),
             location_id: network.id,
@@ -737,7 +737,7 @@ pub async fn modify_network_device(
     let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::NetworkDeviceModified {
+        event: ApiEventType::NetworkDeviceModified {
             device_id: network_device_info.id,
             device_name: network_device_info.name.clone(),
             location_id: device_network.id,

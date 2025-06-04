@@ -772,7 +772,7 @@ pub(crate) async fn add_device(
 
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::UserDeviceAdded {
+        event: ApiEventType::UserDeviceAdded {
             device_id,
             owner: username,
             device_name,
@@ -885,7 +885,7 @@ pub(crate) async fn modify_device(
     let owner = device.get_owner(&appstate.pool).await?.username;
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::UserDeviceModified {
+        event: ApiEventType::UserDeviceModified {
             owner,
             device_id: device.id,
             device_name,
@@ -1026,7 +1026,7 @@ pub(crate) async fn delete_device(
                 .username;
             appstate.emit_event(ApiEvent {
                 context,
-                kind: ApiEventType::UserDeviceRemoved {
+                event: ApiEventType::UserDeviceRemoved {
                     device_name,
                     owner,
                     device_id,
@@ -1041,7 +1041,7 @@ pub(crate) async fn delete_device(
                 if let Some(location) = location {
                     appstate.emit_event(ApiEvent {
                         context,
-                        kind: ApiEventType::NetworkDeviceRemoved {
+                        event: ApiEventType::NetworkDeviceRemoved {
                             device_id,
                             device_name,
                             location_id: location.id,

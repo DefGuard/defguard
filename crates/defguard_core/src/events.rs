@@ -149,7 +149,7 @@ pub enum ApiEventType {
 #[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub kind: ApiEventType,
+    pub event: ApiEventType,
 }
 
 /// Events from gRPC server

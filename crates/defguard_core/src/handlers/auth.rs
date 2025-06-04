@@ -159,7 +159,7 @@ pub(crate) async fn authenticate(
                                     insecure_ip,
                                     user_agent.to_string(),
                                 ),
-                                kind: ApiEventType::UserLoginFailed,
+                                event: ApiEventType::UserLoginFailed,
                             })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
@@ -174,7 +174,7 @@ pub(crate) async fn authenticate(
                             insecure_ip,
                             user_agent.to_string(),
                         ),
-                        kind: ApiEventType::UserLoginFailed,
+                        event: ApiEventType::UserLoginFailed,
                     })?;
                     return Err(WebError::Authorization(err.to_string()));
                 }
@@ -204,7 +204,7 @@ pub(crate) async fn authenticate(
                                         insecure_ip,
                                         user_agent.to_string(),
                                     ),
-                                    kind: ApiEventType::UserLoginFailed,
+                                    event: ApiEventType::UserLoginFailed,
                                 })?;
                                 return Err(WebError::Authorization(err.to_string()));
                             }
@@ -218,7 +218,7 @@ pub(crate) async fn authenticate(
                                     insecure_ip,
                                     user_agent.to_string(),
                                 ),
-                                kind: ApiEventType::UserLoginFailed,
+                                event: ApiEventType::UserLoginFailed,
                             })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
@@ -310,7 +310,7 @@ pub(crate) async fn authenticate(
                 insecure_ip,
                 user_agent.to_string(),
             ),
-            kind: ApiEventType::UserLogin,
+            event: ApiEventType::UserLogin,
         })?;
 
         Ok((
@@ -355,7 +355,7 @@ pub async fn logout(
             insecure_ip,
             user_agent.to_string(),
         ),
-        kind: ApiEventType::UserLogout,
+        event: ApiEventType::UserLogout,
     })?;
 
     Ok((cookies, ApiResponse::default()))
@@ -397,7 +397,7 @@ pub async fn mfa_disable(
     user.disable_mfa(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaDisabled,
+        event: ApiEventType::MfaDisabled,
     })?;
     info!("Disabled MFA for user {}", user.username);
     Ok(ApiResponse::default())
@@ -561,7 +561,7 @@ pub async fn webauthn_end(
                         insecure_ip,
                         user_agent.to_string(),
                     ),
-                    kind: ApiEventType::UserMfaLogin {
+                    event: ApiEventType::UserMfaLogin {
                         mfa_method: MFAMethod::Webauthn,
                     },
                 })?;
@@ -608,7 +608,7 @@ pub async fn webauthn_end(
                         insecure_ip,
                         user_agent.to_string(),
                     ),
-                    kind: ApiEventType::UserMfaLoginFailed {
+                    event: ApiEventType::UserMfaLoginFailed {
                         mfa_method: MFAMethod::Webauthn,
                     },
                 })?;
@@ -657,7 +657,7 @@ pub async fn totp_enable(
         info!("Enabled TOTP for user {}", user.username);
         appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::MfaTotpEnabled,
+            event: ApiEventType::MfaTotpEnabled,
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -681,7 +681,7 @@ pub async fn totp_disable(
     info!("Disabled TOTP for user {}", user.username);
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaTotpDisabled,
+        event: ApiEventType::MfaTotpDisabled,
     })?;
     Ok(ApiResponse::default())
 }
@@ -714,7 +714,7 @@ pub async fn totp_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                kind: ApiEventType::UserMfaLogin {
+                event: ApiEventType::UserMfaLogin {
                     mfa_method: MFAMethod::OneTimePassword,
                 },
             })?;
@@ -755,7 +755,7 @@ pub async fn totp_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                kind: ApiEventType::UserMfaLoginFailed {
+                event: ApiEventType::UserMfaLoginFailed {
                     mfa_method: MFAMethod::OneTimePassword,
                 },
             })?;
@@ -813,7 +813,7 @@ pub async fn email_mfa_enable(
         info!("Enabled email MFA for user {}", user.username);
         appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::MfaEmailEnabled,
+            event: ApiEventType::MfaEmailEnabled,
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -837,7 +837,7 @@ pub async fn email_mfa_disable(
     info!("Disabled email MFA for user {}", user.username);
     appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaEmailDisabled,
+        event: ApiEventType::MfaEmailDisabled,
     })?;
     Ok(ApiResponse::default())
 }
@@ -889,7 +889,7 @@ pub async fn email_mfa_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                kind: ApiEventType::UserMfaLogin {
+                event: ApiEventType::UserMfaLogin {
                     mfa_method: MFAMethod::Email,
                 },
             })?;
@@ -930,7 +930,7 @@ pub async fn email_mfa_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                kind: ApiEventType::UserMfaLoginFailed {
+                event: ApiEventType::UserMfaLoginFailed {
                     mfa_method: MFAMethod::Email,
                 },
             })?;
@@ -972,7 +972,7 @@ pub async fn recovery_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                kind: ApiEventType::RecoveryCodeUsed,
+                event: ApiEventType::RecoveryCodeUsed,
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
