@@ -9,10 +9,10 @@ use defguard_core::db::{
     models::audit_log::{
         metadata::{
             AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
-            NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
-            NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
-            UserRemovedMetadata,
+            DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
+            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
+            UserModifiedMetadata, UserRemovedMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -67,6 +67,15 @@ pub async fn run_event_logger(
 
                         let (event_type, metadata) = match event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
+                            DefguardEvent::UserLoginFailed => (EventType::UserLoginFailed, None),
+                            DefguardEvent::UserMfaLogin { mfa_method } => (
+                                EventType::UserMfaLogin,
+                                serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
+                            ),
+                            DefguardEvent::UserMfaLoginFailed { mfa_method } => (
+                                EventType::UserMfaLoginFailed,
+                                serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
+                            ),
                             DefguardEvent::UserLogout => (EventType::UserLogout, None),
                             DefguardEvent::UserDeviceAdded {
                                 device_id: _,

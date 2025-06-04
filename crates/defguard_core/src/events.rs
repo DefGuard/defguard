@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Id, WireguardNetwork};
+use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 
@@ -67,6 +67,13 @@ impl GrpcRequestContext {
 #[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
+    UserLoginFailed,
+    UserMfaLogin {
+        mfa_method: MFAMethod,
+    },
+    UserMfaLoginFailed {
+        mfa_method: MFAMethod,
+    },
     UserLogout,
     MfaDisabled,
     MfaTotpDisabled,

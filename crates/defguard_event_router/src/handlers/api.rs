@@ -9,6 +9,13 @@ impl EventRouter {
         debug!("Processing API event: {event:?}");
         let logger_event = match event.kind {
             ApiEventType::UserLogin => LoggerEvent::Defguard(DefguardEvent::UserLogin),
+            ApiEventType::UserLoginFailed => LoggerEvent::Defguard(DefguardEvent::UserLoginFailed),
+            ApiEventType::UserMfaLogin { mfa_method } => {
+                LoggerEvent::Defguard(DefguardEvent::UserMfaLogin { mfa_method })
+            }
+            ApiEventType::UserMfaLoginFailed { mfa_method } => {
+                LoggerEvent::Defguard(DefguardEvent::UserMfaLoginFailed { mfa_method })
+            }
             ApiEventType::UserLogout => LoggerEvent::Defguard(DefguardEvent::UserLogout),
             ApiEventType::UserAdded { username } => {
                 LoggerEvent::Defguard(DefguardEvent::UserAdded { username })

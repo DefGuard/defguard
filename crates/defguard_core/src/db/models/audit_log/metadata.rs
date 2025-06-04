@@ -1,4 +1,9 @@
-use crate::db::Id;
+use crate::db::{Id, MFAMethod};
+
+#[derive(Serialize)]
+pub struct MfaLoginMetadata {
+    pub mfa_method: MFAMethod,
+}
 
 #[derive(Serialize)]
 pub struct DeviceAddedMetadata {

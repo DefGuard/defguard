@@ -26,6 +26,9 @@ pub enum AuditModule {
 pub enum EventType {
     // authentication
     UserLogin,
+    UserLoginFailed,
+    UserMfaLogin,
+    UserMfaLoginFailed,
     UserLogout,
     // mfa management
     MfaDisabled,
