@@ -6095,6 +6095,22 @@ type RootTranslation = {
 			 */
 			user_login: string
 			/**
+			 * U​s​e​r​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_login_failed: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n
+			 */
+			user_mfa_login: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_mfa_login_failed: string
+			/**
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​ ​u​s​e​d
+			 */
+			recovery_code_used: string
+			/**
 			 * U​s​e​r​ ​l​o​g​o​u​t
 			 */
 			user_logout: string
@@ -12227,6 +12243,22 @@ export type TranslationFunctions = {
 			 * User login
 			 */
 			user_login: () => LocalizedString
+			/**
+			 * User login failed
+			 */
+			user_login_failed: () => LocalizedString
+			/**
+			 * User MFA login
+			 */
+			user_mfa_login: () => LocalizedString
+			/**
+			 * User MFA login failed
+			 */
+			user_mfa_login_failed: () => LocalizedString
+			/**
+			 * Recovery code used
+			 */
+			recovery_code_used: () => LocalizedString
 			/**
 			 * User logout
 			 */
