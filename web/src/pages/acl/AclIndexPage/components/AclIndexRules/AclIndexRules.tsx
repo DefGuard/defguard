@@ -706,7 +706,7 @@ const RuleEditButton = ({ rule }: EditProps) => {
         <>
           {!rule.enabled && (
             <EditButtonOption
-              text={statusLL.enabled()}
+              text={statusLL.enable()}
               disabled={editPending}
               onClick={() => {
                 handleEnableChange(true, rule);
@@ -715,7 +715,7 @@ const RuleEditButton = ({ rule }: EditProps) => {
           )}
           {rule.enabled && (
             <EditButtonOption
-              text={statusLL.disabled()}
+              text={statusLL.disable()}
               disabled={editPending}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => {
