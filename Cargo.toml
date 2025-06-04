@@ -22,9 +22,14 @@ anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = ["cookie-private", "typed-header", "query"] }
+axum-extra = { version = "0.10", features = [
+    "cookie-private",
+    "typed-header",
+    "query",
+] }
 base32 = "0.5"
 base64 = "0.22"
+bytes = { version = "1.6", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
@@ -68,6 +73,8 @@ sqlx = { version = "0.8", features = [
 ] }
 ssh-key = "0.6"
 struct-patch = "0.8"
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
 tera = "1.20"
 thiserror = "2.0"
 # match axum-extra -> cookies

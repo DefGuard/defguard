@@ -10,8 +10,8 @@ use crate::{
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::{
-        db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
-        license::LicenseError,
+        audit_stream::error::AuditStreamError, db::models::acl::AclError, firewall::FirewallError,
+        ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
     grpc::GatewayMapError,
@@ -35,6 +35,8 @@ pub enum WebError {
     ObjectNotFound(String),
     #[error("Serialization error: {0}")]
     Serialization(String),
+    #[error("Deserialization error: {0}")]
+    Deserialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
     #[error("Forbidden error: {0}")]
@@ -67,6 +69,8 @@ pub enum WebError {
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
+    #[error("Audit stream error: {0}")]
+    AuditStreamError(String),
 }
 
 impl From<tonic::Status> for WebError {
@@ -171,6 +175,16 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
+        }
+    }
+}
+
+impl From<AuditStreamError> for WebError {
+    fn from(err: AuditStreamError) -> Self {
+        match err {
+            AuditStreamError::ConfigDeserializeError(_, _)
+            | AuditStreamError::HeaderValueParsing()
+            | AuditStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
         }
     }
 }

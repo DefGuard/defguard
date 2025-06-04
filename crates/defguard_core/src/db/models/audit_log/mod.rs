@@ -24,9 +24,10 @@ pub enum AuditModule {
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {
-    // user management
+    // authentication
     UserLogin,
     UserLogout,
+    // mfa management
     MfaDisabled,
     MfaTotpDisabled,
     MfaTotpEnabled,
@@ -34,6 +35,7 @@ pub enum EventType {
     MfaEmailEnabled,
     MfaSecurityKeyAdded,
     MfaSecurityKeyRemoved,
+    // user management
     UserAdded,
     UserRemoved,
     UserModified,
@@ -44,6 +46,10 @@ pub enum EventType {
     NetworkDeviceAdded,
     NetworkDeviceRemoved,
     NetworkDeviceModified,
+    // audit stream
+    AuditStreamCreated,
+    AuditStreamModified,
+    AuditStreamRemoved,
     // OpenID app management
     OpenIdAppAdded,
     OpenIdAppRemoved,
@@ -54,7 +60,7 @@ pub enum EventType {
     VpnLocationModified,
 }
 
-#[derive(Model, FromRow)]
+#[derive(Model, FromRow, Serialize)]
 #[table(audit_event)]
 pub struct AuditEvent<I = NoId> {
     pub id: I,

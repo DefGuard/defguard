@@ -65,3 +65,9 @@ pub struct MfaSecurityKeyAddedMetadata {
     pub key_id: Id,
     pub key_name: String,
 }
+
+#[derive(Serialize)]
+pub struct AuditStreamMetadata {
+    pub id: Id,
+    pub name: String,
+}

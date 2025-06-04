@@ -32,6 +32,14 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * A​d​d​ ​n​e​w
+			 */
+			addNew: string
+			/**
+			 * A​d​d
+			 */
+			add: string
+			/**
 			 * A​c​c​e​p​t
 			 */
 			accept: string
@@ -2436,6 +2444,10 @@ type RootTranslation = {
 		}
 		error: {
 			/**
+			 * E​n​t​e​r​ ​v​a​l​i​d​ ​U​R​L
+			 */
+			urlInvalid: string
+			/**
 			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
 			 */
 			reservedName: string
@@ -2695,6 +2707,10 @@ type RootTranslation = {
 			 * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
 			 */
 			gatewayNotifications: string
+			/**
+			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 */
+			auditStream: string
 		}
 		messages: {
 			/**
@@ -2723,6 +2739,89 @@ type RootTranslation = {
 			 * w​e​b​s​i​t​e
 			 */
 			website: string
+		}
+		auditStreamSettings: {
+			messages: {
+				destinationCrud: {
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​a​d​d​e​d
+					 * @param {string} destination
+					 */
+					create: RequiredParams<'destination'>
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+					 * @param {string} destination
+					 */
+					modify: RequiredParams<'destination'>
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​r​e​m​o​v​e​d
+					 * @param {string} destination
+					 */
+					'delete': RequiredParams<'destination'>
+				}
+			}
+			modals: {
+				selectDestination: {
+					/**
+					 * S​e​l​e​c​t​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					title: string
+				}
+				vector: {
+					/**
+					 * A​d​d​ ​V​e​c​t​o​r​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					create: string
+					/**
+					 * E​d​i​t​ ​V​e​c​t​o​r​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					modify: string
+				}
+				logstash: {
+					/**
+					 * A​d​d​ ​L​o​g​s​t​a​s​h​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					create: string
+					/**
+					 * E​d​i​t​ ​L​o​g​s​t​a​s​h​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					modify: string
+				}
+				shared: {
+					formLabels: {
+						/**
+						 * N​a​m​e
+						 */
+						name: string
+						/**
+						 * U​r​l
+						 */
+						url: string
+						/**
+						 * U​s​e​r​n​a​m​e
+						 */
+						username: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						password: string
+						/**
+						 * C​e​r​t​i​f​i​c​a​t​e
+						 */
+						cert: string
+					}
+				}
+			}
+			/**
+			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 */
+			title: string
+			list: {
+				/**
+				 * N​o​ ​d​e​s​t​i​n​a​t​i​o​n​s
+				 */
+				noData: string
+			}
 		}
 		ldapSettings: {
 			/**
@@ -6067,6 +6166,18 @@ type RootTranslation = {
 			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
 			 */
 			network_device_modified: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 */
+			audit_stream_created: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 */
+			audit_stream_modified: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 */
+			audit_stream_removed: string
 		}
 		auditModule: {
 			/**
@@ -6106,6 +6217,14 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Add new
+			 */
+			addNew: () => LocalizedString
+			/**
+			 * Add
+			 */
+			add: () => LocalizedString
 			/**
 			 * Accept
 			 */
@@ -8487,6 +8606,10 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
+			 * Enter valid URL
+			 */
+			urlInvalid: () => LocalizedString
+			/**
 			 * Name is already taken.
 			 */
 			reservedName: () => LocalizedString
@@ -8740,6 +8863,10 @@ export type TranslationFunctions = {
 			 * Gateway notifications
 			 */
 			gatewayNotifications: () => LocalizedString
+			/**
+			 * Audit logs streaming
+			 */
+			auditStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -8768,6 +8895,86 @@ export type TranslationFunctions = {
 			 * website
 			 */
 			website: () => LocalizedString
+		}
+		auditStreamSettings: {
+			messages: {
+				destinationCrud: {
+					/**
+					 * {destination} destination added
+					 */
+					create: (arg: { destination: string }) => LocalizedString
+					/**
+					 * {destination} destination modified
+					 */
+					modify: (arg: { destination: string }) => LocalizedString
+					/**
+					 * {destination} destination removed
+					 */
+					'delete': (arg: { destination: string }) => LocalizedString
+				}
+			}
+			modals: {
+				selectDestination: {
+					/**
+					 * Select destination
+					 */
+					title: () => LocalizedString
+				}
+				vector: {
+					/**
+					 * Add Vector destination
+					 */
+					create: () => LocalizedString
+					/**
+					 * Edit Vector destination
+					 */
+					modify: () => LocalizedString
+				}
+				logstash: {
+					/**
+					 * Add Logstash destination
+					 */
+					create: () => LocalizedString
+					/**
+					 * Edit Logstash destination
+					 */
+					modify: () => LocalizedString
+				}
+				shared: {
+					formLabels: {
+						/**
+						 * Name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Url
+						 */
+						url: () => LocalizedString
+						/**
+						 * Username
+						 */
+						username: () => LocalizedString
+						/**
+						 * Password
+						 */
+						password: () => LocalizedString
+						/**
+						 * Certificate
+						 */
+						cert: () => LocalizedString
+					}
+				}
+			}
+			/**
+			 * Audit logs streaming
+			 */
+			title: () => LocalizedString
+			list: {
+				/**
+				 * No destinations
+				 */
+				noData: () => LocalizedString
+			}
 		}
 		ldapSettings: {
 			/**
@@ -12084,6 +12291,18 @@ export type TranslationFunctions = {
 			 * Network device modified
 			 */
 			network_device_modified: () => LocalizedString
+			/**
+			 * Audit stream created
+			 */
+			audit_stream_created: () => LocalizedString
+			/**
+			 * Audit stream modified
+			 */
+			audit_stream_modified: () => LocalizedString
+			/**
+			 * Audit stream removed
+			 */
+			audit_stream_removed: () => LocalizedString
 		}
 		auditModule: {
 			/**
