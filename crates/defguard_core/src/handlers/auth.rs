@@ -152,12 +152,30 @@ pub(crate) async fn authenticate(
                         Err(err) => {
                             info!("Failed to authenticate user {username_or_email} through LDAP: {err}");
                             log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            appstate.emit_event(ApiEvent {
+                                context: ApiRequestContext::new(
+                                    user.id,
+                                    user.username,
+                                    insecure_ip,
+                                    user_agent.to_string(),
+                                ),
+                                kind: ApiEventType::UserLoginFailed,
+                            })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
                     }
                 } else {
                     info!("Failed to authenticate user {username_or_email}: {err}");
                     log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    appstate.emit_event(ApiEvent {
+                        context: ApiRequestContext::new(
+                            user.id,
+                            user.username,
+                            insecure_ip,
+                            user_agent.to_string(),
+                        ),
+                        kind: ApiEventType::UserLoginFailed,
+                    })?;
                     return Err(WebError::Authorization(err.to_string()));
                 }
             }
@@ -179,11 +197,29 @@ pub(crate) async fn authenticate(
                                     &appstate.failed_logins,
                                     &username_or_email,
                                 );
+                                appstate.emit_event(ApiEvent {
+                                    context: ApiRequestContext::new(
+                                        user.id,
+                                        user.username,
+                                        insecure_ip,
+                                        user_agent.to_string(),
+                                    ),
+                                    kind: ApiEventType::UserLoginFailed,
+                                })?;
                                 return Err(WebError::Authorization(err.to_string()));
                             }
                         } else {
                             info!("Failed to authenticate user {username_or_email}: {err}");
                             log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            appstate.emit_event(ApiEvent {
+                                context: ApiRequestContext::new(
+                                    user.id,
+                                    user.username,
+                                    insecure_ip,
+                                    user_agent.to_string(),
+                                ),
+                                kind: ApiEventType::UserLoginFailed,
+                            })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
                     }
