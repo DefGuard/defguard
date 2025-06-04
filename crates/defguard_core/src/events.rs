@@ -40,18 +40,26 @@ pub struct GrpcRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub device: String,
+    pub device_id: Id,
+    pub device_name: String,
 }
 
 impl GrpcRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
+    pub fn new(
+        user_id: Id,
+        username: String,
+        ip: IpAddr,
+        device_id: Id,
+        device_name: String,
+    ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
             ip,
-            device,
+            device_id,
+            device_name,
         }
     }
 }

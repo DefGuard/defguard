@@ -58,7 +58,7 @@ impl From<GrpcRequestContext> for EventContext {
             user_id: val.user_id,
             username: val.username,
             ip: val.ip,
-            device: val.device,
+            device: format!("{} (ID {})", val.device_name, val.device_id),
         }
     }
 }

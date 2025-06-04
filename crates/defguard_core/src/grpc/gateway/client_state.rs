@@ -183,6 +183,7 @@ impl ClientMap {
                     client_state.user_id,
                     client_state.username.clone(),
                     client_state.endpoint,
+                    client_state.device.id,
                     client_state.device.name.clone(),
                 );
                 disconnected_clients.push((client_state.device.clone(), disconnect_event_context));

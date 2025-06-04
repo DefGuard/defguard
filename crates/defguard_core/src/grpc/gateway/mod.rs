@@ -797,6 +797,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 user.id,
                                 user.username.clone(),
                                 ip_addr,
+                                device.id,
                                 device.name.clone(),
                             );
                             self.emit_event(GrpcEvent::ClientConnected {
