@@ -817,12 +817,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
                 // emit client disconnect events
                 for (device, context) in disconnected_clients {
-                    // let context = GrpcRequestContext::new(
-                    //     user.id,
-                    //     user.username.clone(),
-                    //     ip_addr,
-                    //     device.name.clone(),
-                    // );
                     self.emit_event(GrpcEvent::ClientDisconnected {
                         context,
                         location: location.clone(),
