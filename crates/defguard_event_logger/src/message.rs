@@ -3,7 +3,7 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{models::authentication_key::AuthenticationKeyType, Id},
-    events::ApiRequestContext,
+    events::{ApiRequestContext, BidiRequestContext},
     grpc::proto::proxy::MfaMethod,
 };
 
@@ -44,6 +44,18 @@ impl From<ApiRequestContext> for EventContext {
             username: val.username,
             ip: val.ip,
             device: val.device,
+        }
+    }
+}
+
+impl From<BidiRequestContext> for EventContext {
+    fn from(val: BidiRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: format!("{} (ID {})", val.device_name, val.device_id),
         }
     }
 }

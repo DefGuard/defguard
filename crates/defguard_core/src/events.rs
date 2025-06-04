@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::Id;
+use crate::db::{Device, Id};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 
@@ -127,18 +127,32 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub device: String,
+    pub device_id: Id,
+    pub device_name: String,
+    pub location_id: Id,
+    pub location_name: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
+    pub fn new(
+        user_id: Id,
+        username: String,
+        ip: IpAddr,
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location_name: String,
+    ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
             ip,
-            device,
+            device_id,
+            device_name,
+            location_id,
+            location_name,
         }
     }
 }
@@ -157,7 +171,7 @@ pub struct BidiStreamEvent {
 pub enum BidiStreamEventType {
     Enrollment(EnrollmentEvent),
     PasswordReset(PasswordResetEvent),
-    DesktopCLientMfa(DesktopClientMfaEvent),
+    DesktopClientMfa(DesktopClientMfaEvent),
     ConfigPolling(ConfigPollingEvent),
 }
 

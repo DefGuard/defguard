@@ -100,11 +100,11 @@ impl EnrollmentServer {
     #[allow(dead_code)]
     fn emit_event(
         &self,
-        request_context: BidiRequestContext,
+        context: BidiRequestContext,
         event: EnrollmentEvent,
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
-            request_context,
+            context,
             event: BidiStreamEventType::Enrollment(event),
         };
 

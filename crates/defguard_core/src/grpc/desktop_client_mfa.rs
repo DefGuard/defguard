@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::Ipv4Addr};
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -287,13 +287,20 @@ impl ClientMfaServer {
         );
         self.bidi_event_tx.send(BidiStreamEvent {
             context: BidiRequestContext::new(
-                         user.id,
-                         user.username,
-                         ip,
-                         device.name,
-                     ),
-            event: BidiStreamEventType::DesktopCLientMfa(DesktopClientMfaEvent::Connected),
-        });
+                user.id,
+                user.username.clone(),
+                std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                device.id,
+                device.name.clone(),
+                location.id,
+                location.name.clone(),
+            ),
+            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
+        }).map_err(|err| {
+            let msg = format!("Failed to send DesktopClientMfaEvent::Connected event: {err}");
+            error!(msg);
+            Status::internal(msg)
+        })?;
 
         // remove login session from map
         self.sessions.remove(&pubkey);
