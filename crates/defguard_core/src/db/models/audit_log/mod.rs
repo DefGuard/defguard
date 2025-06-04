@@ -58,6 +58,9 @@ pub enum EventType {
     VpnLocationAdded,
     VpnLocationRemoved,
     VpnLocationModified,
+    // VPN client events
+    VpnClientConnected,
+    VpnClientDisconnected,
 }
 
 #[derive(Model, FromRow, Serialize)]

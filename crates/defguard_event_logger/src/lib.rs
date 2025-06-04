@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use error::EventLoggerError;
-use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
+use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
@@ -12,7 +12,7 @@ use defguard_core::db::{
             DeviceRemovedMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
             NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
             NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
-            UserRemovedMetadata,
+            UserRemovedMetadata, VpnClientMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -292,9 +292,31 @@ pub async fn run_event_logger(
                         let _module = AuditModule::Client;
                         unimplemented!()
                     }
-                    LoggerEvent::Vpn(_event) => {
-                        let _module = AuditModule::Vpn;
-                        unimplemented!()
+                    LoggerEvent::Vpn(event) => {
+                        let module = AuditModule::Vpn;
+                        let (event_type, metadata) = match event {
+                            VpnEvent::ConnectedToMfaLocation {
+                                location_id: _,
+                                location_name: _,
+                            } => todo!(),
+                            VpnEvent::DisconnectedFromMfaLocation {
+                                location_id: _,
+                                location_name: _,
+                            } => todo!(),
+                            VpnEvent::MfaFailed {
+                                location_id: _,
+                                location_name: _,
+                            } => todo!(),
+                            VpnEvent::ConnectedToLocation { location, device } => (
+                                EventType::VpnClientConnected,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
+                            VpnEvent::DisconnectedFromLocation { location, device } => (
+                                EventType::VpnClientDisconnected,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
+                        };
+                        (module, event_type, metadata)
                     }
                     LoggerEvent::Enrollment(_event) => {
                         let _module = AuditModule::Enrollment;
