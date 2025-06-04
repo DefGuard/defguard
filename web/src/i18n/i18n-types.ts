@@ -5412,13 +5412,13 @@ type RootTranslation = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​ ​n​o​t​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​f​i​n​e​d​ ​b​y​ ​t​h​e​ ​r​u​l​e​s​ ​w​i​l​l​ ​b​e​ ​b​l​o​c​k​e​d​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				denied: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​ ​n​o​t​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​f​i​n​e​d​ ​b​y​ ​t​h​e​ ​r​u​l​e​s​ ​w​i​l​l​ ​b​e​ ​p​a​s​s​e​d​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				allowed: string
@@ -6094,6 +6094,18 @@ type RootTranslation = {
 			 * U​s​e​r​ ​l​o​g​i​n
 			 */
 			user_login: string
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_login_failed: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n
+			 */
+			user_mfa_login: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_mfa_login_failed: string
 			/**
 			 * U​s​e​r​ ​l​o​g​o​u​t
 			 */
@@ -11545,13 +11557,13 @@ export type TranslationFunctions = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			          Location access **denied** by default – must be explicitly allowed
+			          Location access **denied** by default – network traffic not explicitly defined by the rules will be blocked.
 			          
 				 */
 				denied: () => LocalizedString
 				/**
 				 * 
-			          Location access **allowed** by default – can be explicitly denied
+			          Location access **allowed** by default – network traffic not explicitly defined by the rules will be passed.
 			          
 				 */
 				allowed: () => LocalizedString
@@ -12219,6 +12231,18 @@ export type TranslationFunctions = {
 			 * User login
 			 */
 			user_login: () => LocalizedString
+			/**
+			 * User login failed
+			 */
+			user_login_failed: () => LocalizedString
+			/**
+			 * User MFA login
+			 */
+			user_mfa_login: () => LocalizedString
+			/**
+			 * User MFA login failed
+			 */
+			user_mfa_login_failed: () => LocalizedString
 			/**
 			 * User logout
 			 */
