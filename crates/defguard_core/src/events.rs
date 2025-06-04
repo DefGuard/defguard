@@ -114,12 +114,12 @@ pub struct BidiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
@@ -134,7 +134,7 @@ impl BidiRequestContext {
 /// Events emmited from gRPC bi-directional communication stream
 #[derive(Debug)]
 pub struct BidiStreamEvent {
-    pub request_context: BidiRequestContext,
+    pub context: BidiRequestContext,
     pub event: BidiStreamEventType,
 }
 
@@ -158,7 +158,10 @@ pub enum EnrollmentEvent {
 pub enum PasswordResetEvent {}
 
 #[derive(Debug)]
-pub enum DesktopClientMfaEvent {}
+pub enum DesktopClientMfaEvent {
+    Connected,
+    Disconnected,
+}
 
 #[derive(Debug)]
 pub enum ConfigPollingEvent {}

@@ -15,6 +15,7 @@ use crate::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
+    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -33,6 +34,7 @@ pub(super) struct ClientMfaServer {
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     sessions: HashMap<String, ClientLoginSession>,
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl ClientMfaServer {
@@ -41,11 +43,13 @@ impl ClientMfaServer {
         pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
             mail_tx,
             wireguard_tx,
+            bidi_event_tx,
             sessions: HashMap::new(),
         }
     }
@@ -281,6 +285,15 @@ impl ClientMfaServer {
             "Desktop client login finished for {} at location {}",
             user.username, location.name
         );
+        self.bidi_event_tx.send(BidiStreamEvent {
+            context: BidiRequestContext::new(
+                         user.id,
+                         user.username,
+                         ip,
+                         device.name,
+                     ),
+            event: BidiStreamEventType::DesktopCLientMfa(DesktopClientMfaEvent::Connected),
+        });
 
         // remove login session from map
         self.sessions.remove(&pubkey);

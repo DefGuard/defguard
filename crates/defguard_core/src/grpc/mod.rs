@@ -468,7 +468,7 @@ impl From<Status> for CoreError {
     }
 }
 
-/// Bi-directional gRPC stream for comminication with Defguard proxy.
+/// Bi-directional gRPC stream for communication with Defguard proxy.
 #[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
@@ -636,7 +636,7 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client MFA start error {err}");
+                                    error!("client MFA finish error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
