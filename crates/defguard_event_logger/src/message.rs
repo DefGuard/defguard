@@ -2,8 +2,8 @@ use chrono::NaiveDateTime;
 use std::net::IpAddr;
 
 use defguard_core::{
-    db::{models::authentication_key::AuthenticationKeyType, Id},
-    events::ApiRequestContext,
+    db::{models::authentication_key::AuthenticationKeyType, Device, Id, WireguardNetwork},
+    events::{ApiRequestContext, GrpcRequestContext},
     grpc::proto::proxy::MfaMethod,
 };
 
@@ -20,6 +20,8 @@ impl EventLoggerMessage {
 }
 
 /// Possible audit event types split by module
+// TODO: remove lint override below once all events are updated to pass whole objects
+#[allow(clippy::large_enum_variant)]
 pub enum LoggerEvent {
     Defguard(DefguardEvent),
     Client(ClientEvent),
@@ -44,6 +46,18 @@ impl From<ApiRequestContext> for EventContext {
             username: val.username,
             ip: val.ip,
             device: val.device,
+        }
+    }
+}
+
+impl From<GrpcRequestContext> for EventContext {
+    fn from(val: GrpcRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: format!("{} (ID {})", val.device_name, val.device_id),
         }
     }
 }
@@ -226,6 +240,14 @@ pub enum VpnEvent {
     MfaFailed {
         location_id: Id,
         location_name: String,
+    },
+    ConnectedToLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    DisconnectedFromLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
     },
 }
 
