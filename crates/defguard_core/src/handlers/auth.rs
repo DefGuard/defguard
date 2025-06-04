@@ -595,6 +595,24 @@ pub async fn webauthn_end(
             } else {
                 Ok((private_cookies, ApiResponse::default()))
             };
+        } else {
+            // authentication failed, emit relevant event
+            if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                appstate.emit_event(ApiEvent {
+                    // User may not be fully authenticated so we can't use
+                    // context extractor in this handler since it requires
+                    // the `SessionInfo` object.
+                    context: ApiRequestContext::new(
+                        user.id,
+                        user.username,
+                        insecure_ip,
+                        user_agent.to_string(),
+                    ),
+                    kind: ApiEventType::UserMfaLoginFailed {
+                        mfa_method: MFAMethod::Webauthn,
+                    },
+                })?;
+            }
         }
     }
     Err(WebError::Http(StatusCode::BAD_REQUEST))
@@ -727,6 +745,20 @@ pub async fn totp_code(
                 ))
             }
         } else {
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                kind: ApiEventType::UserMfaLoginFailed {
+                    mfa_method: MFAMethod::OneTimePassword,
+                },
+            })?;
             Err(WebError::Authorization("Invalid TOTP code".into()))
         }
     } else {
@@ -888,6 +920,20 @@ pub async fn email_mfa_code(
                 ))
             }
         } else {
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                kind: ApiEventType::UserMfaLoginFailed {
+                    mfa_method: MFAMethod::Email,
+                },
+            })?;
             Err(WebError::Authorization("Invalid email MFA code".into()))
         }
     } else {
