@@ -15,6 +15,7 @@ pub struct WireguardPeerStats<I = NoId> {
     pub device_id: Id,
     pub collected_at: NaiveDateTime,
     pub network: i64,
+    // optional because it's not available until a peer actually connects
     pub endpoint: Option<String>,
     // bytes sent to peer
     pub upload: i64,

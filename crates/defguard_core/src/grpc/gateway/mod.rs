@@ -55,6 +55,7 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
 }
 
 #[derive(Debug, Error)]
+#[allow(clippy::large_enum_variant)]
 pub enum GatewayServerError {
     #[error("Failed to acquire lock on VPN client state map")]
     ClientStateMutexError,
@@ -749,9 +750,21 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // convert stats to DB storage format
             let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
 
-            // perform client state operations in a dedicated block to drop mutex guard
-            let disconnected_clients =
-                {
+            // only perform client state update if stats include an endpoint IP
+            // otherwise a peer was added to the gateway interface
+            // but has not connected yet
+            if let Some(endpoint) = &stats.endpoint {
+                // parse client endpoint IP
+                let ip_addr = endpoint.clone().parse().map_err(|err| {
+                    error!("Failed to parse VPN client endpoint: {err}");
+                    Status::new(
+                        Code::Internal,
+                        format!("Failed to parse VPN client endpoint: {err}"),
+                    )
+                })?;
+
+                // perform client state operations in a dedicated block to drop mutex guard
+                let disconnected_clients = {
                     // acquire lock on client state map
                     let mut client_map = self.get_client_state_guard()?;
 
@@ -761,6 +774,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             // update connected client state
                             client_state.update_client_state(
                                 device,
+                                ip_addr,
                                 stats.latest_handshake,
                                 stats.upload,
                                 stats.download,
@@ -770,33 +784,25 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             // mark new VPN client as connected
                             client_map.connect_vpn_client(
                                 network_id,
-                                gateway_hostname.clone(),
-                                public_key,
+                                &gateway_hostname,
+                                &public_key,
                                 &device,
+                                &user,
+                                ip_addr,
                                 &stats,
                             )?;
 
                             // emit connection event
-                            let ip_addr =
-                                stats.endpoint.clone().unwrap_or_default().parse().map_err(
-                                    |err| {
-                                        error!("Failed to parse VPN client endpoint: {err}");
-                                        Status::new(
-                                            Code::Internal,
-                                            format!("Failed to parse VPN client endpoint: {err}"),
-                                        )
-                                    },
-                                )?;
                             let context = GrpcRequestContext::new(
                                 user.id,
-                                user.username,
+                                user.username.clone(),
                                 ip_addr,
                                 device.name.clone(),
                             );
                             self.emit_event(GrpcEvent::ClientConnected {
                                 context,
-                                location,
-                                device,
+                                location: location.clone(),
+                                device: device.clone(),
                             })?;
                         }
                     };
@@ -807,6 +813,22 @@ impl gateway_service_server::GatewayService for GatewayServer {
                         peer_disconnect_threshold,
                     )?
                 };
+
+                // emit client disconnect events
+                for (device, context) in disconnected_clients {
+                    // let context = GrpcRequestContext::new(
+                    //     user.id,
+                    //     user.username.clone(),
+                    //     ip_addr,
+                    //     device.name.clone(),
+                    // );
+                    self.emit_event(GrpcEvent::ClientDisconnected {
+                        context,
+                        location: location.clone(),
+                        device,
+                    })?;
+                }
+            }
 
             // Save stats to db
             let stats = match stats.save(&self.pool).await {

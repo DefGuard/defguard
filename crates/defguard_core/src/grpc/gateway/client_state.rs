@@ -1,10 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use thiserror::Error;
 use tonic::{Code, Status};
 
-use crate::db::{models::wireguard_peer_stats::WireguardPeerStats, Device, Id};
+use crate::{
+    db::{models::wireguard_peer_stats::WireguardPeerStats, Device, Id, User},
+    events::GrpcRequestContext,
+};
 
 #[derive(Debug, Error)]
 pub enum ClientMapError {
@@ -26,7 +29,12 @@ impl From<ClientMapError> for Status {
 #[derive(Debug, Serialize, Clone)]
 pub struct ClientState {
     pub device: Device<Id>,
+    pub user_id: Id,
+    pub username: String,
+    // current IP from which the client is connecting
+    pub endpoint: IpAddr,
     pub latest_handshake: NaiveDateTime,
+    // when last stats update was received
     pub latest_update: NaiveDateTime,
     // total bytes sent to peer
     pub total_upload: i64,
@@ -37,6 +45,8 @@ pub struct ClientState {
 impl ClientState {
     pub fn new(
         device: Device<Id>,
+        user: &User<Id>,
+        endpoint: IpAddr,
         latest_handshake: NaiveDateTime,
         total_upload: i64,
         total_download: i64,
@@ -44,6 +54,9 @@ impl ClientState {
         let latest_update = Utc::now().naive_utc();
         Self {
             device,
+            user_id: user.id,
+            username: user.username.clone(),
+            endpoint,
             latest_handshake,
             latest_update,
             total_upload,
@@ -53,13 +66,15 @@ impl ClientState {
 
     pub fn update_client_state(
         &mut self,
-        new_device: Device<Id>,
+        current_device: Device<Id>,
+        current_endpoint: IpAddr,
         latest_handshake: NaiveDateTime,
         upload: i64,
         download: i64,
     ) {
         self.latest_update = Utc::now().naive_utc();
-        self.device = new_device;
+        self.device = current_device;
+        self.endpoint = current_endpoint;
         self.latest_handshake = latest_handshake;
         self.total_upload = upload;
         self.total_download = download;
@@ -84,17 +99,18 @@ impl ClientMap {
     ) -> Option<&mut ClientState> {
         self.0
             .get_mut(&location_id)
-            .map(|location_map| location_map.get_mut(client_pubkey))
-            .flatten()
+            .and_then(|location_map| location_map.get_mut(client_pubkey))
     }
 
     /// Adds newly connected VPN client to client state map
     pub fn connect_vpn_client(
         &mut self,
         location_id: Id,
-        gateway_hostname: String,
-        public_key: String,
+        gateway_hostname: &str,
+        public_key: &str,
         device: &Device<Id>,
+        user: &User<Id>,
+        endpoint: IpAddr,
         stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
@@ -113,9 +129,9 @@ impl ClientMap {
         };
 
         // check if client is already connected
-        if location_map.contains_key(&public_key) {
+        if location_map.contains_key(public_key) {
             return Err(ClientMapError::ClientAlreadyConnected {
-                public_key,
+                public_key: public_key.to_string(),
                 location_id,
             });
         };
@@ -123,55 +139,27 @@ impl ClientMap {
         // add client state to location map
         let client_state = ClientState::new(
             device.clone(),
-            stats.latest_handshake.clone(),
+            user,
+            endpoint,
+            stats.latest_handshake,
             stats.upload,
             stats.download,
         );
-        location_map.insert(public_key, client_state);
-
-        Ok(())
-    }
-
-    /// Removes disconnected VPN client from client state map
-    pub fn disconnect_vpn_client(
-        &mut self,
-        location_id: Id,
-        public_key: String,
-    ) -> Result<(), ClientMapError> {
-        info!("VPN client with public key {public_key} disconnected from location {location_id}");
-
-        // get client state map for given location
-        let location_map = match self.0.get_mut(&location_id) {
-            Some(location_map) => location_map,
-            None => {
-                return Err(ClientMapError::LocationNotFound { location_id });
-            }
-        };
-
-        // remove client from client state map
-        match location_map.remove(&public_key) {
-            Some(_) => {
-                debug!("VPN client {public_key} removed from client state map for location {location_id}");
-            }
-            None => {
-                return Err(ClientMapError::ClientNotFound {
-                    public_key,
-                    location_id,
-                });
-            }
-        };
+        location_map.insert(public_key.to_string(), client_state);
 
         Ok(())
     }
 
     /// Removes all disconnected clients for a given location.
-    /// Returns a list of public keys of disconnected clients.
+    ///
     /// A client is considered disconnected if there have not been any stats received for it in more than `peer_disconnect_threshold_secs`.
+    ///
+    /// Returns a list of devices.
     pub fn disconnect_inactive_vpn_clients_for_location(
         &mut self,
         location_id: Id,
         peer_disconnect_threshold_secs: i32,
-    ) -> Result<Vec<String>, ClientMapError> {
+    ) -> Result<Vec<(Device<Id>, GrpcRequestContext)>, ClientMapError> {
         debug!("Disconnecting inactive VPN clients for location {location_id}");
 
         // initialize result
@@ -188,10 +176,17 @@ impl ClientMap {
         let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
 
         // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
-        location_map.retain(|public_key, client_state| {
+        location_map.retain(|_public_key, client_state| {
             let now = Utc::now().naive_utc();
             if (now - client_state.latest_update) > disconnect_threshold {
-                disconnected_clients.push(public_key.clone());
+                let disconnect_event_context = GrpcRequestContext::new(
+                    client_state.user_id,
+                    client_state.username.clone(),
+                    client_state.endpoint,
+                    client_state.device.name.clone(),
+                );
+                disconnected_clients.push((client_state.device.clone(), disconnect_event_context));
+
                 return false;
             };
             true
