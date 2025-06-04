@@ -29,6 +29,7 @@ pub enum EventType {
     UserLoginFailed,
     UserMfaLogin,
     UserMfaLoginFailed,
+    RecoveryCodeUsed,
     UserLogout,
     // mfa management
     MfaDisabled,

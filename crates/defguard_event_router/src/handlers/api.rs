@@ -16,6 +16,9 @@ impl EventRouter {
             ApiEventType::UserMfaLoginFailed { mfa_method } => {
                 LoggerEvent::Defguard(DefguardEvent::UserMfaLoginFailed { mfa_method })
             }
+            ApiEventType::RecoveryCodeUsed => {
+                LoggerEvent::Defguard(DefguardEvent::RecoveryCodeUsed)
+            }
             ApiEventType::UserLogout => LoggerEvent::Defguard(DefguardEvent::UserLogout),
             ApiEventType::UserAdded { username } => {
                 LoggerEvent::Defguard(DefguardEvent::UserAdded { username })

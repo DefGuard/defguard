@@ -2548,6 +2548,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_login_failed: 'User login failed',
       user_mfa_login: 'User MFA login',
       user_mfa_login_failed: 'User MFA login failed',
+      recovery_code_used: 'Recovery code used',
       user_logout: 'User logout',
       user_added: 'User added',
       user_removed: 'User removed',

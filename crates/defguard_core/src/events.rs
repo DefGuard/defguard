@@ -74,6 +74,7 @@ pub enum ApiEventType {
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
     },
+    RecoveryCodeUsed,
     UserLogout,
     MfaDisabled,
     MfaTotpDisabled,

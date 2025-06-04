@@ -110,7 +110,7 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::RecoveryCodeUsed => todo!(),
+                            DefguardEvent::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
                             DefguardEvent::PasswordChanged => todo!(),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
@@ -268,7 +268,6 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-
                             DefguardEvent::AuditStreamRemoved {
                                 stream_id,
                                 stream_name,
@@ -280,7 +279,6 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-
                             DefguardEvent::AuditStreamModified {
                                 stream_id,
                                 stream_name,
