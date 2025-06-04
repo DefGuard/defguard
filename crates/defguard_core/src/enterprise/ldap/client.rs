@@ -93,6 +93,7 @@ impl super::LDAPConnection {
             .success()?;
         debug!("LDAP user groups search result: {res}");
         debug!("Performed LDAP group search with filter = {filter}");
+        debug!("Found groups: {rs:?}");
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 

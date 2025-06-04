@@ -1,4 +1,4 @@
-Copyright 2024 teonite ventures sp. z o. o.
+Copyright ©️ defguard sp. z o. o.
 
 defguard enterprise license / defguard.net
 
