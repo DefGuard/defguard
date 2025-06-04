@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use error::EventLoggerError;
-use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
+use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
@@ -292,9 +292,16 @@ pub async fn run_event_logger(
                         let _module = AuditModule::Client;
                         unimplemented!()
                     }
-                    LoggerEvent::Vpn(_event) => {
-                        let _module = AuditModule::Vpn;
-                        unimplemented!()
+                    LoggerEvent::Vpn(event) => {
+                        let module = AuditModule::Vpn;
+                        let (event_type, metadata) = match event {
+                            VpnEvent::ConnectedToLocation { location, device } => todo!(),
+                            VpnEvent::MfaFailed { location_id, location_name } => todo!(),
+							VpnEvent::DisconnectedFromLocation { location, device } => todo!(),
+                            VpnEvent::ConnectedToMfaLocation { location_id, location_name } => (EventType::ConnectedToMfaLocation, None),
+							VpnEvent::DisconnectedFromMfaLocation { location_id, location_name } => todo!(),
+						};
+                        (module, event_type, metadata)
                     }
                     LoggerEvent::Enrollment(_event) => {
                         let _module = AuditModule::Enrollment;
