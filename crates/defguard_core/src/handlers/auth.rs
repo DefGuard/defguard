@@ -267,7 +267,7 @@ pub(crate) async fn authenticate(
             None
         };
 
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
@@ -309,7 +309,7 @@ pub async fn logout(
     // remove stored session
     session.delete(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         // User may not be fully authenticated so we can't use
         // context extractor in this handler since it requires
         // the `SessionInfo` object.
@@ -359,7 +359,7 @@ pub async fn mfa_disable(
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::MfaDisabled,
     })?;
@@ -584,7 +584,7 @@ pub async fn totp_enable(
         }
 
         info!("Enabled TOTP for user {}", user.username);
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
             kind: ApiEventType::MfaTotpEnabled,
         })?;
@@ -608,7 +608,7 @@ pub async fn totp_disable(
     user.disable_totp(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled TOTP for user {}", user.username);
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::MfaTotpDisabled,
     })?;
@@ -710,7 +710,7 @@ pub async fn email_mfa_enable(
         }
 
         info!("Enabled email MFA for user {}", user.username);
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
             kind: ApiEventType::MfaEmailEnabled,
         })?;
@@ -734,7 +734,7 @@ pub async fn email_mfa_disable(
     user.disable_email_mfa(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled email MFA for user {}", user.username);
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::MfaEmailDisabled,
     })?;

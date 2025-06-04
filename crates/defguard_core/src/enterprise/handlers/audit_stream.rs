@@ -58,7 +58,7 @@ pub async fn create_audit_stream(
     };
     let stream = stream_model.save(&appstate.pool).await?;
     info!("User {session_username} created audit stream");
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::AuditStreamCreated {
             stream_id: stream.id,
@@ -90,7 +90,7 @@ pub async fn modify_audit_stream(
         stream.config = data.stream_config;
         stream.save(&appstate.pool).await?;
         info!("User {session_username} modified audit stream");
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
             kind: ApiEventType::AuditStreamModified {
                 stream_id: stream.id,
@@ -119,7 +119,7 @@ pub async fn delete_audit_stream(
         let stream_id = stream.id;
         let stream_name = stream.name.clone();
         stream.delete(&appstate.pool).await?;
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
             kind: ApiEventType::AuditStreamRemoved {
                 stream_id,

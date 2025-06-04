@@ -770,7 +770,7 @@ pub(crate) async fn add_device(
 
     update_counts(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::UserDeviceAdded {
             device_id,
@@ -883,7 +883,7 @@ pub(crate) async fn modify_device(
     info!("User {} updated device {device_id}", session.user.username);
 
     let owner = device.get_owner(&appstate.pool).await?.username;
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::UserDeviceModified {
             owner,
@@ -1024,7 +1024,7 @@ pub(crate) async fn delete_device(
                 .get_owner(&mut *transaction)
                 .await?
                 .username;
-            appstate.send_event(ApiEvent {
+            appstate.emit_event(ApiEvent {
                 context,
                 kind: ApiEventType::UserDeviceRemoved {
                     device_name,
@@ -1039,7 +1039,7 @@ pub(crate) async fn delete_device(
                     WireguardNetwork::find_by_id(&mut *transaction, network_info.network_id)
                         .await?;
                 if let Some(location) = location {
-                    appstate.send_event(ApiEvent {
+                    appstate.emit_event(ApiEvent {
                         context,
                         kind: ApiEventType::NetworkDeviceRemoved {
                             device_id,

@@ -635,7 +635,7 @@ pub(crate) async fn add_network_device(
         "User {} added a new network device {device_name}.",
         user.username
     );
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::NetworkDeviceAdded {
             device_id: device.id,
@@ -735,7 +735,7 @@ pub async fn modify_network_device(
     }
 
     let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::NetworkDeviceModified {
             device_id: network_device_info.id,

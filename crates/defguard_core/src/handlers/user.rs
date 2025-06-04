@@ -340,7 +340,7 @@ pub async fn add_user(
     if !user_info.enrolled {
         warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
     }
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::UserAdded {
             username: user.username,
@@ -735,7 +735,7 @@ pub async fn modify_user(
     appstate.trigger_action(AppEvent::UserModified(user_info));
 
     info!("User {} updated user {username}", session.user.username);
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
         kind: ApiEventType::UserModified {
             username: user.username,
@@ -807,7 +807,7 @@ pub async fn delete_user(
         }
 
         info!("User {} deleted user {}", session.user.username, &username);
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
             kind: ApiEventType::UserRemoved { username },
         })?;
