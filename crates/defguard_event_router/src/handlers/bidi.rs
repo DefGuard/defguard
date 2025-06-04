@@ -1,5 +1,5 @@
 use defguard_core::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
-use defguard_event_logger::message::{ClientEvent, EnrollmentEvent, LoggerEvent, VpnEvent};
+use defguard_event_logger::message::{LoggerEvent, VpnEvent};
 use tracing::debug;
 
 use crate::{error::EventRouterError, EventRouter};
@@ -12,11 +12,11 @@ impl EventRouter {
         let logger_event = match event {
             BidiStreamEventType::Enrollment(_enrollment_event) => todo!(),
             BidiStreamEventType::PasswordReset(_password_reset_event) => todo!(),
-            BidiStreamEventType::DesktopCLientMfa(event) => match event {
+            BidiStreamEventType::DesktopClientMfa(event) => match event {
                 DesktopClientMfaEvent::Connected => {
                     LoggerEvent::Vpn(VpnEvent::ConnectedToMfaLocation {
                         location_id: context.location_id,
-                        location_name: context.location_name,
+                        location_name: context.location_name.clone(),
                     })
                 }
                 DesktopClientMfaEvent::Disconnected => todo!(),

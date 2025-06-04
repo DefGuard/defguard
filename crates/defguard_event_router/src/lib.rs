@@ -28,11 +28,10 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use std::sync::Arc;
-
-use defguard_core::events::{ApiEvent, ApiRequestContext, BidiStreamEvent, GrpcEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent};
 use error::EventRouterError;
 use events::Event;
+use std::sync::Arc;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},

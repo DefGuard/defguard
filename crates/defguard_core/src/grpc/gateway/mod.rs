@@ -1,3 +1,4 @@
+mod client_state;
 use std::{
     net::IpAddr,
     pin::Pin,
@@ -6,11 +7,13 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use client_state::ClientMap;
 use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, Receiver, UnboundedSender},
+        mpsc::{self, error::SendError, Receiver, UnboundedSender},
     },
     task::JoinHandle,
 };
@@ -25,9 +28,9 @@ pub use crate::grpc::proto::gateway::{
 use crate::{
     db::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
-        Device, GatewayEvent, Id, NoId,
+        Device, GatewayEvent, Id, NoId, User,
     },
-    events::GrpcEvent,
+    events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
 
@@ -51,12 +54,27 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
+#[derive(Debug, Error)]
+#[allow(clippy::large_enum_variant)]
+pub enum GatewayServerError {
+    #[error("Failed to acquire lock on VPN client state map")]
+    ClientStateMutexError,
+    #[error("gRPC event channel error: {0}")]
+    GrpcEventChannelError(#[from] SendError<GrpcEvent>),
+}
+
+impl From<GatewayServerError> for Status {
+    fn from(value: GatewayServerError) -> Self {
+        Self::new(Code::Internal, value.to_string())
+    }
+}
+
 pub struct GatewayServer {
     pool: PgPool,
-    state: Arc<Mutex<GatewayMap>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    #[allow(dead_code)]
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
@@ -118,7 +136,8 @@ impl GatewayServer {
     ) -> Self {
         Self {
             pool,
-            state,
+            gateway_state: state,
+            client_state: Arc::new(Mutex::new(ClientMap::new())),
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
@@ -165,6 +184,94 @@ impl GatewayServer {
             )),
         }
     }
+
+    pub fn get_client_state_guard(
+        &self,
+    ) -> Result<std::sync::MutexGuard<ClientMap>, GatewayServerError> {
+        let client_state = self
+            .client_state
+            .lock()
+            .map_err(|_| GatewayServerError::ClientStateMutexError)?;
+        Ok(client_state)
+    }
+
+    fn emit_event(&self, event: GrpcEvent) -> Result<(), GatewayServerError> {
+        Ok(self.grpc_event_tx.send(event)?)
+    }
+
+    /// Helper method to fetch `Device` info from DB and return appropriate errors
+    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Device<Id>, Status> {
+        let device = match Device::find_by_pubkey(&self.pool, public_key).await {
+            Ok(Some(device)) => device,
+            Ok(None) => {
+                error!("Device with public key {public_key} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Device with public key {public_key} not found"),
+                ));
+            }
+            Err(err) => {
+                error!("Failed to retrieve device with public key {public_key}: {err}",);
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve device with public key {public_key}: {err}",),
+                ));
+            }
+        };
+        Ok(device)
+    }
+
+    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
+    async fn fetch_location_from_db(
+        &self,
+        location_id: Id,
+    ) -> Result<WireguardNetwork<Id>, Status> {
+        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
+            Ok(Some(location)) => location,
+            Ok(None) => {
+                error!("Location {location_id} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Location {location_id} not found"),
+                ));
+            }
+            Err(err) => {
+                error!("Failed to retrieve location {location_id}: {err}",);
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve location {location_id}: {err}",),
+                ));
+            }
+        };
+        Ok(location)
+    }
+
+    /// Helper method to fetch `User` info from DB and return appropriate errors
+    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
+        let user = match User::find_by_id(&self.pool, user_id).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                error!("User {user_id} assigned to device with public key {public_key} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("User assigned to device with public key {public_key} not found"),
+                ));
+            }
+            Err(err) => {
+                error!(
+                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
+                );
+                return Err(Status::new(
+                    Code::Internal,
+                    format!(
+                        "Failed to retrieve user for device with public key {public_key}: {err}",
+                    ),
+                ));
+            }
+        };
+
+        Ok(user)
+    }
 }
 
 fn gen_config(
@@ -183,7 +290,7 @@ fn gen_config(
 }
 
 impl WireguardPeerStats {
-    fn from_peer_stats(stats: PeerStats, network_id: Id) -> Self {
+    fn from_peer_stats(stats: PeerStats, network_id: Id, device_id: Id) -> Self {
         let endpoint = match stats.endpoint {
             endpoint if endpoint.is_empty() => None,
             _ => Some(stats.endpoint),
@@ -192,7 +299,7 @@ impl WireguardPeerStats {
             id: NoId,
             network: network_id,
             endpoint,
-            device_id: -1,
+            device_id,
             collected_at: Utc::now().naive_utc(),
             upload: stats.upload as i64,
             download: stats.download as i64,
@@ -598,6 +705,7 @@ impl Drop for GatewayUpdatesStream {
         // terminate update task
         self.task_handle.abort();
         // update gateway state
+        // TODO: possibly use a oneshot channel instead
         self.gateway_state
             .lock()
             .unwrap()
@@ -616,7 +724,9 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
         let network_id = Self::get_network_id(request.metadata())?;
+        let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
         let mut stream = request.into_inner();
+
         while let Some(stats_update) = stream.message().await? {
             debug!("Received stats message: {stats_update:?}");
             let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
@@ -624,26 +734,97 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 continue;
             };
             let public_key = peer_stats.public_key.clone();
-            let mut stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id);
-            // Get device by public key and fill in stats.device_id
-            // FIXME: keep an in-memory device map to avoid repeated DB requests
-            stats.device_id = match Device::find_by_pubkey(&self.pool, &public_key).await {
-                Ok(Some(device)) => device.id,
-                Ok(None) => {
-                    error!("Device with public key {public_key} not found");
-                    return Err(Status::new(
+
+            // fetch device from DB
+            // TODO: fetch only when device has changed and use client state otherwise
+            let device = self.fetch_device_from_db(&public_key).await?;
+            // copy for easier reference later
+            let device_id = device.id;
+
+            // fetch user and location from DB for audit log
+            // TODO: cache usernames since they don't change
+            let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
+            let location = self.fetch_location_from_db(network_id).await?;
+            let peer_disconnect_threshold = location.peer_disconnect_threshold;
+
+            // convert stats to DB storage format
+            let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
+
+            // only perform client state update if stats include an endpoint IP
+            // otherwise a peer was added to the gateway interface
+            // but has not connected yet
+            if let Some(endpoint) = &stats.endpoint {
+                // parse client endpoint IP
+                let ip_addr = endpoint.clone().parse().map_err(|err| {
+                    error!("Failed to parse VPN client endpoint: {err}");
+                    Status::new(
                         Code::Internal,
-                        format!("Device with public key {public_key} not found"),
-                    ));
+                        format!("Failed to parse VPN client endpoint: {err}"),
+                    )
+                })?;
+
+                // perform client state operations in a dedicated block to drop mutex guard
+                let disconnected_clients = {
+                    // acquire lock on client state map
+                    let mut client_map = self.get_client_state_guard()?;
+
+                    // update connected clients map
+                    match client_map.get_vpn_client(network_id, &public_key) {
+                        Some(client_state) => {
+                            // update connected client state
+                            client_state.update_client_state(
+                                device,
+                                ip_addr,
+                                stats.latest_handshake,
+                                stats.upload,
+                                stats.download,
+                            );
+                        }
+                        None => {
+                            // mark new VPN client as connected
+                            client_map.connect_vpn_client(
+                                network_id,
+                                &gateway_hostname,
+                                &public_key,
+                                &device,
+                                &user,
+                                ip_addr,
+                                &stats,
+                            )?;
+
+                            // emit connection event
+                            let context = GrpcRequestContext::new(
+                                user.id,
+                                user.username.clone(),
+                                ip_addr,
+                                device.id,
+                                device.name.clone(),
+                            );
+                            self.emit_event(GrpcEvent::ClientConnected {
+                                context,
+                                location: location.clone(),
+                                device: device.clone(),
+                            })?;
+                        }
+                    };
+
+                    // disconnect inactive clients
+                    client_map.disconnect_inactive_vpn_clients_for_location(
+                        network_id,
+                        peer_disconnect_threshold,
+                    )?
+                };
+
+                // emit client disconnect events
+                for (device, context) in disconnected_clients {
+                    self.emit_event(GrpcEvent::ClientDisconnected {
+                        context,
+                        location: location.clone(),
+                        device,
+                    })?;
                 }
-                Err(err) => {
-                    error!("Failed to retrieve device with public key {public_key}: {err}",);
-                    return Err(Status::new(
-                        Code::Internal,
-                        format!("Failed to retrieve device with public key {public_key}: {err}",),
-                    ));
-                }
-            };
+            }
+
             // Save stats to db
             let stats = match stats.save(&self.pool).await {
                 Ok(stats) => stats,
@@ -695,7 +876,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         // store connected gateway in memory
         {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.gateway_state.lock().unwrap();
             state.add_gateway(
                 network_id,
                 &network.name,
@@ -762,7 +943,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.gateway_state.lock().unwrap();
         state
             .connect_gateway(gateway_network_id, &hostname, &self.pool)
             .map_err(|err| {
@@ -791,7 +972,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             rx,
             gateway_network_id,
             hostname,
-            Arc::clone(&self.state),
+            Arc::clone(&self.gateway_state),
             self.pool.clone(),
         )))
     }

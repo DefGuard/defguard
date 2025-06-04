@@ -126,6 +126,6 @@ impl EventRouter {
                 })
             }
         };
-        self.log_event(event.context, logger_event)
+        self.log_event(event.context.into(), logger_event)
     }
 }
