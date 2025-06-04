@@ -789,7 +789,7 @@ pub async fn init_vpn_location(
         }
         // Otherwise create it with the predefined ID
         else {
-            let mut network = WireguardNetwork::new(
+            let network = WireguardNetwork::new(
                 args.name.clone(),
                 vec![args.address],
                 args.port,
@@ -802,8 +802,15 @@ pub async fn init_vpn_location(
                 false,
                 false,
             )?
-            .with_id(location_id);
-            network.save(&mut *transaction).await?;
+            .save(&mut *transaction)
+            .await?;
+            if network.id != location_id {
+                return Err(anyhow!(
+                    "Failed to initialize VPN location. The ID of the newly created network ({}) does not match \
+                    the predefined ID ({location_id}). The predefined ID must be the next available ID.",
+                    network.id
+                ));
+            }
             network.add_all_allowed_devices(&mut transaction).await?;
             network
         };
@@ -816,7 +823,7 @@ pub async fn init_vpn_location(
         let networks = WireguardNetwork::all(pool).await?;
         if !networks.is_empty() {
             return Err(anyhow!(
-                "Failed to initialize first VPN location. A location already exists."
+                "Failed to initialize first VPN location. Location already exists."
             ));
         };
 
