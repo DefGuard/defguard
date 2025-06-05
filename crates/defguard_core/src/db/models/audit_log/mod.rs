@@ -62,12 +62,10 @@ pub enum EventType {
     VpnLocationAdded,
     VpnLocationRemoved,
     VpnLocationModified,
-	// VPN
-	// TODO rename
-	ConnectedToMfaLocation,
     // VPN client events
     VpnClientConnected,
     VpnClientDisconnected,
+	VpnClientConnectedMfa,
 }
 
 #[derive(Model, FromRow, Serialize)]
