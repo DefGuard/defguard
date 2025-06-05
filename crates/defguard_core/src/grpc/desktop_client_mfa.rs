@@ -2,8 +2,12 @@ use std::{collections::HashMap, net::Ipv4Addr};
 
 use chrono::Utc;
 use sqlx::PgPool;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::Status;
+use thiserror::Error;
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{error::SendError, UnboundedSender},
+};
+use tonic::{Code, Status};
 
 use super::proto::proxy::{
     ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
@@ -21,6 +25,19 @@ use crate::{
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+
+#[derive(Debug, Error)]
+#[allow(clippy::large_enum_variant)]
+pub enum ClientMfaServerError {
+    #[error("gRPC event channel error: {0}")]
+    BidiEventChannelError(#[from] SendError<BidiStreamEvent>),
+}
+
+impl From<ClientMfaServerError> for Status {
+    fn from(value: ClientMfaServerError) -> Self {
+        Self::new(Code::Internal, value.to_string())
+    }
+}
 
 struct ClientLoginSession {
     method: MfaMethod,
@@ -75,6 +92,10 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid token")
         })?;
         Ok(claims.client_id)
+    }
+
+    fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
+        Ok(self.bidi_event_tx.send(event)?)
     }
 
     #[instrument(skip_all)]
@@ -285,22 +306,16 @@ impl ClientMfaServer {
             "Desktop client login finished for {} at location {}",
             user.username, location.name
         );
-        self.bidi_event_tx
-            .send(BidiStreamEvent {
-                context: BidiRequestContext::new(
-                    user.id,
-                    user.username.clone(),
-                    std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                    device.clone(),
-                    location.clone(),
-                ),
-                event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
-            })
-            .map_err(|err| {
-                let msg = format!("Failed to send DesktopClientMfaEvent::Connected event: {err}");
-                error!(msg);
-                Status::internal(msg)
-            })?;
+        self.emit_event(BidiStreamEvent {
+            context: BidiRequestContext::new(
+                user.id,
+                user.username.clone(),
+                std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                device.clone(),
+                location.clone(),
+            ),
+            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
+        })?;
 
         // remove login session from map
         self.sessions.remove(&pubkey);
