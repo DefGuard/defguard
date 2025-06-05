@@ -13,10 +13,12 @@
 - **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
     - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
     - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
+- [ACLs/Firewall Management](https://docs.defguard.net/enterprise/all-enteprise-features/access-control-list) for Linux and FreeBSD/OPNSense
 - [Integrated SSO based on OpenID Connect](https://docs.defguard.net/admin-and-features/openid-connect): 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
 - Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+- [Two way Active Directory/LDAP synchronization](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization)
 - Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/help/enrollment)
 - Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
