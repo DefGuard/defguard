@@ -248,6 +248,7 @@ pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
+        method: MFAMethod
     },
     DisconnectedFromMfaLocation {
         location: WireguardNetwork<Id>,

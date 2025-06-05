@@ -229,7 +229,7 @@ pub enum PasswordResetEvent {}
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
-    Connected,
+    Connected { method: MFAMethod },
     Disconnected,
 }
 

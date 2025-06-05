@@ -314,7 +314,9 @@ impl ClientMfaServer {
                 device.clone(),
                 location.clone(),
             ),
-            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
+            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected {
+                method: (*method).into(),
+            }),
         })?;
 
         // remove login session from map

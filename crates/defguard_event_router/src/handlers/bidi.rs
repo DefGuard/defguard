@@ -13,10 +13,11 @@ impl EventRouter {
             BidiStreamEventType::Enrollment(_enrollment_event) => todo!(),
             BidiStreamEventType::PasswordReset(_password_reset_event) => todo!(),
             BidiStreamEventType::DesktopClientMfa(event) => match event {
-                DesktopClientMfaEvent::Connected => {
+                DesktopClientMfaEvent::Connected { method } => {
                     LoggerEvent::Vpn(VpnEvent::ConnectedToMfaLocation {
                         location: context.location.clone(),
                         device: context.device.clone(),
+                        method,
                     })
                 }
                 DesktopClientMfaEvent::Disconnected => todo!(),

@@ -8,11 +8,7 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
-            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
-            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
+            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, VpnClientMfaMetadata, NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -304,9 +300,18 @@ pub async fn run_event_logger(
                                 location_id: _,
                                 location_name: _,
                             } => todo!(),
-                            VpnEvent::ConnectedToMfaLocation { location, device } => (
+                            VpnEvent::ConnectedToMfaLocation {
+                                location,
+                                device,
+                                method,
+                            } => (
                                 EventType::VpnClientConnectedMfa,
-                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
                             ),
                             VpnEvent::DisconnectedFromMfaLocation { location, device } => todo!(),
                             VpnEvent::ConnectedToLocation { location, device } => (
