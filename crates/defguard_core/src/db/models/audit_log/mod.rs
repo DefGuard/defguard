@@ -65,7 +65,7 @@ pub enum EventType {
     // VPN client events
     VpnClientConnected,
     VpnClientDisconnected,
-	VpnClientConnectedMfa,
+    VpnClientConnectedMfa,
 }
 
 #[derive(Model, FromRow, Serialize)]

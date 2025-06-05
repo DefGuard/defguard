@@ -487,12 +487,8 @@ pub async fn run_grpc_bidi_stream(
     );
     let password_reset_server =
         PasswordResetServer::new(pool.clone(), mail_tx.clone(), bidi_event_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(
-        pool.clone(),
-        mail_tx,
-        wireguard_tx.clone(),
-        bidi_event_tx,
-    );
+    let mut client_mfa_server =
+        ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone(), bidi_event_tx);
     let polling_server = PollingServer::new(pool.clone());
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;

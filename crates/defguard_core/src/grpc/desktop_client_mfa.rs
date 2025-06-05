@@ -285,20 +285,22 @@ impl ClientMfaServer {
             "Desktop client login finished for {} at location {}",
             user.username, location.name
         );
-        self.bidi_event_tx.send(BidiStreamEvent {
-            context: BidiRequestContext::new(
-                user.id,
-                user.username.clone(),
-                std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                device.clone(),
-                location.clone(),
-            ),
-            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
-        }).map_err(|err| {
-            let msg = format!("Failed to send DesktopClientMfaEvent::Connected event: {err}");
-            error!(msg);
-            Status::internal(msg)
-        })?;
+        self.bidi_event_tx
+            .send(BidiStreamEvent {
+                context: BidiRequestContext::new(
+                    user.id,
+                    user.username.clone(),
+                    std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                    device.clone(),
+                    location.clone(),
+                ),
+                event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
+            })
+            .map_err(|err| {
+                let msg = format!("Failed to send DesktopClientMfaEvent::Connected event: {err}");
+                error!(msg);
+                Status::internal(msg)
+            })?;
 
         // remove login session from map
         self.sessions.remove(&pubkey);
