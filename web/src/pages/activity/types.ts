@@ -34,7 +34,9 @@ export type AuditEventType =
   | 'audit_stream_modified'
   | 'audit_stream_removed'
   | 'vpn_client_connected'
-  | 'vpn_client_disconnected';
+  | 'vpn_client_disconnected'
+  | 'vpn_client_connected_mfa'
+  | 'vpn_client_mfa_failed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -64,4 +66,6 @@ export const auditEventTypeValues: AuditEventType[] = [
   'audit_stream_removed',
   'vpn_client_connected',
   'vpn_client_disconnected',
+  'vpn_client_connected_mfa',
+  'vpn_client_mfa_failed',
 ];
