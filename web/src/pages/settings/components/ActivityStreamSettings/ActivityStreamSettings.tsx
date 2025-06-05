@@ -2,10 +2,13 @@ import './style.scss';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { orderBy, range } from 'lodash-es';
+import { useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { ListHeader } from '../../../../shared/components/Layout/ListHeader/ListHeader';
+import { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -15,12 +18,13 @@ import { EditButton } from '../../../../shared/defguard-ui/components/Layout/Edi
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { NoData } from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { ListSortDirection } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import SvgIconPlus from '../../../../shared/defguard-ui/components/svg/IconPlus';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
-import { AuditStream } from '../../../../shared/types';
+import { ActivityStream } from '../../../../shared/types';
 import { CreateAuditStreamModal } from './modals/CreateAuditStreamModal/CreateAuditStreamModal';
 import { useCreateAuditStreamModalStore } from './modals/CreateAuditStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
@@ -49,6 +53,7 @@ export const ActivityStreamSettings = () => {
 
 const AuditStreamList = () => {
   const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings;
 
   const {
     activityStream: { getActivityStreams },
@@ -65,6 +70,34 @@ const AuditStreamList = () => {
     select: (data) => orderBy(data, (row) => row.name.toLowerCase(), ['asc']),
   });
 
+  const [activeSortKey] = useState<keyof ActivityStream>('name');
+  const [sortDirection, setSortDirection] = useState<ListSortDirection>(
+    ListSortDirection.ASC,
+  );
+
+  const listHeaders = useMemo(
+    (): ListHeaderColumnConfig<ActivityStream>[] => [
+      {
+        key: 'name',
+        enabled: true,
+        sortKey: 'name',
+        label: localLL.list.headers.name(),
+      },
+      {
+        key: 'destination',
+        enabled: false,
+        sortKey: 'stream_type',
+        label: localLL.list.headers.destination(),
+      },
+      {
+        key: 'edit',
+        enabled: false,
+        label: LL.common.controls.edit(),
+      },
+    ],
+    [LL.common.controls, localLL.list.headers],
+  );
+
   return (
     <div className="audit-stream-list">
       <div className="controls">
@@ -76,6 +109,16 @@ const AuditStreamList = () => {
           className="add"
           onClick={() => {
             openCreateModal();
+          }}
+        />
+      </div>
+      <div className="list-header">
+        <ListHeader
+          headers={listHeaders}
+          activeKey={activeSortKey}
+          sortDirection={sortDirection}
+          onChange={(_, direction) => {
+            setSortDirection(direction);
           }}
         />
       </div>
@@ -108,7 +151,7 @@ const AuditStreamList = () => {
 };
 
 type ListItemsProps = {
-  stream: AuditStream;
+  stream: ActivityStream;
 };
 
 const ListItem = ({ stream }: ListItemsProps) => {
@@ -125,7 +168,7 @@ const ListItem = ({ stream }: ListItemsProps) => {
 };
 
 type EditProps = {
-  stream: AuditStream;
+  stream: ActivityStream;
 };
 
 const EditListItem = ({ stream }: EditProps) => {

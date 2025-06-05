@@ -9,7 +9,7 @@ import { Button } from '../../../../../../shared/defguard-ui/components/Layout/B
 import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
-import { AuditStreamType } from '../../../../../../shared/types';
+import { ActivityStreamType } from '../../../../../../shared/types';
 import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from '../LogStashHttpStreamCEModal/store';
 import { useVectorHttpStreamCEModal } from '../VectorHttpStreamCEModal/store';
@@ -41,7 +41,7 @@ export const CreateAuditStreamModal = () => {
   );
 };
 
-const availableTypes: AuditStreamType[] = ['vector_http', 'logstash_http'];
+const availableTypes: ActivityStreamType[] = ['vector_http', 'logstash_http'];
 
 const ModalContent = () => {
   const { LL } = useI18nContext();
@@ -50,7 +50,7 @@ const ModalContent = () => {
   const openCreateLogstash = useLogstashHttpStreamCEModalStore((s) => s.open, shallow);
   const openCreateVector = useVectorHttpStreamCEModal((s) => s.open, shallow);
 
-  const [currentStreamType, setStreamType] = useState<AuditStreamType>('vector_http');
+  const [currentStreamType, setStreamType] = useState<ActivityStreamType>('vector_http');
 
   return (
     <>

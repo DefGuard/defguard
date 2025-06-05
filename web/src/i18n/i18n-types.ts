@@ -139,6 +139,14 @@ type RootTranslation = {
 			 * C​l​e​a​r​ ​a​l​l
 			 */
 			clearAll: string
+			/**
+			 * F​i​l​t​e​r
+			 */
+			filter: string
+			/**
+			 * F​i​l​t​e​r​s
+			 */
+			filters: string
 		}
 		/**
 		 * K​e​y
@@ -164,6 +172,10 @@ type RootTranslation = {
 		 * S​e​a​r​c​h
 		 */
 		search: string
+		/**
+		 * T​i​m​e
+		 */
+		time: string
 	}
 	messages: {
 		/**
@@ -2710,7 +2722,7 @@ type RootTranslation = {
 			/**
 			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
-			auditStream: string
+			activityStream: string
 		}
 		messages: {
 			/**
@@ -2821,6 +2833,16 @@ type RootTranslation = {
 				 * N​o​ ​d​e​s​t​i​n​a​t​i​o​n​s
 				 */
 				noData: string
+				headers: {
+					/**
+					 * N​a​m​e
+					 */
+					name: string
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					destination: string
+				}
 			}
 		}
 		ldapSettings: {
@@ -6089,6 +6111,42 @@ type RootTranslation = {
 		}
 	}
 	activity: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​l​o​g
+		 */
+		title: string
+		list: {
+			/**
+			 * A​l​l​ ​a​c​t​i​v​i​t​y
+			 */
+			allLabel: string
+			headers: {
+				/**
+				 * D​a​t​e
+				 */
+				date: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * I​P
+				 */
+				ip: string
+				/**
+				 * E​v​e​n​t
+				 */
+				event: string
+				/**
+				 * M​o​d​u​l​e
+				 */
+				module: string
+				/**
+				 * D​e​v​i​c​e
+				 */
+				device: string
+			}
+		}
 	}
 	enums: {
 		activityEventType: {
@@ -6351,6 +6409,14 @@ export type TranslationFunctions = {
 			 * Clear all
 			 */
 			clearAll: () => LocalizedString
+			/**
+			 * Filter
+			 */
+			filter: () => LocalizedString
+			/**
+			 * Filters
+			 */
+			filters: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -6376,6 +6442,10 @@ export type TranslationFunctions = {
 		 * Search
 		 */
 		search: () => LocalizedString
+		/**
+		 * Time
+		 */
+		time: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -8892,7 +8962,7 @@ export type TranslationFunctions = {
 			/**
 			 * Activity log streaming
 			 */
-			auditStream: () => LocalizedString
+			activityStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -9000,6 +9070,16 @@ export type TranslationFunctions = {
 				 * No destinations
 				 */
 				noData: () => LocalizedString
+				headers: {
+					/**
+					 * Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Destination
+					 */
+					destination: () => LocalizedString
+				}
 			}
 		}
 		ldapSettings: {
@@ -12240,6 +12320,42 @@ export type TranslationFunctions = {
 		}
 	}
 	activity: {
+		/**
+		 * Activity log
+		 */
+		title: () => LocalizedString
+		list: {
+			/**
+			 * All activity
+			 */
+			allLabel: () => LocalizedString
+			headers: {
+				/**
+				 * Date
+				 */
+				date: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * IP
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Event
+				 */
+				event: () => LocalizedString
+				/**
+				 * Module
+				 */
+				module: () => LocalizedString
+				/**
+				 * Device
+				 */
+				device: () => LocalizedString
+			}
+		}
 	}
 	enums: {
 		activityEventType: {

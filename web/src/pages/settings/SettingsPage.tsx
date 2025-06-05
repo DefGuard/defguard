@@ -124,7 +124,7 @@ export const SettingsPage = () => {
       },
       {
         key: 6,
-        content: 'Audit Logs Streaming',
+        content: LL.settingsPage.tabs.activityStream(),
         active: activeCard === 6,
         onClick: () => handleTabClick(6),
       },

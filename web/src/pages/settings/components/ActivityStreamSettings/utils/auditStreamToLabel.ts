@@ -1,9 +1,9 @@
-import { AuditStream, AuditStreamType } from '../../../../../shared/types';
+import { ActivityStream, ActivityStreamType } from '../../../../../shared/types';
 
-export const auditStreamToLabel = (value: AuditStream): string =>
+export const auditStreamToLabel = (value: ActivityStream): string =>
   auditStreamTypeToLabel(value.stream_type);
 
-export const auditStreamTypeToLabel = (value: AuditStreamType): string => {
+export const auditStreamTypeToLabel = (value: ActivityStreamType): string => {
   switch (value) {
     case 'vector_http':
       return 'Vector';

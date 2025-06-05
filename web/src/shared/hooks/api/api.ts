@@ -507,12 +507,13 @@ export const buildApi = (client: Axios): Api => {
       })
       .then(unpackRequest);
 
-  const getAuditLog: Api['auditLog']['getAuditLog'] = (params) =>
+  const getActivityLog: Api['activityLog']['getActivityLog'] = (params) =>
     client
       .get(`/audit_log`, {
         params,
       })
       .then(unpackRequest);
+
   const getAllNetworksStats: Api['network']['getAllNetworksStats'] = (params) => {
     const fromParam = getNetworkStatsFilterValue(params.from ?? 1);
     return client
@@ -549,8 +550,8 @@ export const buildApi = (client: Axios): Api => {
       getActivityStreams,
       modifyActivityStream,
     },
-    auditLog: {
-      getAuditLog,
+    activityLog: {
+      getActivityLog,
     },
     acl: {
       aliases: {

@@ -1,3 +1,11 @@
+@mixin row-config {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 40px;
+  grid-template-rows: 1fr;
+  align-items: center;
+}
+
 #audit-stream-settings {
   .controls {
     display: flex;
@@ -13,6 +21,24 @@
         path {
           fill: var(--surface-icon-secondary);
         }
+      }
+    }
+  }
+
+  .list-header {
+    padding-bottom: var(--spacing-xs);
+
+    .list-headers {
+      box-sizing: border-box;
+      padding: 0 var(--spacing-xs);
+      @include row-config();
+
+      & > :nth-child(4) {
+        justify-self: center;
+      }
+
+      .cell.empty {
+        display: none;
       }
     }
   }

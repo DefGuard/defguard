@@ -35,6 +35,8 @@ const en: BaseTranslation = {
       selectAll: 'Select all',
       clear: 'Clear',
       clearAll: 'Clear all',
+      filter: 'Filter',
+      filters: 'Filters',
     },
     key: 'Key',
     name: 'Name',
@@ -42,6 +44,7 @@ const en: BaseTranslation = {
     unavailable: 'Unavailable',
     notSet: 'Not set',
     search: 'Search',
+    time: 'Time',
   },
   messages: {
     error: 'Error has occurred.',
@@ -1103,7 +1106,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
-      auditStream: 'Activity log streaming',
+      activityStream: 'Activity log streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1148,6 +1151,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: 'Activity log streaming',
       list: {
         noData: 'No destinations',
+        headers: {
+          name: 'Name',
+          destination: 'Destination',
+        },
       },
     },
     ldapSettings: {
@@ -2542,7 +2549,20 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       },
     },
   },
-  activity: {},
+  activity: {
+    title: 'Activity log',
+    list: {
+      allLabel: 'All activity',
+      headers: {
+        date: 'Date',
+        user: 'User',
+        ip: 'IP',
+        event: 'Event',
+        module: 'Module',
+        device: 'Device',
+      },
+    },
+  },
   enums: {
     activityEventType: {
       user_login: 'User login',

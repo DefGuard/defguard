@@ -19,7 +19,7 @@ import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search
 import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
-import { AuditLogSortKey } from '../../shared/types';
+import { ActivityLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
 import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
@@ -71,15 +71,16 @@ const PageContent = () => {
   const [from, setForm] = useState<string | null>(dayjs.utc().startOf('M').toISOString());
   const [until, setUntil] = useState<string | null>(null);
   const [timeSelectionModalOpen, setTimeSelectionModal] = useState(false);
-  const [sortKey, setSortKey] = useState<AuditLogSortKey>('timestamp');
+  const [sortKey, setSortKey] = useState<ActivityLogSortKey>('timestamp');
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.DESC,
   );
 
   const { LL } = useI18nContext();
+  const localLL = LL.activity;
 
   const {
-    auditLog: { getAuditLog },
+    activityLog: { getActivityLog: getAuditLog },
     user: { getUsers },
   } = useApi();
 
@@ -188,15 +189,15 @@ const PageContent = () => {
   return (
     <>
       <header className="page-header">
-        <h1>Activity</h1>
+        <h1>{localLL.title()}</h1>
       </header>
       <div id="activity-list">
         <div className="top">
-          <h2>All activity</h2>
+          <h2>{localLL.list.allLabel()}</h2>
           <ListItemCount shorten count={data?.pages[0].pagination.total_items ?? 0} />
           <div className="controls">
             <Search
-              placeholder="Search"
+              placeholder={LL.common.search()}
               initialValue={searchValue}
               onDebounce={(search) => {
                 setSearchValue(search);
@@ -204,14 +205,14 @@ const PageContent = () => {
             />
             <Button
               size={ButtonSize.SMALL}
-              text="Filters"
+              text={LL.common.controls.filters()}
               onClick={() => {
                 setFiltersModalOpen(true);
               }}
             />
             <Button
               size={ButtonSize.SMALL}
-              text="Time"
+              text={LL.common.time()}
               onClick={() => {
                 setTimeSelectionModal(true);
               }}
@@ -225,7 +226,7 @@ const PageContent = () => {
               sortKey={sortKey}
               onSortChange={(sortKey, sortDirection) => {
                 setSortDirection(sortDirection);
-                setSortKey(sortKey as AuditLogSortKey);
+                setSortKey(sortKey as ActivityLogSortKey);
               }}
               data={activityData}
               hasNextPage={hasNextPage}
