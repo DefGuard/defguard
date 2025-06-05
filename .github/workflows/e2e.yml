@@ -73,6 +73,6 @@ jobs:
     secrets: inherit
   trigger-staging-deploy:
     needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'release/**' }}
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit
