@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Id, WireguardNetwork};
+use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 
 /// Shared context that needs to be added to every API event
@@ -66,6 +66,14 @@ impl GrpcRequestContext {
 #[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
+    UserLoginFailed,
+    UserMfaLogin {
+        mfa_method: MFAMethod,
+    },
+    UserMfaLoginFailed {
+        mfa_method: MFAMethod,
+    },
+    RecoveryCodeUsed,
     UserLogout,
     MfaDisabled,
     MfaTotpDisabled,
@@ -140,7 +148,7 @@ pub enum ApiEventType {
 #[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub kind: ApiEventType,
+    pub event: ApiEventType,
 }
 
 /// Events from gRPC server

@@ -2,9 +2,10 @@ use chrono::NaiveDateTime;
 use std::net::IpAddr;
 
 use defguard_core::{
-    db::{models::authentication_key::AuthenticationKeyType, Device, Id, WireguardNetwork},
+    db::{
+        models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,
+    },
     events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext},
-    grpc::proto::proxy::MfaMethod,
 };
 
 /// Messages that can be sent to the event logger
@@ -78,15 +79,18 @@ impl From<BidiRequestContext> for EventContext {
 pub enum DefguardEvent {
     // authentication
     UserLogin,
+    UserLoginFailed,
+    UserMfaLogin {
+        mfa_method: MFAMethod,
+    },
+    UserMfaLoginFailed {
+        mfa_method: MFAMethod,
+    },
     UserLogout,
     RecoveryCodeUsed,
     PasswordChanged,
-    MfaFailed,
     // user MFA management
     MfaDisabled,
-    MfaDefaultChanged {
-        mfa_method: MfaMethod,
-    },
     MfaTotpEnabled,
     MfaTotpDisabled,
     MfaEmailEnabled,
@@ -244,11 +248,11 @@ pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-	},
+    },
     DisconnectedFromMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-	},
+    },
     MfaFailed {
         location_id: Id,
         location_name: String,

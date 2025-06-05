@@ -26,6 +26,10 @@ pub enum AuditModule {
 pub enum EventType {
     // authentication
     UserLogin,
+    UserLoginFailed,
+    UserMfaLogin,
+    UserMfaLoginFailed,
+    RecoveryCodeUsed,
     UserLogout,
     // mfa management
     MfaDisabled,
@@ -59,7 +63,11 @@ pub enum EventType {
     VpnLocationRemoved,
     VpnLocationModified,
 	// VPN
-	ConnectedToMfaLocation
+	// TODO rename
+	ConnectedToMfaLocation,
+    // VPN client events
+    VpnClientConnected,
+    VpnClientDisconnected,
 }
 
 #[derive(Model, FromRow, Serialize)]

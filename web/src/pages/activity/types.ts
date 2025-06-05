@@ -9,6 +9,10 @@ export const auditModuleValues: AuditModule[] = [
 
 export type AuditEventType =
   | 'user_login'
+  | 'user_login_failed'
+  | 'user_mfa_login'
+  | 'user_mfa_login_failed'
+  | 'recovery_code_used'
   | 'user_logout'
   | 'user_added'
   | 'user_modified'
@@ -28,10 +32,16 @@ export type AuditEventType =
   | 'network_device_removed'
   | 'audit_stream_created'
   | 'audit_stream_modified'
-  | 'audit_stream_removed';
+  | 'audit_stream_removed'
+  | 'vpn_client_connected'
+  | 'vpn_client_disconnected';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
+  'user_login_failed',
+  'user_mfa_login',
+  'user_mfa_login_failed',
+  'recovery_code_used',
   'user_logout',
   'user_added',
   'user_modified',
@@ -52,4 +62,6 @@ export const auditEventTypeValues: AuditEventType[] = [
   'audit_stream_created',
   'audit_stream_modified',
   'audit_stream_removed',
+  'vpn_client_connected',
+  'vpn_client_disconnected',
 ];

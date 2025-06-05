@@ -152,12 +152,30 @@ pub(crate) async fn authenticate(
                         Err(err) => {
                             info!("Failed to authenticate user {username_or_email} through LDAP: {err}");
                             log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            appstate.emit_event(ApiEvent {
+                                context: ApiRequestContext::new(
+                                    user.id,
+                                    user.username,
+                                    insecure_ip,
+                                    user_agent.to_string(),
+                                ),
+                                event: ApiEventType::UserLoginFailed,
+                            })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
                     }
                 } else {
                     info!("Failed to authenticate user {username_or_email}: {err}");
                     log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    appstate.emit_event(ApiEvent {
+                        context: ApiRequestContext::new(
+                            user.id,
+                            user.username,
+                            insecure_ip,
+                            user_agent.to_string(),
+                        ),
+                        event: ApiEventType::UserLoginFailed,
+                    })?;
                     return Err(WebError::Authorization(err.to_string()));
                 }
             }
@@ -179,11 +197,29 @@ pub(crate) async fn authenticate(
                                     &appstate.failed_logins,
                                     &username_or_email,
                                 );
+                                appstate.emit_event(ApiEvent {
+                                    context: ApiRequestContext::new(
+                                        user.id,
+                                        user.username,
+                                        insecure_ip,
+                                        user_agent.to_string(),
+                                    ),
+                                    event: ApiEventType::UserLoginFailed,
+                                })?;
                                 return Err(WebError::Authorization(err.to_string()));
                             }
                         } else {
                             info!("Failed to authenticate user {username_or_email}: {err}");
                             log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            appstate.emit_event(ApiEvent {
+                                context: ApiRequestContext::new(
+                                    user.id,
+                                    user.username,
+                                    insecure_ip,
+                                    user_agent.to_string(),
+                                ),
+                                event: ApiEventType::UserLoginFailed,
+                            })?;
                             return Err(WebError::Authorization(err.to_string()));
                         }
                     }
@@ -267,14 +303,14 @@ pub(crate) async fn authenticate(
             None
         };
 
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
                 insecure_ip,
                 user_agent.to_string(),
             ),
-            kind: ApiEventType::UserLogin,
+            event: ApiEventType::UserLogin,
         })?;
 
         Ok((
@@ -309,7 +345,7 @@ pub async fn logout(
     // remove stored session
     session.delete(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         // User may not be fully authenticated so we can't use
         // context extractor in this handler since it requires
         // the `SessionInfo` object.
@@ -319,7 +355,7 @@ pub async fn logout(
             insecure_ip,
             user_agent.to_string(),
         ),
-        kind: ApiEventType::UserLogout,
+        event: ApiEventType::UserLogout,
     })?;
 
     Ok((cookies, ApiResponse::default()))
@@ -359,9 +395,9 @@ pub async fn mfa_disable(
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaDisabled,
+        event: ApiEventType::MfaDisabled,
     })?;
     info!("Disabled MFA for user {}", user.username);
     Ok(ApiResponse::default())
@@ -492,6 +528,8 @@ pub async fn webauthn_start(mut session: Session, State(appstate): State<AppStat
 pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(pubkey): Json<PublicKeyCredential>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -513,6 +551,21 @@ pub async fn webauthn_end(
                 .await?;
             return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
                 let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+                appstate.emit_event(ApiEvent {
+                    // User may not be fully authenticated so we can't use
+                    // context extractor in this handler since it requires
+                    // the `SessionInfo` object.
+                    context: ApiRequestContext::new(
+                        user.id,
+                        user.username,
+                        insecure_ip,
+                        user_agent.to_string(),
+                    ),
+                    event: ApiEventType::UserMfaLogin {
+                        mfa_method: MFAMethod::Webauthn,
+                    },
+                })?;
+
                 if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                     debug!("Found OpenID session cookie.");
                     let redirect_url = openid_cookie.value().to_string();
@@ -542,6 +595,24 @@ pub async fn webauthn_end(
             } else {
                 Ok((private_cookies, ApiResponse::default()))
             };
+        } else {
+            // authentication failed, emit relevant event
+            if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
+                appstate.emit_event(ApiEvent {
+                    // User may not be fully authenticated so we can't use
+                    // context extractor in this handler since it requires
+                    // the `SessionInfo` object.
+                    context: ApiRequestContext::new(
+                        user.id,
+                        user.username,
+                        insecure_ip,
+                        user_agent.to_string(),
+                    ),
+                    event: ApiEventType::UserMfaLoginFailed {
+                        mfa_method: MFAMethod::Webauthn,
+                    },
+                })?;
+            }
         }
     }
     Err(WebError::Http(StatusCode::BAD_REQUEST))
@@ -584,9 +655,9 @@ pub async fn totp_enable(
         }
 
         info!("Enabled TOTP for user {}", user.username);
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::MfaTotpEnabled,
+            event: ApiEventType::MfaTotpEnabled,
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -608,9 +679,9 @@ pub async fn totp_disable(
     user.disable_totp(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled TOTP for user {}", user.username);
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaTotpDisabled,
+        event: ApiEventType::MfaTotpDisabled,
     })?;
     Ok(ApiResponse::default())
 }
@@ -619,6 +690,8 @@ pub async fn totp_disable(
 pub async fn totp_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -631,6 +704,20 @@ pub async fn totp_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified TOTP for user {username}");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                event: ApiEventType::UserMfaLogin {
+                    mfa_method: MFAMethod::OneTimePassword,
+                },
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
@@ -658,6 +745,20 @@ pub async fn totp_code(
                 ))
             }
         } else {
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                event: ApiEventType::UserMfaLoginFailed {
+                    mfa_method: MFAMethod::OneTimePassword,
+                },
+            })?;
             Err(WebError::Authorization("Invalid TOTP code".into()))
         }
     } else {
@@ -710,9 +811,9 @@ pub async fn email_mfa_enable(
         }
 
         info!("Enabled email MFA for user {}", user.username);
-        appstate.send_event(ApiEvent {
+        appstate.emit_event(ApiEvent {
             context,
-            kind: ApiEventType::MfaEmailEnabled,
+            event: ApiEventType::MfaEmailEnabled,
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -734,9 +835,9 @@ pub async fn email_mfa_disable(
     user.disable_email_mfa(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled email MFA for user {}", user.username);
-    appstate.send_event(ApiEvent {
+    appstate.emit_event(ApiEvent {
         context,
-        kind: ApiEventType::MfaEmailDisabled,
+        event: ApiEventType::MfaEmailDisabled,
     })?;
     Ok(ApiResponse::default())
 }
@@ -764,6 +865,8 @@ pub async fn request_email_mfa_code(
 pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -776,6 +879,20 @@ pub async fn email_mfa_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Verified email MFA code for user {username}");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                event: ApiEventType::UserMfaLogin {
+                    mfa_method: MFAMethod::Email,
+                },
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
@@ -803,6 +920,20 @@ pub async fn email_mfa_code(
                 ))
             }
         } else {
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                event: ApiEventType::UserMfaLoginFailed {
+                    mfa_method: MFAMethod::Email,
+                },
+            })?;
             Err(WebError::Authorization("Invalid email MFA code".into()))
         }
     } else {
@@ -814,6 +945,8 @@ pub async fn email_mfa_code(
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
     mut session: Session,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(recovery_code): Json<RecoveryCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -829,6 +962,18 @@ pub async fn recovery_code(
                 .await?;
             let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
             info!("Authenticated user {username} with recovery code");
+            appstate.emit_event(ApiEvent {
+                // User may not be fully authenticated so we can't use
+                // context extractor in this handler since it requires
+                // the `SessionInfo` object.
+                context: ApiRequestContext::new(
+                    user.id,
+                    user.username,
+                    insecure_ip,
+                    user_agent.to_string(),
+                ),
+                event: ApiEventType::RecoveryCodeUsed,
+            })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();

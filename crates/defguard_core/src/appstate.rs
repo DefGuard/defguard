@@ -98,7 +98,7 @@ impl AppState {
     /// Sends event to the main event router
     ///
     /// This method is fallible since events are used for communication between services
-    pub fn send_event(&self, event: ApiEvent) -> Result<(), WebError> {
+    pub fn emit_event(&self, event: ApiEvent) -> Result<(), WebError> {
         Ok(self.event_tx.send(event)?)
     }
 
