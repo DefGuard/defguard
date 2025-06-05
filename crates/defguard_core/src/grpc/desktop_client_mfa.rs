@@ -290,10 +290,8 @@ impl ClientMfaServer {
                 user.id,
                 user.username.clone(),
                 std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                device.id,
-                device.name.clone(),
-                location.id,
-                location.name.clone(),
+                device.clone(),
+                location.clone(),
             ),
             event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected),
         }).map_err(|err| {

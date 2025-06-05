@@ -169,10 +169,8 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub device_id: Id,
-    pub device_name: String,
-    pub location_id: Id,
-    pub location_name: String,
+    pub device: Device<Id>,
+    pub location: WireguardNetwork<Id>,
 }
 
 impl BidiRequestContext {
@@ -180,10 +178,8 @@ impl BidiRequestContext {
         user_id: Id,
         username: String,
         ip: IpAddr,
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location_name: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -191,10 +187,8 @@ impl BidiRequestContext {
             user_id,
             username,
             ip,
-            device_id,
-            device_name,
-            location_id,
-            location_name,
+            device,
+            location,
         }
     }
 }

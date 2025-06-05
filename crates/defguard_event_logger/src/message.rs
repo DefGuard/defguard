@@ -69,7 +69,7 @@ impl From<BidiRequestContext> for EventContext {
             user_id: val.user_id,
             username: val.username,
             ip: val.ip,
-            device: format!("{} (ID {})", val.device_name, val.device_id),
+            device: format!("{} (ID {})", val.device.name, val.device.id),
         }
     }
 }
@@ -242,13 +242,13 @@ pub enum ClientEvent {
 /// Represents audit events related to VPN
 pub enum VpnEvent {
     ConnectedToMfaLocation {
-        location_id: Id,
-        location_name: String,
-    },
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+	},
     DisconnectedFromMfaLocation {
-        location_id: Id,
-        location_name: String,
-    },
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+	},
     MfaFailed {
         location_id: Id,
         location_name: String,

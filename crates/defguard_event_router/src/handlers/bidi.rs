@@ -15,8 +15,8 @@ impl EventRouter {
             BidiStreamEventType::DesktopClientMfa(event) => match event {
                 DesktopClientMfaEvent::Connected => {
                     LoggerEvent::Vpn(VpnEvent::ConnectedToMfaLocation {
-                        location_id: context.location_id,
-                        location_name: context.location_name.clone(),
+                        location: context.location.clone(),
+                        device: context.device.clone(),
                     })
                 }
                 DesktopClientMfaEvent::Disconnected => todo!(),

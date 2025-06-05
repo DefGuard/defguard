@@ -1,4 +1,4 @@
-use crate::db::Id;
+use crate::db::{Id, WireguardNetwork, Device};
 
 #[derive(Serialize)]
 pub struct DeviceAddedMetadata {
@@ -70,4 +70,10 @@ pub struct MfaSecurityKeyAddedMetadata {
 pub struct AuditStreamMetadata {
     pub id: Id,
     pub name: String,
+}
+
+#[derive(Serialize)]
+pub struct VpnClientMetadata {
+    pub location: WireguardNetwork<Id>,
+    pub device: Device<Id>,
 }

@@ -12,7 +12,7 @@ use defguard_core::db::{
             DeviceRemovedMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
             NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
             NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
-            UserRemovedMetadata,
+            UserRemovedMetadata, VpnClientMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -296,11 +296,17 @@ pub async fn run_event_logger(
                         let module = AuditModule::Vpn;
                         let (event_type, metadata) = match event {
                             VpnEvent::ConnectedToLocation { location, device } => todo!(),
-                            VpnEvent::MfaFailed { location_id, location_name } => todo!(),
-							VpnEvent::DisconnectedFromLocation { location, device } => todo!(),
-                            VpnEvent::ConnectedToMfaLocation { location_id, location_name } => (EventType::ConnectedToMfaLocation, None),
-							VpnEvent::DisconnectedFromMfaLocation { location_id, location_name } => todo!(),
-						};
+                            VpnEvent::MfaFailed {
+                                location_id: _,
+                                location_name: _,
+                            } => todo!(),
+                            VpnEvent::DisconnectedFromLocation { location, device } => todo!(),
+                            VpnEvent::ConnectedToMfaLocation { location, device } => (
+                                EventType::ConnectedToMfaLocation,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
+                            VpnEvent::DisconnectedFromMfaLocation { location, device } => todo!(),
+                        };
                         (module, event_type, metadata)
                     }
                     LoggerEvent::Enrollment(_event) => {
