@@ -527,13 +527,15 @@ export const buildApi = (client: Axios): Api => {
   const getAllGatewaysStatus: Api['network']['getAllGatewaysStatus'] = () =>
     client.get('/network/gateways').then(unpackRequest);
 
-  const getAuditStreams: Api['auditStream']['getAuditStreams'] = () =>
+  const getActivityStreams: Api['activityStream']['getActivityStreams'] = () =>
     client.get('/audit_stream').then(unpackRequest);
-  const createAuditStream: Api['auditStream']['createAuditStream'] = (data) =>
+  const createActivityStream: Api['activityStream']['createActivityStream'] = (data) =>
     client.post('/audit_stream', data).then(unpackRequest);
-  const modifyAuditStream: Api['auditStream']['modifyAuditStream'] = ({ id, ...rest }) =>
-    client.put(`/audit_stream/${id}`, rest).then(unpackRequest);
-  const deleteAuditStream: Api['auditStream']['deleteAuditStream'] = (id) =>
+  const modifyActivityStream: Api['activityStream']['modifyActivityStream'] = ({
+    id,
+    ...rest
+  }) => client.put(`/audit_stream/${id}`, rest).then(unpackRequest);
+  const deleteActivityStream: Api['activityStream']['deleteActivityStream'] = (id) =>
     client.delete(`/audit_stream/${id}`).then(unpackRequest);
 
   return {
@@ -541,11 +543,11 @@ export const buildApi = (client: Axios): Api => {
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
-    auditStream: {
-      createAuditStream,
-      deleteAuditStream,
-      getAuditStreams,
-      modifyAuditStream,
+    activityStream: {
+      createActivityStream,
+      deleteActivityStream,
+      getActivityStreams,
+      modifyActivityStream,
     },
     auditLog: {
       getAuditLog,

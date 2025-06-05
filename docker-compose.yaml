@@ -67,8 +67,9 @@ services:
     container_name: vector
     volumes:
       - ./configs/vector.toml:/etc/vector/vector.toml:ro
-      - ./.volumes/audit_events:/var/log/audit_events:ro
-    command: ["--config", "/etc/vector/vector.toml"]
+      - ./configs/key.pem:/etc/vector/key.pem:ro
+      - ./configs/cert.pem:/etc/vector/cert.pem:ro
+    command: ["--config", "/etc/vector/vector.yaml"]
     ports:
       - "8686:8686"
       - "8001:8001"
@@ -80,4 +81,4 @@ services:
     ports:
       - "8002:8002"
     volumes:
-      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro

@@ -45,7 +45,7 @@ type StoreValues = {
 };
 
 type StoreMethods = {
-  open: (auditStream?: AuditStream) => void;
+  open: (activityStream?: AuditStream) => void;
   close: () => void;
   reset: () => void;
 };

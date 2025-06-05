@@ -131,10 +131,10 @@ export const ActivityList = ({
                   <ListCellText text={activity.ip} />
                 </div>
                 <div className="cell event">
-                  <ListCellText text={LL.enums.auditEventType[activity.event]()} />
+                  <ListCellText text={LL.enums.activityEventType[activity.event]()} />
                 </div>
                 <div className="cell module">
-                  <ListCellText text={LL.enums.auditModule[activity.module]()} />
+                  <ListCellText text={LL.enums.activityModule[activity.module]()} />
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />

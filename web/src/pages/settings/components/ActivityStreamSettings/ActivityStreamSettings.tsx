@@ -28,7 +28,7 @@ import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/sto
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
 import { auditStreamToLabel } from './utils/auditStreamToLabel';
 
-export const AuditStreamSettings = () => {
+export const ActivityStreamSettings = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.auditStreamSettings;
 
@@ -51,14 +51,14 @@ const AuditStreamList = () => {
   const { LL } = useI18nContext();
 
   const {
-    auditStream: { getAuditStreams },
+    activityStream: { getActivityStreams },
   } = useApi();
 
   const openCreateModal = useCreateAuditStreamModalStore((s) => s.open, shallow);
 
   const { data: auditStreams, isLoading: streamsLoading } = useQuery({
-    queryFn: getAuditStreams,
-    queryKey: ['audit_stream'],
+    queryFn: getActivityStreams,
+    queryKey: ['activity_stream'],
     placeholderData: (perv) => perv,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -133,11 +133,11 @@ const EditListItem = ({ stream }: EditProps) => {
   const { LL } = useI18nContext();
   const toast = useToaster();
   const {
-    auditStream: { deleteAuditStream },
+    activityStream: { deleteActivityStream },
   } = useApi();
 
   const { mutate: deleteStreamMutation, isPending: isDeleting } = useMutation({
-    mutationFn: deleteAuditStream,
+    mutationFn: deleteActivityStream,
     onSuccess: () => {
       toast.success(
         LL.settingsPage.auditStreamSettings.messages.destinationCrud.delete({
@@ -145,7 +145,7 @@ const EditListItem = ({ stream }: EditProps) => {
         }),
       );
       void queryClient.invalidateQueries({
-        queryKey: ['audit_stream'],
+        queryKey: ['activity_stream'],
       });
     },
     onError: (e) => {

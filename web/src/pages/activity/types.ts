@@ -1,13 +1,13 @@
-export type AuditModule = 'defguard' | 'client' | 'vpn' | 'enrollment';
+export type ActivityModule = 'defguard' | 'client' | 'vpn' | 'enrollment';
 
-export const auditModuleValues: AuditModule[] = [
+export const auditModuleValues: ActivityModule[] = [
   'defguard',
   'client',
   'enrollment',
   'vpn',
 ];
 
-export type AuditEventType =
+export type ActivityEventType =
   | 'user_login'
   | 'user_login_failed'
   | 'user_mfa_login'
@@ -36,7 +36,7 @@ export type AuditEventType =
   | 'vpn_client_connected'
   | 'vpn_client_disconnected';
 
-export const auditEventTypeValues: AuditEventType[] = [
+export const auditEventTypeValues: ActivityEventType[] = [
   'user_login',
   'user_login_failed',
   'user_mfa_login',

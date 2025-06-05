@@ -15,24 +15,17 @@ import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent'
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
-import { AuditStreamLogstashHttp, AuditStreamType } from '../../../../../../shared/types';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
 import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
-import { useLogstashHttpStreamCEModalStore } from './store';
+import { useVectorHttpStreamCEModal } from './store';
 
-export const LogStashHttpStreamCEModal = () => {
+export const VectorHttpStreamCEModal = () => {
   const { LL } = useI18nContext();
-  const localLL = LL.settingsPage.auditStreamSettings.modals.logstash;
-
-  const [close, reset] = useLogstashHttpStreamCEModalStore(
-    (s) => [s.close, s.reset],
-    shallow,
-  );
-  const [isOpen, isEdit] = useLogstashHttpStreamCEModalStore((s) => [
-    s.visible,
-    isPresent(s.initStreamData),
-  ]);
+  const localLL = LL.settingsPage.auditStreamSettings.modals.vector;
+  const isOpen = useVectorHttpStreamCEModal((s) => s.visible);
+  const [close, reset] = useVectorHttpStreamCEModal((s) => [s.close, s.reset], shallow);
+  const isEdit = useVectorHttpStreamCEModal((s) => isPresent(s.initStreamData));
 
   const title = isEdit ? localLL.modify() : localLL.create();
 
@@ -53,57 +46,20 @@ export const LogStashHttpStreamCEModal = () => {
 };
 
 const ModalContent = () => {
+  const closeModal = useVectorHttpStreamCEModal((s) => s.close, shallow);
+  const [isEdit, initialData] = useVectorHttpStreamCEModal((s) => [
+    s.edit,
+    s.initStreamData,
+  ]);
+
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.auditStreamSettings;
   const formLabels = LL.settingsPage.auditStreamSettings.modals.shared.formLabels;
-  const {
-    auditStream: { createAuditStream, modifyAuditStream },
-  } = useApi();
-  const close = useLogstashHttpStreamCEModalStore((s) => s.close, shallow);
-  const initialData = useLogstashHttpStreamCEModalStore((s) => s.initStreamData);
   const toaster = useToaster();
 
-  const onError = useCallback(
-    (e: AxiosError) => {
-      toaster.error(LL.messages.error());
-      console.error(e);
-    },
-    [LL.messages, toaster],
-  );
-
-  const { mutateAsync: createStreamMutation } = useMutation({
-    mutationFn: createAuditStream,
-    onSuccess: () => {
-      toaster.success(
-        localLL.messages.destinationCrud.create({
-          destination: auditStreamTypeToLabel('logstash_http'),
-        }),
-      );
-      void queryClient.invalidateQueries({
-        queryKey: ['audit_stream'],
-      });
-      close();
-    },
-    onError,
-  });
-
-  const { mutateAsync: modifyStreamMutation } = useMutation({
-    mutationFn: modifyAuditStream,
-    onSuccess: () => {
-      toaster.success(
-        localLL.messages.destinationCrud.modify({
-          destination: auditStreamTypeToLabel('logstash_http'),
-        }),
-      );
-      void queryClient.invalidateQueries({
-        queryKey: ['audit_stream'],
-      });
-      close();
-    },
-    onError,
-  });
-
-  const isEdit = isPresent(initialData);
+  const {
+    activityStream: { createActivityStream, modifyActivityStream },
+  } = useApi();
 
   const schema = useMemo(
     () =>
@@ -120,56 +76,87 @@ const ModalContent = () => {
   type FormFields = z.infer<typeof schema>;
 
   const defaultValues = useMemo((): FormFields => {
-    if (isPresent(initialData)) {
-      const { name, config } = initialData;
-      const { cert, url, password, username } = config;
+    if (isEdit && isPresent(initialData)) {
       return {
-        name: name,
-        cert: cert ?? '',
-        password: password ?? '',
-        username: username ?? '',
-        url,
+        name: initialData.name ?? '',
+        url: initialData.config.url,
+        username: initialData.config.username ?? '',
+        password: initialData.config.password ?? '',
+        cert: initialData.config.cert ?? '',
       };
     }
-
     return {
-      cert: '',
       name: '',
-      url: '',
       password: '',
+      url: '',
       username: '',
+      cert: '',
     };
-  }, [initialData]);
+  }, [initialData, isEdit]);
 
-  const {
-    handleSubmit,
-    control,
-    resetField,
-    formState: { isSubmitting },
-  } = useForm<FormFields>({
+  const { handleSubmit, control, resetField } = useForm({
     defaultValues,
-    mode: 'all',
     resolver: zodResolver(schema),
+    mode: 'all',
+  });
+
+  const handleSuccess = useCallback(() => {
+    closeModal();
+    void queryClient.invalidateQueries({
+      queryKey: ['activity_stream'],
+    });
+  }, [closeModal]);
+
+  const handleError = useCallback(
+    (e: AxiosError) => {
+      toaster.error(LL.messages.error());
+      console.error(e);
+    },
+    [LL.messages, toaster],
+  );
+
+  const { mutateAsync: modifyMutation } = useMutation({
+    mutationFn: modifyActivityStream,
+    onError: handleError,
+    onSuccess: () => {
+      toaster.success(
+        localLL.messages.destinationCrud.modify({
+          destination: auditStreamTypeToLabel('vector_http'),
+        }),
+      );
+      handleSuccess();
+    },
+  });
+
+  const { mutateAsync: createMutation } = useMutation({
+    mutationFn: createActivityStream,
+    onError: handleError,
+    onSuccess: () => {
+      toaster.success(
+        localLL.messages.destinationCrud.create({
+          destination: auditStreamTypeToLabel('vector_http'),
+        }),
+      );
+      handleSuccess();
+    },
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = async (values) => {
+    // prepare output
     const { name, ...config } = removeEmptyStrings(trimObjectStrings(values));
-    const streamType: AuditStreamType = 'logstash_http';
 
-    const logstashConfig: AuditStreamLogstashHttp = config;
-
-    if (isEdit) {
-      await modifyStreamMutation({
+    if (isPresent(initialData)) {
+      await modifyMutation({
         id: initialData.id,
-        stream_type: streamType,
-        stream_config: logstashConfig,
         name,
+        stream_type: 'vector_http',
+        stream_config: config,
       });
     } else {
-      await createStreamMutation({
-        stream_type: streamType,
-        stream_config: logstashConfig,
+      await createMutation({
         name,
+        stream_config: config,
+        stream_type: 'vector_http',
       });
     }
   };
@@ -189,6 +176,7 @@ const ModalContent = () => {
       <FormInput
         controller={{ control, name: 'username' }}
         label={formLabels.username()}
+        disposable
         disposeHandler={() => {
           resetField('username', { defaultValue: '' });
         }}
@@ -197,6 +185,7 @@ const ModalContent = () => {
         controller={{ control, name: 'password' }}
         type="password"
         label={formLabels.password()}
+        disposable
         disposeHandler={() => {
           resetField('password', { defaultValue: '' });
         }}
@@ -213,16 +202,16 @@ const ModalContent = () => {
       <div className="controls">
         <Button
           text={LL.common.controls.cancel()}
-          disabled={isSubmitting}
+          className="cancel"
           onClick={() => {
-            close();
+            closeModal();
           }}
         />
         <Button
-          text={LL.common.controls.submit()}
           styleVariant={ButtonStyleVariant.PRIMARY}
+          text={LL.common.controls.submit()}
+          className="submit"
           type="submit"
-          loading={isSubmitting}
         />
       </div>
     </form>

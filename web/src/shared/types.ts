@@ -7,7 +7,7 @@ import {
 import { AxiosError, AxiosPromise } from 'axios';
 
 import { AclAlias, AclStatus } from '../pages/acl/types';
-import { AuditEventType, AuditModule } from '../pages/activity/types';
+import { ActivityEventType, ActivityModule } from '../pages/activity/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -505,8 +505,8 @@ export type AuditEvent = {
   user_id: number;
   username: string;
   ip: string;
-  event: AuditEventType;
-  module: AuditModule;
+  event: ActivityEventType;
+  module: ActivityModule;
   device: string;
   metadata?: unknown;
 };
@@ -536,8 +536,8 @@ export type AuditLogFilters = {
   // Naive UTC datetime in string
   until?: string;
   username?: string[];
-  event?: AuditEventType[];
-  module?: AuditModule[];
+  event?: ActivityEventType[];
+  module?: ActivityModule[];
   search?: string;
 };
 
@@ -604,11 +604,11 @@ export type Api = {
       params: AuditLogRequestParams,
     ) => Promise<PaginatedResponse<AuditEvent>>;
   };
-  auditStream: {
-    getAuditStreams: () => Promise<AuditStream[]>;
-    createAuditStream: (data: AuditStreamCreateRequest) => Promise<EmptyApiResponse>;
-    modifyAuditStream: (data: AuditStreamModifyRequest) => Promise<EmptyApiResponse>;
-    deleteAuditStream: (id: number) => Promise<EmptyApiResponse>;
+  activityStream: {
+    getActivityStreams: () => Promise<AuditStream[]>;
+    createActivityStream: (data: AuditStreamCreateRequest) => Promise<EmptyApiResponse>;
+    modifyActivityStream: (data: AuditStreamModifyRequest) => Promise<EmptyApiResponse>;
+    deleteActivityStream: (id: number) => Promise<EmptyApiResponse>;
   };
   acl: {
     aliases: {

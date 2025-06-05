@@ -977,10 +977,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       groups: 'Groups',
       devices: 'Network Devices',
       acl: 'Access Control',
-      activity: 'Activity',
+      activity: 'Activity log',
     },
     mobileTitles: {
-      activity: 'Activity',
+      activity: 'Activity log',
       groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
@@ -1103,7 +1103,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
-      auditStream: 'Audit logs streaming',
+      auditStream: 'Activity log streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1145,7 +1145,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
         },
       },
-      title: 'Audit logs streaming',
+      title: 'Activity log streaming',
       list: {
         noData: 'No destinations',
       },
@@ -2542,8 +2542,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       },
     },
   },
+  activity: {},
   enums: {
-    auditEventType: {
+    activityEventType: {
       user_login: 'User login',
       user_login_failed: 'User login failed',
       user_mfa_login: 'User MFA login',
@@ -2573,7 +2574,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       vpn_client_connected: 'VPN client connected',
       vpn_client_disconnected: 'VPN client disconnected',
     },
-    auditModule: {
+    activityModule: {
       defguard: 'Defguard',
       client: 'Client',
       enrollment: 'Enrollment',

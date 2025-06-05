@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { range } from 'lodash-es';
 import { useMemo, useState } from 'react';
@@ -23,9 +23,9 @@ import { AuditLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
 import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
-  AuditEventType,
+  ActivityEventType,
+  ActivityModule,
   auditEventTypeValues,
-  AuditModule,
   auditModuleValues,
 } from './types';
 
@@ -88,6 +88,21 @@ const PageContent = () => {
     queryKey: ['user'],
   });
 
+  const queryKey = useMemo(
+    (): QueryKey => [
+      'activity_log',
+      {
+        sortDirection,
+        sortKey,
+        from,
+        until,
+        searchValue,
+        filters: activeFilters,
+      },
+    ],
+    [activeFilters, from, searchValue, sortDirection, sortKey, until],
+  );
+
   const {
     data,
     hasNextPage,
@@ -97,23 +112,13 @@ const PageContent = () => {
     // hasPreviousPage,
     // fetchPreviousPage,
   } = useInfiniteQuery({
-    queryKey: [
-      'audit_log',
-      sortDirection,
-      sortKey,
-      activeFilters.event,
-      activeFilters.module,
-      activeFilters.username,
-      from,
-      until,
-      searchValue,
-    ],
+    queryKey,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getAuditLog({
         page: pageParam,
-        event: applyFilterArray(activeFilters.event as AuditEventType[]),
-        module: applyFilterArray(activeFilters.module as AuditModule[]),
+        event: applyFilterArray(activeFilters.event as ActivityEventType[]),
+        module: applyFilterArray(activeFilters.module as ActivityModule[]),
         username: applyFilterArray(activeFilters.username as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
@@ -149,7 +154,7 @@ const PageContent = () => {
       label: 'Module',
       order: 2,
       items: auditModuleValues.map((auditModule) => {
-        const translation = LL.enums.auditModule[auditModule]();
+        const translation = LL.enums.activityModule[auditModule]();
         return {
           label: translation,
           searchValues: [translation],
@@ -162,7 +167,7 @@ const PageContent = () => {
       label: 'Event',
       order: 1,
       items: auditEventTypeValues.map((eventType) => {
-        const translation = LL.enums.auditEventType[eventType]();
+        const translation = LL.enums.activityEventType[eventType]();
         return {
           label: translation,
           searchValues: [translation],
@@ -184,12 +189,6 @@ const PageContent = () => {
     <>
       <header className="page-header">
         <h1>Activity</h1>
-        {/* <Search
-          placeholder={LL.common.search()}
-          onDebounce={(val) => {
-            setSearch(val);
-          }}
-        /> */}
       </header>
       <div id="activity-list">
         <div className="top">

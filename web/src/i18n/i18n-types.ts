@@ -2320,13 +2320,13 @@ type RootTranslation = {
 			 */
 			acl: string
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 		}
 		mobileTitles: {
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 			/**
@@ -2708,7 +2708,7 @@ type RootTranslation = {
 			 */
 			gatewayNotifications: string
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
 			auditStream: string
 		}
@@ -2813,7 +2813,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
 			title: string
 			list: {
@@ -6088,8 +6088,10 @@ type RootTranslation = {
 			}
 		}
 	}
+	activity: {
+	}
 	enums: {
-		auditEventType: {
+		activityEventType: {
 			/**
 			 * U​s​e​r​ ​l​o​g​i​n
 			 */
@@ -6203,7 +6205,7 @@ type RootTranslation = {
 			 */
 			vpn_client_disconnected: string
 		}
-		auditModule: {
+		activityModule: {
 			/**
 			 * D​e​f​g​u​a​r​d
 			 */
@@ -8508,13 +8510,13 @@ export type TranslationFunctions = {
 			 */
 			acl: () => LocalizedString
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 			/**
@@ -8888,7 +8890,7 @@ export type TranslationFunctions = {
 			 */
 			gatewayNotifications: () => LocalizedString
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
 			auditStream: () => LocalizedString
 		}
@@ -8990,7 +8992,7 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
 			title: () => LocalizedString
 			list: {
@@ -12237,8 +12239,10 @@ export type TranslationFunctions = {
 			}
 		}
 	}
+	activity: {
+	}
 	enums: {
-		auditEventType: {
+		activityEventType: {
 			/**
 			 * User login
 			 */
@@ -12352,7 +12356,7 @@ export type TranslationFunctions = {
 			 */
 			vpn_client_disconnected: () => LocalizedString
 		}
-		auditModule: {
+		activityModule: {
 			/**
 			 * Defguard
 			 */
