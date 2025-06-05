@@ -71,3 +71,8 @@ jobs:
     if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
+  trigger-staging-deploy:
+    needs: test
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'release/**' }}
+    uses: ./.github/workflows/staging-deployment.yml
+    secrets: inherit

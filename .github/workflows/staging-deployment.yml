@@ -1,0 +1,20 @@
+name: Deploy to release staging environment
+on:
+  workflow_call:
+
+jobs:
+  deploy-staging:
+    runs-on: [self-hosted, Linux, X64]
+    environment: STAGING
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'release/**' }}
+    env:
+      KUBE_HOST: ${{ secrets.KUBE_HOST }}
+      KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
+      KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
+    steps:
+      - name: Add SHORT_SHA env variable
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
+      - name: Deploy new image version
+        uses: actions-hub/kubectl@v1.30.3
+        with:
+          args: --namespace defguard-staging set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ env.SHORT_SHA }}
