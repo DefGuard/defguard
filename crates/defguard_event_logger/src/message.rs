@@ -248,15 +248,16 @@ pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        method: MFAMethod
+        method: MFAMethod,
     },
     DisconnectedFromMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
     },
     MfaFailed {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+        method: MFAMethod,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,

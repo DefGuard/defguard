@@ -238,17 +238,42 @@ impl ClientMfaServer {
             user,
         } = session;
 
+        // Prepare event context
+        let context = BidiRequestContext::new(
+            user.id,
+            user.username.clone(),
+            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            device.clone(),
+            location.clone(),
+        );
+
         // validate code
         match method {
             MfaMethod::Totp => {
                 if !user.verify_totp_code(&request.code.to_string()) {
                     error!("Provided TOTP code is not valid");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(
+                            DesktopClientMfaEvent::Failed {
+                                method: (*method).into(),
+                            },
+                        ),
+                    })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code.to_string()) {
                     error!("Provided email code is not valid");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(
+                            DesktopClientMfaEvent::Failed {
+                                method: (*method).into(),
+                            },
+                        ),
+                    })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -307,13 +332,7 @@ impl ClientMfaServer {
             user.username, location.name
         );
         self.emit_event(BidiStreamEvent {
-            context: BidiRequestContext::new(
-                user.id,
-                user.username.clone(),
-                std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                device.clone(),
-                location.clone(),
-            ),
+            context,
             event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected {
                 method: (*method).into(),
             }),

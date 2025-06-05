@@ -21,6 +21,11 @@ impl EventRouter {
                     })
                 }
                 DesktopClientMfaEvent::Disconnected => todo!(),
+                DesktopClientMfaEvent::Failed { method } => LoggerEvent::Vpn(VpnEvent::MfaFailed {
+                    location: context.location.clone(),
+                    device: context.device.clone(),
+                    method,
+                }),
             },
             BidiStreamEventType::ConfigPolling(_config_polling_event) => todo!(),
         };

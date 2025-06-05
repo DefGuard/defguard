@@ -87,5 +87,5 @@ pub struct VpnClientMetadata {
 pub struct VpnClientMfaMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
-	pub method: MFAMethod,
+    pub method: MFAMethod,
 }

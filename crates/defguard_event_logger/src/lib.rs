@@ -8,7 +8,11 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, VpnClientMfaMetadata, NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata
+            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
+            DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
+            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
+            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -297,9 +301,18 @@ pub async fn run_event_logger(
                         let module = AuditModule::Vpn;
                         let (event_type, metadata) = match event {
                             VpnEvent::MfaFailed {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
+                                location,
+                                device,
+                                method,
+                            } => (
+                                EventType::VpnClientMfaFailed,
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
+                            ),
                             VpnEvent::ConnectedToMfaLocation {
                                 location,
                                 device,

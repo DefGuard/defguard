@@ -34,7 +34,10 @@ use crate::{
     db::{models::group::Permission, GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork},
     enterprise::limits::update_counts,
     error::WebError,
-    grpc::{gateway::{send_multiple_wireguard_events, send_wireguard_event}, proto::proxy::MfaMethod},
+    grpc::{
+        gateway::{send_multiple_wireguard_events, send_wireguard_event},
+        proto::proxy::MfaMethod,
+    },
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
@@ -51,12 +54,12 @@ pub enum MFAMethod {
 }
 
 impl From<MfaMethod> for MFAMethod {
-	fn from(method: MfaMethod) -> Self {
-		match method {
-			MfaMethod::Totp => Self::OneTimePassword,
-			MfaMethod::Email => Self::Email,
-		}
-	}
+    fn from(method: MfaMethod) -> Self {
+        match method {
+            MfaMethod::Totp => Self::OneTimePassword,
+            MfaMethod::Email => Self::Email,
+        }
+    }
 }
 
 impl fmt::Display for MFAMethod {
