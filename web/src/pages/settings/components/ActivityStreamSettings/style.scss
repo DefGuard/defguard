@@ -31,6 +31,7 @@
     .list-headers {
       box-sizing: border-box;
       padding: 0 var(--spacing-xs);
+      user-select: none;
       @include row-config();
 
       & > :nth-child(4) {
@@ -67,6 +68,7 @@
     transition-property: box-shadow, border;
 
     @include animate-standard();
+    @include row-config();
 
     &:hover {
       border-color: var(--border-separator);

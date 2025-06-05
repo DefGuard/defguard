@@ -21,7 +21,7 @@ import {
 } from '../../../../../../shared/types';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
-import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/auditStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from './store';
 
 export const LogStashHttpStreamCEModal = () => {
@@ -79,7 +79,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.create({
-          destination: auditStreamTypeToLabel('logstash_http'),
+          destination: activityStreamTypeToLabel('logstash_http'),
         }),
       );
       void queryClient.invalidateQueries({
@@ -95,7 +95,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.modify({
-          destination: auditStreamTypeToLabel('logstash_http'),
+          destination: activityStreamTypeToLabel('logstash_http'),
         }),
       );
       void queryClient.invalidateQueries({

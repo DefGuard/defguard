@@ -10,7 +10,7 @@ import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/compone
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
 import { ActivityStreamType } from '../../../../../../shared/types';
-import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/auditStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from '../LogStashHttpStreamCEModal/store';
 import { useVectorHttpStreamCEModal } from '../VectorHttpStreamCEModal/store';
 import { useCreateAuditStreamModalStore } from './store';
@@ -68,7 +68,7 @@ const ModalContent = () => {
               }}
             >
               <RadioButton active={active} />
-              <p className="label">{auditStreamTypeToLabel(streamType)}</p>
+              <p className="label">{activityStreamTypeToLabel(streamType)}</p>
             </div>
           );
         })}

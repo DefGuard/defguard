@@ -7,6 +7,7 @@ import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { ListCellText } from '../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -30,7 +31,10 @@ import { useCreateAuditStreamModalStore } from './modals/CreateAuditStreamModal/
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
-import { auditStreamToLabel } from './utils/auditStreamToLabel';
+import {
+  activityStreamToLabel,
+  activityStreamTypeToLabel,
+} from './utils/auditStreamToLabel';
 
 export const ActivityStreamSettings = () => {
   const { LL } = useI18nContext();
@@ -158,7 +162,10 @@ const ListItem = ({ stream }: ListItemsProps) => {
   return (
     <div className="audit-stream list-item">
       <div className="cell name">
-        <p>{stream.name ?? auditStreamToLabel(stream)}</p>
+        <ListCellText text={stream.name} />
+      </div>
+      <div className="cell destination">
+        <ListCellText text={activityStreamTypeToLabel(stream.stream_type)} />
       </div>
       <div className="cell edit">
         <EditListItem stream={stream} />
@@ -184,7 +191,7 @@ const EditListItem = ({ stream }: EditProps) => {
     onSuccess: () => {
       toast.success(
         LL.settingsPage.auditStreamSettings.messages.destinationCrud.delete({
-          destination: auditStreamToLabel(stream),
+          destination: activityStreamToLabel(stream),
         }),
       );
       void queryClient.invalidateQueries({
