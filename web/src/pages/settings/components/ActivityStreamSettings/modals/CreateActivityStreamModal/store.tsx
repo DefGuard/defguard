@@ -4,7 +4,7 @@ const defaults: StoreValues = {
   visible: false,
 };
 
-export const useCreateAuditStreamModalStore = createWithEqualityFn<Store>(
+export const useCreateActivityStreamModalStore = createWithEqualityFn<Store>(
   (set) => ({
     ...defaults,
     open: () => set({ visible: true }),

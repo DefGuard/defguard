@@ -21,7 +21,7 @@ import {
 } from '../../../../../../shared/types';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
-import { activityStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/activityStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from './store';
 
 export const LogStashHttpStreamCEModal = () => {

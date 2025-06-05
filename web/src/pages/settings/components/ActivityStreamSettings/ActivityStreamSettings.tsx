@@ -26,15 +26,15 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
 import { ActivityStream } from '../../../../shared/types';
-import { CreateAuditStreamModal } from './modals/CreateAuditStreamModal/CreateAuditStreamModal';
-import { useCreateAuditStreamModalStore } from './modals/CreateAuditStreamModal/store';
+import { CreateActivityStreamModal } from './modals/CreateActivityStreamModal/CreateActivityStreamModal';
+import { useCreateActivityStreamModalStore } from './modals/CreateActivityStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
 import {
   activityStreamToLabel,
   activityStreamTypeToLabel,
-} from './utils/auditStreamToLabel';
+} from './utils/activityStreamToLabel';
 
 export const ActivityStreamSettings = () => {
   const { LL } = useI18nContext();
@@ -48,7 +48,7 @@ export const ActivityStreamSettings = () => {
         </header>
         <AuditStreamList />
       </section>
-      <CreateAuditStreamModal />
+      <CreateActivityStreamModal />
       <VectorHttpStreamCEModal />
       <LogStashHttpStreamCEModal />
     </>
@@ -63,7 +63,7 @@ const AuditStreamList = () => {
     activityStream: { getActivityStreams },
   } = useApi();
 
-  const openCreateModal = useCreateAuditStreamModalStore((s) => s.open, shallow);
+  const openCreateModal = useCreateActivityStreamModalStore((s) => s.open, shallow);
 
   const { data: auditStreams, isLoading: streamsLoading } = useQuery({
     queryFn: getActivityStreams,

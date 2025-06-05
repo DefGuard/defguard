@@ -17,7 +17,7 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
-import { activityStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/activityStreamToLabel';
 import { useVectorHttpStreamCEModal } from './store';
 
 export const VectorHttpStreamCEModal = () => {
