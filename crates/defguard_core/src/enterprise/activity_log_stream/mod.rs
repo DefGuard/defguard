@@ -1,4 +1,4 @@
-pub mod audit_stream_manager;
+pub mod activity_log_stream_manager;
 pub mod error;
 pub mod http_stream;
 

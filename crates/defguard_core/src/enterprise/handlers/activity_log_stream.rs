@@ -9,7 +9,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::audit_stream::{AuditStream, AuditStreamConfig, AuditStreamType},
+    enterprise::db::models::activity_log_stream::{
+        AuditStream, AuditStreamConfig, AuditStreamType,
+    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };

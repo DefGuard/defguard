@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, error};
 
 use crate::{
-    enterprise::db::models::audit_stream::{LogstashHttpAuditStream, VectorHttpAuditStream},
+    enterprise::db::models::activity_log_stream::{LogstashHttpAuditStream, VectorHttpAuditStream},
     secret::SecretStringWrapper,
 };
 

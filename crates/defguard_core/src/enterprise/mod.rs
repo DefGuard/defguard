@@ -1,4 +1,4 @@
-pub mod audit_stream;
+pub mod activity_log_stream;
 pub mod db;
 pub mod directory_sync;
 pub mod firewall;

@@ -10,7 +10,7 @@ use tracing::Instrument;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{models::audit_log::AuditModule, Id},
+    db::{models::activity_log::AuditModule, Id},
 };
 
 use super::{

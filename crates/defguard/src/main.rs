@@ -12,7 +12,7 @@ use defguard_core::{
         User,
     },
     enterprise::{
-        audit_stream::audit_stream_manager::run_audit_stream_manager,
+        activity_log_stream::activity_log_stream_manager::run_audit_stream_manager,
         license::{run_periodic_license_check, set_cached_license, License},
         limits::update_counts,
     },

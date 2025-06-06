@@ -8,8 +8,8 @@ use tokio_util::sync::CancellationToken;
 use tracing::debug;
 
 use crate::enterprise::{
-    audit_stream::http_stream::{run_http_stream_task, HttpAuditStreamConfig},
-    db::models::audit_stream::{AuditStream, AuditStreamConfig},
+    activity_log_stream::http_stream::{run_http_stream_task, HttpAuditStreamConfig},
+    db::models::activity_log_stream::{AuditStream, AuditStreamConfig},
     is_enterprise_enabled,
 };
 

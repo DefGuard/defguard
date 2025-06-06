@@ -5,7 +5,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::{
     db::{Id, NoId},
-    enterprise::audit_stream::error::AuditStreamError,
+    enterprise::activity_log_stream::error::AuditStreamError,
     secret::SecretStringWrapper,
 };
 
@@ -20,7 +20,7 @@ pub enum AuditStreamType {
 }
 
 #[derive(Debug, Serialize, Model, FromRow)]
-#[table(audit_stream)]
+#[table(activity_log_stream)]
 pub struct AuditStream<I = NoId> {
     pub id: I,
     pub name: String,
@@ -96,7 +96,7 @@ impl AuditStream<Id> {
         let configs: Vec<AuditStream<Id>> = query_as!(
             AuditStream,
             "SELECT id, name, stream_type \"stream_type: AuditStreamType\", config \
-            FROM audit_stream \
+            FROM activity_log_stream \
             WHERE stream_type = $1",
             stream_type.to_string()
         )

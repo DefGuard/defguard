@@ -7,7 +7,7 @@ use sqlx::{FromRow, Type};
 pub mod metadata;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
-#[sqlx(type_name = "audit_module", rename_all = "snake_case")]
+#[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
 pub enum AuditModule {
     Defguard,
@@ -68,7 +68,7 @@ pub enum EventType {
 }
 
 #[derive(Model, FromRow, Serialize)]
-#[table(audit_event)]
+#[table(activity_log_event)]
 pub struct AuditEvent<I = NoId> {
     pub id: I,
     pub timestamp: NaiveDateTime,

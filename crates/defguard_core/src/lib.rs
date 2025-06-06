@@ -20,10 +20,10 @@ use enterprise::handlers::{
         delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
         update_acl_alias, update_acl_rule,
     },
-    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-    audit_stream::{
+    activity_log_stream::{
         create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
     },
+    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
@@ -34,7 +34,7 @@ use enterprise::handlers::{
 };
 use events::ApiEvent;
 use handlers::{
-    audit_log::get_audit_log_events,
+    activity_log::get_audit_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,

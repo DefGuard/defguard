@@ -23,8 +23,8 @@ use crate::{
     VERSION,
 };
 
+pub(crate) mod activity_log;
 pub(crate) mod app_info;
-pub(crate) mod audit_log;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;

@@ -10,8 +10,8 @@ use crate::{
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::{
-        audit_stream::error::AuditStreamError, db::models::acl::AclError, firewall::FirewallError,
-        ldap::error::LdapError, license::LicenseError,
+        activity_log_stream::error::AuditStreamError, db::models::acl::AclError,
+        firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
     grpc::GatewayMapError,

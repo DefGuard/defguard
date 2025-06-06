@@ -6,7 +6,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
 
 use defguard_core::db::{
-    models::audit_log::{
+    models::activity_log::{
         metadata::{
             AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
             DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
