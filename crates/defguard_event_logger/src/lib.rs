@@ -326,7 +326,10 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            VpnEvent::DisconnectedFromMfaLocation { location, device } => todo!(),
+                            VpnEvent::DisconnectedFromMfaLocation { location, device } => (
+                                EventType::VpnClientDisconnectedMfa,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
                             VpnEvent::ConnectedToLocation { location, device } => (
                                 EventType::VpnClientConnected,
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),
