@@ -69,8 +69,8 @@ pub enum WebError {
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
-    #[error("Audit stream error: {0}")]
-    AuditStreamError(String),
+    #[error("Activity log stream error: {0}")]
+    ActivityLogStreamError(#[from] ActivityLogStreamError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -175,16 +175,6 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
-        }
-    }
-}
-
-impl From<ActivityLogStreamError> for WebError {
-    fn from(err: ActivityLogStreamError) -> Self {
-        match err {
-            ActivityLogStreamError::ConfigDeserializeError(_, _)
-            | ActivityLogStreamError::HeaderValueParsing()
-            | ActivityLogStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
         }
     }
 }

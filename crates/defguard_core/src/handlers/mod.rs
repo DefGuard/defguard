@@ -93,7 +93,7 @@ impl From<WebError> for ApiResponse {
             | WebError::ClientIpError
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)
-            | WebError::AuditStreamError(_) => {
+            | WebError::ActivityLogStreamError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),
