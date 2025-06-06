@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM \"audit_event\" WHERE id = $1",
+  "query": "DELETE FROM \"activity_log_stream\" WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "aab509ab91951fae200fbf8523282a9907af7e3e2386c11c8f4e8f89a7949cf7"
+  "hash": "03a96b2ca6d873e70db373c3973ff07ec2b0f6011219c28e586a36cdcddd2461"
 }

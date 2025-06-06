@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, stream_type \"stream_type: AuditStreamType\", config FROM audit_stream WHERE stream_type = $1",
+  "query": "SELECT id, name, stream_type \"stream_type: ActivityLogStreamType\", config FROM activity_log_stream WHERE stream_type = $1",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "stream_type: AuditStreamType",
+        "name": "stream_type: ActivityLogStreamType",
         "type_info": "Text"
       },
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "4f1bffd507cdc4b54361c752627c3cb49ce719f130c32581c8c59aa0f37817ae"
+  "hash": "cfb8a078604e1a854d548e25739bf80e1e4552021e116522da1f5288704e8555"
 }

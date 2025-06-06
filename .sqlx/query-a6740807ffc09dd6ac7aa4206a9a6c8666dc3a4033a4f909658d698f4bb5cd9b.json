@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"ip\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"metadata\" FROM \"audit_event\"",
+  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"ip\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"metadata\" FROM \"activity_log_event\"",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
         "name": "module: _",
         "type_info": {
           "Custom": {
-            "name": "audit_module",
+            "name": "activity_log_module",
             "kind": {
               "Enum": [
                 "defguard",
@@ -76,5 +76,5 @@
       true
     ]
   },
-  "hash": "ade7af88caaa44ec064afe01388b524be66ed2b702fa4e754637a73b6332101b"
+  "hash": "a6740807ffc09dd6ac7aa4206a9a6c8666dc3a4033a4f909658d698f4bb5cd9b"
 }
