@@ -451,8 +451,8 @@ pub fn build_webapp(
             .route("/webhook/{id}", post(change_enabled))
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
-            // audit log
-            .route("/audit_log", get(get_activity_log_events)),
+            // activity log
+            .route("/activity_log", get(get_activity_log_events)),
     );
 
     // Enterprise features
@@ -473,9 +473,9 @@ pub fn build_webapp(
             .route("/test_directory_sync", get(test_dirsync_connection)),
     );
 
-    // audit stream
+    // activity log stream
     let webapp = webapp.nest(
-        "/api/v1/audit_stream",
+        "/api/v1/activity_log_stream",
         Router::new()
             .route("/", get(get_activity_log_stream))
             .route("/", post(create_activity_log_stream))
