@@ -15,12 +15,12 @@ use crate::{
     secret::SecretStringWrapper,
 };
 
-/// Spawns an asynchronous task that reads audit events from the channel and sends them as NDJSON via HTTP.
+/// Spawns an asynchronous task that reads activity log events from the channel and sends them as NDJSON via HTTP.
 ///
 /// # Parameters
 ///
-/// - `config`: Configuration for this HTTP audit stream.
-/// - `rx`: A `tokio::sync::broadcast::Receiver<Bytes>` from which audit messages are received.
+/// - `config`: Configuration for this HTTP activity log stream.
+/// - `rx`: A `tokio::sync::broadcast::Receiver<Bytes>` from which activity log messages are received.
 /// - `cancel_token`: Shared `CancellationToken` used to signal task shutdown.
 pub(super) async fn run_http_stream_task(
     config: HttpActivityLogStreamConfig,
@@ -40,7 +40,7 @@ pub(super) async fn run_http_stream_task(
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
-                debug!("Audit stream ({stream_name}) task received cancellation signal.");
+                debug!("Activity log stream ({stream_name}) task received cancellation signal.");
                 break;
             },
             res = rx.recv() => {
@@ -58,16 +58,16 @@ pub(super) async fn run_http_stream_task(
                                             Err(_) => "Body decoding failed".to_string(),
                                         }
                                     };
-                                    error!("Audit stream ({stream_name}) response code {0}. Body: {1}", status_code, body);
+                                    error!("Activity log stream ({stream_name}) response code {0}. Body: {1}", status_code, body);
                                 }
                             },
                             Err(e) => {
-                                error!("Audit stream {stream_name} failed to send messages. Reason: {e}");
+                                error!("Activity log stream {stream_name} failed to send messages. Reason: {e}");
                             }
                         }
                     },
                     Err(e) => {
-                        error!("Receiving audit stream message failed ! Reason: {}", e.to_string());
+                        error!("Receiving activity log stream message failed ! Reason: {}", e.to_string());
                         break;
                     }
                 }
@@ -76,7 +76,7 @@ pub(super) async fn run_http_stream_task(
     }
 }
 
-/// Builds and returns a configured `reqwest::Client` for sending NDJSON audit events.
+/// Builds and returns a configured `reqwest::Client` for sending NDJSON activity log events.
 ///
 /// # Returns
 ///
@@ -87,13 +87,16 @@ fn build_client(config: &HttpActivityLogStreamConfig) -> Result<reqwest::Client,
     headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
 
     if let (Some(username), Some(password)) = (&config.username, &config.password) {
-        debug!("Auth config found for {} audit stream", config.stream_name);
+        debug!(
+            "Auth config found for {} activity log stream",
+            config.stream_name
+        );
         let authorization_token =
             BASE64_STANDARD.encode(format!("{0}:{1}", username, password.expose_secret()));
         let auth_header_value = format!("Basic {authorization_token}");
         headers.insert("Authorization", auth_header_value.parse().unwrap());
         debug!(
-            "Authorization header added to {} audit stream",
+            "Authorization header added to {} activity log stream",
             config.stream_name
         );
     }
@@ -107,7 +110,7 @@ fn build_client(config: &HttpActivityLogStreamConfig) -> Result<reqwest::Client,
                 }
                 Err(e) => {
                     error!(
-                        "Failed to add root certificate for {} audit stream. Reason: {e}",
+                        "Failed to add root certificate for {} activity log stream. Reason: {e}",
                         config.stream_name
                     );
                     return Err(e);

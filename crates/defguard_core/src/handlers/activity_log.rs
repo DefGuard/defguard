@@ -5,7 +5,6 @@ use axum_extra::extract::Query;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
-use tracing::Instrument;
 
 use crate::{
     appstate::AppState,

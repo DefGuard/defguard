@@ -261,7 +261,7 @@ pub async fn run_event_logger(
                                 stream_id,
                                 stream_name,
                             } => (
-                                EventType::AuditStreamCreated,
+                                EventType::ActivityLogStreamCreated,
                                 serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,
@@ -272,7 +272,7 @@ pub async fn run_event_logger(
                                 stream_id,
                                 stream_name,
                             } => (
-                                EventType::AuditStreamRemoved,
+                                EventType::ActivityLogStreamRemoved,
                                 serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,
@@ -283,7 +283,7 @@ pub async fn run_event_logger(
                                 stream_id,
                                 stream_name,
                             } => (
-                                EventType::AuditStreamModified,
+                                EventType::ActivityLogStreamModified,
                                 serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,

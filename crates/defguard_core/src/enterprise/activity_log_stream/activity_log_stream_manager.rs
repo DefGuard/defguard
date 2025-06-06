@@ -15,65 +15,65 @@ use crate::enterprise::{
 
 use super::ActivityLogStreamReconfigurationNotification;
 
-pub async fn run_audit_stream_manager(
+pub async fn run_activity_log_stream_manager(
     pool: PgPool,
     notification: ActivityLogStreamReconfigurationNotification,
-    audit_messages_rx: Receiver<Bytes>,
+    activity_log_messages_rx: Receiver<Bytes>,
 ) -> anyhow::Result<()> {
     loop {
         let mut handles = JoinSet::<()>::new();
         let cancel_token = Arc::new(CancellationToken::new());
         if is_enterprise_enabled() {
             let streams = ActivityLogStream::all(&pool).await?;
-            for audit_stream in streams {
-                if let Ok(config) = ActivityLogStreamConfig::from(&audit_stream) {
+            for activity_log_stream in streams {
+                if let Ok(config) = ActivityLogStreamConfig::from(&activity_log_stream) {
                     match config {
                         ActivityLogStreamConfig::VectorHttp(stream_config) => {
                             let http_config = HttpActivityLogStreamConfig::from_vector(
                                 stream_config,
-                                audit_stream.name.clone(),
+                                activity_log_stream.name.clone(),
                             );
                             handles.spawn(run_http_stream_task(
                                 http_config,
-                                audit_messages_rx.resubscribe(),
+                                activity_log_messages_rx.resubscribe(),
                                 cancel_token.clone(),
                             ));
                         }
                         ActivityLogStreamConfig::LogstashHttp(stream_config) => {
                             let http_config = HttpActivityLogStreamConfig::from_logstash(
                                 stream_config,
-                                audit_stream.name.clone(),
+                                activity_log_stream.name.clone(),
                             );
                             handles.spawn(run_http_stream_task(
                                 http_config,
-                                audit_messages_rx.resubscribe(),
+                                activity_log_messages_rx.resubscribe(),
                                 cancel_token.clone(),
                             ));
                         }
                     };
                 } else {
                     error!(
-                        "Failed to deserialize config for audit stream {0}",
-                        &audit_stream.name
+                        "Failed to deserialize config for activity log stream {0}",
+                        &activity_log_stream.name
                     );
                     continue;
                 }
             }
         } else {
-            debug!("Audit stream manager cannot start streams, license needs enterprise features enabled.");
+            debug!("Activity log stream manager cannot start streams, license needs enterprise features enabled.");
         }
         // wait for next configs update or if license expired
         loop {
             tokio::select! {
                 _ = notification.notified() => {
                     debug!(
-                        "Audit stream manager configuration refresh notification received, reloading streaming tasks."
+                        "Activity log stream manager configuration refresh notification received, reloading streaming tasks."
                     );
                     break;
                }
                _ = sleep(std::time::Duration::from_secs(60)) => {
                 if !is_enterprise_enabled() {
-                    debug!("Audit stream manager will reload, detected license enterprise features are not enabled");
+                    debug!("Activity log stream manager will reload, detected license enterprise features are not enabled");
                     break;
                 }
                }
@@ -81,6 +81,6 @@ pub async fn run_audit_stream_manager(
         }
         cancel_token.cancel();
         handles.join_all().await;
-        debug!("All audit streaming tasks closed.");
+        debug!("All activity log streaming tasks closed.");
     }
 }

@@ -16,7 +16,7 @@ pub enum ActivityLogModule {
     Enrollment,
 }
 
-/// Represents audit event type as it's stored in the DB
+/// Represents activity log event type as it's stored in the DB
 ///
 /// To make searching and exporting the type is stored as text and not a custom Postgres enum.
 /// Variant names are renamed to `snake_case` so `UserLogin` becomes `user_login` in the DB table.
@@ -50,10 +50,10 @@ pub enum EventType {
     NetworkDeviceAdded,
     NetworkDeviceRemoved,
     NetworkDeviceModified,
-    // audit stream
-    AuditStreamCreated,
-    AuditStreamModified,
-    AuditStreamRemoved,
+    // activity log stream
+    ActivityLogStreamCreated,
+    ActivityLogStreamModified,
+    ActivityLogStreamRemoved,
     // OpenID app management
     OpenIdAppAdded,
     OpenIdAppRemoved,
