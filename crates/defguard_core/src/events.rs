@@ -236,15 +236,36 @@ pub enum DesktopClientMfaEvent {
 #[derive(Debug)]
 pub enum ConfigPollingEvent {}
 
+/// Shared context for every internally-triggered event.
+///
+/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the audit log.
+#[derive(Debug)]
+pub struct InternalEventContext {
+    pub timestamp: NaiveDateTime,
+    pub user_id: Id,
+    pub username: String,
+    pub ip: IpAddr,
+    pub device: Device<Id>,
+}
+
+impl InternalEventContext {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
+        let timestamp = Utc::now().naive_utc();
+        Self {
+            timestamp,
+            user_id,
+            username,
+            ip,
+            device,
+        }
+    }
+}
+
 /// Events emmited by background threads, not triggered directly by users
 #[derive(Debug)]
 pub enum InternalEvent {
     DesktopClientMfaDisconnected {
-        timestamp: NaiveDateTime,
-        user_id: Id,
-        username: String,
-        ip: IpAddr,
-        device: Device<Id>,
+        context: InternalEventContext,
         location: WireguardNetwork<Id>,
     },
 }

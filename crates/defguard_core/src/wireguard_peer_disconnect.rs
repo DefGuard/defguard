@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use sqlx::{query_as, Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::{
@@ -30,7 +30,7 @@ use crate::{
         },
         Device, GatewayEvent, Id, WireguardNetwork,
     },
-    events::InternalEvent,
+    events::{InternalEvent, InternalEventContext},
 };
 
 // How long to sleep between loop iterations
@@ -169,14 +169,10 @@ pub async fn run_periodic_peer_disconnect(
                         .and_then(|endpoint| endpoint.split_once(':'))
                         .and_then(|(ip, _)| IpAddr::from_str(ip).ok())
                         // endpoint is a `text` column in the db so we have to
-                        // handle potential parsing issues here somehow
+                        // handle potential parsing issues here
                         .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
                     let event = InternalEvent::DesktopClientMfaDisconnected {
-                        timestamp: Utc::now().naive_utc(),
-                        user_id: user.id,
-                        username: user.username,
-                        ip,
-                        device,
+                        context: InternalEventContext::new(user.id, user.username, ip, device),
                         location: location.clone(),
                     };
                     internal_event_tx.send(event).map_err(|err| {

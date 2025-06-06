@@ -5,7 +5,7 @@ use defguard_core::{
     db::{
         models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,
     },
-    events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext},
+    events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
 };
 
 /// Messages that can be sent to the event logger
@@ -65,6 +65,18 @@ impl From<GrpcRequestContext> for EventContext {
 
 impl From<BidiRequestContext> for EventContext {
     fn from(val: BidiRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: format!("{} (ID {})", val.device.name, val.device.id),
+        }
+    }
+}
+
+impl From<InternalEventContext> for EventContext {
+    fn from(val: InternalEventContext) -> Self {
         EventContext {
             timestamp: val.timestamp,
             user_id: val.user_id,

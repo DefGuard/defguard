@@ -12,24 +12,11 @@ impl EventRouter {
         debug!("Processing internal event: {event:?}");
 
         match event {
-            InternalEvent::DesktopClientMfaDisconnected {
-                timestamp,
-                user_id,
-                username,
-                ip,
-                device,
-                location,
-            } => {
-                // TODO build context in caller
+            InternalEvent::DesktopClientMfaDisconnected { context, location } => {
+                let device = context.device.clone();
                 self.log_event(
-                    defguard_event_logger::message::EventContext {
-                        timestamp,
-                        user_id,
-                        username,
-                        ip,
-                        device: format!("{} (ID {})", device.name, device.id),
-                    },
-                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromMfaLocation { location, device }),
+                    context.into(),
+                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromMfaLocation { device, location }),
                 )
             }
         }
