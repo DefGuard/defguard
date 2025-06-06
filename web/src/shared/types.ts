@@ -499,7 +499,7 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export type AuditEvent = {
+export type ActivityEvent = {
   id: number;
   timestamp: string;
   user_id: number;
@@ -530,7 +530,7 @@ export type PaginatedResponse<T> = {
 
 export type AllGateWaysResponse = Record<string, Array<GatewayStatus>>;
 
-export type AuditLogFilters = {
+export type ActivityLogFilters = {
   // Naive UTC datetime in string
   from?: string;
   // Naive UTC datetime in string
@@ -541,7 +541,7 @@ export type AuditLogFilters = {
   search?: string;
 };
 
-export type AuditLogSortKey =
+export type ActivityLogSortKey =
   | 'timestamp'
   | 'username'
   | 'ip'
@@ -556,58 +556,62 @@ export type RequestSortParams<T> = {
   sort_order?: ApiSortDirection;
 };
 
-export type AuditLogRequestParams = AuditLogFilters &
-  RequestSortParams<AuditLogSortKey> &
+export type ActivityLogRequestParams = ActivityLogFilters &
+  RequestSortParams<ActivityLogSortKey> &
   PaginationParams;
 
-export type AuditStreamType = 'vector_http' | 'logstash_http';
+export type ActivityStreamType = 'vector_http' | 'logstash_http';
 
-export type AuditStream = {
+export type ActivityStream = {
   id: number;
   name: string;
-  stream_type: AuditStreamType;
-  config: AuditStreamConfig;
+  stream_type: ActivityStreamType;
+  config: ActivityStreamConfig;
 };
 
-export type AuditStreamVectorHttp = {
+export type ActivityStreamVectorHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type AuditStreamLogstashHttp = {
+export type ActivityStreamLogstashHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type AuditStreamModifyRequest = {
+export type ActivityStreamModifyRequest = {
   id: number;
   name: string;
-  stream_type: AuditStreamType;
-  stream_config: AuditStreamConfig;
+  stream_type: ActivityStreamType;
+  stream_config: ActivityStreamConfig;
 };
 
-export type AuditStreamConfig = AuditStreamVectorHttp | AuditStreamLogstashHttp;
+export type ActivityStreamConfig = ActivityStreamVectorHttp | ActivityStreamLogstashHttp;
 
-export type AuditStreamCreateRequest = Omit<AuditStreamModifyRequest, 'id'>;
+export type ActivityStreamCreateRequest = Omit<ActivityStreamModifyRequest, 'id'>;
 
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
-  auditLog: {
-    getAuditLog: (
-      params: AuditLogRequestParams,
-    ) => Promise<PaginatedResponse<AuditEvent>>;
+  activityLog: {
+    getActivityLog: (
+      params: ActivityLogRequestParams,
+    ) => Promise<PaginatedResponse<ActivityEvent>>;
   };
   activityStream: {
-    getActivityStreams: () => Promise<AuditStream[]>;
-    createActivityStream: (data: AuditStreamCreateRequest) => Promise<EmptyApiResponse>;
-    modifyActivityStream: (data: AuditStreamModifyRequest) => Promise<EmptyApiResponse>;
+    getActivityStreams: () => Promise<ActivityStream[]>;
+    createActivityStream: (
+      data: ActivityStreamCreateRequest,
+    ) => Promise<EmptyApiResponse>;
+    modifyActivityStream: (
+      data: ActivityStreamModifyRequest,
+    ) => Promise<EmptyApiResponse>;
     deleteActivityStream: (id: number) => Promise<EmptyApiResponse>;
   };
   acl: {

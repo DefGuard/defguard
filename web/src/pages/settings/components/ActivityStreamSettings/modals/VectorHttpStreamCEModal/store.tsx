@@ -1,12 +1,12 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
-import { AuditStreamVectorHttp } from '../../../../../../shared/types';
+import { ActivityStreamVectorHttp } from '../../../../../../shared/types';
 
 type ModifyData = {
   id: number;
   name: string;
-  config: AuditStreamVectorHttp;
+  config: ActivityStreamVectorHttp;
 };
 
 const defaults: StoreValues = {

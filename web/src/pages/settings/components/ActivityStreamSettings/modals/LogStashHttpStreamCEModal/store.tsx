@@ -1,6 +1,9 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { AuditStream, AuditStreamLogstashHttp } from '../../../../../../shared/types';
+import {
+  ActivityStream,
+  ActivityStreamLogstashHttp,
+} from '../../../../../../shared/types';
 
 const defaults: StoreValues = {
   visible: false,
@@ -17,7 +20,7 @@ export const useLogstashHttpStreamCEModalStore = createWithEqualityFn<Store>(
           );
         }
         const initData: ModifyData = {
-          config: vals.config as AuditStreamLogstashHttp,
+          config: vals.config as ActivityStreamLogstashHttp,
           id: vals.id,
           name: vals.name,
         };
@@ -36,7 +39,7 @@ type Store = StoreValues & StoreMethods;
 type ModifyData = {
   id: number;
   name: string;
-  config: AuditStreamLogstashHttp;
+  config: ActivityStreamLogstashHttp;
 };
 
 type StoreValues = {
@@ -45,7 +48,7 @@ type StoreValues = {
 };
 
 type StoreMethods = {
-  open: (activityStream?: AuditStream) => void;
+  open: (activityStream?: ActivityStream) => void;
   close: () => void;
   reset: () => void;
 };

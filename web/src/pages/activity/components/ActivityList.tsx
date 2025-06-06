@@ -9,16 +9,16 @@ import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHea
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
-import { AuditEvent, AuditLogSortKey } from '../../../shared/types';
+import { ActivityEvent, ActivityLogSortKey } from '../../../shared/types';
 
 type Props = {
-  data: AuditEvent[];
+  data: ActivityEvent[];
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
-  sortKey: AuditLogSortKey;
+  sortKey: ActivityLogSortKey;
   sortDirection: ListSortDirection;
   onNextPage: () => void;
-  onSortChange: (sortKey: keyof AuditEvent, sortDirection: ListSortDirection) => void;
+  onSortChange: (sortKey: keyof ActivityEvent, sortDirection: ListSortDirection) => void;
 };
 
 export const ActivityList = ({
@@ -31,6 +31,8 @@ export const ActivityList = ({
   onNextPage,
 }: Props) => {
   const { LL } = useI18nContext();
+  const localLL = LL.activity.list;
+  const headersLL = localLL.headers;
   const { ref: infiniteLoadMoreElement } = useInView({
     threshold: 0,
     trackVisibility: false,
@@ -52,35 +54,35 @@ export const ActivityList = ({
   });
   const items = virtualizer.getVirtualItems();
   const listHeaders = useMemo(
-    (): ListHeaderColumnConfig<AuditEvent>[] => [
+    (): ListHeaderColumnConfig<ActivityEvent>[] => [
       {
-        label: 'Date',
+        label: headersLL.date(),
         enabled: true,
         key: 'date',
         sortKey: 'timestamp',
       },
       {
-        label: 'User',
+        label: headersLL.user(),
         key: 'user',
       },
       {
-        label: 'IP',
+        label: headersLL.ip(),
         key: 'ip',
       },
       {
-        label: 'Event',
+        label: headersLL.event(),
         key: 'event',
       },
       {
-        label: 'Module',
+        label: headersLL.module(),
         key: 'module',
       },
       {
-        label: 'Device',
+        label: headersLL.device(),
         key: 'device',
       },
     ],
-    [],
+    [headersLL],
   );
   return (
     <div className="virtual-list" ref={parentRef}>

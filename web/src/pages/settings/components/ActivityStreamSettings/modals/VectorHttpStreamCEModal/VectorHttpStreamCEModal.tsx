@@ -17,7 +17,7 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
-import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/activityStreamToLabel';
 import { useVectorHttpStreamCEModal } from './store';
 
 export const VectorHttpStreamCEModal = () => {
@@ -121,7 +121,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.modify({
-          destination: auditStreamTypeToLabel('vector_http'),
+          destination: activityStreamTypeToLabel('vector_http'),
         }),
       );
       handleSuccess();
@@ -134,7 +134,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.create({
-          destination: auditStreamTypeToLabel('vector_http'),
+          destination: activityStreamTypeToLabel('vector_http'),
         }),
       );
       handleSuccess();

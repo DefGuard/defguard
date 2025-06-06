@@ -2,10 +2,14 @@ import './style.scss';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { orderBy, range } from 'lodash-es';
+import { useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { ListCellText } from '../../../../shared/components/Layout/ListCellText/ListCellText';
+import { ListHeader } from '../../../../shared/components/Layout/ListHeader/ListHeader';
+import { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -15,18 +19,22 @@ import { EditButton } from '../../../../shared/defguard-ui/components/Layout/Edi
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { NoData } from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { ListSortDirection } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import SvgIconPlus from '../../../../shared/defguard-ui/components/svg/IconPlus';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
-import { AuditStream } from '../../../../shared/types';
-import { CreateAuditStreamModal } from './modals/CreateAuditStreamModal/CreateAuditStreamModal';
-import { useCreateAuditStreamModalStore } from './modals/CreateAuditStreamModal/store';
+import { ActivityStream } from '../../../../shared/types';
+import { CreateActivityStreamModal } from './modals/CreateActivityStreamModal/CreateActivityStreamModal';
+import { useCreateActivityStreamModalStore } from './modals/CreateActivityStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
-import { auditStreamToLabel } from './utils/auditStreamToLabel';
+import {
+  activityStreamToLabel,
+  activityStreamTypeToLabel,
+} from './utils/activityStreamToLabel';
 
 export const ActivityStreamSettings = () => {
   const { LL } = useI18nContext();
@@ -40,7 +48,7 @@ export const ActivityStreamSettings = () => {
         </header>
         <AuditStreamList />
       </section>
-      <CreateAuditStreamModal />
+      <CreateActivityStreamModal />
       <VectorHttpStreamCEModal />
       <LogStashHttpStreamCEModal />
     </>
@@ -49,12 +57,13 @@ export const ActivityStreamSettings = () => {
 
 const AuditStreamList = () => {
   const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings;
 
   const {
     activityStream: { getActivityStreams },
   } = useApi();
 
-  const openCreateModal = useCreateAuditStreamModalStore((s) => s.open, shallow);
+  const openCreateModal = useCreateActivityStreamModalStore((s) => s.open, shallow);
 
   const { data: auditStreams, isLoading: streamsLoading } = useQuery({
     queryFn: getActivityStreams,
@@ -64,6 +73,34 @@ const AuditStreamList = () => {
     refetchOnWindowFocus: true,
     select: (data) => orderBy(data, (row) => row.name.toLowerCase(), ['asc']),
   });
+
+  const [activeSortKey] = useState<keyof ActivityStream>('name');
+  const [sortDirection, setSortDirection] = useState<ListSortDirection>(
+    ListSortDirection.ASC,
+  );
+
+  const listHeaders = useMemo(
+    (): ListHeaderColumnConfig<ActivityStream>[] => [
+      {
+        key: 'name',
+        enabled: true,
+        sortKey: 'name',
+        label: localLL.list.headers.name(),
+      },
+      {
+        key: 'destination',
+        enabled: false,
+        sortKey: 'stream_type',
+        label: localLL.list.headers.destination(),
+      },
+      {
+        key: 'edit',
+        enabled: false,
+        label: LL.common.controls.edit(),
+      },
+    ],
+    [LL.common.controls, localLL.list.headers],
+  );
 
   return (
     <div className="audit-stream-list">
@@ -76,6 +113,16 @@ const AuditStreamList = () => {
           className="add"
           onClick={() => {
             openCreateModal();
+          }}
+        />
+      </div>
+      <div className="list-header">
+        <ListHeader
+          headers={listHeaders}
+          activeKey={activeSortKey}
+          sortDirection={sortDirection}
+          onChange={(_, direction) => {
+            setSortDirection(direction);
           }}
         />
       </div>
@@ -108,14 +155,17 @@ const AuditStreamList = () => {
 };
 
 type ListItemsProps = {
-  stream: AuditStream;
+  stream: ActivityStream;
 };
 
 const ListItem = ({ stream }: ListItemsProps) => {
   return (
     <div className="audit-stream list-item">
       <div className="cell name">
-        <p>{stream.name ?? auditStreamToLabel(stream)}</p>
+        <ListCellText text={stream.name} />
+      </div>
+      <div className="cell destination">
+        <ListCellText text={activityStreamTypeToLabel(stream.stream_type)} />
       </div>
       <div className="cell edit">
         <EditListItem stream={stream} />
@@ -125,7 +175,7 @@ const ListItem = ({ stream }: ListItemsProps) => {
 };
 
 type EditProps = {
-  stream: AuditStream;
+  stream: ActivityStream;
 };
 
 const EditListItem = ({ stream }: EditProps) => {
@@ -141,7 +191,7 @@ const EditListItem = ({ stream }: EditProps) => {
     onSuccess: () => {
       toast.success(
         LL.settingsPage.auditStreamSettings.messages.destinationCrud.delete({
-          destination: auditStreamToLabel(stream),
+          destination: activityStreamToLabel(stream),
         }),
       );
       void queryClient.invalidateQueries({

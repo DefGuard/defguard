@@ -15,10 +15,13 @@ import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent'
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
-import { AuditStreamLogstashHttp, AuditStreamType } from '../../../../../../shared/types';
+import {
+  ActivityStreamLogstashHttp,
+  ActivityStreamType,
+} from '../../../../../../shared/types';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
-import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
+import { activityStreamTypeToLabel } from '../../utils/activityStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from './store';
 
 export const LogStashHttpStreamCEModal = () => {
@@ -76,7 +79,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.create({
-          destination: auditStreamTypeToLabel('logstash_http'),
+          destination: activityStreamTypeToLabel('logstash_http'),
         }),
       );
       void queryClient.invalidateQueries({
@@ -92,7 +95,7 @@ const ModalContent = () => {
     onSuccess: () => {
       toaster.success(
         localLL.messages.destinationCrud.modify({
-          destination: auditStreamTypeToLabel('logstash_http'),
+          destination: activityStreamTypeToLabel('logstash_http'),
         }),
       );
       void queryClient.invalidateQueries({
@@ -154,9 +157,9 @@ const ModalContent = () => {
 
   const handleValidSubmit: SubmitHandler<FormFields> = async (values) => {
     const { name, ...config } = removeEmptyStrings(trimObjectStrings(values));
-    const streamType: AuditStreamType = 'logstash_http';
+    const streamType: ActivityStreamType = 'logstash_http';
 
-    const logstashConfig: AuditStreamLogstashHttp = config;
+    const logstashConfig: ActivityStreamLogstashHttp = config;
 
     if (isEdit) {
       await modifyStreamMutation({
