@@ -4,7 +4,7 @@ const defaults: StoreValues = {
   visible: false,
 };
 
-export const useCreateActivityStreamModalStore = createWithEqualityFn<Store>(
+export const useCreateActivityLogStreamModalStore = createWithEqualityFn<Store>(
   (set) => ({
     ...defaults,
     open: () => set({ visible: true }),

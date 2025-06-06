@@ -26,7 +26,7 @@ import { QueryKeys } from '../../shared/queries';
 import { User } from '../../shared/types';
 import { invalidateMultipleQueries } from '../../shared/utils/invalidateMultipleQueries';
 import { DevicePageNavigationIcon } from './components/DevicesPageNavigationIcon';
-import { NavigationActivityPageIcon } from './components/icons/NavigationActivityPageIcon';
+import { NavigationActivityLogPageIcon } from './components/icons/NavigationActivityLogPageIcon';
 import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
 import { navigationExcludedRoutes } from './config';
@@ -195,7 +195,7 @@ export const Navigation = () => {
       {
         title: LL.navigation.bar.activity(),
         linkPath: '/admin/activity',
-        icon: <NavigationActivityPageIcon />,
+        icon: <NavigationActivityLogPageIcon />,
         adminOnly: true,
         enabled: true,
       },

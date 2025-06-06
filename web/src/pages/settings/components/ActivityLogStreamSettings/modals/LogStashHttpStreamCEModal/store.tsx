@@ -1,8 +1,8 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import {
-  ActivityStream,
-  ActivityStreamLogstashHttp,
+  ActivityLogStream,
+  ActivityLogStreamLogstashHttp,
 } from '../../../../../../shared/types';
 
 const defaults: StoreValues = {
@@ -16,11 +16,11 @@ export const useLogstashHttpStreamCEModalStore = createWithEqualityFn<Store>(
       if (vals) {
         if (vals?.stream_type !== 'logstash_http') {
           throw Error(
-            'Opened Logstash Http CE modal with wrong audit stream type config',
+            'Opened Logstash Http CE modal with wrong activity log stream type config',
           );
         }
         const initData: ModifyData = {
-          config: vals.config as ActivityStreamLogstashHttp,
+          config: vals.config as ActivityLogStreamLogstashHttp,
           id: vals.id,
           name: vals.name,
         };
@@ -39,7 +39,7 @@ type Store = StoreValues & StoreMethods;
 type ModifyData = {
   id: number;
   name: string;
-  config: ActivityStreamLogstashHttp;
+  config: ActivityLogStreamLogstashHttp;
 };
 
 type StoreValues = {
@@ -48,7 +48,7 @@ type StoreValues = {
 };
 
 type StoreMethods = {
-  open: (activityStream?: ActivityStream) => void;
+  open: (activityLogStream?: ActivityLogStream) => void;
   close: () => void;
   reset: () => void;
 };

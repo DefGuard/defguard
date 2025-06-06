@@ -2722,7 +2722,7 @@ type RootTranslation = {
 			/**
 			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
-			activityStream: string
+			activityLogStream: string
 		}
 		messages: {
 			/**
@@ -2752,7 +2752,7 @@ type RootTranslation = {
 			 */
 			website: string
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -6149,7 +6149,7 @@ type RootTranslation = {
 		}
 	}
 	enums: {
-		activityEventType: {
+		activityLogEventType: {
 			/**
 			 * U​s​e​r​ ​l​o​g​i​n
 			 */
@@ -6243,17 +6243,17 @@ type RootTranslation = {
 			 */
 			network_device_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
 			 */
-			audit_stream_created: string
+			activity_log_stream_created: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
 			 */
-			audit_stream_modified: string
+			activity_log_stream_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
 			 */
-			audit_stream_removed: string
+			activity_log_stream_removed: string
 			/**
 			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
 			 */
@@ -6263,7 +6263,7 @@ type RootTranslation = {
 			 */
 			vpn_client_disconnected: string
 		}
-		activityModule: {
+		activityLogModule: {
 			/**
 			 * D​e​f​g​u​a​r​d
 			 */
@@ -8962,7 +8962,7 @@ export type TranslationFunctions = {
 			/**
 			 * Activity log streaming
 			 */
-			activityStream: () => LocalizedString
+			activityLogStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -8992,7 +8992,7 @@ export type TranslationFunctions = {
 			 */
 			website: () => LocalizedString
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -12358,7 +12358,7 @@ export type TranslationFunctions = {
 		}
 	}
 	enums: {
-		activityEventType: {
+		activityLogEventType: {
 			/**
 			 * User login
 			 */
@@ -12452,17 +12452,17 @@ export type TranslationFunctions = {
 			 */
 			network_device_modified: () => LocalizedString
 			/**
-			 * Audit stream created
+			 * Activity log stream created
 			 */
-			audit_stream_created: () => LocalizedString
+			activity_log_stream_created: () => LocalizedString
 			/**
-			 * Audit stream modified
+			 * Activity log stream modified
 			 */
-			audit_stream_modified: () => LocalizedString
+			activity_log_stream_modified: () => LocalizedString
 			/**
-			 * Audit stream removed
+			 * Activity log stream removed
 			 */
-			audit_stream_removed: () => LocalizedString
+			activity_log_stream_removed: () => LocalizedString
 			/**
 			 * VPN client connected
 			 */
@@ -12472,7 +12472,7 @@ export type TranslationFunctions = {
 			 */
 			vpn_client_disconnected: () => LocalizedString
 		}
-		activityModule: {
+		activityLogModule: {
 			/**
 			 * Defguard
 			 */

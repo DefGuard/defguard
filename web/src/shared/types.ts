@@ -7,7 +7,7 @@ import {
 import { AxiosError, AxiosPromise } from 'axios';
 
 import { AclAlias, AclStatus } from '../pages/acl/types';
-import { ActivityEventType, ActivityModule } from '../pages/activity/types';
+import { ActivityLogEventType, ActivityLogModule } from '../pages/activity-log/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -499,14 +499,14 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export type ActivityEvent = {
+export type ActivityLogEvent = {
   id: number;
   timestamp: string;
   user_id: number;
   username: string;
   ip: string;
-  event: ActivityEventType;
-  module: ActivityModule;
+  event: ActivityLogEventType;
+  module: ActivityLogModule;
   device: string;
   metadata?: unknown;
 };
@@ -536,8 +536,8 @@ export type ActivityLogFilters = {
   // Naive UTC datetime in string
   until?: string;
   username?: string[];
-  event?: ActivityEventType[];
-  module?: ActivityModule[];
+  event?: ActivityLogEventType[];
+  module?: ActivityLogModule[];
   search?: string;
 };
 
@@ -560,39 +560,41 @@ export type ActivityLogRequestParams = ActivityLogFilters &
   RequestSortParams<ActivityLogSortKey> &
   PaginationParams;
 
-export type ActivityStreamType = 'vector_http' | 'logstash_http';
+export type ActivityLogStreamType = 'vector_http' | 'logstash_http';
 
-export type ActivityStream = {
+export type ActivityLogStream = {
   id: number;
   name: string;
-  stream_type: ActivityStreamType;
-  config: ActivityStreamConfig;
+  stream_type: ActivityLogStreamType;
+  config: ActivityLogStreamConfig;
 };
 
-export type ActivityStreamVectorHttp = {
+export type ActivityLogStreamVectorHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type ActivityStreamLogstashHttp = {
+export type ActivityLogStreamLogstashHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type ActivityStreamModifyRequest = {
+export type ActivityLogStreamModifyRequest = {
   id: number;
   name: string;
-  stream_type: ActivityStreamType;
-  stream_config: ActivityStreamConfig;
+  stream_type: ActivityLogStreamType;
+  stream_config: ActivityLogStreamConfig;
 };
 
-export type ActivityStreamConfig = ActivityStreamVectorHttp | ActivityStreamLogstashHttp;
+export type ActivityLogStreamConfig =
+  | ActivityLogStreamVectorHttp
+  | ActivityLogStreamLogstashHttp;
 
-export type ActivityStreamCreateRequest = Omit<ActivityStreamModifyRequest, 'id'>;
+export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
 
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
@@ -602,17 +604,17 @@ export type Api = {
   activityLog: {
     getActivityLog: (
       params: ActivityLogRequestParams,
-    ) => Promise<PaginatedResponse<ActivityEvent>>;
+    ) => Promise<PaginatedResponse<ActivityLogEvent>>;
   };
-  activityStream: {
-    getActivityStreams: () => Promise<ActivityStream[]>;
-    createActivityStream: (
-      data: ActivityStreamCreateRequest,
+  activityLogStream: {
+    getActivityLogStreams: () => Promise<ActivityLogStream[]>;
+    createActivityLogStream: (
+      data: ActivityLogStreamCreateRequest,
     ) => Promise<EmptyApiResponse>;
-    modifyActivityStream: (
-      data: ActivityStreamModifyRequest,
+    modifyActivityLogStream: (
+      data: ActivityLogStreamModifyRequest,
     ) => Promise<EmptyApiResponse>;
-    deleteActivityStream: (id: number) => Promise<EmptyApiResponse>;
+    deleteActivityLogStream: (id: number) => Promise<EmptyApiResponse>;
   };
   acl: {
     aliases: {

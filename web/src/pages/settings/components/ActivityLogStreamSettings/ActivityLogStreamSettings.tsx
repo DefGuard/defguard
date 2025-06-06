@@ -25,48 +25,48 @@ import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
-import { ActivityStream } from '../../../../shared/types';
-import { CreateActivityStreamModal } from './modals/CreateActivityStreamModal/CreateActivityStreamModal';
-import { useCreateActivityStreamModalStore } from './modals/CreateActivityStreamModal/store';
+import { ActivityLogStream } from '../../../../shared/types';
+import { CreateActivityLogStreamModal } from './modals/CreateActivityLogStreamModal/CreateActivityLogStreamModal';
+import { useCreateActivityLogStreamModalStore } from './modals/CreateActivityLogStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
 import {
-  activityStreamToLabel,
-  activityStreamTypeToLabel,
-} from './utils/activityStreamToLabel';
+  activityLogStreamToLabel,
+  activityLogStreamTypeToLabel,
+} from './utils/activityLogStreamToLabel';
 
-export const ActivityStreamSettings = () => {
+export const ActivityLogStreamSettings = () => {
   const { LL } = useI18nContext();
-  const localLL = LL.settingsPage.auditStreamSettings;
+  const localLL = LL.settingsPage.activityLogStreamSettings;
 
   return (
     <>
-      <section id="audit-stream-settings">
+      <section id="activity-log-stream-settings">
         <header>
           <h2>{localLL.title()}</h2>
         </header>
-        <AuditStreamList />
+        <ActivityLogStreamList />
       </section>
-      <CreateActivityStreamModal />
+      <CreateActivityLogStreamModal />
       <VectorHttpStreamCEModal />
       <LogStashHttpStreamCEModal />
     </>
   );
 };
 
-const AuditStreamList = () => {
+const ActivityLogStreamList = () => {
   const { LL } = useI18nContext();
-  const localLL = LL.settingsPage.auditStreamSettings;
+  const localLL = LL.settingsPage.activityLogStreamSettings;
 
   const {
-    activityStream: { getActivityStreams },
+    activityLogStream: { getActivityLogStreams },
   } = useApi();
 
-  const openCreateModal = useCreateActivityStreamModalStore((s) => s.open, shallow);
+  const openCreateModal = useCreateActivityLogStreamModalStore((s) => s.open, shallow);
 
-  const { data: auditStreams, isLoading: streamsLoading } = useQuery({
-    queryFn: getActivityStreams,
+  const { data: activityLogStreams, isLoading: streamsLoading } = useQuery({
+    queryFn: getActivityLogStreams,
     queryKey: ['activity_stream'],
     placeholderData: (perv) => perv,
     refetchOnMount: true,
@@ -74,13 +74,13 @@ const AuditStreamList = () => {
     select: (data) => orderBy(data, (row) => row.name.toLowerCase(), ['asc']),
   });
 
-  const [activeSortKey] = useState<keyof ActivityStream>('name');
+  const [activeSortKey] = useState<keyof ActivityLogStream>('name');
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.ASC,
   );
 
   const listHeaders = useMemo(
-    (): ListHeaderColumnConfig<ActivityStream>[] => [
+    (): ListHeaderColumnConfig<ActivityLogStream>[] => [
       {
         key: 'name',
         enabled: true,
@@ -103,7 +103,7 @@ const AuditStreamList = () => {
   );
 
   return (
-    <div className="audit-stream-list">
+    <div className="activity-log-stream-list">
       <div className="controls">
         <Button
           size={ButtonSize.SMALL}
@@ -127,25 +127,25 @@ const AuditStreamList = () => {
         />
       </div>
       <div className="list">
-        {!isPresent(auditStreams) && streamsLoading && (
+        {!isPresent(activityLogStreams) && streamsLoading && (
           <div className="skeletons">
             {range(6).map((index) => (
               <Skeleton key={index} />
             ))}
           </div>
         )}
-        {isPresent(auditStreams) && (
+        {isPresent(activityLogStreams) && (
           <ul>
-            {auditStreams.map((stream) => (
+            {activityLogStreams.map((stream) => (
               <li key={stream.id}>
                 <ListItem stream={stream} />
               </li>
             ))}
           </ul>
         )}
-        {isPresent(auditStreams) && auditStreams.length === 0 && (
+        {isPresent(activityLogStreams) && activityLogStreams.length === 0 && (
           <NoData
-            customMessage={LL.settingsPage.auditStreamSettings.list.noData()}
+            customMessage={LL.settingsPage.activityLogStreamSettings.list.noData()}
             messagePosition="center"
           />
         )}
@@ -155,17 +155,17 @@ const AuditStreamList = () => {
 };
 
 type ListItemsProps = {
-  stream: ActivityStream;
+  stream: ActivityLogStream;
 };
 
 const ListItem = ({ stream }: ListItemsProps) => {
   return (
-    <div className="audit-stream list-item">
+    <div className="activity-log-stream list-item">
       <div className="cell name">
         <ListCellText text={stream.name} />
       </div>
       <div className="cell destination">
-        <ListCellText text={activityStreamTypeToLabel(stream.stream_type)} />
+        <ListCellText text={activityLogStreamTypeToLabel(stream.stream_type)} />
       </div>
       <div className="cell edit">
         <EditListItem stream={stream} />
@@ -175,7 +175,7 @@ const ListItem = ({ stream }: ListItemsProps) => {
 };
 
 type EditProps = {
-  stream: ActivityStream;
+  stream: ActivityLogStream;
 };
 
 const EditListItem = ({ stream }: EditProps) => {
@@ -183,15 +183,15 @@ const EditListItem = ({ stream }: EditProps) => {
   const { LL } = useI18nContext();
   const toast = useToaster();
   const {
-    activityStream: { deleteActivityStream },
+    activityLogStream: { deleteActivityLogStream },
   } = useApi();
 
   const { mutate: deleteStreamMutation, isPending: isDeleting } = useMutation({
-    mutationFn: deleteActivityStream,
+    mutationFn: deleteActivityLogStream,
     onSuccess: () => {
       toast.success(
-        LL.settingsPage.auditStreamSettings.messages.destinationCrud.delete({
-          destination: activityStreamToLabel(stream),
+        LL.settingsPage.activityLogStreamSettings.messages.destinationCrud.delete({
+          destination: activityLogStreamToLabel(stream),
         }),
       );
       void queryClient.invalidateQueries({

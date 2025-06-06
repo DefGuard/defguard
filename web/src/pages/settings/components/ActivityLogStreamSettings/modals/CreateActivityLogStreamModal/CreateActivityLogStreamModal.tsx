@@ -9,25 +9,25 @@ import { Button } from '../../../../../../shared/defguard-ui/components/Layout/B
 import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
-import { ActivityStreamType } from '../../../../../../shared/types';
-import { activityStreamTypeToLabel } from '../../utils/activityStreamToLabel';
+import { ActivityLogStreamType } from '../../../../../../shared/types';
+import { activityLogStreamTypeToLabel } from '../../utils/activityLogStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from '../LogStashHttpStreamCEModal/store';
 import { useVectorHttpStreamCEModal } from '../VectorHttpStreamCEModal/store';
-import { useCreateActivityStreamModalStore } from './store';
+import { useCreateActivityLogStreamModalStore } from './store';
 
-export const CreateActivityStreamModal = () => {
+export const CreateActivityLogStreamModal = () => {
   const { LL } = useI18nContext();
-  const localLL = LL.settingsPage.auditStreamSettings.modals.selectDestination;
-  const [close, reset] = useCreateActivityStreamModalStore(
+  const localLL = LL.settingsPage.activityLogStreamSettings.modals.selectDestination;
+  const [close, reset] = useCreateActivityLogStreamModalStore(
     (s) => [s.close, s.reset],
     shallow,
   );
-  const isOpen = useCreateActivityStreamModalStore((s) => s.visible);
+  const isOpen = useCreateActivityLogStreamModalStore((s) => s.visible);
 
   return (
     <ModalWithTitle
       title={localLL.title()}
-      id="create-audit-stream-modal"
+      id="create-activity-log-stream-modal"
       isOpen={isOpen}
       onClose={() => {
         close();
@@ -41,20 +41,21 @@ export const CreateActivityStreamModal = () => {
   );
 };
 
-const availableTypes: ActivityStreamType[] = ['vector_http', 'logstash_http'];
+const availableTypes: ActivityLogStreamType[] = ['vector_http', 'logstash_http'];
 
 const ModalContent = () => {
   const { LL } = useI18nContext();
 
-  const closeModal = useCreateActivityStreamModalStore((s) => s.close, shallow);
+  const closeModal = useCreateActivityLogStreamModalStore((s) => s.close, shallow);
   const openCreateLogstash = useLogstashHttpStreamCEModalStore((s) => s.open, shallow);
   const openCreateVector = useVectorHttpStreamCEModal((s) => s.open, shallow);
 
-  const [currentStreamType, setStreamType] = useState<ActivityStreamType>('vector_http');
+  const [currentStreamType, setStreamType] =
+    useState<ActivityLogStreamType>('vector_http');
 
   return (
     <>
-      <div className="audit-stream-types">
+      <div className="activity-log-stream-types">
         {availableTypes.map((streamType) => {
           const active = streamType === currentStreamType;
           return (
@@ -68,7 +69,7 @@ const ModalContent = () => {
               }}
             >
               <RadioButton active={active} />
-              <p className="label">{activityStreamTypeToLabel(streamType)}</p>
+              <p className="label">{activityLogStreamTypeToLabel(streamType)}</p>
             </div>
           );
         })}

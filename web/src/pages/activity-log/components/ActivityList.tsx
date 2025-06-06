@@ -9,16 +9,19 @@ import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHea
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
-import { ActivityEvent, ActivityLogSortKey } from '../../../shared/types';
+import { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';
 
 type Props = {
-  data: ActivityEvent[];
+  data: ActivityLogEvent[];
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   sortKey: ActivityLogSortKey;
   sortDirection: ListSortDirection;
   onNextPage: () => void;
-  onSortChange: (sortKey: keyof ActivityEvent, sortDirection: ListSortDirection) => void;
+  onSortChange: (
+    sortKey: keyof ActivityLogEvent,
+    sortDirection: ListSortDirection,
+  ) => void;
 };
 
 export const ActivityList = ({
@@ -54,7 +57,7 @@ export const ActivityList = ({
   });
   const items = virtualizer.getVirtualItems();
   const listHeaders = useMemo(
-    (): ListHeaderColumnConfig<ActivityEvent>[] => [
+    (): ListHeaderColumnConfig<ActivityLogEvent>[] => [
       {
         label: headersLL.date(),
         enabled: true,
@@ -133,10 +136,10 @@ export const ActivityList = ({
                   <ListCellText text={activity.ip} />
                 </div>
                 <div className="cell event">
-                  <ListCellText text={LL.enums.activityEventType[activity.event]()} />
+                  <ListCellText text={LL.enums.activityLogEventType[activity.event]()} />
                 </div>
                 <div className="cell module">
-                  <ListCellText text={LL.enums.activityModule[activity.module]()} />
+                  <ListCellText text={LL.enums.activityLogModule[activity.module]()} />
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />

@@ -23,15 +23,15 @@ import { ActivityLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
 import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
-  ActivityEventType,
-  ActivityModule,
-  auditEventTypeValues,
-  auditModuleValues,
+  ActivityLogEventType,
+  activityLogEventTypeValues,
+  ActivityLogModule,
+  activityLogModuleValues,
 } from './types';
 
-export const ActivityPage = () => {
+export const ActivityLogPage = () => {
   return (
-    <PageContainer id="activity-page">
+    <PageContainer id="activity-log-page">
       <PageLimiter>
         <PageContent />
       </PageLimiter>
@@ -80,7 +80,7 @@ const PageContent = () => {
   const localLL = LL.activity;
 
   const {
-    activityLog: { getActivityLog: getAuditLog },
+    activityLog: { getActivityLog },
     user: { getUsers },
   } = useApi();
 
@@ -116,10 +116,10 @@ const PageContent = () => {
     queryKey,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
-      getAuditLog({
+      getActivityLog({
         page: pageParam,
-        event: applyFilterArray(activeFilters.event as ActivityEventType[]),
-        module: applyFilterArray(activeFilters.module as ActivityModule[]),
+        event: applyFilterArray(activeFilters.event as ActivityLogEventType[]),
+        module: applyFilterArray(activeFilters.module as ActivityLogModule[]),
         username: applyFilterArray(activeFilters.username as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
@@ -154,12 +154,12 @@ const PageContent = () => {
       identifier: 'module',
       label: 'Module',
       order: 2,
-      items: auditModuleValues.map((auditModule) => {
-        const translation = LL.enums.activityModule[auditModule]();
+      items: activityLogModuleValues.map((activityLogModule) => {
+        const translation = LL.enums.activityLogModule[activityLogModule]();
         return {
           label: translation,
           searchValues: [translation],
-          value: auditModule,
+          value: activityLogModule,
         };
       }),
     };
@@ -167,8 +167,8 @@ const PageContent = () => {
       identifier: 'event',
       label: 'Event',
       order: 1,
-      items: auditEventTypeValues.map((eventType) => {
-        const translation = LL.enums.activityEventType[eventType]();
+      items: activityLogEventTypeValues.map((eventType) => {
+        const translation = LL.enums.activityLogEventType[eventType]();
         return {
           label: translation,
           searchValues: [translation],

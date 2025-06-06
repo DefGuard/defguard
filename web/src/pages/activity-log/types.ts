@@ -1,13 +1,13 @@
-export type ActivityModule = 'defguard' | 'client' | 'vpn' | 'enrollment';
+export type ActivityLogModule = 'defguard' | 'client' | 'vpn' | 'enrollment';
 
-export const auditModuleValues: ActivityModule[] = [
+export const activityLogModuleValues: ActivityLogModule[] = [
   'defguard',
   'client',
   'enrollment',
   'vpn',
 ];
 
-export type ActivityEventType =
+export type ActivityLogEventType =
   | 'user_login'
   | 'user_login_failed'
   | 'user_mfa_login'
@@ -30,13 +30,13 @@ export type ActivityEventType =
   | 'network_device_added'
   | 'network_device_modified'
   | 'network_device_removed'
-  | 'audit_stream_created'
-  | 'audit_stream_modified'
-  | 'audit_stream_removed'
+  | 'activity_log_stream_created'
+  | 'activity_log_stream_modified'
+  | 'activity_log_stream_removed'
   | 'vpn_client_connected'
   | 'vpn_client_disconnected';
 
-export const auditEventTypeValues: ActivityEventType[] = [
+export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_login',
   'user_login_failed',
   'user_mfa_login',
@@ -59,9 +59,9 @@ export const auditEventTypeValues: ActivityEventType[] = [
   'network_device_added',
   'network_device_modified',
   'network_device_removed',
-  'audit_stream_created',
-  'audit_stream_modified',
-  'audit_stream_removed',
+  'activity_log_stream_created',
+  'activity_log_stream_modified',
+  'activity_log_stream_removed',
   'vpn_client_connected',
   'vpn_client_disconnected',
 ];

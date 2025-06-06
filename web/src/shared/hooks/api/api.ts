@@ -509,7 +509,7 @@ export const buildApi = (client: Axios): Api => {
 
   const getActivityLog: Api['activityLog']['getActivityLog'] = (params) =>
     client
-      .get(`/audit_log`, {
+      .get(`/activity_log`, {
         params,
       })
       .then(unpackRequest);
@@ -528,27 +528,29 @@ export const buildApi = (client: Axios): Api => {
   const getAllGatewaysStatus: Api['network']['getAllGatewaysStatus'] = () =>
     client.get('/network/gateways').then(unpackRequest);
 
-  const getActivityStreams: Api['activityStream']['getActivityStreams'] = () =>
-    client.get('/audit_stream').then(unpackRequest);
-  const createActivityStream: Api['activityStream']['createActivityStream'] = (data) =>
-    client.post('/audit_stream', data).then(unpackRequest);
-  const modifyActivityStream: Api['activityStream']['modifyActivityStream'] = ({
+  const getActivityLogStreams: Api['activityLogStream']['getActivityLogStreams'] = () =>
+    client.get('/activity_log_stream').then(unpackRequest);
+  const createActivityLogStream: Api['activityLogStream']['createActivityLogStream'] = (
+    data,
+  ) => client.post('/activity_log_stream', data).then(unpackRequest);
+  const modifyActivityLogStream: Api['activityLogStream']['modifyActivityLogStream'] = ({
     id,
     ...rest
-  }) => client.put(`/audit_stream/${id}`, rest).then(unpackRequest);
-  const deleteActivityStream: Api['activityStream']['deleteActivityStream'] = (id) =>
-    client.delete(`/audit_stream/${id}`).then(unpackRequest);
+  }) => client.put(`/activity_log_stream/${id}`, rest).then(unpackRequest);
+  const deleteActivityLogStream: Api['activityLogStream']['deleteActivityLogStream'] = (
+    id,
+  ) => client.delete(`/activity_log_stream/${id}`).then(unpackRequest);
 
   return {
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
-    activityStream: {
-      createActivityStream,
-      deleteActivityStream,
-      getActivityStreams,
-      modifyActivityStream,
+    activityLogStream: {
+      createActivityLogStream,
+      deleteActivityLogStream,
+      getActivityLogStreams,
+      modifyActivityLogStream,
     },
     activityLog: {
       getActivityLog,
