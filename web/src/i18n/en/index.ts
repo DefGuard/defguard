@@ -1106,7 +1106,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
-      activityStream: 'Activity log streaming',
+      activityLogStream: 'Activity log streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1118,7 +1118,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       subtitle: 'To learn more, visit our ',
       website: 'website',
     },
-    auditStreamSettings: {
+    activityLogStreamSettings: {
       messages: {
         destinationCrud: {
           create: '{destination: string} destination added',
@@ -2564,7 +2564,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
     },
   },
   enums: {
-    activityEventType: {
+    activityLogEventType: {
       user_login: 'User login',
       user_login_failed: 'User login failed',
       user_mfa_login: 'User MFA login',
@@ -2588,13 +2588,13 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       network_device_added: 'Network device added',
       network_device_removed: 'Network device removed',
       network_device_modified: 'Network device modified',
-      audit_stream_created: 'Audit stream created',
-      audit_stream_modified: 'Audit stream modified',
-      audit_stream_removed: 'Audit stream removed',
+      activity_log_stream_created: 'Activity log stream created',
+      activity_log_stream_modified: 'Activity log stream modified',
+      activity_log_stream_removed: 'Activity log stream removed',
       vpn_client_connected: 'VPN client connected',
       vpn_client_disconnected: 'VPN client disconnected',
     },
-    activityModule: {
+    activityLogModule: {
       defguard: 'Defguard',
       client: 'Client',
       enrollment: 'Enrollment',

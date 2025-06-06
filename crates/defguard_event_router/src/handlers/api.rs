@@ -102,35 +102,35 @@ impl EventRouter {
                 location_id,
                 location,
             }),
-            ApiEventType::AuditStreamCreated {
+            ApiEventType::ActivityLogStreamCreated {
                 stream_id,
                 stream_name,
             } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated {
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::ActivityLogStreamCreated {
                     stream_id,
                     stream_name,
                 })
             }
-            ApiEventType::AuditStreamModified {
+            ApiEventType::ActivityLogStreamModified {
                 stream_id,
                 stream_name,
             } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamModified {
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::ActivityLogStreamModified {
                     stream_id,
                     stream_name,
                 })
             }
-            ApiEventType::AuditStreamRemoved {
+            ApiEventType::ActivityLogStreamRemoved {
                 stream_id,
                 stream_name,
             } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved {
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::ActivityLogStreamRemoved {
                     stream_id,
                     stream_name,
                 })

@@ -741,7 +741,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // copy for easier reference later
             let device_id = device.id;
 
-            // fetch user and location from DB for audit log
+            // fetch user and location from DB for activity log
             // TODO: cache usernames since they don't change
             let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
             let location = self.fetch_location_from_db(network_id).await?;

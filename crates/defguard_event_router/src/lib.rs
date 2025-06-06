@@ -11,7 +11,7 @@
 //!
 //! 1. Components (web API, gRPC server etc.) send events to the router via the `event_tx` MPSC channel
 //! 2. The router processes these events and forwards them to the appropriate services:
-//!    - Audit events go to the event logger service
+//!    - Activity log events go to the event logger service
 //!    - WireGuard events go to the gateway service
 //!    - Mail events go to the mail service
 //!    - etc.
@@ -54,18 +54,18 @@ struct EventRouter {
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    audit_stream_reload_notify: Arc<Notify>,
+    activity_log_stream_reload_notify: Arc<Notify>,
 }
 
 impl EventRouter {
-    /// Send message to audit event logger service to persist an event in DB
+    /// Send message to activity log event logger service to persist an event in DB
     fn log_event(
         &self,
         context: EventContext,
-        audit_log_event: LoggerEvent,
+        activity_log_event: LoggerEvent,
     ) -> Result<(), EventRouterError> {
         // prepare message
-        let message = EventLoggerMessage::new(context, audit_log_event);
+        let message = EventLoggerMessage::new(context, activity_log_event);
         self.event_logger_tx.send(message).map_err(|err| {
             error!("Failed to send event to logger: {err}");
             EventRouterError::EventLoggerError
@@ -83,7 +83,7 @@ impl EventRouter {
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        audit_stream_reload_notify: Arc<Notify>,
+        activity_log_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
             api_event_rx,
@@ -92,7 +92,7 @@ impl EventRouter {
             event_logger_tx,
             wireguard_tx,
             mail_tx,
-            audit_stream_reload_notify,
+            activity_log_stream_reload_notify,
         }
     }
 
@@ -147,7 +147,7 @@ pub async fn run_event_router(
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    audit_stream_reload_notify: Arc<Notify>,
+    activity_log_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
     let mut event_router = EventRouter::new(
@@ -157,7 +157,7 @@ pub async fn run_event_router(
         event_logger_tx,
         wireguard_tx,
         mail_tx,
-        audit_stream_reload_notify,
+        activity_log_stream_reload_notify,
     );
 
     event_router.run().await

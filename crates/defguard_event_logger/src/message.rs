@@ -20,7 +20,7 @@ impl EventLoggerMessage {
     }
 }
 
-/// Possible audit event types split by module
+/// Possible activity log event types split by module
 // TODO: remove lint override below once all events are updated to pass whole objects
 #[allow(clippy::large_enum_variant)]
 pub enum LoggerEvent {
@@ -63,7 +63,7 @@ impl From<GrpcRequestContext> for EventContext {
     }
 }
 
-/// Represents audit events related to actions performed in Web UI
+/// Represents activity log events related to actions performed in Web UI
 pub enum DefguardEvent {
     // authentication
     UserLogin,
@@ -210,28 +210,28 @@ pub enum DefguardEvent {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
-    // audit stream management
-    AuditStreamCreated {
+    // activity log stream management
+    ActivityLogStreamCreated {
         stream_id: Id,
         stream_name: String,
     },
-    AuditStreamModified {
+    ActivityLogStreamModified {
         stream_id: Id,
         stream_name: String,
     },
-    AuditStreamRemoved {
+    ActivityLogStreamRemoved {
         stream_id: Id,
         stream_name: String,
     },
 }
 
-/// Represents audit events related to client applications
+/// Represents activity log events related to client applications
 pub enum ClientEvent {
     DesktopClientActivated { device_id: Id, device_name: String },
     DesktopClientUpdated { device_id: Id, device_name: String },
 }
 
-/// Represents audit events related to VPN
+/// Represents activity log events related to VPN
 pub enum VpnEvent {
     ConnectedToMfaLocation {
         location_id: Id,
@@ -255,7 +255,7 @@ pub enum VpnEvent {
     },
 }
 
-/// Represents audit events related to user enrollment process
+/// Represents activity log events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentPasswordConfigured,
