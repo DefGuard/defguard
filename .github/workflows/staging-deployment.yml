@@ -6,7 +6,7 @@ jobs:
   deploy-staging:
     runs-on: [self-hosted, Linux, X64]
     environment: STAGING
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'release/**' }}
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
     env:
       KUBE_HOST: ${{ secrets.KUBE_HOST }}
       KUBE_CERTIFICATE: ${{ secrets.KUBE_CERTIFICATE }}
