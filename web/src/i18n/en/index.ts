@@ -8,6 +8,7 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      timeRange: 'Time range',
       addNew: 'Add new',
       add: 'Add',
       accept: 'Accept',
@@ -2325,6 +2326,10 @@ Any other requests you can reach us at: support@defguard.net
       expired: 'Expired',
     },
     listPage: {
+      tabs: {
+        rules: 'Rules',
+        aliases: 'Aliases',
+      },
       message: {
         changeDiscarded: 'Change discarded',
         changeAdded: 'Pending change added',
@@ -2560,6 +2565,10 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         event: 'Event',
         module: 'Module',
         device: 'Device',
+      },
+      noData: {
+        data: 'No activities present',
+        search: 'No activities found',
       },
     },
   },

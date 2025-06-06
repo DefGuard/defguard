@@ -32,6 +32,10 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * T​i​m​e​ ​r​a​n​g​e
+			 */
+			timeRange: string
+			/**
 			 * A​d​d​ ​n​e​w
 			 */
 			addNew: string
@@ -5505,6 +5509,16 @@ type RootTranslation = {
 			expired: string
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * R​u​l​e​s
+				 */
+				rules: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+			}
 			message: {
 				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
@@ -6146,6 +6160,16 @@ type RootTranslation = {
 				 */
 				device: string
 			}
+			noData: {
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​p​r​e​s​e​n​t
+				 */
+				data: string
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​f​o​u​n​d
+				 */
+				search: string
+			}
 		}
 	}
 	enums: {
@@ -6301,6 +6325,10 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Time range
+			 */
+			timeRange: () => LocalizedString
 			/**
 			 * Add new
 			 */
@@ -11722,6 +11750,16 @@ export type TranslationFunctions = {
 			expired: () => LocalizedString
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * Rules
+				 */
+				rules: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+			}
 			message: {
 				/**
 				 * Change discarded
@@ -12354,6 +12392,16 @@ export type TranslationFunctions = {
 				 * Device
 				 */
 				device: () => LocalizedString
+			}
+			noData: {
+				/**
+				 * No activities present
+				 */
+				data: () => LocalizedString
+				/**
+				 * No activities found
+				 */
+				search: () => LocalizedString
 			}
 		}
 	}
