@@ -36,6 +36,7 @@ export type AuditEventType =
   | 'vpn_client_connected'
   | 'vpn_client_disconnected'
   | 'vpn_client_connected_mfa'
+  | 'vpn_client_disconnected_mfa'
   | 'vpn_client_mfa_failed';
 
 export const auditEventTypeValues: AuditEventType[] = [
@@ -67,5 +68,6 @@ export const auditEventTypeValues: AuditEventType[] = [
   'vpn_client_connected',
   'vpn_client_disconnected',
   'vpn_client_connected_mfa',
+  'vpn_client_disconnected_mfa',
   'vpn_client_mfa_failed',
 ];

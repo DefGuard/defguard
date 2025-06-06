@@ -6207,6 +6207,10 @@ type RootTranslation = {
 			 */
 			vpn_client_connected_mfa: string
 			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​M​F​A​ ​l​o​c​a​t​i​o​n
+			 */
+			vpn_client_disconnected_mfa: string
+			/**
 			 * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
 			 */
 			vpn_client_mfa_failed: string
@@ -12363,6 +12367,10 @@ export type TranslationFunctions = {
 			 * VPN client connected to MFA location
 			 */
 			vpn_client_connected_mfa: () => LocalizedString
+			/**
+			 * VPN client disconnected from MFA location
+			 */
+			vpn_client_disconnected_mfa: () => LocalizedString
 			/**
 			 * VPN client failed MFA authentication
 			 */
