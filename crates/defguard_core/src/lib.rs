@@ -21,7 +21,8 @@ use enterprise::handlers::{
         update_acl_alias, update_acl_rule,
     },
     activity_log_stream::{
-        create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
+        create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+        modify_activity_log_stream,
     },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
@@ -476,10 +477,10 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/audit_stream",
         Router::new()
-            .route("/", get(get_audit_stream))
-            .route("/", post(create_audit_stream))
-            .route("/{id}", delete(delete_audit_stream))
-            .route("/{id}", put(modify_audit_stream)),
+            .route("/", get(get_activity_log_stream))
+            .route("/", post(create_activity_log_stream))
+            .route("/{id}", delete(delete_activity_log_stream))
+            .route("/{id}", put(modify_activity_log_stream)),
     );
 
     #[cfg(feature = "openid")]

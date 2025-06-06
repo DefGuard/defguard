@@ -131,15 +131,15 @@ pub enum ApiEventType {
         location_id: Id,
         location: String,
     },
-    AuditStreamCreated {
+    ActivityLogStreamCreated {
         stream_id: Id,
         stream_name: String,
     },
-    AuditStreamModified {
+    ActivityLogStreamModified {
         stream_id: Id,
         stream_name: String,
     },
-    AuditStreamRemoved {
+    ActivityLogStreamRemoved {
         stream_id: Id,
         stream_name: String,
     },

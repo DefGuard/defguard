@@ -102,7 +102,7 @@ impl EventRouter {
                 location_id,
                 location,
             }),
-            ApiEventType::AuditStreamCreated {
+            ApiEventType::ActivityLogStreamCreated {
                 stream_id,
                 stream_name,
             } => {
@@ -113,7 +113,7 @@ impl EventRouter {
                     stream_name,
                 })
             }
-            ApiEventType::AuditStreamModified {
+            ApiEventType::ActivityLogStreamModified {
                 stream_id,
                 stream_name,
             } => {
@@ -124,7 +124,7 @@ impl EventRouter {
                     stream_name,
                 })
             }
-            ApiEventType::AuditStreamRemoved {
+            ApiEventType::ActivityLogStreamRemoved {
                 stream_id,
                 stream_name,
             } => {
