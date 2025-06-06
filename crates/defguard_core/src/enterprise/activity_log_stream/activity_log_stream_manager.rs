@@ -8,28 +8,28 @@ use tokio_util::sync::CancellationToken;
 use tracing::debug;
 
 use crate::enterprise::{
-    activity_log_stream::http_stream::{run_http_stream_task, HttpAuditStreamConfig},
-    db::models::activity_log_stream::{AuditStream, AuditStreamConfig},
+    activity_log_stream::http_stream::{run_http_stream_task, HttpActivityLogStreamConfig},
+    db::models::activity_log_stream::{ActivityLogStream, ActivityLogStreamConfig},
     is_enterprise_enabled,
 };
 
-use super::AuditStreamReconfigurationNotification;
+use super::ActivityLogStreamReconfigurationNotification;
 
 pub async fn run_audit_stream_manager(
     pool: PgPool,
-    notification: AuditStreamReconfigurationNotification,
+    notification: ActivityLogStreamReconfigurationNotification,
     audit_messages_rx: Receiver<Bytes>,
 ) -> anyhow::Result<()> {
     loop {
         let mut handles = JoinSet::<()>::new();
         let cancel_token = Arc::new(CancellationToken::new());
         if is_enterprise_enabled() {
-            let streams = AuditStream::all(&pool).await?;
+            let streams = ActivityLogStream::all(&pool).await?;
             for audit_stream in streams {
-                if let Ok(config) = AuditStreamConfig::from(&audit_stream) {
+                if let Ok(config) = ActivityLogStreamConfig::from(&audit_stream) {
                     match config {
-                        AuditStreamConfig::VectorHttp(stream_config) => {
-                            let http_config = HttpAuditStreamConfig::from_vector(
+                        ActivityLogStreamConfig::VectorHttp(stream_config) => {
+                            let http_config = HttpActivityLogStreamConfig::from_vector(
                                 stream_config,
                                 audit_stream.name.clone(),
                             );
@@ -39,8 +39,8 @@ pub async fn run_audit_stream_manager(
                                 cancel_token.clone(),
                             ));
                         }
-                        AuditStreamConfig::LogstashHttp(stream_config) => {
-                            let http_config = HttpAuditStreamConfig::from_logstash(
+                        ActivityLogStreamConfig::LogstashHttp(stream_config) => {
+                            let http_config = HttpActivityLogStreamConfig::from_logstash(
                                 stream_config,
                                 audit_stream.name.clone(),
                             );

@@ -8,13 +8,13 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::activity_log::{
         metadata::{
-            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
+            ActivityLogStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
             DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
             MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
             UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
         },
-        AuditEvent, AuditModule, EventType,
+        ActivityLogEvent, ActivityLogModule, EventType,
     },
     NoId,
 };
@@ -63,7 +63,7 @@ pub async fn run_event_logger(
             let audit_event = {
                 let (module, event, metadata) = match message.event {
                     LoggerEvent::Defguard(event) => {
-                        let module = AuditModule::Defguard;
+                        let module = ActivityLogModule::Defguard;
 
                         let (event_type, metadata) = match event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
@@ -262,7 +262,7 @@ pub async fn run_event_logger(
                                 stream_name,
                             } => (
                                 EventType::AuditStreamCreated,
-                                serde_json::to_value(AuditStreamMetadata {
+                                serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,
                                 })
@@ -273,7 +273,7 @@ pub async fn run_event_logger(
                                 stream_name,
                             } => (
                                 EventType::AuditStreamRemoved,
-                                serde_json::to_value(AuditStreamMetadata {
+                                serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,
                                 })
@@ -284,7 +284,7 @@ pub async fn run_event_logger(
                                 stream_name,
                             } => (
                                 EventType::AuditStreamModified,
-                                serde_json::to_value(AuditStreamMetadata {
+                                serde_json::to_value(ActivityLogStreamMetadata {
                                     id: stream_id,
                                     name: stream_name,
                                 })
@@ -294,11 +294,11 @@ pub async fn run_event_logger(
                         (module, event_type, metadata)
                     }
                     LoggerEvent::Client(_event) => {
-                        let _module = AuditModule::Client;
+                        let _module = ActivityLogModule::Client;
                         unimplemented!()
                     }
                     LoggerEvent::Vpn(event) => {
-                        let module = AuditModule::Vpn;
+                        let module = ActivityLogModule::Vpn;
                         let (event_type, metadata) = match event {
                             VpnEvent::ConnectedToMfaLocation {
                                 location_id: _,
@@ -324,12 +324,12 @@ pub async fn run_event_logger(
                         (module, event_type, metadata)
                     }
                     LoggerEvent::Enrollment(_event) => {
-                        let _module = AuditModule::Enrollment;
+                        let _module = ActivityLogModule::Enrollment;
                         unimplemented!()
                     }
                 };
 
-                AuditEvent {
+                ActivityLogEvent {
                     id: NoId,
                     timestamp,
                     user_id,

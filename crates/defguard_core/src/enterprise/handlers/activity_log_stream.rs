@@ -10,7 +10,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
     enterprise::db::models::activity_log_stream::{
-        AuditStream, AuditStreamConfig, AuditStreamType,
+        ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
@@ -25,7 +25,7 @@ pub async fn get_audit_stream(
 ) -> ApiResult {
     debug!("User {} retrieving audit stream's", session.user.username);
     let mut conn = appstate.pool.acquire().await?;
-    let streams = AuditStream::all(&mut *conn).await?;
+    let streams = ActivityLogStream::all(&mut *conn).await?;
     info!("User {} retrieved audit stream's", session.user.username);
     Ok(ApiResponse {
         json: json!(streams),
@@ -34,9 +34,9 @@ pub async fn get_audit_stream(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AuditStreamModificationRequest {
+pub struct ActivityLogStreamModificationRequest {
     pub name: String,
-    pub stream_type: AuditStreamType,
+    pub stream_type: ActivityLogStreamType,
     pub stream_config: serde_json::Value,
 }
 
@@ -46,13 +46,13 @@ pub async fn create_audit_stream(
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
-    Json(data): Json<AuditStreamModificationRequest>,
+    Json(data): Json<ActivityLogStreamModificationRequest>,
 ) -> ApiResult {
     let session_username = &session.user.username;
     debug!("User {session_username} creates audit stream");
     // validate config
-    let _ = AuditStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
-    let stream_model: AuditStream<NoId> = AuditStream {
+    let _ = ActivityLogStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
+    let stream_model: ActivityLogStream<NoId> = ActivityLogStream {
         id: NoId,
         name: data.name,
         stream_type: data.stream_type,
@@ -81,13 +81,13 @@ pub async fn modify_audit_stream(
     session: SessionInfo,
     context: ApiRequestContext,
     Path(id): Path<Id>,
-    Json(data): Json<AuditStreamModificationRequest>,
+    Json(data): Json<ActivityLogStreamModificationRequest>,
 ) -> ApiResult {
     let session_username = &session.user.username;
     debug!("User {session_username} modifies audit stream ");
-    if let Some(mut stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
+    if let Some(mut stream) = ActivityLogStream::find_by_id(&appstate.pool, id).await? {
         //validate config
-        let _ = AuditStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
+        let _ = ActivityLogStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
         stream.name = data.name;
         stream.config = data.stream_config;
         stream.save(&appstate.pool).await?;
@@ -117,7 +117,7 @@ pub async fn delete_audit_stream(
 ) -> ApiResult {
     let session_username = &session.user.username;
     debug!("User {session_username} deleting Audit stream ({id})");
-    if let Some(stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
+    if let Some(stream) = ActivityLogStream::find_by_id(&appstate.pool, id).await? {
         let stream_id = stream.id;
         let stream_name = stream.name.clone();
         stream.delete(&appstate.pool).await?;

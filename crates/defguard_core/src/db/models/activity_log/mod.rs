@@ -9,7 +9,7 @@ pub mod metadata;
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "activity_log_module", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
-pub enum AuditModule {
+pub enum ActivityLogModule {
     Defguard,
     Client,
     Vpn,
@@ -69,7 +69,7 @@ pub enum EventType {
 
 #[derive(Model, FromRow, Serialize)]
 #[table(activity_log_event)]
-pub struct AuditEvent<I = NoId> {
+pub struct ActivityLogEvent<I = NoId> {
     pub id: I,
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
@@ -78,7 +78,7 @@ pub struct AuditEvent<I = NoId> {
     #[model(enum)]
     pub event: EventType,
     #[model(enum)]
-    pub module: AuditModule,
+    pub module: ActivityLogModule,
     pub device: String,
     pub metadata: Option<serde_json::Value>,
 }

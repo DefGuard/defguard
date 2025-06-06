@@ -9,7 +9,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, error};
 
 use crate::{
-    enterprise::db::models::activity_log_stream::{LogstashHttpAuditStream, VectorHttpAuditStream},
+    enterprise::db::models::activity_log_stream::{
+        LogstashHttpActivityLogStream, VectorHttpActivityLogStream,
+    },
     secret::SecretStringWrapper,
 };
 
@@ -21,11 +23,11 @@ use crate::{
 /// - `rx`: A `tokio::sync::broadcast::Receiver<Bytes>` from which audit messages are received.
 /// - `cancel_token`: Shared `CancellationToken` used to signal task shutdown.
 pub(super) async fn run_http_stream_task(
-    config: HttpAuditStreamConfig,
+    config: HttpActivityLogStreamConfig,
     mut rx: Receiver<Bytes>,
     cancel_token: Arc<CancellationToken>,
 ) {
-    let HttpAuditStreamConfig {
+    let HttpActivityLogStreamConfig {
         stream_name, url, ..
     } = &config;
     let client = match build_client(&config) {
@@ -80,7 +82,7 @@ pub(super) async fn run_http_stream_task(
 ///
 /// - `Ok(reqwest::Client)`: A fully configured `reqwest::Client` ready to send NDJSON payloads.
 /// - `Err(reqwest::Error)`: If building the client fails (e.g., invalid certificate or builder error).
-fn build_client(config: &HttpAuditStreamConfig) -> Result<reqwest::Client, reqwest::Error> {
+fn build_client(config: &HttpActivityLogStreamConfig) -> Result<reqwest::Client, reqwest::Error> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
 
@@ -120,7 +122,7 @@ fn build_client(config: &HttpAuditStreamConfig) -> Result<reqwest::Client, reqwe
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct HttpAuditStreamConfig {
+pub(super) struct HttpActivityLogStreamConfig {
     pub stream_name: String,
     pub url: String,
     pub username: Option<String>,
@@ -129,8 +131,8 @@ pub(super) struct HttpAuditStreamConfig {
     pub cert: Option<String>,
 }
 
-impl HttpAuditStreamConfig {
-    pub fn from_logstash(value: LogstashHttpAuditStream, stream_name: String) -> Self {
+impl HttpActivityLogStreamConfig {
+    pub fn from_logstash(value: LogstashHttpActivityLogStream, stream_name: String) -> Self {
         Self {
             stream_name,
             cert: value.cert,
@@ -140,7 +142,7 @@ impl HttpAuditStreamConfig {
         }
     }
 
-    pub fn from_vector(value: VectorHttpAuditStream, stream_name: String) -> Self {
+    pub fn from_vector(value: VectorHttpActivityLogStream, stream_name: String) -> Self {
         Self {
             stream_name,
             cert: value.cert,

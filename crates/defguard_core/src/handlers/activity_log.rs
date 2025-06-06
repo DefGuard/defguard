@@ -10,7 +10,7 @@ use tracing::Instrument;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{models::activity_log::AuditModule, Id},
+    db::{models::activity_log::ActivityLogModule, Id},
 };
 
 use super::{
@@ -27,7 +27,7 @@ pub struct FilterParams {
     #[serde(default = "default_event")]
     pub event: Vec<String>,
     #[serde(default = "default_module")]
-    pub module: Vec<AuditModule>,
+    pub module: Vec<ActivityLogModule>,
     pub search: Option<String>,
 }
 
@@ -39,7 +39,7 @@ fn default_event() -> Vec<String> {
     Vec::new()
 }
 
-fn default_module() -> Vec<AuditModule> {
+fn default_module() -> Vec<ActivityLogModule> {
     Vec::new()
 }
 
@@ -96,14 +96,14 @@ impl Display for SortOrder {
 
 /// Audit log event with additional info as returned by the API
 #[derive(Serialize, FromRow)]
-pub struct ApiAuditEvent {
+pub struct ApiActivityLogEvent {
     pub id: Id,
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
     pub ip: IpNetwork,
     pub event: String,
-    pub module: AuditModule,
+    pub module: ActivityLogModule,
     pub device: String,
     pub metadata: Option<serde_json::Value>,
 }
@@ -128,7 +128,7 @@ pub async fn get_audit_log_events(
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
     sorting: Query<SortParams>,
-) -> PaginatedApiResult<ApiAuditEvent> {
+) -> PaginatedApiResult<ApiActivityLogEvent> {
     debug!("Fetching audit log with filters {filters:?} and pagination {pagination:?}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
@@ -158,7 +158,7 @@ pub async fn get_audit_log_events(
 
     // fetch filtered events
     let events = query_builder
-        .build_query_as::<ApiAuditEvent>()
+        .build_query_as::<ApiActivityLogEvent>()
         .fetch_all(&appstate.pool)
         .instrument(info_span!("audit_log"))
         .await?;

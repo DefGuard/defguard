@@ -10,7 +10,7 @@ use crate::{
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::{
-        activity_log_stream::error::AuditStreamError, db::models::acl::AclError,
+        activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
@@ -179,12 +179,12 @@ impl From<SettingsValidationError> for WebError {
     }
 }
 
-impl From<AuditStreamError> for WebError {
-    fn from(err: AuditStreamError) -> Self {
+impl From<ActivityLogStreamError> for WebError {
+    fn from(err: ActivityLogStreamError) -> Self {
         match err {
-            AuditStreamError::ConfigDeserializeError(_, _)
-            | AuditStreamError::HeaderValueParsing()
-            | AuditStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
+            ActivityLogStreamError::ConfigDeserializeError(_, _)
+            | ActivityLogStreamError::HeaderValueParsing()
+            | ActivityLogStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
         }
     }
 }
