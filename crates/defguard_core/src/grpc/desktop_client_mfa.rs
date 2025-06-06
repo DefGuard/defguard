@@ -1,4 +1,8 @@
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr},
+    str::FromStr,
+};
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -10,8 +14,8 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use super::proto::proxy::{
-    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
-    MfaMethod,
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, MfaMethod,
 };
 use crate::{
     auth::{Claims, ClaimsType},
@@ -221,6 +225,7 @@ impl ClientMfaServer {
     pub async fn finish_client_mfa_login(
         &mut self,
         request: ClientMfaFinishRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login: {request:?}");
         // get pubkey from token
@@ -239,10 +244,14 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
+        let ip = info
+            .and_then(|device| device.ip_address)
+            .and_then(|ip| IpAddr::from_str(&ip).ok())
+            .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),
-            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            ip,
             device.clone(),
             location.clone(),
         );
