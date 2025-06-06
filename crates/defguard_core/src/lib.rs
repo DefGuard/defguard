@@ -35,7 +35,7 @@ use enterprise::handlers::{
 };
 use events::ApiEvent;
 use handlers::{
-    activity_log::get_audit_log_events,
+    activity_log::get_activity_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -452,7 +452,7 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // audit log
-            .route("/audit_log", get(get_audit_log_events)),
+            .route("/audit_log", get(get_activity_log_events)),
     );
 
     // Enterprise features

@@ -94,7 +94,7 @@ impl Display for SortOrder {
     }
 }
 
-/// Audit log event with additional info as returned by the API
+/// Activity log event with additional info as returned by the API
 #[derive(Serialize, FromRow)]
 pub struct ApiActivityLogEvent {
     pub id: Id,
@@ -109,9 +109,9 @@ pub struct ApiActivityLogEvent {
 }
 
 // TODO: add utoipa API schema
-/// Filtered list of audit log events
+/// Filtered list of activity log events
 ///
-/// Retrives a paginated list of audit log events filtered by following query parameters:
+/// Retrives a paginated list of activity log events filtered by following query parameters:
 /// TODO: add explanations
 /// - from
 /// - until
@@ -121,19 +121,19 @@ pub struct ApiActivityLogEvent {
 /// - search
 ///
 /// # Returns
-/// Returns a paginated list of `ApiAuditEvent` objects or `WebError` if error occurs.
-pub async fn get_audit_log_events(
+/// Returns a paginated list of `ApiActivityLogEvent` objects or `WebError` if error occurs.
+pub async fn get_activity_log_events(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
     sorting: Query<SortParams>,
 ) -> PaginatedApiResult<ApiActivityLogEvent> {
-    debug!("Fetching audit log with filters {filters:?} and pagination {pagination:?}");
+    debug!("Fetching activity log with filters {filters:?} and pagination {pagination:?}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, username, ip, event, module, device, metadata FROM audit_event WHERE 1=1 ",
+        "SELECT id, timestamp, user_id, username, ip, event, module, device, metadata FROM activity_log_event WHERE 1=1 ",
     );
 
     // filter events for non-admin users to show only their own events
@@ -160,13 +160,12 @@ pub async fn get_audit_log_events(
     let events = query_builder
         .build_query_as::<ApiActivityLogEvent>()
         .fetch_all(&appstate.pool)
-        .instrument(info_span!("audit_log"))
         .await?;
 
     // execute count query
     // fetch total number of filtered events
     let mut count_query_builder: QueryBuilder<Postgres> =
-        QueryBuilder::new("SELECT COUNT(*) FROM audit_event WHERE 1=1 ");
+        QueryBuilder::new("SELECT COUNT(*) FROM activity_log_event WHERE 1=1 ");
     apply_filters(&mut count_query_builder, &filters);
     let total_items: i64 = count_query_builder
         .build_query_scalar()
