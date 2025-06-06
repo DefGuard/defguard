@@ -2,7 +2,6 @@ use std::net::IpAddr;
 
 use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
-use ipnetwork::IpNetwork;
 
 /// Shared context that needs to be added to every API event
 ///
@@ -177,12 +176,19 @@ pub struct BidiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
-    pub device: String,
+    pub ip: IpAddr,
+    pub device: Device<Id>,
+    pub location: WireguardNetwork<Id>,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(
+        user_id: Id,
+        username: String,
+        ip: IpAddr,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
@@ -190,6 +196,7 @@ impl BidiRequestContext {
             username,
             ip,
             device,
+            location,
         }
     }
 }
@@ -197,7 +204,7 @@ impl BidiRequestContext {
 /// Events emmited from gRPC bi-directional communication stream
 #[derive(Debug)]
 pub struct BidiStreamEvent {
-    pub request_context: BidiRequestContext,
+    pub context: BidiRequestContext,
     pub event: BidiStreamEventType,
 }
 
@@ -208,7 +215,7 @@ pub struct BidiStreamEvent {
 pub enum BidiStreamEventType {
     Enrollment(EnrollmentEvent),
     PasswordReset(PasswordResetEvent),
-    DesktopCLientMfa(DesktopClientMfaEvent),
+    DesktopClientMfa(DesktopClientMfaEvent),
     ConfigPolling(ConfigPollingEvent),
 }
 
@@ -221,7 +228,44 @@ pub enum EnrollmentEvent {
 pub enum PasswordResetEvent {}
 
 #[derive(Debug)]
-pub enum DesktopClientMfaEvent {}
+pub enum DesktopClientMfaEvent {
+    Connected { method: MFAMethod },
+    Failed { method: MFAMethod },
+}
 
 #[derive(Debug)]
 pub enum ConfigPollingEvent {}
+
+/// Shared context for every internally-triggered event.
+///
+/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the audit log.
+#[derive(Debug)]
+pub struct InternalEventContext {
+    pub timestamp: NaiveDateTime,
+    pub user_id: Id,
+    pub username: String,
+    pub ip: IpAddr,
+    pub device: Device<Id>,
+}
+
+impl InternalEventContext {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
+        let timestamp = Utc::now().naive_utc();
+        Self {
+            timestamp,
+            user_id,
+            username,
+            ip,
+            device,
+        }
+    }
+}
+
+/// Events emmited by background threads, not triggered directly by users
+#[derive(Debug)]
+pub enum InternalEvent {
+    DesktopClientMfaDisconnected {
+        context: InternalEventContext,
+        location: WireguardNetwork<Id>,
+    },
+}

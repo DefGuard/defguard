@@ -12,7 +12,7 @@ use defguard_core::db::{
             DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
             MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
+            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -300,18 +300,36 @@ pub async fn run_event_logger(
                     LoggerEvent::Vpn(event) => {
                         let module = AuditModule::Vpn;
                         let (event_type, metadata) = match event {
-                            VpnEvent::ConnectedToMfaLocation {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            VpnEvent::DisconnectedFromMfaLocation {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
                             VpnEvent::MfaFailed {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
+                                location,
+                                device,
+                                method,
+                            } => (
+                                EventType::VpnClientMfaFailed,
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
+                            ),
+                            VpnEvent::ConnectedToMfaLocation {
+                                location,
+                                device,
+                                method,
+                            } => (
+                                EventType::VpnClientConnectedMfa,
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
+                            ),
+                            VpnEvent::DisconnectedFromMfaLocation { location, device } => (
+                                EventType::VpnClientDisconnectedMfa,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
                             VpnEvent::ConnectedToLocation { location, device } => (
                                 EventType::VpnClientConnected,
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),

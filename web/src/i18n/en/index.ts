@@ -2572,6 +2572,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       audit_stream_removed: 'Audit stream removed',
       vpn_client_connected: 'VPN client connected',
       vpn_client_disconnected: 'VPN client disconnected',
+      vpn_client_connected_mfa: 'VPN client connected to MFA location',
+      vpn_client_disconnected_mfa: 'VPN client disconnected from MFA location',
+      vpn_client_mfa_failed: 'VPN client failed MFA authentication',
     },
     auditModule: {
       defguard: 'Defguard',

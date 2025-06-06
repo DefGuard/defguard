@@ -1,9 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::Ipv4Addr};
 
 use chrono::Utc;
 use sqlx::PgPool;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::Status;
+use thiserror::Error;
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{error::SendError, UnboundedSender},
+};
+use tonic::{Code, Status};
 
 use super::proto::proxy::{
     ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
@@ -15,11 +19,25 @@ use crate::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
+    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+
+#[derive(Debug, Error)]
+#[allow(clippy::large_enum_variant)]
+pub enum ClientMfaServerError {
+    #[error("gRPC event channel error: {0}")]
+    BidiEventChannelError(#[from] SendError<BidiStreamEvent>),
+}
+
+impl From<ClientMfaServerError> for Status {
+    fn from(value: ClientMfaServerError) -> Self {
+        Self::new(Code::Internal, value.to_string())
+    }
+}
 
 struct ClientLoginSession {
     method: MfaMethod,
@@ -33,6 +51,7 @@ pub(super) struct ClientMfaServer {
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     sessions: HashMap<String, ClientLoginSession>,
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl ClientMfaServer {
@@ -41,11 +60,13 @@ impl ClientMfaServer {
         pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
             mail_tx,
             wireguard_tx,
+            bidi_event_tx,
             sessions: HashMap::new(),
         }
     }
@@ -71,6 +92,10 @@ impl ClientMfaServer {
             Status::invalid_argument("invalid token")
         })?;
         Ok(claims.client_id)
+    }
+
+    fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
+        Ok(self.bidi_event_tx.send(event)?)
     }
 
     #[instrument(skip_all)]
@@ -213,17 +238,42 @@ impl ClientMfaServer {
             user,
         } = session;
 
+        // Prepare event context
+        let context = BidiRequestContext::new(
+            user.id,
+            user.username.clone(),
+            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            device.clone(),
+            location.clone(),
+        );
+
         // validate code
         match method {
             MfaMethod::Totp => {
                 if !user.verify_totp_code(&request.code.to_string()) {
                     error!("Provided TOTP code is not valid");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(
+                            DesktopClientMfaEvent::Failed {
+                                method: (*method).into(),
+                            },
+                        ),
+                    })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code.to_string()) {
                     error!("Provided email code is not valid");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(
+                            DesktopClientMfaEvent::Failed {
+                                method: (*method).into(),
+                            },
+                        ),
+                    })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
@@ -281,6 +331,12 @@ impl ClientMfaServer {
             "Desktop client login finished for {} at location {}",
             user.username, location.name
         );
+        self.emit_event(BidiStreamEvent {
+            context,
+            event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected {
+                method: (*method).into(),
+            }),
+        })?;
 
         // remove login session from map
         self.sessions.remove(&pubkey);
