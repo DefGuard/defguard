@@ -4,19 +4,33 @@
 //! it should be removed from gateway configuration and marked as "not allowed",
 //! which enforces an authentication requirement to connect again.
 
-use std::time::Duration;
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    str::FromStr,
+    time::Duration,
+};
 
+use chrono::{NaiveDateTime, Utc};
 use sqlx::{query_as, Error as SqlxError, PgPool};
 use thiserror::Error;
-use tokio::{sync::broadcast::Sender, time::sleep};
-
-use crate::db::{
-    models::{
-        device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-        error::ModelError,
-        wireguard::WireguardNetworkError,
+use tokio::{
+    sync::{
+        broadcast::{self, Sender},
+        mpsc::{self, UnboundedSender},
     },
-    Device, GatewayEvent, Id, WireguardNetwork,
+    time::sleep,
+};
+
+use crate::{
+    db::{
+        models::{
+            device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
+            error::ModelError,
+            wireguard::WireguardNetworkError,
+        },
+        Device, GatewayEvent, Id, WireguardNetwork,
+    },
+    events::InternalEvent,
 };
 
 // How long to sleep between loop iterations
@@ -31,7 +45,37 @@ pub enum PeerDisconnectError {
     #[error(transparent)]
     WireguardError(#[from] WireguardNetworkError),
     #[error("Failed to send gateway event: {0}")]
-    EventError(String),
+    GatewayEventError(#[from] broadcast::error::SendError<GatewayEvent>),
+    #[error("Failed to send internal event: {0}")]
+    InternalEventError(#[from] mpsc::error::SendError<InternalEvent>),
+}
+
+#[derive(Debug)]
+struct DeviceWithEndpoint {
+    pub id: Id,
+    pub name: String,
+    pub wireguard_pubkey: String,
+    pub user_id: Id,
+    pub created: NaiveDateTime,
+    pub device_type: DeviceType,
+    pub description: Option<String>,
+    pub configured: bool,
+    pub endpoint: Option<String>,
+}
+
+impl From<DeviceWithEndpoint> for Device<Id> {
+    fn from(device: DeviceWithEndpoint) -> Self {
+        Self {
+            id: device.id,
+            name: device.name,
+            wireguard_pubkey: device.wireguard_pubkey,
+            user_id: device.user_id,
+            created: device.created,
+            device_type: device.device_type,
+            description: device.description,
+            configured: device.configured,
+        }
+    }
 }
 
 /// Run periodic disconnect task
@@ -41,6 +85,7 @@ pub enum PeerDisconnectError {
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
+    internal_event_tx: UnboundedSender<InternalEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
     loop {
@@ -62,7 +107,7 @@ pub async fn run_periodic_peer_disconnect(
         for location in locations {
             debug!("Fetching inactive devices for location {location}");
             let devices = query_as!(
-                Device,
+                DeviceWithEndpoint,
                 "WITH stats AS ( \
                 SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake \
                 FROM wireguard_peer_stats \
@@ -70,7 +115,7 @@ pub async fn run_periodic_peer_disconnect(
                 ORDER BY device_id, collected_at DESC \
             ) \
             SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description,
-            d.device_type \"device_type: DeviceType\", configured \
+            d.device_type \"device_type: DeviceType\", configured, stats.endpoint \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
@@ -84,8 +129,10 @@ pub async fn run_periodic_peer_disconnect(
             .fetch_all(&pool)
             .await?;
 
-            for device in devices {
-                debug!("Processing inactive device {device}");
+            for device_with_endpoint in devices {
+                debug!("Processing inactive device {device_with_endpoint:?}");
+                let endpoint = device_with_endpoint.endpoint.clone();
+                let device: Device<Id> = device_with_endpoint.into();
 
                 // start transaction
                 let mut transaction = pool.begin().await?;
@@ -103,7 +150,7 @@ pub async fn run_periodic_peer_disconnect(
 
                     debug!("Sending `peer_delete` message to gateway");
                     let device_info = DeviceInfo {
-                        device,
+                        device: device.clone(),
                         network_info: vec![DeviceNetworkInfo {
                             network_id: location.id,
                             device_wireguard_ips: device_network_config.wireguard_ips,
@@ -114,7 +161,27 @@ pub async fn run_periodic_peer_disconnect(
                     let event = GatewayEvent::DeviceDeleted(device_info);
                     wireguard_tx.send(event).map_err(|err| {
                         error!("Error sending WireGuard event: {err}");
-                        PeerDisconnectError::EventError(err.to_string())
+                        PeerDisconnectError::GatewayEventError(err)
+                    })?;
+                    let user = device.get_owner(&mut *transaction).await?;
+                    let ip = endpoint
+                        .as_ref()
+                        .and_then(|endpoint| endpoint.split_once(':'))
+                        .and_then(|(ip, _)| IpAddr::from_str(ip).ok())
+                        // endpoint is a `text` column in the db so we have to
+                        // handle potential parsing issues here somehow
+                        .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+                    let event = InternalEvent::DesktopClientMfaDisconnected {
+                        timestamp: Utc::now().naive_utc(),
+                        user_id: user.id,
+                        username: user.username,
+                        ip,
+                        device,
+                        location: location.clone(),
+                    };
+                    internal_event_tx.send(event).map_err(|err| {
+                        error!("Error sending internal event: {err}");
+                        PeerDisconnectError::InternalEventError(err)
                     })?;
                 } else {
                     error!("Network config for device {device} in location {location} not found. Skipping device...");

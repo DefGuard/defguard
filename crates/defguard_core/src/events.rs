@@ -230,9 +230,21 @@ pub enum PasswordResetEvent {}
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
     Connected { method: MFAMethod },
-    Disconnected,
     Failed { method: MFAMethod },
 }
 
 #[derive(Debug)]
 pub enum ConfigPollingEvent {}
+
+/// Events emmited by background threads, not triggered directly by users
+#[derive(Debug)]
+pub enum InternalEvent {
+    DesktopClientMfaDisconnected {
+        timestamp: NaiveDateTime,
+        user_id: Id,
+        username: String,
+        ip: IpAddr,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+}

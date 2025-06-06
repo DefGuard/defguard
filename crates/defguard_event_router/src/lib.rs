@@ -28,7 +28,7 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent};
 use error::EventRouterError;
 use events::Event;
 use std::sync::Arc;
@@ -51,6 +51,7 @@ struct EventRouter {
     api_event_rx: UnboundedReceiver<ApiEvent>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    internal_event_rx: UnboundedReceiver<InternalEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -80,6 +81,7 @@ impl EventRouter {
         api_event_rx: UnboundedReceiver<ApiEvent>,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
         bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+        internal_event_rx: UnboundedReceiver<InternalEvent>,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -89,6 +91,7 @@ impl EventRouter {
             api_event_rx,
             grpc_event_rx,
             bidi_event_rx,
+            internal_event_rx,
             event_logger_tx,
             wireguard_tx,
             mail_tx,
@@ -122,6 +125,13 @@ impl EventRouter {
                         return Err(EventRouterError::BidiEventChannelClosed);
                   }
               },
+              event = self.internal_event_rx.recv() => match event {
+                  Some(internal_event) => Event::Internal(internal_event),
+                  None => {
+                        error!("Internal event channel closed");
+                        return Err(EventRouterError::InternalEventChannelClosed);
+                  }
+              },
             };
 
             debug!("Received event: {event:?}");
@@ -131,6 +141,7 @@ impl EventRouter {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
                 Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
+                Event::Internal(internal_event) => self.handle_internal_event(internal_event)?,
             };
         }
     }
@@ -144,6 +155,7 @@ pub async fn run_event_router(
     api_event_rx: UnboundedReceiver<ApiEvent>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    internal_event_rx: UnboundedReceiver<InternalEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -154,6 +166,7 @@ pub async fn run_event_router(
         api_event_rx,
         grpc_event_rx,
         bidi_event_rx,
+        internal_event_rx,
         event_logger_tx,
         wireguard_tx,
         mail_tx,
