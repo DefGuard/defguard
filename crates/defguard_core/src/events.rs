@@ -203,6 +203,7 @@ pub struct BidiStreamEvent {
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum BidiStreamEventType {
     Enrollment(EnrollmentEvent),

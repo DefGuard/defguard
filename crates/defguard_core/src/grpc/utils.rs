@@ -180,7 +180,7 @@ pub(crate) fn client_info_or_defaults(info: &Option<DeviceInfo>) -> (IpAddr, Str
         .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
 
     let user_agent = info
-		.as_ref()
+        .as_ref()
         .and_then(|i| i.user_agent.clone())
         .unwrap_or_else(|| "Unknown".to_string());
 
