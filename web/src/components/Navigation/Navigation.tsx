@@ -194,9 +194,9 @@ export const Navigation = () => {
       },
       {
         title: LL.navigation.bar.activity(),
-        linkPath: '/admin/activity',
+        linkPath: '/activity',
         icon: <NavigationActivityLogPageIcon />,
-        adminOnly: true,
+        adminOnly: false,
         enabled: true,
       },
       {
