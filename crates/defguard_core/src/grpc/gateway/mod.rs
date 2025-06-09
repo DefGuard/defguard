@@ -1,6 +1,6 @@
 mod client_state;
 use std::{
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
@@ -755,7 +755,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // but has not connected yet
             if let Some(endpoint) = &stats.endpoint {
                 // parse client endpoint IP
-                let ip_addr = endpoint.clone().parse().map_err(|err| {
+                let socket_addr: SocketAddr = endpoint.clone().parse().map_err(|err| {
                     error!("Failed to parse VPN client endpoint: {err}");
                     Status::new(
                         Code::Internal,
@@ -774,7 +774,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             // update connected client state
                             client_state.update_client_state(
                                 device,
-                                ip_addr,
+                                socket_addr,
                                 stats.latest_handshake,
                                 stats.upload,
                                 stats.download,
@@ -788,7 +788,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 &public_key,
                                 &device,
                                 &user,
-                                ip_addr,
+                                socket_addr,
                                 &stats,
                             )?;
 
@@ -796,7 +796,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             let context = GrpcRequestContext::new(
                                 user.id,
                                 user.username.clone(),
-                                ip_addr,
+                                socket_addr.ip(),
                                 device.id,
                                 device.name.clone(),
                             );
