@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::IpAddr};
+use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use thiserror::Error;
@@ -31,8 +31,8 @@ pub struct ClientState {
     pub device: Device<Id>,
     pub user_id: Id,
     pub username: String,
-    // current IP from which the client is connecting
-    pub endpoint: IpAddr,
+    // current IP & port from which the client is connecting
+    pub endpoint: SocketAddr,
     pub latest_handshake: NaiveDateTime,
     // when last stats update was received
     pub latest_update: NaiveDateTime,
@@ -46,7 +46,7 @@ impl ClientState {
     pub fn new(
         device: Device<Id>,
         user: &User<Id>,
-        endpoint: IpAddr,
+        endpoint: SocketAddr,
         latest_handshake: NaiveDateTime,
         total_upload: i64,
         total_download: i64,
@@ -67,7 +67,7 @@ impl ClientState {
     pub fn update_client_state(
         &mut self,
         current_device: Device<Id>,
-        current_endpoint: IpAddr,
+        current_endpoint: SocketAddr,
         latest_handshake: NaiveDateTime,
         upload: i64,
         download: i64,
@@ -110,7 +110,7 @@ impl ClientMap {
         public_key: &str,
         device: &Device<Id>,
         user: &User<Id>,
-        endpoint: IpAddr,
+        endpoint: SocketAddr,
         stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
@@ -182,7 +182,7 @@ impl ClientMap {
                 let disconnect_event_context = GrpcRequestContext::new(
                     client_state.user_id,
                     client_state.username.clone(),
-                    client_state.endpoint,
+                    client_state.endpoint.ip(),
                     client_state.device.id,
                     client_state.device.name.clone(),
                 );
