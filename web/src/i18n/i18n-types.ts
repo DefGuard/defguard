@@ -180,6 +180,14 @@ type RootTranslation = {
 		 * T​i​m​e
 		 */
 		time: string
+		/**
+		 * F​r​o​m
+		 */
+		from: string
+		/**
+		 * U​n​t​i​l
+		 */
+		until: string
 	}
 	messages: {
 		/**
@@ -6129,6 +6137,14 @@ type RootTranslation = {
 		 * A​c​t​i​v​i​t​y​ ​l​o​g
 		 */
 		title: string
+		modals: {
+			timeRange: {
+				/**
+				 * A​c​t​i​v​i​t​y​ ​t​i​m​e
+				 */
+				title: string
+			}
+		}
 		list: {
 			/**
 			 * A​l​l​ ​a​c​t​i​v​i​t​y
@@ -6474,6 +6490,14 @@ export type TranslationFunctions = {
 		 * Time
 		 */
 		time: () => LocalizedString
+		/**
+		 * From
+		 */
+		from: () => LocalizedString
+		/**
+		 * Until
+		 */
+		until: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -12362,6 +12386,14 @@ export type TranslationFunctions = {
 		 * Activity log
 		 */
 		title: () => LocalizedString
+		modals: {
+			timeRange: {
+				/**
+				 * Activity time
+				 */
+				title: () => LocalizedString
+			}
+		}
 		list: {
 			/**
 			 * All activity

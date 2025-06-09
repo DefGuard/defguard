@@ -46,6 +46,8 @@ const en: BaseTranslation = {
     notSet: 'Not set',
     search: 'Search',
     time: 'Time',
+    from: 'From',
+    until: 'Until',
   },
   messages: {
     error: 'Error has occurred.',
@@ -2556,6 +2558,11 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
   },
   activity: {
     title: 'Activity log',
+    modals: {
+      timeRange: {
+        title: 'Activity time',
+      },
+    },
     list: {
       allLabel: 'All activity',
       headers: {

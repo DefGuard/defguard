@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -21,9 +22,10 @@ type Props = {
 };
 
 export const ActivityTimeRangeModal = (props: Props) => {
+  const { LL } = useI18nContext();
   return (
     <ModalWithTitle
-      title="Activity time"
+      title={LL.activity.modals.timeRange.title()}
       isOpen={props.isOpen}
       onClose={() => {
         props.onOpenChange(false);
@@ -35,6 +37,7 @@ export const ActivityTimeRangeModal = (props: Props) => {
 };
 
 const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: Props) => {
+  const { LL } = useI18nContext();
   const schema = useMemo(
     () =>
       z.object({
@@ -73,13 +76,13 @@ const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: P
       >
         <FormDateInput
           clearable
-          label="From"
+          label={LL.common.from()}
           controller={{ control, name: 'from' }}
           showTimeSelection
         />
         <FormDateInput
           clearable
-          label="Until"
+          label={LL.common.until()}
           controller={{ control, name: 'until' }}
           showTimeSelection
         />
@@ -87,8 +90,8 @@ const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: P
           <Button
             type="button"
             size={ButtonSize.STANDARD}
-            text="Cancel"
-            onSubmit={() => {
+            text={LL.common.controls.cancel()}
+            onClick={() => {
               onOpenChange(false);
             }}
           />
@@ -96,7 +99,7 @@ const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: P
             type="submit"
             size={ButtonSize.STANDARD}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text="Save"
+            text={LL.common.controls.save()}
           />
         </div>
       </form>

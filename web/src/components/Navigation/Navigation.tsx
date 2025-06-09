@@ -206,7 +206,6 @@ export const Navigation = () => {
         adminOnly: false,
         enabled: true,
         onClick: () => {
-          resetUserProfile();
           invalidateMultipleQueries(queryClient, [
             [QueryKeys.FETCH_ME],
             [QueryKeys.FETCH_USER_PROFILE],
@@ -227,7 +226,6 @@ export const Navigation = () => {
     networksPresent,
     onlyOneNetworkPresent,
     queryClient,
-    resetUserProfile,
     settings?.openid_enabled,
     settings?.webhooks_enabled,
     settings?.wireguard_enabled,
