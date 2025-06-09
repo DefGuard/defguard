@@ -1,7 +1,5 @@
 use std::{
     collections::HashMap,
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
 };
 
 use chrono::Utc;
@@ -24,6 +22,7 @@ use crate::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
+    grpc::utils::client_info_or_defaults,
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -244,18 +243,8 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
-        let ip = info
-            .as_ref()
-            .and_then(|device| device.ip_address.as_ref())
-            .and_then(|ip| IpAddr::from_str(&ip).ok())
-            .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
-        let context = BidiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            ip,
-            info.and_then(|i| i.user_agent)
-                .unwrap_or_else(|| "Unknown".to_string()),
-        );
+        let (ip, user_agent) = client_info_or_defaults(&info);
+        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
 
         // validate code
         match method {

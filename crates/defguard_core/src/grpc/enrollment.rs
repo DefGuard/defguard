@@ -1,6 +1,4 @@
 use sqlx::{PgPool, Transaction};
-use std::net::{IpAddr, Ipv4Addr};
-use std::str::FromStr;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{error::SendError, UnboundedSender},
@@ -15,6 +13,7 @@ use super::{
     },
     InstanceInfo,
 };
+use crate::grpc::utils::client_info_or_defaults;
 use crate::{
     db::{
         models::{
@@ -117,6 +116,7 @@ impl EnrollmentServer {
     pub async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
+        info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<EnrollmentStartResponse, Status> {
         debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
@@ -250,6 +250,15 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
+            // Prepare event context and push event
+            let (ip, user_agent) = client_info_or_defaults(&info);
+            let context = BidiRequestContext::new(user_id, username, ip, user_agent);
+            self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
+                .map_err(|err| {
+                    error!("Failed to send event. Reason: {err}",);
+                    Status::internal("unexpected error")
+                })?;
+
             Ok(response)
         } else {
             debug!("Invalid enrollment token, the token does not have specified type.");
@@ -268,9 +277,9 @@ impl EnrollmentServer {
 
         let ip_address;
         let device_info;
-        if let Some(info) = req_device_info {
-            ip_address = info.ip_address.unwrap_or_default();
-            let user_agent = info.user_agent.unwrap_or_default();
+        if let Some(ref info) = req_device_info {
+            ip_address = info.ip_address.clone().unwrap_or_default();
+            let user_agent = info.user_agent.clone().unwrap_or_default();
             device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
@@ -366,10 +375,9 @@ impl EnrollmentServer {
         ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
 
         info!("User {} activated", user.username);
-        // Prepare event context
-        let ip =
-            IpAddr::from_str(&ip_address).unwrap_or_else(|_| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
-        let user_agent = device_info.unwrap_or_else(|| "Unknown".to_string());
+
+        // Prepare event context and push the event
+        let (ip, user_agent) = client_info_or_defaults(&req_device_info);
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
             .map_err(|err| {
@@ -413,9 +421,9 @@ impl EnrollmentServer {
 
         let ip_address;
         let device_info;
-        if let Some(info) = req_device_info {
-            ip_address = info.ip_address.unwrap_or_default();
-            let user_agent = info.user_agent.unwrap_or_default();
+        if let Some(ref info) = req_device_info {
+            ip_address = info.ip_address.clone().unwrap_or_default();
+            let user_agent = info.user_agent.clone().unwrap_or_default();
             device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
@@ -692,7 +700,7 @@ impl EnrollmentServer {
         info!("Device {} remote configuration done.", device.name);
 
         let response = DeviceConfigResponse {
-            device: Some(device.into()),
+            device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(
                 InstanceInfo::new(settings, &user.username, &enterprise_settings).into(),
@@ -700,6 +708,15 @@ impl EnrollmentServer {
             token: Some(token.token),
         };
         debug!("{response:?}.");
+
+        // Prepare event context and push the event
+        let (ip, user_agent) = client_info_or_defaults(&req_device_info);
+        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
+        self.emit_event(context, EnrollmentEvent::EnrollmentDeviceAdded { device })
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
 
         Ok(response)
     }

@@ -530,7 +530,7 @@ pub async fn run_grpc_bidi_stream(
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match enrollment_server.start_enrollment(request).await {
+                            match enrollment_server.start_enrollment(request, received.device_info).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::EnrollmentStart(response_payload))
                                 }
