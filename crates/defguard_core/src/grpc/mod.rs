@@ -632,7 +632,10 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
-                            match client_mfa_server.finish_client_mfa_login(request, received.device_info).await {
+                            match client_mfa_server
+                                .finish_client_mfa_login(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
