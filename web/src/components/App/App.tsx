@@ -59,14 +59,6 @@ const App = () => {
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
               <Route
-                path="activity/*"
-                element={
-                  <ProtectedRoute adminRequired>
-                    <ActivityLogPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="acl/*"
                 element={
                   <ProtectedRoute adminRequired>
@@ -172,6 +164,14 @@ const App = () => {
               />
               <Route path="*" element={<Navigate to="users" />} />
             </Route>
+            <Route
+              path="activity/*"
+              element={
+                <ProtectedRoute>
+                  <ActivityLogPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="me/*"
               element={
