@@ -598,7 +598,10 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match password_reset_server.start_password_reset(request).await {
+                            match password_reset_server
+                                .start_password_reset(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => Some(
                                     core_response::Payload::PasswordResetStart(response_payload),
                                 ),

@@ -98,7 +98,6 @@ impl EnrollmentServer {
     }
 
     // Send event to the dedicated bidi stream event channel
-    #[allow(dead_code)]
     fn emit_event(
         &self,
         context: BidiRequestContext,
@@ -253,7 +252,7 @@ impl EnrollmentServer {
             // Prepare event context and push event
             let (ip, user_agent) = client_info_or_defaults(&info);
             let context = BidiRequestContext::new(user_id, username, ip, user_agent);
-            self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
+            self.emit_event(context, EnrollmentEvent::EnrollmentStarted)
                 .map_err(|err| {
                     error!("Failed to send event. Reason: {err}",);
                     Status::internal("unexpected error")

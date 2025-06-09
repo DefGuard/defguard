@@ -224,7 +224,10 @@ pub enum EnrollmentEvent {
 }
 
 #[derive(Debug)]
-pub enum PasswordResetEvent {}
+pub enum PasswordResetEvent {
+    PasswordResetStarted,
+    PasswordResetCompleted,
+}
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
