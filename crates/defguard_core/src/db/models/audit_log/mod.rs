@@ -68,6 +68,14 @@ pub enum EventType {
     VpnClientConnectedMfa,
     VpnClientDisconnectedMfa,
     VpnClientMfaFailed,
+    // Enrollment events
+    EnrollmentStarted,
+    EnrollmentPasswordConfigured,
+    EnrollmentPhoneNumberConfigured,
+    EnrollmentDeviceAdded,
+    EnrollmentMfaTotpConfigured,
+    EnrollmentRecoveryCodesDownloaded,
+    EnrollmentCompleted,
 }
 
 #[derive(Model, FromRow, Serialize)]

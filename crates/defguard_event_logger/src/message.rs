@@ -70,7 +70,7 @@ impl From<BidiRequestContext> for EventContext {
             user_id: val.user_id,
             username: val.username,
             ip: val.ip,
-            device: format!("{} (ID {})", val.device.name, val.device.id),
+            device: val.user_agent,
         }
     }
 }
@@ -286,7 +286,7 @@ pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentPasswordConfigured,
     EnrollmentPhoneNumberConfigured,
-    EnrollmentDeviceAdded { device_id: Id, device_name: String },
+    EnrollmentDeviceAdded { device: Device<Id> },
     EnrollmentMfaTotpConfigured,
     EnrollmentRecoveryCodesDownloaded,
     EnrollmentCompleted,

@@ -89,3 +89,8 @@ pub struct VpnClientMfaMetadata {
     pub device: Device<Id>,
     pub method: MFAMethod,
 }
+
+#[derive(Serialize)]
+pub struct EnrollmentDeviceAddedMetadata {
+    pub device: Device<Id>,
+}

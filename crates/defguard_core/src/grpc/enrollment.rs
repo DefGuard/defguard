@@ -1,4 +1,6 @@
 use sqlx::{PgPool, Transaction};
+use std::net::{IpAddr, Ipv4Addr};
+use std::str::FromStr;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{error::SendError, UnboundedSender},
@@ -364,6 +366,17 @@ impl EnrollmentServer {
         ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
 
         info!("User {} activated", user.username);
+        // Prepare event context
+        let ip =
+            IpAddr::from_str(&ip_address).unwrap_or_else(|_| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+        let user_agent = device_info.unwrap_or_else(|| "Unknown".to_string());
+        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
+        self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
+
         Ok(())
     }
 

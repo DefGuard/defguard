@@ -245,15 +245,16 @@ impl ClientMfaServer {
 
         // Prepare event context
         let ip = info
-            .and_then(|device| device.ip_address)
+            .as_ref()
+            .and_then(|device| device.ip_address.as_ref())
             .and_then(|ip| IpAddr::from_str(&ip).ok())
             .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),
             ip,
-            device.clone(),
-            location.clone(),
+            info.and_then(|i| i.user_agent)
+                .unwrap_or_else(|| "Unknown".to_string()),
         );
 
         // validate code
@@ -265,6 +266,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(
                             DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
                                 method: (*method).into(),
                             },
                         ),
@@ -279,6 +282,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(
                             DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
                                 method: (*method).into(),
                             },
                         ),
@@ -343,6 +348,8 @@ impl ClientMfaServer {
         self.emit_event(BidiStreamEvent {
             context,
             event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected {
+                location: location.clone(),
+                device: device.clone(),
                 method: (*method).into(),
             }),
         })?;

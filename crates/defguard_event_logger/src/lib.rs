@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use error::EventLoggerError;
-use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent};
+use message::{
+    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
+};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
@@ -9,8 +11,8 @@ use defguard_core::db::{
     models::audit_log::{
         metadata::{
             AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
-            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, MfaLoginMetadata,
+            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
             UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
         },
@@ -341,9 +343,33 @@ pub async fn run_event_logger(
                         };
                         (module, event_type, metadata)
                     }
-                    LoggerEvent::Enrollment(_event) => {
-                        let _module = AuditModule::Enrollment;
-                        unimplemented!()
+                    LoggerEvent::Enrollment(event) => {
+                        let module = AuditModule::Enrollment;
+                        let (event_type, metadata) = match event {
+                            EnrollmentEvent::EnrollmentStarted => {
+                                (EventType::EnrollmentStarted, None)
+                            }
+                            EnrollmentEvent::EnrollmentCompleted => {
+                                (EventType::EnrollmentCompleted, None)
+                            }
+                            EnrollmentEvent::EnrollmentPasswordConfigured => {
+                                (EventType::EnrollmentPasswordConfigured, None)
+                            }
+                            EnrollmentEvent::EnrollmentMfaTotpConfigured => {
+                                (EventType::EnrollmentMfaTotpConfigured, None)
+                            }
+                            EnrollmentEvent::EnrollmentPhoneNumberConfigured => {
+                                (EventType::EnrollmentPhoneNumberConfigured, None)
+                            }
+                            EnrollmentEvent::EnrollmentRecoveryCodesDownloaded => {
+                                (EventType::EnrollmentRecoveryCodesDownloaded, None)
+                            }
+                            EnrollmentEvent::EnrollmentDeviceAdded { device } => (
+                                EventType::EnrollmentDeviceAdded,
+                                serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
+                            ),
+                        };
+                        (module, event_type, metadata)
                     }
                 };
 
