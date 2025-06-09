@@ -101,9 +101,9 @@ impl PasswordResetServer {
 
         let ip_address;
         let user_agent;
-        if let Some(info) = req_device_info {
-            ip_address = info.ip_address.unwrap_or_default();
-            user_agent = info.user_agent.unwrap_or_default();
+        if let Some(ref info) = req_device_info {
+            ip_address = info.ip_address.clone().unwrap_or_default();
+            user_agent = info.user_agent.clone().unwrap_or_default();
         } else {
             ip_address = String::new();
             user_agent = String::new();
@@ -168,6 +168,14 @@ impl PasswordResetServer {
             user.username
         );
 
+        // Prepare event context and push event
+        let (ip, user_agent) = client_info_or_defaults(&req_device_info);
+        let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
+        self.emit_event(context, PasswordResetEvent::PasswordResetRequested)
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
         Ok(())
     }
 

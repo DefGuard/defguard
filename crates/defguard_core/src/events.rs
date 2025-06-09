@@ -225,6 +225,7 @@ pub enum EnrollmentEvent {
 
 #[derive(Debug)]
 pub enum PasswordResetEvent {
+    PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
 }
