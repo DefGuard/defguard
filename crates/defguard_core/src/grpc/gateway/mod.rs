@@ -6,7 +6,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
 use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
 use thiserror::Error;
@@ -823,30 +823,35 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             );
                         }
                         None => {
-                            // mark new VPN client as connected
-                            client_map.connect_vpn_client(
-                                network_id,
-                                &gateway_hostname,
-                                &public_key,
-                                &device,
-                                &user,
-                                socket_addr,
-                                &stats,
-                            )?;
+                            // don't mark inactive peers as connected
+                            if (Utc::now().naive_utc() - stats.latest_handshake)
+                                < TimeDelta::seconds(location.peer_disconnect_threshold.into())
+                            {
+                                // mark new VPN client as connected
+                                client_map.connect_vpn_client(
+                                    network_id,
+                                    &gateway_hostname,
+                                    &public_key,
+                                    &device,
+                                    &user,
+                                    socket_addr,
+                                    &stats,
+                                )?;
 
-                            // emit connection event
-                            let context = GrpcRequestContext::new(
-                                user.id,
-                                user.username.clone(),
-                                socket_addr.ip(),
-                                device.id,
-                                device.name.clone(),
-                            );
-                            self.emit_event(GrpcEvent::ClientConnected {
-                                context,
-                                location: location.clone(),
-                                device: device.clone(),
-                            })?;
+                                // emit connection event
+                                let context = GrpcRequestContext::new(
+                                    user.id,
+                                    user.username.clone(),
+                                    socket_addr.ip(),
+                                    device.id,
+                                    device.name.clone(),
+                                );
+                                self.emit_event(GrpcEvent::ClientConnected {
+                                    context,
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                })?;
+                            }
                         }
                     };
 
