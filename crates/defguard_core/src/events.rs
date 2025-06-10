@@ -209,7 +209,6 @@ pub enum BidiStreamEventType {
     Enrollment(EnrollmentEvent),
     PasswordReset(PasswordResetEvent),
     DesktopClientMfa(DesktopClientMfaEvent),
-    ConfigPolling(ConfigPollingEvent),
 }
 
 #[derive(Debug)]
@@ -239,9 +238,6 @@ pub enum DesktopClientMfaEvent {
         method: MFAMethod,
     },
 }
-
-#[derive(Debug)]
-pub enum ConfigPollingEvent {}
 
 /// Shared context for every internally-triggered event.
 ///

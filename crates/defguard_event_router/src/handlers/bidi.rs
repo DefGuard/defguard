@@ -56,7 +56,6 @@ impl EventRouter {
                     method,
                 }),
             },
-            BidiStreamEventType::ConfigPolling(_config_polling_event) => todo!(),
         };
 
         self.log_event(context.into(), logger_event)
