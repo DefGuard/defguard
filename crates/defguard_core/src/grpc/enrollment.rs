@@ -249,7 +249,7 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-            // Prepare event context and push event
+            // Prepare event context and push the event
             let (ip, user_agent) = client_info_or_defaults(&info);
             let context = BidiRequestContext::new(user_id, username, ip, user_agent);
             self.emit_event(context, EnrollmentEvent::EnrollmentStarted)

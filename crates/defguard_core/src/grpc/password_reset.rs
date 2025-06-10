@@ -168,7 +168,7 @@ impl PasswordResetServer {
             user.username
         );
 
-        // Prepare event context and push event
+        // Prepare event context and push the event
         let (ip, user_agent) = client_info_or_defaults(&req_device_info);
         let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
         self.emit_event(context, PasswordResetEvent::PasswordResetRequested)
@@ -234,7 +234,7 @@ impl PasswordResetServer {
             "Finished processing password reset session for user {}.",
             user.username
         );
-        // Prepare event context and push event
+        // Prepare event context and push the event
         let (ip, user_agent) = client_info_or_defaults(&info);
         let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
         self.emit_event(context, PasswordResetEvent::PasswordResetStarted)
@@ -306,7 +306,7 @@ impl PasswordResetServer {
             Some(&user_agent),
         )?;
 
-        // Prepare event context and push event
+        // Prepare event context and push the event
         let (ip, user_agent) = client_info_or_defaults(&req_device_info);
         let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
         self.emit_event(context, PasswordResetEvent::PasswordResetCompleted)

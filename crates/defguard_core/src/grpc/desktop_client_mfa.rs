@@ -240,7 +240,7 @@ impl ClientMfaServer {
             user,
         } = session;
 
-        // Prepare event context and push event
+        // Prepare event context
         let (ip, user_agent) = client_info_or_defaults(&info);
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
 
