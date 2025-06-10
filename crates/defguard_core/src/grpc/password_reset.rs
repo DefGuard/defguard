@@ -25,7 +25,6 @@ use crate::{
 pub(super) struct PasswordResetServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
-    #[allow(dead_code)]
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
