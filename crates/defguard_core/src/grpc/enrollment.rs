@@ -227,9 +227,10 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::proxy::Settings {
+            let enrollment_settings = super::proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
+                admin_device_management: enterprise_settings.admin_device_management,
             };
             let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
