@@ -16,6 +16,7 @@ use tokio::{
         mpsc::{self, error::SendError, Receiver, UnboundedSender},
     },
     task::JoinHandle,
+    time::{interval, Duration},
 };
 use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
@@ -33,6 +34,8 @@ use crate::{
     events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
+
+const PEER_DISCONNECT_INTERVAL: u64 = 60;
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
@@ -192,6 +195,7 @@ impl GatewayServer {
             .client_state
             .lock()
             .map_err(|_| GatewayServerError::ClientStateMutexError)?;
+        debug!("Current VPN client state map: {client_state:?}");
         Ok(client_state)
     }
 
@@ -726,8 +730,46 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let network_id = Self::get_network_id(request.metadata())?;
         let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
         let mut stream = request.into_inner();
+        let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        while let Some(stats_update) = stream.message().await? {
+        loop {
+            // wait for a message or update client map at least once a mninute if no messages are received
+            let stats_update = tokio::select! {
+                message = stream.message() => {
+                    match message? {
+                        Some(update) => update,
+                        None => break, // Stream ended
+                    }
+                }
+                _ = disconnect_timer.tick() => {
+                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. Updating disconnected VPN clients");
+                    // fetch location to get current peer disconnect threshold
+                    let location = self.fetch_location_from_db(network_id).await?;
+
+                    // perform client state operations in a dedicated block to drop mutex guard
+                    let disconnected_clients = {
+                        // acquire lock on client state map
+                        let mut client_map = self.get_client_state_guard()?;
+
+                        // disconnect inactive clients
+                        client_map.disconnect_inactive_vpn_clients_for_location(
+                            network_id,
+                            location.peer_disconnect_threshold,
+                        )?
+                    };
+
+                    // emit client disconnect events
+                    for (device, context) in disconnected_clients {
+                        self.emit_event(GrpcEvent::ClientDisconnected {
+                            context,
+                            location: location.clone(),
+                            device,
+                        })?;
+                    };
+                    continue;
+                }
+            };
+
             debug!("Received stats message: {stats_update:?}");
             let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
                 debug!("Received stats message is empty, skipping.");
