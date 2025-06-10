@@ -37,7 +37,13 @@ export type AuditEventType =
   | 'vpn_client_disconnected'
   | 'vpn_client_connected_mfa'
   | 'vpn_client_disconnected_mfa'
-  | 'vpn_client_mfa_failed';
+  | 'vpn_client_mfa_failed'
+  | 'enrollment_started'
+  | 'enrollment_device_added'
+  | 'enrollment_completed'
+  | 'password_reset_requested'
+  | 'password_reset_started'
+  | 'password_reset_completed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -70,4 +76,10 @@ export const auditEventTypeValues: AuditEventType[] = [
   'vpn_client_connected_mfa',
   'vpn_client_disconnected_mfa',
   'vpn_client_mfa_failed',
+  'enrollment_started',
+  'enrollment_device_added',
+  'enrollment_completed',
+  'password_reset_requested',
+  'password_reset_started',
+  'password_reset_completed',
 ];
