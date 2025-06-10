@@ -215,11 +215,7 @@ pub enum BidiStreamEventType {
 #[derive(Debug)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
-    EnrollmentPasswordConfigured,
-    EnrollmentPhoneNumberConfigured,
     EnrollmentDeviceAdded { device: Device<Id> },
-    EnrollmentMfaTotpConfigured,
-    EnrollmentRecoveryCodesDownloaded,
     EnrollmentCompleted,
 }
 

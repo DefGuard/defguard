@@ -1,4 +1,6 @@
-use defguard_core::events::{self, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
+use defguard_core::events::{
+    self, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent, PasswordResetEvent,
+};
 use defguard_event_logger::message::{EnrollmentEvent, LoggerEvent, VpnEvent};
 use tracing::debug;
 
@@ -22,20 +24,18 @@ impl EventRouter {
                 events::EnrollmentEvent::EnrollmentDeviceAdded { device } => {
                     LoggerEvent::Enrollment(EnrollmentEvent::EnrollmentDeviceAdded { device })
                 }
-                events::EnrollmentEvent::EnrollmentPasswordConfigured => {
-                    LoggerEvent::Enrollment(EnrollmentEvent::EnrollmentPasswordConfigured)
+            },
+            BidiStreamEventType::PasswordReset(event) => match event {
+                PasswordResetEvent::PasswordResetRequested => {
+                    LoggerEvent::Enrollment(EnrollmentEvent::PasswordResetRequested)
                 }
-                events::EnrollmentEvent::EnrollmentPhoneNumberConfigured => {
-                    LoggerEvent::Enrollment(EnrollmentEvent::EnrollmentPhoneNumberConfigured)
+                PasswordResetEvent::PasswordResetStarted => {
+                    LoggerEvent::Enrollment(EnrollmentEvent::PasswordResetStarted)
                 }
-                events::EnrollmentEvent::EnrollmentMfaTotpConfigured => {
-                    LoggerEvent::Enrollment(EnrollmentEvent::EnrollmentMfaTotpConfigured)
-                }
-                events::EnrollmentEvent::EnrollmentRecoveryCodesDownloaded => {
-                    LoggerEvent::Enrollment(EnrollmentEvent::EnrollmentRecoveryCodesDownloaded)
+                PasswordResetEvent::PasswordResetCompleted => {
+                    LoggerEvent::Enrollment(EnrollmentEvent::PasswordResetCompleted)
                 }
             },
-            BidiStreamEventType::PasswordReset(_password_reset_event) => todo!(),
             BidiStreamEventType::DesktopClientMfa(event) => match event {
                 DesktopClientMfaEvent::Connected {
                     location,

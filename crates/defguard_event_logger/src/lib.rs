@@ -352,22 +352,19 @@ pub async fn run_event_logger(
                             EnrollmentEvent::EnrollmentCompleted => {
                                 (EventType::EnrollmentCompleted, None)
                             }
-                            EnrollmentEvent::EnrollmentPasswordConfigured => {
-                                (EventType::EnrollmentPasswordConfigured, None)
-                            }
-                            EnrollmentEvent::EnrollmentMfaTotpConfigured => {
-                                (EventType::EnrollmentMfaTotpConfigured, None)
-                            }
-                            EnrollmentEvent::EnrollmentPhoneNumberConfigured => {
-                                (EventType::EnrollmentPhoneNumberConfigured, None)
-                            }
-                            EnrollmentEvent::EnrollmentRecoveryCodesDownloaded => {
-                                (EventType::EnrollmentRecoveryCodesDownloaded, None)
-                            }
                             EnrollmentEvent::EnrollmentDeviceAdded { device } => (
                                 EventType::EnrollmentDeviceAdded,
                                 serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
                             ),
+                            EnrollmentEvent::PasswordResetRequested => {
+                                (EventType::PasswordResetRequested, None)
+                            }
+                            EnrollmentEvent::PasswordResetStarted => {
+                                (EventType::PasswordResetStarted, None)
+                            }
+                            EnrollmentEvent::PasswordResetCompleted => {
+                                (EventType::PasswordResetCompleted, None)
+                            }
                         };
                         (module, event_type, metadata)
                     }

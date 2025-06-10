@@ -284,10 +284,9 @@ pub enum VpnEvent {
 /// Represents audit events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
-    EnrollmentPasswordConfigured,
-    EnrollmentPhoneNumberConfigured,
     EnrollmentDeviceAdded { device: Device<Id> },
-    EnrollmentMfaTotpConfigured,
-    EnrollmentRecoveryCodesDownloaded,
     EnrollmentCompleted,
+    PasswordResetRequested,
+    PasswordResetStarted,
+    PasswordResetCompleted,
 }
