@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AclError","AliasKind","AliasState","RuleState"],"fn":["parse_destination","parse_ports"],"struct":["AclAlias","AclAliasDestinationRange","AclAliasInfo","AclRule","AclRuleAlias","AclRuleDestinationRange","AclRuleDevice","AclRuleGroup","AclRuleInfo","AclRuleNetwork","AclRuleUser","ParsedDestination","PortRange"],"type":["Protocol"]};

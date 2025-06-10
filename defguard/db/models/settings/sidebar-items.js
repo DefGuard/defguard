@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OpenidUsernameHandling","SettingsValidationError","SmtpEncryption"],"fn":["get_settings","initialize_current_settings","set_settings","update_current_settings"],"struct":["Settings","SettingsEssentials","SettingsPatch"]};

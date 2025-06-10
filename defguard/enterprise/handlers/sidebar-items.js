@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check_enterprise_info"],"mod":["acl","api_tokens","enterprise_settings","openid_login","openid_providers"],"struct":["CanManageDevices","LicenseInfo"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Authority","SyncStatus"],"fn":["get_ldap_sync_interval","get_ldap_sync_status","is_ldap_desynced","set_ldap_sync_status"]};

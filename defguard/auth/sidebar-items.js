@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["EMAIL_CODE_DIGITS","TOTP_CODE_DIGITS","TOTP_CODE_VALIDITY_PERIOD"],"enum":["ClaimsType"],"mod":["failed_login"],"static":["AUTH_SECRET_ENV","GATEWAY_SECRET_ENV","JWT_ISSUER","YUBIBRIDGE_SECRET_ENV"],"struct":["AccessUserInfo","AdminRole","Claims","SessionInfo"]};

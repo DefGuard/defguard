@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_enterprise_settings","patch_enterprise_settings"]};

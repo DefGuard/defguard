@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["authorization","discovery_keys","get_group_claims","openid_configuration","secure_authorization","token","userinfo"],"struct":["AuthenticationRequest","GroupClaims","TokenRequest"],"type":["DefguardIdTokenFields","DefguardTokenResponse"]};

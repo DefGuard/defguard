@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["index","svg","web_asset"],"struct":["StaticFile"]};
