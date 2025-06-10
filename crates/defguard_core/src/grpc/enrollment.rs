@@ -380,6 +380,34 @@ impl EnrollmentServer {
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
 
+        // check if adding device by non-admin users is allowed
+        debug!(
+            "Fetching enterprise settings for device creation process for user {}({:?})",
+            user.username, user.id,
+        );
+        let enterprise_settings = EnterpriseSettings::get(&self.pool).await.map_err(|err| {
+            error!(
+            "Failed to fetch enterprise settings for device creation process for user {}({:?}): \
+            {err}",
+            user.username, user.id,
+        );
+            Status::internal("unexpected error")
+        })?;
+        debug!("Enterprise settings: {enterprise_settings:?}");
+
+        if !user.is_admin(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to fetch admin status for user {}({:?}): {err}",
+                user.username, user.id,
+            );
+            Status::internal("unexpected error")
+        })? && enterprise_settings.admin_device_management
+        {
+            return Err(Status::invalid_argument(
+                "only admin users can manage devices",
+            ));
+        }
+
         // add device
         debug!(
             "Verifying if user {}({:?}) is active",
@@ -608,23 +636,6 @@ impl EnrollmentServer {
         );
         let settings = Settings::get_current_settings();
         debug!("Settings: {settings:?}");
-
-        debug!(
-            "Fetching enterprise settings for device {} creation process for user {}({:?})",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-        let enterprise_settings =
-            EnterpriseSettings::get(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): \
-            {err}",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-                    Status::internal("unexpected error")
-                })?;
-        debug!("Enterprise settings: {enterprise_settings:?}");
 
         // create polling token for further client communication
         debug!(
