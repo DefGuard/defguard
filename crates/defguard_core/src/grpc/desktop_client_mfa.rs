@@ -20,7 +20,7 @@ use crate::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::utils::client_info_or_defaults,
+    grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -241,7 +241,7 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
-        let (ip, user_agent) = client_info_or_defaults(&info);
+        let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
 
         // validate code

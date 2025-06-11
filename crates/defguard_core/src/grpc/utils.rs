@@ -1,8 +1,5 @@
 use sqlx::PgPool;
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
-};
+use std::{net::IpAddr, str::FromStr};
 use tonic::Status;
 
 use super::{
@@ -171,18 +168,21 @@ pub(crate) async fn build_device_config_response(
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
-/// Return defaults if appropriate fields are unavailable.
-pub(crate) fn client_info_or_defaults(info: &Option<DeviceInfo>) -> (IpAddr, String) {
-    let ip = info
-        .as_ref()
-        .and_then(|device| device.ip_address.as_ref())
-        .and_then(|ip| IpAddr::from_str(ip).ok())
-        .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
+    let Some(info) = info else {
+        error!("Missing DeviceInfo in proxy request");
+        return Err("missing device info".to_string());
+    };
 
+    let ip = IpAddr::from_str(&info.ip_address).map_err(|_| {
+        let msg = format!("invalid IP address: {}", info.ip_address);
+        error!(msg);
+        msg
+    })?;
     let user_agent = info
-        .as_ref()
-        .and_then(|i| i.user_agent.clone())
-        .unwrap_or_else(|| "Unknown".to_string());
+        .user_agent
+        .clone()
+        .unwrap_or_else(|| String::new());
 
-    (ip, user_agent)
+    Ok((ip, user_agent))
 }

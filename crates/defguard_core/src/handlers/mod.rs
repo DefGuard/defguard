@@ -468,7 +468,6 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // TODO: should requests fail if user-agent header is missing?
         let TypedHeader(user_agent) = TypedHeader::<UserAgent>::from_request_parts(parts, state)
             .await
             .map_err(|_| WebError::BadRequest("Missing UserAgent header".to_string()))?;

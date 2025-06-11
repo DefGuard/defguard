@@ -13,7 +13,7 @@ use super::{
     },
     InstanceInfo,
 };
-use crate::grpc::utils::client_info_or_defaults;
+use crate::grpc::utils::parse_client_info;
 use crate::{
     db::{
         models::{
@@ -249,7 +249,7 @@ impl EnrollmentServer {
             })?;
 
             // Prepare event context and push the event
-            let (ip, user_agent) = client_info_or_defaults(&info);
+            let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
             let context = BidiRequestContext::new(user_id, username, ip, user_agent);
             self.emit_event(context, EnrollmentEvent::EnrollmentStarted)
                 .map_err(|err| {
@@ -276,7 +276,7 @@ impl EnrollmentServer {
         let ip_address;
         let device_info;
         if let Some(ref info) = req_device_info {
-            ip_address = info.ip_address.clone().unwrap_or_default();
+            ip_address = info.ip_address.clone();
             let user_agent = info.user_agent.clone().unwrap_or_default();
             device_info = Some(get_device_info(&user_agent));
         } else {
@@ -375,7 +375,7 @@ impl EnrollmentServer {
         info!("User {} activated", user.username);
 
         // Prepare event context and push the event
-        let (ip, user_agent) = client_info_or_defaults(&req_device_info);
+        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
             .map_err(|err| {
@@ -420,7 +420,7 @@ impl EnrollmentServer {
         let ip_address;
         let device_info;
         if let Some(ref info) = req_device_info {
-            ip_address = info.ip_address.clone().unwrap_or_default();
+            ip_address = info.ip_address.clone();
             let user_agent = info.user_agent.clone().unwrap_or_default();
             device_info = Some(get_device_info(&user_agent));
         } else {
@@ -708,7 +708,7 @@ impl EnrollmentServer {
         debug!("{response:?}.");
 
         // Prepare event context and push the event
-        let (ip, user_agent) = client_info_or_defaults(&req_device_info);
+        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentDeviceAdded { device })
             .map_err(|err| {
