@@ -179,10 +179,7 @@ pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, St
         error!(msg);
         msg
     })?;
-    let user_agent = info
-        .user_agent
-        .clone()
-        .unwrap_or_else(|| String::new());
+    let user_agent = info.user_agent.clone().unwrap_or_else(String::new);
 
     Ok((ip, user_agent))
 }
