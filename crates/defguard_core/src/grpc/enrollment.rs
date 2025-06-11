@@ -742,6 +742,7 @@ impl InitialUserInfo {
         let enrolled = user.is_enrolled();
         let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+        let is_admin = user.is_admin(pool).await?;
         Ok(Self {
             first_name: user.first_name,
             last_name: user.last_name,
@@ -751,6 +752,7 @@ impl InitialUserInfo {
             is_active: user.is_active,
             device_names,
             enrolled,
+            is_admin,
         })
     }
 }
