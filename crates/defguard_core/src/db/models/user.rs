@@ -435,18 +435,19 @@ impl User<Id> {
             let gateway_events = network
                 .sync_allowed_devices_for_user(&mut *conn, self, None)
                 .await?;
+
             // check if any peers were updated
             if !gateway_events.is_empty() {
                 // send peer update events
                 send_multiple_wireguard_events(gateway_events, wg_tx);
+            }
 
-                // send firewall config update if ACLs & enterprise features are enabled
-                if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
-                    send_wireguard_event(
-                        GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
-                        wg_tx,
-                    );
-                }
+            // send firewall config update if ACLs & enterprise features are enabled
+            if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+                send_wireguard_event(
+                    GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                    wg_tx,
+                );
             }
         }
         info!("Allowed devices of user {} synced", self.username);
