@@ -1,8 +1,9 @@
 use sqlx::PgPool;
+use std::{net::IpAddr, str::FromStr};
 use tonic::Status;
 
 use super::{
-    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse},
+    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
     InstanceInfo,
 };
 use crate::{
@@ -164,4 +165,21 @@ pub(crate) async fn build_device_config_response(
         instance: Some(InstanceInfo::new(settings, &user.username, &enterprise_settings).into()),
         token,
     })
+}
+
+/// Parses `DeviceInfo` returning client IP address and user agent.
+pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
+    let Some(info) = info else {
+        error!("Missing DeviceInfo in proxy request");
+        return Err("missing device info".to_string());
+    };
+
+    let ip = IpAddr::from_str(&info.ip_address).map_err(|_| {
+        let msg = format!("invalid IP address: {}", info.ip_address);
+        error!(msg);
+        msg
+    })?;
+    let user_agent = info.user_agent.clone().unwrap_or_else(String::new);
+
+    Ok((ip, user_agent))
 }

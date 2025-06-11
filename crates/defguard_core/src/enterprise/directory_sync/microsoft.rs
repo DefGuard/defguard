@@ -8,7 +8,6 @@ use super::{
 };
 use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
 
-#[allow(dead_code)]
 pub(crate) struct MicrosoftDirectorySync {
     access_token: Option<String>,
     token_expiry: Option<chrono::DateTime<Utc>>,

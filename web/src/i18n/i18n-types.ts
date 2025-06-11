@@ -6214,6 +6214,30 @@ type RootTranslation = {
 			 * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
 			 */
 			vpn_client_mfa_failed: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+			 */
+			enrollment_started: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			enrollment_device_added: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			enrollment_completed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​r​e​q​u​e​s​t​e​d
+			 */
+			password_reset_requested: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​s​t​a​r​t​e​d
+			 */
+			password_reset_started: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			password_reset_completed: string
 		}
 		auditModule: {
 			/**
@@ -12375,6 +12399,30 @@ export type TranslationFunctions = {
 			 * VPN client failed MFA authentication
 			 */
 			vpn_client_mfa_failed: () => LocalizedString
+			/**
+			 * Enrollment started
+			 */
+			enrollment_started: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			enrollment_device_added: () => LocalizedString
+			/**
+			 * Enrollment completed
+			 */
+			enrollment_completed: () => LocalizedString
+			/**
+			 * Password reset requested
+			 */
+			password_reset_requested: () => LocalizedString
+			/**
+			 * Password reset started
+			 */
+			password_reset_started: () => LocalizedString
+			/**
+			 * Password reset completed
+			 */
+			password_reset_completed: () => LocalizedString
 		}
 		auditModule: {
 			/**

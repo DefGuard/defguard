@@ -51,7 +51,6 @@ pub struct ServiceAccountConfig {
     client_email: String,
 }
 
-#[allow(dead_code)]
 pub(crate) struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
     access_token: Option<String>,
