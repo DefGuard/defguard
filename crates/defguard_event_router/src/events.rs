@@ -1,4 +1,4 @@
-use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent};
 
 /// Enum representing all possible events that can be generated in the system.
 ///
@@ -11,4 +11,5 @@ pub enum Event {
     Api(ApiEvent),
     Grpc(GrpcEvent),
     Bidi(BidiStreamEvent),
+    Internal(InternalEvent),
 }

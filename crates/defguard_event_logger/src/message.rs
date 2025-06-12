@@ -5,7 +5,7 @@ use defguard_core::{
     db::{
         models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,
     },
-    events::{ApiRequestContext, GrpcRequestContext},
+    events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
 };
 
 /// Messages that can be sent to the event logger
@@ -59,6 +59,30 @@ impl From<GrpcRequestContext> for EventContext {
             username: val.username,
             ip: val.ip,
             device: format!("{} (ID {})", val.device_name, val.device_id),
+        }
+    }
+}
+
+impl From<BidiRequestContext> for EventContext {
+    fn from(val: BidiRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: val.user_agent,
+        }
+    }
+}
+
+impl From<InternalEventContext> for EventContext {
+    fn from(val: InternalEventContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: format!("{} (ID {})", val.device.name, val.device.id),
         }
     }
 }
@@ -234,16 +258,18 @@ pub enum ClientEvent {
 /// Represents activity log events related to VPN
 pub enum VpnEvent {
     ConnectedToMfaLocation {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+        method: MFAMethod,
     },
     DisconnectedFromMfaLocation {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
     },
     MfaFailed {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+        method: MFAMethod,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,
@@ -258,10 +284,9 @@ pub enum VpnEvent {
 /// Represents activity log events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
-    EnrollmentPasswordConfigured,
-    EnrollmentPhoneNumberConfigured,
-    EnrollmentDeviceAdded { device_id: Id, device_name: String },
-    EnrollmentMfaTotpConfigured,
-    EnrollmentRecoveryCodesDownloaded,
+    EnrollmentDeviceAdded { device: Device<Id> },
     EnrollmentCompleted,
+    PasswordResetRequested,
+    PasswordResetStarted,
+    PasswordResetCompleted,
 }

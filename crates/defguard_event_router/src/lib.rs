@@ -28,7 +28,7 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent};
 use error::EventRouterError;
 use events::Event;
 use std::sync::Arc;
@@ -46,11 +46,32 @@ mod error;
 mod events;
 mod handlers;
 
+pub struct RouterReceiverSet {
+    api: UnboundedReceiver<ApiEvent>,
+    grpc: UnboundedReceiver<GrpcEvent>,
+    bidi: UnboundedReceiver<BidiStreamEvent>,
+    internal: UnboundedReceiver<InternalEvent>,
+}
+
+impl RouterReceiverSet {
+    pub fn new(
+        api: UnboundedReceiver<ApiEvent>,
+        grpc: UnboundedReceiver<GrpcEvent>,
+        bidi: UnboundedReceiver<BidiStreamEvent>,
+        internal: UnboundedReceiver<InternalEvent>,
+    ) -> Self {
+        Self {
+            api,
+            grpc,
+            bidi,
+            internal,
+        }
+    }
+}
+
 #[allow(dead_code)]
 struct EventRouter {
-    api_event_rx: UnboundedReceiver<ApiEvent>,
-    grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -77,18 +98,14 @@ impl EventRouter {
 
 impl EventRouter {
     fn new(
-        api_event_rx: UnboundedReceiver<ApiEvent>,
-        grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-        bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+        receivers: RouterReceiverSet,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         activity_log_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
-            api_event_rx,
-            grpc_event_rx,
-            bidi_event_rx,
+            receivers,
             event_logger_tx,
             wireguard_tx,
             mail_tx,
@@ -101,25 +118,32 @@ impl EventRouter {
         loop {
             // Receive an event from  one of the component event channels
             let event = tokio::select! {
-              event = self.api_event_rx.recv() => match event {
+              event = self.receivers.api.recv() => match event {
                   Some(api_event) => Event::Api(api_event),
                   None => {
                         error!("API event channel closed");
                         return Err(EventRouterError::ApiEventChannelClosed);
                   }
               },
-              event = self.grpc_event_rx.recv() => match event {
+              event = self.receivers.grpc.recv() => match event {
                   Some(grpc_event) => Event::Grpc(grpc_event),
                   None => {
                         error!("gRPC event channel closed");
                         return Err(EventRouterError::GrpcEventChannelClosed);
                   }
               },
-              event = self.bidi_event_rx.recv() => match event {
+              event = self.receivers.bidi.recv() => match event {
                   Some(bidi_event) => Event::Bidi(bidi_event),
                   None => {
                         error!("Bidi gRPC stream event channel closed");
                         return Err(EventRouterError::BidiEventChannelClosed);
+                  }
+              },
+              event = self.receivers.internal.recv() => match event {
+                  Some(internal_event) => Event::Internal(internal_event),
+                  None => {
+                        error!("Internal event channel closed");
+                        return Err(EventRouterError::InternalEventChannelClosed);
                   }
               },
             };
@@ -131,6 +155,7 @@ impl EventRouter {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
                 Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
+                Event::Internal(internal_event) => self.handle_internal_event(internal_event)?,
             };
         }
     }
@@ -141,19 +166,16 @@ impl EventRouter {
 /// This function runs in an infinite loop, receiving messages from the event_rx channel
 /// and routing them to the appropriate service channels.
 pub async fn run_event_router(
-    api_event_rx: UnboundedReceiver<ApiEvent>,
-    grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
+    receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     activity_log_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
+
     let mut event_router = EventRouter::new(
-        api_event_rx,
-        grpc_event_rx,
-        bidi_event_rx,
+        receivers,
         event_logger_tx,
         wireguard_tx,
         mail_tx,

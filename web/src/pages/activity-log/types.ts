@@ -34,7 +34,16 @@ export type ActivityLogEventType =
   | 'activity_log_stream_modified'
   | 'activity_log_stream_removed'
   | 'vpn_client_connected'
-  | 'vpn_client_disconnected';
+  | 'vpn_client_disconnected'
+  | 'vpn_client_connected_mfa'
+  | 'vpn_client_disconnected_mfa'
+  | 'vpn_client_mfa_failed'
+  | 'enrollment_started'
+  | 'enrollment_device_added'
+  | 'enrollment_completed'
+  | 'password_reset_requested'
+  | 'password_reset_started'
+  | 'password_reset_completed';
 
 export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_login',
@@ -64,4 +73,13 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'activity_log_stream_removed',
   'vpn_client_connected',
   'vpn_client_disconnected',
+  'vpn_client_connected_mfa',
+  'vpn_client_disconnected_mfa',
+  'vpn_client_mfa_failed',
+  'enrollment_started',
+  'enrollment_device_added',
+  'enrollment_completed',
+  'password_reset_requested',
+  'password_reset_started',
+  'password_reset_completed',
 ];

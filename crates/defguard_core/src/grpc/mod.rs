@@ -468,7 +468,7 @@ impl From<Status> for CoreError {
     }
 }
 
-/// Bi-directional gRPC stream for comminication with Defguard proxy.
+/// Bi-directional gRPC stream for communication with Defguard proxy.
 #[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
@@ -486,8 +486,9 @@ pub async fn run_grpc_bidi_stream(
         bidi_event_tx.clone(),
     );
     let password_reset_server =
-        PasswordResetServer::new(pool.clone(), mail_tx.clone(), bidi_event_tx);
-    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone());
+        PasswordResetServer::new(pool.clone(), mail_tx.clone(), bidi_event_tx.clone());
+    let mut client_mfa_server =
+        ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone(), bidi_event_tx);
     let polling_server = PollingServer::new(pool.clone());
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
@@ -529,7 +530,10 @@ pub async fn run_grpc_bidi_stream(
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match enrollment_server.start_enrollment(request).await {
+                            match enrollment_server
+                                .start_enrollment(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::EnrollmentStart(response_payload))
                                 }
@@ -594,7 +598,10 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match password_reset_server.start_password_reset(request).await {
+                            match password_reset_server
+                                .start_password_reset(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => Some(
                                     core_response::Payload::PasswordResetStart(response_payload),
                                 ),
@@ -631,12 +638,15 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
-                            match client_mfa_server.finish_client_mfa_login(request).await {
+                            match client_mfa_server
+                                .finish_client_mfa_login(request, received.device_info)
+                                .await
+                            {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client MFA start error {err}");
+                                    error!("client MFA finish error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }

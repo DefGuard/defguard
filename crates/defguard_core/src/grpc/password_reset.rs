@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::{error::SendError, UnboundedSender};
 use tonic::Status;
 
 use super::proto::proxy::{
@@ -12,7 +12,8 @@ use crate::{
         User,
     },
     enterprise::ldap::utils::ldap_change_password,
-    events::BidiStreamEvent,
+    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
+    grpc::utils::parse_client_info,
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
@@ -24,7 +25,6 @@ use crate::{
 pub(super) struct PasswordResetServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
-    #[allow(dead_code)]
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -75,6 +75,20 @@ impl PasswordResetServer {
         }
     }
 
+    // Send event to the dedicated bidi stream event channel
+    fn emit_event(
+        &self,
+        context: BidiRequestContext,
+        event: PasswordResetEvent,
+    ) -> Result<(), SendError<BidiStreamEvent>> {
+        let event = BidiStreamEvent {
+            context,
+            event: BidiStreamEventType::PasswordReset(event),
+        };
+
+        self.bidi_event_tx.send(event)
+    }
+
     #[instrument(skip_all)]
     pub async fn request_password_reset(
         &self,
@@ -86,9 +100,9 @@ impl PasswordResetServer {
 
         let ip_address;
         let user_agent;
-        if let Some(info) = req_device_info {
-            ip_address = info.ip_address.unwrap_or_default();
-            user_agent = info.user_agent.unwrap_or_default();
+        if let Some(ref info) = req_device_info {
+            ip_address = info.ip_address.clone();
+            user_agent = info.user_agent.clone().unwrap_or_default();
         } else {
             ip_address = String::new();
             user_agent = String::new();
@@ -153,6 +167,14 @@ impl PasswordResetServer {
             user.username
         );
 
+        // Prepare event context and push the event
+        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
+        self.emit_event(context, PasswordResetEvent::PasswordResetRequested)
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
         Ok(())
     }
 
@@ -160,6 +182,7 @@ impl PasswordResetServer {
     pub async fn start_password_reset(
         &self,
         request: PasswordResetStartRequest,
+        info: Option<DeviceInfo>,
     ) -> Result<PasswordResetStartResponse, Status> {
         debug!("Starting password reset session: {request:?}");
 
@@ -210,6 +233,14 @@ impl PasswordResetServer {
             "Finished processing password reset session for user {}.",
             user.username
         );
+        // Prepare event context and push the event
+        let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
+        self.emit_event(context, PasswordResetEvent::PasswordResetStarted)
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
 
         Ok(response)
     }
@@ -225,9 +256,9 @@ impl PasswordResetServer {
 
         let ip_address;
         let user_agent;
-        if let Some(info) = req_device_info {
-            ip_address = info.ip_address.unwrap_or_default();
-            user_agent = info.user_agent.unwrap_or_default();
+        if let Some(ref info) = req_device_info {
+            ip_address = info.ip_address.clone();
+            user_agent = info.user_agent.clone().unwrap_or_default();
         } else {
             ip_address = String::new();
             user_agent = String::new();
@@ -273,6 +304,15 @@ impl PasswordResetServer {
             Some(&ip_address),
             Some(&user_agent),
         )?;
+
+        // Prepare event context and push the event
+        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(user.id, user.username, ip, user_agent);
+        self.emit_event(context, PasswordResetEvent::PasswordResetCompleted)
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
 
         Ok(())
     }

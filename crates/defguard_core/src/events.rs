@@ -2,7 +2,6 @@ use std::net::IpAddr;
 
 use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
-use ipnetwork::IpNetwork;
 
 /// Shared context that needs to be added to every API event
 ///
@@ -177,12 +176,83 @@ pub struct BidiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
-    pub device: String,
+    pub ip: IpAddr,
+    pub user_agent: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, user_agent: String) -> Self {
+        let timestamp = Utc::now().naive_utc();
+        Self {
+            timestamp,
+            user_id,
+            username,
+            ip,
+            user_agent,
+        }
+    }
+}
+
+/// Events emmited from gRPC bi-directional communication stream
+#[derive(Debug)]
+pub struct BidiStreamEvent {
+    pub context: BidiRequestContext,
+    pub event: BidiStreamEventType,
+}
+
+/// Wrapper enum for different types of events emitted by the bidi stream.
+///
+/// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+pub enum BidiStreamEventType {
+    Enrollment(EnrollmentEvent),
+    PasswordReset(PasswordResetEvent),
+    DesktopClientMfa(DesktopClientMfaEvent),
+}
+
+#[derive(Debug)]
+pub enum EnrollmentEvent {
+    EnrollmentStarted,
+    EnrollmentDeviceAdded { device: Device<Id> },
+    EnrollmentCompleted,
+}
+
+#[derive(Debug)]
+pub enum PasswordResetEvent {
+    PasswordResetRequested,
+    PasswordResetStarted,
+    PasswordResetCompleted,
+}
+
+#[derive(Debug)]
+pub enum DesktopClientMfaEvent {
+    Connected {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        method: MFAMethod,
+    },
+    Failed {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        method: MFAMethod,
+    },
+}
+
+/// Shared context for every internally-triggered event.
+///
+/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the audit log.
+#[derive(Debug)]
+pub struct InternalEventContext {
+    pub timestamp: NaiveDateTime,
+    pub user_id: Id,
+    pub username: String,
+    pub ip: IpAddr,
+    pub device: Device<Id>,
+}
+
+impl InternalEventContext {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
@@ -194,34 +264,11 @@ impl BidiRequestContext {
     }
 }
 
-/// Events emmited from gRPC bi-directional communication stream
+/// Events emmited by background threads, not triggered directly by users
 #[derive(Debug)]
-pub struct BidiStreamEvent {
-    pub request_context: BidiRequestContext,
-    pub event: BidiStreamEventType,
+pub enum InternalEvent {
+    DesktopClientMfaDisconnected {
+        context: InternalEventContext,
+        location: WireguardNetwork<Id>,
+    },
 }
-
-/// Wrapper enum for different types of events emitted by the bidi stream.
-///
-/// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
-#[derive(Debug)]
-pub enum BidiStreamEventType {
-    Enrollment(EnrollmentEvent),
-    PasswordReset(PasswordResetEvent),
-    DesktopCLientMfa(DesktopClientMfaEvent),
-    ConfigPolling(ConfigPollingEvent),
-}
-
-#[derive(Debug)]
-pub enum EnrollmentEvent {
-    EnrollmentStarted,
-}
-
-#[derive(Debug)]
-pub enum PasswordResetEvent {}
-
-#[derive(Debug)]
-pub enum DesktopClientMfaEvent {}
-
-#[derive(Debug)]
-pub enum ConfigPollingEvent {}

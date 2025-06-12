@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use error::EventLoggerError;
-use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent};
+use message::{
+    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
+};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
@@ -10,9 +12,9 @@ use defguard_core::db::{
         metadata::{
             ActivityLogStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
             DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
-            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata, EnrollmentDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
+            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
         },
         ActivityLogEvent, ActivityLogModule, EventType,
     },
@@ -300,18 +302,36 @@ pub async fn run_event_logger(
                     LoggerEvent::Vpn(event) => {
                         let module = ActivityLogModule::Vpn;
                         let (event_type, metadata) = match event {
-                            VpnEvent::ConnectedToMfaLocation {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            VpnEvent::DisconnectedFromMfaLocation {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
                             VpnEvent::MfaFailed {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
+                                location,
+                                device,
+                                method,
+                            } => (
+                                EventType::VpnClientMfaFailed,
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
+                            ),
+                            VpnEvent::ConnectedToMfaLocation {
+                                location,
+                                device,
+                                method,
+                            } => (
+                                EventType::VpnClientConnectedMfa,
+                                serde_json::to_value(VpnClientMfaMetadata {
+                                    location,
+                                    device,
+                                    method,
+                                })
+                                .ok(),
+                            ),
+                            VpnEvent::DisconnectedFromMfaLocation { location, device } => (
+                                EventType::VpnClientDisconnectedMfa,
+                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+                            ),
                             VpnEvent::ConnectedToLocation { location, device } => (
                                 EventType::VpnClientConnected,
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),
@@ -323,9 +343,30 @@ pub async fn run_event_logger(
                         };
                         (module, event_type, metadata)
                     }
-                    LoggerEvent::Enrollment(_event) => {
-                        let _module = ActivityLogModule::Enrollment;
-                        unimplemented!()
+                    LoggerEvent::Enrollment(event) => {
+                        let module = ActivityLogModule::Enrollment;
+                        let (event_type, metadata) = match event {
+                            EnrollmentEvent::EnrollmentStarted => {
+                                (EventType::EnrollmentStarted, None)
+                            }
+                            EnrollmentEvent::EnrollmentCompleted => {
+                                (EventType::EnrollmentCompleted, None)
+                            }
+                            EnrollmentEvent::EnrollmentDeviceAdded { device } => (
+                                EventType::EnrollmentDeviceAdded,
+                                serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
+                            ),
+                            EnrollmentEvent::PasswordResetRequested => {
+                                (EventType::PasswordResetRequested, None)
+                            }
+                            EnrollmentEvent::PasswordResetStarted => {
+                                (EventType::PasswordResetStarted, None)
+                            }
+                            EnrollmentEvent::PasswordResetCompleted => {
+                                (EventType::PasswordResetCompleted, None)
+                            }
+                        };
+                        (module, event_type, metadata)
                     }
                 };
 
