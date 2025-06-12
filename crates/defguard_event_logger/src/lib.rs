@@ -11,8 +11,8 @@ use defguard_core::db::{
     models::activity_log::{
         metadata::{
             ActivityLogStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, MfaLoginMetadata, MfaSecurityKeyAddedMetadata,
-            MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata, EnrollmentDeviceAddedMetadata,
+            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, MfaLoginMetadata,
+            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
             UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
         },
