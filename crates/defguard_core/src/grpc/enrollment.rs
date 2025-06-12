@@ -227,9 +227,10 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::proxy::Settings {
+            let enrollment_settings = super::proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
+                admin_device_management: enterprise_settings.admin_device_management,
             };
             let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
@@ -397,6 +398,34 @@ impl EnrollmentServer {
 
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
+
+        // check if adding device by non-admin users is allowed
+        debug!(
+            "Fetching enterprise settings for device creation process for user {}({:?})",
+            user.username, user.id,
+        );
+        let enterprise_settings = EnterpriseSettings::get(&self.pool).await.map_err(|err| {
+            error!(
+            "Failed to fetch enterprise settings for device creation process for user {}({:?}): \
+            {err}",
+            user.username, user.id,
+        );
+            Status::internal("unexpected error")
+        })?;
+        debug!("Enterprise settings: {enterprise_settings:?}");
+
+        if !user.is_admin(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to fetch admin status for user {}({:?}): {err}",
+                user.username, user.id,
+            );
+            Status::internal("unexpected error")
+        })? && enterprise_settings.admin_device_management
+        {
+            return Err(Status::invalid_argument(
+                "only admin users can manage devices",
+            ));
+        }
 
         // add device
         debug!(
@@ -627,23 +656,6 @@ impl EnrollmentServer {
         let settings = Settings::get_current_settings();
         debug!("Settings: {settings:?}");
 
-        debug!(
-            "Fetching enterprise settings for device {} creation process for user {}({:?})",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-        let enterprise_settings =
-            EnterpriseSettings::get(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): \
-            {err}",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-                    Status::internal("unexpected error")
-                })?;
-        debug!("Enterprise settings: {enterprise_settings:?}");
-
         // create polling token for further client communication
         debug!(
             "Creating polling token for further client communication for device {}, user {}({:?})",
@@ -758,6 +770,7 @@ impl InitialUserInfo {
         let enrolled = user.is_enrolled();
         let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+        let is_admin = user.is_admin(pool).await?;
         Ok(Self {
             first_name: user.first_name,
             last_name: user.last_name,
@@ -767,6 +780,7 @@ impl InitialUserInfo {
             is_active: user.is_active,
             device_names,
             enrolled,
+            is_admin,
         })
     }
 }
