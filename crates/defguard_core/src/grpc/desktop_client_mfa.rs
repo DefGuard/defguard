@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::collections::HashMap;
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -10,8 +10,8 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use super::proto::proxy::{
-    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
-    MfaMethod,
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, MfaMethod,
 };
 use crate::{
     auth::{Claims, ClaimsType},
@@ -20,6 +20,7 @@ use crate::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
+    grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -221,6 +222,7 @@ impl ClientMfaServer {
     pub async fn finish_client_mfa_login(
         &mut self,
         request: ClientMfaFinishRequest,
+        info: Option<proxy::DeviceInfo>,
     ) -> Result<ClientMfaFinishResponse, Status> {
         debug!("Finishing desktop client login: {request:?}");
         // get pubkey from token
@@ -239,13 +241,8 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
-        let context = BidiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            device.clone(),
-            location.clone(),
-        );
+        let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
 
         // validate code
         match method {
@@ -256,6 +253,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(
                             DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
                                 method: (*method).into(),
                             },
                         ),
@@ -270,6 +269,8 @@ impl ClientMfaServer {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(
                             DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
                                 method: (*method).into(),
                             },
                         ),
@@ -334,6 +335,8 @@ impl ClientMfaServer {
         self.emit_event(BidiStreamEvent {
             context,
             event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Connected {
+                location: location.clone(),
+                device: device.clone(),
                 method: (*method).into(),
             }),
         })?;

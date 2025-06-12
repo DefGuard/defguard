@@ -62,7 +62,6 @@ impl Claims {
     }
 }
 
-#[allow(dead_code)]
 pub struct OktaDirectorySync {
     access_token: Option<String>,
     token_expiry: Option<DateTime<Utc>>,

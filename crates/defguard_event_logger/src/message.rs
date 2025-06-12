@@ -70,7 +70,7 @@ impl From<BidiRequestContext> for EventContext {
             user_id: val.user_id,
             username: val.username,
             ip: val.ip,
-            device: format!("{} (ID {})", val.device.name, val.device.id),
+            device: val.user_agent,
         }
     }
 }
@@ -284,10 +284,9 @@ pub enum VpnEvent {
 /// Represents audit events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
-    EnrollmentPasswordConfigured,
-    EnrollmentPhoneNumberConfigured,
-    EnrollmentDeviceAdded { device_id: Id, device_name: String },
-    EnrollmentMfaTotpConfigured,
-    EnrollmentRecoveryCodesDownloaded,
+    EnrollmentDeviceAdded { device: Device<Id> },
     EnrollmentCompleted,
+    PasswordResetRequested,
+    PasswordResetStarted,
+    PasswordResetCompleted,
 }

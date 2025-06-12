@@ -2575,6 +2575,12 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       vpn_client_connected_mfa: 'VPN client connected to MFA location',
       vpn_client_disconnected_mfa: 'VPN client disconnected from MFA location',
       vpn_client_mfa_failed: 'VPN client failed MFA authentication',
+      enrollment_started: 'Enrollment started',
+      enrollment_device_added: 'Device added',
+      enrollment_completed: 'Enrollment completed',
+      password_reset_requested: 'Password reset requested',
+      password_reset_started: 'Password reset started',
+      password_reset_completed: 'Password reset completed',
     },
     auditModule: {
       defguard: 'Defguard',

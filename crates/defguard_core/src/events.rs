@@ -177,26 +177,18 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub device: Device<Id>,
-    pub location: WireguardNetwork<Id>,
+    pub user_agent: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(
-        user_id: Id,
-        username: String,
-        ip: IpAddr,
-        device: Device<Id>,
-        location: WireguardNetwork<Id>,
-    ) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, user_agent: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
             ip,
-            device,
-            location,
+            user_agent,
         }
     }
 }
@@ -211,30 +203,41 @@ pub struct BidiStreamEvent {
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum BidiStreamEventType {
     Enrollment(EnrollmentEvent),
     PasswordReset(PasswordResetEvent),
     DesktopClientMfa(DesktopClientMfaEvent),
-    ConfigPolling(ConfigPollingEvent),
 }
 
 #[derive(Debug)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
+    EnrollmentDeviceAdded { device: Device<Id> },
+    EnrollmentCompleted,
 }
 
 #[derive(Debug)]
-pub enum PasswordResetEvent {}
+pub enum PasswordResetEvent {
+    PasswordResetRequested,
+    PasswordResetStarted,
+    PasswordResetCompleted,
+}
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
-    Connected { method: MFAMethod },
-    Failed { method: MFAMethod },
+    Connected {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        method: MFAMethod,
+    },
+    Failed {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        method: MFAMethod,
+    },
 }
-
-#[derive(Debug)]
-pub enum ConfigPollingEvent {}
 
 /// Shared context for every internally-triggered event.
 ///
