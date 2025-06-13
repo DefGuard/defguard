@@ -15,6 +15,7 @@ use defguard_core::db::{
             MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
             UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -220,18 +221,18 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::VpnLocationAdded {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationRemoved {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationModified {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
+                            DefguardEvent::VpnLocationAdded { location } => (
+                                EventType::VpnLocationAdded,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationRemoved { location } => (
+                                EventType::VpnLocationRemoved,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationModified { location } => (
+                                EventType::VpnLocationModified,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
                             DefguardEvent::OpenIdAppAdded {
                                 app_id: _,
                                 app_name: _,

@@ -193,16 +193,13 @@ pub enum DefguardEvent {
     },
     // VPN location management
     VpnLocationAdded {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
     },
     VpnLocationRemoved {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
     },
     VpnLocationModified {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
     },
     // OpenID app management
     OpenIdAppAdded {

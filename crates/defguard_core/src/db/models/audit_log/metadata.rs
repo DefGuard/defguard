@@ -94,3 +94,8 @@ pub struct VpnClientMfaMetadata {
 pub struct EnrollmentDeviceAddedMetadata {
     pub device: Device<Id>,
 }
+
+#[derive(Serialize)]
+pub struct VpnLocationMetadata {
+    pub location: WireguardNetwork<Id>,
+}

@@ -2581,6 +2581,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       password_reset_requested: 'Password reset requested',
       password_reset_started: 'Password reset started',
       password_reset_completed: 'Password reset completed',
+      vpn_location_added: 'VPN location added',
+      vpn_location_removed: 'VPN location removed',
+      vpn_location_modified: 'VPN location modified',
     },
     auditModule: {
       defguard: 'Defguard',

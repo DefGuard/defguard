@@ -129,6 +129,7 @@ pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     let network_name = data.name.clone();
@@ -170,6 +171,13 @@ pub(crate) async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        },
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -205,6 +213,7 @@ pub(crate) async fn modify_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     debug!(
@@ -250,6 +259,12 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::VpnLocationModified {
+            location: network.clone(),
+        },
+    })?;
     Ok(ApiResponse {
         json: json!(network),
         status: StatusCode::OK,
@@ -276,6 +291,7 @@ pub(crate) async fn delete_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} deleting WireGuard network {network_id}",
@@ -290,13 +306,17 @@ pub(crate) async fn delete_network(
     for device in network_devices {
         device.delete(&mut *transaction).await?;
     }
-    network.delete(&mut *transaction).await?;
+    network.clone().delete(&mut *transaction).await?;
     transaction.commit().await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::VpnLocationRemoved { location: network },
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse::default())

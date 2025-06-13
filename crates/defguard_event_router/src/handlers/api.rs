@@ -135,6 +135,15 @@ impl EventRouter {
                     stream_name,
                 })
             }
+            ApiEventType::VpnLocationAdded { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationAdded { location })
+            }
+            ApiEventType::VpnLocationRemoved { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationRemoved { location })
+            }
+            ApiEventType::VpnLocationModified { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationModified { location })
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }

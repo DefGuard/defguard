@@ -6238,6 +6238,18 @@ type RootTranslation = {
 			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
 			 */
 			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
 		}
 		auditModule: {
 			/**
@@ -12423,6 +12435,18 @@ export type TranslationFunctions = {
 			 * Password reset completed
 			 */
 			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
 		}
 		auditModule: {
 			/**

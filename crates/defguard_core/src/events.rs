@@ -142,6 +142,15 @@ pub enum ApiEventType {
         stream_id: Id,
         stream_name: String,
     },
+    VpnLocationAdded {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationRemoved {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationModified {
+        location: WireguardNetwork<Id>,
+    },
 }
 
 /// Events from Web API
