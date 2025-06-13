@@ -144,6 +144,21 @@ impl EventRouter {
             ApiEventType::VpnLocationModified { location } => {
                 LoggerEvent::Defguard(DefguardEvent::VpnLocationModified { location })
             }
+            ApiEventType::ApiTokenAdded { owner, token_name } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenAdded { owner, token_name })
+            }
+            ApiEventType::ApiTokenRemoved { owner, token_name } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenRemoved { owner, token_name })
+            }
+            ApiEventType::ApiTokenRenamed {
+                owner,
+                old_name,
+                new_name,
+            } => LoggerEvent::Defguard(DefguardEvent::ApiTokenRenamed {
+                owner,
+                old_name,
+                new_name,
+            }),
         };
         self.log_event(event.context.into(), logger_event)
     }

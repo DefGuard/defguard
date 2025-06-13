@@ -2584,6 +2584,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       vpn_location_added: 'VPN location added',
       vpn_location_removed: 'VPN location removed',
       vpn_location_modified: 'VPN location modified',
+      api_token_added: 'API token added',
+      api_token_removed: 'API token removed',
+      api_token_renamed: 'API token renamed',
     },
     auditModule: {
       defguard: 'Defguard',

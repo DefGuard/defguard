@@ -6250,6 +6250,18 @@ type RootTranslation = {
 			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
 			 */
 			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
 		}
 		auditModule: {
 			/**
@@ -12447,6 +12459,18 @@ export type TranslationFunctions = {
 			 * VPN location modified
 			 */
 			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
 		}
 		auditModule: {
 			/**

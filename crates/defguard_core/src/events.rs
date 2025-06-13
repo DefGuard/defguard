@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
+use crate::db::{Device, Id, MFAMethod, User, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 
 /// Shared context that needs to be added to every API event
@@ -150,6 +150,19 @@ pub enum ApiEventType {
     },
     VpnLocationModified {
         location: WireguardNetwork<Id>,
+    },
+    ApiTokenAdded {
+        owner: User<Id>,
+        token_name: String,
+    },
+    ApiTokenRemoved {
+        owner: User<Id>,
+        token_name: String,
+    },
+    ApiTokenRenamed {
+        owner: User<Id>,
+        old_name: String,
+        new_name: String,
     },
 }
 

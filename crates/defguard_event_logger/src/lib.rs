@@ -10,12 +10,12 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, MfaLoginMetadata,
-            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
-            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnLocationMetadata,
+            ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata, DeviceAddedMetadata,
+            DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
+            MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
+            NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
+            NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
+            UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -151,18 +151,27 @@ pub async fn run_event_logger(
                                 key_name: _,
                                 key_type: _,
                             } => todo!(),
-                            DefguardEvent::ApiTokenAdded {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenRemoved {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
+                            DefguardEvent::ApiTokenAdded { owner, token_name } => (
+                                EventType::ApiTokenAdded,
+                                serde_json::to_value(ApiTokenMetadata { owner, token_name }).ok(),
+                            ),
+                            DefguardEvent::ApiTokenRemoved { owner, token_name } => (
+                                EventType::ApiTokenRemoved,
+                                serde_json::to_value(ApiTokenMetadata { owner, token_name }).ok(),
+                            ),
                             DefguardEvent::ApiTokenRenamed {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
+                                owner,
+                                old_name,
+                                new_name,
+                            } => (
+                                EventType::ApiTokenRenamed,
+                                serde_json::to_value(ApiTokenRenamedMetadata {
+                                    owner,
+                                    old_name,
+                                    new_name,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::UserAdded { username } => (
                                 EventType::UserAdded,
                                 serde_json::to_value(UserAddedMetadata { username }).ok(),

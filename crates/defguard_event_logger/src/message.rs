@@ -3,7 +3,8 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
-        models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,
+        models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, User,
+        WireguardNetwork,
     },
     events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
 };
@@ -133,16 +134,17 @@ pub enum DefguardEvent {
     },
     // API token management
     ApiTokenAdded {
-        token_id: Id,
+        owner: User<Id>,
         token_name: String,
     },
     ApiTokenRemoved {
-        token_id: Id,
+        owner: User<Id>,
         token_name: String,
     },
     ApiTokenRenamed {
-        token_id: Id,
-        token_name: String,
+        owner: User<Id>,
+        old_name: String,
+        new_name: String,
     },
     // user management
     UserAdded {

@@ -75,6 +75,10 @@ pub enum EventType {
     PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
+    // API token management,
+    ApiTokenAdded,
+    ApiTokenRemoved,
+    ApiTokenRenamed,
 }
 
 #[derive(Model, FromRow, Serialize)]
