@@ -487,6 +487,7 @@ pub(crate) async fn remove_gateway(
 pub(crate) async fn import_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Json(data): Json<ImportNetworkData>,
 ) -> ApiResult {
     debug!("Importing network from config file");
@@ -527,7 +528,12 @@ pub(crate) async fn import_network(
     transaction.commit().await?;
 
     info!("Imported network {network} with {} devices", devices.len());
-
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        },
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
