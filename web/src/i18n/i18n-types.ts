@@ -6238,6 +6238,46 @@ type RootTranslation = {
 			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
 			 */
 			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​a​d​d​e​d
+			 */
+			open_id_app_added: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​r​e​m​o​v​e​d
+			 */
+			open_id_app_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_app_modified: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			open_id_app_state_changed: string
 		}
 		auditModule: {
 			/**
@@ -12423,6 +12463,46 @@ export type TranslationFunctions = {
 			 * Password reset completed
 			 */
 			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
+			/**
+			 * OpenID app added
+			 */
+			open_id_app_added: () => LocalizedString
+			/**
+			 * OpenID app removed
+			 */
+			open_id_app_removed: () => LocalizedString
+			/**
+			 * OpenID app modified
+			 */
+			open_id_app_modified: () => LocalizedString
+			/**
+			 * OpenID app state changed
+			 */
+			open_id_app_state_changed: () => LocalizedString
 		}
 		auditModule: {
 			/**

@@ -10,11 +10,13 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, MfaLoginMetadata,
-            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
-            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata, DeviceAddedMetadata,
+            DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
+            MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
+            NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
+            NetworkDeviceRemovedMetadata, OpenIdAppMetadata, OpenIdAppStateChangedMetadata,
+            UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -150,18 +152,27 @@ pub async fn run_event_logger(
                                 key_name: _,
                                 key_type: _,
                             } => todo!(),
-                            DefguardEvent::ApiTokenAdded {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenRemoved {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
+                            DefguardEvent::ApiTokenAdded { owner, token_name } => (
+                                EventType::ApiTokenAdded,
+                                serde_json::to_value(ApiTokenMetadata { owner, token_name }).ok(),
+                            ),
+                            DefguardEvent::ApiTokenRemoved { owner, token_name } => (
+                                EventType::ApiTokenRemoved,
+                                serde_json::to_value(ApiTokenMetadata { owner, token_name }).ok(),
+                            ),
                             DefguardEvent::ApiTokenRenamed {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
+                                owner,
+                                old_name,
+                                new_name,
+                            } => (
+                                EventType::ApiTokenRenamed,
+                                serde_json::to_value(ApiTokenRenamedMetadata {
+                                    owner,
+                                    old_name,
+                                    new_name,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::UserAdded { username } => (
                                 EventType::UserAdded,
                                 serde_json::to_value(UserAddedMetadata { username }).ok(),
@@ -220,34 +231,46 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::VpnLocationAdded {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationRemoved {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationModified {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppAdded {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppRemoved {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
+                            DefguardEvent::VpnLocationAdded { location } => (
+                                EventType::VpnLocationAdded,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationRemoved { location } => (
+                                EventType::VpnLocationRemoved,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationModified { location } => (
+                                EventType::VpnLocationModified,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppAdded { app_id, app_name } => (
+                                EventType::OpenIdAppAdded,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppRemoved { app_id, app_name } => (
+                                EventType::OpenIdAppRemoved,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
                             DefguardEvent::OpenIdAppModified {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppDisabled {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
+                                app_id,
+                                app_name,
+                            } => (
+                                EventType::OpenIdAppModified,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppStateChanged {
+                                app_id,
+                                app_name,
+                                enabled,
+                            } => (
+                                EventType::OpenIdAppStateChanged,
+                                serde_json::to_value(OpenIdAppStateChangedMetadata {
+                                    app_id,
+                                    app_name,
+                                    enabled,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::OpenIdProviderAdded {
                                 provider_id: _,
                                 provider_name: _,

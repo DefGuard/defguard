@@ -1,4 +1,4 @@
-use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
+use crate::db::{Device, Id, MFAMethod, User, WireguardNetwork};
 
 #[derive(Serialize)]
 pub struct MfaLoginMetadata {
@@ -93,4 +93,35 @@ pub struct VpnClientMfaMetadata {
 #[derive(Serialize)]
 pub struct EnrollmentDeviceAddedMetadata {
     pub device: Device<Id>,
+}
+
+#[derive(Serialize)]
+pub struct VpnLocationMetadata {
+    pub location: WireguardNetwork<Id>,
+}
+
+#[derive(Serialize)]
+pub struct ApiTokenMetadata {
+    pub owner: User<Id>,
+    pub token_name: String,
+}
+
+#[derive(Serialize)]
+pub struct ApiTokenRenamedMetadata {
+    pub owner: User<Id>,
+    pub old_name: String,
+    pub new_name: String,
+}
+
+#[derive(Serialize)]
+pub struct OpenIdAppMetadata {
+    pub app_id: Id,
+    pub app_name: String,
+}
+
+#[derive(Serialize)]
+pub struct OpenIdAppStateChangedMetadata {
+    pub app_id: Id,
+    pub app_name: String,
+    pub enabled: bool,
 }

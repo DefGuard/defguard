@@ -43,7 +43,17 @@ export type AuditEventType =
   | 'enrollment_completed'
   | 'password_reset_requested'
   | 'password_reset_started'
-  | 'password_reset_completed';
+  | 'password_reset_completed'
+  | 'vpn_location_added'
+  | 'vpn_location_removed'
+  | 'vpn_location_modified'
+  | 'api_token_added'
+  | 'api_token_removed'
+  | 'api_token_renamed'
+  | 'open_id_app_added'
+  | 'open_id_app_removed'
+  | 'open_id_app_modified'
+  | 'open_id_app_state_changed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -82,4 +92,14 @@ export const auditEventTypeValues: AuditEventType[] = [
   'password_reset_requested',
   'password_reset_started',
   'password_reset_completed',
+  'vpn_location_added',
+  'vpn_location_removed',
+  'vpn_location_modified',
+  'api_token_added',
+  'api_token_removed',
+  'api_token_renamed',
+  'open_id_app_added',
+  'open_id_app_removed',
+  'open_id_app_modified',
+  'open_id_app_state_changed',
 ];

@@ -58,6 +58,7 @@ pub enum EventType {
     OpenIdAppAdded,
     OpenIdAppRemoved,
     OpenIdAppModified,
+    OpenIdAppStateChanged,
     // VPN location management
     VpnLocationAdded,
     VpnLocationRemoved,
@@ -75,6 +76,10 @@ pub enum EventType {
     PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
+    // API token management,
+    ApiTokenAdded,
+    ApiTokenRemoved,
+    ApiTokenRenamed,
 }
 
 #[derive(Model, FromRow, Serialize)]

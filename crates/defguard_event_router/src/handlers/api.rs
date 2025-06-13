@@ -135,6 +135,48 @@ impl EventRouter {
                     stream_name,
                 })
             }
+            ApiEventType::VpnLocationAdded { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationAdded { location })
+            }
+            ApiEventType::VpnLocationRemoved { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationRemoved { location })
+            }
+            ApiEventType::VpnLocationModified { location } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationModified { location })
+            }
+            ApiEventType::ApiTokenAdded { owner, token_name } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenAdded { owner, token_name })
+            }
+            ApiEventType::ApiTokenRemoved { owner, token_name } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenRemoved { owner, token_name })
+            }
+            ApiEventType::ApiTokenRenamed {
+                owner,
+                old_name,
+                new_name,
+            } => LoggerEvent::Defguard(DefguardEvent::ApiTokenRenamed {
+                owner,
+                old_name,
+                new_name,
+            }),
+            ApiEventType::OpenIdAppAdded { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppAdded { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppRemoved { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppRemoved { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppModified { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppModified { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppStateChanged {
+                app_id,
+                app_name,
+                enabled,
+            } => LoggerEvent::Defguard(DefguardEvent::OpenIdAppStateChanged {
+                app_id,
+                app_name,
+                enabled,
+            }),
         };
         self.log_event(event.context.into(), logger_event)
     }
