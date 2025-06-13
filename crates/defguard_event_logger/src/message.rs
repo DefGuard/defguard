@@ -216,9 +216,10 @@ pub enum DefguardEvent {
         app_id: Id,
         app_name: String,
     },
-    OpenIdAppDisabled {
+    OpenIdAppStateChanged {
         app_id: Id,
         app_name: String,
+        enabled: bool,
     },
     // OpenID provider management
     OpenIdProviderAdded {

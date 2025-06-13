@@ -49,7 +49,11 @@ export type AuditEventType =
   | 'vpn_location_modified'
   | 'api_token_added'
   | 'api_token_removed'
-  | 'api_token_renamed';
+  | 'api_token_renamed'
+  | 'open_id_app_added'
+  | 'open_id_app_removed'
+  | 'open_id_app_modified'
+  | 'open_id_app_state_changed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -94,4 +98,8 @@ export const auditEventTypeValues: AuditEventType[] = [
   'api_token_added',
   'api_token_removed',
   'api_token_renamed',
+  'open_id_app_added',
+  'open_id_app_removed',
+  'open_id_app_modified',
+  'open_id_app_state_changed',
 ];

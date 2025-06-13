@@ -14,8 +14,9 @@ use defguard_core::db::{
             DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
             MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
             NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
-            NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
-            UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+            NetworkDeviceRemovedMetadata, OpenIdAppMetadata, OpenIdAppStateChangedMetadata,
+            UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -242,22 +243,34 @@ pub async fn run_event_logger(
                                 EventType::VpnLocationModified,
                                 serde_json::to_value(VpnLocationMetadata { location }).ok(),
                             ),
-                            DefguardEvent::OpenIdAppAdded {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppRemoved {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
+                            DefguardEvent::OpenIdAppAdded { app_id, app_name } => (
+                                EventType::OpenIdAppAdded,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppRemoved { app_id, app_name } => (
+                                EventType::OpenIdAppRemoved,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
                             DefguardEvent::OpenIdAppModified {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppDisabled {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
+                                app_id,
+                                app_name,
+                            } => (
+                                EventType::OpenIdAppModified,
+                                serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppStateChanged {
+                                app_id,
+                                app_name,
+                                enabled,
+                            } => (
+                                EventType::OpenIdAppStateChanged,
+                                serde_json::to_value(OpenIdAppStateChangedMetadata {
+                                    app_id,
+                                    app_name,
+                                    enabled,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::OpenIdProviderAdded {
                                 provider_id: _,
                                 provider_name: _,

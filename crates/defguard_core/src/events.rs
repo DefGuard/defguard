@@ -164,6 +164,23 @@ pub enum ApiEventType {
         old_name: String,
         new_name: String,
     },
+    OpenIdAppAdded {
+        app_id: Id,
+        app_name: String,
+    },
+    OpenIdAppRemoved {
+        app_id: Id,
+        app_name: String,
+    },
+    OpenIdAppModified {
+        app_id: Id,
+        app_name: String,
+    },
+    OpenIdAppStateChanged {
+        app_id: Id,
+        app_name: String,
+        enabled: bool,
+    },
 }
 
 /// Events from Web API

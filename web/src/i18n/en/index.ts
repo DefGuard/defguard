@@ -2587,6 +2587,10 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       api_token_added: 'API token added',
       api_token_removed: 'API token removed',
       api_token_renamed: 'API token renamed',
+      open_id_app_added: 'OpenID app added',
+      open_id_app_removed: 'OpenID app removed',
+      open_id_app_modified: 'OpenID app modified',
+      open_id_app_state_changed: 'OpenID app state changed',
     },
     auditModule: {
       defguard: 'Defguard',

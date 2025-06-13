@@ -159,6 +159,24 @@ impl EventRouter {
                 old_name,
                 new_name,
             }),
+            ApiEventType::OpenIdAppAdded { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppAdded { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppRemoved { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppRemoved { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppModified { app_id, app_name } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppModified { app_id, app_name })
+            }
+            ApiEventType::OpenIdAppStateChanged {
+                app_id,
+                app_name,
+                enabled,
+            } => LoggerEvent::Defguard(DefguardEvent::OpenIdAppStateChanged {
+                app_id,
+                app_name,
+                enabled,
+            }),
         };
         self.log_event(event.context.into(), logger_event)
     }

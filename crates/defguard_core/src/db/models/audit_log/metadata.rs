@@ -112,3 +112,16 @@ pub struct ApiTokenRenamedMetadata {
     pub old_name: String,
     pub new_name: String,
 }
+
+#[derive(Serialize)]
+pub struct OpenIdAppMetadata {
+    pub app_id: Id,
+    pub app_name: String,
+}
+
+#[derive(Serialize)]
+pub struct OpenIdAppStateChangedMetadata {
+    pub app_id: Id,
+    pub app_name: String,
+    pub enabled: bool,
+}
