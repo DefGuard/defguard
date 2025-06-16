@@ -442,6 +442,7 @@ pub async fn webauthn_init(
 /// Finish WebAuthn registration
 pub async fn webauthn_finish(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(webauth_reg): Json<WebAuthnRegistration>,
 ) -> ApiResult {
@@ -485,8 +486,9 @@ pub async fn webauthn_finish(
         .await?
         .ok_or(WebError::WebauthnRegistration("User not found".into()))?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
-    webauthn.save(&appstate.pool).await?;
+    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?
+        .save(&appstate.pool)
+        .await?;
     if user.mfa_method == MFAMethod::None {
         send_mfa_configured_email(
             Some(&session.session),
@@ -499,6 +501,13 @@ pub async fn webauthn_finish(
     }
 
     info!("Finished Webauthn registration for user {}", user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::MfaSecurityKeyAdded {
+            key_id: webauthn.id,
+            key_name: webauthn.name,
+        },
+    })?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),

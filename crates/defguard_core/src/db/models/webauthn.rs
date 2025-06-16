@@ -7,9 +7,9 @@ use crate::db::{Id, NoId};
 
 #[derive(Model)]
 pub struct WebAuthn<I = NoId> {
-    id: I,
+    pub(crate) id: I,
     pub(crate) user_id: Id,
-    name: String,
+    pub(crate) name: String,
     // serialize from/to [`Passkey`]
     pub passkey: Vec<u8>,
 }

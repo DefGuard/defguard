@@ -1095,6 +1095,7 @@ pub async fn reset_password(
 )]
 pub async fn delete_security_key(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path((username, id)): Path<(String, i64)>,
 ) -> ApiResult {
@@ -1105,12 +1106,18 @@ pub async fn delete_security_key(
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
         if webauthn.user_id == user.id {
+            let key_id = webauthn.id;
+            let key_name = webauthn.name.clone();
             webauthn.delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
                 "User {} deleted security key {id} for user {username}",
                 session.user.username,
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::MfaSecurityKeyRemoved { key_id, key_name },
+            })?;
             Ok(ApiResponse::default())
         } else {
             error!(
