@@ -14,23 +14,26 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use defguard_web_ui::{index, svg, web_asset};
-use enterprise::handlers::{
-    acl::{
-        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
-        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
-        update_acl_alias, update_acl_rule,
+use enterprise::{
+    handlers::{
+        acl::{
+            apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
+            delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
+            list_acl_rules, update_acl_alias, update_acl_rule,
+        },
+        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+        audit_stream::{
+            create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
+        },
+        check_enterprise_info,
+        enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+        openid_login::{auth_callback, get_auth_info},
+        openid_providers::{
+            add_openid_provider, delete_openid_provider, get_current_openid_provider,
+            test_dirsync_connection,
+        },
     },
-    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-    audit_stream::{
-        create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
-    },
-    check_enterprise_info,
-    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
-    openid_login::{auth_callback, get_auth_info},
-    openid_providers::{
-        add_openid_provider, delete_openid_provider, get_current_openid_provider,
-        test_dirsync_connection,
-    },
+    snat::handlers::list_snat_bindings,
 };
 use events::ApiEvent;
 use handlers::{
@@ -576,6 +579,16 @@ pub fn build_webapp(
             .route("/network/{network_id}/token", get(create_network_token))
             .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(network_stats))
+            .route("/network/{location_id}/snat", get(list_snat_bindings))
+            // .route("/network/{location_id}/snat", post(create_snat_binding))
+            // .route(
+            //     "/network/{location_id}/snat/{binding_id}",
+            //     put(modify_snat_binding),
+            // )
+            // .route(
+            //     "/network/{location_id}/snat/{binding_id}",
+            //     delete(delete_snat_binding),
+            // )
             .layer(Extension(gateway_state)),
     );
 
