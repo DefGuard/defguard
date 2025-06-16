@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "defguard_api",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
