@@ -181,6 +181,14 @@ pub enum ApiEventType {
         app_name: String,
         enabled: bool,
     },
+    OpenIdProviderModified {
+        provider_id: Id,
+        provider_name: String,
+    },
+    OpenIdProviderRemoved {
+        provider_id: Id,
+        provider_name: String,
+    },
 }
 
 /// Events from Web API

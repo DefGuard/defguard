@@ -15,8 +15,8 @@ use defguard_core::db::{
             MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
             NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
             NetworkDeviceRemovedMetadata, OpenIdAppMetadata, OpenIdAppStateChangedMetadata,
-            UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata,
-            VpnClientMfaMetadata, VpnLocationMetadata,
+            OpenIdProviderMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata,
+            VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -251,10 +251,7 @@ pub async fn run_event_logger(
                                 EventType::OpenIdAppRemoved,
                                 serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
                             ),
-                            DefguardEvent::OpenIdAppModified {
-                                app_id,
-                                app_name,
-                            } => (
+                            DefguardEvent::OpenIdAppModified { app_id, app_name } => (
                                 EventType::OpenIdAppModified,
                                 serde_json::to_value(OpenIdAppMetadata { app_id, app_name }).ok(),
                             ),
@@ -271,14 +268,28 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::OpenIdProviderAdded {
-                                provider_id: _,
-                                provider_name: _,
-                            } => todo!(),
+                            DefguardEvent::OpenIdProviderModified {
+                                provider_id,
+                                provider_name,
+                            } => (
+                                EventType::OpenIdProviderModified,
+                                serde_json::to_value(OpenIdProviderMetadata {
+                                    provider_id,
+                                    provider_name,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::OpenIdProviderRemoved {
-                                provider_id: _,
-                                provider_name: _,
-                            } => todo!(),
+                                provider_id,
+                                provider_name,
+                            } => (
+                                EventType::OpenIdProviderRemoved,
+                                serde_json::to_value(OpenIdProviderMetadata {
+                                    provider_id,
+                                    provider_name,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::SettingsUpdated => todo!(),
                             DefguardEvent::SettingsUpdatedPartial => todo!(),
                             DefguardEvent::SettingsDefaultBrandingRestored => todo!(),

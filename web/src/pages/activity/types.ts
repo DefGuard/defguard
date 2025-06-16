@@ -53,7 +53,9 @@ export type AuditEventType =
   | 'open_id_app_added'
   | 'open_id_app_removed'
   | 'open_id_app_modified'
-  | 'open_id_app_state_changed';
+  | 'open_id_app_state_changed'
+  | 'open_id_provider_removed'
+  | 'open_id_provider_modified';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -102,4 +104,6 @@ export const auditEventTypeValues: AuditEventType[] = [
   'open_id_app_removed',
   'open_id_app_modified',
   'open_id_app_state_changed',
+  'open_id_provider_removed',
+  'open_id_provider_modified',
 ];

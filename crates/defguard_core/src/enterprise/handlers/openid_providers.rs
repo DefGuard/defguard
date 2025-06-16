@@ -17,6 +17,7 @@ use crate::{
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -51,9 +52,14 @@ pub async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    debug!(
+        "User {} adding OpenID provider {}",
+        session.user.username, provider_data.name
+    );
     let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
 
     // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
@@ -148,14 +154,17 @@ pub async fn add_openid_provider(
     )
     .upsert(&appstate.pool)
     .await?;
-    debug!(
-        "User {} adding OpenID provider {}",
-        session.user.username, new_provider.name
-    );
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::OpenIdProviderModified {
+            provider_id: new_provider.id,
+            provider_name: new_provider.name,
+        },
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -197,6 +206,7 @@ pub async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(provider_data): Path<DeleteProviderData>,
 ) -> ApiResult {
@@ -206,11 +216,20 @@ pub async fn delete_openid_provider(
     );
     let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
     if let Some(provider) = provider {
+        let provider_id = provider.id;
+        let provider_name = provider.name.clone();
         provider.delete(&appstate.pool).await?;
         info!(
-            "User {} deleted OpenID provider {}",
-            session.user.username, provider_data.name
+            "User {} deleted OpenID provider {provider_name}",
+            session.user.username
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: ApiEventType::OpenIdProviderRemoved {
+                provider_id,
+                provider_name,
+            },
+        })?;
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::OK,
@@ -218,43 +237,6 @@ pub async fn delete_openid_provider(
     } else {
         warn!(
             "User {} failed to delete OpenID provider {}. Such provider does not exist.",
-            session.user.username, provider_data.name
-        );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
-    }
-}
-
-pub async fn modify_openid_provider(
-    _license: LicenseInfo,
-    _admin: AdminRole,
-    session: SessionInfo,
-    State(appstate): State<AppState>,
-    Json(provider_data): Json<AddProviderData>,
-) -> ApiResult {
-    debug!(
-        "User {} modifying OpenID provider {}",
-        session.user.username, provider_data.name
-    );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
-    if let Some(mut provider) = provider {
-        provider.base_url = provider_data.base_url;
-        provider.client_id = provider_data.client_id;
-        provider.client_secret = provider_data.client_secret;
-        provider.save(&appstate.pool).await?;
-        info!(
-            "User {} modified OpenID client {}",
-            session.user.username, provider.name
-        );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
-    } else {
-        warn!(
-            "User {} failed to modify OpenID client {}. Such client does not exist.",
             session.user.username, provider_data.name
         );
         Ok(ApiResponse {

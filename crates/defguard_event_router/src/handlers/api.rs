@@ -177,6 +177,20 @@ impl EventRouter {
                 app_name,
                 enabled,
             }),
+            ApiEventType::OpenIdProviderRemoved {
+                provider_id,
+                provider_name,
+            } => LoggerEvent::Defguard(DefguardEvent::OpenIdProviderRemoved {
+                provider_id,
+                provider_name,
+            }),
+            ApiEventType::OpenIdProviderModified {
+                provider_id,
+                provider_name,
+            } => LoggerEvent::Defguard(DefguardEvent::OpenIdProviderModified {
+                provider_id,
+                provider_name,
+            }),
         };
         self.log_event(event.context.into(), logger_event)
     }

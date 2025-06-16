@@ -59,6 +59,9 @@ pub enum EventType {
     OpenIdAppRemoved,
     OpenIdAppModified,
     OpenIdAppStateChanged,
+    // OpenID provider management
+    OpenIdProviderRemoved,
+    OpenIdProviderModified,
     // VPN location management
     VpnLocationAdded,
     VpnLocationRemoved,

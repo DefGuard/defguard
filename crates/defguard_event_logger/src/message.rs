@@ -222,7 +222,7 @@ pub enum DefguardEvent {
         enabled: bool,
     },
     // OpenID provider management
-    OpenIdProviderAdded {
+    OpenIdProviderModified {
         provider_id: Id,
         provider_name: String,
     },

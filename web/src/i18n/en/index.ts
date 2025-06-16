@@ -2591,6 +2591,8 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       open_id_app_removed: 'OpenID app removed',
       open_id_app_modified: 'OpenID app modified',
       open_id_app_state_changed: 'OpenID app state changed',
+      open_id_provider_removed: 'OpenID provider removed',
+      open_id_provider_modified: 'OpenID provider modified',
     },
     auditModule: {
       defguard: 'Defguard',

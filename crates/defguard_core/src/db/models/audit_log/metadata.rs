@@ -125,3 +125,9 @@ pub struct OpenIdAppStateChangedMetadata {
     pub app_name: String,
     pub enabled: bool,
 }
+
+#[derive(Serialize)]
+pub struct OpenIdProviderMetadata {
+    pub provider_id: Id,
+    pub provider_name: String,
+}
