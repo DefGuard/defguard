@@ -33,7 +33,9 @@ use enterprise::{
             test_dirsync_connection,
         },
     },
-    snat::handlers::list_snat_bindings,
+    snat::handlers::{
+        create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
+    },
 };
 use events::ApiEvent;
 use handlers::{
@@ -580,15 +582,15 @@ pub fn build_webapp(
             .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(network_stats))
             .route("/network/{location_id}/snat", get(list_snat_bindings))
-            // .route("/network/{location_id}/snat", post(create_snat_binding))
-            // .route(
-            //     "/network/{location_id}/snat/{binding_id}",
-            //     put(modify_snat_binding),
-            // )
-            // .route(
-            //     "/network/{location_id}/snat/{binding_id}",
-            //     delete(delete_snat_binding),
-            // )
+            .route("/network/{location_id}/snat", post(create_snat_binding))
+            .route(
+                "/network/{location_id}/snat/{user_id}",
+                put(modify_snat_binding),
+            )
+            .route(
+                "/network/{location_id}/snat/{user_id}",
+                delete(delete_snat_binding),
+            )
             .layer(Extension(gateway_state)),
     );
 
