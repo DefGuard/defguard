@@ -6286,6 +6286,14 @@ type RootTranslation = {
 			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​m​o​d​i​f​i​e​d
 			 */
 			open_id_provider_modified: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated_partial: string
 		}
 		auditModule: {
 			/**
@@ -12519,6 +12527,14 @@ export type TranslationFunctions = {
 			 * OpenID provider modified
 			 */
 			open_id_provider_modified: () => LocalizedString
+			/**
+			 * Settings updated
+			 */
+			settings_updated: () => LocalizedString
+			/**
+			 * Settings partially updated
+			 */
+			settings_updated_partial: () => LocalizedString
 		}
 		auditModule: {
 			/**

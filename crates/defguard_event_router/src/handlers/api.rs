@@ -191,6 +191,10 @@ impl EventRouter {
                 provider_id,
                 provider_name,
             }),
+            ApiEventType::SettingsUpdated => LoggerEvent::Defguard(DefguardEvent::SettingsUpdated),
+            ApiEventType::SettingsUpdatedPartial => {
+                LoggerEvent::Defguard(DefguardEvent::SettingsUpdatedPartial)
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }

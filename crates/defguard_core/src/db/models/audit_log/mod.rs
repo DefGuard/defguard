@@ -83,6 +83,9 @@ pub enum EventType {
     ApiTokenAdded,
     ApiTokenRemoved,
     ApiTokenRenamed,
+    // Settings management
+    SettingsUpdated,
+    SettingsUpdatedPartial,
 }
 
 #[derive(Model, FromRow, Serialize)]

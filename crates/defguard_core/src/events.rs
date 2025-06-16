@@ -189,6 +189,8 @@ pub enum ApiEventType {
         provider_id: Id,
         provider_name: String,
     },
+    SettingsUpdated,
+    SettingsUpdatedPartial,
 }
 
 /// Events from Web API

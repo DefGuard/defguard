@@ -290,8 +290,10 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::SettingsUpdated => todo!(),
-                            DefguardEvent::SettingsUpdatedPartial => todo!(),
+                            DefguardEvent::SettingsUpdated => (EventType::SettingsUpdated, None),
+                            DefguardEvent::SettingsUpdatedPartial => {
+                                (EventType::SettingsUpdatedPartial, None)
+                            }
                             DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
                             DefguardEvent::AuditStreamCreated {
                                 stream_id,
