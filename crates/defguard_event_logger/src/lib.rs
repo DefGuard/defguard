@@ -294,7 +294,9 @@ pub async fn run_event_logger(
                             DefguardEvent::SettingsUpdatedPartial => {
                                 (EventType::SettingsUpdatedPartial, None)
                             }
-                            DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
+                            DefguardEvent::SettingsDefaultBrandingRestored => {
+                                (EventType::SettingsDefaultBrandingRestored, None)
+                            }
                             DefguardEvent::AuditStreamCreated {
                                 stream_id,
                                 stream_name,

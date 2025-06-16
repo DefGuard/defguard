@@ -86,6 +86,7 @@ pub enum EventType {
     // Settings management
     SettingsUpdated,
     SettingsUpdatedPartial,
+    SettingsDefaultBrandingRestored,
 }
 
 #[derive(Model, FromRow, Serialize)]

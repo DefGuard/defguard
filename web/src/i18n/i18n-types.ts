@@ -6294,6 +6294,10 @@ type RootTranslation = {
 			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
 			 */
 			settings_updated_partial: string
+			/**
+			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
+			 */
+			settings_default_branding_restored: string
 		}
 		auditModule: {
 			/**
@@ -12535,6 +12539,10 @@ export type TranslationFunctions = {
 			 * Settings partially updated
 			 */
 			settings_updated_partial: () => LocalizedString
+			/**
+			 * Default branding restored
+			 */
+			settings_default_branding_restored: () => LocalizedString
 		}
 		auditModule: {
 			/**

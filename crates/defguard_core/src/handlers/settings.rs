@@ -90,6 +90,7 @@ pub async fn set_default_branding(
     State(appstate): State<AppState>,
     Path(_id): Path<i64>, // TODO: check with front-end and remove.
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} restoring default branding settings",
@@ -106,6 +107,10 @@ pub async fn set_default_branding(
                 "User {} restored default branding settings",
                 session.user.username
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::SettingsDefaultBrandingRestored,
+            })?;
             Ok(ApiResponse {
                 json: json!(settings),
                 status: StatusCode::OK,

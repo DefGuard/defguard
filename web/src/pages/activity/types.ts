@@ -57,7 +57,8 @@ export type AuditEventType =
   | 'open_id_provider_removed'
   | 'open_id_provider_modified'
   | 'settings_updated'
-  | 'settings_updated_partial';
+  | 'settings_updated_partial'
+  | 'settings_default_branding_restored';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -110,4 +111,5 @@ export const auditEventTypeValues: AuditEventType[] = [
   'open_id_provider_modified',
   'settings_updated',
   'settings_updated_partial',
+  'settings_default_branding_restored',
 ];

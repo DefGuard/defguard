@@ -195,6 +195,9 @@ impl EventRouter {
             ApiEventType::SettingsUpdatedPartial => {
                 LoggerEvent::Defguard(DefguardEvent::SettingsUpdatedPartial)
             }
+            ApiEventType::SettingsDefaultBrandingRestored => {
+                LoggerEvent::Defguard(DefguardEvent::SettingsDefaultBrandingRestored)
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }

@@ -191,6 +191,7 @@ pub enum ApiEventType {
     },
     SettingsUpdated,
     SettingsUpdatedPartial,
+    SettingsDefaultBrandingRestored,
 }
 
 /// Events from Web API
