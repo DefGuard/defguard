@@ -9,11 +9,13 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::WebHook,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
 pub async fn add_webhook(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(webhookdata): Json<WebHookData>,
 ) -> ApiResult {
@@ -21,10 +23,16 @@ pub async fn add_webhook(
     debug!("User {} adding webhook {url}", session.user.username);
     let webhook: WebHook = webhookdata.into();
     let status = match webhook.save(&appstate.pool).await {
-        Ok(_) => StatusCode::CREATED,
+        Ok(webhook) => {
+            info!("User {} added webhook {url}", session.user.username);
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::WebHookAdded { webhook },
+            })?;
+            StatusCode::CREATED
+        }
         Err(_) => StatusCode::BAD_REQUEST,
     };
-    info!("User {} added webhook {url}", session.user.username);
 
     Ok(ApiResponse {
         json: json!({}),
@@ -62,6 +70,7 @@ pub async fn get_webhook(
 pub async fn change_webhook(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
     Json(data): Json<WebHookData>,
@@ -78,11 +87,15 @@ pub async fn change_webhook(
             webhook.on_user_modified = data.on_user_modified;
             webhook.on_hwkey_provision = data.on_hwkey_provision;
             webhook.save(&appstate.pool).await?;
+            info!("User {} updated webhook {id}", session.user.username);
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::WebHookModified { webhook },
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,
     };
-    info!("User {} updated webhook {id}", session.user.username);
 
     Ok(ApiResponse {
         json: json!({}),
@@ -93,18 +106,23 @@ pub async fn change_webhook(
 pub async fn delete_webhook(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    Path(id): Path<i64>,
     session: SessionInfo,
+    context: ApiRequestContext,
+    Path(id): Path<i64>,
 ) -> ApiResult {
     debug!("User {} deleting webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => {
-            webhook.delete(&appstate.pool).await?;
+            webhook.clone().delete(&appstate.pool).await?;
+            info!("User {} deleted webhook {id}", session.user.username);
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::WebHookRemoved { webhook },
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,
     };
-    info!("User {} deleted webhook {id}", session.user.username);
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -119,6 +137,7 @@ pub struct ChangeStateData {
 pub async fn change_enabled(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
     Json(data): Json<ChangeStateData>,
@@ -131,14 +150,21 @@ pub async fn change_enabled(
         Some(mut webhook) => {
             webhook.enabled = data.enabled;
             webhook.save(&appstate.pool).await?;
+            info!(
+                "User {} changed webhook {id} enabled state to {}",
+                session.user.username, data.enabled
+            );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::WebHookStateChanged {
+                    enabled: webhook.enabled,
+                    webhook,
+                },
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,
     };
-    info!(
-        "User {} changed webhook {id} enabled state to {}",
-        session.user.username, data.enabled
-    );
     Ok(ApiResponse {
         json: json!({}),
         status,

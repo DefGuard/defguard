@@ -1,4 +1,4 @@
-use crate::db::{Device, Group, Id, MFAMethod, User, WireguardNetwork};
+use crate::db::{Device, Group, Id, MFAMethod, User, WebHook, WireguardNetwork};
 
 #[derive(Serialize)]
 pub struct MfaLoginMetadata {
@@ -147,4 +147,15 @@ pub struct GroupMetadata {
 pub struct GroupAssignedMetadata {
     pub group: Group<Id>,
     pub user: User<Id>,
+}
+
+#[derive(Serialize)]
+pub struct WebHookMetadata {
+    pub webhook: WebHook<Id>,
+}
+
+#[derive(Serialize)]
+pub struct WebHookStateChangedMetadata {
+    pub webhook: WebHook<Id>,
+    pub enabled: bool,
 }

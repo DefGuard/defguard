@@ -6322,6 +6322,18 @@ type RootTranslation = {
 			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
 			 */
 			group_member_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
+			 */
+			web_hook_added: string
+			/**
+			 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d
+			 */
+			web_hook_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
+			 */
+			web_hook_removed: string
 		}
 		auditModule: {
 			/**
@@ -12591,6 +12603,18 @@ export type TranslationFunctions = {
 			 * Group member removed
 			 */
 			group_member_removed: () => LocalizedString
+			/**
+			 * Webhook added
+			 */
+			web_hook_added: () => LocalizedString
+			/**
+			 * Webhook modified
+			 */
+			web_hook_modified: () => LocalizedString
+			/**
+			 * Webhook removed
+			 */
+			web_hook_removed: () => LocalizedString
 		}
 		auditModule: {
 			/**

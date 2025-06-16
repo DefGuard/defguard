@@ -94,6 +94,11 @@ pub enum EventType {
     GroupRemoved,
     GroupMemberAdded,
     GroupMemberRemoved,
+    // WebHook management
+    WebHookAdded,
+    WebHookModified,
+    WebHookRemoved,
+    WebHookStateChanged,
 }
 
 #[derive(Model, FromRow, Serialize)]

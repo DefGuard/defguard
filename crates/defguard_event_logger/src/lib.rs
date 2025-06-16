@@ -17,7 +17,7 @@ use defguard_core::db::{
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, OpenIdAppMetadata,
             OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, UserAddedMetadata,
             UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnLocationMetadata,
+            VpnLocationMetadata, WebHookMetadata, WebHookStateChangedMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -355,6 +355,26 @@ pub async fn run_event_logger(
                             DefguardEvent::GroupMemberRemoved { group, user } => (
                                 EventType::GroupMemberRemoved,
                                 serde_json::to_value(GroupAssignedMetadata { group, user }).ok(),
+                            ),
+                            DefguardEvent::WebHookAdded { webhook } => (
+                                EventType::WebHookAdded,
+                                serde_json::to_value(WebHookMetadata { webhook }).ok(),
+                            ),
+                            DefguardEvent::WebHookModified { webhook } => (
+                                EventType::WebHookModified,
+                                serde_json::to_value(WebHookMetadata { webhook }).ok(),
+                            ),
+                            DefguardEvent::WebHookRemoved { webhook } => (
+                                EventType::WebHookRemoved,
+                                serde_json::to_value(WebHookMetadata { webhook }).ok(),
+                            ),
+                            DefguardEvent::WebHookStateChanged { webhook, enabled } => (
+                                EventType::WebHookStateChanged,
+                                serde_json::to_value(WebHookStateChangedMetadata {
+                                    webhook,
+                                    enabled,
+                                })
+                                .ok(),
                             ),
                         };
                         (module, event_type, metadata)

@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Group, Id, MFAMethod, User, WireguardNetwork};
+use crate::db::{Device, Group, Id, MFAMethod, User, WebHook, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 
 /// Shared context that needs to be added to every API event
@@ -212,6 +212,19 @@ pub enum ApiEventType {
     GroupMemberRemoved {
         group: Group<Id>,
         user: User<Id>,
+    },
+    WebHookAdded {
+        webhook: WebHook<Id>,
+    },
+    WebHookModified {
+        webhook: WebHook<Id>,
+    },
+    WebHookRemoved {
+        webhook: WebHook<Id>,
+    },
+    WebHookStateChanged {
+        webhook: WebHook<Id>,
+        enabled: bool,
     },
 }
 

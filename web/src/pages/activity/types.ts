@@ -64,7 +64,10 @@ export type AuditEventType =
   | 'group_modified'
   | 'group_removed'
   | 'group_member_added'
-  | 'group_member_removed';
+  | 'group_member_removed'
+  | 'web_hook_added'
+  | 'web_hook_modified'
+  | 'web_hook_removed'
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -124,4 +127,7 @@ export const auditEventTypeValues: AuditEventType[] = [
   'group_removed',
   'group_member_added',
   'group_member_removed',
+  'web_hook_added',
+  'web_hook_modified',
+  'web_hook_removed',
 ];

@@ -216,6 +216,18 @@ impl EventRouter {
             ApiEventType::GroupMemberRemoved { group, user } => {
                 LoggerEvent::Defguard(DefguardEvent::GroupMemberRemoved { group, user })
             }
+            ApiEventType::WebHookAdded { webhook } => {
+                LoggerEvent::Defguard(DefguardEvent::WebHookAdded { webhook })
+            }
+            ApiEventType::WebHookModified { webhook } => {
+                LoggerEvent::Defguard(DefguardEvent::WebHookModified { webhook })
+            }
+            ApiEventType::WebHookRemoved { webhook } => {
+                LoggerEvent::Defguard(DefguardEvent::WebHookRemoved { webhook })
+            }
+            ApiEventType::WebHookStateChanged { webhook, enabled } => {
+                LoggerEvent::Defguard(DefguardEvent::WebHookStateChanged { webhook, enabled })
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }

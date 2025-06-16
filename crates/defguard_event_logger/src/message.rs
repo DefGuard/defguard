@@ -4,7 +4,7 @@ use std::net::IpAddr;
 use defguard_core::{
     db::{
         models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User,
-        WireguardNetwork,
+        WebHook, WireguardNetwork,
     },
     events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
 };
@@ -268,6 +268,19 @@ pub enum DefguardEvent {
     GroupMemberRemoved {
         group: Group<Id>,
         user: User<Id>,
+    },
+    WebHookAdded {
+        webhook: WebHook<Id>,
+    },
+    WebHookModified {
+        webhook: WebHook<Id>,
+    },
+    WebHookRemoved {
+        webhook: WebHook<Id>,
+    },
+    WebHookStateChanged {
+        webhook: WebHook<Id>,
+        enabled: bool,
     },
 }
 
