@@ -90,4 +90,8 @@ impl super::LDAPConnection {
     ) -> Result<bool, LdapError> {
         Ok(true)
     }
+
+    pub(super) async fn get(&mut self, _dn: &str) -> Result<Option<SearchEntry>, LdapError> {
+        Ok(None)
+    }
 }

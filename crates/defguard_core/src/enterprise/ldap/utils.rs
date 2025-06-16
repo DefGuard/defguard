@@ -20,7 +20,7 @@ pub(crate) async fn login_through_ldap(
     debug!("Logging in user {username} through LDAP");
     let mut ldap_connection = LDAPConnection::create().await?;
     let mut ldap_user = ldap_connection
-        .fetch_user_by_credentials(username, password)
+        .get_user_by_credentials(username, password)
         .await?;
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         info!("User {username} is not in LDAP sync groups, not allowing to login through LDAP.",);
@@ -59,7 +59,7 @@ pub(crate) async fn user_from_ldap(
     let mut ldap_connection = LDAPConnection::create().await?;
 
     let mut ldap_user = ldap_connection
-        .fetch_user_by_credentials(username, password)
+        .get_user_by_credentials(username, password)
         .await?;
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         return Err(LdapError::UserNotInLDAPSyncGroups(

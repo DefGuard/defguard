@@ -1,9 +1,14 @@
 use std::collections::HashSet;
 
 use ldap3::{Mod, SearchEntry};
+use sqlx::{Error as SqlxError, PgExecutor};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::{db::User, handlers::user::check_username, hashset};
+use crate::{
+    db::{Id, Settings, User},
+    handlers::user::check_username,
+    hashset,
+};
 
 pub(crate) enum UserObjectClass {
     SambaSamAccount,
@@ -66,6 +71,11 @@ impl User {
         user.from_ldap = true;
         if let Some(rdn) = extract_rdn_value(&entry.dn) {
             user.ldap_rdn = Some(rdn);
+        } else {
+            return Err(LdapError::InvalidDN(entry.dn.clone()));
+        }
+        if let Some(dn_path) = extract_dn_path(&entry.dn) {
+            user.ldap_user_path = Some(dn_path);
         } else {
             return Err(LdapError::InvalidDN(entry.dn.clone()));
         }
@@ -158,6 +168,11 @@ impl<I> User<I> {
         changes
     }
 
+    // check if key is already in attrs, if not return false
+    fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
+        attrs.iter().any(|(k, _)| *k == key)
+    }
+
     #[must_use]
     pub fn as_ldap_attrs<'a>(
         &'a self,
@@ -177,11 +192,14 @@ impl<I> User<I> {
                 ("sn", hashset![self.last_name.as_str()]),
                 ("givenName", hashset![self.first_name.as_str()]),
                 ("mail", hashset![self.email.as_str()]),
-                ("uid", hashset![self.username.as_str()]),
             ]);
 
-            if rdn_attr != "cn" {
+            if !Self::in_attrs(&attrs, "cn") {
                 attrs.push(("cn", hashset![self.username.as_str()]));
+            }
+
+            if !Self::in_attrs(&attrs, "uid") {
+                attrs.push(("uid", hashset![self.username.as_str()]));
             }
 
             if let Some(phone) = &self.phone {
@@ -204,7 +222,7 @@ impl<I> User<I> {
         }
 
         // Add the username attr and RDN if we haven't already added it
-        if attrs.iter().all(|(key, _)| *key != username_attr) {
+        if !Self::in_attrs(&attrs, username_attr) {
             attrs.push((username_attr, hashset![self.username.as_str()]));
         }
 
@@ -213,6 +231,55 @@ impl<I> User<I> {
         debug!("Generated LDAP attributes: {:?}", attrs);
 
         attrs
+    }
+
+    /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
+    pub(crate) async fn maybe_update_rdn(&mut self) {
+        debug!("Updating RDN for user {} in Defguard", self.username);
+        let settings = Settings::get_current_settings();
+        if settings.ldap_using_username_as_rdn() {
+            debug!("The user's username is being used as the RDN, setting it to username");
+            self.ldap_rdn = Some(self.username.clone());
+        } else {
+            debug!("The user's username is NOT being used as the RDN, skipping update");
+        }
+    }
+}
+
+impl User<Id> {
+    /// User is syncable with LDAP if:
+    /// - he is in a group that is allowed to be synced or no such groups are configured
+    /// - he is active (not disabled)
+    /// - he is enrolled
+    pub(crate) async fn ldap_sync_allowed<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let sync_groups = Settings::get_current_settings().ldap_sync_groups;
+        let my_groups = self.member_of(executor).await?;
+        Ok(
+            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
+                && self.is_active
+                && self.is_enrolled(),
+        )
+    }
+
+    pub(super) async fn get_without_ldap_path<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        sqlx::query_as!(
+            Self,
+            "
+            SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            FROM \"user\" WHERE ldap_user_path IS NULL
+            ",
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 
@@ -240,13 +307,55 @@ pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
     }
 }
 
+/// Extract the remaining part of the distinguished name after the first comma, for example:
+/// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
+#[must_use]
+pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
+    if let Some(parts) = dn.split_once(',') {
+        let path = parts.1.to_string();
+        debug!("Extracted DN path '{}' from DN '{}'", path, dn);
+        Some(path)
+    } else {
+        warn!("Failed to extract DN path from '{}': no comma found", dn);
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use ldap3::SearchEntry;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
+    use crate::db::{
+        models::settings::{initialize_current_settings, update_current_settings, Settings},
+        setup_pool, Group, User,
+    };
+
+    fn make_test_user(username: &str) -> User {
+        User::new(
+            username,
+            Some("test_password"),
+            "last name",
+            "first name",
+            format!("{username}@example.com").as_str(),
+            None,
+        )
+    }
+
+    #[sqlx::test]
+    async fn test_get_empty_user_path(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+        let user = make_test_user("testuser");
+        let user = user.save(&pool).await.unwrap();
+
+        let mut users = User::<Id>::get_without_ldap_path(&pool).await.unwrap();
+        let user_found = users.pop().unwrap();
+        assert_eq!(user_found.username, user.username);
+    }
 
     #[test]
     fn test_extract_dn_value() {
@@ -272,70 +381,307 @@ mod tests {
     }
 
     #[test]
-    fn test_from_searchentry_success() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
-        attrs.insert("mobile".to_string(), vec!["1234567890".to_string()]);
+    fn test_from_searchentry() {
+        // all attributes
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+            attrs.insert("mobile".to_string(), vec!["1234567890".to_string()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
 
-        let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
+            let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
 
-        assert_eq!(user.username, "user1");
-        assert_eq!(user.last_name, "lastname1");
-        assert_eq!(user.first_name, "firstname1");
-        assert_eq!(user.email, "user1@example.com");
-        assert_eq!(user.phone, Some("1234567890".to_string()));
-        assert!(user.from_ldap);
-    }
+            assert_eq!(user.username, "user1");
+            assert_eq!(user.last_name, "lastname1");
+            assert_eq!(user.first_name, "firstname1");
+            assert_eq!(user.email, "user1@example.com");
+            assert_eq!(user.phone, Some("1234567890".to_string()));
+            assert!(user.from_ldap);
+        }
 
-    #[test]
-    fn test_from_searchentry_without_mobile() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+        // without mobile
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
 
-        let user = User::from_searchentry(&entry, "user1", None).unwrap();
+            let user = User::from_searchentry(&entry, "user1", None).unwrap();
 
-        assert_eq!(user.username, "user1");
-        assert_eq!(user.last_name, "lastname1");
-        assert_eq!(user.first_name, "firstname1");
-        assert_eq!(user.email, "user1@example.com");
-        assert_eq!(user.phone, None);
-        assert!(user.from_ldap);
-    }
+            assert_eq!(user.username, "user1");
+            assert_eq!(user.last_name, "lastname1");
+            assert_eq!(user.first_name, "firstname1");
+            assert_eq!(user.email, "user1@example.com");
+            assert_eq!(user.phone, None);
+            assert!(user.from_ldap);
+        }
 
-    #[test]
-    fn test_from_searchentry_missing_attribute() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+        // missing givenName attribute
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
 
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
 
-        let result = User::from_searchentry(&entry, "user1", None);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            LdapError::MissingAttribute(attr) if attr == "givenName"
-        ));
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::MissingAttribute(attr) if attr == "givenName"
+            ));
+        }
+
+        // missing sn attribute
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::MissingAttribute(attr) if attr == "sn"
+            ));
+        }
+
+        // missing mail attribute
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::MissingAttribute(attr) if attr == "mail"
+            ));
+        }
+
+        // empty attribute values
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec![]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::MissingAttribute(attr) if attr == "sn"
+            ));
+        }
+
+        // invalid DN
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1".to_string(), // No comma, invalid DN
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::InvalidDN(dn) if dn == "cn=user1"
+            ));
+
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "user1,dc=example,dc=com".to_string(), // No equals sign in RDN
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let result = User::from_searchentry(&entry, "user1", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::InvalidDN(dn) if dn == "user1,dc=example,dc=com"
+            ));
+        }
+
+        // invalid username
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            // Test with invalid username (contains special characters)
+            let result = User::from_searchentry(&entry, "user@#$%", None);
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                LdapError::InvalidUsername(username) if username == "user@#$%"
+            ));
+        }
+
+        // complex DN
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+            attrs.insert("mobile".to_string(), vec!["1234567890".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "uid=user1,ou=People,ou=Department,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
+
+            assert_eq!(user.username, "user1");
+            assert_eq!(user.last_name, "lastname1");
+            assert_eq!(user.first_name, "firstname1");
+            assert_eq!(user.email, "user1@example.com");
+            assert_eq!(user.phone, Some("1234567890".to_string()));
+            assert!(user.from_ldap);
+            assert_eq!(user.ldap_rdn, Some("user1".to_string()));
+            assert_eq!(
+                user.ldap_user_path,
+                Some("ou=People,ou=Department,dc=example,dc=com".to_string())
+            );
+        }
+
+        // with password
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let user = User::from_searchentry(&entry, "user1", Some("mypassword")).unwrap();
+
+            assert_eq!(user.username, "user1");
+            assert!(user.password_hash.is_some());
+            assert!(user.from_ldap);
+        }
+
+        // multiple attribute values
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert(
+                "sn".to_string(),
+                vec!["lastname1".to_string(), "lastname2".to_string()],
+            );
+            attrs.insert(
+                "givenName".to_string(),
+                vec!["firstname1".to_string(), "firstname2".to_string()],
+            );
+            attrs.insert(
+                "mail".to_string(),
+                vec![
+                    "user1@example.com".to_string(),
+                    "user1@other.com".to_string(),
+                ],
+            );
+            attrs.insert(
+                "mobile".to_string(),
+                vec!["1234567890".to_string(), "0987654321".to_string()],
+            );
+
+            let entry = SearchEntry {
+                dn: "cn=user1,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let user = User::from_searchentry(&entry, "user1", None).unwrap();
+
+            // Should use the first value when multiple values are present
+            assert_eq!(user.last_name, "lastname1");
+            assert_eq!(user.first_name, "firstname1");
+            assert_eq!(user.email, "user1@example.com");
+            assert_eq!(user.phone, Some("1234567890".to_string()));
+            assert!(user.from_ldap);
+        }
+
+        // fields properly set
+        {
+            let mut attrs = HashMap::new();
+            attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+            attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+            attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+            let entry = SearchEntry {
+                dn: "cn=testuser,ou=users,dc=example,dc=com".to_string(),
+                attrs,
+                bin_attrs: HashMap::new(),
+            };
+
+            let user = User::from_searchentry(&entry, "testuser", None).unwrap();
+
+            // Verify LDAP-specific fields are properly set
+            assert!(user.from_ldap);
+            assert_eq!(user.ldap_rdn, Some("testuser".to_string()));
+            assert_eq!(
+                user.ldap_user_path,
+                Some("ou=users,dc=example,dc=com".to_string())
+            );
+        }
     }
 
     #[test]
@@ -531,5 +877,249 @@ mod tests {
         assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
         assert!(mods.contains(&Mod::Replace("cn", hashset!["testuser"])));
         assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+    }
+
+    #[test]
+    fn test_extract_dn_path_various_cases() {
+        assert_eq!(
+            extract_dn_path("cn=testuser,dc=example,dc=com"),
+            Some("dc=example,dc=com".to_string())
+        );
+        assert_eq!(
+            extract_dn_path("uid=abc,ou=users,dc=example,dc=org"),
+            Some("ou=users,dc=example,dc=org".to_string())
+        );
+        assert_eq!(
+            extract_dn_path("cn=Test User,dc=example,dc=com"),
+            Some("dc=example,dc=com".to_string())
+        );
+        assert_eq!(
+            extract_dn_path("cn=user.name+123,ou=group,dc=example,dc=com"),
+            Some("ou=group,dc=example,dc=com".to_string())
+        );
+
+        assert_eq!(extract_dn_path("invalid-dn"), None);
+        assert_eq!(extract_dn_path("value"), None);
+
+        assert_eq!(extract_dn_path(""), None);
+
+        assert_eq!(extract_dn_path("cn=abc,"), Some("".to_string()));
+
+        assert_eq!(
+            extract_dn_path("uid=cde,ou=users,ou=staff,dc=example,dc=org"),
+            Some("ou=users,ou=staff,dc=example,dc=org".to_string())
+        );
+
+        assert_eq!(extract_dn_path("cn=abc"), None);
+
+        assert_eq!(extract_dn_path("cn=abc"), None);
+
+        assert_eq!(
+            extract_dn_path("cn=,dc=example,dc=com"),
+            Some("dc=example,dc=com".to_string())
+        );
+
+        assert_eq!(
+            extract_dn_path("cn=abc=cde,dc=example,dc=com"),
+            Some("dc=example,dc=com".to_string())
+        );
+
+        assert_eq!(
+            extract_dn_path(" cn=abc ,dc=example,dc=com "),
+            Some("dc=example,dc=com ".to_string())
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_empty_sync_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = Some("hash".to_string());
+        let user = user.save(&pool).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_inactive_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = false;
+        user.password_hash = Some("hash".to_string());
+        let user = user.save(&pool).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(!result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_unenrolled_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        let user = user.save(&pool).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(!result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_sync_groups_user_in_group(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = Some("hash".to_string());
+        let user = user.save(&pool).await.unwrap();
+
+        let group = Group::new("ldap_sync_group").save(&pool).await.unwrap();
+        user.add_to_group(&pool, &group).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_sync_groups_user_not_in_group(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = Some("hash".to_string());
+        let user = user.save(&pool).await.unwrap();
+
+        let _group = Group::new("ldap_sync_group").save(&pool).await.unwrap();
+        let other_group = Group::new("other_group").save(&pool).await.unwrap();
+        user.add_to_group(&pool, &other_group).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(!result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_with_multiple_sync_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = Some("hash".to_string());
+        let user = user.save(&pool).await.unwrap();
+
+        let _group1 = Group::new("group1").save(&pool).await.unwrap();
+        let group2 = Group::new("group2").save(&pool).await.unwrap();
+        let _group3 = Group::new("group3").save(&pool).await.unwrap();
+
+        user.add_to_group(&pool, &group2).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.ldap_sync_groups = vec![
+            "group1".to_string(),
+            "group2".to_string(),
+            "group3".to_string(),
+        ];
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_enrolled_via_openid(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = None;
+        user.openid_sub = Some("openid_sub".to_string());
+        user.from_ldap = false;
+        let user = user.save(&pool).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_enrolled_via_ldap(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = true;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = true;
+        let user = user.save(&pool).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(result);
+    }
+
+    #[sqlx::test]
+    async fn test_ldap_sync_allowed_all_conditions_false(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let _ = initialize_current_settings(&pool).await;
+
+        let mut user = make_test_user("testuser");
+        user.is_active = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        let user = user.save(&pool).await.unwrap();
+
+        let _group = Group::new("ldap_sync_group").save(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let result = user.ldap_sync_allowed(&pool).await.unwrap();
+        assert!(!result);
     }
 }

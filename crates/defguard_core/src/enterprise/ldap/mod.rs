@@ -11,7 +11,7 @@ use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncSta
 use self::error::LdapError;
 use crate::{
     db::{self, models::settings::update_current_settings, Id, Settings, User},
-    enterprise::{is_enterprise_enabled, limits::update_counts},
+    enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
 };
 
 #[cfg(not(test))]
@@ -184,12 +184,18 @@ impl LDAPConfig {
 
     /// Constructs user distinguished name.
     #[must_use]
-    pub(crate) fn user_dn(&self, user_rdn_value: &str) -> String {
-        format!(
-            "{}={user_rdn_value},{}",
-            self.get_rdn_attr(),
-            self.ldap_user_search_base,
-        )
+    pub(crate) fn user_dn(&self, user_rdn_value: &str, user_path: &str) -> String {
+        format!("{}={user_rdn_value},{}", self.get_rdn_attr(), user_path)
+    }
+
+    #[must_use]
+    pub(crate) fn user_dn_from_user<I>(&self, user: &User<I>) -> String {
+        let path = if let Some(path) = &user.ldap_user_path {
+            path.as_str()
+        } else {
+            &self.ldap_user_search_base
+        };
+        self.user_dn(user.ldap_rdn_value(), path)
     }
 
     /// Constructs group distinguished name.
@@ -360,7 +366,7 @@ impl LDAPConnection {
             return Ok(true);
         }
 
-        let dn = self.config.user_dn(user.ldap_rdn_value());
+        let dn = self.config.user_dn_from_user(user);
 
         if !self.user_exists(user).await? {
             debug!("User {user} does not exist, not syncing user");
@@ -422,17 +428,22 @@ impl LDAPConnection {
         Ok(!res.is_empty())
     }
 
+    async fn user_exists_by_dn(&mut self, dn: &str) -> Result<bool, LdapError> {
+        let res = self.get(dn).await?;
+        Ok(res.is_some())
+    }
+
     async fn user_exists<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
         let username = &user.username;
-        let rdn = user.ldap_rdn_value();
+        let dn = self.config.user_dn_from_user(user);
         let username_exists = self.user_exists_by_username(username).await?;
-        let rdn_exists = self.user_exists_by_rdn(rdn).await?;
+        let dn_exists = self.user_exists_by_dn(&dn).await?;
 
-        Ok(username_exists || rdn_exists)
+        Ok(username_exists || dn_exists)
     }
 
     // Checks if cn is available, including default LDAP admin class
-    pub async fn is_username_available(&mut self, username: &str) -> bool {
+    pub async fn is_username_available(&mut self, username: &str) -> Result<bool, LdapError> {
         debug!("Checking if username {username} is available");
         let username_escape = ldap_escape(username);
         let users = self
@@ -440,27 +451,12 @@ impl LDAPConnection {
                 "(&({}={username_escape})(|(objectClass={})))",
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
-            .await;
-        match users {
-            Ok(users) => users.is_empty(),
-            _ => true,
-        }
-    }
-
-    pub async fn is_rdn_available(&mut self, rdn: &str) -> bool {
-        debug!("Checking if RDN {rdn} is available");
-        let rdn_escape = ldap_escape(rdn);
-        let users = self
-            .search_users(&format!("({}={rdn_escape})", self.config.get_rdn_attr()))
-            .await;
-        match users {
-            Ok(users) => users.is_empty(),
-            _ => true,
-        }
+            .await?;
+        Ok(users.is_empty())
     }
 
     /// Retrieves user with given username from LDAP.
-    pub async fn fetch_user_by_credentials(
+    pub async fn get_user_by_credentials(
         &mut self,
         username: &str,
         password: &str,
@@ -487,12 +483,32 @@ impl LDAPConnection {
         }
     }
 
-    pub async fn get_user(&mut self, user: &User<Id>) -> Result<User, LdapError> {
+    pub async fn get_user_by_username(&mut self, username: &User<Id>) -> Result<User, LdapError> {
+        debug!("Performing LDAP user search by username: {username}");
+        let username = &username.username;
+        let username_escape = ldap_escape(username);
+        let mut entries = self
+            .search_users(&format!(
+                "(&({}={username_escape})(objectClass={}))",
+                self.config.ldap_username_attr, self.config.ldap_user_obj_class
+            ))
+            .await?;
+        if entries.len() > 1 {
+            return Err(LdapError::TooManyObjects);
+        }
+        if let Some(entry) = entries.pop() {
+            info!("Performed LDAP user search by username: {username}");
+            User::from_searchentry(&entry, username, None)
+        } else {
+            Err(LdapError::ObjectNotFound(format!(
+                "User {username} not found",
+            )))
+        }
+    }
+
+    pub async fn get_user_by_rdn(&mut self, user: &User<Id>) -> Result<User, LdapError> {
         let rdn = user.ldap_rdn_value();
-        debug!(
-            "Trying to retrieve LDAP user with the following RDN: {}",
-            rdn
-        );
+        debug!("Performing LDAP user search by RDN: {rdn}");
         let mut entries = self
             .search_users(&format!(
                 "(&({}={rdn})(objectClass={}))",
@@ -504,10 +520,22 @@ impl LDAPConnection {
             return Err(LdapError::TooManyObjects);
         }
         if let Some(entry) = entries.pop() {
-            info!("Performed LDAP user search: {rdn}");
+            info!("Performed LDAP user search by RDN: {rdn}");
             User::from_searchentry(&entry, &user.username, None)
         } else {
             Err(LdapError::ObjectNotFound(format!("User {rdn} not found",)))
+        }
+    }
+
+    pub async fn get_user_by_dn(&mut self, user: &User<Id>) -> Result<User, LdapError> {
+        let dn = self.config.user_dn_from_user(user);
+        debug!("Trying to retrieve LDAP user with the following DN: {}", dn);
+        match self.get(&dn).await? {
+            Some(entry) => {
+                info!("Found LDAP user with DN: {}", dn);
+                User::from_searchentry(&entry, &user.username, None)
+            }
+            None => Err(LdapError::ObjectNotFound(format!("User {dn} not found",))),
         }
     }
 
@@ -519,8 +547,7 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {}", user.username);
-        let user_rdn = user.ldap_rdn_value();
-        let dn = self.config.user_dn(user_rdn);
+        let user_dn = self.config.user_dn_from_user(user);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {}", user.username);
@@ -546,16 +573,16 @@ impl LDAPConnection {
         let user_obj_classes = self.config.get_all_user_obj_classes();
         let username_attr = self.config.ldap_username_attr.clone();
         let rdn_attr = self.config.get_rdn_attr().to_string();
-        if !self.is_username_available(&user.username).await
-            || !self.is_rdn_available(user_rdn).await
+        if !self.is_username_available(&user.username).await?
+            || self.user_exists_by_dn(&user_dn).await?
         {
             return Err(LdapError::ObjectAlreadyExists(format!(
-                "User with username {} or RDN {user_rdn} already exists",
+                "User with username {} or DN {user_dn} already exists",
                 user.username
             )));
         }
         self.add(
-            &dn,
+            &user_dn,
             user.as_ldap_attrs(
                 &ssha_password,
                 &nt_password,
@@ -568,12 +595,13 @@ impl LDAPConnection {
         .await?;
         if self.config.ldap_uses_ad {
             self.set_password(user, &password).await?;
-            self.activate_ad_user(user_rdn).await?;
+            self.activate_ad_user(&user_dn).await?;
         }
+        user.ldap_user_path = extract_dn_path(&user_dn);
         if password_is_random {
             user.ldap_pass_randomized = true;
-            user.save(pool).await?;
         }
+        user.save(pool).await?;
         info!("Added LDAP user {}", user.username);
         Ok(())
     }
@@ -601,8 +629,13 @@ impl LDAPConnection {
                 "User {old_username} not found in LDAP, cannot modify",
             )));
         }
-        let old_dn = self.config.user_dn(old_rdn);
-        let new_dn = self.config.user_dn(new_rdn);
+        let user_dn_path = if let Some(path) = &user.ldap_user_path {
+            path.as_str()
+        } else {
+            &self.config.ldap_user_search_base
+        };
+        let old_dn = self.config.user_dn(old_rdn, user_dn_path);
+        let new_dn = self.config.user_dn(new_rdn, user_dn_path);
         let config = self.config.clone();
         let mods = user.as_ldap_mod(&config);
         self.modify(&old_dn, &new_dn, mods).await?;
@@ -619,17 +652,15 @@ impl LDAPConnection {
             .map(|name| name.to_string())
             .ok_or_else(|| {
                 LdapError::ObjectNotFound(format!(
-                    "Couldn't extract a group name from searchentry {:?}.",
-                    entry
+                    "Couldn't extract a group name from searchentry {entry:?}."
                 ))
             })
     }
 
     /// Deletes user from LDAP.
     pub async fn delete_user<I>(&mut self, user: &User<I>) -> Result<(), LdapError> {
-        let user_rdn_value = user.ldap_rdn_value();
         debug!("Deleting user {user}");
-        let dn = self.config.user_dn(user_rdn_value);
+        let dn = self.config.user_dn_from_user(user);
         debug!("Removing group memberships first...");
         let user_groups = self.get_user_groups(&dn).await?;
         debug!("Removing user from groups: {user_groups:?}");
@@ -651,12 +682,11 @@ impl LDAPConnection {
         Ok(())
     }
 
-    pub async fn activate_ad_user(&mut self, user_rdn_value: &str) -> Result<(), LdapError> {
-        debug!("Activating user {user_rdn_value}");
-        let user_dn = self.config.user_dn(user_rdn_value);
+    pub async fn activate_ad_user(&mut self, user_dn: &str) -> Result<(), LdapError> {
+        debug!("Activating user {user_dn}");
         self.modify(
-            &user_dn,
-            &user_dn,
+            user_dn,
+            user_dn,
             vec![
                 // Enables the user
                 Mod::Replace("userAccountControl", hashset!["512"]),
@@ -665,7 +695,7 @@ impl LDAPConnection {
             ],
         )
         .await?;
-        info!("Activated user {user_rdn_value}");
+        info!("Activated user {user_dn}");
 
         Ok(())
     }
@@ -677,7 +707,7 @@ impl LDAPConnection {
         password: &str,
     ) -> Result<(), LdapError> {
         debug!("Setting password for user {user}");
-        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        let user_dn = self.config.user_dn_from_user(user);
 
         if self.config.ldap_uses_ad {
             let unicode_pwd = hash::unicode_pwd(password);
@@ -746,7 +776,7 @@ impl LDAPConnection {
         //   extent the group attr with multiple members
         let member_dns = members
             .into_iter()
-            .map(|member| self.config.user_dn(member.ldap_rdn_value()))
+            .map(|member| self.config.user_dn_from_user(member))
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();
         let member_refs: HashSet<&str> = member_dns.iter().map(|s| s.as_str()).collect();
@@ -811,7 +841,7 @@ impl LDAPConnection {
         debug!(
             "Adding user {user} to group {groupname} in LDAP, checking if that group exists first..."
         );
-        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        let user_dn = self.config.user_dn_from_user(user);
         if self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is already a member of group {groupname}, skipping");
             return Ok(());
@@ -845,7 +875,7 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Removing user {user} from group {groupname} in LDAP");
-        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        let user_dn = self.config.user_dn_from_user(user);
         if !self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is not a member of group {groupname}, skipping");
             return Ok(());

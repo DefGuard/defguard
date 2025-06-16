@@ -130,6 +130,7 @@ fn compute_user_sync_changes(
     all_ldap_users: &mut Vec<User>,
     all_defguard_users: &mut Vec<User<Id>>,
     authority: Authority,
+    ldap_config: &LDAPConfig,
 ) -> UserSyncChanges {
     debug!("Computing user sync changes (user creation/deletion), authority: {authority:?}");
     let mut delete_defguard = Vec::new();
@@ -140,17 +141,17 @@ fn compute_user_sync_changes(
     let mut ldap_identifiers = HashSet::with_capacity(all_ldap_users.len());
     let defguard_identifiers = all_defguard_users
         .iter()
-        .map(|u| u.ldap_rdn_value().to_string())
+        .map(|u| ldap_config.user_dn_from_user(u))
         .collect::<HashSet<_>>();
 
     trace!("Defguard identifiers: {:?}", defguard_identifiers);
     trace!("LDAP identifiers: {:?}", ldap_identifiers);
 
     for user in all_ldap_users.drain(..) {
-        ldap_identifiers.insert(user.ldap_rdn_value().to_string());
+        ldap_identifiers.insert(ldap_config.user_dn_from_user(&user));
 
         debug!("Checking if user {} is in Defguard", user.username);
-        if !defguard_identifiers.contains(user.ldap_rdn_value()) {
+        if !defguard_identifiers.contains(&ldap_config.user_dn_from_user(&user)) {
             debug!("User {} not found in Defguard", user.username);
             match authority {
                 Authority::LDAP => add_defguard.push(user),
@@ -161,7 +162,7 @@ fn compute_user_sync_changes(
 
     for user in all_defguard_users.drain(..) {
         debug!("Checking if user {} is in LDAP", user.username);
-        if !ldap_identifiers.contains(user.ldap_rdn_value()) {
+        if !ldap_identifiers.contains(&ldap_config.user_dn_from_user(&user)) {
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
@@ -220,18 +221,17 @@ struct GroupSyncChanges<'a> {
 }
 
 /// Computes what groups should be added/deleted and where
-fn compute_group_sync_changes(
+fn compute_group_sync_changes<'a>(
     defguard_memberships: HashMap<String, HashSet<User<Id>>>,
-    ldap_memberships: HashMap<String, HashSet<&User>>,
+    ldap_memberships: HashMap<String, HashSet<&'a User>>,
     authority: Authority,
-) -> GroupSyncChanges<'_> {
+    ldap_config: &LDAPConfig,
+) -> GroupSyncChanges<'a> {
     debug!("Computing group sync changes (group membership changes), authority: {authority:?}");
     let mut delete_defguard = HashMap::new();
     let mut add_defguard = HashMap::new();
     let mut delete_ldap = HashMap::new();
     let mut add_ldap = HashMap::new();
-
-    // HashMap<groupname, HashMap<&user, ldap_rdn_value>>
 
     for (group, members) in defguard_memberships.clone() {
         debug!("Checking group {} for changes", group);
@@ -240,9 +240,9 @@ fn compute_group_sync_changes(
             let missing_from_defguard = ldap_members
                 .iter()
                 .filter(|u| {
-                    !members
-                        .iter()
-                        .any(|m| m.ldap_rdn_value() == u.ldap_rdn_value())
+                    !members.iter().any(|m| {
+                        ldap_config.user_dn_from_user(m) == ldap_config.user_dn_from_user(u)
+                    })
                 })
                 .cloned()
                 .collect::<HashSet<_>>();
@@ -250,9 +250,9 @@ fn compute_group_sync_changes(
             let missing_from_ldap = members
                 .iter()
                 .filter(|m| {
-                    !ldap_members
-                        .iter()
-                        .any(|u| u.ldap_rdn_value() == m.ldap_rdn_value())
+                    !ldap_members.iter().any(|u| {
+                        ldap_config.user_dn_from_user(m) == ldap_config.user_dn_from_user(u)
+                    })
                 })
                 .cloned()
                 .collect::<HashSet<_>>();
@@ -385,6 +385,7 @@ fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConf
 fn extract_intersecting_users(
     defguard_users: &mut Vec<User<Id>>,
     ldap_users: &mut Vec<User>,
+    ldap_config: &LDAPConfig,
 ) -> Vec<(User, User<Id>)> {
     let mut intersecting_users = vec![];
     let mut intersecting_users_ldap = vec![];
@@ -392,7 +393,9 @@ fn extract_intersecting_users(
     for defguard_user in defguard_users.iter() {
         if let Some(ldap_user) = ldap_users
             .iter()
-            .position(|u| u.ldap_rdn_value() == defguard_user.ldap_rdn_value())
+            .position(|u| {
+                ldap_config.user_dn_from_user(u) == ldap_config.user_dn_from_user(defguard_user)
+            })
             .map(|i| ldap_users.remove(i))
         {
             intersecting_users_ldap.push(ldap_user);
@@ -402,7 +405,7 @@ fn extract_intersecting_users(
     for user in intersecting_users_ldap.into_iter() {
         if let Some(defguard_user) = defguard_users
             .iter()
-            .position(|u| u.ldap_rdn_value() == user.ldap_rdn_value())
+            .position(|u| ldap_config.user_dn_from_user(u) == ldap_config.user_dn_from_user(&user))
             .map(|i| defguard_users.remove(i))
         {
             intersecting_users.push((user, defguard_user));
@@ -474,8 +477,8 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
-        let user_dn = self.config.user_dn(user.ldap_rdn_value());
-        let ldap_user = self.get_user(user).await?;
+        let user_dn = self.config.user_dn_from_user(user);
+        let ldap_user = self.get_user_by_dn(user).await?;
         let defguard_groups = user.member_of_names(pool).await?;
         let mut ldap_groups = Vec::new();
         for group_entry in self.get_user_groups(&user_dn).await? {
@@ -509,9 +512,89 @@ impl super::LDAPConnection {
         self.apply_user_modifications(intersecting_users, authority, pool)
             .await?;
 
-        let changes = compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            authority,
+            &self.config,
+        );
         self.apply_user_group_sync_changes(pool, changes).await?;
 
+        Ok(())
+    }
+
+    /// Fixes users with missing LDAP path
+    /// This is for compatibility with older Defguard versions that didn't store LDAP paths in the database
+    /// It will try to fetch the LDAP path from the LDAP server for users that have it missing
+    /// If the user is not found in LDAP, it will skip fixing that user
+    ///
+    /// This function matches the user by username first, as those should be unique in both Defguard and LDAP.
+    /// Then, just to make sure the user wasn't renamed, it checks if the RDN values match.
+    pub(crate) async fn fix_missing_user_path(&mut self, pool: &PgPool) -> Result<(), LdapError> {
+        debug!("Fixing missing user path in LDAP");
+        let settings = Settings::get_current_settings();
+        if !settings.ldap_sync_enabled {
+            debug!("LDAP sync is disabled, skipping fixing missing user path");
+            return Ok(());
+        }
+
+        let mut transaction = pool.begin().await?;
+        let users = User::get_without_ldap_path(&mut *transaction).await?;
+
+        let mut filtered_users = Vec::new();
+        for user in users {
+            if user.ldap_sync_allowed(&mut *transaction).await? {
+                filtered_users.push(user);
+            }
+        }
+        let users = filtered_users;
+
+        for mut defguard_user in users {
+            if defguard_user.ldap_user_path.is_none() {
+                match self.get_user_by_username(&defguard_user).await {
+                    Ok(ldap_user) => {
+                        debug!(
+                            "Found LDAP user {} with missing path in Defguard, fixing their path",
+                            defguard_user.username
+                        );
+                        let defguard_user_rdn = defguard_user.ldap_rdn_value();
+                        let ldap_user_rdn = ldap_user.ldap_rdn_value();
+
+                        if defguard_user_rdn != ldap_user_rdn {
+                            warn!(
+                                "User {} has different RDN in Defguard ({}) and LDAP ({}), \
+                                cannot fix missing LDAP path. Please update their username manually, so
+                                they match in both sources.",
+                                defguard_user.username, defguard_user_rdn, ldap_user_rdn
+                            );
+                            continue;
+                        }
+
+                        if let Some(ldap_path) = ldap_user.ldap_user_path {
+                            debug!(
+                                "Fixing the missing LDAP path of Defguard user {} to {}",
+                                defguard_user.username, ldap_path
+                            );
+                            defguard_user.ldap_user_path = Some(ldap_path);
+                            defguard_user.save(&mut *transaction).await?;
+                        } else {
+                            warn!(
+                                "User {} has no LDAP path in LDAP, skipping fixing their path in Defguard",
+                                defguard_user.username
+                            );
+                        }
+                    }
+                    Err(err) => {
+                        debug!(
+                            "Failed to get user {} from LDAP: {}, cannot update their DN in Defguard",
+                            defguard_user.username, err
+                        );
+                    }
+                }
+            }
+        }
+
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -532,6 +615,8 @@ impl super::LDAPConnection {
             debug!("Incremental LDAP sync requested.");
             Authority::LDAP
         };
+
+        self.fix_missing_user_path(pool).await?;
 
         let mut sync_groups = Vec::new();
         for groupname in &self.config.ldap_sync_groups {
@@ -591,18 +676,27 @@ impl super::LDAPConnection {
         }
 
         let intersecting_users =
-            extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users);
+            extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users, &self.config);
+
         self.apply_user_modifications(intersecting_users, authority, pool)
             .await?;
 
-        let user_changes =
-            compute_user_sync_changes(&mut all_ldap_users, &mut all_defguard_users, authority);
+        let user_changes = compute_user_sync_changes(
+            &mut all_ldap_users,
+            &mut all_defguard_users,
+            authority,
+            &self.config,
+        );
 
         debug!("Defguard group memberships: {:?}", defguard_memberships);
         debug!("LDAP group memberships: {:?}", ldap_memberships);
 
-        let membership_changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);
+        let membership_changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            authority,
+            &self.config,
+        );
 
         debug!("Membership changes: {:?}", membership_changes);
 
@@ -723,21 +817,30 @@ impl super::LDAPConnection {
 
         for user in changes.add_defguard {
             debug!("Adding user {} to Defguard", user.username);
-            // check if the user doesnt exist in defguard
-            if User::find_by_username(&mut *transaction, &user.username)
-                .await?
-                .is_none()
+            if let Some(defguard_user) =
+                User::find_by_username(&mut *transaction, &user.username).await?
             {
+                let defguard_user_dn = self.config.user_dn_from_user(&defguard_user);
+                let ldap_user_dn = self.config.user_dn_from_user(&user);
+                if defguard_user_dn == ldap_user_dn {
+                    debug!(
+                        "User {} (DN: {}) already exists in Defguard, skipping...",
+                        user.username, defguard_user_dn
+                    );
+                } else {
+                    warn!(
+                        "LDAP user with username {} already exists in Defguard. \
+                        Those users have different DNs: {} (Defguard) vs {} (LDAP). \
+                        All usernames must be unique, so this LDAP user will not be added to Defguard.",
+                        user.username, ldap_user_dn, defguard_user_dn
+                    );
+                }
+            } else {
                 debug!(
                     "LDAP user {} does not exist in Defguard yet, adding...",
                     user.username
                 );
                 user.save(&mut *transaction).await?;
-            } else {
-                debug!(
-                    "LDAP user {} already exists in Defguard, skipping",
-                    user.username
-                );
             }
         }
 
@@ -768,7 +871,7 @@ impl super::LDAPConnection {
                 .get(username_attr)
                 .and_then(|v| v.first())
                 .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!("No {} attribute found", username_attr))
+                    LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
                 })?;
 
             match User::from_searchentry(&entry, username, None) {
@@ -795,14 +898,18 @@ mod tests {
     use crate::db::setup_pool;
 
     fn make_test_user(username: &str) -> User {
-        User::new(
+        let mut user = User::new(
             username,
             Some("test_password"),
             "last name",
             "first name",
-            format!("{}@example.com", username).as_str(),
+            format!("{username}@example.com").as_str(),
             None,
-        )
+        );
+
+        user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_string());
+
+        user
     }
 
     #[test]
@@ -810,8 +917,12 @@ mod tests {
         let mut ldap_users: Vec<User> = vec![];
         let mut defguard_users: Vec<User<Id>> = vec![];
 
-        let changes =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::LDAP);
+        let changes = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -833,8 +944,12 @@ mod tests {
         let mut ldap_users = vec![ldap_user];
         let mut defguard_users: Vec<User<Id>> = vec![];
 
-        let changes =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::LDAP);
+        let changes = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert_eq!(changes.add_defguard.len(), 1);
@@ -862,8 +977,12 @@ mod tests {
         let mut ldap_users: Vec<User> = vec![];
         let mut defguard_users = vec![defguard_user];
 
-        let changes =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::LDAP);
+        let changes = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert_eq!(changes.delete_defguard.len(), 1);
         assert_eq!(changes.delete_defguard[0].username, "test_user");
@@ -891,8 +1010,12 @@ mod tests {
         let mut ldap_users: Vec<User> = vec![];
         let mut defguard_users = vec![defguard_user];
 
-        let changes =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::Defguard);
+        let changes = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -915,8 +1038,12 @@ mod tests {
         let mut ldap_users = vec![ldap_user];
         let mut defguard_users: Vec<User<Id>> = vec![];
 
-        let changes =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::Defguard);
+        let changes = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -957,6 +1084,7 @@ mod tests {
             &mut ldap_users.clone(),
             &mut defguard_users.clone(),
             Authority::LDAP,
+            &LDAPConfig::default(),
         );
 
         assert!(changes_ldap.delete_defguard.is_empty());
@@ -964,8 +1092,12 @@ mod tests {
         assert!(changes_ldap.delete_ldap.is_empty());
         assert!(changes_ldap.add_ldap.is_empty());
 
-        let changes_defguard =
-            compute_user_sync_changes(&mut ldap_users, &mut defguard_users, Authority::Defguard);
+        let changes_defguard = compute_user_sync_changes(
+            &mut ldap_users,
+            &mut defguard_users,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes_defguard.delete_defguard.is_empty());
         assert!(changes_defguard.add_defguard.is_empty());
@@ -978,8 +1110,12 @@ mod tests {
         let defguard_memberships = HashMap::new();
         let ldap_memberships = HashMap::new();
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -997,8 +1133,12 @@ mod tests {
             HashSet::from_iter(vec![&test_user]),
         );
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert_eq!(changes.add_defguard.len(), 1);
@@ -1020,8 +1160,12 @@ mod tests {
         );
         let ldap_memberships = HashMap::new();
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert_eq!(changes.delete_defguard.len(), 1);
         assert!(changes.delete_defguard.contains_key("test_group"));
@@ -1043,8 +1187,12 @@ mod tests {
         );
         let ldap_memberships = HashMap::new();
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::Defguard);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -1065,8 +1213,12 @@ mod tests {
             HashSet::from_iter(vec![&test_user]),
         );
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::Defguard);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -1097,6 +1249,7 @@ mod tests {
             defguard_memberships.clone(),
             ldap_memberships.clone(),
             Authority::LDAP,
+            &LDAPConfig::default(),
         );
 
         // Since members are identical, these should be empty
@@ -1114,8 +1267,12 @@ mod tests {
         );
         assert!(changes_ldap.add_ldap.is_empty() || changes_ldap.add_ldap["test_group"].is_empty());
 
-        let changes_defguard =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::Defguard);
+        let changes_defguard = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         // Since members are identical, these should be empty
         assert!(
@@ -1153,8 +1310,12 @@ mod tests {
             HashSet::from_iter(vec![&test_user, &test_user2]),
         );
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.add_defguard.contains_key("test_group"));
         assert_eq!(changes.add_defguard["test_group"].len(), 1);
@@ -1178,8 +1339,12 @@ mod tests {
             HashSet::from_iter(vec![&user1_noid]),
         );
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.contains_key("test_group"));
         assert_eq!(changes.delete_defguard["test_group"].len(), 1);
@@ -1216,8 +1381,12 @@ mod tests {
             HashSet::from_iter(vec![&user5, &user6]),
         );
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         // group1: remove user2, add user4
         assert!(changes.delete_defguard.contains_key("group1"));
@@ -1270,8 +1439,12 @@ mod tests {
         );
         ldap_memberships.insert("group2".to_string(), HashSet::from_iter(vec![&user3]));
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::Defguard);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         assert!(changes.delete_defguard.is_empty());
         assert!(changes.add_defguard.is_empty());
@@ -1304,8 +1477,12 @@ mod tests {
         let mut ldap_memberships = HashMap::new();
         ldap_memberships.insert("empty_group2".to_string(), HashSet::new());
 
-        let changes =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::LDAP);
+        let changes = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::LDAP,
+            &LDAPConfig::default(),
+        );
 
         // empty_group1 should be deleted from defguard (it's not in LDAP)
         assert!(changes.delete_defguard.contains_key("empty_group1"));
@@ -1363,6 +1540,7 @@ mod tests {
             defguard_memberships.clone(),
             ldap_memberships.clone(),
             Authority::LDAP,
+            &LDAPConfig::default(),
         );
 
         // group1: remove user2, add user4
@@ -1392,8 +1570,12 @@ mod tests {
         assert!(changes_ldap.add_defguard["group4"].contains(&user3_noid));
 
         // Test with Defguard as authority
-        let changes_defguard =
-            compute_group_sync_changes(defguard_memberships, ldap_memberships, Authority::Defguard);
+        let changes_defguard = compute_group_sync_changes(
+            defguard_memberships,
+            ldap_memberships,
+            Authority::Defguard,
+            &LDAPConfig::default(),
+        );
 
         // group1: add user2, remove user4
         assert!(changes_defguard.add_ldap.contains_key("group1"));
@@ -1427,7 +1609,11 @@ mod tests {
         let mut defguard_users = Vec::<User<Id>>::new();
         let mut ldap_users = Vec::<User>::new();
 
-        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+        let result = extract_intersecting_users(
+            &mut defguard_users,
+            &mut ldap_users,
+            &LDAPConfig::default(),
+        );
 
         assert!(result.is_empty());
         assert!(defguard_users.is_empty());
@@ -1506,7 +1692,11 @@ mod tests {
         let mut defguard_users = vec![user1, user2, user3];
         let mut ldap_users = vec![ldap_user1, ldap_user2, ldap_user4];
 
-        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+        let result = extract_intersecting_users(
+            &mut defguard_users,
+            &mut ldap_users,
+            &LDAPConfig::default(),
+        );
 
         // Should have 2 intersecting users (user1 and user2)
         assert_eq!(result.len(), 2);
@@ -1553,7 +1743,11 @@ mod tests {
             None,
         )];
 
-        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+        let result = extract_intersecting_users(
+            &mut defguard_users,
+            &mut ldap_users,
+            &LDAPConfig::default(),
+        );
 
         assert!(result.is_empty());
         assert_eq!(defguard_users.len(), 1);

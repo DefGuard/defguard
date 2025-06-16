@@ -59,6 +59,38 @@ impl super::LDAPConnection {
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
+    pub(crate) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
+        debug!("Searching for LDAP object with DN {dn}");
+        let search_result = self
+            .ldap
+            .search(dn, Scope::Base, "(objectClass=*)", vec!["*"])
+            .await;
+
+        match search_result {
+            Ok(ldap_result) => match ldap_result.success() {
+                Ok((mut rs, res)) => {
+                    debug!("LDAP search result: {res:?}");
+                    if let Some(entry) = rs.pop() {
+                        debug!("Found LDAP object with DN {dn}: {:?}", entry);
+                        Ok(Some(SearchEntry::construct(entry)))
+                    } else {
+                        debug!("No LDAP object found with DN {dn}");
+                        Ok(None)
+                    }
+                }
+                // LDAP returns Error if no entries found, so we should handle it gracefully
+                Err(e) => {
+                    debug!("LDAP search failed for DN {dn}: {e:?}");
+                    Ok(None)
+                }
+            },
+            Err(e) => {
+                debug!("LDAP connection/search error for DN {dn}: {e:?}");
+                Err(LdapError::from(e))
+            }
+        }
+    }
+
     pub(super) async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
         debug!("Testing LDAP bind for user {dn}");
         let settings = Settings::get_current_settings();
@@ -175,10 +207,10 @@ impl super::LDAPConnection {
         debug!("Retrieving LDAP group memberships");
         let mut membership_entries = self.list_group_memberships().await?;
         let mut memberships: HashMap<String, HashSet<&User>> = HashMap::new();
-        // rdn: user map
-        let rdn_map = all_ldap_users
+        // dn: user map
+        let dn_map = all_ldap_users
             .iter()
-            .map(|u| (u.ldap_rdn_value(), u))
+            .map(|u| (self.config.user_dn_from_user(u), u))
             .collect::<HashMap<_, _>>();
 
         for entry in membership_entries.iter_mut() {
@@ -192,17 +224,14 @@ impl super::LDAPConnection {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            extract_rdn_value(v).and_then(|v| {
-                                if let Some(user) = rdn_map.get(v.as_str()) {
-                                    Some(*user)
-                                } else {
-                                    debug!(
-                                        "LDAP group {groupname} contains member {v} that does not belong to the filtered LDAP users list, skipping"
-                                    );
-                                    None
-                                }
-
-                            })
+                            if let Some(user) = dn_map.get(v.as_str()) {
+                                Some(*user)
+                            } else {
+                                debug!(
+                                    "LDAP group {groupname} contains member {v} that does not belong to the filtered LDAP users list, skipping"
+                                );
+                                None
+                            }
                         })
                         .collect::<HashSet<_>>();
                     memberships.insert(groupname, members);
