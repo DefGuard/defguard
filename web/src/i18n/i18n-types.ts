@@ -6298,6 +6298,30 @@ type RootTranslation = {
 			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
 			 */
 			settings_default_branding_restored: string
+			/**
+			 * G​r​o​u​p​s​ ​b​u​l​k​ ​a​s​s​i​g​n​e​d
+			 */
+			groups_bulk_assigned: string
+			/**
+			 * G​r​o​u​p​ ​a​d​d​e​d
+			 */
+			group_added: string
+			/**
+			 * G​r​o​u​p​ ​m​o​d​i​f​i​e​d
+			 */
+			group_modified: string
+			/**
+			 * G​r​o​u​p​ ​r​e​m​o​v​e​d
+			 */
+			group_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​a​d​d​e​d
+			 */
+			group_member_added: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
+			 */
+			group_member_removed: string
 		}
 		auditModule: {
 			/**
@@ -12543,6 +12567,30 @@ export type TranslationFunctions = {
 			 * Default branding restored
 			 */
 			settings_default_branding_restored: () => LocalizedString
+			/**
+			 * Groups bulk assigned
+			 */
+			groups_bulk_assigned: () => LocalizedString
+			/**
+			 * Group added
+			 */
+			group_added: () => LocalizedString
+			/**
+			 * Group modified
+			 */
+			group_modified: () => LocalizedString
+			/**
+			 * Group removed
+			 */
+			group_removed: () => LocalizedString
+			/**
+			 * Group member added
+			 */
+			group_member_added: () => LocalizedString
+			/**
+			 * Group member removed
+			 */
+			group_member_removed: () => LocalizedString
 		}
 		auditModule: {
 			/**

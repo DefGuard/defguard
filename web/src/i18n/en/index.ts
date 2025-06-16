@@ -2596,6 +2596,12 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       settings_updated: 'Settings updated',
       settings_updated_partial: 'Settings partially updated',
       settings_default_branding_restored: 'Default branding restored',
+        groups_bulk_assigned: 'Groups bulk assigned',
+        group_added: 'Group added',
+        group_modified: 'Group modified',
+        group_removed: 'Group removed',
+        group_member_added: 'Group member added',
+        group_member_removed: 'Group member removed',
     },
     auditModule: {
       defguard: 'Defguard',

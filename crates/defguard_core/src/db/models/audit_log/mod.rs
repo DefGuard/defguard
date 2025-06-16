@@ -87,6 +87,13 @@ pub enum EventType {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    // Groups management
+    GroupsBulkAssigned,
+    GroupAdded,
+    GroupModified,
+    GroupRemoved,
+    GroupMemberAdded,
+    GroupMemberRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]

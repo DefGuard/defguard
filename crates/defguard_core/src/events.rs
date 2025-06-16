@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Id, MFAMethod, User, WireguardNetwork};
+use crate::db::{Device, Group, Id, MFAMethod, User, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 
 /// Shared context that needs to be added to every API event
@@ -192,6 +192,27 @@ pub enum ApiEventType {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    GroupsBulkAssigned {
+        users: Vec<User<Id>>,
+        groups: Vec<Group<Id>>,
+    },
+    GroupAdded {
+        group: Group<Id>,
+    },
+    GroupModified {
+        group: Group<Id>,
+    },
+    GroupRemoved {
+        group: Group<Id>,
+    },
+    GroupMemberAdded {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMemberRemoved {
+        group: Group<Id>,
+        user: User<Id>,
+    },
 }
 
 /// Events from Web API

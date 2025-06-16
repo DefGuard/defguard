@@ -3,7 +3,7 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
-        models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, User,
+        models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User,
         WireguardNetwork,
     },
     events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
@@ -246,6 +246,28 @@ pub enum DefguardEvent {
     AuditStreamRemoved {
         stream_id: Id,
         stream_name: String,
+    },
+    // groups management
+    GroupsBulkAssigned {
+        users: Vec<User<Id>>,
+        groups: Vec<Group<Id>>,
+    },
+    GroupAdded {
+        group: Group<Id>,
+    },
+    GroupModified {
+        group: Group<Id>,
+    },
+    GroupRemoved {
+        group: Group<Id>,
+    },
+    GroupMemberAdded {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMemberRemoved {
+        group: Group<Id>,
+        user: User<Id>,
     },
 }
 

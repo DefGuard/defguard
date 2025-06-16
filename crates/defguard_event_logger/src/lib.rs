@@ -12,11 +12,12 @@ use defguard_core::db::{
         metadata::{
             ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata, DeviceAddedMetadata,
             DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
-            MfaLoginMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
-            NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
-            NetworkDeviceRemovedMetadata, OpenIdAppMetadata, OpenIdAppStateChangedMetadata,
-            OpenIdProviderMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata,
-            VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+            GroupAssignedMetadata, GroupMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
+            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, OpenIdAppMetadata,
+            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, UserAddedMetadata,
+            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnLocationMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -329,6 +330,31 @@ pub async fn run_event_logger(
                                     name: stream_name,
                                 })
                                 .ok(),
+                            ),
+                            DefguardEvent::GroupsBulkAssigned { users, groups } => (
+                                EventType::GroupsBulkAssigned,
+                                serde_json::to_value(GroupsBulkAssignedMetadata { users, groups })
+                                    .ok(),
+                            ),
+                            DefguardEvent::GroupAdded { group } => (
+                                EventType::GroupAdded,
+                                serde_json::to_value(GroupMetadata { group }).ok(),
+                            ),
+                            DefguardEvent::GroupModified { group } => (
+                                EventType::GroupModified,
+                                serde_json::to_value(GroupMetadata { group }).ok(),
+                            ),
+                            DefguardEvent::GroupRemoved { group } => (
+                                EventType::GroupRemoved,
+                                serde_json::to_value(GroupMetadata { group }).ok(),
+                            ),
+                            DefguardEvent::GroupMemberAdded { group, user } => (
+                                EventType::GroupMemberAdded,
+                                serde_json::to_value(GroupAssignedMetadata { group, user }).ok(),
+                            ),
+                            DefguardEvent::GroupMemberRemoved { group, user } => (
+                                EventType::GroupMemberRemoved,
+                                serde_json::to_value(GroupAssignedMetadata { group, user }).ok(),
                             ),
                         };
                         (module, event_type, metadata)

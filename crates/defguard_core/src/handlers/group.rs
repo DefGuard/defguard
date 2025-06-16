@@ -19,6 +19,7 @@ use crate::{
         ldap_update_users_state,
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     hashset,
 };
 
@@ -66,6 +67,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
 pub(crate) async fn bulk_assign_to_groups(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Assigning groups to users.");
@@ -123,6 +125,10 @@ pub(crate) async fn bulk_assign_to_groups(
     ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
 
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::GroupsBulkAssigned { users, groups },
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -307,6 +313,7 @@ pub(crate) async fn get_group(
 pub(crate) async fn create_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Creating group {}", group_info.name);
@@ -350,6 +357,10 @@ pub(crate) async fn create_group(
     }
 
     info!("Created group {}", group_info.name);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::GroupAdded { group },
+    })?;
 
     Ok(ApiResponse {
         json: json!(group_info),
@@ -382,6 +393,7 @@ pub(crate) async fn create_group(
 pub(crate) async fn modify_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Path(name): Path<String>,
     Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
@@ -477,6 +489,10 @@ pub(crate) async fn modify_group(
     ldap_update_users_state(affected_users, &appstate.pool).await;
 
     info!("Modified group {}", group.name);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::GroupModified { group },
+    })?;
     Ok(ApiResponse::default())
 }
 
@@ -507,6 +523,7 @@ pub(crate) async fn modify_group(
 pub(crate) async fn delete_group(
     _session: SessionInfo,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Deleting group {name}");
@@ -524,7 +541,7 @@ pub(crate) async fn delete_group(
                 });
             }
         }
-        group.delete(&appstate.pool).await?;
+        group.clone().delete(&appstate.pool).await?;
         ldap_delete_group(&name, &appstate.pool).await;
 
         // sync allowed devices for all locations
@@ -532,6 +549,10 @@ pub(crate) async fn delete_group(
         WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
 
         info!("Deleted group {name}");
+        appstate.emit_event(ApiEvent {
+            context,
+            event: ApiEventType::GroupRemoved { group },
+        })?;
         Ok(ApiResponse::default())
     } else {
         let msg = format!("Failed to find group {name}");
@@ -568,6 +589,7 @@ pub(crate) async fn delete_group(
 pub(crate) async fn add_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Path(name): Path<String>,
     Json(data): Json<Username>,
 ) -> Result<ApiResponse, WebError> {
@@ -580,6 +602,10 @@ pub(crate) async fn add_group_member(
             let mut conn = appstate.pool.acquire().await?;
             WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::GroupMemberAdded { group, user },
+            })?;
             Ok(ApiResponse::default())
         } else {
             error!("User not found {}", data.username);
@@ -623,6 +649,7 @@ pub(crate) async fn add_group_member(
 pub(crate) async fn remove_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Path((name, username)): Path<(String, String)>,
 ) -> Result<ApiResponse, WebError> {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
@@ -638,6 +665,10 @@ pub(crate) async fn remove_group_member(
             let mut conn = appstate.pool.acquire().await?;
             WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
+            appstate.emit_event(ApiEvent {
+                context,
+                event: ApiEventType::GroupMemberRemoved { group, user },
+            })?;
             Ok(ApiResponse {
                 json: json!({}),
                 status: StatusCode::OK,

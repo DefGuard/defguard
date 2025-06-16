@@ -1,4 +1,4 @@
-use crate::db::{Device, Id, MFAMethod, User, WireguardNetwork};
+use crate::db::{Device, Group, Id, MFAMethod, User, WireguardNetwork};
 
 #[derive(Serialize)]
 pub struct MfaLoginMetadata {
@@ -130,4 +130,21 @@ pub struct OpenIdAppStateChangedMetadata {
 pub struct OpenIdProviderMetadata {
     pub provider_id: Id,
     pub provider_name: String,
+}
+
+#[derive(Serialize)]
+pub struct GroupsBulkAssignedMetadata {
+    pub users: Vec<User<Id>>,
+    pub groups: Vec<Group<Id>>,
+}
+
+#[derive(Serialize)]
+pub struct GroupMetadata {
+    pub group: Group<Id>,
+}
+
+#[derive(Serialize)]
+pub struct GroupAssignedMetadata {
+    pub group: Group<Id>,
+    pub user: User<Id>,
 }

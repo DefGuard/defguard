@@ -198,6 +198,24 @@ impl EventRouter {
             ApiEventType::SettingsDefaultBrandingRestored => {
                 LoggerEvent::Defguard(DefguardEvent::SettingsDefaultBrandingRestored)
             }
+            ApiEventType::GroupsBulkAssigned { users, groups } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupsBulkAssigned { users, groups })
+            }
+            ApiEventType::GroupAdded { group } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupAdded { group })
+            }
+            ApiEventType::GroupModified { group } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupModified { group })
+            }
+            ApiEventType::GroupRemoved { group } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupRemoved { group })
+            }
+            ApiEventType::GroupMemberAdded { group, user } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupMemberAdded { group, user })
+            }
+            ApiEventType::GroupMemberRemoved { group, user } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupMemberRemoved { group, user })
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }
