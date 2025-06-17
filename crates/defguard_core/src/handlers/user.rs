@@ -383,12 +383,13 @@ pub async fn add_user(
 pub async fn start_enrollment(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} has started a new enrollment request.",
+        "User {} creating enrollment token for user {username}.",
         session.user.username
     );
 
@@ -435,7 +436,7 @@ pub async fn start_enrollment(
     debug!("Transaction committed.");
 
     info!(
-        "The enrollment process for {} has ended with success.",
+        "User {} created enrollment token for user {username}.",
         session.user.username
     );
     debug!(
@@ -443,6 +444,10 @@ pub async fn start_enrollment(
         enrollment_token,
         config.enrollment_url.to_string()
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::EnrollmentTokenAdded { user },
+    })?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
@@ -479,6 +484,7 @@ pub async fn start_enrollment(
 )]
 pub async fn start_remote_desktop_configuration(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
@@ -539,6 +545,10 @@ pub async fn start_remote_desktop_configuration(
         desktop_configuration_token,
         config.enrollment_url.to_string()
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::ClientConfigurationTokenAdded { user },
+    })?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
@@ -843,6 +853,7 @@ pub async fn delete_user(
 )]
 pub async fn change_self_password(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<PasswordChangeSelf>,
 ) -> ApiResult {
@@ -869,6 +880,10 @@ pub async fn change_self_password(
     ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
 
     info!("User {} changed his password.", &user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: ApiEventType::PasswordChanged,
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -907,6 +922,7 @@ pub async fn change_self_password(
 pub async fn change_password(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<PasswordChange>,
@@ -949,6 +965,10 @@ pub async fn change_password(
             "Admin {} changed password for user {username}",
             session.user.username
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: ApiEventType::PasswordChangedByAdmin { user },
+        })?;
         Ok(ApiResponse::default())
     } else {
         debug!("Can't change password for user {username}, user not found");
@@ -989,6 +1009,7 @@ pub async fn change_password(
 pub async fn reset_password(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
 ) -> ApiResult {
@@ -1058,6 +1079,10 @@ pub async fn reset_password(
             "Admin {} reset password for user {username}",
             session.user.username
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: ApiEventType::PasswordReset { user },
+        })?;
         Ok(ApiResponse::default())
     } else {
         debug!("Can't reset password for user {username}, user not found");

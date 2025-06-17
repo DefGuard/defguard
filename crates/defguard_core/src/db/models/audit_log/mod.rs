@@ -43,6 +43,9 @@ pub enum EventType {
     UserAdded,
     UserRemoved,
     UserModified,
+    PasswordChanged,
+    PasswordChangedByAdmin,
+    PasswordReset,
     // device management
     DeviceAdded,
     DeviceRemoved,
@@ -50,6 +53,7 @@ pub enum EventType {
     NetworkDeviceAdded,
     NetworkDeviceRemoved,
     NetworkDeviceModified,
+    ClientConfigurationTokenAdded,
     // audit stream
     AuditStreamCreated,
     AuditStreamModified,
@@ -73,6 +77,7 @@ pub enum EventType {
     VpnClientDisconnectedMfa,
     VpnClientMfaFailed,
     // Enrollment events
+    EnrollmentTokenAdded,
     EnrollmentStarted,
     EnrollmentDeviceAdded,
     EnrollmentCompleted,

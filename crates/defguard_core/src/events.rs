@@ -245,6 +245,19 @@ pub enum ApiEventType {
         old_name: Option<String>,
         new_name: Option<String>,
     },
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
+    PasswordChanged,
+    PasswordReset {
+        user: User<Id>,
+    },
+    EnrollmentTokenAdded {
+        user: User<Id>,
+    },
+    ClientConfigurationTokenAdded {
+        user: User<Id>,
+    },
 }
 
 /// Events from Web API

@@ -101,7 +101,13 @@ pub enum DefguardEvent {
     },
     UserLogout,
     RecoveryCodeUsed,
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
     PasswordChanged,
+    PasswordReset {
+        user: User<Id>,
+    },
     // user MFA management
     MfaDisabled,
     MfaTotpEnabled,
@@ -283,6 +289,9 @@ pub enum DefguardEvent {
         webhook: WebHook<Id>,
         enabled: bool,
     },
+    ClientConfigurationTokenAdded {
+        user: User<Id>,
+    },
 }
 
 /// Represents audit events related to client applications
@@ -325,4 +334,5 @@ pub enum EnrollmentEvent {
     PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
+    TokenAdded { user: User<Id> },
 }

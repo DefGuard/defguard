@@ -99,6 +99,11 @@ pub struct EnrollmentDeviceAddedMetadata {
 }
 
 #[derive(Serialize)]
+pub struct EnrollmentTokenAddedMetadata {
+    pub user: User<Id>,
+}
+
+#[derive(Serialize)]
 pub struct VpnLocationMetadata {
     pub location: WireguardNetwork<Id>,
 }
@@ -176,4 +181,19 @@ pub struct AuthenticationKeyRenamedMetadata {
     pub key_type: AuthenticationKeyType,
     pub old_name: Option<String>,
     pub new_name: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct PasswordChangedByAdminMetadata {
+    pub user: User<Id>,
+}
+
+#[derive(Serialize)]
+pub struct PasswordResetMetadata {
+    pub user: User<Id>,
+}
+
+#[derive(Serialize)]
+pub struct ClientConfigurationTokenAddedMetadata {
+    pub user: User<Id>,
 }

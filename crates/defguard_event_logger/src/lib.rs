@@ -11,14 +11,16 @@ use defguard_core::db::{
     models::audit_log::{
         metadata::{
             ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata,
-            AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata, DeviceAddedMetadata,
-            DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
+            AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
+            ClientConfigurationTokenAddedMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
+            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenAddedMetadata,
             GroupAssignedMetadata, GroupMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
             MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
             NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, OpenIdAppMetadata,
-            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnLocationMetadata, WebHookMetadata, WebHookStateChangedMetadata,
+            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
+            PasswordResetMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata,
+            VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata, WebHookMetadata,
+            WebHookStateChangedMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -117,7 +119,11 @@ pub async fn run_event_logger(
                                 .ok(),
                             ),
                             DefguardEvent::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
-                            DefguardEvent::PasswordChanged => todo!(),
+                            DefguardEvent::PasswordChanged => (EventType::PasswordChanged, None),
+                            DefguardEvent::PasswordChangedByAdmin { user } => (
+                                EventType::PasswordChangedByAdmin,
+                                serde_json::to_value(PasswordChangedByAdminMetadata { user }).ok(),
+                            ),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
                             DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
@@ -403,6 +409,17 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
+                            DefguardEvent::PasswordReset { user } => (
+                                EventType::PasswordReset,
+                                serde_json::to_value(PasswordResetMetadata { user }).ok(),
+                            ),
+                            DefguardEvent::ClientConfigurationTokenAdded { user } => (
+                                EventType::ClientConfigurationTokenAdded,
+                                serde_json::to_value(ClientConfigurationTokenAddedMetadata {
+                                    user,
+                                })
+                                .ok(),
+                            ),
                         };
                         (module, event_type, metadata)
                     }
@@ -476,6 +493,10 @@ pub async fn run_event_logger(
                             EnrollmentEvent::PasswordResetCompleted => {
                                 (EventType::PasswordResetCompleted, None)
                             }
+                            EnrollmentEvent::TokenAdded { user } => (
+                                EventType::EnrollmentTokenAdded,
+                                serde_json::to_value(EnrollmentTokenAddedMetadata { user }).ok(),
+                            ),
                         };
                         (module, event_type, metadata)
                     }

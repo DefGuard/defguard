@@ -6215,6 +6215,10 @@ type RootTranslation = {
 			 */
 			vpn_client_mfa_failed: string
 			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			enrollment_token_added: string
+			/**
 			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 			 */
 			enrollment_started: string
@@ -6346,6 +6350,22 @@ type RootTranslation = {
 			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
 			 */
 			authentication_key_renamed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+			 */
+			password_changed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​ ​b​y​ ​a​d​m​i​n
+			 */
+			password_changed_by_admin: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t
+			 */
+			password_reset: string
+			/**
+			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			client_configuration_token_added: string
 		}
 		auditModule: {
 			/**
@@ -12508,6 +12528,10 @@ export type TranslationFunctions = {
 			 */
 			vpn_client_mfa_failed: () => LocalizedString
 			/**
+			 * Enrollment token added
+			 */
+			enrollment_token_added: () => LocalizedString
+			/**
 			 * Enrollment started
 			 */
 			enrollment_started: () => LocalizedString
@@ -12639,6 +12663,22 @@ export type TranslationFunctions = {
 			 * Authentication key renamed
 			 */
 			authentication_key_renamed: () => LocalizedString
+			/**
+			 * Password changed
+			 */
+			password_changed: () => LocalizedString
+			/**
+			 * Password changed by admin
+			 */
+			password_changed_by_admin: () => LocalizedString
+			/**
+			 * Password reset
+			 */
+			password_reset: () => LocalizedString
+			/**
+			 * Client configuration token added
+			 */
+			client_configuration_token_added: () => LocalizedString
 		}
 		auditModule: {
 			/**

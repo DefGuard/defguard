@@ -1,5 +1,5 @@
 use defguard_core::events::{ApiEvent, ApiEventType};
-use defguard_event_logger::message::{DefguardEvent, LoggerEvent};
+use defguard_event_logger::message::{DefguardEvent, EnrollmentEvent, LoggerEvent};
 use tracing::debug;
 
 use crate::{error::EventRouterError, EventRouter};
@@ -257,6 +257,19 @@ impl EventRouter {
                 old_name,
                 new_name,
             }),
+            ApiEventType::EnrollmentTokenAdded { user } => {
+                LoggerEvent::Enrollment(EnrollmentEvent::TokenAdded { user })
+            }
+            ApiEventType::PasswordChanged => LoggerEvent::Defguard(DefguardEvent::PasswordChanged),
+            ApiEventType::PasswordChangedByAdmin { user } => {
+                LoggerEvent::Defguard(DefguardEvent::PasswordChangedByAdmin { user })
+            }
+            ApiEventType::PasswordReset { user } => {
+                LoggerEvent::Defguard(DefguardEvent::PasswordReset { user })
+            }
+            ApiEventType::ClientConfigurationTokenAdded { user } => {
+                LoggerEvent::Defguard(DefguardEvent::ClientConfigurationTokenAdded { user })
+            }
         };
         self.log_event(event.context.into(), logger_event)
     }
