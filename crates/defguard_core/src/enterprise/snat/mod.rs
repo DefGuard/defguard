@@ -5,17 +5,19 @@ use error::UserSnatBindingError;
 use model_derive::Model;
 use serde::Serialize;
 use sqlx::{query_as, PgExecutor};
+use utoipa::ToSchema;
 
 pub mod error;
 pub mod handlers;
 
-#[derive(Debug, Model, Serialize)]
+#[derive(Debug, Model, Serialize, ToSchema)]
 #[table(user_snat_binding)]
 pub struct UserSnatBinding<I = NoId> {
     pub id: I,
     pub user_id: Id,
     pub location_id: Id,
     #[model(ip)]
+    #[schema(value_type = String)]
     pub public_ip: IpAddr,
 }
 

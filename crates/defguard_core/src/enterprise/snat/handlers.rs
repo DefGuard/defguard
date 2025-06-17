@@ -3,9 +3,11 @@ use axum::{
     Json,
 };
 use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::query_as;
 use std::net::IpAddr;
+use utoipa::ToSchema;
 
 use crate::{
     appstate::AppState,
@@ -15,6 +17,25 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
+/// List all SNAT bindings for a WireGuard location
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{location_id}/snat",
+    tag = "SNAT",
+    params(
+        ("location_id" = Id, Path, description = "WireGuard location ID")
+    ),
+    responses(
+        (status = 200, description = "List of SNAT bindings", body = Vec<UserSnatBinding>),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - Admin role required"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn list_snat_bindings(
     _role: AdminRole,
     session: SessionInfo,
@@ -39,12 +60,37 @@ pub async fn list_snat_bindings(
     })
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct NewUserSnatBinding {
+    /// User ID to bind to the public IP
     user_id: Id,
+    /// Public IP address for SNAT
+    #[schema(value_type = String)]
     public_ip: IpAddr,
 }
 
+/// Create a new SNAT binding for a user in a WireGuard location
+#[utoipa::path(
+    post,
+    path = "/api/v1/network/{location_id}/snat",
+    tag = "SNAT",
+    params(
+        ("location_id" = Id, Path, description = "WireGuard location ID")
+    ),
+    request_body = NewUserSnatBinding,
+    responses(
+        (status = 201, description = "SNAT binding created successfully", body = UserSnatBinding),
+        (status = 400, description = "Bad request - Invalid input data"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - Admin role required"),
+        (status = 409, description = "Conflict - Binding already exists"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn create_snat_binding(
     _role: AdminRole,
     session: SessionInfo,
@@ -66,11 +112,36 @@ pub async fn create_snat_binding(
     })
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct EditUserSnatBinding {
+    /// New public IP address for SNAT
+    #[schema(value_type = String)]
     public_ip: IpAddr,
 }
 
+/// Modify an existing SNAT binding for a user in a WireGuard location
+#[utoipa::path(
+    put,
+    path = "/api/v1/network/{location_id}/snat/{user_id}",
+    tag = "SNAT",
+    params(
+        ("location_id" = Id, Path, description = "WireGuard location ID"),
+        ("user_id" = Id, Path, description = "User ID")
+    ),
+    request_body = EditUserSnatBinding,
+    responses(
+        (status = 200, description = "SNAT binding updated successfully", body = UserSnatBinding),
+        (status = 400, description = "Bad request - Invalid input data"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - Admin role required"),
+        (status = 404, description = "Not found - SNAT binding does not exist"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn modify_snat_binding(
     _role: AdminRole,
     session: SessionInfo,
@@ -96,6 +167,27 @@ pub async fn modify_snat_binding(
     })
 }
 
+/// Delete an existing SNAT binding for a user in a WireGuard location
+#[utoipa::path(
+    delete,
+    path = "/api/v1/network/{location_id}/snat/{user_id}",
+    tag = "SNAT",
+    params(
+        ("location_id" = Id, Path, description = "WireGuard location ID"),
+        ("user_id" = Id, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "SNAT binding deleted successfully"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - Admin role required"),
+        (status = 404, description = "Not found - SNAT binding does not exist"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
 pub async fn delete_snat_binding(
     _role: AdminRole,
     session: SessionInfo,

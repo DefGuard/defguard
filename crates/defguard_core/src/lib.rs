@@ -184,6 +184,7 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
+    use crate::enterprise::snat::handlers as snat;
     use db::{
         models::device::{ModifyDevice, UserDevice},
         AddDevice, UserDetails, UserInfo,
@@ -244,6 +245,12 @@ mod openapi {
             network::delete_network,
             network::list_networks,
             network::network_details,
+            // /network/{location_id}/snat
+			snat::list_snat_bindings,
+			snat::create_snat_binding,
+			snat::modify_snat_binding,
+			snat::delete_snat_binding,
+
         ),
         components(
             schemas(
@@ -275,12 +282,15 @@ Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
-            (name = "nework", description = "
+            (name = "network", description = "
 Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
+            "),
+            (name = "SNAT", description = "
+Endpoints that allow you to control user SNAT bindings for your locations.
             "),
         )
     )]
