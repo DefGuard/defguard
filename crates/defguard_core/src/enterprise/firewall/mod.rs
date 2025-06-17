@@ -11,6 +11,7 @@ use super::{
         AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
         Protocol,
     },
+    snat::UserSnatBinding,
     utils::merge_ranges,
 };
 use crate::{
@@ -19,6 +20,7 @@ use crate::{
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
+        SnatBinding as SnatBindingProto,
     },
 };
 
@@ -64,9 +66,11 @@ pub async fn generate_firewall_rules_from_acls(
 
         // get relevant users for determining source IPs
         let users = get_source_users(allowed_users, &denied_users);
+        // prepare a list of user IDs
+        let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
 
         // get network IPs for devices belonging to those users
-        let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
+        let user_device_ips = get_user_device_ips(&user_ids, location_id, &mut *conn).await?;
         // separate IPv4 and IPv6 user-device addresses
         let user_device_ips = user_device_ips
             .iter()
@@ -321,13 +325,10 @@ fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: &[User<Id>]) -> 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
 /// We specifically only fetch user devices since network devices are handled separately.
 async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
-    users: &[User<Id>],
+    user_ids: &[Id],
     location_id: Id,
     executor: E,
 ) -> Result<Vec<Vec<IpAddr>>, SqlxError> {
-    // prepare a list of user IDs
-    let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
-
     // fetch network IPs
     query_scalar!(
             "SELECT wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
@@ -610,6 +611,87 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
         .collect()
 }
 
+/// Converts user SNAT bindings into SNAT config to be sent to a gateway as part of `FirewallConfig`.
+///
+/// To generate the final SNAT binding we need to find all user devices
+/// and get their IPs to generate a list of source addresses for a firewall rule.
+async fn generate_user_snat_bindings_for_location(
+    location_id: Id,
+    conn: &mut PgConnection,
+) -> Result<Vec<SnatBindingProto>, SqlxError> {
+    debug!("Generating SNAT bindings for location {location_id}");
+
+    let user_snat_bindings = UserSnatBinding::all_for_location(&mut *conn, location_id).await?;
+
+    // check if there are any bindings configured for this location
+    if user_snat_bindings.is_empty() {
+        debug!("No user SNAT bindings configured for location {location_id}");
+        return Ok(Vec::new());
+    }
+
+    // iniitalize output list
+    let mut bindings = Vec::new();
+
+    // process each user SNAT binding
+    for user_binding in user_snat_bindings {
+        let user_id = user_binding.user_id;
+
+        debug!(
+            "Processing SNAT binding for user {user_id} with public IP {}",
+            user_binding.public_ip
+        );
+
+        // determine IP protocol version based on public IP
+        let is_ipv4 = user_binding.public_ip.is_ipv4();
+
+        // fetch all device IPs for this specific user in the location
+        let user_device_ips = get_user_device_ips(&[user_id], location_id, &mut *conn).await?;
+
+        // separate IPv4 and IPv6 user-device addresses
+        let (user_device_ips_v4, user_device_ips_v6) = user_device_ips
+            .iter()
+            .flatten()
+            .partition(|ip| ip.is_ipv4());
+
+        // convert device IPs into source addresses for a firewall rule
+        let source_addrs = if is_ipv4 {
+            get_source_addrs(user_device_ips_v4, Vec::new(), IpVersion::Ipv4)
+        } else {
+            get_source_addrs(user_device_ips_v6, Vec::new(), IpVersion::Ipv6)
+        };
+
+        if source_addrs.is_empty() {
+            debug!(
+                "No compatible device IPs found for user {user_id} in location {location_id} with public IP {}, skipping SNAT binding", user_binding.public_ip
+            );
+            continue;
+        }
+
+        // create the SNAT binding proto
+        let snat_binding = SnatBindingProto {
+            id: user_binding.id,
+            source_addrs,
+            public_ip: user_binding.public_ip.to_string(),
+            comment: Some(format!("User {user_id} SNAT binding {}", user_binding.id)),
+        };
+
+        debug!(
+            "Created SNAT binding for user {user_id} in location {location_id}: {snat_binding:?}",
+        );
+
+        // add to output list
+        bindings.push(snat_binding);
+    }
+
+    debug!(
+        "Generated {} SNAT bindings for location {}",
+        bindings.len(),
+        location_id
+    );
+
+    Ok(bindings)
+}
+
 impl WireguardNetwork<Id> {
     /// Fetches all active ACL rules for a given location.
     /// Filters out rules which are disabled, expired or have not been deployed yet.
@@ -677,9 +759,11 @@ impl WireguardNetwork<Id> {
         };
         let firewall_rules =
             generate_firewall_rules_from_acls(self.id, location_acls, &mut *conn).await?;
+        let snat_bindings = generate_user_snat_bindings_for_location(self.id, &mut *conn).await?;
         let firewall_config = FirewallConfig {
             default_policy: default_policy.into(),
             rules: firewall_rules,
+            snat_bindings,
         };
 
         debug!("Firewall config generated for location {self}: {firewall_config:?}");

@@ -42,11 +42,26 @@ impl UserSnatBinding<Id> {
         E: PgExecutor<'e>,
     {
         let binding = query_as!(Self,
-        "SELECT id, user_id, location_id, \"public_ip\" \"public_ip: IpAddr\" FROM user_snat_binding WHERE location_id = $1 AND user_id = $2",
-        location_id, user_id
+	        "SELECT id, user_id, location_id, \"public_ip\" \"public_ip: IpAddr\" FROM user_snat_binding WHERE location_id = $1 AND user_id = $2",
+	        location_id, user_id
     	).fetch_one(executor).await?;
 
         Ok(binding)
+    }
+
+    pub async fn all_for_location<'e, E>(
+        executor: E,
+        location_id: Id,
+    ) -> Result<Vec<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let bindings = query_as!(Self,
+	        "SELECT id, user_id, location_id, \"public_ip\" \"public_ip: IpAddr\" FROM user_snat_binding WHERE location_id = $1",
+	        location_id
+    	).fetch_all(executor).await?;
+
+        Ok(bindings)
     }
 
     pub fn update_ip(&mut self, new_public_ip: IpAddr) {
