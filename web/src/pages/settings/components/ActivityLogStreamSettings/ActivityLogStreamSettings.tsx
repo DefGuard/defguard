@@ -29,6 +29,7 @@ import { ActivityLogStream } from '../../../../shared/types';
 import { CreateActivityLogStreamModal } from './modals/CreateActivityLogStreamModal/CreateActivityLogStreamModal';
 import { useCreateActivityLogStreamModalStore } from './modals/CreateActivityLogStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
+import { useLogstashHttpStreamCEModalStore } from './modals/LogStashHttpStreamCEModal/store';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
 import {
@@ -180,8 +181,14 @@ type EditProps = {
 
 const EditListItem = ({ stream }: EditProps) => {
   const openVectorHttpStreamModal = useVectorHttpStreamCEModal((s) => s.open, shallow);
+  const openLogstashHttpStreamModal = useLogstashHttpStreamCEModalStore(
+    (s) => s.open,
+    shallow,
+  );
   const { LL } = useI18nContext();
+
   const toast = useToaster();
+
   const {
     activityLogStream: { deleteActivityLogStream },
   } = useApi();
@@ -204,13 +211,24 @@ const EditListItem = ({ stream }: EditProps) => {
     },
   });
 
+  const handleEdit = () => {
+    switch (stream.stream_type) {
+      case 'logstash_http':
+        openLogstashHttpStreamModal(stream);
+        break;
+      case 'vector_http':
+        openVectorHttpStreamModal(stream);
+        break;
+      default:
+        toast.error('Unimplemented');
+    }
+  };
+
   return (
     <EditButton>
       <EditButtonOption
         text={LL.common.controls.edit()}
-        onClick={() => {
-          openVectorHttpStreamModal(stream);
-        }}
+        onClick={handleEdit}
         disabled={isDeleting}
       />
       <EditButtonOption
