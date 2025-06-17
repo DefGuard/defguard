@@ -68,6 +68,9 @@ export type AuditEventType =
   | 'web_hook_added'
   | 'web_hook_modified'
   | 'web_hook_removed'
+  | 'authentication_key_added'
+  | 'authentication_key_removed'
+  | 'authentication_key_renamed'
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -130,4 +133,7 @@ export const auditEventTypeValues: AuditEventType[] = [
   'web_hook_added',
   'web_hook_modified',
   'web_hook_removed',
+  'authentication_key_added',
+  'authentication_key_removed',
+  'authentication_key_renamed',
 ];

@@ -1,4 +1,7 @@
-use crate::db::{Device, Group, Id, MFAMethod, User, WebHook, WireguardNetwork};
+use crate::db::{
+    models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User, WebHook,
+    WireguardNetwork,
+};
 
 #[derive(Serialize)]
 pub struct MfaLoginMetadata {
@@ -158,4 +161,19 @@ pub struct WebHookMetadata {
 pub struct WebHookStateChangedMetadata {
     pub webhook: WebHook<Id>,
     pub enabled: bool,
+}
+
+#[derive(Serialize)]
+pub struct AuthenticationKeyMetadata {
+    pub key_id: Id,
+    pub key_name: Option<String>,
+    pub key_type: AuthenticationKeyType,
+}
+
+#[derive(Serialize)]
+pub struct AuthenticationKeyRenamedMetadata {
+    pub key_id: Id,
+    pub key_type: AuthenticationKeyType,
+    pub old_name: Option<String>,
+    pub new_name: Option<String>,
 }

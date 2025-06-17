@@ -228,6 +228,35 @@ impl EventRouter {
             ApiEventType::WebHookStateChanged { webhook, enabled } => {
                 LoggerEvent::Defguard(DefguardEvent::WebHookStateChanged { webhook, enabled })
             }
+            ApiEventType::AuthenticationKeyAdded {
+                key_id,
+                key_name,
+                key_type,
+            } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyAdded {
+                key_id,
+                key_name,
+                key_type,
+            }),
+            ApiEventType::AuthenticationKeyRemoved {
+                key_id,
+                key_name,
+                key_type,
+            } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyRemoved {
+                key_id,
+                key_name,
+                key_type,
+            }),
+            ApiEventType::AuthenticationKeyRenamed {
+                key_id,
+                key_type,
+                old_name,
+                new_name,
+            } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyRenamed {
+                key_id,
+                key_type,
+                old_name,
+                new_name,
+            }),
         };
         self.log_event(event.context.into(), logger_event)
     }

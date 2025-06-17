@@ -10,7 +10,8 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata, DeviceAddedMetadata,
+            ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata,
+            AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata, DeviceAddedMetadata,
             DeviceModifiedMetadata, DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata,
             GroupAssignedMetadata, GroupMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
             MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
@@ -139,20 +140,46 @@ pub async fn run_event_logger(
                                 .ok(),
                             ),
                             DefguardEvent::AuthenticationKeyAdded {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
+                                key_id,
+                                key_name,
+                                key_type,
+                            } => (
+                                EventType::AuthenticationKeyAdded,
+                                serde_json::to_value(AuthenticationKeyMetadata {
+                                    key_id,
+                                    key_name,
+                                    key_type,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::AuthenticationKeyRemoved {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
+                                key_id,
+                                key_name,
+                                key_type,
+                            } => (
+                                EventType::AuthenticationKeyRemoved,
+                                serde_json::to_value(AuthenticationKeyMetadata {
+                                    key_id,
+                                    key_name,
+                                    key_type,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::AuthenticationKeyRenamed {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
+                                key_id,
+                                old_name,
+                                new_name,
+                                key_type,
+                            } => (
+                                EventType::AuthenticationKeyRenamed,
+                                serde_json::to_value(AuthenticationKeyRenamedMetadata {
+                                    key_id,
+                                    old_name,
+                                    new_name,
+                                    key_type,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::ApiTokenAdded { owner, token_name } => (
                                 EventType::ApiTokenAdded,
                                 serde_json::to_value(ApiTokenMetadata { owner, token_name }).ok(),

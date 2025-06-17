@@ -2605,6 +2605,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       web_hook_added: 'Webhook added',
       web_hook_modified: 'Webhook modified',
       web_hook_removed: 'Webhook removed',
+      authentication_key_added: 'Authentication key added',
+      authentication_key_removed: 'Authentication key removed',
+      authentication_key_renamed: 'Authentication key renamed',
     },
     auditModule: {
       defguard: 'Defguard',

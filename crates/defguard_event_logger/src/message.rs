@@ -119,18 +119,19 @@ pub enum DefguardEvent {
     // authentication key management
     AuthenticationKeyAdded {
         key_id: Id,
-        key_name: String,
+        key_name: Option<String>,
         key_type: AuthenticationKeyType,
     },
     AuthenticationKeyRemoved {
         key_id: Id,
-        key_name: String,
+        key_name: Option<String>,
         key_type: AuthenticationKeyType,
     },
     AuthenticationKeyRenamed {
         key_id: Id,
-        key_name: String,
         key_type: AuthenticationKeyType,
+        old_name: Option<String>,
+        new_name: Option<String>,
     },
     // API token management
     ApiTokenAdded {

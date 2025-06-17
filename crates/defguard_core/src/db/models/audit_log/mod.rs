@@ -99,6 +99,10 @@ pub enum EventType {
     WebHookModified,
     WebHookRemoved,
     WebHookStateChanged,
+    // Authentication key management
+    AuthenticationKeyAdded,
+    AuthenticationKeyRemoved,
+    AuthenticationKeyRenamed,
 }
 
 #[derive(Model, FromRow, Serialize)]

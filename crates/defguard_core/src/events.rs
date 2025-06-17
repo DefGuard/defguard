@@ -1,6 +1,9 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Group, Id, MFAMethod, User, WebHook, WireguardNetwork};
+use crate::db::{
+    models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User, WebHook,
+    WireguardNetwork,
+};
 use chrono::{NaiveDateTime, Utc};
 
 /// Shared context that needs to be added to every API event
@@ -225,6 +228,22 @@ pub enum ApiEventType {
     WebHookStateChanged {
         webhook: WebHook<Id>,
         enabled: bool,
+    },
+    AuthenticationKeyAdded {
+        key_id: Id,
+        key_name: Option<String>,
+        key_type: AuthenticationKeyType,
+    },
+    AuthenticationKeyRemoved {
+        key_id: Id,
+        key_name: Option<String>,
+        key_type: AuthenticationKeyType,
+    },
+    AuthenticationKeyRenamed {
+        key_id: Id,
+        key_type: AuthenticationKeyType,
+        old_name: Option<String>,
+        new_name: Option<String>,
     },
 }
 

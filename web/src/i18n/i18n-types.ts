@@ -6334,6 +6334,18 @@ type RootTranslation = {
 			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
 			 */
 			web_hook_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			authentication_key_added: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			authentication_key_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
+			 */
+			authentication_key_renamed: string
 		}
 		auditModule: {
 			/**
@@ -12615,6 +12627,18 @@ export type TranslationFunctions = {
 			 * Webhook removed
 			 */
 			web_hook_removed: () => LocalizedString
+			/**
+			 * Authentication key added
+			 */
+			authentication_key_added: () => LocalizedString
+			/**
+			 * Authentication key removed
+			 */
+			authentication_key_removed: () => LocalizedString
+			/**
+			 * Authentication key renamed
+			 */
+			authentication_key_renamed: () => LocalizedString
 		}
 		auditModule: {
 			/**
