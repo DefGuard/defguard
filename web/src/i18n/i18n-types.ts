@@ -3329,7 +3329,7 @@ type RootTranslation = {
 			header: string
 			/**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​i​d​e​ ​u​n​u​s​e​d​ ​m​o​d​u​l​e​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
@@ -9670,7 +9670,7 @@ export type TranslationFunctions = {
 			header: () => LocalizedString
 			/**
 			 * <p>
-		            If your not using some modules you can disable their visibility.
+		            Hide unused modules.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.

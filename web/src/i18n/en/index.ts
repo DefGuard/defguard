@@ -1363,7 +1363,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     modulesVisibility: {
       header: 'Modules Visibility',
       helper: `<p>
-            If your not using some modules you can disable their visibility.
+            Hide unused modules.
           </p>
           <a href="{documentationLink:string}" target="_blank">
             Read more in documentation.
