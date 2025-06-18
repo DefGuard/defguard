@@ -54,6 +54,7 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
 pub enum GatewayServerError {
     #[error("Failed to acquire lock on VPN client state map")]
