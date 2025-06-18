@@ -9,7 +9,9 @@ impl EventRouter {
         debug!("Processing API event");
         let logger_event = match *event.event {
             ApiEventType::UserLogin => LoggerEvent::Defguard(Box::new(DefguardEvent::UserLogin)),
-            ApiEventType::UserLoginFailed => LoggerEvent::Defguard(Box::new(DefguardEvent::UserLoginFailed)),
+            ApiEventType::UserLoginFailed => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserLoginFailed))
+            }
             ApiEventType::UserMfaLogin { mfa_method } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaLogin { mfa_method }))
             }
@@ -29,13 +31,21 @@ impl EventRouter {
             ApiEventType::UserModified { before, after } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::UserModified { before, after }))
             }
-            ApiEventType::MfaDisabled => LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled)),
-            ApiEventType::MfaTotpDisabled => LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpDisabled)),
-            ApiEventType::MfaTotpEnabled => LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpEnabled)),
+            ApiEventType::MfaDisabled => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled))
+            }
+            ApiEventType::MfaTotpDisabled => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpDisabled))
+            }
+            ApiEventType::MfaTotpEnabled => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpEnabled))
+            }
             ApiEventType::MfaEmailDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaEmailDisabled))
             }
-            ApiEventType::MfaEmailEnabled => LoggerEvent::Defguard(Box::new(DefguardEvent::MfaEmailEnabled)),
+            ApiEventType::MfaEmailEnabled => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::MfaEmailEnabled))
+            }
             ApiEventType::MfaSecurityKeyAdded { key } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaSecurityKeyAdded { key }))
             }
@@ -58,7 +68,10 @@ impl EventRouter {
                 after,
             })),
             ApiEventType::NetworkDeviceAdded { device, location } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::NetworkDeviceAdded { device, location }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::NetworkDeviceAdded {
+                    device,
+                    location,
+                }))
             }
             ApiEventType::NetworkDeviceModified {
                 before,
@@ -70,7 +83,10 @@ impl EventRouter {
                 location,
             })),
             ApiEventType::NetworkDeviceRemoved { device, location } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::NetworkDeviceRemoved { device, location }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::NetworkDeviceRemoved {
+                    device,
+                    location,
+                }))
             }
             ApiEventType::AuditStreamCreated { stream } => {
                 // Notify stream manager about configuration changes
@@ -80,7 +96,10 @@ impl EventRouter {
             ApiEventType::AuditStreamModified { before, after } => {
                 // Notify stream manager about configuration changes
                 self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(Box::new(DefguardEvent::AuditStreamModified { before, after }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::AuditStreamModified {
+                    before,
+                    after,
+                }))
             }
             ApiEventType::AuditStreamRemoved { stream } => {
                 // Notify stream manager about configuration changes
@@ -94,7 +113,10 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::VpnLocationRemoved { location }))
             }
             ApiEventType::VpnLocationModified { before, after } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::VpnLocationModified { before, after }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::VpnLocationModified {
+                    before,
+                    after,
+                }))
             }
             ApiEventType::ApiTokenAdded { owner, token } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::ApiTokenAdded { owner, token }))
@@ -123,7 +145,10 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdAppModified { before, after }))
             }
             ApiEventType::OpenIdAppStateChanged { app, enabled } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdAppStateChanged { app, enabled }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdAppStateChanged {
+                    app,
+                    enabled,
+                }))
             }
             ApiEventType::OpenIdProviderRemoved { provider } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdProviderRemoved { provider }))
@@ -131,7 +156,9 @@ impl EventRouter {
             ApiEventType::OpenIdProviderModified { provider } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdProviderModified { provider }))
             }
-            ApiEventType::SettingsUpdated => LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated)),
+            ApiEventType::SettingsUpdated => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated))
+            }
             ApiEventType::SettingsUpdatedPartial => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdatedPartial))
             }
@@ -139,7 +166,10 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsDefaultBrandingRestored))
             }
             ApiEventType::GroupsBulkAssigned { users, groups } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::GroupsBulkAssigned { users, groups }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::GroupsBulkAssigned {
+                    users,
+                    groups,
+                }))
             }
             ApiEventType::GroupAdded { group } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::GroupAdded { group }))
@@ -166,7 +196,10 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::WebHookRemoved { webhook }))
             }
             ApiEventType::WebHookStateChanged { webhook, enabled } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::WebHookStateChanged { webhook, enabled }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::WebHookStateChanged {
+                    webhook,
+                    enabled,
+                }))
             }
             ApiEventType::AuthenticationKeyAdded { key } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::AuthenticationKeyAdded { key }))
@@ -186,7 +219,9 @@ impl EventRouter {
             ApiEventType::EnrollmentTokenAdded { user } => {
                 LoggerEvent::Enrollment(Box::new(EnrollmentEvent::TokenAdded { user }))
             }
-            ApiEventType::PasswordChanged => LoggerEvent::Defguard(Box::new(DefguardEvent::PasswordChanged)),
+            ApiEventType::PasswordChanged => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::PasswordChanged))
+            }
             ApiEventType::PasswordChangedByAdmin { user } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::PasswordChangedByAdmin { user }))
             }
@@ -194,7 +229,9 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::PasswordReset { user }))
             }
             ApiEventType::ClientConfigurationTokenAdded { user } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::ClientConfigurationTokenAdded { user }))
+                LoggerEvent::Defguard(Box::new(DefguardEvent::ClientConfigurationTokenAdded {
+                    user,
+                }))
             }
         };
         self.log_event(event.context.into(), logger_event)

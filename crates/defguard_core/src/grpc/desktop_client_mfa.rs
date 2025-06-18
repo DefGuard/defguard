@@ -250,13 +250,13 @@ impl ClientMfaServer {
                     error!("Provided TOTP code is not valid");
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: Box::new(BidiStreamEventType::DesktopClientMfa(Box::new(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: (*method).into(),
                             },
-                        ))),
+                        )),
                     })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
@@ -266,13 +266,13 @@ impl ClientMfaServer {
                     error!("Provided email code is not valid");
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: Box::new(BidiStreamEventType::DesktopClientMfa(Box::new(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: (*method).into(),
                             },
-                        ))),
+                        )),
                     })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
@@ -333,13 +333,13 @@ impl ClientMfaServer {
         );
         self.emit_event(BidiStreamEvent {
             context,
-            event: Box::new(BidiStreamEventType::DesktopClientMfa(Box::new(
+            event: BidiStreamEventType::DesktopClientMfa(Box::new(
                 DesktopClientMfaEvent::Connected {
                     location: location.clone(),
                     device: device.clone(),
                     method: (*method).into(),
                 },
-            ))),
+            )),
         })?;
 
         // remove login session from map

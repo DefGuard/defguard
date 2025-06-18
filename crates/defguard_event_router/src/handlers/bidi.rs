@@ -11,7 +11,7 @@ impl EventRouter {
         debug!("Processing bidi gRPC stream event: {event:?}");
         let BidiStreamEvent { context, event } = event;
 
-        let logger_event = match *event {
+        let logger_event = match event {
             BidiStreamEventType::Enrollment(event) => match *event {
                 events::EnrollmentEvent::EnrollmentStarted => {
                     LoggerEvent::Enrollment(Box::new(EnrollmentEvent::EnrollmentStarted))

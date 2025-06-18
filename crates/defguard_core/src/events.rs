@@ -300,7 +300,7 @@ impl BidiRequestContext {
 #[derive(Debug)]
 pub struct BidiStreamEvent {
     pub context: BidiRequestContext,
-    pub event: Box<BidiStreamEventType>,
+    pub event: BidiStreamEventType,
 }
 
 /// Wrapper enum for different types of events emitted by the bidi stream.
