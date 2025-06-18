@@ -21,7 +21,7 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
     let pool = PgPool::connect_with(opts)
         .await
         .expect("Database connection failed");
-    sqlx::migrate!()
+    sqlx::migrate!("../../migrations")
         .run(&pool)
         .await
         .expect("Cannot run database migrations.");
