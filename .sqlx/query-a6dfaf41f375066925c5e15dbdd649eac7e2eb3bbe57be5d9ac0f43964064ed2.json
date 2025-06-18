@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"from_ldap\",\"ldap_pass_randomized\",\"ldap_rdn\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"from_ldap\",\"ldap_pass_randomized\",\"ldap_rdn\",\"ldap_user_path\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -65,31 +65,36 @@
       },
       {
         "ordinal": 12,
-        "name": "openid_sub",
+        "name": "ldap_user_path",
         "type_info": "Text"
       },
       {
         "ordinal": 13,
+        "name": "openid_sub",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -106,15 +111,13 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "recovery_codes: _",
         "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -130,6 +133,7 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       true,
@@ -138,5 +142,5 @@
       false
     ]
   },
-  "hash": "cc44a549580c03564762de6c8e3dd7bc7b2567971a007a23610a310c93188a21"
+  "hash": "a6dfaf41f375066925c5e15dbdd649eac7e2eb3bbe57be5d9ac0f43964064ed2"
 }

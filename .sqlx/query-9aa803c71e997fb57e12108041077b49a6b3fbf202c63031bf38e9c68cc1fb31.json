@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND NOT r.allow AND u.is_active = true",
+  "query": "\n            SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" WHERE ldap_user_path IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 11,
@@ -109,12 +109,15 @@
         "ordinal": 18,
         "name": "ldap_rdn",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "ldap_user_path",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -126,17 +129,18 @@
       true,
       false,
       false,
-      true,
       false,
       true,
-      false,
-      false,
-      false,
       true,
       false,
       false,
+      false,
+      true,
+      false,
+      false,
+      true,
       true
     ]
   },
-  "hash": "58f3ce9b5da6eb5a6f9ff2635c9df5fb11f58ba382200b67d7004c5f0f433234"
+  "hash": "9aa803c71e997fb57e12108041077b49a6b3fbf202c63031bf38e9c68cc1fb31"
 }
