@@ -21,14 +21,55 @@ pub struct MfaLoginMetadata {
 }
 
 #[derive(Serialize)]
+pub struct UserNoSecrets {
+    pub id: Id,
+    pub username: String,
+    pub last_name: String,
+    pub first_name: String,
+    pub email: String,
+    pub phone: Option<String>,
+    pub mfa_enabled: bool,
+    pub is_active: bool,
+    pub from_ldap: bool,
+    pub ldap_pass_randomized: bool,
+    pub ldap_rdn: Option<String>,
+    pub openid_sub: Option<String>,
+    pub totp_enabled: bool,
+    pub email_mfa_enabled: bool,
+    pub mfa_method: MFAMethod,
+}
+
+impl From<User<Id>> for UserNoSecrets {
+    fn from(value: User<Id>) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            last_name: value.last_name,
+            first_name: value.first_name,
+            email: value.email,
+            phone: value.phone,
+            mfa_enabled: value.mfa_enabled,
+            is_active: value.is_active,
+            from_ldap: value.from_ldap,
+            ldap_pass_randomized: value.ldap_pass_randomized,
+            ldap_rdn: value.ldap_rdn,
+            openid_sub: value.openid_sub,
+            totp_enabled: value.totp_enabled,
+            email_mfa_enabled: value.email_mfa_enabled,
+            mfa_method: value.mfa_method,
+        }
+    }
+}
+
+#[derive(Serialize)]
 pub struct DeviceMetadata {
-    pub owner: User<Id>,
+    pub owner: UserNoSecrets,
     pub device: Device<Id>,
 }
 
 #[derive(Serialize)]
 pub struct DeviceModifiedMetadata {
-    pub owner: User<Id>,
+    pub owner: UserNoSecrets,
     pub before: Device<Id>,
     pub after: Device<Id>,
 }
@@ -48,13 +89,13 @@ pub struct NetworkDeviceModifiedMetadata {
 
 #[derive(Serialize)]
 pub struct UserMetadata {
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }
 
 #[derive(Serialize)]
 pub struct UserModifiedMetadata {
-    pub before: User<Id>,
-    pub after: User<Id>,
+    pub before: UserNoSecrets,
+    pub after: UserNoSecrets,
 }
 
 #[derive(Serialize)]
@@ -128,7 +169,7 @@ pub struct EnrollmentDeviceAddedMetadata {
 
 #[derive(Serialize)]
 pub struct EnrollmentTokenMetadata {
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }
 
 #[derive(Serialize)]
@@ -144,7 +185,7 @@ pub struct VpnLocationModifiedMetadata {
 
 #[derive(Serialize)]
 pub struct ApiTokenMetadata {
-    pub owner: User<Id>,
+    pub owner: UserNoSecrets,
     pub token: ApiTokenNoSecrets,
 }
 
@@ -169,7 +210,7 @@ impl From<ApiToken<Id>> for ApiTokenNoSecrets {
 
 #[derive(Serialize)]
 pub struct ApiTokenRenamedMetadata {
-    pub owner: User<Id>,
+    pub owner: UserNoSecrets,
     pub token: ApiTokenNoSecrets,
     pub old_name: String,
     pub new_name: String,
@@ -261,7 +302,7 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
 
 #[derive(Serialize)]
 pub struct GroupsBulkAssignedMetadata {
-    pub users: Vec<User<Id>>,
+    pub users: Vec<UserNoSecrets>,
     pub groups: Vec<Group<Id>>,
 }
 
@@ -279,7 +320,7 @@ pub struct GroupModifiedMetadata {
 #[derive(Serialize)]
 pub struct GroupAssignedMetadata {
     pub group: Group<Id>,
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }
 
 #[derive(Serialize)]
@@ -334,15 +375,15 @@ pub struct AuthenticationKeyRenamedMetadata {
 
 #[derive(Serialize)]
 pub struct PasswordChangedByAdminMetadata {
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }
 
 #[derive(Serialize)]
 pub struct PasswordResetMetadata {
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }
 
 #[derive(Serialize)]
 pub struct ClientConfigurationTokenMetadata {
-    pub user: User<Id>,
+    pub user: UserNoSecrets,
 }

@@ -88,11 +88,19 @@ pub async fn run_event_logger(
                             DefguardEvent::UserLogout => (EventType::UserLogout, None),
                             DefguardEvent::UserDeviceAdded { owner, device } => (
                                 EventType::DeviceAdded,
-                                serde_json::to_value(DeviceMetadata { owner, device }).ok(),
+                                serde_json::to_value(DeviceMetadata {
+                                    owner: owner.into(),
+                                    device,
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::UserDeviceRemoved { owner, device } => (
                                 EventType::DeviceRemoved,
-                                serde_json::to_value(DeviceMetadata { owner, device }).ok(),
+                                serde_json::to_value(DeviceMetadata {
+                                    owner: owner.into(),
+                                    device,
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::UserDeviceModified {
                                 owner,
@@ -101,7 +109,7 @@ pub async fn run_event_logger(
                             } => (
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {
-                                    owner,
+                                    owner: owner.into(),
                                     before,
                                     after,
                                 })
@@ -111,7 +119,10 @@ pub async fn run_event_logger(
                             DefguardEvent::PasswordChanged => (EventType::PasswordChanged, None),
                             DefguardEvent::PasswordChangedByAdmin { user } => (
                                 EventType::PasswordChangedByAdmin,
-                                serde_json::to_value(PasswordChangedByAdminMetadata { user }).ok(),
+                                serde_json::to_value(PasswordChangedByAdminMetadata {
+                                    user: user.into(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
@@ -154,7 +165,7 @@ pub async fn run_event_logger(
                             DefguardEvent::ApiTokenAdded { owner, token } => (
                                 EventType::ApiTokenAdded,
                                 serde_json::to_value(ApiTokenMetadata {
-                                    owner,
+                                    owner: owner.into(),
                                     token: token.into(),
                                 })
                                 .ok(),
@@ -162,7 +173,7 @@ pub async fn run_event_logger(
                             DefguardEvent::ApiTokenRemoved { owner, token } => (
                                 EventType::ApiTokenRemoved,
                                 serde_json::to_value(ApiTokenMetadata {
-                                    owner,
+                                    owner: owner.into(),
                                     token: token.into(),
                                 })
                                 .ok(),
@@ -175,7 +186,7 @@ pub async fn run_event_logger(
                             } => (
                                 EventType::ApiTokenRenamed,
                                 serde_json::to_value(ApiTokenRenamedMetadata {
-                                    owner,
+                                    owner: owner.into(),
                                     token: token.into(),
                                     old_name,
                                     new_name,
@@ -184,15 +195,19 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::UserAdded { user } => (
                                 EventType::UserAdded,
-                                serde_json::to_value(UserMetadata { user }).ok(),
+                                serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                             ),
                             DefguardEvent::UserRemoved { user } => (
                                 EventType::UserRemoved,
-                                serde_json::to_value(UserMetadata { user }).ok(),
+                                serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                             ),
                             DefguardEvent::UserModified { before, after } => (
                                 EventType::UserModified,
-                                serde_json::to_value(UserModifiedMetadata { before, after }).ok(),
+                                serde_json::to_value(UserModifiedMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::NetworkDeviceAdded { device, location } => (
                                 EventType::NetworkDeviceAdded,
@@ -299,8 +314,11 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::GroupsBulkAssigned { users, groups } => (
                                 EventType::GroupsBulkAssigned,
-                                serde_json::to_value(GroupsBulkAssignedMetadata { users, groups })
-                                    .ok(),
+                                serde_json::to_value(GroupsBulkAssignedMetadata {
+                                    users: users.into_iter().map(Into::into).collect(),
+                                    groups,
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::GroupAdded { group } => (
                                 EventType::GroupAdded,
@@ -316,11 +334,19 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::GroupMemberAdded { group, user } => (
                                 EventType::GroupMemberAdded,
-                                serde_json::to_value(GroupAssignedMetadata { group, user }).ok(),
+                                serde_json::to_value(GroupAssignedMetadata {
+                                    group,
+                                    user: user.into(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::GroupMemberRemoved { group, user } => (
                                 EventType::GroupMemberRemoved,
-                                serde_json::to_value(GroupAssignedMetadata { group, user }).ok(),
+                                serde_json::to_value(GroupAssignedMetadata {
+                                    group,
+                                    user: user.into(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::WebHookAdded { webhook } => (
                                 EventType::WebHookAdded,
@@ -345,16 +371,20 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::PasswordReset { user } => (
                                 EventType::PasswordReset,
-                                serde_json::to_value(PasswordResetMetadata { user }).ok(),
+                                serde_json::to_value(PasswordResetMetadata { user: user.into() })
+                                    .ok(),
                             ),
                             DefguardEvent::ClientConfigurationTokenAdded { user } => (
                                 EventType::ClientConfigurationTokenAdded,
-                                serde_json::to_value(ClientConfigurationTokenMetadata { user })
-                                    .ok(),
+                                serde_json::to_value(ClientConfigurationTokenMetadata {
+                                    user: user.into(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::EnrollmentTokenAdded { user } => (
                                 EventType::EnrollmentTokenAdded,
-                                serde_json::to_value(EnrollmentTokenMetadata { user }).ok(),
+                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
+                                    .ok(),
                             ),
                         };
                         (module, event_type, metadata)
@@ -431,7 +461,8 @@ pub async fn run_event_logger(
                             }
                             EnrollmentEvent::TokenAdded { user } => (
                                 EventType::EnrollmentTokenAdded,
-                                serde_json::to_value(EnrollmentTokenMetadata { user }).ok(),
+                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
+                                    .ok(),
                             ),
                         };
                         (module, event_type, metadata)
