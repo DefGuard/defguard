@@ -25,13 +25,11 @@ impl EventLoggerMessage {
 }
 
 /// Possible audit event types split by module
-// TODO: remove lint override below once all events are updated to pass whole objects
-#[allow(clippy::large_enum_variant)]
 pub enum LoggerEvent {
-    Defguard(DefguardEvent),
-    Client(ClientEvent),
-    Vpn(VpnEvent),
-    Enrollment(EnrollmentEvent),
+    Defguard(Box<DefguardEvent>),
+    Client(Box<ClientEvent>),
+    Vpn(Box<VpnEvent>),
+    Enrollment(Box<EnrollmentEvent>),
 }
 
 /// Shared context that's included in all events

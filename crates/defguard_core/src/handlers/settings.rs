@@ -61,7 +61,7 @@ pub async fn update_settings(
     info!("User {} updated settings", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::SettingsUpdated,
+        event: Box::new(ApiEventType::SettingsUpdated),
     })?;
 
     Ok(ApiResponse::default())
@@ -109,7 +109,7 @@ pub async fn set_default_branding(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::SettingsDefaultBrandingRestored,
+                event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
             })?;
             Ok(ApiResponse {
                 json: json!(settings),
@@ -164,7 +164,7 @@ pub async fn patch_settings(
     info!("Admin {} patched settings.", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::SettingsUpdatedPartial,
+        event: Box::new(ApiEventType::SettingsUpdatedPartial),
     })?;
     Ok(ApiResponse::default())
 }

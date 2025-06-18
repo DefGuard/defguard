@@ -27,7 +27,7 @@ pub async fn add_webhook(
             info!("User {} added webhook {url}", session.user.username);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::WebHookAdded { webhook },
+                event: Box::new(ApiEventType::WebHookAdded { webhook }),
             })?;
             StatusCode::CREATED
         }
@@ -92,10 +92,10 @@ pub async fn change_webhook(
             info!("User {} updated webhook {id}", session.user.username);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::WebHookModified {
+                event: Box::new(ApiEventType::WebHookModified {
                     before,
                     after: webhook,
-                },
+                }),
             })?;
             StatusCode::OK
         }
@@ -122,7 +122,7 @@ pub async fn delete_webhook(
             info!("User {} deleted webhook {id}", session.user.username);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::WebHookRemoved { webhook },
+                event: Box::new(ApiEventType::WebHookRemoved { webhook }),
             })?;
             StatusCode::OK
         }
@@ -161,10 +161,10 @@ pub async fn change_enabled(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::WebHookStateChanged {
+                event: Box::new(ApiEventType::WebHookStateChanged {
                     enabled: webhook.enabled,
                     webhook,
-                },
+                }),
             })?;
             StatusCode::OK
         }

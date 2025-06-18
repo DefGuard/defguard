@@ -251,7 +251,7 @@ pub enum ApiEventType {
 /// Events from Web API
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub event: ApiEventType,
+    pub event: Box<ApiEventType>,
 }
 
 /// Events from gRPC server
@@ -300,18 +300,17 @@ impl BidiRequestContext {
 #[derive(Debug)]
 pub struct BidiStreamEvent {
     pub context: BidiRequestContext,
-    pub event: BidiStreamEventType,
+    pub event: Box<BidiStreamEventType>,
 }
 
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum BidiStreamEventType {
-    Enrollment(EnrollmentEvent),
-    PasswordReset(PasswordResetEvent),
-    DesktopClientMfa(DesktopClientMfaEvent),
+    Enrollment(Box<EnrollmentEvent>),
+    PasswordReset(Box<PasswordResetEvent>),
+    DesktopClientMfa(Box<DesktopClientMfaEvent>),
 }
 
 #[derive(Debug)]
