@@ -13,7 +13,7 @@ pub enum AuthenticationKeyType {
 
 #[derive(Deserialize, Model, Serialize)]
 #[table(authentication_key)]
-pub(crate) struct AuthenticationKey<I = NoId> {
+pub struct AuthenticationKey<I = NoId> {
     pub(crate) id: I,
     pub(crate) yubikey_id: Option<i64>,
     pub(crate) name: Option<String>,

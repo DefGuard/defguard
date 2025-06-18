@@ -161,8 +161,7 @@ pub async fn add_openid_provider(
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::OpenIdProviderModified {
-            provider_id: new_provider.id,
-            provider_name: new_provider.name,
+            provider: new_provider,
         },
     })?;
 
@@ -216,19 +215,14 @@ pub async fn delete_openid_provider(
     );
     let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
     if let Some(provider) = provider {
-        let provider_id = provider.id;
-        let provider_name = provider.name.clone();
-        provider.delete(&appstate.pool).await?;
+        provider.clone().delete(&appstate.pool).await?;
         info!(
-            "User {} deleted OpenID provider {provider_name}",
-            session.user.username
+            "User {} deleted OpenID provider {}",
+            session.user.username, provider.name
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::OpenIdProviderRemoved {
-                provider_id,
-                provider_name,
-            },
+            event: ApiEventType::OpenIdProviderRemoved { provider },
         })?;
         Ok(ApiResponse {
             json: json!({}),

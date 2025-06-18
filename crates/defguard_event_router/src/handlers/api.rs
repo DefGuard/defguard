@@ -6,7 +6,7 @@ use crate::{error::EventRouterError, EventRouter};
 
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
-        debug!("Processing API event: {event:?}");
+        debug!("Processing API event");
         let logger_event = match event.event {
             ApiEventType::UserLogin => LoggerEvent::Defguard(DefguardEvent::UserLogin),
             ApiEventType::UserLoginFailed => LoggerEvent::Defguard(DefguardEvent::UserLoginFailed),
@@ -20,14 +20,14 @@ impl EventRouter {
                 LoggerEvent::Defguard(DefguardEvent::RecoveryCodeUsed)
             }
             ApiEventType::UserLogout => LoggerEvent::Defguard(DefguardEvent::UserLogout),
-            ApiEventType::UserAdded { username } => {
-                LoggerEvent::Defguard(DefguardEvent::UserAdded { username })
+            ApiEventType::UserAdded { user } => {
+                LoggerEvent::Defguard(DefguardEvent::UserAdded { user })
             }
-            ApiEventType::UserRemoved { username } => {
-                LoggerEvent::Defguard(DefguardEvent::UserRemoved { username })
+            ApiEventType::UserRemoved { user } => {
+                LoggerEvent::Defguard(DefguardEvent::UserRemoved { user })
             }
-            ApiEventType::UserModified { username } => {
-                LoggerEvent::Defguard(DefguardEvent::UserModified { username })
+            ApiEventType::UserModified { before, after } => {
+                LoggerEvent::Defguard(DefguardEvent::UserModified { before, after })
             }
             ApiEventType::MfaDisabled => LoggerEvent::Defguard(DefguardEvent::MfaDisabled),
             ApiEventType::MfaTotpDisabled => LoggerEvent::Defguard(DefguardEvent::MfaTotpDisabled),
@@ -36,104 +36,56 @@ impl EventRouter {
                 LoggerEvent::Defguard(DefguardEvent::MfaEmailDisabled)
             }
             ApiEventType::MfaEmailEnabled => LoggerEvent::Defguard(DefguardEvent::MfaEmailEnabled),
-            ApiEventType::MfaSecurityKeyAdded { key_id, key_name } => {
-                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyAdded { key_id, key_name })
+            ApiEventType::MfaSecurityKeyAdded { key } => {
+                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyAdded { key })
             }
-            ApiEventType::MfaSecurityKeyRemoved { key_id, key_name } => {
-                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name })
+            ApiEventType::MfaSecurityKeyRemoved { key } => {
+                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyRemoved { key })
             }
-            ApiEventType::UserDeviceAdded {
-                owner,
-                device_id,
-                device_name,
-            } => LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded {
-                device_name,
-                device_id,
-                owner,
-            }),
-            ApiEventType::UserDeviceRemoved {
-                owner,
-                device_id,
-                device_name,
-            } => LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved {
-                device_name,
-                device_id,
-                owner,
-            }),
+            ApiEventType::UserDeviceAdded { owner, device } => {
+                LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded { device, owner })
+            }
+            ApiEventType::UserDeviceRemoved { owner, device } => {
+                LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved { device, owner })
+            }
             ApiEventType::UserDeviceModified {
                 owner,
-                device_id,
-                device_name,
+                before,
+                after,
             } => LoggerEvent::Defguard(DefguardEvent::UserDeviceModified {
-                device_name,
-                device_id,
                 owner,
+                before,
+                after,
             }),
-            ApiEventType::NetworkDeviceAdded {
-                device_id,
-                device_name,
-                location_id,
-                location,
-            } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceAdded {
-                device_id,
-                device_name,
-                location_id,
-                location,
-            }),
+            ApiEventType::NetworkDeviceAdded { device, location } => {
+                LoggerEvent::Defguard(DefguardEvent::NetworkDeviceAdded { device, location })
+            }
             ApiEventType::NetworkDeviceModified {
-                device_id,
-                device_name,
-                location_id,
+                before,
+                after,
                 location,
             } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceModified {
-                device_id,
-                device_name,
-                location_id,
+                before,
+                after,
                 location,
             }),
-            ApiEventType::NetworkDeviceRemoved {
-                device_id,
-                device_name,
-                location_id,
-                location,
-            } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceRemoved {
-                device_id,
-                device_name,
-                location_id,
-                location,
-            }),
-            ApiEventType::AuditStreamCreated {
-                stream_id,
-                stream_name,
-            } => {
-                // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated {
-                    stream_id,
-                    stream_name,
-                })
+            ApiEventType::NetworkDeviceRemoved { device, location } => {
+                LoggerEvent::Defguard(DefguardEvent::NetworkDeviceRemoved { device, location })
             }
-            ApiEventType::AuditStreamModified {
-                stream_id,
-                stream_name,
-            } => {
+            ApiEventType::AuditStreamCreated { stream } => {
                 // Notify stream manager about configuration changes
                 self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamModified {
-                    stream_id,
-                    stream_name,
-                })
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated { stream })
             }
-            ApiEventType::AuditStreamRemoved {
-                stream_id,
-                stream_name,
-            } => {
+            ApiEventType::AuditStreamModified { before, after } => {
                 // Notify stream manager about configuration changes
                 self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved {
-                    stream_id,
-                    stream_name,
-                })
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamModified { before, after })
+            }
+            ApiEventType::AuditStreamRemoved { stream } => {
+                // Notify stream manager about configuration changes
+                self.audit_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved { stream })
             }
             ApiEventType::VpnLocationAdded { location } => {
                 LoggerEvent::Defguard(DefguardEvent::VpnLocationAdded { location })
@@ -141,56 +93,44 @@ impl EventRouter {
             ApiEventType::VpnLocationRemoved { location } => {
                 LoggerEvent::Defguard(DefguardEvent::VpnLocationRemoved { location })
             }
-            ApiEventType::VpnLocationModified { location } => {
-                LoggerEvent::Defguard(DefguardEvent::VpnLocationModified { location })
+            ApiEventType::VpnLocationModified { before, after } => {
+                LoggerEvent::Defguard(DefguardEvent::VpnLocationModified { before, after })
             }
-            ApiEventType::ApiTokenAdded { owner, token_name } => {
-                LoggerEvent::Defguard(DefguardEvent::ApiTokenAdded { owner, token_name })
+            ApiEventType::ApiTokenAdded { owner, token } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenAdded { owner, token })
             }
-            ApiEventType::ApiTokenRemoved { owner, token_name } => {
-                LoggerEvent::Defguard(DefguardEvent::ApiTokenRemoved { owner, token_name })
+            ApiEventType::ApiTokenRemoved { owner, token } => {
+                LoggerEvent::Defguard(DefguardEvent::ApiTokenRemoved { owner, token })
             }
             ApiEventType::ApiTokenRenamed {
                 owner,
+                token,
                 old_name,
                 new_name,
             } => LoggerEvent::Defguard(DefguardEvent::ApiTokenRenamed {
                 owner,
+                token,
                 old_name,
                 new_name,
             }),
-            ApiEventType::OpenIdAppAdded { app_id, app_name } => {
-                LoggerEvent::Defguard(DefguardEvent::OpenIdAppAdded { app_id, app_name })
+            ApiEventType::OpenIdAppAdded { app } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppAdded { app })
             }
-            ApiEventType::OpenIdAppRemoved { app_id, app_name } => {
-                LoggerEvent::Defguard(DefguardEvent::OpenIdAppRemoved { app_id, app_name })
+            ApiEventType::OpenIdAppRemoved { app } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppRemoved { app })
             }
-            ApiEventType::OpenIdAppModified { app_id, app_name } => {
-                LoggerEvent::Defguard(DefguardEvent::OpenIdAppModified { app_id, app_name })
+            ApiEventType::OpenIdAppModified { before, after } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppModified { before, after })
             }
-            ApiEventType::OpenIdAppStateChanged {
-                app_id,
-                app_name,
-                enabled,
-            } => LoggerEvent::Defguard(DefguardEvent::OpenIdAppStateChanged {
-                app_id,
-                app_name,
-                enabled,
-            }),
-            ApiEventType::OpenIdProviderRemoved {
-                provider_id,
-                provider_name,
-            } => LoggerEvent::Defguard(DefguardEvent::OpenIdProviderRemoved {
-                provider_id,
-                provider_name,
-            }),
-            ApiEventType::OpenIdProviderModified {
-                provider_id,
-                provider_name,
-            } => LoggerEvent::Defguard(DefguardEvent::OpenIdProviderModified {
-                provider_id,
-                provider_name,
-            }),
+            ApiEventType::OpenIdAppStateChanged { app, enabled } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdAppStateChanged { app, enabled })
+            }
+            ApiEventType::OpenIdProviderRemoved { provider } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdProviderRemoved { provider })
+            }
+            ApiEventType::OpenIdProviderModified { provider } => {
+                LoggerEvent::Defguard(DefguardEvent::OpenIdProviderModified { provider })
+            }
             ApiEventType::SettingsUpdated => LoggerEvent::Defguard(DefguardEvent::SettingsUpdated),
             ApiEventType::SettingsUpdatedPartial => {
                 LoggerEvent::Defguard(DefguardEvent::SettingsUpdatedPartial)
@@ -204,8 +144,8 @@ impl EventRouter {
             ApiEventType::GroupAdded { group } => {
                 LoggerEvent::Defguard(DefguardEvent::GroupAdded { group })
             }
-            ApiEventType::GroupModified { group } => {
-                LoggerEvent::Defguard(DefguardEvent::GroupModified { group })
+            ApiEventType::GroupModified { before, after } => {
+                LoggerEvent::Defguard(DefguardEvent::GroupModified { before, after })
             }
             ApiEventType::GroupRemoved { group } => {
                 LoggerEvent::Defguard(DefguardEvent::GroupRemoved { group })
@@ -219,8 +159,8 @@ impl EventRouter {
             ApiEventType::WebHookAdded { webhook } => {
                 LoggerEvent::Defguard(DefguardEvent::WebHookAdded { webhook })
             }
-            ApiEventType::WebHookModified { webhook } => {
-                LoggerEvent::Defguard(DefguardEvent::WebHookModified { webhook })
+            ApiEventType::WebHookModified { before, after } => {
+                LoggerEvent::Defguard(DefguardEvent::WebHookModified { before, after })
             }
             ApiEventType::WebHookRemoved { webhook } => {
                 LoggerEvent::Defguard(DefguardEvent::WebHookRemoved { webhook })
@@ -228,32 +168,18 @@ impl EventRouter {
             ApiEventType::WebHookStateChanged { webhook, enabled } => {
                 LoggerEvent::Defguard(DefguardEvent::WebHookStateChanged { webhook, enabled })
             }
-            ApiEventType::AuthenticationKeyAdded {
-                key_id,
-                key_name,
-                key_type,
-            } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyAdded {
-                key_id,
-                key_name,
-                key_type,
-            }),
-            ApiEventType::AuthenticationKeyRemoved {
-                key_id,
-                key_name,
-                key_type,
-            } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyRemoved {
-                key_id,
-                key_name,
-                key_type,
-            }),
+            ApiEventType::AuthenticationKeyAdded { key } => {
+                LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyAdded { key })
+            }
+            ApiEventType::AuthenticationKeyRemoved { key } => {
+                LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyRemoved { key })
+            }
             ApiEventType::AuthenticationKeyRenamed {
-                key_id,
-                key_type,
+                key,
                 old_name,
                 new_name,
             } => LoggerEvent::Defguard(DefguardEvent::AuthenticationKeyRenamed {
-                key_id,
-                key_type,
+                key,
                 old_name,
                 new_name,
             }),

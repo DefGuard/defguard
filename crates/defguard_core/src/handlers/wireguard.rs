@@ -221,6 +221,8 @@ pub(crate) async fn modify_network(
         session.user.username
     );
     let mut network = find_network(network_id, &appstate.pool).await?;
+    // store network before mods
+    let before = network.clone();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -262,7 +264,8 @@ pub(crate) async fn modify_network(
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::VpnLocationModified {
-            location: network.clone(),
+            before,
+            after: network.clone(),
         },
     })?;
     Ok(ApiResponse {
@@ -788,20 +791,19 @@ pub(crate) async fn add_device(
         "User {} added device {device_name} for user {username}",
         session.user.username
     );
-    // clone name to be used later
-    let device_name = device.name.clone();
 
-    let device_id = device.id;
-    let result = AddDeviceResult { configs, device };
+    let result = AddDeviceResult {
+        configs,
+        device: device.clone(),
+    };
 
     update_counts(&appstate.pool).await?;
 
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::UserDeviceAdded {
-            device_id,
-            owner: username,
-            device_name,
+            device,
+            owner: user,
         },
     })?;
 
@@ -857,6 +859,8 @@ pub(crate) async fn modify_device(
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    // store device before mods
+    let before = device.clone();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {
@@ -882,7 +886,6 @@ pub(crate) async fn modify_device(
     device.update_from(data);
 
     // clone to use later
-    let device_name = device.name.clone();
 
     device.save(&appstate.pool).await?;
 
@@ -908,13 +911,13 @@ pub(crate) async fn modify_device(
 
     info!("User {} updated device {device_id}", session.user.username);
 
-    let owner = device.get_owner(&appstate.pool).await?.username;
+    let owner = device.get_owner(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::UserDeviceModified {
             owner,
-            device_id: device.id,
-            device_name,
+            before,
+            after: device.clone(),
         },
     })?;
 
@@ -1010,12 +1013,8 @@ pub(crate) async fn delete_device(
     // prepare device info
     let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
 
-    // clone to use later
-    let device_name = device.name.clone();
-    let device_type = device.device_type.clone();
-
     // delete device before firewall config is generated
-    device.delete(&mut *transaction).await?;
+    device.clone().delete(&mut *transaction).await?;
 
     update_counts(&mut *transaction).await?;
 
@@ -1043,20 +1042,12 @@ pub(crate) async fn delete_device(
     appstate.send_multiple_wireguard_events(events);
 
     // Emit event specific to the device type.
-    match device_type {
+    match device.device_type {
         DeviceType::User => {
-            let owner = device_info
-                .device
-                .get_owner(&mut *transaction)
-                .await?
-                .username;
+            let owner = device_info.device.get_owner(&mut *transaction).await?;
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::UserDeviceRemoved {
-                    device_name,
-                    owner,
-                    device_id,
-                },
+                event: ApiEventType::UserDeviceRemoved { device, owner },
             })?
         }
         DeviceType::Network => {
@@ -1067,18 +1058,19 @@ pub(crate) async fn delete_device(
                 if let Some(location) = location {
                     appstate.emit_event(ApiEvent {
                         context,
-                        event: ApiEventType::NetworkDeviceRemoved {
-                            device_id,
-                            device_name,
-                            location_id: location.id,
-                            location: location.name,
-                        },
+                        event: ApiEventType::NetworkDeviceRemoved { device, location },
                     })?;
                 } else {
-                    error!("Network device {device_name}({device_id}) is assigned to non-existent location {}", network_info.network_id);
+                    error!(
+                        "Network device {}({}) is assigned to non-existent location {}",
+                        device.name, device.id, network_info.network_id
+                    );
                 }
             } else {
-                error!("Network device {device_name}({device_id}) has no network assigned");
+                error!(
+                    "Network device {}({}) has no network assigned",
+                    device.name, device.id
+                );
             }
         }
     };

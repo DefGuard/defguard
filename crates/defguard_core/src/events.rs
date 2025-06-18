@@ -1,8 +1,16 @@
 use std::net::IpAddr;
 
-use crate::db::{
-    models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User, WebHook,
-    WireguardNetwork,
+use crate::{
+    db::{
+        models::{
+            authentication_key::{AuthenticationKey, AuthenticationKeyType},
+            oauth2client::OAuth2Client,
+        },
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+    },
+    enterprise::db::models::{
+        api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
+    },
 };
 use chrono::{NaiveDateTime, Utc};
 
@@ -66,9 +74,9 @@ impl GrpcRequestContext {
     }
 }
 
-#[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
+    UserLogout,
     UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
@@ -77,73 +85,69 @@ pub enum ApiEventType {
         mfa_method: MFAMethod,
     },
     RecoveryCodeUsed,
-    UserLogout,
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
+    PasswordChanged,
+    PasswordReset {
+        user: User<Id>,
+    },
     MfaDisabled,
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
     MfaEmailEnabled,
     MfaSecurityKeyAdded {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     MfaSecurityKeyRemoved {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     UserAdded {
-        username: String,
+        user: User<Id>,
     },
     UserRemoved {
-        username: String,
+        user: User<Id>,
     },
     UserModified {
-        username: String,
+        before: User<Id>,
+        after: User<Id>,
     },
     UserDeviceAdded {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceRemoved {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceModified {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        before: Device<Id>,
+        after: Device<Id>,
     },
     NetworkDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceModified {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        before: Device<Id>,
+        after: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     AuditStreamCreated {
-        stream_id: Id,
-        stream_name: String,
+        stream: AuditStream<Id>,
     },
     AuditStreamModified {
-        stream_id: Id,
-        stream_name: String,
+        before: AuditStream<Id>,
+        after: AuditStream<Id>,
     },
     AuditStreamRemoved {
-        stream_id: Id,
-        stream_name: String,
+        stream: AuditStream<Id>,
     },
     VpnLocationAdded {
         location: WireguardNetwork<Id>,
@@ -152,45 +156,42 @@ pub enum ApiEventType {
         location: WireguardNetwork<Id>,
     },
     VpnLocationModified {
-        location: WireguardNetwork<Id>,
+        before: WireguardNetwork<Id>,
+        after: WireguardNetwork<Id>,
     },
     ApiTokenAdded {
         owner: User<Id>,
-        token_name: String,
+        token: ApiToken<Id>,
     },
     ApiTokenRemoved {
         owner: User<Id>,
-        token_name: String,
+        token: ApiToken<Id>,
     },
     ApiTokenRenamed {
         owner: User<Id>,
+        token: ApiToken<Id>,
         old_name: String,
         new_name: String,
     },
     OpenIdAppAdded {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppRemoved {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppModified {
-        app_id: Id,
-        app_name: String,
+        before: OAuth2Client<Id>,
+        after: OAuth2Client<Id>,
     },
     OpenIdAppStateChanged {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
         enabled: bool,
     },
     OpenIdProviderModified {
-        provider_id: Id,
-        provider_name: String,
+        provider: OpenIdProvider<Id>,
     },
     OpenIdProviderRemoved {
-        provider_id: Id,
-        provider_name: String,
+        provider: OpenIdProvider<Id>,
     },
     SettingsUpdated,
     SettingsUpdatedPartial,
@@ -203,7 +204,8 @@ pub enum ApiEventType {
         group: Group<Id>,
     },
     GroupModified {
-        group: Group<Id>,
+        before: Group<Id>,
+        after: Group<Id>,
     },
     GroupRemoved {
         group: Group<Id>,
@@ -220,7 +222,8 @@ pub enum ApiEventType {
         webhook: WebHook<Id>,
     },
     WebHookModified {
-        webhook: WebHook<Id>,
+        before: WebHook<Id>,
+        after: WebHook<Id>,
     },
     WebHookRemoved {
         webhook: WebHook<Id>,
@@ -230,27 +233,15 @@ pub enum ApiEventType {
         enabled: bool,
     },
     AuthenticationKeyAdded {
-        key_id: Id,
-        key_name: Option<String>,
-        key_type: AuthenticationKeyType,
+        key: AuthenticationKey<Id>,
     },
     AuthenticationKeyRemoved {
-        key_id: Id,
-        key_name: Option<String>,
-        key_type: AuthenticationKeyType,
+        key: AuthenticationKey<Id>,
     },
     AuthenticationKeyRenamed {
-        key_id: Id,
-        key_type: AuthenticationKeyType,
+        key: AuthenticationKey<Id>,
         old_name: Option<String>,
         new_name: Option<String>,
-    },
-    PasswordChangedByAdmin {
-        user: User<Id>,
-    },
-    PasswordChanged,
-    PasswordReset {
-        user: User<Id>,
     },
     EnrollmentTokenAdded {
         user: User<Id>,
@@ -261,7 +252,6 @@ pub enum ApiEventType {
 }
 
 /// Events from Web API
-#[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
     pub event: ApiEventType,

@@ -85,7 +85,7 @@ impl From<String> for DirectorySyncTarget {
     }
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Deserialize, Model, Serialize)]
 pub struct OpenIdProvider<I = NoId> {
     pub id: I,
     pub name: String,
@@ -199,7 +199,7 @@ impl OpenIdProvider<Id> {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, client_id, client_secret, display_name, \
-            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, 
+            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled,
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \

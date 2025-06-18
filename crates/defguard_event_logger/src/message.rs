@@ -3,8 +3,14 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
-        models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User,
-        WebHook, WireguardNetwork,
+        models::{
+            authentication_key::{AuthenticationKey, AuthenticationKeyType},
+            oauth2client::OAuth2Client,
+        },
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+    },
+    enterprise::db::models::{
+        api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
     },
     events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
 };
@@ -90,8 +96,8 @@ impl From<InternalEventContext> for EventContext {
 
 /// Represents audit events related to actions performed in Web UI
 pub enum DefguardEvent {
-    // authentication
     UserLogin,
+    UserLogout,
     UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
@@ -99,7 +105,6 @@ pub enum DefguardEvent {
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
     },
-    UserLogout,
     RecoveryCodeUsed,
     PasswordChangedByAdmin {
         user: User<Id>,
@@ -108,99 +113,63 @@ pub enum DefguardEvent {
     PasswordReset {
         user: User<Id>,
     },
-    // user MFA management
     MfaDisabled,
-    MfaTotpEnabled,
     MfaTotpDisabled,
-    MfaEmailEnabled,
+    MfaTotpEnabled,
     MfaEmailDisabled,
+    MfaEmailEnabled,
     MfaSecurityKeyAdded {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     MfaSecurityKeyRemoved {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
-    // authentication key management
-    AuthenticationKeyAdded {
-        key_id: Id,
-        key_name: Option<String>,
-        key_type: AuthenticationKeyType,
-    },
-    AuthenticationKeyRemoved {
-        key_id: Id,
-        key_name: Option<String>,
-        key_type: AuthenticationKeyType,
-    },
-    AuthenticationKeyRenamed {
-        key_id: Id,
-        key_type: AuthenticationKeyType,
-        old_name: Option<String>,
-        new_name: Option<String>,
-    },
-    // API token management
-    ApiTokenAdded {
-        owner: User<Id>,
-        token_name: String,
-    },
-    ApiTokenRemoved {
-        owner: User<Id>,
-        token_name: String,
-    },
-    ApiTokenRenamed {
-        owner: User<Id>,
-        old_name: String,
-        new_name: String,
-    },
-    // user management
     UserAdded {
-        username: String,
+        user: User<Id>,
     },
     UserRemoved {
-        username: String,
+        user: User<Id>,
     },
     UserModified {
-        username: String,
+        before: User<Id>,
+        after: User<Id>,
     },
-    UserDisabled {
-        username: String,
-    },
-    // device management
     UserDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceModified {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        before: Device<Id>,
+        after: Device<Id>,
     },
     NetworkDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceModified {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        before: Device<Id>,
+        after: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
-    // VPN location management
+    AuditStreamCreated {
+        stream: AuditStream<Id>,
+    },
+    AuditStreamModified {
+        before: AuditStream<Id>,
+        after: AuditStream<Id>,
+    },
+    AuditStreamRemoved {
+        stream: AuditStream<Id>,
+    },
     VpnLocationAdded {
         location: WireguardNetwork<Id>,
     },
@@ -208,53 +177,46 @@ pub enum DefguardEvent {
         location: WireguardNetwork<Id>,
     },
     VpnLocationModified {
-        location: WireguardNetwork<Id>,
+        before: WireguardNetwork<Id>,
+        after: WireguardNetwork<Id>,
     },
-    // OpenID app management
+    ApiTokenAdded {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRemoved {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRenamed {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+        old_name: String,
+        new_name: String,
+    },
     OpenIdAppAdded {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppRemoved {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppModified {
-        app_id: Id,
-        app_name: String,
+        before: OAuth2Client<Id>,
+        after: OAuth2Client<Id>,
     },
     OpenIdAppStateChanged {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
         enabled: bool,
     },
-    // OpenID provider management
     OpenIdProviderModified {
-        provider_id: Id,
-        provider_name: String,
+        provider: OpenIdProvider<Id>,
     },
     OpenIdProviderRemoved {
-        provider_id: Id,
-        provider_name: String,
+        provider: OpenIdProvider<Id>,
     },
-    // settings management
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
-    // audit stream management
-    AuditStreamCreated {
-        stream_id: Id,
-        stream_name: String,
-    },
-    AuditStreamModified {
-        stream_id: Id,
-        stream_name: String,
-    },
-    AuditStreamRemoved {
-        stream_id: Id,
-        stream_name: String,
-    },
-    // groups management
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
         groups: Vec<Group<Id>>,
@@ -263,7 +225,8 @@ pub enum DefguardEvent {
         group: Group<Id>,
     },
     GroupModified {
-        group: Group<Id>,
+        before: Group<Id>,
+        after: Group<Id>,
     },
     GroupRemoved {
         group: Group<Id>,
@@ -280,7 +243,8 @@ pub enum DefguardEvent {
         webhook: WebHook<Id>,
     },
     WebHookModified {
-        webhook: WebHook<Id>,
+        before: WebHook<Id>,
+        after: WebHook<Id>,
     },
     WebHookRemoved {
         webhook: WebHook<Id>,
@@ -288,6 +252,20 @@ pub enum DefguardEvent {
     WebHookStateChanged {
         webhook: WebHook<Id>,
         enabled: bool,
+    },
+    AuthenticationKeyAdded {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRemoved {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRenamed {
+        key: AuthenticationKey<Id>,
+        old_name: Option<String>,
+        new_name: Option<String>,
+    },
+    EnrollmentTokenAdded {
+        user: User<Id>,
     },
     ClientConfigurationTokenAdded {
         user: User<Id>,

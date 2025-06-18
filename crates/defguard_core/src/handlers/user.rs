@@ -342,9 +342,7 @@ pub async fn add_user(
     }
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserAdded {
-            username: user.username,
-        },
+        event: ApiEventType::UserAdded { user },
     })?;
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -640,6 +638,8 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    // store user before mods
+    let before = user.clone();
     let old_username = user.username.clone();
     if let Err(err) = check_username(&user_info.username) {
         debug!("Username {} rejected: {err}", user_info.username);
@@ -748,7 +748,8 @@ pub async fn modify_user(
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::UserModified {
-            username: user.username,
+            before,
+            after: user,
         },
     })?;
     Ok(ApiResponse::default())
@@ -806,7 +807,8 @@ pub async fn delete_user(
         } else {
             None
         };
-        user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
+        user.clone()
+            .delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
@@ -819,7 +821,7 @@ pub async fn delete_user(
         info!("User {} deleted user {}", session.user.username, &username);
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::UserRemoved { username },
+            event: ApiEventType::UserRemoved { user },
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -1131,9 +1133,7 @@ pub async fn delete_security_key(
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
         if webauthn.user_id == user.id {
-            let key_id = webauthn.id;
-            let key_name = webauthn.name.clone();
-            webauthn.delete(&appstate.pool).await?;
+            webauthn.clone().delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
                 "User {} deleted security key {id} for user {username}",
@@ -1141,7 +1141,7 @@ pub async fn delete_security_key(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::MfaSecurityKeyRemoved { key_id, key_name },
+                event: ApiEventType::MfaSecurityKeyRemoved { key: webauthn },
             })?;
             Ok(ApiResponse::default())
         } else {

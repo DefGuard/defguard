@@ -403,6 +403,8 @@ pub(crate) async fn modify_group(
         error!(msg);
         return Err(WebError::ObjectNotFound(msg));
     };
+    // store group before modifications
+    let before = group.clone();
 
     let mut add_to_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut remove_from_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
@@ -491,7 +493,10 @@ pub(crate) async fn modify_group(
     info!("Modified group {}", group.name);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::GroupModified { group },
+        event: ApiEventType::GroupModified {
+            before,
+            after: group,
+        },
     })?;
     Ok(ApiResponse::default())
 }

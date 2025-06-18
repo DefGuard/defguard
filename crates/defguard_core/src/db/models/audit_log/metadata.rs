@@ -1,6 +1,11 @@
-use crate::db::{
-    models::authentication_key::AuthenticationKeyType, Device, Group, Id, MFAMethod, User, WebHook,
-    WireguardNetwork,
+use crate::{
+    db::{
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+    },
+    enterprise::db::models::{
+        api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
+    },
 };
 
 #[derive(Serialize)]
@@ -9,75 +14,74 @@ pub struct MfaLoginMetadata {
 }
 
 #[derive(Serialize)]
-pub struct DeviceAddedMetadata {
-    pub device_names: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct DeviceRemovedMetadata {
-    pub device_names: Vec<String>,
+pub struct DeviceMetadata {
+    pub owner: User<Id>,
+    pub device: Device<Id>,
 }
 
 #[derive(Serialize)]
 pub struct DeviceModifiedMetadata {
-    pub device_names: Vec<String>,
+    pub owner: User<Id>,
+    pub before: Device<Id>,
+    pub after: Device<Id>,
 }
 
 #[derive(Serialize)]
-pub struct NetworkDeviceAddedMetadata {
-    pub device_id: Id,
-    pub device_name: String,
-    pub location_id: Id,
-    pub location: String,
-}
-
-#[derive(Serialize)]
-pub struct NetworkDeviceRemovedMetadata {
-    pub device_id: Id,
-    pub device_name: String,
-    pub location_id: Id,
-    pub location: String,
+pub struct NetworkDeviceMetadata {
+    pub device: Device<Id>,
+    pub location: WireguardNetwork<Id>,
 }
 
 #[derive(Serialize)]
 pub struct NetworkDeviceModifiedMetadata {
-    pub device_id: Id,
-    pub device_name: String,
-    pub location_id: Id,
-    pub location: String,
+    pub location: WireguardNetwork<Id>,
+    pub before: Device<Id>,
+    pub after: Device<Id>,
 }
 
 #[derive(Serialize)]
-pub struct UserAddedMetadata {
-    pub username: String,
+pub struct UserMetadata {
+    pub user: User<Id>,
 }
 
 #[derive(Serialize)]
 pub struct UserModifiedMetadata {
-    pub username: String,
+    pub before: User<Id>,
+    pub after: User<Id>,
 }
 
 #[derive(Serialize)]
-pub struct UserRemovedMetadata {
-    pub username: String,
+pub struct MfaSecurityKeyMetadata {
+    pub key: WebAuthnMetadata,
 }
 
+// Avoid storing secrets in metadata
 #[derive(Serialize)]
-pub struct MfaSecurityKeyRemovedMetadata {
-    pub key_id: Id,
-    pub key_name: String,
+pub struct WebAuthnMetadata {
+    pub id: Id,
+    pub user_id: Id,
+    pub name: String,
 }
 
-#[derive(Serialize)]
-pub struct MfaSecurityKeyAddedMetadata {
-    pub key_id: Id,
-    pub key_name: String,
+impl From<WebAuthn<Id>> for WebAuthnMetadata {
+    fn from(value: WebAuthn<Id>) -> Self {
+        Self {
+            id: value.id,
+            user_id: value.user_id,
+            name: value.name,
+        }
+    }
 }
 
 #[derive(Serialize)]
 pub struct AuditStreamMetadata {
-    pub id: Id,
-    pub name: String,
+    pub stream: AuditStream<Id>,
+}
+
+#[derive(Serialize)]
+pub struct AuditStreamModifiedMetadata {
+    pub before: AuditStream<Id>,
+    pub after: AuditStream<Id>,
 }
 
 #[derive(Serialize)]
@@ -99,7 +103,7 @@ pub struct EnrollmentDeviceAddedMetadata {
 }
 
 #[derive(Serialize)]
-pub struct EnrollmentTokenAddedMetadata {
+pub struct EnrollmentTokenMetadata {
     pub user: User<Id>,
 }
 
@@ -109,35 +113,45 @@ pub struct VpnLocationMetadata {
 }
 
 #[derive(Serialize)]
+pub struct VpnLocationModifiedMetadata {
+    pub before: WireguardNetwork<Id>,
+    pub after: WireguardNetwork<Id>,
+}
+
+#[derive(Serialize)]
 pub struct ApiTokenMetadata {
     pub owner: User<Id>,
-    pub token_name: String,
+    pub token: ApiToken<Id>,
 }
 
 #[derive(Serialize)]
 pub struct ApiTokenRenamedMetadata {
     pub owner: User<Id>,
+    pub token: ApiToken<Id>,
     pub old_name: String,
     pub new_name: String,
 }
 
 #[derive(Serialize)]
 pub struct OpenIdAppMetadata {
-    pub app_id: Id,
-    pub app_name: String,
+    pub app: OAuth2Client<Id>,
+}
+
+#[derive(Serialize)]
+pub struct OpenIdAppModifiedMetadata {
+    pub before: OAuth2Client<Id>,
+    pub after: OAuth2Client<Id>,
 }
 
 #[derive(Serialize)]
 pub struct OpenIdAppStateChangedMetadata {
-    pub app_id: Id,
-    pub app_name: String,
+    pub app: OAuth2Client<Id>,
     pub enabled: bool,
 }
 
 #[derive(Serialize)]
 pub struct OpenIdProviderMetadata {
-    pub provider_id: Id,
-    pub provider_name: String,
+    pub provider: OpenIdProvider<Id>,
 }
 
 #[derive(Serialize)]
@@ -152,6 +166,12 @@ pub struct GroupMetadata {
 }
 
 #[derive(Serialize)]
+pub struct GroupModifiedMetadata {
+    pub before: Group<Id>,
+    pub after: Group<Id>,
+}
+
+#[derive(Serialize)]
 pub struct GroupAssignedMetadata {
     pub group: Group<Id>,
     pub user: User<Id>,
@@ -163,6 +183,12 @@ pub struct WebHookMetadata {
 }
 
 #[derive(Serialize)]
+pub struct WebHookModifiedMetadata {
+    pub before: WebHook<Id>,
+    pub after: WebHook<Id>,
+}
+
+#[derive(Serialize)]
 pub struct WebHookStateChangedMetadata {
     pub webhook: WebHook<Id>,
     pub enabled: bool,
@@ -170,15 +196,12 @@ pub struct WebHookStateChangedMetadata {
 
 #[derive(Serialize)]
 pub struct AuthenticationKeyMetadata {
-    pub key_id: Id,
-    pub key_name: Option<String>,
-    pub key_type: AuthenticationKeyType,
+    pub key: AuthenticationKey<Id>,
 }
 
 #[derive(Serialize)]
 pub struct AuthenticationKeyRenamedMetadata {
-    pub key_id: Id,
-    pub key_type: AuthenticationKeyType,
+    pub key: AuthenticationKey<Id>,
     pub old_name: Option<String>,
     pub new_name: Option<String>,
 }
@@ -194,6 +217,6 @@ pub struct PasswordResetMetadata {
 }
 
 #[derive(Serialize)]
-pub struct ClientConfigurationTokenAddedMetadata {
+pub struct ClientConfigurationTokenMetadata {
     pub user: User<Id>,
 }

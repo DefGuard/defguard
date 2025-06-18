@@ -6,7 +6,6 @@ use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent}
 /// The enum itself is organized based on event source to make splitting logic into smaller chunks easier.
 // TODO: remove lint override below once all events are updated to pass whole objects
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
 pub enum Event {
     Api(ApiEvent),
     Grpc(GrpcEvent),

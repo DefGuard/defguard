@@ -69,10 +69,7 @@ pub async fn add_api_token(
     if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::ApiTokenAdded {
-                owner,
-                token_name: token.name.clone(),
-            },
+            event: ApiEventType::ApiTokenAdded { owner, token },
         })?;
     }
     Ok(ApiResponse {
@@ -122,7 +119,7 @@ pub async fn delete_api_token(
                 context,
                 event: ApiEventType::ApiTokenRemoved {
                     owner,
-                    token_name: token.name.clone(),
+                    token: token.clone(),
                 },
             })?;
         }
@@ -170,6 +167,7 @@ pub async fn rename_api_token(
                 context,
                 event: ApiEventType::ApiTokenRenamed {
                     owner,
+                    token: token.clone(),
                     old_name,
                     new_name,
                 },

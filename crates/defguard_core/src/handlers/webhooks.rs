@@ -78,6 +78,8 @@ pub async fn change_webhook(
     debug!("User {} updating webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
+            // store webhook before modifications
+            let before = webhook.clone();
             webhook.url = data.url;
             webhook.description = data.description;
             webhook.token = data.token;
@@ -90,7 +92,10 @@ pub async fn change_webhook(
             info!("User {} updated webhook {id}", session.user.username);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::WebHookModified { webhook },
+                event: ApiEventType::WebHookModified {
+                    before,
+                    after: webhook,
+                },
             })?;
             StatusCode::OK
         }

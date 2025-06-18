@@ -503,10 +503,7 @@ pub async fn webauthn_finish(
     info!("Finished Webauthn registration for user {}", user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::MfaSecurityKeyAdded {
-            key_id: webauthn.id,
-            key_name: webauthn.name,
-        },
+        event: ApiEventType::MfaSecurityKeyAdded { key: webauthn },
     })?;
 
     Ok(ApiResponse {

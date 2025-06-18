@@ -34,8 +34,7 @@ pub async fn add_openid_client(
     appstate.emit_event(ApiEvent {
         context,
         event: ApiEventType::OpenIdAppAdded {
-            app_id: client.id,
-            app_name: client.name.clone(),
+            app: client.clone(),
         },
     })?;
     Ok(ApiResponse {
@@ -92,6 +91,8 @@ pub async fn change_openid_client(
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(mut client) => {
+            // store client before mods
+            let before = client.clone();
             client.name = data.name;
             client.redirect_uri = data.redirect_uri;
             client.enabled = data.enabled;
@@ -104,8 +105,8 @@ pub async fn change_openid_client(
             appstate.emit_event(ApiEvent {
                 context,
                 event: ApiEventType::OpenIdAppModified {
-                    app_id: client.id,
-                    app_name: client.name,
+                    before,
+                    after: client,
                 },
             })?;
             StatusCode::OK
@@ -141,9 +142,8 @@ pub async fn change_openid_client_state(
             appstate.emit_event(ApiEvent {
                 context,
                 event: ApiEventType::OpenIdAppStateChanged {
-                    app_id: client.id,
-                    app_name: client.name,
                     enabled: client.enabled,
+                    app: client,
                 },
             })?;
             StatusCode::OK
@@ -176,10 +176,7 @@ pub async fn delete_openid_client(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::OpenIdAppRemoved {
-                    app_id: client.id,
-                    app_name: client.name,
-                },
+                event: ApiEventType::OpenIdAppRemoved { app: client },
             })?;
             StatusCode::OK
         }
