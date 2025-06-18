@@ -93,7 +93,6 @@ pub struct UserDiagnostic {
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,
-    #[serde(skip_serializing)]
     pub(crate) password_hash: Option<String>,
     pub last_name: String,
     pub first_name: String,
