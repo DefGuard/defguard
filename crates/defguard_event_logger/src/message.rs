@@ -1,6 +1,6 @@
-use chrono::NaiveDateTime;
 use std::net::IpAddr;
 
+use chrono::NaiveDateTime;
 use defguard_core::{
     db::{
         models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,

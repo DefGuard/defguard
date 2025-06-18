@@ -1,5 +1,6 @@
-use sqlx::PgPool;
 use std::{net::IpAddr, str::FromStr};
+
+use sqlx::PgPool;
 use tonic::Status;
 
 use super::{

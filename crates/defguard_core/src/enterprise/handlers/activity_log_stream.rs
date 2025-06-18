@@ -5,6 +5,7 @@ use axum::{
 use reqwest::StatusCode;
 use serde_json::json;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -15,8 +16,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
-
-use super::LicenseInfo;
 
 pub async fn get_activity_log_stream(
     _admin: AdminRole,

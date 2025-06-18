@@ -15,7 +15,6 @@ use super::{
     },
     InstanceInfo,
 };
-use crate::grpc::utils::parse_client_info;
 use crate::{
     db::{
         models::{
@@ -30,7 +29,7 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token},
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     mail::Mail,
