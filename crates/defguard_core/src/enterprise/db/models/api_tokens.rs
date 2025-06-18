@@ -7,7 +7,7 @@ use crate::db::{Id, NoId};
 #[derive(Clone, Deserialize, Model, Serialize)]
 #[table(api_token)]
 pub struct ApiToken<I = NoId> {
-    id: I,
+    pub id: I,
     pub user_id: Id,
     pub created_at: NaiveDateTime,
     pub name: String,

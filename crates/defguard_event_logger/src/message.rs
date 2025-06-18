@@ -3,10 +3,7 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
-        models::{
-            authentication_key::{AuthenticationKey, AuthenticationKeyType},
-            oauth2client::OAuth2Client,
-        },
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
         Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
     },
     enterprise::db::models::{
