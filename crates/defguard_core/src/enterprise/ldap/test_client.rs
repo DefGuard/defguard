@@ -130,6 +130,7 @@ impl PartialEq for LdapEvent {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub(super) enum Object {
     User(User),
     Group(Group),
@@ -474,7 +475,7 @@ impl super::LDAPConnection {
             }
         }
 
-        panic!("Group not found: {}", groupname);
+        panic!("Group not found: {groupname}");
     }
 
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
