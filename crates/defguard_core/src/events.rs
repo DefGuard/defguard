@@ -1,7 +1,8 @@
 use std::net::IpAddr;
 
-use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
+
+use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 
 /// Shared context that needs to be added to every API event
 ///

@@ -6,15 +6,14 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
+use super::{
+    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
+    DEFAULT_API_PAGE_SIZE,
+};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{models::activity_log::ActivityLogModule, Id},
-};
-
-use super::{
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
-    DEFAULT_API_PAGE_SIZE,
 };
 
 #[derive(Debug, Deserialize, Default)]

@@ -699,7 +699,7 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
-    user.maybe_update_rdn().await?;
+    user.maybe_update_rdn().await;
     user.save(&appstate.pool).await?;
 
     ldap_update_user_state(&mut user, &appstate.pool).await;

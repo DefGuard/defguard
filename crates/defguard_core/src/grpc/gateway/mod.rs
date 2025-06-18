@@ -190,7 +190,7 @@ impl GatewayServer {
 
     pub fn get_client_state_guard(
         &self,
-    ) -> Result<std::sync::MutexGuard<ClientMap>, GatewayServerError> {
+    ) -> Result<std::sync::MutexGuard<'_, ClientMap>, GatewayServerError> {
         let client_state = self
             .client_state
             .lock()

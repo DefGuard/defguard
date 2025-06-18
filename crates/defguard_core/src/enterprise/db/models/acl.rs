@@ -964,7 +964,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -990,7 +990,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -1171,7 +1171,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1193,7 +1193,7 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
             WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1232,7 +1232,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1255,7 +1255,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized, ldap_rdn \
+                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",

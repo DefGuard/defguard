@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn FROM \"user\" u WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin = true AND user_id = u.id) AND u.is_active = true",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" WHERE is_active = true",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 10,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
@@ -109,6 +109,11 @@
         "ordinal": 18,
         "name": "ldap_rdn",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "ldap_user_path",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -124,17 +129,18 @@
       true,
       false,
       false,
-      false,
       true,
-      true,
-      false,
-      false,
       false,
       true,
       false,
       false,
+      false,
+      true,
+      false,
+      false,
+      true,
       true
     ]
   },
-  "hash": "d700b7a07ca2caae6272eb6ed0f02159caa551685d0ea43fc2e215a1fc9cc9ae"
+  "hash": "865dc85f17a0fef547a43c402719b86252990422a10231a53313e9b9af249a11"
 }
