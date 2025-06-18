@@ -60,7 +60,7 @@ pub async fn create_audit_stream(
     info!("User {session_username} created audit stream");
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::AuditStreamCreated { stream },
+        event: Box::new(ApiEventType::AuditStreamCreated { stream }),
     })?;
     Ok(ApiResponse {
         json: json!({}),
@@ -93,10 +93,10 @@ pub async fn modify_audit_stream(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuditStreamModified {
+            event: Box::new(ApiEventType::AuditStreamModified {
                 before,
                 after: stream,
-            },
+            }),
         })?;
         debug!("AuditStreamModified api event sent");
         return Ok(ApiResponse::default());
@@ -120,7 +120,7 @@ pub async fn delete_audit_stream(
         stream.clone().delete(&appstate.pool).await?;
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuditStreamRemoved { stream },
+            event: Box::new(ApiEventType::AuditStreamRemoved { stream }),
         })?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(

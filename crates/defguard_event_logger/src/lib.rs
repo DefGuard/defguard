@@ -74,7 +74,7 @@ pub async fn run_event_logger(
                     LoggerEvent::Defguard(event) => {
                         let module = AuditModule::Defguard;
 
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
                             DefguardEvent::UserLoginFailed => (EventType::UserLoginFailed, None),
                             DefguardEvent::UserMfaLogin { mfa_method } => (
@@ -395,7 +395,7 @@ pub async fn run_event_logger(
                     }
                     LoggerEvent::Vpn(event) => {
                         let module = AuditModule::Vpn;
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             VpnEvent::MfaFailed {
                                 location,
                                 device,
@@ -439,7 +439,7 @@ pub async fn run_event_logger(
                     }
                     LoggerEvent::Enrollment(event) => {
                         let module = AuditModule::Enrollment;
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             EnrollmentEvent::EnrollmentStarted => {
                                 (EventType::EnrollmentStarted, None)
                             }

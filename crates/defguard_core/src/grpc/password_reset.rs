@@ -83,7 +83,7 @@ impl PasswordResetServer {
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
             context,
-            event: BidiStreamEventType::PasswordReset(event),
+            event: BidiStreamEventType::PasswordReset(Box::new(event)),
         };
 
         self.bidi_event_tx.send(event)

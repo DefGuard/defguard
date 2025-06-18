@@ -33,9 +33,9 @@ pub async fn add_openid_client(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::OpenIdAppAdded {
+        event: Box::new(ApiEventType::OpenIdAppAdded {
             app: client.clone(),
-        },
+        }),
     })?;
     Ok(ApiResponse {
         json: json!(client),
@@ -104,10 +104,10 @@ pub async fn change_openid_client(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::OpenIdAppModified {
+                event: Box::new(ApiEventType::OpenIdAppModified {
                     before,
                     after: client,
-                },
+                }),
             })?;
             StatusCode::OK
         }
@@ -141,10 +141,10 @@ pub async fn change_openid_client_state(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::OpenIdAppStateChanged {
+                event: Box::new(ApiEventType::OpenIdAppStateChanged {
                     enabled: client.enabled,
                     app: client,
-                },
+                }),
             })?;
             StatusCode::OK
         }
@@ -176,7 +176,7 @@ pub async fn delete_openid_client(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::OpenIdAppRemoved { app: client },
+                event: Box::new(ApiEventType::OpenIdAppRemoved { app: client }),
             })?;
             StatusCode::OK
         }

@@ -174,9 +174,9 @@ pub(crate) async fn create_network(
 
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::VpnLocationAdded {
+        event: Box::new(ApiEventType::VpnLocationAdded {
             location: network.clone(),
-        },
+        }),
     })?;
     update_counts(&appstate.pool).await?;
 
@@ -263,10 +263,10 @@ pub(crate) async fn modify_network(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::VpnLocationModified {
+        event: Box::new(ApiEventType::VpnLocationModified {
             before,
             after: network.clone(),
-        },
+        }),
     })?;
     Ok(ApiResponse {
         json: json!(network),
@@ -318,7 +318,7 @@ pub(crate) async fn delete_network(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::VpnLocationRemoved { location: network },
+        event: Box::new(ApiEventType::VpnLocationRemoved { location: network }),
     })?;
     update_counts(&appstate.pool).await?;
 
@@ -533,9 +533,9 @@ pub(crate) async fn import_network(
     info!("Imported network {network} with {} devices", devices.len());
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::VpnLocationAdded {
+        event: Box::new(ApiEventType::VpnLocationAdded {
             location: network.clone(),
-        },
+        }),
     })?;
     update_counts(&appstate.pool).await?;
 
@@ -801,10 +801,10 @@ pub(crate) async fn add_device(
 
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceAdded {
+        event: Box::new(ApiEventType::UserDeviceAdded {
             device,
             owner: user,
-        },
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -914,11 +914,11 @@ pub(crate) async fn modify_device(
     let owner = device.get_owner(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceModified {
+        event: Box::new(ApiEventType::UserDeviceModified {
             owner,
             before,
             after: device.clone(),
-        },
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -1047,7 +1047,7 @@ pub(crate) async fn delete_device(
             let owner = device_info.device.get_owner(&mut *transaction).await?;
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::UserDeviceRemoved { device, owner },
+                event: Box::new(ApiEventType::UserDeviceRemoved { device, owner }),
             })?
         }
         DeviceType::Network => {
@@ -1058,7 +1058,7 @@ pub(crate) async fn delete_device(
                 if let Some(location) = location {
                     appstate.emit_event(ApiEvent {
                         context,
-                        event: ApiEventType::NetworkDeviceRemoved { device, location },
+                        event: Box::new(ApiEventType::NetworkDeviceRemoved { device, location }),
                     })?;
                 } else {
                     error!(

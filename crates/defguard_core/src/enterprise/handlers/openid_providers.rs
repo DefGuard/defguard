@@ -160,9 +160,9 @@ pub async fn add_openid_provider(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::OpenIdProviderModified {
+        event: Box::new(ApiEventType::OpenIdProviderModified {
             provider: new_provider,
-        },
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -222,7 +222,7 @@ pub async fn delete_openid_provider(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::OpenIdProviderRemoved { provider },
+            event: Box::new(ApiEventType::OpenIdProviderRemoved { provider }),
         })?;
         Ok(ApiResponse {
             json: json!({}),

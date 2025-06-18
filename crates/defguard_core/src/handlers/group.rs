@@ -127,7 +127,7 @@ pub(crate) async fn bulk_assign_to_groups(
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::GroupsBulkAssigned { users, groups },
+        event: Box::new(ApiEventType::GroupsBulkAssigned { users, groups }),
     })?;
 
     Ok(ApiResponse {
@@ -359,7 +359,7 @@ pub(crate) async fn create_group(
     info!("Created group {}", group_info.name);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::GroupAdded { group },
+        event: Box::new(ApiEventType::GroupAdded { group }),
     })?;
 
     Ok(ApiResponse {
@@ -493,10 +493,10 @@ pub(crate) async fn modify_group(
     info!("Modified group {}", group.name);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::GroupModified {
+        event: Box::new(ApiEventType::GroupModified {
             before,
             after: group,
-        },
+        }),
     })?;
     Ok(ApiResponse::default())
 }
@@ -556,7 +556,7 @@ pub(crate) async fn delete_group(
         info!("Deleted group {name}");
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::GroupRemoved { group },
+            event: Box::new(ApiEventType::GroupRemoved { group }),
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -609,7 +609,7 @@ pub(crate) async fn add_group_member(
             info!("Added user: {} to group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::GroupMemberAdded { group, user },
+                event: Box::new(ApiEventType::GroupMemberAdded { group, user }),
             })?;
             Ok(ApiResponse::default())
         } else {
@@ -672,7 +672,7 @@ pub(crate) async fn remove_group_member(
             info!("Removed user: {} from group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::GroupMemberRemoved { group, user },
+                event: Box::new(ApiEventType::GroupMemberRemoved { group, user }),
             })?;
             Ok(ApiResponse {
                 json: json!({}),

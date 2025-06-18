@@ -644,10 +644,10 @@ pub(crate) async fn add_network_device(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::NetworkDeviceAdded {
+        event: Box::new(ApiEventType::NetworkDeviceAdded {
             device,
             location: network,
-        },
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -739,11 +739,11 @@ pub async fn modify_network_device(
 
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::NetworkDeviceModified {
+        event: Box::new(ApiEventType::NetworkDeviceModified {
             before,
             after: device,
             location: device_network,
-        },
+        }),
     })?;
     Ok(ApiResponse {
         json: json!(network_device_info),

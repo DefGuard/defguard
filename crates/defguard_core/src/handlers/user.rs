@@ -342,7 +342,7 @@ pub async fn add_user(
     }
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserAdded { user },
+        event: Box::new(ApiEventType::UserAdded { user }),
     })?;
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -444,7 +444,7 @@ pub async fn start_enrollment(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::EnrollmentTokenAdded { user },
+        event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
     })?;
 
     Ok(ApiResponse {
@@ -545,7 +545,7 @@ pub async fn start_remote_desktop_configuration(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::ClientConfigurationTokenAdded { user },
+        event: Box::new(ApiEventType::ClientConfigurationTokenAdded { user }),
     })?;
 
     Ok(ApiResponse {
@@ -747,10 +747,10 @@ pub async fn modify_user(
     info!("User {} updated user {username}", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserModified {
+        event: Box::new(ApiEventType::UserModified {
             before,
             after: user,
-        },
+        }),
     })?;
     Ok(ApiResponse::default())
 }
@@ -821,7 +821,7 @@ pub async fn delete_user(
         info!("User {} deleted user {}", session.user.username, &username);
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::UserRemoved { user },
+            event: Box::new(ApiEventType::UserRemoved { user }),
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -884,7 +884,7 @@ pub async fn change_self_password(
     info!("User {} changed his password.", &user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::PasswordChanged,
+        event: Box::new(ApiEventType::PasswordChanged),
     })?;
 
     Ok(ApiResponse {
@@ -969,7 +969,7 @@ pub async fn change_password(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::PasswordChangedByAdmin { user },
+            event: Box::new(ApiEventType::PasswordChangedByAdmin { user }),
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -1083,7 +1083,7 @@ pub async fn reset_password(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::PasswordReset { user },
+            event: Box::new(ApiEventType::PasswordReset { user }),
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -1141,7 +1141,7 @@ pub async fn delete_security_key(
             );
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::MfaSecurityKeyRemoved { key: webauthn },
+                event: Box::new(ApiEventType::MfaSecurityKeyRemoved { key: webauthn }),
             })?;
             Ok(ApiResponse::default())
         } else {

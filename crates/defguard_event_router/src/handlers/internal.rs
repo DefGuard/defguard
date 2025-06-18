@@ -16,7 +16,10 @@ impl EventRouter {
                 let device = context.device.clone();
                 self.log_event(
                     context.into(),
-                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromMfaLocation { device, location }),
+                    LoggerEvent::Vpn(Box::new(VpnEvent::DisconnectedFromMfaLocation {
+                        device,
+                        location,
+                    })),
                 )
             }
         }

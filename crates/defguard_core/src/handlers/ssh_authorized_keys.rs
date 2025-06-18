@@ -213,7 +213,7 @@ pub async fn add_authentication_key(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::AuthenticationKeyAdded { key },
+        event: Box::new(ApiEventType::AuthenticationKeyAdded { key }),
     })?;
 
     Ok(ApiResponse {
@@ -255,7 +255,7 @@ pub async fn delete_authentication_key(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuthenticationKeyRemoved { key },
+            event: Box::new(ApiEventType::AuthenticationKeyRemoved { key }),
         })?;
     } else {
         error!("Key with id {} not found", key_id);
@@ -305,11 +305,11 @@ pub async fn rename_authentication_key(
         );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuthenticationKeyRenamed {
+            event: Box::new(ApiEventType::AuthenticationKeyRenamed {
                 old_name,
                 new_name: key.name.clone(),
                 key,
-            },
+            }),
         })?;
     } else {
         error!(
