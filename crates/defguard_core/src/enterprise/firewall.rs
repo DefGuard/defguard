@@ -611,6 +611,13 @@ fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<I
 /// # Returns
 /// A vector of `IpAddress` objects representing the range as a combination of subnets and ranges
 fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec<IpAddress> {
+    // return early if range represents a single IP address
+    if range_start == range_end {
+        return vec![IpAddress {
+            address: Some(Address::Ip(range_start.to_string())),
+        }];
+    }
+
     // initialize output
     let mut result = Vec::new();
 
@@ -718,14 +725,7 @@ fn merge_addrs(addr_ranges: Vec<RangeInclusive<IpAddr>>) -> Vec<IpAddress> {
     let mut result = Vec::new();
     for range in addr_ranges {
         let (range_start, range_end) = range.into_inner();
-        if range_start == range_end {
-            // single IP address
-            result.push(IpAddress {
-                address: Some(Address::Ip(range_start.to_string())),
-            });
-        } else {
-            result.extend(extract_all_subnets_from_range(range_start, range_end))
-        }
+        result.extend(extract_all_subnets_from_range(range_start, range_end))
     }
 
     result
