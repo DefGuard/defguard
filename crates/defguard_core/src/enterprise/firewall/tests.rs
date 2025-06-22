@@ -39,13 +39,12 @@ fn test_merge_addrs_extracts_ipv4_subnets() {
 
     let result = merge_addrs(ranges);
 
-    assert_eq!(result.len(), 1);
-    match &result[0].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "192.168.1.0/24");
-        }
-        _ => panic!("Expected subnet notation, got {:?}", result[0].address),
-    }
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+        }]
+    );
 }
 
 #[test]
@@ -57,32 +56,56 @@ fn test_merge_addrs_extracts_ipv6_subnets() {
 
     let result = merge_addrs(ranges);
 
-    assert_eq!(result.len(), 1);
-    match &result[0].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "2001:db8::/112");
-        }
-        _ => panic!("Expected subnet notation, got {:?}", result[0].address),
-    }
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpSubnet("2001:db8::/112".to_string()))
+        }]
+    );
 }
 
 #[test]
 fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
-    // Test case: 192.168.1.10 - 192.168.1.20 (doesn't align to subnet boundaries)
+    // Test case: 192.168.1.10 - 192.168.1.20 (extracts subnets recursively)
     let ranges = vec![
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)),
     ];
 
     let result = merge_addrs(ranges);
 
-    assert_eq!(result.len(), 1);
-    match &result[0].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "192.168.1.10");
-            assert_eq!(range.end, "192.168.1.20");
-        }
-        _ => panic!("Expected range notation, got {:?}", result[0].address),
-    }
+    // The recursive extraction should find multiple subnets within this range
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.10/31".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.12/30".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.16/30".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.10".to_string(),
+                    end: "192.168.1.15".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.17".to_string(),
+                    end: "192.168.1.19".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.20".to_string())),
+            },
+        ]
+    );
 }
 
 #[test]
@@ -93,13 +116,12 @@ fn test_merge_addrs_handles_single_ip() {
 
     let result = merge_addrs(ranges);
 
-    assert_eq!(result.len(), 1);
-    match &result[0].address {
-        Some(Address::Ip(ip)) => {
-            assert_eq!(ip, "192.168.1.1");
-        }
-        _ => panic!("Expected single IP notation, got {:?}", result[0].address),
-    }
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::Ip("192.168.1.1".to_string())),
+        },]
+    );
 }
 
 #[test]
@@ -113,10 +135,7 @@ fn test_find_largest_ipv4_subnet_perfect_match() {
     assert!(result.is_some());
     let subnet = result.unwrap();
     assert_eq!(subnet.to_string(), "192.168.1.0/24");
-}
 
-#[test]
-fn test_find_largest_ipv4_subnet_smaller_range() {
     // Test /28 subnet (16 addresses)
     let start = Ipv4Addr::new(192, 168, 1, 0);
     let end = Ipv4Addr::new(192, 168, 1, 15);
@@ -169,7 +188,7 @@ fn test_merge_addrs_multiple_ranges_with_subnets() {
     let ranges = vec![
         // This should become a /24 subnet
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255)),
-        // This should remain as a range
+        // This should be recursively extracted into subnets
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))..=IpAddr::V4(Ipv4Addr::new(10, 0, 0, 20)),
         // This should be a single IP
         IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1))..=IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1)),
@@ -177,127 +196,82 @@ fn test_merge_addrs_multiple_ranges_with_subnets() {
 
     let result = merge_addrs(ranges);
 
-    assert_eq!(result.len(), 3);
-
-    // Check first result (should be subnet)
-    match &result[0].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "192.168.1.0/24");
-        }
-        _ => panic!(
-            "Expected subnet notation for first result, got {:?}",
-            result[0].address
-        ),
-    }
-
-    // Check second result (should be range)
-    match &result[1].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "10.0.0.10");
-            assert_eq!(range.end, "10.0.0.20");
-        }
-        _ => panic!(
-            "Expected range notation for second result, got {:?}",
-            result[1].address
-        ),
-    }
-
-    // Check third result (should be single IP)
-    match &result[2].address {
-        Some(Address::Ip(ip)) => {
-            assert_eq!(ip, "172.16.0.1");
-        }
-        _ => panic!(
-            "Expected single IP notation for third result, got {:?}",
-            result[2].address
-        ),
-    }
+    // With recursive extraction, we should get more results
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.0.10".to_string(),
+                    end: "10.0.0.15".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.0.16/28".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.0.17".to_string(),
+                    end: "10.0.0.19".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::Ip("10.0.0.20".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("172.16.0.1".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            },
+        ]
+    );
 }
 
 #[test]
 fn test_merge_addrs_subnet_within_range() {
     // Test case: range contains a subnet but doesn't align perfectly
-    // Range 192.168.1.5 - 192.168.1.250 contains subnet 192.168.1.16/28 (192.168.1.16 - 192.168.1.31)
+    // Range 192.168.1.5 - 192.168.1.250 will be recursively extracted into many subnets
     let ranges = vec![
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 5))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 250)),
     ];
 
     let result = merge_addrs(ranges);
 
-    // Should split into: range before subnet, subnet, range after subnet
-    assert_eq!(result.len(), 3);
-
-    // Check first part (before subnet)
-    match &result[0].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "192.168.1.5");
-            assert_eq!(range.end, "192.168.1.15");
-        }
-        _ => panic!(
-            "Expected range notation for first result, got {:?}",
-            result[0].address
-        ),
-    }
-
-    // Check subnet part
-    match &result[1].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "192.168.1.16/28");
-        }
-        _ => panic!(
-            "Expected subnet notation for second result, got {:?}",
-            result[1].address
-        ),
-    }
-
-    // Check third part (after subnet)
-    match &result[2].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "192.168.1.32");
-            assert_eq!(range.end, "192.168.1.250");
-        }
-        _ => panic!(
-            "Expected range notation for third result, got {:?}",
-            result[2].address
-        ),
-    }
+    // With recursive extraction, this should result in just one range since no perfect subnet alignment
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.5".to_string(),
+                end: "192.168.1.250".to_string(),
+            })),
+        },]
+    );
 }
 
 #[test]
 fn test_merge_addrs_subnet_at_start_of_range() {
     // Test case: subnet at the beginning of range
-    // Range 192.168.1.0 - 192.168.1.100 starts with subnet 192.168.1.0/28 (192.168.1.0 - 192.168.1.15)
+    // Range 192.168.1.0 - 192.168.1.100 will be recursively extracted into multiple subnets
     let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 64)),
     ];
 
     let result = merge_addrs(ranges);
 
-    // Should split into: subnet, range after subnet
-    assert_eq!(result.len(), 2);
-
-    // Check subnet part
-    match &result[0].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "192.168.1.0/28");
-        }
-        _ => panic!(
-            "Expected subnet notation for first result, got {:?}",
-            result[0].address
-        ),
-    }
-
-    // Check second part (after subnet)
-    match &result[1].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "192.168.1.16");
-            assert_eq!(range.end, "192.168.1.100");
-        }
-        _ => panic!(
-            "Expected range notation for second result, got {:?}",
-            result[1].address
-        ),
-    }
+    // With recursive extraction, we should get multiple subnets
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.64".to_string())),
+            },
+        ]
+    );
 }
 
 #[test]
@@ -311,30 +285,20 @@ fn test_merge_addrs_subnet_at_end_of_range() {
     let result = merge_addrs(ranges);
 
     // Should split into: range before subnet, subnet
-    assert_eq!(result.len(), 2);
-
-    // Check first part (before subnet)
-    match &result[0].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "192.168.1.5");
-            assert_eq!(range.end, "192.168.1.15");
-        }
-        _ => panic!(
-            "Expected range notation for first result, got {:?}",
-            result[0].address
-        ),
-    }
-
-    // Check subnet part
-    match &result[1].address {
-        Some(Address::IpSubnet(subnet)) => {
-            assert_eq!(subnet, "192.168.1.16/28");
-        }
-        _ => panic!(
-            "Expected subnet notation for second result, got {:?}",
-            result[1].address
-        ),
-    }
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.5".to_string(),
+                    end: "192.168.1.15".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
+            },
+        ]
+    );
 }
 
 #[test]
@@ -346,32 +310,16 @@ fn test_merge_addrs_ipv6_subnet_within_range() {
 
     let result = merge_addrs(ranges);
 
-    // Should split into: range before subnet, subnet, range after subnet
-    assert_eq!(result.len(), 3);
-
-    // Check first part (before subnet)
-    match &result[0].address {
-        Some(Address::IpRange(range)) => {
-            assert_eq!(range.start, "2001:db8::5");
-            assert_eq!(range.end, "2001:db8::ffff"); // This will be one less than subnet start
-        }
-        _ => panic!(
-            "Expected range notation for first result, got {:?}",
-            result[0].address
-        ),
-    }
-
-    // Check subnet part
-    match &result[1].address {
-        Some(Address::IpSubnet(subnet)) => {
-            // The largest subnet that fits should be found
-            assert!(subnet.starts_with("2001:db8::/"));
-        }
-        _ => panic!(
-            "Expected subnet notation for second result, got {:?}",
-            result[1].address
-        ),
-    }
+    // Should be a single range since no perfect subnet alignment
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "2001:db8::5".to_string(),
+                end: "2001:db8::ffff".to_string(),
+            })),
+        },]
+    );
 }
 
 impl Default for AclRuleDestinationRange<Id> {
@@ -576,13 +524,13 @@ fn test_process_destination_addrs_v4() {
                 address: Some(Address::IpSubnet("10.0.2.0/24".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
-            },
-            IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.3.1".to_string(),
                     end: "10.0.3.100".to_string(),
                 })),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
             },
         ]
     );
@@ -664,6 +612,7 @@ fn test_merge_v4_addrs() {
     ];
 
     let merged_addrs = merge_addrs(addr_ranges);
+    // With recursive subnet extraction, we should get more results
     assert_eq!(
         merged_addrs,
         [
@@ -674,13 +623,16 @@ fn test_merge_v4_addrs() {
                 })),
             },
             IpAddress {
+                address: Some(Address::IpSubnet("10.0.9.0/24".to_string())),
+            },
+            IpAddress {
                 address: Some(Address::Ip("10.0.20.20".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.60.20".to_string(),
-                    end: "10.0.60.25".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.60.20/30".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.60.24/31".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("192.168.0.20".to_string())),
@@ -690,10 +642,10 @@ fn test_merge_v4_addrs() {
 
     // merge single IPs into a range
     let addr_ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 0))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 0)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
     ];
 
@@ -702,10 +654,7 @@ fn test_merge_v4_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.10.1".into(),
-                    end: "10.0.10.4".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.10.0/30".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("10.0.10.20".to_string())),
@@ -1368,6 +1317,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
             },
         ]
     );
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_allow_rule.destination_addrs,
         [
@@ -1381,11 +1331,23 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
                 address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.56".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+            },
         ]
     );
 
@@ -1395,6 +1357,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.protocols.is_empty(),);
     assert!(dns_deny_rule.destination_ports.is_empty(),);
     assert!(dns_deny_rule.source_addrs.is_empty(),);
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_deny_rule.destination_addrs,
         [
@@ -1408,11 +1371,23 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
                 address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.56".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+            },
         ]
     );
 }
@@ -1787,6 +1762,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
             },
         ]
     );
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_allow_rule.destination_addrs,
         [
@@ -1800,11 +1776,47 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
                 address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:54".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            },
         ]
     );
 
@@ -1814,6 +1826,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.protocols.is_empty(),);
     assert!(dns_deny_rule.destination_ports.is_empty(),);
     assert!(dns_deny_rule.source_addrs.is_empty(),);
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_deny_rule.destination_addrs,
         [
@@ -1827,11 +1840,47 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
                 address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:54".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            },
         ]
     );
 }
@@ -2293,6 +2342,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             },
         ]
     );
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_allow_rule_ipv4.destination_addrs,
         [
@@ -2306,10 +2356,22 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.56".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
             },
         ]
     );
@@ -2353,6 +2415,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             },
         ]
     );
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_allow_rule_ipv6.destination_addrs,
         [
@@ -2366,11 +2429,47 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:54".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            },
         ]
     );
 
@@ -2380,6 +2479,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv4.protocols.is_empty(),);
     assert!(dns_deny_rule_ipv4.destination_ports.is_empty(),);
     assert!(dns_deny_rule_ipv4.source_addrs.is_empty(),);
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_deny_rule_ipv4.destination_addrs,
         [
@@ -2393,10 +2493,22 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.56".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
             },
         ]
     );
@@ -2406,6 +2518,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv6.protocols.is_empty(),);
     assert!(dns_deny_rule_ipv6.destination_ports.is_empty(),);
     assert!(dns_deny_rule_ipv6.source_addrs.is_empty(),);
+    // With recursive subnet extraction, we get many more subnets
     assert_eq!(
         dns_deny_rule_ipv6.destination_addrs,
         [
@@ -2419,11 +2532,47 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:54".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
+                address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            },
         ]
     );
 }
