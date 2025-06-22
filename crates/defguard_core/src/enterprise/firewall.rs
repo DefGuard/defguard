@@ -529,6 +529,7 @@ fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork>
 }
 
 /// Finds the largest IPv4 subnet that fits within the given range.
+/// The subnet must contain more than one IP address since single IPs have their own gRPC representation.
 fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<IpNetwork> {
     let start_bits = u32::from(start);
     let end_bits = u32::from(end);
@@ -538,11 +539,9 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
     }
 
     // Find the largest prefix length where the subnet fits in the range
-    for prefix_len in 0..=32 {
+    for prefix_len in 0..=31 {
         let (mask, broadcast_addr) = if prefix_len == 0 {
             (0u32, u32::MAX)
-        } else if prefix_len == 32 {
-            (u32::MAX, start_bits)
         } else {
             let mask = !((1u32 << (32 - prefix_len)) - 1);
             let network_addr = start_bits & mask;
@@ -565,6 +564,7 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
 }
 
 /// Finds the largest IPv6 subnet that fits within the given range.
+/// The subnet must contain more than one IP address since single IPs have their own gRPC representation.
 fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<IpNetwork> {
     let start_bits = u128::from(start);
     let end_bits = u128::from(end);
@@ -574,11 +574,9 @@ fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<I
     }
 
     // Find the largest prefix length where the subnet fits in the range
-    for prefix_len in 0..=128 {
+    for prefix_len in 0..=127 {
         let (mask, broadcast_addr) = if prefix_len == 0 {
             (0u128, u128::MAX)
-        } else if prefix_len == 128 {
-            (u128::MAX, start_bits)
         } else {
             let mask = !((1u128 << (128 - prefix_len)) - 1);
             let network_addr = start_bits & mask;
