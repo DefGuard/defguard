@@ -539,7 +539,6 @@ fn process_alias_destination_addrs(
     (ipv4_dest_addrs, ipv6_dest_addrs)
 }
 
-#[cfg(test)]
 fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
     // get subnet IP portion as u128
     let first_ip = subnet.ip().to_bits();
@@ -547,6 +546,88 @@ fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
     let last_ip = first_ip | (!u128::from(subnet.mask()));
 
     IpAddr::V6(last_ip.into())
+}
+
+/// Finds the largest subnet that fits within the given IP address range.
+/// Returns None if no valid subnet can be found.
+fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork> {
+    match (start, end) {
+        (IpAddr::V4(start_v4), IpAddr::V4(end_v4)) => {
+            find_largest_ipv4_subnet_in_range(start_v4, end_v4)
+        }
+        (IpAddr::V6(start_v6), IpAddr::V6(end_v6)) => {
+            find_largest_ipv6_subnet_in_range(start_v6, end_v6)
+        }
+        _ => None, // Mixed IP versions
+    }
+}
+
+/// Finds the largest IPv4 subnet that fits within the given range.
+fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<IpNetwork> {
+    let start_bits = u32::from(start);
+    let end_bits = u32::from(end);
+    
+    if start_bits > end_bits {
+        return None;
+    }
+    
+    // Find the largest prefix length where the subnet fits in the range
+    for prefix_len in 0..=32 {
+        let (mask, broadcast_addr) = if prefix_len == 0 {
+            (0u32, u32::MAX)
+        } else if prefix_len == 32 {
+            (u32::MAX, start_bits)
+        } else {
+            let mask = !((1u32 << (32 - prefix_len)) - 1);
+            let network_addr = start_bits & mask;
+            let broadcast_addr = network_addr | ((1u32 << (32 - prefix_len)) - 1);
+            (mask, broadcast_addr)
+        };
+        
+        let network_addr = start_bits & mask;
+        
+        if network_addr >= start_bits && broadcast_addr <= end_bits {
+            if let Ok(network) = IpNetwork::new(IpAddr::V4(Ipv4Addr::from(network_addr)), prefix_len) {
+                return Some(network);
+            }
+        }
+    }
+    
+    None
+}
+
+/// Finds the largest IPv6 subnet that fits within the given range.
+fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<IpNetwork> {
+    let start_bits = u128::from(start);
+    let end_bits = u128::from(end);
+    
+    if start_bits > end_bits {
+        return None;
+    }
+    
+    // Find the largest prefix length where the subnet fits in the range
+    for prefix_len in 0..=128 {
+        let (mask, broadcast_addr) = if prefix_len == 0 {
+            (0u128, u128::MAX)
+        } else if prefix_len == 128 {
+            (u128::MAX, start_bits)
+        } else {
+            let mask = !((1u128 << (128 - prefix_len)) - 1);
+            let network_addr = start_bits & mask;
+            let broadcast_addr = network_addr | ((1u128 << (128 - prefix_len)) - 1);
+            (mask, broadcast_addr)
+        };
+        
+        let network_addr = start_bits & mask;
+        
+        if network_addr >= start_bits && broadcast_addr <= end_bits {
+            if let Ok(network) = IpNetwork::new(IpAddr::V6(Ipv6Addr::from(network_addr)), prefix_len) {
+                return Some(network);
+            }
+        }
+    }
+    
+    None
 }
 
 /// Converts an arbitrary list of IP address ranges into the smallest possible list
@@ -566,14 +647,99 @@ fn merge_addrs(addr_ranges: Vec<RangeInclusive<IpAddr>>) -> Vec<IpAddress> {
                 address: Some(Address::Ip(range_start.to_string())),
             });
         } else {
-            // TODO: find largest subnet in range
-            // address range
-            result.push(IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: range_start.to_string(),
-                    end: range_end.to_string(),
-                })),
-            });
+            // Try to find the largest subnet that fits in the range
+            if let Some(subnet) = find_largest_subnet_in_range(range_start, range_end) {
+                let subnet_start = subnet.network();
+                let subnet_end = if subnet.is_ipv4() {
+                    subnet.broadcast()
+                } else {
+                    // For IPv6, calculate the last IP in the subnet
+                    let ipv6_net = match subnet {
+                        IpNetwork::V6(net) => net,
+                        _ => unreachable!(), // We already checked is_ipv4() is false
+                    };
+                    get_last_ip_in_v6_subnet(&ipv6_net)
+                };
+
+                // Check if the subnet covers the entire range
+                if subnet_start == range_start && subnet_end == range_end {
+                    // Use subnet notation for the entire range
+                    result.push(IpAddress {
+                        address: Some(Address::IpSubnet(subnet.to_string())),
+                    });
+                } else {
+                    // Subnet is found within the range, append both subnet and remaining ranges
+                    
+                    // Add range before subnet (if any)
+                    if range_start < subnet_start {
+                        let prev_ip = match subnet_start {
+                            IpAddr::V4(ip) => {
+                                let ip_u32 = u32::from(ip);
+                                if ip_u32 > 0 {
+                                    IpAddr::V4(Ipv4Addr::from(ip_u32 - 1))
+                                } else {
+                                    range_start // shouldn't happen in practice
+                                }
+                            }
+                            IpAddr::V6(ip) => {
+                                let ip_u128 = u128::from(ip);
+                                if ip_u128 > 0 {
+                                    IpAddr::V6(Ipv6Addr::from(ip_u128 - 1))
+                                } else {
+                                    range_start // shouldn't happen in practice
+                                }
+                            }
+                        };
+                        result.push(IpAddress {
+                            address: Some(Address::IpRange(IpRange {
+                                start: range_start.to_string(),
+                                end: prev_ip.to_string(),
+                            })),
+                        });
+                    }
+
+                    // Add the subnet
+                    result.push(IpAddress {
+                        address: Some(Address::IpSubnet(subnet.to_string())),
+                    });
+
+                    // Add range after subnet (if any)
+                    if subnet_end < range_end {
+                        let next_ip = match subnet_end {
+                            IpAddr::V4(ip) => {
+                                let ip_u32 = u32::from(ip);
+                                if ip_u32 < u32::MAX {
+                                    IpAddr::V4(Ipv4Addr::from(ip_u32 + 1))
+                                } else {
+                                    range_end // shouldn't happen in practice
+                                }
+                            }
+                            IpAddr::V6(ip) => {
+                                let ip_u128 = u128::from(ip);
+                                if ip_u128 < u128::MAX {
+                                    IpAddr::V6(Ipv6Addr::from(ip_u128 + 1))
+                                } else {
+                                    range_end // shouldn't happen in practice
+                                }
+                            }
+                        };
+                        result.push(IpAddress {
+                            address: Some(Address::IpRange(IpRange {
+                                start: next_ip.to_string(),
+                                end: range_end.to_string(),
+                            })),
+                        });
+                    }
+                }
+            } else {
+                // Fall back to range notation
+                result.push(IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: range_start.to_string(),
+                        end: range_end.to_string(),
+                    })),
+                });
+            }
         }
     }
 
