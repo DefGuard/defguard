@@ -67,6 +67,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
+
         // separate IPv4 and IPv6 user-device addresses
         let user_device_ips = user_device_ips
             .iter()
@@ -84,6 +85,7 @@ pub async fn generate_firewall_rules_from_acls(
             get_source_network_devices(allowed_network_devices, &denied_network_devices);
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
+
         // separate IPv4 and IPv6 network-device addresses
         let network_device_ips = network_device_ips
             .iter()
@@ -129,7 +131,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         // prepare destination addresses
         let (dest_addrs_v4, dest_addrs_v6) =
-            process_destination_addrs(&destination, destination_ranges);
+            process_destination_addrs(&destination, &destination_ranges);
 
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
@@ -199,7 +201,7 @@ pub async fn generate_firewall_rules_from_acls(
 
             // combine destination addrs
             let (dest_addrs_v4, dest_addrs_v6) =
-                process_alias_destination_addrs(&alias.destination, alias_destination_ranges);
+                process_alias_destination_addrs(&alias.destination, &alias_destination_ranges);
 
             // process alias ports
             let alias_ports = alias.ports.into_iter().map(Into::into).collect::<Vec<_>>();
@@ -424,56 +426,38 @@ fn get_source_addrs(
 /// first field and IPv6 addresses in the second.
 fn process_destination_addrs(
     dest_ipnets: &[IpNetwork],
-    mut dest_ranges: Vec<AclRuleDestinationRange<Id>>,
+    dest_ranges: &[AclRuleDestinationRange<Id>],
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
-    // Remove all IP address ranges that fit in the networks.
-    for dest in dest_ipnets {
-        dest_ranges.retain(|range| !range.fits_in_network(dest));
-    }
-
-    // Separate IP v4 and v6 addresses.
-    let mut ipv4_dest_addrs = dest_ipnets
+    // Separate IP v4 and v6 addresses and convert networks to intermediate range representation for merging
+    let ipv4_dest_net_addrs = dest_ipnets
         .iter()
         .filter(|dst| dst.is_ipv4())
-        .map(|addr| IpAddress {
-            address: Some(if u32::from(addr.prefix()) == Ipv4Addr::BITS {
-                Address::Ip(addr.ip().to_string())
-            } else {
-                Address::IpSubnet(addr.to_string())
-            }),
-        })
-        .collect::<Vec<_>>();
-    let mut ipv6_dest_addrs = dest_ipnets
-        .iter()
-        .filter(|dst| dst.is_ipv6())
-        .map(|addr| {
-            let addr_string = addr.to_string();
-            IpAddress {
-                address: Some(if u32::from(addr.prefix()) == Ipv6Addr::BITS {
-                    Address::Ip(addr.ip().to_string())
-                } else {
-                    Address::IpSubnet(addr_string)
-                }),
-            }
-        })
-        .collect::<Vec<_>>();
+        .map(|dst| dst.network()..=dst.broadcast());
+    let ipv6_dest_net_addrs = dest_ipnets.iter().filter_map(|dst| {
+        if let IpNetwork::V6(subnet) = dst {
+            let range_start = subnet.network().into();
+            let range_end = get_last_ip_in_v6_subnet(subnet);
+            Some(range_start..=range_end)
+        } else {
+            None
+        }
+    });
 
     // Separate IP v4 and v6 ranges.
     let ipv4_dest_ranges = dest_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
-        .map(RangeInclusive::from)
-        .collect();
+        .map(RangeInclusive::from);
     let ipv6_dest_ranges = dest_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
-        .map(RangeInclusive::from)
-        .collect();
+        .map(RangeInclusive::from);
 
-    ipv4_dest_addrs.append(&mut merge_addrs(ipv4_dest_ranges));
-    ipv6_dest_addrs.append(&mut merge_addrs(ipv6_dest_ranges));
+    // combine iterators
+    let ipv4_dest_addrs = ipv4_dest_net_addrs.chain(ipv4_dest_ranges).collect();
+    let ipv6_dest_addrs = ipv6_dest_net_addrs.chain(ipv6_dest_ranges).collect();
 
-    (ipv4_dest_addrs, ipv6_dest_addrs)
+    (merge_addrs(ipv4_dest_addrs), merge_addrs(ipv6_dest_addrs))
 }
 
 /// Convert destination networks and ranges configured in an ACL alias
@@ -487,56 +471,38 @@ fn process_destination_addrs(
 /// first field and IPv6 addresses in the second.
 fn process_alias_destination_addrs(
     dest_ipnets: &[IpNetwork],
-    mut dest_ranges: Vec<AclAliasDestinationRange<Id>>,
+    dest_ranges: &[AclAliasDestinationRange<Id>],
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
-    // Remove all IP address ranges that fit in the networks.
-    for dest in dest_ipnets {
-        dest_ranges.retain(|range| !range.fits_in_network(dest));
-    }
-
-    // Separate IP v4 and v6 addresses.
-    let mut ipv4_dest_addrs = dest_ipnets
+    // Separate IP v4 and v6 addresses and convert networks to intermediate range representation for merging
+    let ipv4_dest_net_addrs = dest_ipnets
         .iter()
         .filter(|dst| dst.is_ipv4())
-        .map(|addr| IpAddress {
-            address: Some(if u32::from(addr.prefix()) == Ipv4Addr::BITS {
-                Address::Ip(addr.ip().to_string())
-            } else {
-                Address::IpSubnet(addr.to_string())
-            }),
-        })
-        .collect::<Vec<_>>();
-    let mut ipv6_dest_addrs = dest_ipnets
-        .iter()
-        .filter(|dst| dst.is_ipv6())
-        .map(|addr| {
-            let addr_string = addr.to_string();
-            IpAddress {
-                address: Some(if u32::from(addr.prefix()) == Ipv6Addr::BITS {
-                    Address::Ip(addr.ip().to_string())
-                } else {
-                    Address::IpSubnet(addr_string)
-                }),
-            }
-        })
-        .collect::<Vec<_>>();
+        .map(|dst| dst.network()..=dst.broadcast());
+    let ipv6_dest_net_addrs = dest_ipnets.iter().filter_map(|dst| {
+        if let IpNetwork::V6(subnet) = dst {
+            let range_start = subnet.network().into();
+            let range_end = get_last_ip_in_v6_subnet(subnet);
+            Some(range_start..=range_end)
+        } else {
+            None
+        }
+    });
 
     // Separate IP v4 and v6 ranges.
     let ipv4_dest_ranges = dest_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
-        .map(RangeInclusive::from)
-        .collect();
+        .map(RangeInclusive::from);
     let ipv6_dest_ranges = dest_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
-        .map(RangeInclusive::from)
-        .collect();
+        .map(RangeInclusive::from);
 
-    ipv4_dest_addrs.append(&mut merge_addrs(ipv4_dest_ranges));
-    ipv6_dest_addrs.append(&mut merge_addrs(ipv6_dest_ranges));
+    // combine iterators
+    let ipv4_dest_addrs = ipv4_dest_net_addrs.chain(ipv4_dest_ranges).collect();
+    let ipv6_dest_addrs = ipv6_dest_net_addrs.chain(ipv6_dest_ranges).collect();
 
-    (ipv4_dest_addrs, ipv6_dest_addrs)
+    (merge_addrs(ipv4_dest_addrs), merge_addrs(ipv6_dest_addrs))
 }
 
 fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
@@ -566,11 +532,11 @@ fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork>
 fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<IpNetwork> {
     let start_bits = u32::from(start);
     let end_bits = u32::from(end);
-    
+
     if start_bits > end_bits {
         return None;
     }
-    
+
     // Find the largest prefix length where the subnet fits in the range
     for prefix_len in 0..=32 {
         let (mask, broadcast_addr) = if prefix_len == 0 {
@@ -583,16 +549,18 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
             let broadcast_addr = network_addr | ((1u32 << (32 - prefix_len)) - 1);
             (mask, broadcast_addr)
         };
-        
+
         let network_addr = start_bits & mask;
-        
+
         if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) = IpNetwork::new(IpAddr::V4(Ipv4Addr::from(network_addr)), prefix_len) {
+            if let Ok(network) =
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::from(network_addr)), prefix_len)
+            {
                 return Some(network);
             }
         }
     }
-    
+
     None
 }
 
@@ -600,11 +568,11 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
 fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<IpNetwork> {
     let start_bits = u128::from(start);
     let end_bits = u128::from(end);
-    
+
     if start_bits > end_bits {
         return None;
     }
-    
+
     // Find the largest prefix length where the subnet fits in the range
     for prefix_len in 0..=128 {
         let (mask, broadcast_addr) = if prefix_len == 0 {
@@ -617,16 +585,18 @@ fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<I
             let broadcast_addr = network_addr | ((1u128 << (128 - prefix_len)) - 1);
             (mask, broadcast_addr)
         };
-        
+
         let network_addr = start_bits & mask;
-        
+
         if network_addr >= start_bits && broadcast_addr <= end_bits {
-            if let Ok(network) = IpNetwork::new(IpAddr::V6(Ipv6Addr::from(network_addr)), prefix_len) {
+            if let Ok(network) =
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::from(network_addr)), prefix_len)
+            {
                 return Some(network);
             }
         }
     }
-    
+
     None
 }
 
@@ -669,7 +639,7 @@ fn merge_addrs(addr_ranges: Vec<RangeInclusive<IpAddr>>) -> Vec<IpAddress> {
                     });
                 } else {
                     // Subnet is found within the range, append both subnet and remaining ranges
-                    
+
                     // Add range before subnet (if any)
                     if range_start < subnet_start {
                         let prev_ip = match subnet_start {
