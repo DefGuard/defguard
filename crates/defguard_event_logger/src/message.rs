@@ -27,7 +27,6 @@ impl EventLoggerMessage {
 /// Possible audit event types split by module
 pub enum LoggerEvent {
     Defguard(Box<DefguardEvent>),
-    Client(Box<ClientEvent>),
     Vpn(Box<VpnEvent>),
     Enrollment(Box<EnrollmentEvent>),
 }
@@ -265,12 +264,6 @@ pub enum DefguardEvent {
     ClientConfigurationTokenAdded {
         user: User<Id>,
     },
-}
-
-/// Represents audit events related to client applications
-pub enum ClientEvent {
-    DesktopClientActivated { device_id: Id, device_name: String },
-    DesktopClientUpdated { device_id: Id, device_name: String },
 }
 
 /// Represents audit events related to VPN

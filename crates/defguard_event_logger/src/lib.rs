@@ -389,10 +389,6 @@ pub async fn run_event_logger(
                         };
                         (module, event_type, metadata)
                     }
-                    LoggerEvent::Client(_event) => {
-                        let _module = AuditModule::Client;
-                        unimplemented!()
-                    }
                     LoggerEvent::Vpn(event) => {
                         let module = AuditModule::Vpn;
                         let (event_type, metadata) = match *event {
