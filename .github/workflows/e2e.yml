@@ -3,6 +3,11 @@ name: E2E tests
 on:
   workflow_call:
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: [self-hosted, Linux, X64]
