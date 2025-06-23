@@ -163,7 +163,7 @@ pub async fn generate_firewall_rules_from_acls(
                     &comment,
                 );
                 if let Some(rule) = ipv4_rules.0 {
-                    allow_rules.push(rule)
+                    allow_rules.push(rule);
                 }
                 deny_rules.push(ipv4_rules.1);
             }
@@ -180,7 +180,7 @@ pub async fn generate_firewall_rules_from_acls(
                     &comment,
                 );
                 if let Some(rule) = ipv6_rules.0 {
-                    allow_rules.push(rule)
+                    allow_rules.push(rule);
                 }
                 deny_rules.push(ipv6_rules.1);
             }
@@ -517,6 +517,10 @@ fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
 /// Finds the largest subnet that fits within the given IP address range.
 /// Returns None if no valid subnet can be found.
 fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork> {
+    if start > end {
+        return None;
+    }
+
     match (start, end) {
         (IpAddr::V4(start_v4), IpAddr::V4(end_v4)) => {
             find_largest_ipv4_subnet_in_range(start_v4, end_v4)
@@ -529,27 +533,21 @@ fn find_largest_subnet_in_range(start: IpAddr, end: IpAddr) -> Option<IpNetwork>
 }
 
 /// Finds the largest IPv4 subnet that fits within the given range.
-/// The subnet must contain more than one IP address since single IPs have their own gRPC representation.
+/// The subnet must contain more than one IP address since single IPs have their own gRPC
+/// representation.
 fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<IpNetwork> {
-    let start_bits = u32::from(start);
-    let end_bits = u32::from(end);
+    let start_bits = start.to_bits();
+    let end_bits = end.to_bits();
 
-    if start_bits > end_bits {
-        return None;
-    }
-
-    // Find the largest prefix length where the subnet fits in the range
+    // Find the largest prefix length where the subnet fits in the range.
     for prefix_len in 0..=31 {
-        let (mask, broadcast_addr) = if prefix_len == 0 {
-            (0u32, u32::MAX)
+        let mask = if prefix_len == 0 {
+            0
         } else {
-            let mask = !((1u32 << (32 - prefix_len)) - 1);
-            let network_addr = start_bits & mask;
-            let broadcast_addr = network_addr | ((1u32 << (32 - prefix_len)) - 1);
-            (mask, broadcast_addr)
+            u32::MAX << (32 - prefix_len)
         };
-
         let network_addr = start_bits & mask;
+        let broadcast_addr = network_addr | !mask;
 
         if network_addr >= start_bits && broadcast_addr <= end_bits {
             if let Ok(network) =
@@ -564,27 +562,22 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
 }
 
 /// Finds the largest IPv6 subnet that fits within the given range.
-/// The subnet must contain more than one IP address since single IPs have their own gRPC representation.
+/// The subnet must contain more than one IP address since single IPs have their own gRPC
+/// representation.
 fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<IpNetwork> {
     let start_bits = u128::from(start);
     let end_bits = u128::from(end);
 
-    if start_bits > end_bits {
-        return None;
-    }
-
-    // Find the largest prefix length where the subnet fits in the range
+    // Find the largest prefix length where the subnet fits in the range.
     for prefix_len in 0..=127 {
-        let (mask, broadcast_addr) = if prefix_len == 0 {
-            (0u128, u128::MAX)
+        let mask = if prefix_len == 0 {
+            0
         } else {
-            let mask = !((1u128 << (128 - prefix_len)) - 1);
-            let network_addr = start_bits & mask;
-            let broadcast_addr = network_addr | ((1u128 << (128 - prefix_len)) - 1);
-            (mask, broadcast_addr)
+            u128::MAX << (128 - prefix_len)
         };
 
         let network_addr = start_bits & mask;
+        let broadcast_addr = network_addr | !mask;
 
         if network_addr >= start_bits && broadcast_addr <= end_bits {
             if let Ok(network) =
@@ -628,9 +621,8 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
             subnet.broadcast()
         } else {
             // For IPv6, calculate the last IP in the subnet
-            let ipv6_net = match subnet {
-                IpNetwork::V6(net) => net,
-                _ => unreachable!(), // We already checked is_ipv4() is false
+            let IpNetwork::V6(ipv6_net) = subnet else {
+                unreachable!(); // We already checked is_ipv4() is false
             };
             get_last_ip_in_v6_subnet(&ipv6_net)
         };
@@ -725,7 +717,7 @@ fn merge_addrs(addr_ranges: Vec<RangeInclusive<IpAddr>>) -> Vec<IpAddress> {
     let mut result = Vec::new();
     for range in addr_ranges {
         let (range_start, range_end) = range.into_inner();
-        result.extend(extract_all_subnets_from_range(range_start, range_end))
+        result.extend(extract_all_subnets_from_range(range_start, range_end));
     }
 
     result

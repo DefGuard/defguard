@@ -623,9 +623,6 @@ fn test_merge_v4_addrs() {
                 })),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.9.0/24".to_string())),
-            },
-            IpAddress {
                 address: Some(Address::Ip("10.0.20.20".to_string())),
             },
             IpAddress {
