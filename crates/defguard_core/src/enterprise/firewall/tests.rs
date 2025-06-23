@@ -492,14 +492,14 @@ fn test_process_source_addrs_v6() {
 #[test]
 fn test_process_destination_addrs_v4() {
     // Test data with mixed IPv4 and IPv6 networks
-    let destination_ips = vec![
+    let destination_ips = [
         "10.0.1.0/24".parse().unwrap(),
         "10.0.2.0/24".parse().unwrap(),
         "2001:db8::/64".parse().unwrap(), // Should be filtered out
         "192.168.1.0/24".parse().unwrap(),
     ];
 
-    let destination_ranges = vec![
+    let destination_ranges = [
         AclRuleDestinationRange {
             start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 1)),
             end: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 100)),
