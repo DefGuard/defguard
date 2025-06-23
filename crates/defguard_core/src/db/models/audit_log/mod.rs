@@ -43,6 +43,9 @@ pub enum EventType {
     UserAdded,
     UserRemoved,
     UserModified,
+    PasswordChanged,
+    PasswordChangedByAdmin,
+    PasswordReset,
     // device management
     DeviceAdded,
     DeviceRemoved,
@@ -50,6 +53,7 @@ pub enum EventType {
     NetworkDeviceAdded,
     NetworkDeviceRemoved,
     NetworkDeviceModified,
+    ClientConfigurationTokenAdded,
     // audit stream
     AuditStreamCreated,
     AuditStreamModified,
@@ -58,6 +62,10 @@ pub enum EventType {
     OpenIdAppAdded,
     OpenIdAppRemoved,
     OpenIdAppModified,
+    OpenIdAppStateChanged,
+    // OpenID provider management
+    OpenIdProviderRemoved,
+    OpenIdProviderModified,
     // VPN location management
     VpnLocationAdded,
     VpnLocationRemoved,
@@ -69,12 +77,37 @@ pub enum EventType {
     VpnClientDisconnectedMfa,
     VpnClientMfaFailed,
     // Enrollment events
+    EnrollmentTokenAdded,
     EnrollmentStarted,
     EnrollmentDeviceAdded,
     EnrollmentCompleted,
     PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
+    // API token management,
+    ApiTokenAdded,
+    ApiTokenRemoved,
+    ApiTokenRenamed,
+    // Settings management
+    SettingsUpdated,
+    SettingsUpdatedPartial,
+    SettingsDefaultBrandingRestored,
+    // Groups management
+    GroupsBulkAssigned,
+    GroupAdded,
+    GroupModified,
+    GroupRemoved,
+    GroupMemberAdded,
+    GroupMemberRemoved,
+    // WebHook management
+    WebHookAdded,
+    WebHookModified,
+    WebHookRemoved,
+    WebHookStateChanged,
+    // Authentication key management
+    AuthenticationKeyAdded,
+    AuthenticationKeyRemoved,
+    AuthenticationKeyRenamed,
 }
 
 #[derive(Model, FromRow, Serialize)]

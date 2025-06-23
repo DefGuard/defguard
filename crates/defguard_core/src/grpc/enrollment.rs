@@ -104,7 +104,7 @@ impl EnrollmentServer {
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
             context,
-            event: BidiStreamEventType::Enrollment(event),
+            event: BidiStreamEventType::Enrollment(Box::new(event)),
         };
 
         self.bidi_event_tx.send(event)
