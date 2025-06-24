@@ -205,9 +205,14 @@ pub async fn delete_openid_provider(
         "User {} deleting OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+    let mut trasnaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *trasnaction, &provider_data.name).await?;
     if let Some(provider) = provider {
-        provider.delete(&appstate.pool).await?;
+        let mut settings = Settings::get_current_settings();
+        provider.delete(&mut *trasnaction).await?;
+        settings.use_openid_for_mfa = false;
+        update_current_settings(&mut *trasnaction, settings).await?;
+        trasnaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",
             session.user.username, provider_data.name
@@ -239,12 +244,13 @@ pub async fn modify_openid_provider(
         "User {} modifying OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(mut provider) = provider {
         provider.base_url = provider_data.base_url;
         provider.client_id = provider_data.client_id;
         provider.client_secret = provider_data.client_secret;
-        provider.save(&appstate.pool).await?;
+        provider.save(&mut *transaction).await?;
         info!(
             "User {} modified OpenID client {}",
             session.user.username, provider.name

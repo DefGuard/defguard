@@ -26,6 +26,10 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
     control,
     name: 'use_openid_for_mfa',
   }) as boolean;
+  const providerName = useWatch({
+    control,
+    name: 'name',
+  }) as string;
 
   const options: SelectOption<UsernameHandling>[] = useMemo(
     () => [
@@ -47,6 +51,10 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
     ],
     [localLL.general.usernameHandling.options],
   );
+
+  const providerConfigured = useMemo(() => {
+    return providerName !== '';
+  }, [providerName]);
 
   return (
     <div id="general-settings">
@@ -78,11 +86,11 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
           //   control,
           //   name: 'use_openid_for_mfa',
           // }}
-          value={use_openid_for_mfa}
+          value={providerConfigured ? use_openid_for_mfa : false}
           onChange={(e) => {
             setValue('use_openid_for_mfa', e);
           }}
-          disabled={isLoading}
+          disabled={isLoading || !providerConfigured}
         />
         <Helper>{localLL.general.useOpenIdForMfa.helper()}</Helper>
       </div>
