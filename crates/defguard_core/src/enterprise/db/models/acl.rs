@@ -1892,12 +1892,6 @@ pub struct AclRuleDestinationRange<I = NoId> {
     pub end: IpAddr,
 }
 
-impl<I> AclRuleDestinationRange<I> {
-    pub(crate) fn fits_in_network(&self, ipnet: &IpNetwork) -> bool {
-        ipnet.contains(self.start) && ipnet.contains(self.end)
-    }
-}
-
 impl AclRuleDestinationRange<NoId> {
     pub async fn save<'e, E>(self, executor: E) -> Result<AclRuleDestinationRange<Id>, SqlxError>
     where
@@ -1934,12 +1928,6 @@ pub struct AclAliasDestinationRange<I = NoId> {
     pub alias_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
-}
-
-impl<I> AclAliasDestinationRange<I> {
-    pub(crate) fn fits_in_network(&self, ipnet: &IpNetwork) -> bool {
-        ipnet.contains(self.start) && ipnet.contains(self.end)
-    }
 }
 
 impl AclAliasDestinationRange<NoId> {
