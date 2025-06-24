@@ -3671,7 +3671,7 @@ type RootTranslation = {
       header: string;
       /**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​i​d​e​ ​u​n​u​s​e​d​ ​m​o​d​u​l​e​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
@@ -6309,297 +6309,425 @@ type RootTranslation = {
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​ ​A​d​d​r​e​s​s​e​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
-        destinationInstructions: string;
-      };
-      message: {
-        /**
-         * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​.
-         */
-        create: string;
-        /**
-         * R​u​l​e​ ​c​r​e​a​t​i​o​n​ ​f​a​i​l​e​d
-         */
-        createFail: string;
-      };
-      headers: {
-        /**
-         * R​u​l​e
-         */
-        rule: string;
-        /**
-         * C​r​e​a​t​e​ ​R​u​l​e
-         */
-        createRule: string;
-        /**
-         * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
-         */
-        allowed: string;
-        /**
-         * D​e​n​i​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
-         */
-        denied: string;
-        /**
-         * D​e​s​t​i​n​a​t​i​o​n
-         */
-        destination: string;
-      };
-      labels: {
-        /**
-         * R​u​l​e​ ​n​a​m​e
-         */
-        name: string;
-        /**
-         * P​r​i​o​r​i​t​y
-         */
-        priority: string;
-        /**
-         * S​t​a​t​u​s
-         */
-        status: string;
-        /**
-         * L​o​c​a​t​i​o​n​s
-         */
-        locations: string;
-        /**
-         * A​l​l​o​w​ ​a​l​l​ ​u​s​e​r​s
-         */
-        allowAllUsers: string;
-        /**
-         * I​n​c​l​u​d​e​ ​a​l​l​ ​l​o​c​a​t​i​o​n​s
-         */
-        allowAllNetworks: string;
-        /**
-         * A​l​l​o​w​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        allowAllNetworkDevices: string;
-        /**
-         * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
-         */
-        denyAllUsers: string;
-        /**
-         * D​e​n​y​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        denyAllNetworkDevices: string;
-        /**
-         * U​s​e​r​s
-         */
-        users: string;
-        /**
-         * G​r​o​u​p​s
-         */
-        groups: string;
-        /**
-         * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
-         */
-        devices: string;
-        /**
-         * P​r​o​t​o​c​o​l​s
-         */
-        protocols: string;
-        /**
-         * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​o​r​ ​a​d​d​r​e​s​s
-         */
-        manualIp: string;
-        /**
-         * P​o​r​t​s
-         */
-        ports: string;
-        /**
-         * A​l​i​a​s​e​s
-         */
-        aliases: string;
-        /**
-         * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
-         */
-        expires: string;
-        /**
-         * M​a​n​u​a​l​ ​I​n​p​u​t
-         */
-        manualInput: string;
-      };
-      placeholders: {
-        /**
-         * A​l​l​ ​p​r​o​t​o​c​o​l​s
-         */
-        allProtocols: string;
-        /**
-         * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
-         */
-        allIps: string;
-      };
-    };
-  };
-  enums: {
-    auditEventType: {
-      /**
-       * U​s​e​r​ ​l​o​g​i​n
-       */
-      user_login: string;
-      /**
-       * U​s​e​r​ ​l​o​g​i​n​ ​f​a​i​l​e​d
-       */
-      user_login_failed: string;
-      /**
-       * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n
-       */
-      user_mfa_login: string;
-      /**
-       * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n​ ​f​a​i​l​e​d
-       */
-      user_mfa_login_failed: string;
-      /**
-       * R​e​c​o​v​e​r​y​ ​c​o​d​e​ ​u​s​e​d
-       */
-      recovery_code_used: string;
-      /**
-       * U​s​e​r​ ​l​o​g​o​u​t
-       */
-      user_logout: string;
-      /**
-       * U​s​e​r​ ​a​d​d​e​d
-       */
-      user_added: string;
-      /**
-       * U​s​e​r​ ​r​e​m​o​v​e​d
-       */
-      user_removed: string;
-      /**
-       * U​s​e​r​ ​m​o​d​i​f​i​e​d
-       */
-      user_modified: string;
-      /**
-       * M​F​A​ ​e​n​a​b​l​e​d
-       */
-      mfa_enabled: string;
-      /**
-       * M​F​A​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_disabled: string;
-      /**
-       * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
-       */
-      mfa_totp_enabled: string;
-      /**
-       * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_totp_disabled: string;
-      /**
-       * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
-       */
-      mfa_email_enabled: string;
-      /**
-       * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
-       */
-      mfa_email_disabled: string;
-      /**
-       * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
-       */
-      mfa_security_key_added: string;
-      /**
-       * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
-       */
-      mfa_security_key_removed: string;
-      /**
-       * D​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      device_added: string;
-      /**
-       * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
-       */
-      device_removed: string;
-      /**
-       * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
-       */
-      device_modified: string;
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      network_device_added: string;
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
-       */
-      network_device_removed: string;
-      /**
-       * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
-       */
-      network_device_modified: string;
-      /**
-       * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
-       */
-      audit_stream_created: string;
-      /**
-       * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
-       */
-      audit_stream_modified: string;
-      /**
-       * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
-       */
-      audit_stream_removed: string;
-      /**
-       * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
-       */
-      vpn_client_connected: string;
-      /**
-       * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d
-       */
-      vpn_client_disconnected: string;
-      /**
-       * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d​ ​t​o​ ​M​F​A​ ​l​o​c​a​t​i​o​n
-       */
-      vpn_client_connected_mfa: string;
-      /**
-       * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​M​F​A​ ​l​o​c​a​t​i​o​n
-       */
-      vpn_client_disconnected_mfa: string;
-      /**
-       * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
-       */
-      vpn_client_mfa_failed: string;
-      /**
-       * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
-       */
-      enrollment_started: string;
-      /**
-       * D​e​v​i​c​e​ ​a​d​d​e​d
-       */
-      enrollment_device_added: string;
-      /**
-       * E​n​r​o​l​l​m​e​n​t​ ​c​o​m​p​l​e​t​e​d
-       */
-      enrollment_completed: string;
-      /**
-       * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​r​e​q​u​e​s​t​e​d
-       */
-      password_reset_requested: string;
-      /**
-       * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​s​t​a​r​t​e​d
-       */
-      password_reset_started: string;
-      /**
-       * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
-       */
-      password_reset_completed: string;
-    };
-    auditModule: {
-      /**
-       * D​e​f​g​u​a​r​d
-       */
-      defguard: string;
-      /**
-       * C​l​i​e​n​t
-       */
-      client: string;
-      /**
-       * E​n​r​o​l​l​m​e​n​t
-       */
-      enrollment: string;
-      /**
-       * V​P​N
-       */
-      vpn: string;
-    };
-  };
-};
+				destinationInstructions: string
+			}
+			message: {
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​.
+				 */
+				create: string
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​i​o​n​ ​f​a​i​l​e​d
+				 */
+				createFail: string
+			}
+			headers: {
+				/**
+				 * R​u​l​e
+				 */
+				rule: string
+				/**
+				 * C​r​e​a​t​e​ ​R​u​l​e
+				 */
+				createRule: string
+				/**
+				 * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				allowed: string
+				/**
+				 * D​e​n​i​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				denied: string
+				/**
+				 * D​e​s​t​i​n​a​t​i​o​n
+				 */
+				destination: string
+			}
+			labels: {
+				/**
+				 * R​u​l​e​ ​n​a​m​e
+				 */
+				name: string
+				/**
+				 * P​r​i​o​r​i​t​y
+				 */
+				priority: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * L​o​c​a​t​i​o​n​s
+				 */
+				locations: string
+				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				allowAllUsers: string
+				/**
+				 * I​n​c​l​u​d​e​ ​a​l​l​ ​l​o​c​a​t​i​o​n​s
+				 */
+				allowAllNetworks: string
+				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				allowAllNetworkDevices: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				denyAllUsers: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				denyAllNetworkDevices: string
+				/**
+				 * U​s​e​r​s
+				 */
+				users: string
+				/**
+				 * G​r​o​u​p​s
+				 */
+				groups: string
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				devices: string
+				/**
+				 * P​r​o​t​o​c​o​l​s
+				 */
+				protocols: string
+				/**
+				 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​o​r​ ​a​d​d​r​e​s​s
+				 */
+				manualIp: string
+				/**
+				 * P​o​r​t​s
+				 */
+				ports: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+				/**
+				 * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
+				 */
+				expires: string
+				/**
+				 * M​a​n​u​a​l​ ​I​n​p​u​t
+				 */
+				manualInput: string
+			}
+			placeholders: {
+				/**
+				 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+				 */
+				allProtocols: string
+				/**
+				 * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
+				 */
+				allIps: string
+			}
+		}
+	}
+	enums: {
+		auditEventType: {
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n
+			 */
+			user_login: string
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_login_failed: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n
+			 */
+			user_mfa_login: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_mfa_login_failed: string
+			/**
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​ ​u​s​e​d
+			 */
+			recovery_code_used: string
+			/**
+			 * U​s​e​r​ ​l​o​g​o​u​t
+			 */
+			user_logout: string
+			/**
+			 * U​s​e​r​ ​a​d​d​e​d
+			 */
+			user_added: string
+			/**
+			 * U​s​e​r​ ​r​e​m​o​v​e​d
+			 */
+			user_removed: string
+			/**
+			 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			user_modified: string
+			/**
+			 * M​F​A​ ​e​n​a​b​l​e​d
+			 */
+			mfa_enabled: string
+			/**
+			 * M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_disabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
+			 */
+			mfa_totp_enabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_totp_disabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
+			 */
+			mfa_email_enabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_email_disabled: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			mfa_security_key_added: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			mfa_security_key_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			device_added: string
+			/**
+			 * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			device_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			device_modified: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			network_device_added: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			network_device_removed: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			network_device_modified: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 */
+			audit_stream_created: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 */
+			audit_stream_modified: string
+			/**
+			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 */
+			audit_stream_removed: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_connected: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_disconnected: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d​ ​t​o​ ​M​F​A​ ​l​o​c​a​t​i​o​n
+			 */
+			vpn_client_connected_mfa: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​M​F​A​ ​l​o​c​a​t​i​o​n
+			 */
+			vpn_client_disconnected_mfa: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			vpn_client_mfa_failed: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			enrollment_token_added: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+			 */
+			enrollment_started: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			enrollment_device_added: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			enrollment_completed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​r​e​q​u​e​s​t​e​d
+			 */
+			password_reset_requested: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​s​t​a​r​t​e​d
+			 */
+			password_reset_started: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​a​d​d​e​d
+			 */
+			open_id_app_added: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​r​e​m​o​v​e​d
+			 */
+			open_id_app_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_app_modified: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			open_id_app_state_changed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​r​e​m​o​v​e​d
+			 */
+			open_id_provider_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_provider_modified: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated_partial: string
+			/**
+			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
+			 */
+			settings_default_branding_restored: string
+			/**
+			 * G​r​o​u​p​s​ ​b​u​l​k​ ​a​s​s​i​g​n​e​d
+			 */
+			groups_bulk_assigned: string
+			/**
+			 * G​r​o​u​p​ ​a​d​d​e​d
+			 */
+			group_added: string
+			/**
+			 * G​r​o​u​p​ ​m​o​d​i​f​i​e​d
+			 */
+			group_modified: string
+			/**
+			 * G​r​o​u​p​ ​r​e​m​o​v​e​d
+			 */
+			group_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​a​d​d​e​d
+			 */
+			group_member_added: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
+			 */
+			group_member_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
+			 */
+			web_hook_added: string
+			/**
+			 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d
+			 */
+			web_hook_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
+			 */
+			web_hook_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			authentication_key_added: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			authentication_key_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
+			 */
+			authentication_key_renamed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+			 */
+			password_changed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​ ​b​y​ ​a​d​m​i​n
+			 */
+			password_changed_by_admin: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t
+			 */
+			password_reset: string
+			/**
+			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			client_configuration_token_added: string
+		}
+		auditModule: {
+			/**
+			 * D​e​f​g​u​a​r​d
+			 */
+			defguard: string
+			/**
+			 * C​l​i​e​n​t
+			 */
+			client: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * V​P​N
+			 */
+			vpn: string
+		}
+	}
+}
 
 export type TranslationFunctions = {
   common: {
@@ -9893,7 +10021,7 @@ export type TranslationFunctions = {
       header: () => LocalizedString;
       /**
 			 * <p>
-		            If your not using some modules you can disable their visibility.
+		            Hide unused modules.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
@@ -12503,296 +12631,424 @@ export type TranslationFunctions = {
 				 * 
 			        Specify one or more fields (IP Addresses or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
-        destinationInstructions: () => LocalizedString;
-      };
-      message: {
-        /**
-         * Rule created and added to pending changes.
-         */
-        create: () => LocalizedString;
-        /**
-         * Rule creation failed
-         */
-        createFail: () => LocalizedString;
-      };
-      headers: {
-        /**
-         * Rule
-         */
-        rule: () => LocalizedString;
-        /**
-         * Create Rule
-         */
-        createRule: () => LocalizedString;
-        /**
-         * Allowed Users/Groups/Devices
-         */
-        allowed: () => LocalizedString;
-        /**
-         * Denied Users/Groups/Devices
-         */
-        denied: () => LocalizedString;
-        /**
-         * Destination
-         */
-        destination: () => LocalizedString;
-      };
-      labels: {
-        /**
-         * Rule name
-         */
-        name: () => LocalizedString;
-        /**
-         * Priority
-         */
-        priority: () => LocalizedString;
-        /**
-         * Status
-         */
-        status: () => LocalizedString;
-        /**
-         * Locations
-         */
-        locations: () => LocalizedString;
-        /**
-         * Allow all users
-         */
-        allowAllUsers: () => LocalizedString;
-        /**
-         * Include all locations
-         */
-        allowAllNetworks: () => LocalizedString;
-        /**
-         * Allow all network devices
-         */
-        allowAllNetworkDevices: () => LocalizedString;
-        /**
-         * Deny all users
-         */
-        denyAllUsers: () => LocalizedString;
-        /**
-         * Deny all network devices
-         */
-        denyAllNetworkDevices: () => LocalizedString;
-        /**
-         * Users
-         */
-        users: () => LocalizedString;
-        /**
-         * Groups
-         */
-        groups: () => LocalizedString;
-        /**
-         * Network devices
-         */
-        devices: () => LocalizedString;
-        /**
-         * Protocols
-         */
-        protocols: () => LocalizedString;
-        /**
-         * IPv4/6 CIDR range or address
-         */
-        manualIp: () => LocalizedString;
-        /**
-         * Ports
-         */
-        ports: () => LocalizedString;
-        /**
-         * Aliases
-         */
-        aliases: () => LocalizedString;
-        /**
-         * Expiration Date
-         */
-        expires: () => LocalizedString;
-        /**
-         * Manual Input
-         */
-        manualInput: () => LocalizedString;
-      };
-      placeholders: {
-        /**
-         * All protocols
-         */
-        allProtocols: () => LocalizedString;
-        /**
-         * All IP addresses
-         */
-        allIps: () => LocalizedString;
-      };
-    };
-  };
-  enums: {
-    auditEventType: {
-      /**
-       * User login
-       */
-      user_login: () => LocalizedString;
-      /**
-       * User login failed
-       */
-      user_login_failed: () => LocalizedString;
-      /**
-       * User MFA login
-       */
-      user_mfa_login: () => LocalizedString;
-      /**
-       * User MFA login failed
-       */
-      user_mfa_login_failed: () => LocalizedString;
-      /**
-       * Recovery code used
-       */
-      recovery_code_used: () => LocalizedString;
-      /**
-       * User logout
-       */
-      user_logout: () => LocalizedString;
-      /**
-       * User added
-       */
-      user_added: () => LocalizedString;
-      /**
-       * User removed
-       */
-      user_removed: () => LocalizedString;
-      /**
-       * User modified
-       */
-      user_modified: () => LocalizedString;
-      /**
-       * MFA enabled
-       */
-      mfa_enabled: () => LocalizedString;
-      /**
-       * MFA disabled
-       */
-      mfa_disabled: () => LocalizedString;
-      /**
-       * MFA TOTP enabled
-       */
-      mfa_totp_enabled: () => LocalizedString;
-      /**
-       * MFA TOTP disabled
-       */
-      mfa_totp_disabled: () => LocalizedString;
-      /**
-       * MFA email enabled
-       */
-      mfa_email_enabled: () => LocalizedString;
-      /**
-       * MFA email disabled
-       */
-      mfa_email_disabled: () => LocalizedString;
-      /**
-       * MFA security key added
-       */
-      mfa_security_key_added: () => LocalizedString;
-      /**
-       * MFA security key removed
-       */
-      mfa_security_key_removed: () => LocalizedString;
-      /**
-       * Device added
-       */
-      device_added: () => LocalizedString;
-      /**
-       * Device removed
-       */
-      device_removed: () => LocalizedString;
-      /**
-       * Device modified
-       */
-      device_modified: () => LocalizedString;
-      /**
-       * Network device added
-       */
-      network_device_added: () => LocalizedString;
-      /**
-       * Network device removed
-       */
-      network_device_removed: () => LocalizedString;
-      /**
-       * Network device modified
-       */
-      network_device_modified: () => LocalizedString;
-      /**
-       * Audit stream created
-       */
-      audit_stream_created: () => LocalizedString;
-      /**
-       * Audit stream modified
-       */
-      audit_stream_modified: () => LocalizedString;
-      /**
-       * Audit stream removed
-       */
-      audit_stream_removed: () => LocalizedString;
-      /**
-       * VPN client connected
-       */
-      vpn_client_connected: () => LocalizedString;
-      /**
-       * VPN client disconnected
-       */
-      vpn_client_disconnected: () => LocalizedString;
-      /**
-       * VPN client connected to MFA location
-       */
-      vpn_client_connected_mfa: () => LocalizedString;
-      /**
-       * VPN client disconnected from MFA location
-       */
-      vpn_client_disconnected_mfa: () => LocalizedString;
-      /**
-       * VPN client failed MFA authentication
-       */
-      vpn_client_mfa_failed: () => LocalizedString;
-      /**
-       * Enrollment started
-       */
-      enrollment_started: () => LocalizedString;
-      /**
-       * Device added
-       */
-      enrollment_device_added: () => LocalizedString;
-      /**
-       * Enrollment completed
-       */
-      enrollment_completed: () => LocalizedString;
-      /**
-       * Password reset requested
-       */
-      password_reset_requested: () => LocalizedString;
-      /**
-       * Password reset started
-       */
-      password_reset_started: () => LocalizedString;
-      /**
-       * Password reset completed
-       */
-      password_reset_completed: () => LocalizedString;
-    };
-    auditModule: {
-      /**
-       * Defguard
-       */
-      defguard: () => LocalizedString;
-      /**
-       * Client
-       */
-      client: () => LocalizedString;
-      /**
-       * Enrollment
-       */
-      enrollment: () => LocalizedString;
-      /**
-       * VPN
-       */
-      vpn: () => LocalizedString;
-    };
-  };
-};
+				destinationInstructions: () => LocalizedString
+			}
+			message: {
+				/**
+				 * Rule created and added to pending changes.
+				 */
+				create: () => LocalizedString
+				/**
+				 * Rule creation failed
+				 */
+				createFail: () => LocalizedString
+			}
+			headers: {
+				/**
+				 * Rule
+				 */
+				rule: () => LocalizedString
+				/**
+				 * Create Rule
+				 */
+				createRule: () => LocalizedString
+				/**
+				 * Allowed Users/Groups/Devices
+				 */
+				allowed: () => LocalizedString
+				/**
+				 * Denied Users/Groups/Devices
+				 */
+				denied: () => LocalizedString
+				/**
+				 * Destination
+				 */
+				destination: () => LocalizedString
+			}
+			labels: {
+				/**
+				 * Rule name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Priority
+				 */
+				priority: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Locations
+				 */
+				locations: () => LocalizedString
+				/**
+				 * Allow all users
+				 */
+				allowAllUsers: () => LocalizedString
+				/**
+				 * Include all locations
+				 */
+				allowAllNetworks: () => LocalizedString
+				/**
+				 * Allow all network devices
+				 */
+				allowAllNetworkDevices: () => LocalizedString
+				/**
+				 * Deny all users
+				 */
+				denyAllUsers: () => LocalizedString
+				/**
+				 * Deny all network devices
+				 */
+				denyAllNetworkDevices: () => LocalizedString
+				/**
+				 * Users
+				 */
+				users: () => LocalizedString
+				/**
+				 * Groups
+				 */
+				groups: () => LocalizedString
+				/**
+				 * Network devices
+				 */
+				devices: () => LocalizedString
+				/**
+				 * Protocols
+				 */
+				protocols: () => LocalizedString
+				/**
+				 * IPv4/6 CIDR range or address
+				 */
+				manualIp: () => LocalizedString
+				/**
+				 * Ports
+				 */
+				ports: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+				/**
+				 * Expiration Date
+				 */
+				expires: () => LocalizedString
+				/**
+				 * Manual Input
+				 */
+				manualInput: () => LocalizedString
+			}
+			placeholders: {
+				/**
+				 * All protocols
+				 */
+				allProtocols: () => LocalizedString
+				/**
+				 * All IP addresses
+				 */
+				allIps: () => LocalizedString
+			}
+		}
+	}
+	enums: {
+		auditEventType: {
+			/**
+			 * User login
+			 */
+			user_login: () => LocalizedString
+			/**
+			 * User login failed
+			 */
+			user_login_failed: () => LocalizedString
+			/**
+			 * User MFA login
+			 */
+			user_mfa_login: () => LocalizedString
+			/**
+			 * User MFA login failed
+			 */
+			user_mfa_login_failed: () => LocalizedString
+			/**
+			 * Recovery code used
+			 */
+			recovery_code_used: () => LocalizedString
+			/**
+			 * User logout
+			 */
+			user_logout: () => LocalizedString
+			/**
+			 * User added
+			 */
+			user_added: () => LocalizedString
+			/**
+			 * User removed
+			 */
+			user_removed: () => LocalizedString
+			/**
+			 * User modified
+			 */
+			user_modified: () => LocalizedString
+			/**
+			 * MFA enabled
+			 */
+			mfa_enabled: () => LocalizedString
+			/**
+			 * MFA disabled
+			 */
+			mfa_disabled: () => LocalizedString
+			/**
+			 * MFA TOTP enabled
+			 */
+			mfa_totp_enabled: () => LocalizedString
+			/**
+			 * MFA TOTP disabled
+			 */
+			mfa_totp_disabled: () => LocalizedString
+			/**
+			 * MFA email enabled
+			 */
+			mfa_email_enabled: () => LocalizedString
+			/**
+			 * MFA email disabled
+			 */
+			mfa_email_disabled: () => LocalizedString
+			/**
+			 * MFA security key added
+			 */
+			mfa_security_key_added: () => LocalizedString
+			/**
+			 * MFA security key removed
+			 */
+			mfa_security_key_removed: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			device_added: () => LocalizedString
+			/**
+			 * Device removed
+			 */
+			device_removed: () => LocalizedString
+			/**
+			 * Device modified
+			 */
+			device_modified: () => LocalizedString
+			/**
+			 * Network device added
+			 */
+			network_device_added: () => LocalizedString
+			/**
+			 * Network device removed
+			 */
+			network_device_removed: () => LocalizedString
+			/**
+			 * Network device modified
+			 */
+			network_device_modified: () => LocalizedString
+			/**
+			 * Audit stream created
+			 */
+			audit_stream_created: () => LocalizedString
+			/**
+			 * Audit stream modified
+			 */
+			audit_stream_modified: () => LocalizedString
+			/**
+			 * Audit stream removed
+			 */
+			audit_stream_removed: () => LocalizedString
+			/**
+			 * VPN client connected
+			 */
+			vpn_client_connected: () => LocalizedString
+			/**
+			 * VPN client disconnected
+			 */
+			vpn_client_disconnected: () => LocalizedString
+			/**
+			 * VPN client connected to MFA location
+			 */
+			vpn_client_connected_mfa: () => LocalizedString
+			/**
+			 * VPN client disconnected from MFA location
+			 */
+			vpn_client_disconnected_mfa: () => LocalizedString
+			/**
+			 * VPN client failed MFA authentication
+			 */
+			vpn_client_mfa_failed: () => LocalizedString
+			/**
+			 * Enrollment token added
+			 */
+			enrollment_token_added: () => LocalizedString
+			/**
+			 * Enrollment started
+			 */
+			enrollment_started: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			enrollment_device_added: () => LocalizedString
+			/**
+			 * Enrollment completed
+			 */
+			enrollment_completed: () => LocalizedString
+			/**
+			 * Password reset requested
+			 */
+			password_reset_requested: () => LocalizedString
+			/**
+			 * Password reset started
+			 */
+			password_reset_started: () => LocalizedString
+			/**
+			 * Password reset completed
+			 */
+			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
+			/**
+			 * OpenID app added
+			 */
+			open_id_app_added: () => LocalizedString
+			/**
+			 * OpenID app removed
+			 */
+			open_id_app_removed: () => LocalizedString
+			/**
+			 * OpenID app modified
+			 */
+			open_id_app_modified: () => LocalizedString
+			/**
+			 * OpenID app state changed
+			 */
+			open_id_app_state_changed: () => LocalizedString
+			/**
+			 * OpenID provider removed
+			 */
+			open_id_provider_removed: () => LocalizedString
+			/**
+			 * OpenID provider modified
+			 */
+			open_id_provider_modified: () => LocalizedString
+			/**
+			 * Settings updated
+			 */
+			settings_updated: () => LocalizedString
+			/**
+			 * Settings partially updated
+			 */
+			settings_updated_partial: () => LocalizedString
+			/**
+			 * Default branding restored
+			 */
+			settings_default_branding_restored: () => LocalizedString
+			/**
+			 * Groups bulk assigned
+			 */
+			groups_bulk_assigned: () => LocalizedString
+			/**
+			 * Group added
+			 */
+			group_added: () => LocalizedString
+			/**
+			 * Group modified
+			 */
+			group_modified: () => LocalizedString
+			/**
+			 * Group removed
+			 */
+			group_removed: () => LocalizedString
+			/**
+			 * Group member added
+			 */
+			group_member_added: () => LocalizedString
+			/**
+			 * Group member removed
+			 */
+			group_member_removed: () => LocalizedString
+			/**
+			 * Webhook added
+			 */
+			web_hook_added: () => LocalizedString
+			/**
+			 * Webhook modified
+			 */
+			web_hook_modified: () => LocalizedString
+			/**
+			 * Webhook removed
+			 */
+			web_hook_removed: () => LocalizedString
+			/**
+			 * Authentication key added
+			 */
+			authentication_key_added: () => LocalizedString
+			/**
+			 * Authentication key removed
+			 */
+			authentication_key_removed: () => LocalizedString
+			/**
+			 * Authentication key renamed
+			 */
+			authentication_key_renamed: () => LocalizedString
+			/**
+			 * Password changed
+			 */
+			password_changed: () => LocalizedString
+			/**
+			 * Password changed by admin
+			 */
+			password_changed_by_admin: () => LocalizedString
+			/**
+			 * Password reset
+			 */
+			password_reset: () => LocalizedString
+			/**
+			 * Client configuration token added
+			 */
+			client_configuration_token_added: () => LocalizedString
+		}
+		auditModule: {
+			/**
+			 * Defguard
+			 */
+			defguard: () => LocalizedString
+			/**
+			 * Client
+			 */
+			client: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * VPN
+			 */
+			vpn: () => LocalizedString
+		}
+	}
+}
 
 export type Formatters = {};

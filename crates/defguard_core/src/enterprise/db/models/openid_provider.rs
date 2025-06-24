@@ -85,7 +85,7 @@ impl From<String> for DirectorySyncTarget {
     }
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Deserialize, Model, Serialize)]
 pub struct OpenIdProvider<I = NoId> {
     pub id: I,
     pub name: String,

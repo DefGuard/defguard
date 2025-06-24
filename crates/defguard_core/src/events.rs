@@ -2,7 +2,15 @@ use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
 
-use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
+use crate::{
+    db::{
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+    },
+    enterprise::db::models::{
+        api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
+    },
+};
 
 /// Shared context that needs to be added to every API event
 ///
@@ -64,9 +72,9 @@ impl GrpcRequestContext {
     }
 }
 
-#[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
+    UserLogout,
     UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
@@ -75,81 +83,176 @@ pub enum ApiEventType {
         mfa_method: MFAMethod,
     },
     RecoveryCodeUsed,
-    UserLogout,
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
+    PasswordChanged,
+    PasswordReset {
+        user: User<Id>,
+    },
     MfaDisabled,
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
     MfaEmailEnabled,
     MfaSecurityKeyAdded {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     MfaSecurityKeyRemoved {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     UserAdded {
-        username: String,
+        user: User<Id>,
     },
     UserRemoved {
-        username: String,
+        user: User<Id>,
     },
     UserModified {
-        username: String,
+        before: User<Id>,
+        after: User<Id>,
     },
     UserDeviceAdded {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceRemoved {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceModified {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        before: Device<Id>,
+        after: Device<Id>,
     },
     NetworkDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceModified {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        before: Device<Id>,
+        after: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     AuditStreamCreated {
-        stream_id: Id,
-        stream_name: String,
+        stream: AuditStream<Id>,
     },
     AuditStreamModified {
-        stream_id: Id,
-        stream_name: String,
+        before: AuditStream<Id>,
+        after: AuditStream<Id>,
     },
     AuditStreamRemoved {
-        stream_id: Id,
-        stream_name: String,
+        stream: AuditStream<Id>,
+    },
+    VpnLocationAdded {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationRemoved {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationModified {
+        before: WireguardNetwork<Id>,
+        after: WireguardNetwork<Id>,
+    },
+    ApiTokenAdded {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRemoved {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRenamed {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+        old_name: String,
+        new_name: String,
+    },
+    OpenIdAppAdded {
+        app: OAuth2Client<Id>,
+    },
+    OpenIdAppRemoved {
+        app: OAuth2Client<Id>,
+    },
+    OpenIdAppModified {
+        before: OAuth2Client<Id>,
+        after: OAuth2Client<Id>,
+    },
+    OpenIdAppStateChanged {
+        app: OAuth2Client<Id>,
+        enabled: bool,
+    },
+    OpenIdProviderModified {
+        provider: OpenIdProvider<Id>,
+    },
+    OpenIdProviderRemoved {
+        provider: OpenIdProvider<Id>,
+    },
+    SettingsUpdated,
+    SettingsUpdatedPartial,
+    SettingsDefaultBrandingRestored,
+    GroupsBulkAssigned {
+        users: Vec<User<Id>>,
+        groups: Vec<Group<Id>>,
+    },
+    GroupAdded {
+        group: Group<Id>,
+    },
+    GroupModified {
+        before: Group<Id>,
+        after: Group<Id>,
+    },
+    GroupRemoved {
+        group: Group<Id>,
+    },
+    GroupMemberAdded {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMemberRemoved {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    WebHookAdded {
+        webhook: WebHook<Id>,
+    },
+    WebHookModified {
+        before: WebHook<Id>,
+        after: WebHook<Id>,
+    },
+    WebHookRemoved {
+        webhook: WebHook<Id>,
+    },
+    WebHookStateChanged {
+        webhook: WebHook<Id>,
+        enabled: bool,
+    },
+    AuthenticationKeyAdded {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRemoved {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRenamed {
+        key: AuthenticationKey<Id>,
+        old_name: Option<String>,
+        new_name: Option<String>,
+    },
+    EnrollmentTokenAdded {
+        user: User<Id>,
+    },
+    ClientConfigurationTokenAdded {
+        user: User<Id>,
     },
 }
 
 /// Events from Web API
-#[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub event: ApiEventType,
+    pub event: Box<ApiEventType>,
 }
 
 /// Events from gRPC server
@@ -204,12 +307,11 @@ pub struct BidiStreamEvent {
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum BidiStreamEventType {
-    Enrollment(EnrollmentEvent),
-    PasswordReset(PasswordResetEvent),
-    DesktopClientMfa(DesktopClientMfaEvent),
+    Enrollment(Box<EnrollmentEvent>),
+    PasswordReset(Box<PasswordResetEvent>),
+    DesktopClientMfa(Box<DesktopClientMfaEvent>),
 }
 
 #[derive(Debug)]

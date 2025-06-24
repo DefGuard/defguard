@@ -17,6 +17,7 @@ use crate::{
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -52,9 +53,14 @@ pub async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    debug!(
+        "User {} adding OpenID provider {}",
+        session.user.username, provider_data.name
+    );
     let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
 
     // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
@@ -150,14 +156,16 @@ pub async fn add_openid_provider(
     )
     .upsert(&appstate.pool)
     .await?;
-    debug!(
-        "User {} adding OpenID provider {}",
-        session.user.username, new_provider.name
-    );
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::OpenIdProviderModified {
+            provider: new_provider,
+        }),
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -198,6 +206,7 @@ pub async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(provider_data): Path<DeleteProviderData>,
 ) -> ApiResult {
@@ -209,14 +218,18 @@ pub async fn delete_openid_provider(
     let provider = OpenIdProvider::find_by_name(&mut *trasnaction, &provider_data.name).await?;
     if let Some(provider) = provider {
         let mut settings = Settings::get_current_settings();
-        provider.delete(&mut *trasnaction).await?;
+        provider.clone().delete(&mut *trasnaction).await?;
         settings.use_openid_for_mfa = false;
         update_current_settings(&mut *trasnaction, settings).await?;
         trasnaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",
-            session.user.username, provider_data.name
+            session.user.username, provider.name
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::OpenIdProviderRemoved { provider }),
+        })?;
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::OK,

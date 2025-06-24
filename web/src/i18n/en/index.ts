@@ -1368,7 +1368,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     modulesVisibility: {
       header: 'Modules Visibility',
       helper: `<p>
-            If your not using some modules you can disable their visibility.
+            Hide unused modules.
           </p>
           <a href="{documentationLink:string}" target="_blank">
             Read more in documentation.
@@ -2580,12 +2580,44 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       vpn_client_connected_mfa: 'VPN client connected to MFA location',
       vpn_client_disconnected_mfa: 'VPN client disconnected from MFA location',
       vpn_client_mfa_failed: 'VPN client failed MFA authentication',
+      enrollment_token_added: 'Enrollment token added',
       enrollment_started: 'Enrollment started',
       enrollment_device_added: 'Device added',
       enrollment_completed: 'Enrollment completed',
       password_reset_requested: 'Password reset requested',
       password_reset_started: 'Password reset started',
       password_reset_completed: 'Password reset completed',
+      vpn_location_added: 'VPN location added',
+      vpn_location_removed: 'VPN location removed',
+      vpn_location_modified: 'VPN location modified',
+      api_token_added: 'API token added',
+      api_token_removed: 'API token removed',
+      api_token_renamed: 'API token renamed',
+      open_id_app_added: 'OpenID app added',
+      open_id_app_removed: 'OpenID app removed',
+      open_id_app_modified: 'OpenID app modified',
+      open_id_app_state_changed: 'OpenID app state changed',
+      open_id_provider_removed: 'OpenID provider removed',
+      open_id_provider_modified: 'OpenID provider modified',
+      settings_updated: 'Settings updated',
+      settings_updated_partial: 'Settings partially updated',
+      settings_default_branding_restored: 'Default branding restored',
+      groups_bulk_assigned: 'Groups bulk assigned',
+      group_added: 'Group added',
+      group_modified: 'Group modified',
+      group_removed: 'Group removed',
+      group_member_added: 'Group member added',
+      group_member_removed: 'Group member removed',
+      web_hook_added: 'Webhook added',
+      web_hook_modified: 'Webhook modified',
+      web_hook_removed: 'Webhook removed',
+      authentication_key_added: 'Authentication key added',
+      authentication_key_removed: 'Authentication key removed',
+      authentication_key_renamed: 'Authentication key renamed',
+      password_changed: 'Password changed',
+      password_changed_by_admin: 'Password changed by admin',
+      password_reset: 'Password reset',
+      client_configuration_token_added: 'Client configuration token added',
     },
     auditModule: {
       defguard: 'Defguard',
