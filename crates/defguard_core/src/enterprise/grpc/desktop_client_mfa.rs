@@ -1,13 +1,11 @@
-use std::collections::HashMap;
 
-use chrono::Utc;
-use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
+use openidconnect::{AuthorizationCode, Nonce};
 use reqwest::Url;
 use tonic::Status;
 
 use crate::{
     enterprise::{
-        handlers::openid_login::{extract_state_data, make_oidc_client, user_from_claims},
+        handlers::openid_login::{extract_state_data, user_from_claims},
         is_enterprise_enabled,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},

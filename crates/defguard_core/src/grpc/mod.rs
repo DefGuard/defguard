@@ -10,8 +10,7 @@ use std::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use clap::error;
-use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
+use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]

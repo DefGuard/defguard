@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
-use reqwest::Url;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -23,7 +21,6 @@ use crate::{
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        handlers::openid_login::{make_oidc_client, user_from_claims},
         is_enterprise_enabled,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},

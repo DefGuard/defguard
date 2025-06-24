@@ -2,7 +2,6 @@ use std::{net::IpAddr, str::FromStr};
 
 use sqlx::PgPool;
 use tonic::Status;
-use utoipa::openapi::security::OpenIdConnect;
 
 use super::{
     proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
