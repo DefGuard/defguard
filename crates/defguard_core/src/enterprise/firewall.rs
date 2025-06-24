@@ -668,7 +668,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
                 // find last IP before subnet start
                 let prev_ip = match subnet_start {
                     IpAddr::V4(ip) => {
-                        let ip_u32 = u32::from(ip);
+                        let ip_u32 = ip.to_bits();
                         if ip_u32 > 0 {
                             IpAddr::V4(Ipv4Addr::from(ip_u32 - 1))
                         } else {
@@ -676,7 +676,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
                         }
                     }
                     IpAddr::V6(ip) => {
-                        let ip_u128 = u128::from(ip);
+                        let ip_u128 = ip.to_bits();
                         if ip_u128 > 0 {
                             IpAddr::V6(Ipv6Addr::from(ip_u128 - 1))
                         } else {
@@ -699,7 +699,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
                 // find first IP after the subnet end
                 let next_ip = match subnet_end {
                     IpAddr::V4(ip) => {
-                        let ip_u32 = u32::from(ip);
+                        let ip_u32 = ip.to_bits();
                         if ip_u32 < u32::MAX {
                             IpAddr::V4(Ipv4Addr::from(ip_u32 + 1))
                         } else {
@@ -707,7 +707,7 @@ fn extract_all_subnets_from_range(range_start: IpAddr, range_end: IpAddr) -> Vec
                         }
                     }
                     IpAddr::V6(ip) => {
-                        let ip_u128 = u128::from(ip);
+                        let ip_u128 = ip.to_bits();
                         if ip_u128 < u128::MAX {
                             IpAddr::V6(Ipv6Addr::from(ip_u128 + 1))
                         } else {
