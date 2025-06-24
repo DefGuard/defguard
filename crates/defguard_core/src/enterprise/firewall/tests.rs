@@ -30,298 +30,6 @@ use crate::{
     },
 };
 
-#[test]
-fn test_merge_addrs_extracts_ipv4_subnets() {
-    // Test case: 192.168.1.0 - 192.168.1.255 should become 192.168.1.0/24
-    let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    assert_eq!(
-        result,
-        [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
-        }]
-    );
-}
-
-#[test]
-fn test_merge_addrs_extracts_ipv6_subnets() {
-    // Test case: 2001:db8:: - 2001:db8::ffff should become 2001:db8::/112
-    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
-    let end = "2001:db8::ffff".parse::<Ipv6Addr>().unwrap();
-    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
-
-    let result = merge_addrs(ranges);
-
-    assert_eq!(
-        result,
-        [IpAddress {
-            address: Some(Address::IpSubnet("2001:db8::/112".to_string()))
-        }]
-    );
-}
-
-#[test]
-fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
-    // Test case: 192.168.1.10 - 192.168.1.20 (extracts subnets recursively)
-    let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    // The recursive extraction should find multiple subnets within this range
-    assert_eq!(
-        result,
-        [
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.10/31".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.12/30".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.16/30".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "192.168.1.10".to_string(),
-                    end: "192.168.1.15".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "192.168.1.17".to_string(),
-                    end: "192.168.1.19".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::Ip("192.168.1.20".to_string())),
-            },
-        ]
-    );
-}
-
-#[test]
-fn test_merge_addrs_handles_single_ip() {
-    // Test case: single IP should remain as IP
-    let ranges =
-        vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))];
-
-    let result = merge_addrs(ranges);
-
-    assert_eq!(
-        result,
-        [IpAddress {
-            address: Some(Address::Ip("192.168.1.1".to_string())),
-        },]
-    );
-}
-
-#[test]
-fn test_find_largest_ipv4_subnet_perfect_match() {
-    // Test /24 subnet
-    let start = Ipv4Addr::new(192, 168, 1, 0);
-    let end = Ipv4Addr::new(192, 168, 1, 255);
-
-    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
-
-    assert!(result.is_some());
-    let subnet = result.unwrap();
-    assert_eq!(subnet.to_string(), "192.168.1.0/24");
-
-    // Test /28 subnet (16 addresses)
-    let start = Ipv4Addr::new(192, 168, 1, 0);
-    let end = Ipv4Addr::new(192, 168, 1, 15);
-
-    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
-
-    assert!(result.is_some());
-    let subnet = result.unwrap();
-    assert_eq!(subnet.to_string(), "192.168.1.0/28");
-}
-
-#[test]
-fn test_find_largest_ipv6_subnet_perfect_match() {
-    // Test /112 subnet
-    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
-    let end = "2001:db8::ffff".parse::<Ipv6Addr>().unwrap();
-
-    let result = find_largest_subnet_in_range(IpAddr::V6(start), IpAddr::V6(end));
-
-    assert!(result.is_some());
-    let subnet = result.unwrap();
-    assert_eq!(subnet.to_string(), "2001:db8::/112");
-}
-
-#[test]
-fn test_find_largest_subnet_mixed_ip_versions() {
-    // Test mixed IP versions should return None
-    let start = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0));
-    let end = IpAddr::V6("2001:db8::1".parse().unwrap());
-
-    let result = find_largest_subnet_in_range(start, end);
-
-    assert!(result.is_none());
-}
-
-#[test]
-fn test_find_largest_subnet_invalid_range() {
-    // Test invalid range (start > end) should return None
-    let start = Ipv4Addr::new(192, 168, 1, 10);
-    let end = Ipv4Addr::new(192, 168, 1, 5);
-
-    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
-
-    assert!(result.is_none());
-}
-
-#[test]
-fn test_merge_addrs_multiple_ranges_with_subnets() {
-    // Test multiple ranges where some can be converted to subnets and others cannot
-    let ranges = vec![
-        // This should become a /24 subnet
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255)),
-        // This should be recursively extracted into subnets
-        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))..=IpAddr::V4(Ipv4Addr::new(10, 0, 0, 20)),
-        // This should be a single IP
-        IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1))..=IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    // With recursive extraction, we should get more results
-    assert_eq!(
-        result,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.0.10".to_string(),
-                    end: "10.0.0.15".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("10.0.0.16/28".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.0.17".to_string(),
-                    end: "10.0.0.19".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::Ip("10.0.0.20".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::Ip("172.16.0.1".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
-            },
-        ]
-    );
-}
-
-#[test]
-fn test_merge_addrs_subnet_within_range() {
-    // Test case: range contains a subnet but doesn't align perfectly
-    // Range 192.168.1.5 - 192.168.1.250 will be recursively extracted into many subnets
-    let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 5))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 250)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    // With recursive extraction, this should result in just one range since no perfect subnet alignment
-    assert_eq!(
-        result,
-        [IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "192.168.1.5".to_string(),
-                end: "192.168.1.250".to_string(),
-            })),
-        },]
-    );
-}
-
-#[test]
-fn test_merge_addrs_subnet_at_start_of_range() {
-    // Test case: subnet at the beginning of range
-    // Range 192.168.1.0 - 192.168.1.100 will be recursively extracted into multiple subnets
-    let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 64)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    // With recursive extraction, we should get multiple subnets
-    assert_eq!(
-        result,
-        [
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/26".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::Ip("192.168.1.64".to_string())),
-            },
-        ]
-    );
-}
-
-#[test]
-fn test_merge_addrs_subnet_at_end_of_range() {
-    // Test case: subnet at the end of range
-    // Range 192.168.1.5 - 192.168.1.31 ends with subnet 192.168.1.16/28 (192.168.1.16 - 192.168.1.31)
-    let ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 5))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 31)),
-    ];
-
-    let result = merge_addrs(ranges);
-
-    // Should split into: range before subnet, subnet
-    assert_eq!(
-        result,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "192.168.1.5".to_string(),
-                    end: "192.168.1.15".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
-            },
-        ]
-    );
-}
-
-#[test]
-fn test_merge_addrs_ipv6_subnet_within_range() {
-    // Test case: IPv6 range contains a subnet but doesn't align perfectly
-    let start = "2001:db8::5".parse::<Ipv6Addr>().unwrap();
-    let end = "2001:db8::ffff".parse::<Ipv6Addr>().unwrap();
-    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
-
-    let result = merge_addrs(ranges);
-
-    // Should be a single range since no perfect subnet alignment
-    assert_eq!(
-        result,
-        [IpAddress {
-            address: Some(Address::IpRange(IpRange {
-                start: "2001:db8::5".to_string(),
-                end: "2001:db8::ffff".to_string(),
-            })),
-        },]
-    );
-}
-
 impl Default for AclRuleDestinationRange<Id> {
     fn default() -> Self {
         Self {
@@ -604,9 +312,9 @@ fn test_merge_v4_addrs() {
     let addr_ranges = vec![
         IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51))..=IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
+        IpAddr::V4(Ipv4Addr::new(10, 0, 8, 127))..=IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
+        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 31)),
         IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20))..=IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
     ];
@@ -617,10 +325,16 @@ fn test_merge_v4_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.8.51".to_string(),
-                    end: "10.0.10.32".to_string(),
-                })),
+                address: Some(Address::Ip("10.0.8.127".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.8.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.9.0/24".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.10.0/27".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("10.0.20.20".to_string())),
@@ -678,19 +392,271 @@ fn test_merge_v6_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8:1::1".to_string(),
-                    end: "2001:db8:1::8".to_string(),
-                })),
+                address: Some(Address::Ip("2001:db8:1::1".to_string()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:2::1".to_string())),
+                address: Some(Address::IpSubnet("2001:db8:1::2/127".to_string()))
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8:3::1".to_string(),
-                    end: "2001:db8:3::3".to_string(),
-                })),
+                address: Some(Address::IpSubnet("2001:db8:1::4/126".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:1::8".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:2::1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:3::1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8:3::2/127".to_string()))
+            }
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_extracts_ipv4_subnets() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 2, 255)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.2.0/24".to_string()))
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_extracts_ipv6_subnets() {
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db9::ffff".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::/32".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db9::/112".to_string()))
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255))..=IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.255".to_string(),
+                end: "192.168.2.0".to_string(),
+            })),
+        },]
+    );
+
+    let start = "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"
+        .parse::<Ipv6Addr>()
+        .unwrap();
+    let end = "2001:db9::".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_string(),
+                end: "2001:db9::".to_string(),
+            })),
+        },]
+    );
+}
+
+#[test]
+fn test_merge_addrs_handles_single_ip() {
+    // Test case: single IP should remain as IP
+    let ranges =
+        vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::Ip("192.168.1.1".to_string())),
+        },]
+    );
+
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::Ip("2001:db8::".to_string())),
+        },]
+    );
+}
+
+#[test]
+fn test_find_largest_ipv4_subnet_perfect_match() {
+    // Test /24 subnet
+    let start = Ipv4Addr::new(192, 168, 1, 0);
+    let end = Ipv4Addr::new(192, 168, 1, 255);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "192.168.1.0/24");
+
+    // Test /28 subnet (16 addresses)
+    let start = Ipv4Addr::new(192, 168, 1, 0);
+    let end = Ipv4Addr::new(192, 168, 1, 15);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "192.168.1.0/28");
+}
+
+#[test]
+fn test_find_largest_ipv6_subnet_perfect_match() {
+    // Test /112 subnet
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db8::ffff".parse::<Ipv6Addr>().unwrap();
+
+    let result = find_largest_subnet_in_range(IpAddr::V6(start), IpAddr::V6(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "2001:db8::/112");
+}
+
+#[test]
+fn test_find_largest_subnet_mixed_ip_versions() {
+    // Test mixed IP versions should return None
+    let start = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0));
+    let end = IpAddr::V6("2001:db8::1".parse().unwrap());
+
+    let result = find_largest_subnet_in_range(start, end);
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_find_largest_subnet_invalid_range() {
+    // Test invalid range (start > end) should return None
+    let start = Ipv4Addr::new(192, 168, 1, 10);
+    let end = Ipv4Addr::new(192, 168, 1, 5);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_merge_addrs_subnet_at_start_of_range() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 64)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.64".to_string())),
+            },
+        ]
+    );
+
+    let ranges = vec![
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x40)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8::40".to_string())),
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_subnet_at_end_of_range() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 15))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 31)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.15".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
+            },
+        ]
+    );
+
+    let ranges = vec![
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x0f))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x1f)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::Ip("2001:db8::f".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::10/124".to_string())),
             },
         ]
     );
