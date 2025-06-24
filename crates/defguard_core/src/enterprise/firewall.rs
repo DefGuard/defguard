@@ -540,13 +540,29 @@ fn find_largest_ipv4_subnet_in_range(start: Ipv4Addr, end: Ipv4Addr) -> Option<I
     let end_bits = end.to_bits();
 
     // Find the largest prefix length where the subnet fits in the range.
-    for prefix_len in 0..=31 {
-        let mask = if prefix_len == 0 {
-            0
-        } else {
-            u32::MAX << (32 - prefix_len)
-        };
+    // We make some reasonable assumptions here and skip /0 and /32 networks.
+    for prefix_len in 1..=31 {
+        let mask = u32::MAX << (32 - prefix_len);
+
+        // number of IPs in subnet
+        let subnet_size = 1u32 << (32 - prefix_len);
+
+        // try do find first and last address in subnet
+        // in case the subnet does not align with first address in range
+        // try next potential subnet start
         let network_addr = start_bits & mask;
+        let network_addr = if network_addr < start_bits {
+            // try next aligned address and handle overflow
+            let next_network_addr = network_addr.wrapping_add(subnet_size);
+            if next_network_addr < network_addr {
+                // overflow occurred, no valid network of this size
+                continue;
+            }
+            next_network_addr
+        } else {
+            network_addr
+        };
+
         let broadcast_addr = network_addr | !mask;
 
         if network_addr >= start_bits && broadcast_addr <= end_bits {
@@ -569,14 +585,29 @@ fn find_largest_ipv6_subnet_in_range(start: Ipv6Addr, end: Ipv6Addr) -> Option<I
     let end_bits = end.to_bits();
 
     // Find the largest prefix length where the subnet fits in the range.
-    for prefix_len in 0..=127 {
-        let mask = if prefix_len == 0 {
-            0
+    // We make some reasonable assumptions here and skip /0 and /128 networks.
+    for prefix_len in 1..=127 {
+        let mask = u128::MAX << (128 - prefix_len);
+
+        // number of IPs in subnet
+        let subnet_size = 1u128 << (128 - prefix_len);
+
+        // try do find first and last address in subnet
+        // in case the subnet does not align with first address in range
+        // try next potential subnet start
+        let network_addr = start_bits & mask;
+        let network_addr = if network_addr < start_bits {
+            // try next aligned address and handle overflow
+            let next_network_addr = network_addr.wrapping_add(subnet_size);
+            if next_network_addr < network_addr {
+                // overflow occurred, no valid network of this size
+                continue;
+            }
+            next_network_addr
         } else {
-            u128::MAX << (128 - prefix_len)
+            network_addr
         };
 
-        let network_addr = start_bits & mask;
         let broadcast_addr = network_addr | !mask;
 
         if network_addr >= start_bits && broadcast_addr <= end_bits {
