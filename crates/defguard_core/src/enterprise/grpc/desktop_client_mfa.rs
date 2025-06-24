@@ -1,4 +1,3 @@
-
 use openidconnect::{AuthorizationCode, Nonce};
 use reqwest::Url;
 use tonic::Status;

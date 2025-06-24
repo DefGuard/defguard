@@ -1,12 +1,4 @@
 use bytes::Bytes;
-use error::EventLoggerError;
-use message::{
-    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
-};
-use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedReceiver;
-use tracing::{debug, error, info, trace};
-
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
@@ -20,6 +12,13 @@ use defguard_core::db::{
     },
     NoId,
 };
+use error::EventLoggerError;
+use message::{
+    DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
+};
+use sqlx::PgPool;
+use tokio::sync::mpsc::UnboundedReceiver;
+use tracing::{debug, error, info, trace};
 
 pub mod error;
 pub mod message;

@@ -19,10 +19,7 @@ use crate::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         Device, GatewayEvent, Id, Settings, User, UserInfo, WireguardNetwork,
     },
-    enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        is_enterprise_enabled,
-    },
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
