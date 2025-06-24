@@ -1,6 +1,8 @@
-use sqlx::PgPool;
 use std::{net::IpAddr, str::FromStr};
+
+use sqlx::PgPool;
 use tonic::Status;
+use utoipa::openapi::security::OpenIdConnect;
 
 use super::{
     proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
@@ -15,7 +17,9 @@ use crate::{
         },
         Device, Id, Settings, User,
     },
-    enterprise::db::models::enterprise_settings::EnterpriseSettings,
+    enterprise::db::models::{
+        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
+    },
     AsCsv,
 };
 
@@ -67,6 +71,11 @@ pub(crate) async fn build_device_config_response(
     token: Option<String>,
 ) -> Result<DeviceConfigResponse, Status> {
     let settings = Settings::get_current_settings();
+
+    let openid_provider = OpenIdProvider::get_current(pool).await.map_err(|err| {
+        error!("Failed to get OpenID provider: {err}");
+        Status::internal(format!("unexpected error: {err}"))
+    })?;
 
     let networks = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
@@ -162,7 +171,15 @@ pub(crate) async fn build_device_config_response(
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
         configs,
-        instance: Some(InstanceInfo::new(settings, &user.username, &enterprise_settings).into()),
+        instance: Some(
+            InstanceInfo::new(
+                settings,
+                &user.username,
+                &enterprise_settings,
+                openid_provider,
+            )
+            .into(),
+        ),
         token,
     })
 }

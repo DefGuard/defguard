@@ -120,6 +120,7 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenidUsernameHandling,
+    pub use_openid_for_mfa: bool,
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
@@ -152,7 +153,7 @@ impl Settings {
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
-            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\" \
+            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\", use_openid_for_mfa \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -224,7 +225,8 @@ impl Settings {
             ldap_uses_ad = $45, \
             ldap_user_rdn_attr = $46, \
             ldap_sync_groups = $47, \
-            openid_username_handling = $48 \
+            openid_username_handling = $48, \
+            use_openid_for_mfa = $49 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -274,6 +276,7 @@ impl Settings {
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
             &self.openid_username_handling as &OpenidUsernameHandling,
+            self.use_openid_for_mfa,
         )
         .execute(executor)
         .await?;

@@ -22,6 +22,10 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
     control,
     name: 'create_account',
   }) as boolean;
+  const use_openid_for_mfa = useWatch({
+    control,
+    name: 'use_openid_for_mfa',
+  }) as boolean;
 
   const options: SelectOption<UsernameHandling>[] = useMemo(
     () => [
@@ -50,7 +54,7 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
         <h3>{localLL.general.title()}</h3>
         <Helper>{parse(localLL.general.helper())}</Helper>
       </div>
-      <div className="helper-row">
+      <div className="helper-row checkbox-padding">
         {/* FIXME: Really buggy when using the controller, investigate why */}
         <LabeledCheckbox
           label={localLL.general.createAccount.label()}
@@ -65,6 +69,22 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
           disabled={isLoading}
         />
         <Helper>{localLL.general.createAccount.helper()}</Helper>
+      </div>
+      <div className="helper-row checkbox-padding">
+        {/* FIXME: Really buggy when using the controller, investigate why */}
+        <LabeledCheckbox
+          label={localLL.general.useOpenIdForMfa.label()}
+          // controller={{
+          //   control,
+          //   name: 'use_openid_for_mfa',
+          // }}
+          value={use_openid_for_mfa}
+          onChange={(e) => {
+            setValue('use_openid_for_mfa', e);
+          }}
+          disabled={isLoading}
+        />
+        <Helper>{localLL.general.useOpenIdForMfa.helper()}</Helper>
       </div>
       <FormSelect
         controller={{

@@ -40,6 +40,7 @@ pub struct AddProviderData {
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
+    pub use_openid_for_mfa: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -111,6 +112,7 @@ pub async fn add_openid_provider(
 
     let mut settings = Settings::get_current_settings();
     settings.openid_create_account = provider_data.create_account;
+    settings.use_openid_for_mfa = provider_data.use_openid_for_mfa;
     settings.openid_username_handling = provider_data.username_handling;
     update_current_settings(&appstate.pool, settings).await?;
 
@@ -169,7 +171,6 @@ pub async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let settings = Settings::get_current_settings();
-    let create_account = settings.openid_create_account;
     match OpenIdProvider::get_current(&appstate.pool).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
@@ -178,7 +179,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": create_account, "username_handling": settings.openid_username_handling}),
+                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
                 }),
                 status: StatusCode::OK,
             })
@@ -186,7 +187,7 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({ "create_account": create_account }),
+                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
             }),
             status: StatusCode::NO_CONTENT,
         }),

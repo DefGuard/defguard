@@ -51,6 +51,7 @@ pub enum MFAMethod {
     OneTimePassword,
     Webauthn,
     Email,
+    OIDC,
 }
 
 impl From<MfaMethod> for MFAMethod {
@@ -58,6 +59,7 @@ impl From<MfaMethod> for MFAMethod {
         match method {
             MfaMethod::Totp => Self::OneTimePassword,
             MfaMethod::Email => Self::Email,
+            MfaMethod::Oidc => Self::OIDC,
         }
     }
 }
@@ -72,6 +74,7 @@ impl fmt::Display for MFAMethod {
                 MFAMethod::OneTimePassword => "TOTP",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
+                MFAMethod::OIDC => "OIDC",
             }
         )
     }
