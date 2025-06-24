@@ -35,7 +35,8 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "email"
+                "email",
+                "OIDC"
               ]
             }
           }
