@@ -3329,7 +3329,7 @@ type RootTranslation = {
 			header: string
 			/**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​i​d​e​ ​u​n​u​s​e​d​ ​m​o​d​u​l​e​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
@@ -6215,6 +6215,10 @@ type RootTranslation = {
 			 */
 			vpn_client_mfa_failed: string
 			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			enrollment_token_added: string
+			/**
 			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 			 */
 			enrollment_started: string
@@ -6238,6 +6242,130 @@ type RootTranslation = {
 			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
 			 */
 			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​a​d​d​e​d
+			 */
+			open_id_app_added: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​r​e​m​o​v​e​d
+			 */
+			open_id_app_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_app_modified: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			open_id_app_state_changed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​r​e​m​o​v​e​d
+			 */
+			open_id_provider_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_provider_modified: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated_partial: string
+			/**
+			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
+			 */
+			settings_default_branding_restored: string
+			/**
+			 * G​r​o​u​p​s​ ​b​u​l​k​ ​a​s​s​i​g​n​e​d
+			 */
+			groups_bulk_assigned: string
+			/**
+			 * G​r​o​u​p​ ​a​d​d​e​d
+			 */
+			group_added: string
+			/**
+			 * G​r​o​u​p​ ​m​o​d​i​f​i​e​d
+			 */
+			group_modified: string
+			/**
+			 * G​r​o​u​p​ ​r​e​m​o​v​e​d
+			 */
+			group_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​a​d​d​e​d
+			 */
+			group_member_added: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
+			 */
+			group_member_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
+			 */
+			web_hook_added: string
+			/**
+			 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d
+			 */
+			web_hook_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
+			 */
+			web_hook_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			authentication_key_added: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			authentication_key_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
+			 */
+			authentication_key_renamed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+			 */
+			password_changed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​ ​b​y​ ​a​d​m​i​n
+			 */
+			password_changed_by_admin: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t
+			 */
+			password_reset: string
+			/**
+			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			client_configuration_token_added: string
 		}
 		auditModule: {
 			/**
@@ -9542,7 +9670,7 @@ export type TranslationFunctions = {
 			header: () => LocalizedString
 			/**
 			 * <p>
-		            If your not using some modules you can disable their visibility.
+		            Hide unused modules.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
@@ -12400,6 +12528,10 @@ export type TranslationFunctions = {
 			 */
 			vpn_client_mfa_failed: () => LocalizedString
 			/**
+			 * Enrollment token added
+			 */
+			enrollment_token_added: () => LocalizedString
+			/**
 			 * Enrollment started
 			 */
 			enrollment_started: () => LocalizedString
@@ -12423,6 +12555,130 @@ export type TranslationFunctions = {
 			 * Password reset completed
 			 */
 			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
+			/**
+			 * OpenID app added
+			 */
+			open_id_app_added: () => LocalizedString
+			/**
+			 * OpenID app removed
+			 */
+			open_id_app_removed: () => LocalizedString
+			/**
+			 * OpenID app modified
+			 */
+			open_id_app_modified: () => LocalizedString
+			/**
+			 * OpenID app state changed
+			 */
+			open_id_app_state_changed: () => LocalizedString
+			/**
+			 * OpenID provider removed
+			 */
+			open_id_provider_removed: () => LocalizedString
+			/**
+			 * OpenID provider modified
+			 */
+			open_id_provider_modified: () => LocalizedString
+			/**
+			 * Settings updated
+			 */
+			settings_updated: () => LocalizedString
+			/**
+			 * Settings partially updated
+			 */
+			settings_updated_partial: () => LocalizedString
+			/**
+			 * Default branding restored
+			 */
+			settings_default_branding_restored: () => LocalizedString
+			/**
+			 * Groups bulk assigned
+			 */
+			groups_bulk_assigned: () => LocalizedString
+			/**
+			 * Group added
+			 */
+			group_added: () => LocalizedString
+			/**
+			 * Group modified
+			 */
+			group_modified: () => LocalizedString
+			/**
+			 * Group removed
+			 */
+			group_removed: () => LocalizedString
+			/**
+			 * Group member added
+			 */
+			group_member_added: () => LocalizedString
+			/**
+			 * Group member removed
+			 */
+			group_member_removed: () => LocalizedString
+			/**
+			 * Webhook added
+			 */
+			web_hook_added: () => LocalizedString
+			/**
+			 * Webhook modified
+			 */
+			web_hook_modified: () => LocalizedString
+			/**
+			 * Webhook removed
+			 */
+			web_hook_removed: () => LocalizedString
+			/**
+			 * Authentication key added
+			 */
+			authentication_key_added: () => LocalizedString
+			/**
+			 * Authentication key removed
+			 */
+			authentication_key_removed: () => LocalizedString
+			/**
+			 * Authentication key renamed
+			 */
+			authentication_key_renamed: () => LocalizedString
+			/**
+			 * Password changed
+			 */
+			password_changed: () => LocalizedString
+			/**
+			 * Password changed by admin
+			 */
+			password_changed_by_admin: () => LocalizedString
+			/**
+			 * Password reset
+			 */
+			password_reset: () => LocalizedString
+			/**
+			 * Client configuration token added
+			 */
+			client_configuration_token_added: () => LocalizedString
 		}
 		auditModule: {
 			/**

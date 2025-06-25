@@ -19,7 +19,7 @@ pub enum AuditStreamType {
     LogstashHttp,
 }
 
-#[derive(Debug, Serialize, Model, FromRow)]
+#[derive(Clone, Debug, Serialize, Model, FromRow)]
 #[table(audit_stream)]
 pub struct AuditStream<I = NoId> {
     pub id: I,

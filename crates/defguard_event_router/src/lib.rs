@@ -148,7 +148,7 @@ impl EventRouter {
               },
             };
 
-            debug!("Received event: {event:?}");
+            debug!("Received event");
 
             // Route the event to the appropriate handler
             match event {

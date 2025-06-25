@@ -60,12 +60,8 @@ pub async fn create_audit_stream(
     info!("User {session_username} created audit stream");
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::AuditStreamCreated {
-            stream_id: stream.id,
-            stream_name: stream.name,
-        },
+        event: Box::new(ApiEventType::AuditStreamCreated { stream }),
     })?;
-    debug!("AuditStreamCreated api event sent");
     Ok(ApiResponse {
         json: json!({}),
         status: StatusCode::CREATED,
@@ -84,18 +80,23 @@ pub async fn modify_audit_stream(
     let session_username = &session.user.username;
     debug!("User {session_username} modifies audit stream ");
     if let Some(mut stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
+        // store stream before modifications
+        let before = stream.clone();
         //validate config
         let _ = AuditStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
         stream.name = data.name;
         stream.config = data.stream_config;
         stream.save(&appstate.pool).await?;
-        info!("User {session_username} modified audit stream");
+        info!(
+            "User {session_username} modified audit stream {}",
+            stream.name
+        );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuditStreamModified {
-                stream_id: stream.id,
-                stream_name: stream.name,
-            },
+            event: Box::new(ApiEventType::AuditStreamModified {
+                before,
+                after: stream,
+            }),
         })?;
         debug!("AuditStreamModified api event sent");
         return Ok(ApiResponse::default());
@@ -116,15 +117,10 @@ pub async fn delete_audit_stream(
     let session_username = &session.user.username;
     debug!("User {session_username} deleting Audit stream ({id})");
     if let Some(stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
-        let stream_id = stream.id;
-        let stream_name = stream.name.clone();
-        stream.delete(&appstate.pool).await?;
+        stream.clone().delete(&appstate.pool).await?;
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::AuditStreamRemoved {
-                stream_id,
-                stream_name,
-            },
+            event: Box::new(ApiEventType::AuditStreamRemoved { stream }),
         })?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(

@@ -19,7 +19,7 @@ impl fmt::Display for Permission {
     }
 }
 
-#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq)]
+#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq, Serialize)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
