@@ -10,8 +10,8 @@ use defguard_core::{
     build_webapp,
     config::DefGuardConfig,
     db::{
-        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Id, NoId,
-        User, UserDetails,
+        models::settings::initialize_current_settings, AppEvent, GatewayEvent, Id, NoId, User,
+        UserDetails,
     },
     enterprise::license::{set_cached_license, License},
     events::ApiEvent,
@@ -24,12 +24,7 @@ use reqwest::{header::HeaderName, StatusCode, Url};
 use secrecy::ExposeSecret;
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    query,
-    types::Uuid,
-    PgPool,
-};
+use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
@@ -37,6 +32,8 @@ use tokio::{
         mpsc::{unbounded_channel, UnboundedReceiver},
     },
 };
+
+pub use defguard_core::db::setup_pool;
 
 use self::client::TestClient;
 
@@ -55,35 +52,6 @@ pub(crate) fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
     config.url = Url::from_str(url).unwrap();
     let _ = SERVER_CONFIG.set(config.clone());
     config
-}
-
-pub(crate) async fn init_test_db(config: &DefGuardConfig) -> PgPool {
-    let opts = PgConnectOptions::new()
-        .host(&config.database_host)
-        .port(config.database_port)
-        .username(&config.database_user)
-        .password(config.database_password.expose_secret())
-        .database(&config.database_name);
-    let pool = PgPool::connect_with(opts)
-        .await
-        .expect("Failed to connect to Postgres");
-    let db_name = Uuid::new_v4().to_string();
-    query(&format!("CREATE DATABASE \"{db_name}\""))
-        .execute(&pool)
-        .await
-        .expect("Failed to create test database");
-    let pool = init_db(
-        &config.database_host,
-        config.database_port,
-        &db_name,
-        &config.database_user,
-        config.database_password.expose_secret(),
-    )
-    .await;
-
-    initialize_users(&pool, config).await;
-
-    pool
 }
 
 pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
@@ -131,12 +99,6 @@ impl ClientState {
             config,
         }
     }
-}
-
-// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
-// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
-    PgPoolOptions::new().connect_with(options).await.unwrap()
 }
 
 pub(crate) async fn make_base_client(
@@ -205,12 +167,6 @@ pub(crate) async fn make_base_client(
     )
 }
 
-/// Make an instance url based on the listener
-fn get_test_url(listener: &TcpListener) -> String {
-    let port = listener.local_addr().unwrap().port();
-    format!("http://localhost:{port}")
-}
-
 pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
@@ -220,18 +176,6 @@ pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) 
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");
-    make_base_client(pool, config, listener).await
-}
-
-/// Makes a test client with a DEFGUARD_URL set to the random url of the listener.
-/// This is useful when the instance's url real url needs to match the one set in the ENV variable.
-#[allow(dead_code)]
-pub(crate) async fn make_test_client_with_real_url() -> (TestClient, ClientState) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("Could not bind ephemeral socket");
-    let config = init_config(Some(&get_test_url(&listener)));
-    let pool = init_test_db(&config).await;
     make_base_client(pool, config, listener).await
 }
 
