@@ -99,8 +99,7 @@
                 "none",
                 "one_time_password",
                 "webauthn",
-                "email",
-                "OIDC"
+                "email"
               ]
             }
           }
