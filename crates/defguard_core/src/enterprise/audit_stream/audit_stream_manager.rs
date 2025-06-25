@@ -4,16 +4,14 @@ use bytes::Bytes;
 use sqlx::PgPool;
 use tokio::{sync::broadcast::Receiver, task::JoinSet, time::sleep};
 use tokio_util::sync::CancellationToken;
-
 use tracing::debug;
 
+use super::AuditStreamReconfigurationNotification;
 use crate::enterprise::{
     audit_stream::http_stream::{run_http_stream_task, HttpAuditStreamConfig},
     db::models::audit_stream::{AuditStream, AuditStreamConfig},
     is_enterprise_enabled,
 };
-
-use super::AuditStreamReconfigurationNotification;
 
 pub async fn run_audit_stream_manager(
     pool: PgPool,

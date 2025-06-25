@@ -17,8 +17,9 @@ use crate::{
     auth::{Claims, ClaimsType},
     db::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, Id, Settings, User, UserInfo, WireguardNetwork,
     },
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
@@ -39,18 +40,20 @@ impl From<ClientMfaServerError> for Status {
     }
 }
 
-struct ClientLoginSession {
-    method: MfaMethod,
-    location: WireguardNetwork<Id>,
-    device: Device<Id>,
-    user: User<Id>,
+#[derive(Clone)]
+pub(crate) struct ClientLoginSession {
+    pub(crate) method: MfaMethod,
+    pub(crate) location: WireguardNetwork<Id>,
+    pub(crate) device: Device<Id>,
+    pub(crate) user: User<Id>,
+    pub(crate) openid_auth_completed: bool,
 }
 
-pub(super) struct ClientMfaServer {
-    pool: PgPool,
+pub(crate) struct ClientMfaServer {
+    pub(crate) pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
-    sessions: HashMap<String, ClientLoginSession>,
+    pub(crate) sessions: HashMap<String, ClientLoginSession>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -86,7 +89,7 @@ impl ClientMfaServer {
     }
 
     /// Validate JWT and extract client pubkey
-    fn parse_token(token: &str) -> Result<String, Status> {
+    pub(crate) fn parse_token(token: &str) -> Result<String, Status> {
         let claims = Claims::from_jwt(ClaimsType::DesktopClient, token).map_err(|err| {
             error!("Failed to parse JWT token: {err:?}");
             Status::invalid_argument("invalid token")
@@ -94,7 +97,7 @@ impl ClientMfaServer {
         Ok(claims.client_id)
     }
 
-    fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
+    pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
     }
 
@@ -193,7 +196,37 @@ impl ClientMfaServer {
                     Status::internal("unexpected error")
                 })?;
             }
-        }
+            MfaMethod::Oidc => {
+                if !is_enterprise_enabled() {
+                    error!("OIDC MFA method requires enterprise feature to be enabled");
+                    return Err(Status::invalid_argument(
+                        "selected MFA method not available",
+                    ));
+                }
+
+                let settings = Settings::get_current_settings();
+                if !settings.use_openid_for_mfa {
+                    error!("OIDC MFA method is not enabled in settings");
+                    return Err(Status::invalid_argument(
+                        "selected MFA method not available",
+                    ));
+                }
+
+                if OpenIdProvider::get_current(&self.pool)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to get current OpenID provider: {err:?}",);
+                        Status::internal("unexpected error")
+                    })?
+                    .is_none()
+                {
+                    error!("OIDC provider is not configured");
+                    return Err(Status::invalid_argument(
+                        "selected MFA method not available",
+                    ));
+                }
+            }
+        };
 
         // generate auth token
         let token = Self::generate_token(&request.pubkey)?;
@@ -211,6 +244,7 @@ impl ClientMfaServer {
                 location,
                 device,
                 user,
+                openid_auth_completed: false,
             },
         );
 
@@ -237,6 +271,7 @@ impl ClientMfaServer {
             device,
             location,
             user,
+            openid_auth_completed,
         } = session;
 
         // Prepare event context
@@ -246,7 +281,23 @@ impl ClientMfaServer {
         // validate code
         match method {
             MfaMethod::Totp => {
-                if !user.verify_totp_code(&request.code.to_string()) {
+                let code = if let Some(code) = request.code {
+                    code.to_string()
+                } else {
+                    error!("TOTP code not provided in request");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
+                                method: *method,
+                            },
+                        )),
+                    })?;
+                    return Err(Status::invalid_argument("TOTP code not provided"));
+                };
+                if !user.verify_totp_code(&code) {
                     error!("Provided TOTP code is not valid");
                     self.emit_event(BidiStreamEvent {
                         context,
@@ -254,7 +305,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
                         )),
                     })?;
@@ -262,7 +313,23 @@ impl ClientMfaServer {
                 }
             }
             MfaMethod::Email => {
-                if !user.verify_email_mfa_code(&request.code.to_string()) {
+                let code = if let Some(code) = request.code {
+                    code.to_string()
+                } else {
+                    error!("Email MFA code not provided in request");
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
+                                method: *method,
+                            },
+                        )),
+                    })?;
+                    return Err(Status::invalid_argument("email MFA code not provided"));
+                };
+                if !user.verify_email_mfa_code(&code) {
                     error!("Provided email code is not valid");
                     self.emit_event(BidiStreamEvent {
                         context,
@@ -270,11 +337,33 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
                         )),
                     })?;
                     return Err(Status::unauthenticated("unauthorized"));
+                }
+            }
+            MfaMethod::Oidc => {
+                if !*openid_auth_completed {
+                    debug!(
+                        "User {user} tried to finish OIDC MFA login but they haven't completed the OIDC authentication yet."
+                    );
+                    self.emit_event(BidiStreamEvent {
+                        context,
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                            DesktopClientMfaEvent::Failed {
+                                location: location.clone(),
+                                device: device.clone(),
+                                method: *method,
+                            },
+                        )),
+                    })?;
+                    return Err(Status::failed_precondition(
+                        "OIDC authentication not completed yet",
+                    ));
+                } else {
+                    debug!("User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding.");
                 }
             }
         }
@@ -337,7 +426,7 @@ impl ClientMfaServer {
                 DesktopClientMfaEvent::Connected {
                     location: location.clone(),
                     device: device.clone(),
-                    method: (*method).into(),
+                    method: *method,
                 },
             )),
         })?;

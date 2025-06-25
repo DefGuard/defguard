@@ -1238,6 +1238,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
         },
+        useOpenIdForMfa: {
+          label: 'Use external OpenID for client MFA',
+          helper:
+            'When the external OpenID SSO Multi-Factor (MFA) process is enabled, users connecting to VPN locations that require MFA will need to authenticate via their browser using the configured provider for each connection. If this setting is disabled, MFA for those VPN locations will be handled through the internal Defguard SSO system. In that case, users must have TOTP or email-based MFA configured in their profile.',
+        },
         usernameHandling: {
           label: 'Username handling',
           helper:

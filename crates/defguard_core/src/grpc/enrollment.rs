@@ -13,7 +13,6 @@ use super::{
     },
     InstanceInfo,
 };
-use crate::grpc::utils::parse_client_info;
 use crate::{
     db::{
         models::{
@@ -24,11 +23,12 @@ use crate::{
         Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        ldap::utils::ldap_add_user,
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token},
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     mail::Mail,
@@ -193,7 +193,20 @@ impl EnrollmentServer {
                 "Retrieving instance info for user {}({:?}).",
                 user.username, user.id
             );
-            let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
+
+            let openid_provider = OpenIdProvider::get_current(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!("Failed to get OpenID provider: {err}");
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
+
+            let instance_info = InstanceInfo::new(
+                settings,
+                &user.username,
+                &enterprise_settings,
+                openid_provider,
+            );
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -709,11 +722,24 @@ impl EnrollmentServer {
 
         info!("Device {} remote configuration done.", device.name);
 
+        let openid_provider = OpenIdProvider::get_current(&self.pool)
+            .await
+            .map_err(|err| {
+                error!("Failed to get OpenID provider: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(
-                InstanceInfo::new(settings, &user.username, &enterprise_settings).into(),
+                InstanceInfo::new(
+                    settings,
+                    &user.username,
+                    &enterprise_settings,
+                    openid_provider,
+                )
+                .into(),
             ),
             token: Some(token.token),
         };
