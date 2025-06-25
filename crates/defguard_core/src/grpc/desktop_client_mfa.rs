@@ -40,6 +40,7 @@ impl From<ClientMfaServerError> for Status {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct ClientLoginSession {
     pub(crate) method: MfaMethod,
     pub(crate) location: WireguardNetwork<Id>,

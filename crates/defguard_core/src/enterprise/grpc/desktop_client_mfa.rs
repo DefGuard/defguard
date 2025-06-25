@@ -42,7 +42,7 @@ impl ClientMfaServer {
         let pubkey = Self::parse_token(&token)?;
 
         // fetch login session
-        let Some(session) = self.sessions.get(&pubkey) else {
+        let Some(session) = self.sessions.get(&pubkey).cloned() else {
             debug!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
@@ -54,13 +54,14 @@ impl ClientMfaServer {
             openid_auth_completed,
         } = session;
 
-        if *openid_auth_completed {
+        if openid_auth_completed {
             debug!("Client login session already completed");
             return Err(Status::invalid_argument("login session already completed"));
         }
 
-        if *method != MfaMethod::Oidc {
+        if method != MfaMethod::Oidc {
             debug!("Invalid MFA method for OIDC authentication: {method:?}");
+            self.sessions.remove(&pubkey);
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
@@ -74,13 +75,14 @@ impl ClientMfaServer {
         }) {
             Ok(url) => url,
             Err(status) => {
+                self.sessions.remove(&pubkey);
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
                         DesktopClientMfaEvent::Failed {
                             location: location.clone(),
                             device: device.clone(),
-                            method: *method,
+                            method,
                         },
                     )),
                 })?;
@@ -93,13 +95,14 @@ impl ClientMfaServer {
                 // if thats not our user, prevent login
                 if claims_user.id != user.id {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
+                    self.sessions.remove(&pubkey);
                     self.emit_event(BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                             },
                         )),
                     })?;
@@ -112,13 +115,14 @@ impl ClientMfaServer {
             }
             Err(err) => {
                 info!("Failed to verify OIDC code: {err:?}");
+                self.sessions.remove(&pubkey);
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
                         DesktopClientMfaEvent::Failed {
                             location: location.clone(),
                             device: device.clone(),
-                            method: *method,
+                            method,
                         },
                     )),
                 })?;
@@ -127,9 +131,9 @@ impl ClientMfaServer {
         };
 
         self.sessions.insert(
-            pubkey,
+            pubkey.clone(),
             ClientLoginSession {
-                method: *method,
+                method,
                 device: device.clone(),
                 location: location.clone(),
                 user: user.clone(),
