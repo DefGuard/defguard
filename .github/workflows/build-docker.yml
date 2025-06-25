@@ -53,7 +53,7 @@ jobs:
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
       - name: Build container
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/${{ matrix.cpu }}

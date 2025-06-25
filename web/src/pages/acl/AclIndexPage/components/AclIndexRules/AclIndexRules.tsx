@@ -201,6 +201,7 @@ export const AclIndexRules = () => {
     const res: Record<string, FilterGroupsModalFilter> = {};
     const filterLL = localLL.modals.filterGroupsModal.groupHeaders;
     res.groups = {
+      identifier: 'id',
       label: filterLL.groups(),
       order: 3,
       items: aclContext.groups.map((group) => ({
@@ -212,6 +213,7 @@ export const AclIndexRules = () => {
     res.networks = {
       label: filterLL.location(),
       order: 1,
+      identifier: 'id',
       items: aclContext.networks.map((network) => ({
         label: network.name,
         searchValues: [network.name],
@@ -219,6 +221,7 @@ export const AclIndexRules = () => {
       })),
     };
     res.aliases = {
+      identifier: 'id',
       label: filterLL.alias(),
       order: 2,
       items: aclContext.aliases
@@ -231,6 +234,7 @@ export const AclIndexRules = () => {
     };
 
     res.status = {
+      identifier: 'value',
       label: filterLL.status(),
       order: 4,
       items: [
@@ -706,7 +710,7 @@ const RuleEditButton = ({ rule }: EditProps) => {
         <>
           {!rule.enabled && (
             <EditButtonOption
-              text={statusLL.enabled()}
+              text={statusLL.enable()}
               disabled={editPending}
               onClick={() => {
                 handleEnableChange(true, rule);
@@ -715,7 +719,7 @@ const RuleEditButton = ({ rule }: EditProps) => {
           )}
           {rule.enabled && (
             <EditButtonOption
-              text={statusLL.disabled()}
+              text={statusLL.disable()}
               disabled={editPending}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               onClick={() => {

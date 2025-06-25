@@ -4,6 +4,7 @@ import './App.scss';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AclRoutes } from '../../pages/acl/AclRoutes';
+import { ActivityLogPage } from '../../pages/activity-log/ActivityLogPage';
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
@@ -13,6 +14,7 @@ import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
+import { OverviewIndexPage } from '../../pages/overview-index/OverviewIndexPage';
 import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { SupportPage } from '../../pages/support/SupportPage';
@@ -59,7 +61,7 @@ const App = () => {
               <Route
                 path="acl/*"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminRequired>
                     <AclRoutes />
                   </ProtectedRoute>
                 }
@@ -97,7 +99,15 @@ const App = () => {
                 }
               />
               <Route
-                path="overview/*"
+                path="overview/"
+                element={
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
+                    <OverviewIndexPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="overview/:networkId"
                 element={
                   <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <OverviewPage />
@@ -154,6 +164,14 @@ const App = () => {
               />
               <Route path="*" element={<Navigate to="users" />} />
             </Route>
+            <Route
+              path="activity/*"
+              element={
+                <ProtectedRoute>
+                  <ActivityLogPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="me/*"
               element={

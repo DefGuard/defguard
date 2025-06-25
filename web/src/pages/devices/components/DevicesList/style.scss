@@ -1,7 +1,7 @@
 @mixin spacing {
   display: inline-grid;
   grid-template-rows: 1fr;
-  grid-template-columns: 250px repeat(2, 150px) 1fr 180px 200px 50px;
+  grid-template-columns: 250px 150px 350px 1fr 180px 200px 50px;
   column-gap: 15px;
 }
 

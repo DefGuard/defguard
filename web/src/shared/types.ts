@@ -7,6 +7,7 @@ import {
 import { AxiosError, AxiosPromise } from 'axios';
 
 import { AclAlias, AclStatus } from '../pages/acl/types';
+import { ActivityLogEventType, ActivityLogModule } from '../pages/activity-log/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -90,7 +91,7 @@ export interface Device {
 }
 
 export type DeviceNetworkInfo = {
-  device_wireguard_ip: string;
+  device_wireguard_ips: string[];
   is_active: boolean;
   network_gateway_ip: string;
   network_id: number;
@@ -108,6 +109,7 @@ export interface AddDeviceRequest {
 export type GatewayStatus = {
   connected: boolean;
   network_id: number;
+  network_name: string;
   name?: string;
   hostname: string;
   uid: string;
@@ -270,8 +272,7 @@ export interface ChangeUserPasswordRequest {
 }
 
 export interface GetNetworkStatsRequest {
-  /**UTC date parsed to ISO string. This sets how far back stats will be returned. */
-  from?: string;
+  from?: number;
   id: Network['id'];
 }
 
@@ -329,7 +330,7 @@ export interface ImportNetworkResponse {
 
 export interface ImportedDevice {
   name: string;
-  wireguard_ip: string;
+  wireguard_ips: string[];
   wireguard_pubkey: string;
   user_id?: number;
 }
@@ -498,11 +499,123 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
+export type ActivityLogEvent = {
+  id: number;
+  timestamp: string;
+  user_id: number;
+  username: string;
+  ip: string;
+  event: ActivityLogEventType;
+  module: ActivityLogModule;
+  device: string;
+  metadata?: unknown;
+};
+
+export type PaginationParams = {
+  page?: number;
+};
+
+export type PaginationMeta = {
+  current_page: number;
+  page_size: number;
+  total_items: number;
+  total_pagers: number;
+  next_page?: number;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: PaginationMeta;
+};
+
+export type AllGateWaysResponse = Record<string, Array<GatewayStatus>>;
+
+export type ActivityLogFilters = {
+  // Naive UTC datetime in string
+  from?: string;
+  // Naive UTC datetime in string
+  until?: string;
+  username?: string[];
+  event?: ActivityLogEventType[];
+  module?: ActivityLogModule[];
+  search?: string;
+};
+
+export type ActivityLogSortKey =
+  | 'timestamp'
+  | 'username'
+  | 'ip'
+  | 'event'
+  | 'module'
+  | 'device';
+
+export type ApiSortDirection = 'asc' | 'desc';
+
+export type RequestSortParams<T> = {
+  sort_by?: T;
+  sort_order?: ApiSortDirection;
+};
+
+export type ActivityLogRequestParams = ActivityLogFilters &
+  RequestSortParams<ActivityLogSortKey> &
+  PaginationParams;
+
+export type ActivityLogStreamType = 'vector_http' | 'logstash_http';
+
+export type ActivityLogStream = {
+  id: number;
+  name: string;
+  stream_type: ActivityLogStreamType;
+  config: ActivityLogStreamConfig;
+};
+
+export type ActivityLogStreamVectorHttp = {
+  url: string;
+  username?: string;
+  password?: string;
+  cert?: string;
+};
+
+export type ActivityLogStreamLogstashHttp = {
+  url: string;
+  username?: string;
+  password?: string;
+  cert?: string;
+};
+
+export type ActivityLogStreamModifyRequest = {
+  id: number;
+  name: string;
+  stream_type: ActivityLogStreamType;
+  stream_config: ActivityLogStreamConfig;
+};
+
+export type ActivityLogStreamConfig =
+  | ActivityLogStreamVectorHttp
+  | ActivityLogStreamLogstashHttp;
+
+export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
+
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
+  activityLog: {
+    getActivityLog: (
+      params: ActivityLogRequestParams,
+    ) => Promise<PaginatedResponse<ActivityLogEvent>>;
+  };
+  activityLogStream: {
+    getActivityLogStreams: () => Promise<ActivityLogStream[]>;
+    createActivityLogStream: (
+      data: ActivityLogStreamCreateRequest,
+    ) => Promise<EmptyApiResponse>;
+    modifyActivityLogStream: (
+      data: ActivityLogStreamModifyRequest,
+    ) => Promise<EmptyApiResponse>;
+    deleteActivityLogStream: (id: number) => Promise<EmptyApiResponse>;
+  };
   acl: {
     aliases: {
       getAliases: () => Promise<AclAlias[]>;
@@ -587,8 +700,8 @@ export type Api = {
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
-      data: ValidateLocationIpRequest,
-    ) => Promise<ValidateLocationIpResponse>;
+      data: ValidateLocationIpsRequest,
+    ) => Promise<ValidateLocationIpsResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -615,6 +728,8 @@ export type Api = {
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
     deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
+    getAllNetworksStats: (data: { from?: number }) => Promise<WireguardNetworkStats>;
+    getAllGatewaysStatus: () => Promise<AllGateWaysResponse>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
@@ -1111,7 +1226,7 @@ export interface NetworkDeviceStats {
   id: number;
   name: string;
   public_ip: string;
-  wireguard_ip: string;
+  wireguard_ips: string[];
   stats: NetworkSpeedStats[];
 }
 
@@ -1125,7 +1240,7 @@ export type StandaloneDeviceStats = {
   stats: NetworkSpeedStats[];
   user_id: number;
   name: string;
-  wireguard_ip?: string;
+  wireguard_ips: string[];
   public_ip?: string;
   connected_at?: string;
 };
@@ -1137,9 +1252,11 @@ export interface NetworkUserStats {
 
 export interface WireguardNetworkStats {
   active_users: number;
-  active_devices: number;
+  active_user_devices: number;
+  active_network_devices: number;
   current_active_users: number;
-  current_active_devices: number;
+  current_active_user_devices: number;
+  current_active_network_devices: number;
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
@@ -1183,17 +1300,17 @@ export type DirsyncTestResponse = {
 export type CreateStandaloneDeviceRequest = {
   name: string;
   location_id: number;
-  assigned_ip: string;
+  assigned_ips: string[];
   wireguard_pubkey?: string;
   description?: string;
 };
 
-export type ValidateLocationIpRequest = {
-  ip: string;
+export type ValidateLocationIpsRequest = {
+  ips: string[];
   location: number | string;
 };
 
-export type ValidateLocationIpResponse = {
+export type ValidateLocationIpsResponse = {
   available: boolean;
   valid: boolean;
 };
@@ -1207,12 +1324,12 @@ export type GetAvailableLocationIpResponse = {
   network_part: string;
   modifiable_part: string;
   network_prefix: string;
-};
+}[];
 
 export type StandaloneDevice = {
   id: number;
   name: string;
-  assigned_ip: string;
+  assigned_ips: string[];
   description?: string;
   added_by: string;
   added_date: string;
@@ -1223,11 +1340,13 @@ export type StandaloneDevice = {
     id: number;
     name: string;
   };
-  split_ip: {
-    network_part: string;
-    modifiable_part: string;
-    network_prefix: string;
-  };
+  split_ips: [
+    {
+      network_part: string;
+      modifiable_part: string;
+      network_prefix: string;
+    },
+  ];
 };
 
 export type DeviceConfigurationResponse = {
@@ -1249,7 +1368,7 @@ export type CreateStandaloneDeviceResponse = {
 
 export type StandaloneDeviceEditRequest = {
   id: number;
-  assigned_ip: string;
+  assigned_ips: string[];
   description?: string;
   name: string;
 };

@@ -38,33 +38,23 @@
   }
 
   .links {
-    display: flex;
-    flex-flow: column;
-    align-items: center;
-    justify-content: flex-start;
-    box-sizing: border-box;
-    width: 100%;
-    overflow: hidden;
     border-bottom: 1px solid var(--gray-border);
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-rows: 1fr auto;
 
-    @media (min-height: 780px) {
-      padding-top: 90px;
+    .middle,
+    .bottom {
+      width: 100%;
     }
 
-    & > .bottom,
-    & > .middle {
+    .middle {
       display: flex;
       flex-flow: column;
+      height: 100%;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      width: 100%;
-      height: auto;
-      flex-grow: 0;
-    }
-
-    & > .bottom {
-      margin-top: auto;
     }
 
     a,
@@ -73,26 +63,36 @@
       position: relative;
       display: grid;
       grid-template-rows: 1fr;
-      grid-template-columns: 24px 1fr;
       align-items: center;
       justify-items: start;
-      height: 58px;
-      padding: 0 14px 0 32px;
       width: 100%;
       column-gap: 18px;
       box-sizing: border-box;
+      padding: var(--spacing-xs) var(--spacing-s);
       max-width: 100%;
       overflow: hidden;
       background-color: transparent;
       border: 0px solid transparent;
       text-decoration: none;
-      @include typography-legacy(15px, 1.2, medium, var(--gray-light), 'Poppins');
       cursor: pointer;
+      color: var(--text-body-tertiary);
+      grid-template-columns: 24px 1fr;
+
+      &.compact {
+        grid-template-columns: 1fr;
+        align-items: center;
+        justify-items: center;
+      }
 
       & > span {
+        @include typography(app-side-bar);
         color: inherit;
         overflow: hidden;
         max-width: 100%;
+        display: inline-block;
+        word-break: normal;
+        text-wrap: wrap;
+        text-align: left;
       }
 
       &:hover,

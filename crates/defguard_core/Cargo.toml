@@ -1,0 +1,115 @@
+[package]
+name = "defguard_core"
+version = "1.4.0"
+edition.workspace = true
+license-file.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# internal crates
+defguard_web_ui = { workspace = true }
+model_derive = { workspace = true }
+
+# external dependencies
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+axum = { workspace = true }
+axum-client-ip = { workspace = true }
+axum-extra = { workspace = true }
+base32 = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+dotenvy = { workspace = true }
+humantime = { workspace = true }
+# match version used by sqlx
+ipnetwork = { workspace = true }
+jsonwebkey = { workspace = true }
+jsonwebtoken = { workspace = true }
+ldap3 = { workspace = true }
+lettre = { workspace = true }
+md4 = { workspace = true }
+openidconnect = { version = "4.0", default-features = false, optional = true, features = [
+    "reqwest",
+] }
+parse_link_header = { workspace = true }
+paste = { workspace = true }
+pgp = { workspace = true }
+prost = { workspace = true }
+pulldown-cmark = { workspace = true }
+# match version used by sqlx
+rand = { workspace = true }
+rand_core = { workspace = true }
+reqwest = { workspace = true }
+rsa = { workspace = true }
+rust-ini = { workspace = true }
+secrecy = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
+# match version from webauthn-rs-core
+serde_cbor = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
+sha-1 = { workspace = true }
+sha256 = { workspace = true }
+sqlx = { workspace = true }
+ssh-key = { workspace = true }
+struct-patch = { workspace = true }
+tera = { workspace = true }
+thiserror = { workspace = true }
+# match axum-extra -> cookies
+time = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+totp-lite = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+trait-variant = { workspace = true }
+uaparser = { workspace = true }
+# openapi
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+uuid = { workspace = true }
+webauthn-authenticator-rs = { workspace = true }
+webauthn-rs = { workspace = true }
+webauthn-rs-proto = { workspace = true }
+x25519-dalek = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+bytes = { workspace = true }
+
+# https://github.com/juhaku/utoipa/issues/1345
+[dependencies.zip]
+version = "=2.4.2"
+
+[dev-dependencies]
+bytes = "1.6"
+claims = "0.8"
+matches = "0.1"
+regex = "1.10"
+reqwest = { version = "0.12", features = [
+    "cookies",
+    "json",
+    "multipart",
+    "rustls-tls",
+    "stream",
+], default-features = false }
+serde_qs = "0.13"
+webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
+
+[build-dependencies]
+prost-build = "0.13"
+tonic-build = "0.12"
+vergen-git2 = { version = "1.0", features = ["build"] }
+
+[features]
+default = ["openid", "wireguard", "worker"]
+openid = ["dep:openidconnect"]
+worker = []
+wireguard = []

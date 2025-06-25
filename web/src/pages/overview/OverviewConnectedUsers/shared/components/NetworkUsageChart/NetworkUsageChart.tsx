@@ -13,6 +13,8 @@ interface NetworkUsageProps {
   hideX?: boolean;
   barSize?: number;
   heightX?: number;
+  barGap?: number;
+  categoryGap?: number;
 }
 
 export const NetworkUsageChart = ({
@@ -22,6 +24,8 @@ export const NetworkUsageChart = ({
   hideX = true,
   barSize = 2,
   heightX = 20,
+  barGap = 0,
+  categoryGap = 0,
 }: NetworkUsageProps) => {
   const getFormattedData = useMemo(() => parseStatsForCharts(data), [data]);
 
@@ -32,8 +36,8 @@ export const NetworkUsageChart = ({
         width={width}
         data={getFormattedData}
         margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
-        barGap={0}
-        barCategoryGap={0}
+        barGap={barGap}
+        barCategoryGap={categoryGap}
         barSize={barSize}
       >
         <XAxis

@@ -1,0 +1,60 @@
+.gateway-floating-status-info {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: center;
+  column-gap: 5px;
+
+  & > .info {
+    display: flex;
+    flex-flow: column;
+    align-items: flex-start;
+    justify-content: center;
+    row-gap: 5px;
+
+    .name,
+    .hostname {
+      color: var(--text-body-secondary);
+      @include typography(app-modal-2);
+    }
+
+    & > .name {
+      font-weight: 700;
+    }
+
+    & > .hostname {
+      font-weight: 400;
+    }
+  }
+
+  & > .dismiss {
+    .interaction-box {
+      width: 18px;
+      height: 18px;
+
+      button {
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+
+      path {
+        fill: var(--surface-icon-primary);
+        transition-property: fill;
+        @include animate-standard;
+      }
+    }
+
+    &:hover {
+      svg {
+        path {
+          fill: var(--surface-alert-primary);
+        }
+      }
+    }
+  }
+}

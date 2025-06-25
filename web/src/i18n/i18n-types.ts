@@ -32,6 +32,18 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * T​i​m​e​ ​r​a​n​g​e
+			 */
+			timeRange: string
+			/**
+			 * A​d​d​ ​n​e​w
+			 */
+			addNew: string
+			/**
+			 * A​d​d
+			 */
+			add: string
+			/**
 			 * A​c​c​e​p​t
 			 */
 			accept: string
@@ -131,6 +143,14 @@ type RootTranslation = {
 			 * C​l​e​a​r​ ​a​l​l
 			 */
 			clearAll: string
+			/**
+			 * F​i​l​t​e​r
+			 */
+			filter: string
+			/**
+			 * F​i​l​t​e​r​s
+			 */
+			filters: string
 		}
 		/**
 		 * K​e​y
@@ -156,6 +176,18 @@ type RootTranslation = {
 		 * S​e​a​r​c​h
 		 */
 		search: string
+		/**
+		 * T​i​m​e
+		 */
+		time: string
+		/**
+		 * F​r​o​m
+		 */
+		from: string
+		/**
+		 * U​n​t​i​l
+		 */
+		until: string
 	}
 	messages: {
 		/**
@@ -2311,8 +2343,16 @@ type RootTranslation = {
 			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l
 			 */
 			acl: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
+			 */
+			activity: string
 		}
 		mobileTitles: {
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
+			 */
+			activity: string
 			/**
 			 * G​r​o​u​p​s
 			 */
@@ -2367,7 +2407,7 @@ type RootTranslation = {
 			devices: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​5
 		 */
 		copyright: string
 		version: {
@@ -2427,6 +2467,10 @@ type RootTranslation = {
 			username_or_email: string
 		}
 		error: {
+			/**
+			 * E​n​t​e​r​ ​v​a​l​i​d​ ​U​R​L
+			 */
+			urlInvalid: string
 			/**
 			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
 			 */
@@ -2615,25 +2659,23 @@ type RootTranslation = {
 			label: string
 			states: {
 				/**
-				 * A​l​l​ ​c​o​n​n​e​c​t​e​d
+				 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
 				 */
-				connected: string
+				all: RequiredParams<'count'>
 				/**
-				 * O​n​e​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​n​o​t​ ​w​o​r​k​i​n​g
+				 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
 				 */
-				partial: string
+				some: RequiredParams<'count'>
 				/**
-				 * D​i​s​c​o​n​n​e​c​t​e​d
+				 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
 				 */
-				disconnected: string
+				none: string
 				/**
-				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s​ ​f​a​i​l​e​d
+				 * S​t​a​t​u​s​ ​c​h​e​c​k​ ​f​a​i​l​e​d
 				 */
 				error: string
-				/**
-				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s
-				 */
-				loading: string
 			}
 			messages: {
 				/**
@@ -2689,6 +2731,10 @@ type RootTranslation = {
 			 * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
 			 */
 			gatewayNotifications: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
+			 */
+			activityLogStream: string
 		}
 		messages: {
 			/**
@@ -2717,6 +2763,99 @@ type RootTranslation = {
 			 * w​e​b​s​i​t​e
 			 */
 			website: string
+		}
+		activityLogStreamSettings: {
+			messages: {
+				destinationCrud: {
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​a​d​d​e​d
+					 * @param {string} destination
+					 */
+					create: RequiredParams<'destination'>
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+					 * @param {string} destination
+					 */
+					modify: RequiredParams<'destination'>
+					/**
+					 * {​d​e​s​t​i​n​a​t​i​o​n​}​ ​d​e​s​t​i​n​a​t​i​o​n​ ​r​e​m​o​v​e​d
+					 * @param {string} destination
+					 */
+					'delete': RequiredParams<'destination'>
+				}
+			}
+			modals: {
+				selectDestination: {
+					/**
+					 * S​e​l​e​c​t​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					title: string
+				}
+				vector: {
+					/**
+					 * A​d​d​ ​V​e​c​t​o​r​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					create: string
+					/**
+					 * E​d​i​t​ ​V​e​c​t​o​r​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					modify: string
+				}
+				logstash: {
+					/**
+					 * A​d​d​ ​L​o​g​s​t​a​s​h​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					create: string
+					/**
+					 * E​d​i​t​ ​L​o​g​s​t​a​s​h​ ​d​e​s​t​i​n​a​t​i​o​n
+					 */
+					modify: string
+				}
+				shared: {
+					formLabels: {
+						/**
+						 * N​a​m​e
+						 */
+						name: string
+						/**
+						 * U​r​l
+						 */
+						url: string
+						/**
+						 * U​s​e​r​n​a​m​e
+						 */
+						username: string
+						/**
+						 * P​a​s​s​w​o​r​d
+						 */
+						password: string
+						/**
+						 * C​e​r​t​i​f​i​c​a​t​e
+						 */
+						cert: string
+					}
+				}
+			}
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
+			 */
+			title: string
+			list: {
+				/**
+				 * N​o​ ​d​e​s​t​i​n​a​t​i​o​n​s
+				 */
+				noData: string
+				headers: {
+					/**
+					 * N​a​m​e
+					 */
+					name: string
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					destination: string
+				}
+			}
 		}
 		ldapSettings: {
 			/**
@@ -4320,6 +4459,21 @@ type RootTranslation = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * A​l​l​ ​l​o​c​a​t​i​o​n​s​ ​s​u​m​m​a​r​y
+			 */
+			all: string
+			/**
+			 * S​e​l​e​c​t​ ​l​o​c​a​t​i​o​n
+			 */
+			placeholder: string
+		}
+		/**
+		 * {​v​a​l​u​e​}​h​ ​p​e​r​i​o​d
+		 * @param {number} value
+		 */
+		timeRangeSelectionLabel: RequiredParams<'value'>
 		/**
 		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
@@ -4346,34 +4500,64 @@ type RootTranslation = {
 			 */
 			list: string
 		}
+		gatewayStatus: {
+			/**
+			 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			all: RequiredParams<'count'>
+			/**
+			 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			some: RequiredParams<'count'>
+			/**
+			 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
+			 */
+			none: string
+		}
 		stats: {
 			/**
 			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
 			 */
 			currentlyActiveUsers: string
 			/**
-			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​d​e​v​i​c​e​s
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
 			 */
-			currentlyActiveDevices: string
+			currentlyActiveNetworkDevices: string
 			/**
-			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * T​o​t​a​l​ ​u​s​e​r​ ​d​e​v​i​c​e​s​:​ ​{​c​o​u​n​t​}
+			 * @param {number} count
+			 */
+			totalUserDevices: RequiredParams<'count'>
+			/**
+			 * A​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
+			 * @param {number} hour
+			 */
+			activeNetworkDevices: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​h
 			 * @param {number} hour
 			 */
 			activeUsersFilter: RequiredParams<'hour'>
 			/**
-			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
 			 * @param {number} hour
 			 */
 			activeDevicesFilter: RequiredParams<'hour'>
-			/**
-			 * T​o​t​a​l​ ​t​r​a​n​s​f​e​r​:
-			 */
-			totalTransfer: string
 			/**
 			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
 			 * @param {number} hour
 			 */
 			activityIn: RequiredParams<'hour'>
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+			/**
+			 * P​e​a​k
+			 */
+			peak: string
 			/**
 			 * I​n​:
 			 */
@@ -5200,9 +5384,9 @@ type RootTranslation = {
 					 */
 					location: string
 					/**
-					 * I​P​ ​A​d​d​r​e​s​s
+					 * I​P​ ​A​d​d​r​e​s​s​e​s
 					 */
-					assignedIp: string
+					assignedIps: string
 					/**
 					 * D​e​s​c​r​i​p​t​i​o​n
 					 */
@@ -5262,13 +5446,13 @@ type RootTranslation = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​ ​n​o​t​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​f​i​n​e​d​ ​b​y​ ​t​h​e​ ​r​u​l​e​s​ ​w​i​l​l​ ​b​e​ ​b​l​o​c​k​e​d​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				denied: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​ ​n​o​t​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​f​i​n​e​d​ ​b​y​ ​t​h​e​ ​r​u​l​e​s​ ​w​i​l​l​ ​b​e​ ​p​a​s​s​e​d​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				allowed: string
@@ -5312,9 +5496,17 @@ type RootTranslation = {
 			 */
 			deleted: string
 			/**
+			 * E​n​a​b​l​e
+			 */
+			enable: string
+			/**
 			 * E​n​a​b​l​e​d
 			 */
 			enabled: string
+			/**
+			 * D​i​s​a​b​l​e
+			 */
+			disable: string
 			/**
 			 * D​i​s​a​b​l​e​d
 			 */
@@ -5325,6 +5517,16 @@ type RootTranslation = {
 			expired: string
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * R​u​l​e​s
+				 */
+				rules: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+			}
 			message: {
 				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
@@ -5612,7 +5814,7 @@ type RootTranslation = {
 							 */
 							ports: string
 							/**
-							 * A​l​l​ ​I​P​s
+							 * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
 							 */
 							ip: string
 						}
@@ -5732,7 +5934,7 @@ type RootTranslation = {
 						 */
 						kind: string
 						/**
-						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
 						 */
 						ip: string
 						/**
@@ -5808,13 +6010,13 @@ type RootTranslation = {
 				allowInstructions: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​ ​A​d​d​r​e​s​s​e​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
 			}
 			message: {
 				/**
-				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​.
 				 */
 				create: string
 				/**
@@ -5913,6 +6115,10 @@ type RootTranslation = {
 				 * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
 				 */
 				expires: string
+				/**
+				 * M​a​n​u​a​l​ ​I​n​p​u​t
+				 */
+				manualInput: string
 			}
 			placeholders: {
 				/**
@@ -5920,10 +6126,236 @@ type RootTranslation = {
 				 */
 				allProtocols: string
 				/**
-				 * A​l​l​ ​I​P​s
+				 * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
 				 */
 				allIps: string
 			}
+		}
+	}
+	activity: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​l​o​g
+		 */
+		title: string
+		modals: {
+			timeRange: {
+				/**
+				 * A​c​t​i​v​i​t​y​ ​t​i​m​e
+				 */
+				title: string
+			}
+		}
+		list: {
+			/**
+			 * A​l​l​ ​a​c​t​i​v​i​t​y
+			 */
+			allLabel: string
+			headers: {
+				/**
+				 * D​a​t​e
+				 */
+				date: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * I​P
+				 */
+				ip: string
+				/**
+				 * E​v​e​n​t
+				 */
+				event: string
+				/**
+				 * M​o​d​u​l​e
+				 */
+				module: string
+				/**
+				 * D​e​v​i​c​e
+				 */
+				device: string
+			}
+			noData: {
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​p​r​e​s​e​n​t
+				 */
+				data: string
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​f​o​u​n​d
+				 */
+				search: string
+			}
+		}
+	}
+	enums: {
+		activityLogEventType: {
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n
+			 */
+			user_login: string
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_login_failed: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n
+			 */
+			user_mfa_login: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​l​o​g​i​n​ ​f​a​i​l​e​d
+			 */
+			user_mfa_login_failed: string
+			/**
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​ ​u​s​e​d
+			 */
+			recovery_code_used: string
+			/**
+			 * U​s​e​r​ ​l​o​g​o​u​t
+			 */
+			user_logout: string
+			/**
+			 * U​s​e​r​ ​a​d​d​e​d
+			 */
+			user_added: string
+			/**
+			 * U​s​e​r​ ​r​e​m​o​v​e​d
+			 */
+			user_removed: string
+			/**
+			 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			user_modified: string
+			/**
+			 * M​F​A​ ​e​n​a​b​l​e​d
+			 */
+			mfa_enabled: string
+			/**
+			 * M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_disabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
+			 */
+			mfa_totp_enabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_totp_disabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
+			 */
+			mfa_email_enabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_email_disabled: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			mfa_security_key_added: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			mfa_security_key_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			device_added: string
+			/**
+			 * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			device_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			device_modified: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			network_device_added: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			network_device_removed: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			network_device_modified: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 */
+			activity_log_stream_created: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 */
+			activity_log_stream_modified: string
+			/**
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 */
+			activity_log_stream_removed: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_connected: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d
+			 */
+			vpn_client_disconnected: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d​ ​t​o​ ​M​F​A​ ​l​o​c​a​t​i​o​n
+			 */
+			vpn_client_connected_mfa: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​M​F​A​ ​l​o​c​a​t​i​o​n
+			 */
+			vpn_client_disconnected_mfa: string
+			/**
+			 * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
+			 */
+			vpn_client_mfa_failed: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
+			 */
+			enrollment_started: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			enrollment_device_added: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			enrollment_completed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​r​e​q​u​e​s​t​e​d
+			 */
+			password_reset_requested: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​s​t​a​r​t​e​d
+			 */
+			password_reset_started: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
+			 */
+			password_reset_completed: string
+		}
+		activityLogModule: {
+			/**
+			 * D​e​f​g​u​a​r​d
+			 */
+			defguard: string
+			/**
+			 * C​l​i​e​n​t
+			 */
+			client: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * V​P​N
+			 */
+			vpn: string
 		}
 	}
 }
@@ -5945,6 +6377,18 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Time range
+			 */
+			timeRange: () => LocalizedString
+			/**
+			 * Add new
+			 */
+			addNew: () => LocalizedString
+			/**
+			 * Add
+			 */
+			add: () => LocalizedString
 			/**
 			 * Accept
 			 */
@@ -6045,6 +6489,14 @@ export type TranslationFunctions = {
 			 * Clear all
 			 */
 			clearAll: () => LocalizedString
+			/**
+			 * Filter
+			 */
+			filter: () => LocalizedString
+			/**
+			 * Filters
+			 */
+			filters: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -6070,6 +6522,18 @@ export type TranslationFunctions = {
 		 * Search
 		 */
 		search: () => LocalizedString
+		/**
+		 * Time
+		 */
+		time: () => LocalizedString
+		/**
+		 * From
+		 */
+		from: () => LocalizedString
+		/**
+		 * Until
+		 */
+		until: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -8203,8 +8667,16 @@ export type TranslationFunctions = {
 			 * Access Control
 			 */
 			acl: () => LocalizedString
+			/**
+			 * Activity log
+			 */
+			activity: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * Activity log
+			 */
+			activity: () => LocalizedString
 			/**
 			 * Groups
 			 */
@@ -8259,7 +8731,7 @@ export type TranslationFunctions = {
 			devices: () => LocalizedString
 		}
 		/**
-		 * Copyright ©2023-2024
+		 * Copyright ©2023-2025
 		 */
 		copyright: () => LocalizedString
 		version: {
@@ -8317,6 +8789,10 @@ export type TranslationFunctions = {
 			username_or_email: () => LocalizedString
 		}
 		error: {
+			/**
+			 * Enter valid URL
+			 */
+			urlInvalid: () => LocalizedString
 			/**
 			 * Name is already taken.
 			 */
@@ -8501,25 +8977,21 @@ export type TranslationFunctions = {
 			label: () => LocalizedString
 			states: {
 				/**
-				 * All connected
+				 * All ({count}) Connected
 				 */
-				connected: () => LocalizedString
+				all: (arg: { count: number }) => LocalizedString
 				/**
-				 * One or more are not working
+				 * Some ({count}) Connected
 				 */
-				partial: () => LocalizedString
+				some: (arg: { count: number }) => LocalizedString
 				/**
-				 * Disconnected
+				 * None connected
 				 */
-				disconnected: () => LocalizedString
+				none: () => LocalizedString
 				/**
-				 * Retrieving connections failed
+				 * Status check failed
 				 */
 				error: () => LocalizedString
-				/**
-				 * Retrieving connections
-				 */
-				loading: () => LocalizedString
 			}
 			messages: {
 				/**
@@ -8575,6 +9047,10 @@ export type TranslationFunctions = {
 			 * Gateway notifications
 			 */
 			gatewayNotifications: () => LocalizedString
+			/**
+			 * Activity log streaming
+			 */
+			activityLogStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -8603,6 +9079,96 @@ export type TranslationFunctions = {
 			 * website
 			 */
 			website: () => LocalizedString
+		}
+		activityLogStreamSettings: {
+			messages: {
+				destinationCrud: {
+					/**
+					 * {destination} destination added
+					 */
+					create: (arg: { destination: string }) => LocalizedString
+					/**
+					 * {destination} destination modified
+					 */
+					modify: (arg: { destination: string }) => LocalizedString
+					/**
+					 * {destination} destination removed
+					 */
+					'delete': (arg: { destination: string }) => LocalizedString
+				}
+			}
+			modals: {
+				selectDestination: {
+					/**
+					 * Select destination
+					 */
+					title: () => LocalizedString
+				}
+				vector: {
+					/**
+					 * Add Vector destination
+					 */
+					create: () => LocalizedString
+					/**
+					 * Edit Vector destination
+					 */
+					modify: () => LocalizedString
+				}
+				logstash: {
+					/**
+					 * Add Logstash destination
+					 */
+					create: () => LocalizedString
+					/**
+					 * Edit Logstash destination
+					 */
+					modify: () => LocalizedString
+				}
+				shared: {
+					formLabels: {
+						/**
+						 * Name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Url
+						 */
+						url: () => LocalizedString
+						/**
+						 * Username
+						 */
+						username: () => LocalizedString
+						/**
+						 * Password
+						 */
+						password: () => LocalizedString
+						/**
+						 * Certificate
+						 */
+						cert: () => LocalizedString
+					}
+				}
+			}
+			/**
+			 * Activity log streaming
+			 */
+			title: () => LocalizedString
+			list: {
+				/**
+				 * No destinations
+				 */
+				noData: () => LocalizedString
+				headers: {
+					/**
+					 * Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Destination
+					 */
+					destination: () => LocalizedString
+				}
+			}
 		}
 		ldapSettings: {
 			/**
@@ -10198,6 +10764,20 @@ export type TranslationFunctions = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * All locations summary
+			 */
+			all: () => LocalizedString
+			/**
+			 * Select location
+			 */
+			placeholder: () => LocalizedString
+		}
+		/**
+		 * {value}h period
+		 */
+		timeRangeSelectionLabel: (arg: { value: number }) => LocalizedString
 		/**
 		 * Location overview
 		 */
@@ -10224,31 +10804,57 @@ export type TranslationFunctions = {
 			 */
 			list: () => LocalizedString
 		}
+		gatewayStatus: {
+			/**
+			 * All ({count}) Connected
+			 */
+			all: (arg: { count: number }) => LocalizedString
+			/**
+			 * Some ({count}) Connected
+			 */
+			some: (arg: { count: number }) => LocalizedString
+			/**
+			 * None connected
+			 */
+			none: () => LocalizedString
+		}
 		stats: {
 			/**
 			 * Currently active users
 			 */
 			currentlyActiveUsers: () => LocalizedString
 			/**
-			 * Currently active devices
+			 * Currently active network devices
 			 */
-			currentlyActiveDevices: () => LocalizedString
+			currentlyActiveNetworkDevices: () => LocalizedString
 			/**
-			 * Active users in {hour}H
+			 * Total user devices: {count}
+			 */
+			totalUserDevices: (arg: { count: number }) => LocalizedString
+			/**
+			 * Active network devices in {hour}h
+			 */
+			activeNetworkDevices: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active users in {hour}h
 			 */
 			activeUsersFilter: (arg: { hour: number }) => LocalizedString
 			/**
-			 * Active devices in {hour}H
+			 * Active devices in {hour}h
 			 */
 			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
-			/**
-			 * Total transfer:
-			 */
-			totalTransfer: () => LocalizedString
 			/**
 			 * Activity in {hour}H
 			 */
 			activityIn: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+			/**
+			 * Peak
+			 */
+			peak: () => LocalizedString
 			/**
 			 * In:
 			 */
@@ -11071,9 +11677,9 @@ export type TranslationFunctions = {
 					 */
 					location: () => LocalizedString
 					/**
-					 * IP Address
+					 * IP Addresses
 					 */
-					assignedIp: () => LocalizedString
+					assignedIps: () => LocalizedString
 					/**
 					 * Description
 					 */
@@ -11133,13 +11739,13 @@ export type TranslationFunctions = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			          Location access **denied** by default - must be explicitly allowed
+			          Location access **denied** by default – network traffic not explicitly defined by the rules will be blocked.
 			          
 				 */
 				denied: () => LocalizedString
 				/**
 				 * 
-			          Location access **allowed** by default - can be explicitly denied
+			          Location access **allowed** by default – network traffic not explicitly defined by the rules will be passed.
 			          
 				 */
 				allowed: () => LocalizedString
@@ -11183,9 +11789,17 @@ export type TranslationFunctions = {
 			 */
 			deleted: () => LocalizedString
 			/**
+			 * Enable
+			 */
+			enable: () => LocalizedString
+			/**
 			 * Enabled
 			 */
 			enabled: () => LocalizedString
+			/**
+			 * Disable
+			 */
+			disable: () => LocalizedString
 			/**
 			 * Disabled
 			 */
@@ -11196,6 +11810,16 @@ export type TranslationFunctions = {
 			expired: () => LocalizedString
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * Rules
+				 */
+				rules: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+			}
 			message: {
 				/**
 				 * Change discarded
@@ -11478,7 +12102,7 @@ export type TranslationFunctions = {
 							 */
 							ports: () => LocalizedString
 							/**
-							 * All IPs
+							 * All IP addresses
 							 */
 							ip: () => LocalizedString
 						}
@@ -11595,7 +12219,7 @@ export type TranslationFunctions = {
 						 */
 						kind: () => LocalizedString
 						/**
-						 * Ipv4/6 CIDR range address
+						 * IPv4/6 CIDR range address
 						 */
 						ip: () => LocalizedString
 						/**
@@ -11671,13 +12295,13 @@ export type TranslationFunctions = {
 				allowInstructions: () => LocalizedString
 				/**
 				 * 
-			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+			        Specify one or more fields (IP Addresses or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
 			}
 			message: {
 				/**
-				 * Rule created and added to pending changes
+				 * Rule created and added to pending changes.
 				 */
 				create: () => LocalizedString
 				/**
@@ -11776,6 +12400,10 @@ export type TranslationFunctions = {
 				 * Expiration Date
 				 */
 				expires: () => LocalizedString
+				/**
+				 * Manual Input
+				 */
+				manualInput: () => LocalizedString
 			}
 			placeholders: {
 				/**
@@ -11783,10 +12411,236 @@ export type TranslationFunctions = {
 				 */
 				allProtocols: () => LocalizedString
 				/**
-				 * All IPs
+				 * All IP addresses
 				 */
 				allIps: () => LocalizedString
 			}
+		}
+	}
+	activity: {
+		/**
+		 * Activity log
+		 */
+		title: () => LocalizedString
+		modals: {
+			timeRange: {
+				/**
+				 * Activity time
+				 */
+				title: () => LocalizedString
+			}
+		}
+		list: {
+			/**
+			 * All activity
+			 */
+			allLabel: () => LocalizedString
+			headers: {
+				/**
+				 * Date
+				 */
+				date: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * IP
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Event
+				 */
+				event: () => LocalizedString
+				/**
+				 * Module
+				 */
+				module: () => LocalizedString
+				/**
+				 * Device
+				 */
+				device: () => LocalizedString
+			}
+			noData: {
+				/**
+				 * No activities present
+				 */
+				data: () => LocalizedString
+				/**
+				 * No activities found
+				 */
+				search: () => LocalizedString
+			}
+		}
+	}
+	enums: {
+		activityLogEventType: {
+			/**
+			 * User login
+			 */
+			user_login: () => LocalizedString
+			/**
+			 * User login failed
+			 */
+			user_login_failed: () => LocalizedString
+			/**
+			 * User MFA login
+			 */
+			user_mfa_login: () => LocalizedString
+			/**
+			 * User MFA login failed
+			 */
+			user_mfa_login_failed: () => LocalizedString
+			/**
+			 * Recovery code used
+			 */
+			recovery_code_used: () => LocalizedString
+			/**
+			 * User logout
+			 */
+			user_logout: () => LocalizedString
+			/**
+			 * User added
+			 */
+			user_added: () => LocalizedString
+			/**
+			 * User removed
+			 */
+			user_removed: () => LocalizedString
+			/**
+			 * User modified
+			 */
+			user_modified: () => LocalizedString
+			/**
+			 * MFA enabled
+			 */
+			mfa_enabled: () => LocalizedString
+			/**
+			 * MFA disabled
+			 */
+			mfa_disabled: () => LocalizedString
+			/**
+			 * MFA TOTP enabled
+			 */
+			mfa_totp_enabled: () => LocalizedString
+			/**
+			 * MFA TOTP disabled
+			 */
+			mfa_totp_disabled: () => LocalizedString
+			/**
+			 * MFA email enabled
+			 */
+			mfa_email_enabled: () => LocalizedString
+			/**
+			 * MFA email disabled
+			 */
+			mfa_email_disabled: () => LocalizedString
+			/**
+			 * MFA security key added
+			 */
+			mfa_security_key_added: () => LocalizedString
+			/**
+			 * MFA security key removed
+			 */
+			mfa_security_key_removed: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			device_added: () => LocalizedString
+			/**
+			 * Device removed
+			 */
+			device_removed: () => LocalizedString
+			/**
+			 * Device modified
+			 */
+			device_modified: () => LocalizedString
+			/**
+			 * Network device added
+			 */
+			network_device_added: () => LocalizedString
+			/**
+			 * Network device removed
+			 */
+			network_device_removed: () => LocalizedString
+			/**
+			 * Network device modified
+			 */
+			network_device_modified: () => LocalizedString
+			/**
+			 * Activity log stream created
+			 */
+			activity_log_stream_created: () => LocalizedString
+			/**
+			 * Activity log stream modified
+			 */
+			activity_log_stream_modified: () => LocalizedString
+			/**
+			 * Activity log stream removed
+			 */
+			activity_log_stream_removed: () => LocalizedString
+			/**
+			 * VPN client connected
+			 */
+			vpn_client_connected: () => LocalizedString
+			/**
+			 * VPN client disconnected
+			 */
+			vpn_client_disconnected: () => LocalizedString
+			/**
+			 * VPN client connected to MFA location
+			 */
+			vpn_client_connected_mfa: () => LocalizedString
+			/**
+			 * VPN client disconnected from MFA location
+			 */
+			vpn_client_disconnected_mfa: () => LocalizedString
+			/**
+			 * VPN client failed MFA authentication
+			 */
+			vpn_client_mfa_failed: () => LocalizedString
+			/**
+			 * Enrollment started
+			 */
+			enrollment_started: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			enrollment_device_added: () => LocalizedString
+			/**
+			 * Enrollment completed
+			 */
+			enrollment_completed: () => LocalizedString
+			/**
+			 * Password reset requested
+			 */
+			password_reset_requested: () => LocalizedString
+			/**
+			 * Password reset started
+			 */
+			password_reset_started: () => LocalizedString
+			/**
+			 * Password reset completed
+			 */
+			password_reset_completed: () => LocalizedString
+		}
+		activityLogModule: {
+			/**
+			 * Defguard
+			 */
+			defguard: () => LocalizedString
+			/**
+			 * Client
+			 */
+			client: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * VPN
+			 */
+			vpn: () => LocalizedString
 		}
 	}
 }

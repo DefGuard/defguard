@@ -59,3 +59,26 @@ services:
       - gateway
     cap_add:
       - NET_ADMIN
+
+  vector:
+    image: timberio/vector:latest-alpine
+    profiles:
+      - observability
+    container_name: vector
+    volumes:
+      - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
+      - ./configs/key.pem:/etc/vector/key.pem:ro
+      - ./configs/cert.pem:/etc/vector/cert.pem:ro
+    command: ["--config", "/etc/vector/vector.yaml"]
+    ports:
+      - "8686:8686"
+      - "8001:8001"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.14.0
+    profiles:
+      - observability
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro

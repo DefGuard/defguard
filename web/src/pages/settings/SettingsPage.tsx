@@ -15,6 +15,7 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
+import { ActivityLogStreamSettings } from './components/ActivityLogStreamSettings/ActivityLogStreamSettings';
 import { EnterpriseSettings } from './components/EnterpriseSettings/EnterpriseSettings';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
@@ -30,9 +31,10 @@ const tabsContent: ReactNode[] = [
   <OpenIdSettings key={3} />,
   <EnterpriseSettings key={4} />,
   <NotificationSettings key={5} />,
+  <ActivityLogStreamSettings key={6} />,
 ];
 
-const enterpriseTabs: number[] = [2, 3, 4];
+const enterpriseTabs: number[] = [2, 3, 4, 6];
 
 export const SettingsPage = () => {
   const { LL } = useI18nContext();
@@ -118,7 +120,13 @@ export const SettingsPage = () => {
         key: 5,
         content: LL.settingsPage.tabs.gatewayNotifications(),
         active: activeCard === 5,
-        onClick: () => setActiveCard(5),
+        onClick: () => handleTabClick(5),
+      },
+      {
+        key: 6,
+        content: LL.settingsPage.tabs.activityLogStream(),
+        active: activeCard === 6,
+        onClick: () => handleTabClick(6),
       },
     ],
     [LL.settingsPage.tabs, activeCard, handleTabClick],

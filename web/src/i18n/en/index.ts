@@ -8,6 +8,9 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      timeRange: 'Time range',
+      addNew: 'Add new',
+      add: 'Add',
       accept: 'Accept',
       next: 'Next',
       back: 'Back',
@@ -33,6 +36,8 @@ const en: BaseTranslation = {
       selectAll: 'Select all',
       clear: 'Clear',
       clearAll: 'Clear all',
+      filter: 'Filter',
+      filters: 'Filters',
     },
     key: 'Key',
     name: 'Name',
@@ -40,6 +45,9 @@ const en: BaseTranslation = {
     unavailable: 'Unavailable',
     notSet: 'Not set',
     search: 'Search',
+    time: 'Time',
+    from: 'From',
+    until: 'Until',
   },
   messages: {
     error: 'Error has occurred.',
@@ -975,8 +983,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       groups: 'Groups',
       devices: 'Network Devices',
       acl: 'Access Control',
+      activity: 'Activity log',
     },
     mobileTitles: {
+      activity: 'Activity log',
       groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
@@ -1011,6 +1021,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       username_or_email: 'Username or email',
     },
     error: {
+      urlInvalid: 'Enter valid URL',
       reservedName: 'Name is already taken.',
       invalidIp: 'IP is invalid.',
       reservedIp: 'IP is already in use.',
@@ -1072,11 +1083,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     gatewaysStatus: {
       label: 'Gateways',
       states: {
-        connected: 'All connected',
-        partial: 'One or more are not working',
-        disconnected: 'Disconnected',
-        error: 'Retrieving connections failed',
-        loading: 'Retrieving connections',
+        all: 'All ({count: number}) Connected',
+        some: 'Some ({count: number}) Connected',
+        none: 'None connected',
+        error: 'Status check failed',
       },
       messages: {
         error: 'Failed to get gateways status',
@@ -1099,6 +1109,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
+      activityLogStream: 'Activity log streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1109,6 +1120,45 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
+    },
+    activityLogStreamSettings: {
+      messages: {
+        destinationCrud: {
+          create: '{destination: string} destination added',
+          modify: '{destination: string} destination modified',
+          delete: '{destination: string} destination removed',
+        },
+      },
+      modals: {
+        selectDestination: {
+          title: 'Select destination',
+        },
+        vector: {
+          create: 'Add Vector destination',
+          modify: 'Edit Vector destination',
+        },
+        logstash: {
+          create: 'Add Logstash destination',
+          modify: 'Edit Logstash destination',
+        },
+        shared: {
+          formLabels: {
+            name: 'Name',
+            url: 'Url',
+            username: 'Username',
+            password: 'Password',
+            cert: 'Certificate',
+          },
+        },
+      },
+      title: 'Activity log streaming',
+      list: {
+        noData: 'No destinations',
+        headers: {
+          name: 'Name',
+          destination: 'Destination',
+        },
+      },
     },
     ldapSettings: {
       title: 'LDAP Settings',
@@ -1817,6 +1867,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   networkOverview: {
+    networkSelection: {
+      all: 'All locations summary',
+      placeholder: 'Select location',
+    },
+    timeRangeSelectionLabel: '{value: number}h period',
     pageTitle: 'Location overview',
     controls: {
       editNetworks: 'Edit Locations settings',
@@ -1828,13 +1883,21 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       grid: 'Grid view',
       list: 'List view',
     },
+    gatewayStatus: {
+      all: 'All ({count: number}) Connected',
+      some: 'Some ({count: number}) Connected',
+      none: 'None connected',
+    },
     stats: {
       currentlyActiveUsers: 'Currently active users',
-      currentlyActiveDevices: 'Currently active devices',
-      activeUsersFilter: 'Active users in {hour: number}H',
-      activeDevicesFilter: 'Active devices in {hour: number}H',
-      totalTransfer: 'Total transfer:',
+      currentlyActiveNetworkDevices: 'Currently active network devices',
+      totalUserDevices: 'Total user devices: {count: number}',
+      activeNetworkDevices: 'Active network devices in {hour: number}h',
+      activeUsersFilter: 'Active users in {hour: number}h',
+      activeDevicesFilter: 'Active devices in {hour: number}h',
       activityIn: 'Activity in {hour: number}H',
+      networkUsage: 'Network usage',
+      peak: 'Peak',
       in: 'In:',
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
@@ -2206,7 +2269,7 @@ Any other requests you can reach us at: support@defguard.net
         labels: {
           name: 'Device Name',
           location: 'Location',
-          assignedIp: 'IP Address',
+          assignedIps: 'IP Addresses',
           description: 'Description',
           addedBy: 'Added By',
           addedAt: 'Add Date',
@@ -2236,11 +2299,11 @@ Any other requests you can reach us at: support@defguard.net
       networkSelectionIndicatorsHelper: {
         //md
         denied: `
-          Location access **denied** by default - must be explicitly allowed
+          Location access **denied** by default – network traffic not explicitly defined by the rules will be blocked.
           `,
         //md
         allowed: `
-          Location access **allowed** by default - can be explicitly denied
+          Location access **allowed** by default – network traffic not explicitly defined by the rules will be passed.
           `,
         //md
         unmanaged: `
@@ -2258,11 +2321,17 @@ Any other requests you can reach us at: support@defguard.net
       applied: 'Applied',
       modified: 'Pending Change',
       deleted: 'Pending Deletion',
+      enable: 'Enable',
       enabled: 'Enabled',
+      disable: 'Disable',
       disabled: 'Disabled',
       expired: 'Expired',
     },
     listPage: {
+      tabs: {
+        rules: 'Rules',
+        aliases: 'Aliases',
+      },
       message: {
         changeDiscarded: 'Change discarded',
         changeAdded: 'Pending change added',
@@ -2370,7 +2439,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             placeholders: {
               protocols: 'All Protocols',
               ports: 'All Ports',
-              ip: 'All IPs',
+              ip: 'All IP addresses',
             },
             kindOptions: {
               destination: 'Destination',
@@ -2415,7 +2484,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             id: 'ID',
             name: 'Alias name',
             kind: 'Alias kind',
-            ip: 'Ipv4/6 CIDR range address',
+            ip: 'IPv4/6 CIDR range address',
             ports: 'Ports',
             protocols: 'Protocols',
             status: 'Status',
@@ -2448,10 +2517,10 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
         // md
         destinationInstructions: `
-        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        Specify one or more fields (IP Addresses or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
       },
       message: {
-        create: 'Rule created and added to pending changes',
+        create: 'Rule created and added to pending changes.',
         createFail: 'Rule creation failed',
       },
       headers: {
@@ -2479,11 +2548,82 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         ports: 'Ports',
         aliases: 'Aliases',
         expires: 'Expiration Date',
+        manualInput: 'Manual Input',
       },
       placeholders: {
         allProtocols: 'All protocols',
-        allIps: 'All IPs',
+        allIps: 'All IP addresses',
       },
+    },
+  },
+  activity: {
+    title: 'Activity log',
+    modals: {
+      timeRange: {
+        title: 'Activity time',
+      },
+    },
+    list: {
+      allLabel: 'All activity',
+      headers: {
+        date: 'Date',
+        user: 'User',
+        ip: 'IP',
+        event: 'Event',
+        module: 'Module',
+        device: 'Device',
+      },
+      noData: {
+        data: 'No activities present',
+        search: 'No activities found',
+      },
+    },
+  },
+  enums: {
+    activityLogEventType: {
+      user_login: 'User login',
+      user_login_failed: 'User login failed',
+      user_mfa_login: 'User MFA login',
+      user_mfa_login_failed: 'User MFA login failed',
+      recovery_code_used: 'Recovery code used',
+      user_logout: 'User logout',
+      user_added: 'User added',
+      user_removed: 'User removed',
+      user_modified: 'User modified',
+      mfa_enabled: 'MFA enabled',
+      mfa_disabled: 'MFA disabled',
+      mfa_totp_enabled: 'MFA TOTP enabled',
+      mfa_totp_disabled: 'MFA TOTP disabled',
+      mfa_email_enabled: 'MFA email enabled',
+      mfa_email_disabled: 'MFA email disabled',
+      mfa_security_key_added: 'MFA security key added',
+      mfa_security_key_removed: 'MFA security key removed',
+      device_added: 'Device added',
+      device_removed: 'Device removed',
+      device_modified: 'Device modified',
+      network_device_added: 'Network device added',
+      network_device_removed: 'Network device removed',
+      network_device_modified: 'Network device modified',
+      activity_log_stream_created: 'Activity log stream created',
+      activity_log_stream_modified: 'Activity log stream modified',
+      activity_log_stream_removed: 'Activity log stream removed',
+      vpn_client_connected: 'VPN client connected',
+      vpn_client_disconnected: 'VPN client disconnected',
+      vpn_client_connected_mfa: 'VPN client connected to MFA location',
+      vpn_client_disconnected_mfa: 'VPN client disconnected from MFA location',
+      vpn_client_mfa_failed: 'VPN client failed MFA authentication',
+      enrollment_started: 'Enrollment started',
+      enrollment_device_added: 'Device added',
+      enrollment_completed: 'Enrollment completed',
+      password_reset_requested: 'Password reset requested',
+      password_reset_started: 'Password reset started',
+      password_reset_completed: 'Password reset completed',
+    },
+    activityLogModule: {
+      defguard: 'Defguard',
+      client: 'Client',
+      enrollment: 'Enrollment',
+      vpn: 'VPN',
     },
   },
 };

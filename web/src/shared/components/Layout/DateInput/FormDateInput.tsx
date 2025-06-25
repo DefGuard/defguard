@@ -10,7 +10,7 @@ type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
   label?: string;
   disabled?: boolean;
-} & Pick<DateInputProps, 'showTimeSelection'>;
+} & Pick<DateInputProps, 'showTimeSelection' | 'clearable'>;
 
 export const FormDateInput = <T extends FieldValues>({
   onChange,

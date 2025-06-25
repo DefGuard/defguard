@@ -1,0 +1,21 @@
+.gateways-status-floating-menu {
+  .all-networks-gateways {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+  }
+
+  .network-gateways {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+
+    & > .network {
+      border-bottom: 1px solid var(--border-primary);
+
+      p {
+        @include typography(app-modal-1);
+      }
+    }
+  }
+}

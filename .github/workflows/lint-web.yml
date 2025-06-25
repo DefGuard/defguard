@@ -3,12 +3,14 @@ on:
     branches:
       - main
       - dev
+      - 'release/**'
     paths:
       - "web/**"
   pull_request:
     branches:
       - main
       - dev
+      - 'release/**'
     paths:
       - "web/**"
 
@@ -30,3 +32,6 @@ jobs:
       - name: Lint
         working-directory: ./web
         run: pnpm lint
+      - name: Audit
+        working-directory: ./web
+        run: pnpm audit --prod

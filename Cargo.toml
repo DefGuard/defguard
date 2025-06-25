@@ -1,6 +1,4 @@
-[package]
-name = "defguard"
-version = "1.3.2"
+[workspace.package]
 edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
@@ -8,15 +6,30 @@ repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.85.1"
 
 [workspace]
+members = ["crates/*"]
+resolver = "2"
 
-[dependencies]
+[workspace.dependencies]
+# internal crates
+defguard_core = { path = "./crates/defguard_core", version = "1.3.1" }
+defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
+defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
+defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
+model_derive = { path = "./crates/model_derive", version = "0.0.0" }
+
+# external dependencies
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
+axum-extra = { version = "0.10", features = [
+    "cookie-private",
+    "typed-header",
+    "query",
+] }
 base32 = "0.5"
 base64 = "0.22"
+bytes = { version = "1.6", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
@@ -31,22 +44,16 @@ jsonwebtoken = "9.3"
 ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1-native-tls"] }
 md4 = "0.10"
-mime_guess = "2.0"
-model_derive = { path = "model-derive" }
-openidconnect = { version = "4.0", default-features = false, optional = true, features = [
-    "reqwest",
-] }
 parse_link_header = "0.4"
 paste = "1.0.15"
-pgp = "0.14"
+pgp = "0.15"
 prost = "0.13"
-pulldown-cmark = "0.12"
+pulldown-cmark = "0.13"
 # match version used by sqlx
 rand = "0.8"
 rand_core = { version = "0.6", features = ["getrandom"] }
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
-rust-embed = { version = "8.5", features = ["include-exclude"] }
 rust-ini = "0.21"
 secrecy = { version = "0.10", features = ["serde"] }
 semver = "1.0"
@@ -66,6 +73,8 @@ sqlx = { version = "0.8", features = [
 ] }
 ssh-key = "0.6"
 struct-patch = "0.8"
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
 tera = "1.20"
 thiserror = "2.0"
 # match axum-extra -> cookies
@@ -99,34 +108,8 @@ webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 # https://github.com/juhaku/utoipa/issues/1345
-[dependencies.zip]
+[workspace.dependencies.zip]
 version = "=2.4.2"
-
-[dev-dependencies]
-bytes = "1.6"
-claims = "0.8"
-matches = "0.1"
-regex = "1.10"
-reqwest = { version = "0.12", features = [
-    "cookies",
-    "json",
-    "multipart",
-    "rustls-tls",
-    "stream",
-], default-features = false }
-serde_qs = "0.13"
-webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
-
-[build-dependencies]
-prost-build = "0.13"
-tonic-build = "0.12"
-vergen-git2 = { version = "1.0", features = ["build"] }
-
-[features]
-default = ["openid", "wireguard", "worker"]
-openid = ["dep:openidconnect"]
-worker = []
-wireguard = []
 
 [profile.release]
 codegen-units = 1

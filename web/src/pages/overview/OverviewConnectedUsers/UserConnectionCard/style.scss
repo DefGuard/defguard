@@ -43,7 +43,7 @@
 
     & > .device {
       display: grid;
-      grid-template-rows: 40px 50px;
+      grid-template-rows: auto 50px;
       grid-template-columns: 1fr;
       width: 100%;
       row-gap: 20px;
@@ -235,7 +235,7 @@
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-rows: 1fr 15px;
+    grid-template-rows: auto 1fr;
     grid-template-columns: 1fr;
     row-gap: 8px;
     overflow: hidden;
@@ -252,12 +252,12 @@
       grid-row: 2;
       grid-column: 1 / 2;
       display: flex;
-      flex-flow: row nowrap;
+      flex-flow: row wrap;
       overflow: hidden;
       align-items: center;
       align-content: center;
       justify-content: flex-start;
-      column-gap: 5px;
+      gap: 5px;
     }
   }
 

@@ -19,8 +19,7 @@ RUN rustup component add rustfmt
 FROM chef AS planner
 # prepare recipe
 COPY Cargo.toml Cargo.lock ./
-COPY src src
-COPY model-derive model-derive
+COPY crates crates
 COPY proto proto
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -32,18 +31,14 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # build project
 COPY --from=web /app/dist ./web/dist
 COPY web/src/shared/images/svg ./web/src/shared/images/svg
-COPY user_agent_header_regexes.yaml /build/user_agent_header_regexes.yaml
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
-COPY Cargo.toml Cargo.lock build.rs ./
+COPY Cargo.toml Cargo.lock ./
 # for vergen
 COPY .git .git
 COPY .sqlx .sqlx
-COPY src src
-COPY templates templates
-COPY model-derive model-derive
+COPY crates crates
 COPY proto proto
-COPY migrations migrations
-RUN cargo install --locked --path . --root /build
+RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
 FROM debian:bookworm-slim

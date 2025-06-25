@@ -371,7 +371,7 @@ export const AlcCreatePage = () => {
               modalExtrasTop={<AclMessageBoxes message="acl-network-access" />}
               forceShowErrorMessage
             />
-            <CardHeader title="Expiration Date" />
+            <CardHeader title={labelsLL.expires()} />
             <LabeledCheckbox
               label="Never Expire"
               value={neverExpires && watchedExpires === null}
@@ -408,7 +408,7 @@ export const AlcCreatePage = () => {
               renderTagContent={renderAlias}
               searchKeys={['name']}
             />
-            <CardHeader title="Manual Input" />
+            <CardHeader title={labelsLL.manualInput()} />
             <FormTextarea
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
