@@ -9,7 +9,10 @@ use defguard_core::{
     enterprise::db::models::{
         api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
     },
-    events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
+    events::{
+        ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext,
+        InternalEventContext,
+    },
 };
 
 /// Messages that can be sent to the event logger
@@ -271,7 +274,7 @@ pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     DisconnectedFromMfaLocation {
         location: WireguardNetwork<Id>,
@@ -280,7 +283,7 @@ pub enum VpnEvent {
     MfaFailed {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,

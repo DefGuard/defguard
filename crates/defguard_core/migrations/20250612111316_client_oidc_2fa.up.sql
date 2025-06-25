@@ -1,2 +1,1 @@
-ALTER TYPE mfa_method ADD VALUE 'OIDC';
 ALTER TABLE settings ADD COLUMN use_openid_for_mfa BOOLEAN NOT NULL DEFAULT FALSE;

@@ -15,6 +15,7 @@ use rand::{
     prelude::Distribution,
     Rng,
 };
+use serde::Serialize;
 use sqlx::{
     query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
     Type,
@@ -51,19 +52,9 @@ pub enum MFAMethod {
     OneTimePassword,
     Webauthn,
     Email,
-    OIDC,
 }
 
-impl From<MfaMethod> for MFAMethod {
-    fn from(method: MfaMethod) -> Self {
-        match method {
-            MfaMethod::Totp => Self::OneTimePassword,
-            MfaMethod::Email => Self::Email,
-            MfaMethod::Oidc => Self::OIDC,
-        }
-    }
-}
-
+// Web MFA methods
 impl fmt::Display for MFAMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -74,7 +65,21 @@ impl fmt::Display for MFAMethod {
                 MFAMethod::OneTimePassword => "TOTP",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
-                MFAMethod::OIDC => "OIDC",
+            }
+        )
+    }
+}
+
+// Client MFA methods
+impl fmt::Display for MfaMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MfaMethod::Totp => "TOTP",
+                MfaMethod::Email => "Email",
+                MfaMethod::Oidc => "OIDC",
             }
         )
     }

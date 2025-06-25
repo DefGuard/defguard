@@ -13,6 +13,7 @@ use crate::{
         audit_stream::{AuditStream, AuditStreamType},
         openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
     },
+    events::ClientMFAMethod,
 };
 
 #[derive(Serialize)]
@@ -159,7 +160,7 @@ pub struct VpnClientMetadata {
 pub struct VpnClientMfaMetadata {
     pub location: WireguardNetwork<Id>,
     pub device: Device<Id>,
-    pub method: MFAMethod,
+    pub method: ClientMFAMethod,
 }
 
 #[derive(Serialize)]

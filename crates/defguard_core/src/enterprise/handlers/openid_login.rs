@@ -120,7 +120,7 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
 pub(crate) fn build_state(state_data: Option<String>) -> CsrfToken {
     let csrf_token = CsrfToken::new_random();
     if let Some(data) = state_data {
-        let combined = format!("{}.{}", csrf_token.secret(), data);
+        let combined = format!("{}.{data}", csrf_token.secret());
         let encoded = BASE64_STANDARD.encode(combined);
         CsrfToken::new(encoded)
     } else {

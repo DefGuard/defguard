@@ -286,13 +286,13 @@ impl ClientMfaServer {
                     error!("TOTP code not provided in request");
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: BidiStreamEventType::DesktopClientMfa(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
-                        ),
+                        )),
                     })?;
                     return Err(Status::invalid_argument("TOTP code not provided"));
                 };
@@ -304,7 +304,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
                         )),
                     })?;
@@ -318,13 +318,13 @@ impl ClientMfaServer {
                     error!("Email MFA code not provided in request");
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: BidiStreamEventType::DesktopClientMfa(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
-                        ),
+                        )),
                     })?;
                     return Err(Status::invalid_argument("email MFA code not provided"));
                 };
@@ -336,7 +336,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
                         )),
                     })?;
@@ -350,19 +350,19 @@ impl ClientMfaServer {
                     );
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: BidiStreamEventType::DesktopClientMfa(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
-                        ),
+                        )),
                     })?;
                     return Err(Status::failed_precondition(
                         "OIDC authentication not completed yet",
                     ));
                 } else {
-                    debug!("User {user} is tryting to finish OIDC MFA login and they have already completed the OIDC authentication, proceeding...");
+                    debug!("User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding.");
                 }
             }
         }
@@ -425,7 +425,7 @@ impl ClientMfaServer {
                 DesktopClientMfaEvent::Connected {
                     location: location.clone(),
                     device: device.clone(),
-                    method: (*method).into(),
+                    method: *method,
                 },
             )),
         })?;

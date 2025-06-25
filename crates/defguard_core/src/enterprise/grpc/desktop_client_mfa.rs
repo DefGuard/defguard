@@ -22,7 +22,12 @@ impl ClientMfaServer {
         request: ClientMfaOidcAuthenticateRequest,
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Received OIDC MFA authentication request: {:?}", request);
+        debug!("Received OIDC MFA authentication request: {request:?}");
+        if !is_enterprise_enabled() {
+            error!("OIDC MFA method requires enterprise feature to be enabled");
+            return Err(Status::invalid_argument("OIDC MFA method is not supported"));
+        }
+
         let token = extract_state_data(&request.state).ok_or_else(|| {
             error!(
                 "Failed to extract state data from state: {:?}",
@@ -55,26 +60,13 @@ impl ClientMfaServer {
         }
 
         if *method != MfaMethod::Oidc {
-            debug!("Invalid MFA method for OIDC authentication: {:?}", method);
+            debug!("Invalid MFA method for OIDC authentication: {method:?}");
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        // Prepare event context
         let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
 
-        if !is_enterprise_enabled() {
-            error!("OIDC MFA method requires enterprise feature to be enabled");
-            self.emit_event(BidiStreamEvent {
-                context,
-                event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Failed {
-                    location: location.clone(),
-                    device: device.clone(),
-                    method: (*method).into(),
-                }),
-            })?;
-            return Err(Status::invalid_argument("OIDC MFA method is not supported"));
-        }
         let code = AuthorizationCode::new(request.code.clone());
         let url = match Url::parse(&request.callback_url).map_err(|err| {
             error!("Invalid redirect URL provided: {err:?}");
@@ -84,11 +76,13 @@ impl ClientMfaServer {
             Err(status) => {
                 self.emit_event(BidiStreamEvent {
                     context,
-                    event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Failed {
-                        location: location.clone(),
-                        device: device.clone(),
-                        method: (*method).into(),
-                    }),
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: location.clone(),
+                            device: device.clone(),
+                            method: *method,
+                        },
+                    )),
                 })?;
                 return Err(status);
             }
@@ -101,13 +95,13 @@ impl ClientMfaServer {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
                     self.emit_event(BidiStreamEvent {
                         context,
-                        event: BidiStreamEventType::DesktopClientMfa(
+                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: (*method).into(),
+                                method: *method,
                             },
-                        ),
+                        )),
                     })?;
                     return Err(Status::unauthenticated("unauthorized"));
                 }
@@ -120,11 +114,13 @@ impl ClientMfaServer {
                 info!("Failed to verify OIDC code: {err:?}");
                 self.emit_event(BidiStreamEvent {
                     context,
-                    event: BidiStreamEventType::DesktopClientMfa(DesktopClientMfaEvent::Failed {
-                        location: location.clone(),
-                        device: device.clone(),
-                        method: (*method).into(),
-                    }),
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: location.clone(),
+                            device: device.clone(),
+                            method: *method,
+                        },
+                    )),
                 })?;
                 return Err(Status::unauthenticated("unauthorized"));
             }

@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
+use serde::Serialize;
 
 use crate::{
     db::{
@@ -10,6 +11,7 @@ use crate::{
     enterprise::db::models::{
         api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
     },
+    grpc::proto::proxy::MfaMethod,
 };
 
 /// Shared context that needs to be added to every API event
@@ -328,17 +330,32 @@ pub enum PasswordResetEvent {
     PasswordResetCompleted,
 }
 
+pub type ClientMFAMethod = MfaMethod;
+
+impl Serialize for ClientMFAMethod {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match *self {
+            MfaMethod::Totp => serializer.serialize_unit_variant("MfaMethod", 0, "Totp"),
+            MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
+            MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
     Connected {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     Failed {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
 }
 
