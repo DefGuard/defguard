@@ -3,12 +3,14 @@ on:
     branches:
       - main
       - dev
+      - 'release/**'
     paths:
       - "e2e/**"
   pull_request:
     branches:
       - main
       - dev
+      - 'release/**'
     paths:
       - "e2e/**"
 
