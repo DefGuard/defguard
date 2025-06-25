@@ -956,7 +956,7 @@ impl InstanceInfo {
             } else {
                 false
             },
-            openid_display_name: openid_display_name,
+            openid_display_name,
         }
     }
 }

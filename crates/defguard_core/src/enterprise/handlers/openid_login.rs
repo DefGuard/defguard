@@ -135,12 +135,12 @@ pub(crate) fn extract_state_data(state: &str) -> Option<String> {
     let result = decoded_str.split_once('.');
     if let Some((part1, part2)) = result {
         if part1.is_empty() {
-            return None;
+            None
         } else {
-            return Some(part2.to_string());
+            Some(part2.to_string())
         }
     } else {
-        return None;
+        None
     }
 }
 
