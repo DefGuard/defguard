@@ -646,7 +646,16 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client MFA finish error {err}");
+                                    match err.code() {
+                                        Code::FailedPrecondition => {
+                                            // User not yet done with OIDC authentication. Don't log it as an error.
+                                            debug!("Client MFA finish error: {err}");
+                                        }
+                                        _ => {
+                                            // Log other errors as errors.
+                                            error!("Client MFA finish error: {err}");
+                                        }
+                                    }
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
