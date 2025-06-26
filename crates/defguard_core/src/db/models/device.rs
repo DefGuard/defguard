@@ -811,6 +811,7 @@ impl Device<Id> {
     /// - `transaction`: Active PostgreSQL connection to check and insert assignments.
     /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.
     /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
+    /// - `current_ips`: Optional slice of IPs already assigned to the device - won't be reassigned if they are still valid.
     ///
     /// # Returns
     ///
@@ -821,6 +822,7 @@ impl Device<Id> {
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
+        current_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
@@ -835,6 +837,17 @@ impl Device<Id> {
                 "Assigning address to device {} in network {} {address}",
                 self.name, network.name,
             );
+            // Don't reassign addresses for networks that didn't change
+            if let Some(ip) =
+                current_ips.and_then(|ips| ips.iter().find(|ip| address.contains(**ip)))
+            {
+                debug!(
+                    "Skipping reassignment of already assigned valid IP {ip} for device {} in network {} with addresses {:?}",
+                    self.name, network.name, network.address
+                );
+                ips.push(*ip);
+                continue;
+            }
             let mut picked = None;
             for ip in address {
                 if network
