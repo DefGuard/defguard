@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::Id,
+    db::{GatewayEvent, Id, WireguardNetwork},
     enterprise::{handlers::LicenseInfo, snat::UserSnatBinding},
     handlers::{ApiResponse, ApiResult},
 };
@@ -108,6 +108,18 @@ pub async fn create_snat_binding(
 
     let binding = snat_binding.save(&appstate.pool).await?;
 
+    // trigger firewall config update on relevant gateways
+    let mut conn = appstate.pool.acquire().await?;
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
+        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
+        }
+    }
+
     Ok(ApiResponse {
         json: json!(binding),
         status: StatusCode::CREATED,
@@ -164,6 +176,18 @@ pub async fn modify_snat_binding(
     snat_binding.update_ip(data.public_ip);
     snat_binding.save(&appstate.pool).await?;
 
+    // trigger firewall config update on relevant gateways
+    let mut conn = appstate.pool.acquire().await?;
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
+        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
+        }
+    }
+
     Ok(ApiResponse {
         json: json!(snat_binding),
         status: StatusCode::OK,
@@ -207,6 +231,18 @@ pub async fn delete_snat_binding(
 
     // delete binding
     snat_binding.delete(&appstate.pool).await?;
+
+    // trigger firewall config update on relevant gateways
+    let mut conn = appstate.pool.acquire().await?;
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
+        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                location_id,
+                firewall_config,
+            ));
+        }
+    }
 
     Ok(ApiResponse::default())
 }
