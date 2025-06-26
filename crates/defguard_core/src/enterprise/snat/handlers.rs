@@ -13,7 +13,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::Id,
-    enterprise::snat::UserSnatBinding,
+    enterprise::{handlers::LicenseInfo, snat::UserSnatBinding},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -37,7 +37,8 @@ use crate::{
     )
 )]
 pub async fn list_snat_bindings(
-    _role: AdminRole,
+    _license: LicenseInfo,
+    _admin_role: AdminRole,
     session: SessionInfo,
     Path(location_id): Path<Id>,
     State(appstate): State<AppState>,
@@ -92,7 +93,8 @@ pub struct NewUserSnatBinding {
     )
 )]
 pub async fn create_snat_binding(
-    _role: AdminRole,
+    _license: LicenseInfo,
+    _admin_role: AdminRole,
     session: SessionInfo,
     Path(location_id): Path<Id>,
     State(appstate): State<AppState>,
@@ -143,7 +145,8 @@ pub struct EditUserSnatBinding {
     )
 )]
 pub async fn modify_snat_binding(
-    _role: AdminRole,
+    _license: LicenseInfo,
+    _admin_role: AdminRole,
     session: SessionInfo,
     Path((location_id, user_id)): Path<(Id, Id)>,
     State(appstate): State<AppState>,
@@ -189,7 +192,8 @@ pub async fn modify_snat_binding(
     )
 )]
 pub async fn delete_snat_binding(
-    _role: AdminRole,
+    _license: LicenseInfo,
+    _admin_role: AdminRole,
     session: SessionInfo,
     Path((location_id, user_id)): Path<(Id, Id)>,
     State(appstate): State<AppState>,
