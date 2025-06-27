@@ -35,6 +35,7 @@ use enterprise::handlers::{
 use events::ApiEvent;
 use handlers::{
     audit_log::get_audit_log_events,
+    auth::disable_user_mfa,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -413,6 +414,7 @@ pub fn build_webapp(
                 "/user/{username}/oauth_app/{oauth2client_id}",
                 delete(delete_authorized_app),
             )
+            .route("/user/{username}/mfa", delete(disable_user_mfa))
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group

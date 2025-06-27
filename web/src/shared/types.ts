@@ -679,6 +679,7 @@ export type Api = {
       username: string;
       name: string;
     }) => EmptyApiResponse;
+    disableUserMfa: (username: string) => EmptyApiResponse;
   };
   standaloneDevice: {
     createManualDevice: (
