@@ -1,12 +1,12 @@
 use defguard_core::{
     db::{
+        Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
             wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
         },
-        Device, GatewayEvent, Id, WireguardNetwork,
     },
-    handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
+    handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
 use matches::assert_matches;

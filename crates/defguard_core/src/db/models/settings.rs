@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use sqlx::{query, query_as, PgExecutor, PgPool, Type};
+use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 

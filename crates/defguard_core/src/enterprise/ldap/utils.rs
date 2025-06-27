@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 
 use sqlx::PgPool;
 
-use super::{error::LdapError, LDAPConnection};
+use super::{LDAPConnection, error::LdapError};
 use crate::{
     db::{Group, Id, User},
     enterprise::ldap::with_ldap_status,
@@ -35,7 +35,9 @@ pub(crate) async fn login_through_ldap(
     let user = if let Some(mut defguard_user) =
         User::find_by_username(pool, &ldap_user.username).await?
     {
-        debug!("User {defguard_user} already exists in Defguard, marking them as coming from LDAP and proceeding with login");
+        debug!(
+            "User {defguard_user} already exists in Defguard, marking them as coming from LDAP and proceeding with login"
+        );
         defguard_user.from_ldap = true;
         defguard_user.save(pool).await?;
         defguard_user

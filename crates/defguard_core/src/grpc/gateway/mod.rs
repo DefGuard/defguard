@@ -8,27 +8,27 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use client_state::ClientMap;
-use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, error::SendError, Receiver, UnboundedSender},
+        mpsc::{self, Receiver, UnboundedSender, error::SendError},
     },
     task::JoinHandle,
 };
 use tokio_stream::Stream;
-use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
+use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
-use super::{proto::enterprise::firewall::FirewallConfig, GatewayMap};
+use super::{GatewayMap, proto::enterprise::firewall::FirewallConfig};
 pub use crate::grpc::proto::gateway::{
-    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
-    PeerStats, StatsUpdate, Update,
+    Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
+    gateway_service_server, stats_update, update,
 };
 use crate::{
     db::{
-        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId, User,
+        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
@@ -390,9 +390,10 @@ impl GatewayUpdatesHandler {
                     {
                         Some(network_info) => {
                             if self.network.mfa_enabled && !network_info.is_authorized {
-                                debug!("Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, self.network.name
-                            );
+                                debug!(
+                                    "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
                                 continue;
                             }
                             self.send_peer_update(
@@ -424,9 +425,10 @@ impl GatewayUpdatesHandler {
                     {
                         Some(network_info) => {
                             if self.network.mfa_enabled && !network_info.is_authorized {
-                                debug!("Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, self.network.name
-                            );
+                                debug!(
+                                    "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
                                 continue;
                             }
                             self.send_peer_update(
@@ -511,11 +513,7 @@ impl GatewayUpdatesHandler {
         {
             let msg = format!(
                 "Failed to send network update, network {network}, update type: {update_type} ({}), error: {err}",
-                if update_type == 0 {
-                    "CREATE"
-                } else {
-                    "MODIFY"
-                },
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -570,11 +568,7 @@ impl GatewayUpdatesHandler {
             let msg = format!(
                 "Failed to send peer update for network {}, update type: {update_type} ({}), error: {err}",
                 self.network,
-                if update_type == 0 {
-                    "CREATE"
-                } else {
-                    "MODIFY"
-                },
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));

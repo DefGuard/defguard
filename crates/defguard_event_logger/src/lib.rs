@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use defguard_core::db::{
+    NoId,
     models::audit_log::{
+        AuditEvent, AuditModule, EventType,
         metadata::{
             ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata,
             AuditStreamModifiedMetadata, AuthenticationKeyMetadata,
@@ -15,9 +17,7 @@ use defguard_core::db::{
             VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
             WebHookStateChangedMetadata,
         },
-        AuditEvent, AuditModule, EventType,
     },
-    NoId,
 };
 use error::EventLoggerError;
 use message::{
@@ -495,7 +495,9 @@ pub async fn run_event_logger(
         if !serialized_audit_events.is_empty() {
             let in_bytes = bytes::Bytes::from(serialized_audit_events);
             if let Err(send_err) = audit_messages_tx.send(in_bytes) {
-                trace!("Sending serialized audit events message failed. Most likely because there is no listeners. Reason: {send_err}");
+                trace!(
+                    "Sending serialized audit events message failed. Most likely because there is no listeners. Reason: {send_err}"
+                );
             }
         }
 

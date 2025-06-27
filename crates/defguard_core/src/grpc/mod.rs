@@ -10,7 +10,7 @@ use std::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, Nonce, Scope};
+use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
@@ -26,16 +26,16 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
+    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
-use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use self::gateway::{GatewayServer, gateway_service_server::GatewayServiceServer};
 use self::{
-    auth::{auth_service_server::AuthServiceServer, AuthServer},
+    auth::{AuthServer, auth_service_server::AuthServiceServer},
     desktop_client_mfa::ClientMfaServer,
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
@@ -46,11 +46,13 @@ use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
+#[cfg(feature = "worker")]
+use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE},
         AppEvent, Id, Settings,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
@@ -65,8 +67,6 @@ use crate::{
     mail::Mail,
     server_config,
 };
-#[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
 pub(crate) mod desktop_client_mfa;
@@ -104,8 +104,8 @@ pub mod proto {
 }
 
 use proto::proxy::{
-    core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
-    CoreResponse,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreResponse, core_request,
+    proxy_client::ProxyClient,
 };
 
 // Helper struct used to handle gateway state
@@ -683,7 +683,9 @@ pub async fn run_grpc_bidi_stream(
                                         // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
                                         // to avoid spamming the logs with misleading errors.
 
-                                        debug!("A client tried to fetch the instance config, but we are not enterprise.");
+                                        debug!(
+                                            "A client tried to fetch the instance config, but we are not enterprise."
+                                        );
                                         Some(core_response::Payload::CoreError(err.into()))
                                     } else {
                                         error!("Instance info error {err}");
@@ -762,16 +764,16 @@ pub async fn run_grpc_bidi_stream(
                                             {
                                                 error!(
                                                     "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
-                                                   user.username,
+                                                    user.username,
                                                 );
                                             } else {
                                                 ldap_update_user_state(&mut user, &pool).await;
                                             }
                                             debug!("Cleared unused tokens for {}.", user.username);
                                             debug!(
-                                        "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
-                                        user.username
-                                    );
+                                                "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
+                                                user.username
+                                            );
                                             let config = server_config();
                                             let desktop_configuration = Token::new(
                                                 user.id,
@@ -782,7 +784,9 @@ pub async fn run_grpc_bidi_stream(
                                             );
                                             debug!("Saving a new desktop configuration token...");
                                             desktop_configuration.save(&pool).await?;
-                                            debug!("Saved desktop configuration token. Responding to proxy with the token.");
+                                            debug!(
+                                                "Saved desktop configuration token. Responding to proxy with the token."
+                                            );
 
                                             Some(core_response::Payload::AuthCallback(
                                                 AuthCallbackResponse {
@@ -802,7 +806,10 @@ pub async fn run_grpc_bidi_stream(
                                     }
                                 }
                                 Err(err) => {
-                                    error!("Proxy requested an OpenID authentication info for a callback URL ({}) that couldn't be parsed. Details: {err}", request.callback_url);
+                                    error!(
+                                        "Proxy requested an OpenID authentication info for a callback URL ({}) that couldn't be parsed. Details: {err}",
+                                        request.callback_url
+                                    );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,
                                         message: "invalid callback URL".into(),

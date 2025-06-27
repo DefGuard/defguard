@@ -1,10 +1,10 @@
 use std::fmt;
 
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use sqlx::{Error as SqlxError, FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
-use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
+use crate::db::{Id, NoId, User, WireguardNetwork, models::error::ModelError};
 
 #[derive(Debug)]
 pub enum Permission {
@@ -300,7 +300,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {
@@ -367,19 +367,23 @@ mod test {
         .unwrap();
         user.add_to_group(&pool, &group).await.unwrap();
         assert!(!user.is_admin(&pool).await.unwrap());
-        assert!(!group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            !group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         group
             .set_permission(&pool, Permission::IsAdmin, true)
             .await
             .unwrap();
 
-        assert!(group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         assert!(user.is_admin(&pool).await.unwrap());
         let groups = Group::find_by_permission(&pool, Permission::IsAdmin)
             .await

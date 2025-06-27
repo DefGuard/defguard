@@ -2,7 +2,7 @@ use defguard_core::events::{ApiEvent, ApiEventType};
 use defguard_event_logger::message::{DefguardEvent, EnrollmentEvent, LoggerEvent};
 use tracing::debug;
 
-use crate::{error::EventRouterError, EventRouter};
+use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {

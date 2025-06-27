@@ -7,7 +7,7 @@ use defguard_core::{
     },
     handlers::Auth,
 };
-use reqwest::{header::HeaderName, StatusCode};
+use reqwest::{StatusCode, header::HeaderName};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

@@ -25,7 +25,7 @@ pub mod yubikey;
 
 use std::collections::HashSet;
 
-use sqlx::{query_as, Error as SqlxError, PgConnection, PgPool};
+use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
 use self::{

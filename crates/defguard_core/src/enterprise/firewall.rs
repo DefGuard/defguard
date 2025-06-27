@@ -4,7 +4,7 @@ use std::{
 };
 
 use ipnetwork::IpNetwork;
-use sqlx::{query_as, query_scalar, Error as SqlxError, PgConnection};
+use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
 
 use super::{
     db::models::acl::{
@@ -14,11 +14,11 @@ use super::{
     utils::merge_ranges,
 };
 use crate::{
-    db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
+    db::{Device, Id, User, WireguardNetwork, models::error::ModelError},
     enterprise::{db::models::acl::AliasKind, is_enterprise_enabled},
     grpc::proto::enterprise::firewall::{
-        ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+        PortRange as PortRangeProto, ip_address::Address, port::Port as PortInner,
     },
 };
 

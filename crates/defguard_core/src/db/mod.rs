@@ -29,6 +29,7 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 }
 
 pub use models::{
+    MFAInfo, UserDetails, UserInfo,
     device::{AddDevice, Device},
     group::Group,
     oauth2authorizedapp::OAuth2AuthorizedApp,
@@ -40,7 +41,6 @@ pub use models::{
     webhook::{AppEvent, HWKeyUserData, WebHook},
     wireguard::{GatewayEvent, WireguardNetwork},
     yubikey::YubiKey,
-    MFAInfo, UserDetails, UserInfo,
 };
 
 #[cfg(test)]
