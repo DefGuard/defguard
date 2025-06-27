@@ -1,6 +1,6 @@
 use std::ops::Bound;
 
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
@@ -472,14 +472,14 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
     let mut rng = thread_rng();
 
     // Create test users
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
-    let user_3: User<NoId> = rng.gen();
+    let user_3: User<NoId> = rng.r#gen();
     let user_3 = user_3.save(&pool).await.unwrap();
     // inactive user
-    let mut user_4: User<NoId> = rng.gen();
+    let mut user_4: User<NoId> = rng.r#gen();
     user_4.is_active = false;
     let user_4 = user_4.save(&pool).await.unwrap();
 
@@ -587,14 +587,14 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     let mut rng = thread_rng();
 
     // Create test users
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
-    let user_3: User<NoId> = rng.gen();
+    let user_3: User<NoId> = rng.r#gen();
     let user_3 = user_3.save(&pool).await.unwrap();
     // inactive user
-    let mut user_4: User<NoId> = rng.gen();
+    let mut user_4: User<NoId> = rng.r#gen();
     user_4.is_active = false;
     let user_4 = user_4.save(&pool).await.unwrap();
 

@@ -2,15 +2,15 @@ use std::{collections::HashSet, future::Future};
 
 #[cfg(not(test))]
 use ldap3::Ldap;
-use ldap3::{ldap_escape, Mod, SearchEntry};
+use ldap3::{Mod, SearchEntry, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
-use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncStatus};
+use sync::{SyncStatus, get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
 use crate::{
-    db::{self, models::settings::update_current_settings, Id, Settings, User},
+    db::{self, Id, Settings, User, models::settings::update_current_settings},
     enterprise::{is_enterprise_enabled, limits::update_counts},
 };
 
@@ -44,7 +44,9 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     }
 
     if !is_enterprise_enabled() {
-        info!("Enterprise features are disabled, not performing LDAP sync and automatically disabling it");
+        info!(
+            "Enterprise features are disabled, not performing LDAP sync and automatically disabling it"
+        );
         settings.ldap_sync_enabled = false;
         update_current_settings(pool, settings).await?;
         return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
@@ -54,7 +56,9 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         info!("LDAP is considered to be desynced, doing a full sync");
     } else {
         info!("Ldap is not considered to be desynced, doing an incremental sync");
-        debug!("Because of incremental sync, LDAP authority will be selected to pull changes from LDAP");
+        debug!(
+            "Because of incremental sync, LDAP authority will be selected to pull changes from LDAP"
+        );
     }
 
     let mut ldap_connection = match LDAPConnection::create().await {
@@ -619,8 +623,7 @@ impl LDAPConnection {
             .map(|name| name.to_string())
             .ok_or_else(|| {
                 LdapError::ObjectNotFound(format!(
-                    "Couldn't extract a group name from searchentry {:?}.",
-                    entry
+                    "Couldn't extract a group name from searchentry {entry:?}."
                 ))
             })
     }
@@ -716,9 +719,9 @@ impl LDAPConnection {
             }
 
             if mods.is_empty() {
-                return Err(LdapError::MissingSettings(
-                    format!("Can't set password as no password object class has been defined for the user {user}."),
-                ));
+                return Err(LdapError::MissingSettings(format!(
+                    "Can't set password as no password object class has been defined for the user {user}."
+                )));
             }
 
             self.modify(&user_dn, &user_dn, mods).await?;
