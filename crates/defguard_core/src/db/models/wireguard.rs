@@ -5,14 +5,14 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
-use base64::prelude::{Engine, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{
-    postgres::types::PgInterval, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, postgres::types::PgInterval,
+    query_as, query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -20,24 +20,24 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
+    UserInfo,
     device::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
     error::ModelError,
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
-    UserInfo,
 };
 use crate::{
+    AsCsv,
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
-        gateway::{send_multiple_wireguard_events, Peer},
-        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
+        gateway::{Peer, send_multiple_wireguard_events},
+        proto::enterprise::firewall::FirewallConfig,
     },
     wg_config::ImportedDevice,
-    AsCsv,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -665,9 +665,10 @@ impl WireguardNetwork<Id> {
                     match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ips.as_csv()
-                    );
+                                "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
+                                existing_device.wireguard_pubkey,
+                                imported_device.wireguard_ips.as_csv()
+                            );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
@@ -689,9 +690,9 @@ impl WireguardNetwork<Id> {
                         }
                         None => {
                             warn!(
-                        "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
-                        existing_device.wireguard_pubkey
-                    );
+                                "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
+                                existing_device.wireguard_pubkey
+                            );
                         }
                     }
                 }
@@ -1382,7 +1383,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, Group};
+    use crate::db::{Group, setup_pool};
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {

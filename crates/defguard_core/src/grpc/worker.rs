@@ -5,7 +5,7 @@ use std::{
     time::Instant,
 };
 
-use sqlx::{query, PgPool};
+use sqlx::{PgPool, query};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
@@ -13,10 +13,10 @@ use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
 pub use crate::grpc::proto::worker::JobStatus;
 use crate::{
     db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
         AppEvent, HWKeyUserData, User, YubiKey,
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
     },
-    grpc::proto::worker::{worker_service_server, GetJobResponse, Worker},
+    grpc::proto::worker::{GetJobResponse, Worker, worker_service_server},
 };
 
 impl WorkerInfo {

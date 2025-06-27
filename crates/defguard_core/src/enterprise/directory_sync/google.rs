@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, TimeDelta, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use tokio::time::sleep;
 
 use super::{
-    make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN, REQUEST_TIMEOUT,
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    REQUEST_TIMEOUT, make_get_request, parse_response,
 };
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
@@ -213,7 +213,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -263,7 +265,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -323,7 +327,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -393,7 +399,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");

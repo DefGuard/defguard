@@ -1,11 +1,11 @@
 use defguard_core::{
     db::{
-        models::{oauth2client::OAuth2Client, NewOpenIDClient},
         AddDevice, Id, UserInfo,
+        models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
 };
-use reqwest::{header::USER_AGENT, StatusCode};
+use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
@@ -534,9 +534,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(mail.to, "admin@defguard");
     assert_eq!(mail.subject, "Defguard: new device added to your account");
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 
     // log in as normal user
     let auth = Auth::new("hpotter", "pass123");
@@ -559,9 +560,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         "Defguard: new device logged in to your account"
     );
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 
     // a device with duplicate pubkey cannot be added
     let response = client
@@ -599,9 +601,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(mail.subject, "Defguard: new device added to your account");
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 }
 
 #[sqlx::test]

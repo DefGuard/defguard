@@ -56,9 +56,9 @@ use std::collections::{HashMap, HashSet};
 
 use sqlx::{PgConnection, PgPool, Type};
 
-use super::{error::LdapError, LDAPConfig};
+use super::{LDAPConfig, error::LdapError};
 use crate::{
-    db::{models::settings::update_current_settings, Group, Id, Settings, User},
+    db::{Group, Id, Settings, User, models::settings::update_current_settings},
     hashset,
 };
 
@@ -264,11 +264,15 @@ fn compute_group_sync_changes(
             if !missing_from_defguard.is_empty() {
                 match authority {
                     Authority::Defguard => {
-                        debug!("Group {group:?} has members missing from Defguard, marking them for deletion in LDAP: {missing_from_defguard:?}");
+                        debug!(
+                            "Group {group:?} has members missing from Defguard, marking them for deletion in LDAP: {missing_from_defguard:?}"
+                        );
                         delete_ldap.insert(group.clone(), missing_from_defguard);
                     }
                     Authority::LDAP => {
-                        debug!("Group {group:?} has members missing from Defguard, marking them for addition in Defguard: {missing_from_defguard:?}");
+                        debug!(
+                            "Group {group:?} has members missing from Defguard, marking them for addition in Defguard: {missing_from_defguard:?}"
+                        );
                         add_defguard.insert(group.clone(), missing_from_defguard);
                     }
                 }
@@ -279,11 +283,15 @@ fn compute_group_sync_changes(
             if !missing_from_ldap.is_empty() {
                 match authority {
                     Authority::Defguard => {
-                        debug!("Group {group:?} has members missing from LDAP, marking them for addition to LDAP: {missing_from_ldap:?}");
+                        debug!(
+                            "Group {group:?} has members missing from LDAP, marking them for addition to LDAP: {missing_from_ldap:?}"
+                        );
                         add_ldap.insert(group.clone(), missing_from_ldap);
                     }
                     Authority::LDAP => {
-                        debug!("Group {group:?} has members missing from LDAP, marking them for deletion in Defguard: {missing_from_ldap:?}");
+                        debug!(
+                            "Group {group:?} has members missing from LDAP, marking them for deletion in Defguard: {missing_from_ldap:?}"
+                        );
                         delete_defguard.insert(group.clone(), missing_from_ldap);
                     }
                 }
@@ -293,11 +301,15 @@ fn compute_group_sync_changes(
         } else {
             match authority {
                 Authority::Defguard => {
-                    debug!("Group {group:?} is missing from LDAP, marking it for addition to LDAP along with all members due to Defguard authority");
+                    debug!(
+                        "Group {group:?} is missing from LDAP, marking it for addition to LDAP along with all members due to Defguard authority"
+                    );
                     add_ldap.insert(group.clone(), members);
                 }
                 Authority::LDAP => {
-                    debug!("Group {group:?} is missing from LDAP, marking all its member for deletion from Defguard due to LDAP authority");
+                    debug!(
+                        "Group {group:?} is missing from LDAP, marking all its member for deletion from Defguard due to LDAP authority"
+                    );
                     delete_defguard.insert(group.clone(), members);
                 }
             }
@@ -308,11 +320,15 @@ fn compute_group_sync_changes(
         if !defguard_memberships.contains_key(&group) {
             match authority {
                 Authority::Defguard => {
-                    debug!("Group {group:?} is missing from Defguard, marking all its member for deletion from LDAP due to Defguard authority");
+                    debug!(
+                        "Group {group:?} is missing from Defguard, marking all its member for deletion from LDAP due to Defguard authority"
+                    );
                     delete_ldap.insert(group, members);
                 }
                 Authority::LDAP => {
-                    debug!("Group {group:?} is missing from Defguard, marking all its member for addition to Defguard due to LDAP authority");
+                    debug!(
+                        "Group {group:?} is missing from Defguard, marking all its member for addition to Defguard due to LDAP authority"
+                    );
                     add_defguard.insert(group, members);
                 }
             }
@@ -542,7 +558,10 @@ impl super::LDAPConnection {
             }
         }
 
-        debug!("The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced", sync_groups);
+        debug!(
+            "The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced",
+            sync_groups
+        );
         let mut sync_group_members = HashSet::new();
         for sync_group in &sync_groups {
             let members = sync_group.members(pool).await?;
@@ -768,17 +787,16 @@ impl super::LDAPConnection {
                 .get(username_attr)
                 .and_then(|v| v.first())
                 .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!("No {} attribute found", username_attr))
+                    LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
                 })?;
 
             match User::from_searchentry(&entry, username, None) {
                 Ok(user) => all_users.push(user),
                 Err(err) => {
                     warn!(
-                        "Failed to create user {} from LDAP entry, error: {}. The user will be skipped during sync",
-                        username, err
+                        "Failed to create user {username} from LDAP entry, error: {err}. The user will be skipped during sync"
                     );
-                    debug!("Skipping user {} due to error: {}", username, err);
+                    debug!("Skipping user {username} due to error: {err}");
                 }
             }
         }
@@ -800,7 +818,7 @@ mod tests {
             Some("test_password"),
             "last name",
             "first name",
-            format!("{}@example.com", username).as_str(),
+            format!("{username}@example.com").as_str(),
             None,
         )
     }
@@ -1532,17 +1550,19 @@ mod tests {
     fn test_extract_intersecting_users_no_matches(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let mut defguard_users = vec![User::new(
-            "user1",
-            Some("password"),
-            "Last1",
-            "First1",
-            "user1@example.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap()];
+        let mut defguard_users = vec![
+            User::new(
+                "user1",
+                Some("password"),
+                "Last1",
+                "First1",
+                "user1@example.com",
+                None,
+            )
+            .save(&pool)
+            .await
+            .unwrap(),
+        ];
 
         let mut ldap_users = vec![User::new(
             "user2",

@@ -1,38 +1,38 @@
 use std::{collections::HashSet, fmt, time::SystemTime};
 
 use argon2::{
-    password_hash::{
-        errors::Error as HashError, rand_core::OsRng, PasswordHash, PasswordHasher,
-        PasswordVerifier, SaltString,
-    },
     Argon2,
+    password_hash::{
+        PasswordHash, PasswordHasher, PasswordVerifier, SaltString, errors::Error as HashError,
+        rand_core::OsRng,
+    },
 };
 use axum::http::StatusCode;
 use model_derive::Model;
 #[cfg(test)]
 use rand::{
+    Rng,
     distributions::{Alphanumeric, DistString, Standard},
     prelude::Distribution,
-    Rng,
 };
 use serde::Serialize;
 use sqlx::{
-    query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
-    Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
+    query_scalar,
 };
 use tokio::sync::broadcast::Sender;
-use totp_lite::{totp_custom, Sha1};
+use totp_lite::{Sha1, totp_custom};
 use utoipa::ToSchema;
 
 use super::{
+    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
     device::{Device, DeviceInfo, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
-    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork},
+    db::{GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::{
@@ -503,7 +503,9 @@ impl User<Id> {
         for location_id in affected_location_ids {
             if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
                 if let Some(firewall_config) = location.try_get_firewall_config(&mut *conn).await? {
-                    debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
+                    debug!(
+                        "Sending firewall config update for location {location} affected by deleting user {username} devices"
+                    );
                     events.push(GatewayEvent::FirewallConfigChanged(
                         location_id,
                         firewall_config,
@@ -1234,28 +1236,28 @@ impl User<Id> {
 impl Distribution<User<Id>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> User<Id> {
         User {
-            id: rng.gen(),
+            id: rng.r#gen(),
             username: Alphanumeric.sample_string(rng, 8),
             password_hash: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
             last_name: Alphanumeric.sample_string(rng, 8),
             first_name: Alphanumeric.sample_string(rng, 8),
             email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
             // FIXME: generate an actual phone number
             phone: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 9)),
-            mfa_enabled: rng.gen(),
+            mfa_enabled: rng.r#gen(),
             is_active: true,
             openid_sub: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
-            totp_enabled: rng.gen(),
-            email_mfa_enabled: rng.gen(),
-            totp_secret: (0..20).map(|_| rng.gen()).collect(),
-            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
-            mfa_method: match rng.gen_range(0..4) {
+            totp_enabled: rng.r#gen(),
+            email_mfa_enabled: rng.r#gen(),
+            totp_secret: (0..20).map(|_| rng.r#gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.r#gen()).collect(),
+            mfa_method: match rng.r#gen_range(0..4) {
                 0 => MFAMethod::None,
                 1 => MFAMethod::Webauthn,
                 2 => MFAMethod::OneTimePassword,
@@ -1276,25 +1278,25 @@ impl Distribution<User<NoId>> for Standard {
             id: NoId,
             username: Alphanumeric.sample_string(rng, 8),
             password_hash: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
             last_name: Alphanumeric.sample_string(rng, 8),
             first_name: Alphanumeric.sample_string(rng, 8),
             email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
             // FIXME: generate an actual phone number
             phone: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 9)),
-            mfa_enabled: rng.gen(),
+            mfa_enabled: rng.r#gen(),
             is_active: true,
             openid_sub: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
-            totp_enabled: rng.gen(),
-            email_mfa_enabled: rng.gen(),
-            totp_secret: (0..20).map(|_| rng.gen()).collect(),
-            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
-            mfa_method: match rng.gen_range(0..4) {
+            totp_enabled: rng.r#gen(),
+            email_mfa_enabled: rng.r#gen(),
+            totp_secret: (0..20).map(|_| rng.r#gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.r#gen()).collect(),
+            mfa_method: match rng.r#gen_range(0..4) {
                 0 => MFAMethod::None,
                 1 => MFAMethod::Webauthn,
                 2 => MFAMethod::OneTimePassword,
@@ -1314,9 +1316,9 @@ mod test {
 
     use super::*;
     use crate::{
+        SERVER_CONFIG,
         config::DefGuardConfig,
         db::{models::settings::initialize_current_settings, setup_pool},
-        SERVER_CONFIG,
     };
 
     #[sqlx::test]
@@ -1441,10 +1443,12 @@ mod test {
 
         let mut user = fetched_user.unwrap();
         assert_eq!(user.recovery_codes.len(), RECOVERY_CODES_COUNT);
-        assert!(!user
-            .verify_recovery_code(&pool, "invalid code")
-            .await
-            .unwrap());
+        assert!(
+            !user
+                .verify_recovery_code(&pool, "invalid code")
+                .await
+                .unwrap()
+        );
         let codes = user.recovery_codes.clone();
         for code in &codes {
             assert!(user.verify_recovery_code(&pool, code).await.unwrap());

@@ -4,8 +4,9 @@ use tera::{Context, Tera};
 use thiserror::Error;
 
 use crate::{
+    VERSION,
     db::{Id, MFAMethod, Session, User},
-    server_config, VERSION,
+    server_config,
 };
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
@@ -338,7 +339,7 @@ mod test {
     use claims::assert_ok;
 
     use super::*;
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+    use crate::{SERVER_CONFIG, config::DefGuardConfig};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();

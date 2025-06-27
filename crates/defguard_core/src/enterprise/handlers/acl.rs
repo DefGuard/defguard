@@ -1,10 +1,10 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use chrono::NaiveDateTime;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::LicenseInfo;
 use crate::{

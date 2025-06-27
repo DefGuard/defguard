@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    meta::parser, parse::Parser, parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields,
-    FieldsNamed, Ident, Path, Type, TypePath,
+    Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Ident, Path, Type, TypePath,
+    meta::parser, parse::Parser, parse_macro_input,
 };
 
 /// Try to find the value of `model` attribute, e.g. `#[model(model_type)]`.

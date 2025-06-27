@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{query, query_as, PgExecutor};
+use sqlx::{PgExecutor, query, query_as};
 
 use crate::db::{Id, NoId};
 

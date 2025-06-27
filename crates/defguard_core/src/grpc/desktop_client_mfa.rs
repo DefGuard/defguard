@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
     broadcast::Sender,
-    mpsc::{error::SendError, UnboundedSender},
+    mpsc::{UnboundedSender, error::SendError},
 };
 use tonic::{Code, Status};
 
@@ -16,8 +16,8 @@ use super::proto::proxy::{
 use crate::{
     auth::{Claims, ClaimsType},
     db::{
-        models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         Device, GatewayEvent, Id, Settings, User, UserInfo, WireguardNetwork,
+        models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
@@ -363,7 +363,9 @@ impl ClientMfaServer {
                         "OIDC authentication not completed yet",
                     ));
                 } else {
-                    debug!("User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding.");
+                    debug!(
+                        "User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding."
+                    );
                 }
             }
         }

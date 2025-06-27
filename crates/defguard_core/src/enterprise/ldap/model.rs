@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use ldap3::{Mod, SearchEntry};
 
-use super::{error::LdapError, LDAPConfig};
+use super::{LDAPConfig, error::LdapError};
 use crate::{db::User, handlers::user::check_username, hashset};
 
 pub(crate) enum UserObjectClass {

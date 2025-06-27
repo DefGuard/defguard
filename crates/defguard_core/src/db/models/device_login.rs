@@ -2,7 +2,7 @@ use std::fmt;
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgPool};
+use sqlx::{Error as SqlxError, PgPool, query_as};
 
 use crate::db::{Id, NoId};
 

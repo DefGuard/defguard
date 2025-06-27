@@ -4,13 +4,13 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, webhooks::ChangeStateData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::models::{
-        oauth2client::{OAuth2Client, OAuth2ClientSafe},
         NewOpenIDClient,
+        oauth2client::{OAuth2Client, OAuth2ClientSafe},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };

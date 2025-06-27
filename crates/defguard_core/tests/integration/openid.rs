@@ -4,23 +4,23 @@ use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard_core::{
     db::{
-        models::{oauth2client::OAuth2Client, NewOpenIDClient},
         Id,
+        models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     handlers::Auth,
 };
 use openidconnect::{
+    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
+    EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
+    PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
     core::{
         CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType, CoreTokenResponse,
     },
     http::Method,
-    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
-    EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
-    PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
 };
 use reqwest::{
-    header::{HeaderName, AUTHORIZATION, CONTENT_TYPE, USER_AGENT},
     StatusCode,
+    header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, USER_AGENT},
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
@@ -678,9 +678,10 @@ async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(mail.to, "admin@defguard");
     assert_eq!(mail.subject, "New login to Test application with defguard");
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 
     let response = client
         .post(format!(

@@ -4,7 +4,7 @@ use defguard_core::events::{
 use defguard_event_logger::message::{EnrollmentEvent, LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{error::EventRouterError, EventRouter};
+use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_bidi_event(&self, event: BidiStreamEvent) -> Result<(), EventRouterError> {

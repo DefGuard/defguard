@@ -12,7 +12,7 @@ use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::group::Permission, Group, Id, User, WireguardNetwork},
+    db::{Group, Id, User, WireguardNetwork, models::group::Permission},
     enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,

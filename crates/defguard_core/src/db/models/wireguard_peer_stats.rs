@@ -4,7 +4,7 @@ use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, PgExecutor, PgPool};
+use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
 
 use crate::db::{Id, NoId};
 

@@ -8,13 +8,13 @@ use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 use tracing::Instrument;
 
 use super::{
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
     DEFAULT_API_PAGE_SIZE,
+    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
 };
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{models::audit_log::AuditModule, Id},
+    db::{Id, models::audit_log::AuditModule},
 };
 
 #[derive(Debug, Deserialize, Default)]

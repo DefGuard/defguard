@@ -5,7 +5,7 @@ use thiserror::Error;
 use tonic::{Code, Status};
 
 use crate::{
-    db::{models::wireguard_peer_stats::WireguardPeerStats, Device, Id, User},
+    db::{Device, Id, User, models::wireguard_peer_stats::WireguardPeerStats},
     events::GrpcRequestContext,
 };
 

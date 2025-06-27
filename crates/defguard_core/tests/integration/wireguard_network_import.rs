@@ -2,13 +2,13 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
+        Device, GatewayEvent, WireguardNetwork,
         models::{
             device::{DeviceType, UserDevice},
             wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
         },
-        Device, GatewayEvent, WireguardNetwork,
     },
-    handlers::{wireguard::ImportedNetworkData, Auth},
+    handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;
 use reqwest::StatusCode;

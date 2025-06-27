@@ -2,11 +2,11 @@ use chrono::NaiveDateTime;
 
 use crate::{
     db::{
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
         models::{
             authentication_key::{AuthenticationKey, AuthenticationKeyType},
             oauth2client::OAuth2Client,
         },
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
     },
     enterprise::db::models::{
         api_tokens::ApiToken,

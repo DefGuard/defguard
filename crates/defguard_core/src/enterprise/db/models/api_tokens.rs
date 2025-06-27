@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgExecutor};
+use sqlx::{Error as SqlxError, PgExecutor, query_as};
 
 use crate::db::{Id, NoId};
 

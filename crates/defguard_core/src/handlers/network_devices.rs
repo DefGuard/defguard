@@ -14,21 +14,21 @@ use sqlx::PgConnection;
 
 use super::{ApiResponse, ApiResult, WebError};
 use crate::{
+    AsCsv,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
+        Device, GatewayEvent, Id, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
             wireguard::NetworkAddressError,
         },
-        Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
-    AsCsv,
 };
 
 #[derive(Serialize)]
@@ -163,7 +163,9 @@ pub async fn get_network_device(
             });
         }
     }
-    error!("Failed to retrieve network device with id: {device_id}, such network device doesn't exist.");
+    error!(
+        "Failed to retrieve network device with id: {device_id}, such network device doesn't exist."
+    );
     Err(WebError::ObjectNotFound(format!(
         "Network device with ID {device_id} not found"
     )))

@@ -2,7 +2,7 @@ use defguard_core::events::GrpcEvent;
 use defguard_event_logger::message::{LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{error::EventRouterError, EventRouter};
+use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_grpc_event(&self, event: GrpcEvent) -> Result<(), EventRouterError> {

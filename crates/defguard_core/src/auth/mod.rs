@@ -11,20 +11,20 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
-    extract::cookie::CookieJar,
-    headers::{authorization::Bearer, Authorization},
     TypedHeader,
+    extract::cookie::CookieJar,
+    headers::{Authorization, authorization::Bearer},
 };
 use jsonwebtoken::{
-    decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
+    DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::Error as JWTError,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
     appstate::AppState,
     db::{
-        models::group::Permission, Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session,
-        SessionState, User,
+        Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::group::Permission,
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,

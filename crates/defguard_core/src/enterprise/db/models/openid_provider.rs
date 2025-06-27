@@ -1,7 +1,7 @@
 use std::fmt;
 
 use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 
 use crate::db::{Id, NoId};
 

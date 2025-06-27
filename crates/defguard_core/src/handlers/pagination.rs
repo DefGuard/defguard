@@ -6,7 +6,7 @@ use axum::{
 use reqwest::StatusCode;
 use serde::Serialize;
 
-use crate::{error::WebError, VERSION};
+use crate::{VERSION, error::WebError};
 
 /// Query params for paginated endpoints
 #[derive(Debug, Deserialize, Default)]

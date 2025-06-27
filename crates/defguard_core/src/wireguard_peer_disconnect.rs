@@ -11,7 +11,7 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use sqlx::{query_as, Error as SqlxError, PgPool};
+use sqlx::{Error as SqlxError, PgPool, query_as};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -23,12 +23,12 @@ use tokio::{
 
 use crate::{
     db::{
+        Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
             error::ModelError,
             wireguard::WireguardNetworkError,
         },
-        Device, GatewayEvent, Id, WireguardNetwork,
     },
     events::{InternalEvent, InternalEventContext},
 };
@@ -141,7 +141,9 @@ pub async fn run_periodic_peer_disconnect(
                 if let Some(mut device_network_config) =
                     WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
                 {
-                    info!("Marking device {device} as not authorized to connect to location {location}");
+                    info!(
+                        "Marking device {device} as not authorized to connect to location {location}"
+                    );
                     // change `is_authorized` value for device
                     device_network_config.is_authorized = false;
                     // clear `preshared_key` value
@@ -180,7 +182,9 @@ pub async fn run_periodic_peer_disconnect(
                         PeerDisconnectError::InternalEventError(err)
                     })?;
                 } else {
-                    error!("Network config for device {device} in location {location} not found. Skipping device...");
+                    error!(
+                        "Network config for device {device} in location {location} not found. Skipping device..."
+                    );
                     continue;
                 }
 

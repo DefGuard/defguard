@@ -1,18 +1,18 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
+    TypedHeader,
     extract::{
-        cookie::{Cookie, SameSite},
         CookieJar, PrivateCookieJar,
+        cookie::{Cookie, SameSite},
     },
     headers::UserAgent,
-    TypedHeader,
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use openidconnect::{
-    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
     EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
+    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
 };
 use reqwest::Url;
 use serde_json::json;
@@ -26,7 +26,7 @@ static NONCE_COOKIE_NAME: &str = "nonce";
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{models::settings::OpenidUsernameHandling, Id, Settings, User},
+    db::{Id, Settings, User, models::settings::OpenidUsernameHandling},
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
@@ -34,8 +34,8 @@ use crate::{
     },
     error::WebError,
     handlers::{
-        auth::create_session, user::check_username, ApiResponse, AuthResponse, SESSION_COOKIE_NAME,
-        SIGN_IN_COOKIE_NAME,
+        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME, auth::create_session,
+        user::check_username,
     },
     server_config,
 };
@@ -108,11 +108,9 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
     // The url shouldn't contain a .well-known part, it will be added automatically
     match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
         Ok(provider_metadata) => Ok(provider_metadata),
-        Err(err) => {
-            Err(WebError::Authorization(format!(
-                "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
-            )))
-        }
+        Err(err) => Err(WebError::Authorization(format!(
+            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
+        ))),
     }
 }
 

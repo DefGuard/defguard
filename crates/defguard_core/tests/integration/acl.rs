@@ -1,8 +1,8 @@
 use defguard_core::{
     config::DefGuardConfig,
     db::{
-        models::{device::DeviceType, settings::initialize_current_settings},
         Device, Group, Id, User, WireguardNetwork,
+        models::{device::DeviceType, settings::initialize_current_settings},
     },
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
@@ -12,10 +12,10 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
     PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tokio::net::TcpListener;
 

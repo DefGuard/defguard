@@ -8,7 +8,7 @@ use tracing::debug;
 
 use super::AuditStreamReconfigurationNotification;
 use crate::enterprise::{
-    audit_stream::http_stream::{run_http_stream_task, HttpAuditStreamConfig},
+    audit_stream::http_stream::{HttpAuditStreamConfig, run_http_stream_task},
     db::models::audit_stream::{AuditStream, AuditStreamConfig},
     is_enterprise_enabled,
 };
@@ -58,7 +58,9 @@ pub async fn run_audit_stream_manager(
                 }
             }
         } else {
-            debug!("Audit stream manager cannot start streams, license needs enterprise features enabled.");
+            debug!(
+                "Audit stream manager cannot start streams, license needs enterprise features enabled."
+            );
         }
         // wait for next configs update or if license expired
         loop {

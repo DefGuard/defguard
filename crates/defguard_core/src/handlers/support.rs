@@ -2,11 +2,11 @@ use axum::{extract::State, http::StatusCode};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
     server_config,
     support::dump_config,
-    AppState,
 };
 
 pub async fn configuration(

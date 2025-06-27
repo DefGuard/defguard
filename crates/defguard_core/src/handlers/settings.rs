@@ -7,18 +7,18 @@ use struct_patch::Patch;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::settings::{update_current_settings, SettingsEssentials, SettingsPatch},
         Settings,
+        models::settings::{SettingsEssentials, SettingsPatch, update_current_settings},
     },
     enterprise::{
-        ldap::{sync::SyncStatus, LDAPConnection},
+        ldap::{LDAPConnection, sync::SyncStatus},
         license::update_cached_license,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    AppState,
 };
 
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";

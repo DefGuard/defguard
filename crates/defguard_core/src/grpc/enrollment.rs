@@ -1,26 +1,27 @@
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{
     broadcast::Sender,
-    mpsc::{error::SendError, UnboundedSender},
+    mpsc::{UnboundedSender, error::SendError},
 };
 use tonic::Status;
 
 use super::{
+    InstanceInfo,
     proto::proxy::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
         InitialUserInfo, NewDevice,
     },
-    InstanceInfo,
 };
 use crate::{
+    AsCsv,
     db::{
+        Device, GatewayEvent, Id, Settings, User,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
         },
-        Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
@@ -34,7 +35,6 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
-    AsCsv,
 };
 
 pub(super) struct EnrollmentServer {
@@ -504,11 +504,7 @@ impl EnrollmentServer {
         {
             warn!(
                 "User {}({:?}) failed to add device {}, identical pubkey ({}) already exists for device {}",
-                user.username,
-                user.id,
-                request.name,
-                request.pubkey,
-                device.name
+                user.username, user.id, request.name, request.pubkey, device.name
             );
             return Err(Status::invalid_argument("invalid key"));
         }

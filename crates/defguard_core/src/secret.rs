@@ -3,9 +3,9 @@ use std::{convert::Infallible, error::Error, str::FromStr};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use sqlx::{
+    Decode, Encode, Postgres, Type,
     encode::IsNull,
     postgres::{PgArgumentBuffer, PgTypeInfo, PgValueRef},
-    Decode, Encode, Postgres, Type,
 };
 
 /// Wrapper for secrecy `SecretString` struct which implements sqlx traits.

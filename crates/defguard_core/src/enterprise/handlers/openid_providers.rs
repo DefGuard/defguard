@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
-use rsa::{pkcs8::DecodePrivateKey, RsaPrivateKey};
+use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
 
 use super::LicenseInfo;
@@ -11,8 +11,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::settings::{update_current_settings, OpenidUsernameHandling},
         Settings,
+        models::settings::{OpenidUsernameHandling, update_current_settings},
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
