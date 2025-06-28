@@ -344,24 +344,31 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");
-        let transaction = pool.begin().await?;
 
         for user in users {
+            let user_sync_allowed = user.ldap_sync_allowed(pool).await?;
             let user_exists_in_ldap = self.user_exists(user).await?;
             let user_groups = user.member_of_names(pool).await?;
-            let user_sync_allowed = user.ldap_sync_allowed(pool).await?;
+            let user_in_sync_groups = self.user_in_ldap_sync_groups(user).await?;
 
             // User is disabled in Defguard
             // If they exist in LDAP, remove them
-            if !user.is_active && user_exists_in_ldap {
+            // Don't use "user_sync_allowed" here as it will never execute if the user is disabled
+            // We are interested in the user changing the state from active to disabled
+            if user_in_sync_groups && user.is_enrolled() && !user.is_active && user_exists_in_ldap {
                 debug!("User {user} is disabled in Defguard, removing from LDAP");
                 self.delete_user(user).await?;
                 continue;
             }
 
+            if !user_sync_allowed {
+                debug!("User {user} is not allowed to be synced, skipping");
+                continue;
+            }
+
             // No sync groups defined or user already belongs to them,
             // Add the user if they don't exist in LDAP already but are active in Defguard
-            if user_sync_allowed && !user_exists_in_ldap {
+            if !user_exists_in_ldap {
                 debug!("User {user} is not in LDAP, adding to LDAP");
                 self.add_user(user, None, pool).await?;
                 for group in user_groups {
@@ -372,16 +379,15 @@ impl LDAPConnection {
 
             // We may bring user into the synchronization scope, sync his data (email, groups, etc.) based on
             // the authority
-            if user_sync_allowed && user_exists_in_ldap {
+            if user_exists_in_ldap {
                 debug!(
                     "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
                 );
                 self.sync_user_data(user, pool).await?;
                 debug!("User {user} data synchronized");
+                continue;
             }
         }
-
-        transaction.commit().await?;
 
         Ok(())
     }
