@@ -210,7 +210,7 @@ impl super::LDAPConnection {
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
-            .map(|u| (self.config.user_dn_from_user(u), u))
+            .map(|u| (self.config.user_dn_from_user(u).to_lowercase(), u))
             .collect::<HashMap<_, _>>();
 
         for entry in membership_entries.iter_mut() {
@@ -224,7 +224,7 @@ impl super::LDAPConnection {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.as_str()) {
+                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
                                 Some(*user)
                             } else {
                                 debug!(
