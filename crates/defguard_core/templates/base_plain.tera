@@ -1,0 +1,14 @@
+Defguard
+
+{% block mail_content %}
+{% endblock %}
+
+{% if date_now %}
+Date: {{ date_now }}
+{% endif %}
+{% if ip_address %}
+IP Address: {{ ip_address }}
+{% endif %}
+{% if device_type %}
+Device type: {{ device_type }}
+{% endif %}

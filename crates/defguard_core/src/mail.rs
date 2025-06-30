@@ -237,3 +237,54 @@ pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>) {
     info!("Starting mail sending service");
     MailHandler::new(rx).run().await;
 }
+
+#[cfg(test)]
+mod mail_tests {
+    use super::*;
+    use crate::templates::{self};
+    impl Mail {
+        fn into_message(self, from: &str) -> Result<Message, MailError> {
+            let builder = Message::builder()
+                .from(Self::mailbox(from)?)
+                .to(Self::mailbox(&self.to)?)
+                .subject(self.subject.clone());
+
+            let mut multipart =
+                MultiPart::alternative_plain_html(self.content.clone(), self.content);
+
+            if !self.attachments.is_empty() {
+                for attachment in self.attachments {
+                    multipart = multipart.singlepart(attachment.into());
+                }
+            }
+
+            Ok(builder.multipart(multipart)?)
+        }
+    }
+
+    #[test]
+    fn test_mailer() {
+        let test_attachment = Attachment {
+            filename: "test.filename".to_string(),
+            content: Vec::new(),
+            content_type: ContentType::TEXT_PLAIN,
+        };
+
+        let test =
+            templates::gateway_disconnected_mail("example_name", "1.2.3.4", "example_name");
+
+        let test_mail = Mail {
+            to: "test@example.com".to_string(),
+            subject: "test".to_string(),
+            content: test.unwrap(),
+            attachments: vec![test_attachment],
+            result_tx: None,
+        };
+
+        let message = test_mail.into_message_kuba("sender@example.com").unwrap();
+
+        let mime_string = message.formatted();
+
+        println!("content:\n{}", String::from_utf8(mime_string).unwrap());
+    }
+}
