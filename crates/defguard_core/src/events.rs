@@ -67,12 +67,15 @@ impl GrpcRequestContext {
 #[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
-    UserLoginFailed,
+    UserLoginFailed {
+        message: String,
+    },
     UserMfaLogin {
         mfa_method: MFAMethod,
     },
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
+        message: String,
     },
     RecoveryCodeUsed,
     UserLogout,
