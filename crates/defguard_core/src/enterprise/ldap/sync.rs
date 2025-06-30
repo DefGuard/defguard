@@ -768,7 +768,7 @@ impl super::LDAPConnection {
                 .get(username_attr)
                 .and_then(|v| v.first())
                 .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!("No {} attribute found", username_attr))
+                    LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
                 })?;
 
             match User::from_searchentry(&entry, username, None) {
@@ -800,7 +800,7 @@ mod tests {
             Some("test_password"),
             "last name",
             "first name",
-            format!("{}@example.com", username).as_str(),
+            format!("{username}@example.com").as_str(),
             None,
         )
     }
