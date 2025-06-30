@@ -619,8 +619,7 @@ impl LDAPConnection {
             .map(|name| name.to_string())
             .ok_or_else(|| {
                 LdapError::ObjectNotFound(format!(
-                    "Couldn't extract a group name from searchentry {:?}.",
-                    entry
+                    "Couldn't extract a group name from searchentry {entry:?}."
                 ))
             })
     }

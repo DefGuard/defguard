@@ -643,7 +643,12 @@ pub async fn run_web_server(
         event_tx,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
+    let addr = SocketAddr::new(
+        server_config()
+            .http_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().http_port,
+    );
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,
