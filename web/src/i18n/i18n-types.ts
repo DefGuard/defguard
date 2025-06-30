@@ -6175,6 +6175,10 @@ type RootTranslation = {
 				 * D​e​v​i​c​e
 				 */
 				device: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
 			}
 			noData: {
 				/**
@@ -12460,6 +12464,10 @@ export type TranslationFunctions = {
 				 * Device
 				 */
 				device: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
 			}
 			noData: {
 				/**

@@ -37,7 +37,7 @@
 }
 
 @mixin list-sizing() {
-  grid-template-columns: 250px 150px 150px 300px 100px minmax(200px, 1fr);
+  grid-template-columns: 250px 150px 150px 300px 100px 200px minmax(300px, 1fr);
   justify-content: space-between;
   column-gap: var(--spacing-xs);
 

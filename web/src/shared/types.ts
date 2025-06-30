@@ -508,7 +508,7 @@ export type ActivityLogEvent = {
   event: ActivityLogEventType;
   module: ActivityLogModule;
   device: string;
-  metadata?: unknown;
+  description?: string;
 };
 
 export type PaginationParams = {

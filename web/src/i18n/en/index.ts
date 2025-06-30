@@ -2572,6 +2572,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         event: 'Event',
         module: 'Module',
         device: 'Device',
+        description: 'Description',
       },
       noData: {
         data: 'No activities present',

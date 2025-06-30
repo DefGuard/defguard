@@ -84,6 +84,10 @@ export const ActivityList = ({
         label: headersLL.device(),
         key: 'device',
       },
+      {
+        label: headersLL.description(),
+        key: 'description',
+      },
     ],
     [headersLL],
   );
@@ -143,6 +147,9 @@ export const ActivityList = ({
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />
+                </div>
+                <div className="cell description">
+                  <ListCellText text={activity.description || ''} />
                 </div>
               </div>
             );
