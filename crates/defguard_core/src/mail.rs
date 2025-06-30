@@ -103,20 +103,18 @@ impl Mail {
             .from(Self::mailbox(from)?)
             .to(Self::mailbox(&self.to)?)
             .subject(self.subject.clone());
-        match self.attachments {
-            attachments if attachments.is_empty() => Ok(builder
-                .header(ContentType::TEXT_HTML)
-                .body(self.content.clone())?),
-            attachments => {
-                let mut multipart = MultiPart::mixed().singlepart(SinglePart::html(self.content));
-                for attachment in attachments {
-                    multipart = multipart.singlepart(attachment.into());
-                }
-                Ok(builder.multipart(multipart)?)
+
+        let mut multipart =
+            MultiPart::alternative_plain_html(self.content.clone(), self.content);
+
+        if !self.attachments.is_empty() {
+            for attachment in self.attachments {
+                multipart = multipart.singlepart(attachment.into());
             }
         }
-    }
 
+        Ok(builder.multipart(multipart)?)
+    }
     /// Builds Mailbox structure from string representing email address
     fn mailbox(address: &str) -> Result<Mailbox, MailError> {
         if let Some((user, domain)) = address.split_once('@') {
@@ -242,25 +240,6 @@ pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>) {
 mod mail_tests {
     use super::*;
     use crate::templates::{self};
-    impl Mail {
-        fn into_message(self, from: &str) -> Result<Message, MailError> {
-            let builder = Message::builder()
-                .from(Self::mailbox(from)?)
-                .to(Self::mailbox(&self.to)?)
-                .subject(self.subject.clone());
-
-            let mut multipart =
-                MultiPart::alternative_plain_html(self.content.clone(), self.content);
-
-            if !self.attachments.is_empty() {
-                for attachment in self.attachments {
-                    multipart = multipart.singlepart(attachment.into());
-                }
-            }
-
-            Ok(builder.multipart(multipart)?)
-        }
-    }
 
     #[test]
     fn test_mailer() {
@@ -281,10 +260,10 @@ mod mail_tests {
             result_tx: None,
         };
 
-        let message = test_mail.into_message_kuba("sender@example.com").unwrap();
+        let message = test_mail.into_message("sender@example.com").unwrap();
 
-        let mime_string = message.formatted();
 
-        println!("content:\n{}", String::from_utf8(mime_string).unwrap());
+
+        println!("content:\n{}", String::from_utf8(message.formatted()).unwrap());
     }
 }
