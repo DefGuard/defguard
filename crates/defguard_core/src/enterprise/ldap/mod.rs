@@ -441,8 +441,9 @@ impl LDAPConnection {
     /// Checks if a group with the given name exists in LDAP.
     async fn group_exists(&mut self, groupname: &str) -> Result<bool, LdapError> {
         let groupname_attr = self.config.ldap_groupname_attr.clone();
+        let groupname_escaped = ldap_escape(groupname);
         let res = self
-            .search_groups(format!("({groupname_attr}={groupname})").as_str())
+            .search_groups(format!("({groupname_attr}={groupname_escaped})").as_str())
             .await?;
 
         Ok(!res.is_empty())
@@ -451,8 +452,9 @@ impl LDAPConnection {
     /// Checks if a user with the given username exists in LDAP.
     async fn user_exists_by_username(&mut self, username: &str) -> Result<bool, LdapError> {
         let username_attr = self.config.ldap_username_attr.clone();
+        let username_escaped = ldap_escape(username);
         let res = self
-            .search_users(format!("({username_attr}={username})").as_str())
+            .search_users(format!("({username_attr}={username_escaped})").as_str())
             .await?;
 
         Ok(!res.is_empty())
@@ -465,8 +467,9 @@ impl LDAPConnection {
     /// the RDN would be `test` (assuming `cn` is the RDN attribute).
     async fn user_exists_by_rdn(&mut self, rdn: &str) -> Result<bool, LdapError> {
         let rdn_attr = self.config.get_rdn_attr();
+        let rdn_escaped = ldap_escape(rdn);
         let res = self
-            .search_users(format!("({rdn_attr}={rdn})").as_str())
+            .search_users(format!("({rdn_attr}={rdn_escaped})").as_str())
             .await?;
 
         Ok(!res.is_empty())
