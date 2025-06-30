@@ -91,12 +91,15 @@ impl From<InternalEventContext> for EventContext {
 pub enum DefguardEvent {
     // authentication
     UserLogin,
-    UserLoginFailed,
+    UserLoginFailed {
+        message: String,
+    },
     UserMfaLogin {
         mfa_method: MFAMethod,
     },
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
+        message: String,
     },
     UserLogout,
     RecoveryCodeUsed,

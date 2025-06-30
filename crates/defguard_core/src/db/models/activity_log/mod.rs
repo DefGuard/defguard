@@ -91,5 +91,6 @@ pub struct ActivityLogEvent<I = NoId> {
     #[model(enum)]
     pub module: ActivityLogModule,
     pub device: String,
+    pub description: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }

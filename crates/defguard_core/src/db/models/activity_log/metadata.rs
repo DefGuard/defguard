@@ -1,8 +1,19 @@
 use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
 
 #[derive(Serialize)]
+pub struct LoginFailedMetadata {
+    pub message: String,
+}
+
+#[derive(Serialize)]
 pub struct MfaLoginMetadata {
     pub mfa_method: MFAMethod,
+}
+
+#[derive(Serialize)]
+pub struct MfaLoginFailedMetadata {
+    pub mfa_method: MFAMethod,
+    pub message: String,
 }
 
 #[derive(Serialize)]
