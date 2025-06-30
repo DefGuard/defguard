@@ -198,7 +198,18 @@ pub(crate) async fn authenticate(
                 }
             }
         }
-        None => todo!(),
+        None => {
+            // try to create user from LDAP
+            debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
+            match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
+                Ok(user) => user,
+                Err(err) => {
+                    info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
+                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    return Err(WebError::Authorization(err.to_string()));
+                }
+            }
+        }
     };
 
     // check if user account is active
