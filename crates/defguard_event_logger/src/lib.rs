@@ -2,11 +2,17 @@ use bytes::Bytes;
 use defguard_core::db::{
     models::activity_log::{
         metadata::{
-            ActivityLogStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
-            DeviceRemovedMetadata, EnrollmentDeviceAddedMetadata, MfaLoginMetadata,
-            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
-            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
+            ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
+            ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
+            EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
+            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
+            MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
+            OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
+            OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
+            UserMetadata, UserModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
+            WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
         ActivityLogEvent, ActivityLogModule, EventType,
     },
@@ -66,7 +72,7 @@ pub async fn run_event_logger(
                     LoggerEvent::Defguard(event) => {
                         let module = ActivityLogModule::Defguard;
 
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
                             DefguardEvent::UserLoginFailed => (EventType::UserLoginFailed, None),
                             DefguardEvent::UserMfaLogin { mfa_method } => (
@@ -78,229 +84,312 @@ pub async fn run_event_logger(
                                 serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
                             ),
                             DefguardEvent::UserLogout => (EventType::UserLogout, None),
-                            DefguardEvent::UserDeviceAdded {
-                                device_id: _,
-                                device_name,
-                                owner: _,
-                            } => (
+                            DefguardEvent::UserDeviceAdded { owner, device } => (
                                 EventType::DeviceAdded,
-                                serde_json::to_value(DeviceAddedMetadata {
-                                    device_names: vec![device_name],
+                                serde_json::to_value(DeviceMetadata {
+                                    owner: owner.into(),
+                                    device,
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::UserDeviceRemoved {
-                                device_id: _,
-                                device_name,
-                                owner: _,
-                            } => (
+                            DefguardEvent::UserDeviceRemoved { owner, device } => (
                                 EventType::DeviceRemoved,
-                                serde_json::to_value(DeviceRemovedMetadata {
-                                    device_names: vec![device_name],
+                                serde_json::to_value(DeviceMetadata {
+                                    owner: owner.into(),
+                                    device,
                                 })
                                 .ok(),
                             ),
                             DefguardEvent::UserDeviceModified {
-                                device_id: _,
-                                device_name,
-                                owner: _,
+                                owner,
+                                before,
+                                after,
                             } => (
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {
-                                    device_names: vec![device_name],
+                                    owner: owner.into(),
+                                    before,
+                                    after,
                                 })
                                 .ok(),
                             ),
                             DefguardEvent::RecoveryCodeUsed => (EventType::RecoveryCodeUsed, None),
-                            DefguardEvent::PasswordChanged => todo!(),
+                            DefguardEvent::PasswordChanged => (EventType::PasswordChanged, None),
+                            DefguardEvent::PasswordChangedByAdmin { user } => (
+                                EventType::PasswordChangedByAdmin,
+                                serde_json::to_value(PasswordChangedByAdminMetadata {
+                                    user: user.into(),
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
                             DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
                             DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
                             DefguardEvent::MfaEmailDisabled => (EventType::MfaEmailDisabled, None),
-                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => (
+                            DefguardEvent::MfaSecurityKeyAdded { key } => (
                                 EventType::MfaSecurityKeyAdded,
-                                serde_json::to_value(MfaSecurityKeyAddedMetadata {
-                                    key_id,
-                                    key_name,
-                                })
-                                .ok(),
+                                serde_json::to_value(MfaSecurityKeyMetadata { key: key.into() })
+                                    .ok(),
                             ),
-                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => (
+                            DefguardEvent::MfaSecurityKeyRemoved { key } => (
                                 EventType::MfaSecurityKeyRemoved,
-                                serde_json::to_value(MfaSecurityKeyRemovedMetadata {
-                                    key_id,
-                                    key_name,
-                                })
-                                .ok(),
+                                serde_json::to_value(MfaSecurityKeyMetadata { key: key.into() })
+                                    .ok(),
                             ),
-                            DefguardEvent::AuthenticationKeyAdded {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
-                            DefguardEvent::AuthenticationKeyRemoved {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
+                            DefguardEvent::AuthenticationKeyAdded { key } => (
+                                EventType::AuthenticationKeyAdded,
+                                serde_json::to_value(AuthenticationKeyMetadata { key: key.into() })
+                                    .ok(),
+                            ),
+                            DefguardEvent::AuthenticationKeyRemoved { key } => (
+                                EventType::AuthenticationKeyRemoved,
+                                serde_json::to_value(AuthenticationKeyMetadata { key: key.into() })
+                                    .ok(),
+                            ),
                             DefguardEvent::AuthenticationKeyRenamed {
-                                key_id: _,
-                                key_name: _,
-                                key_type: _,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenAdded {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenRemoved {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
+                                key,
+                                old_name,
+                                new_name,
+                            } => (
+                                EventType::AuthenticationKeyRenamed,
+                                serde_json::to_value(AuthenticationKeyRenamedMetadata {
+                                    key: key.into(),
+                                    old_name,
+                                    new_name,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::ApiTokenAdded { owner, token } => (
+                                EventType::ApiTokenAdded,
+                                serde_json::to_value(ApiTokenMetadata {
+                                    owner: owner.into(),
+                                    token: token.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::ApiTokenRemoved { owner, token } => (
+                                EventType::ApiTokenRemoved,
+                                serde_json::to_value(ApiTokenMetadata {
+                                    owner: owner.into(),
+                                    token: token.into(),
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::ApiTokenRenamed {
-                                token_id: _,
-                                token_name: _,
-                            } => todo!(),
-                            DefguardEvent::UserAdded { username } => (
+                                owner,
+                                token,
+                                old_name,
+                                new_name,
+                            } => (
+                                EventType::ApiTokenRenamed,
+                                serde_json::to_value(ApiTokenRenamedMetadata {
+                                    owner: owner.into(),
+                                    token: token.into(),
+                                    old_name,
+                                    new_name,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserAdded { user } => (
                                 EventType::UserAdded,
-                                serde_json::to_value(UserAddedMetadata { username }).ok(),
+                                serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                             ),
-                            DefguardEvent::UserRemoved { username } => (
+                            DefguardEvent::UserRemoved { user } => (
                                 EventType::UserRemoved,
-                                serde_json::to_value(UserRemovedMetadata { username }).ok(),
+                                serde_json::to_value(UserMetadata { user: user.into() }).ok(),
                             ),
-                            DefguardEvent::UserModified { username } => (
+                            DefguardEvent::UserModified { before, after } => (
                                 EventType::UserModified,
-                                serde_json::to_value(UserModifiedMetadata { username }).ok(),
+                                serde_json::to_value(UserModifiedMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
                             ),
-                            DefguardEvent::UserDisabled { username: _ } => todo!(),
-                            DefguardEvent::NetworkDeviceAdded {
-                                device_id,
-                                device_name,
-                                location_id,
-                                location,
-                            } => (
+                            DefguardEvent::NetworkDeviceAdded { device, location } => (
                                 EventType::NetworkDeviceAdded,
-                                serde_json::to_value(NetworkDeviceAddedMetadata {
-                                    device_id,
-                                    device_name,
-                                    location_id,
-                                    location,
-                                })
-                                .ok(),
+                                serde_json::to_value(NetworkDeviceMetadata { device, location })
+                                    .ok(),
                             ),
-                            DefguardEvent::NetworkDeviceRemoved {
-                                device_id,
-                                device_name,
-                                location_id,
-                                location,
-                            } => (
+                            DefguardEvent::NetworkDeviceRemoved { device, location } => (
                                 EventType::NetworkDeviceRemoved,
-                                serde_json::to_value(NetworkDeviceRemovedMetadata {
-                                    device_id,
-                                    device_name,
-                                    location_id,
-                                    location,
-                                })
-                                .ok(),
+                                serde_json::to_value(NetworkDeviceMetadata { device, location })
+                                    .ok(),
                             ),
                             DefguardEvent::NetworkDeviceModified {
-                                device_id,
-                                device_name,
-                                location_id,
                                 location,
+                                before,
+                                after,
                             } => (
                                 EventType::NetworkDeviceModified,
                                 serde_json::to_value(NetworkDeviceModifiedMetadata {
-                                    device_id,
-                                    device_name,
-                                    location_id,
+                                    before,
+                                    after,
                                     location,
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::VpnLocationAdded {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationRemoved {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::VpnLocationModified {
-                                location_id: _,
-                                location_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppAdded {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppRemoved {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppModified {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdAppDisabled {
-                                app_id: _,
-                                app_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdProviderAdded {
-                                provider_id: _,
-                                provider_name: _,
-                            } => todo!(),
-                            DefguardEvent::OpenIdProviderRemoved {
-                                provider_id: _,
-                                provider_name: _,
-                            } => todo!(),
-                            DefguardEvent::SettingsUpdated => todo!(),
-                            DefguardEvent::SettingsUpdatedPartial => todo!(),
-                            DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
-                            DefguardEvent::ActivityLogStreamCreated {
-                                stream_id,
-                                stream_name,
-                            } => (
+                            DefguardEvent::VpnLocationAdded { location } => (
+                                EventType::VpnLocationAdded,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationRemoved { location } => (
+                                EventType::VpnLocationRemoved,
+                                serde_json::to_value(VpnLocationMetadata { location }).ok(),
+                            ),
+                            DefguardEvent::VpnLocationModified { before, after } => (
+                                EventType::VpnLocationModified,
+                                serde_json::to_value(VpnLocationModifiedMetadata { before, after })
+                                    .ok(),
+                            ),
+                            DefguardEvent::OpenIdAppAdded { app } => (
+                                EventType::OpenIdAppAdded,
+                                serde_json::to_value(OpenIdAppMetadata { app: app.into() }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppRemoved { app } => (
+                                EventType::OpenIdAppRemoved,
+                                serde_json::to_value(OpenIdAppMetadata { app: app.into() }).ok(),
+                            ),
+                            DefguardEvent::OpenIdAppModified { before, after } => (
+                                EventType::OpenIdAppModified,
+                                serde_json::to_value(OpenIdAppModifiedMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::OpenIdAppStateChanged { app, enabled } => (
+                                EventType::OpenIdAppStateChanged,
+                                serde_json::to_value(OpenIdAppStateChangedMetadata {
+                                    app: app.into(),
+                                    enabled,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::OpenIdProviderModified { provider } => (
+                                EventType::OpenIdProviderModified,
+                                serde_json::to_value(OpenIdProviderMetadata {
+                                    provider: provider.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::OpenIdProviderRemoved { provider } => (
+                                EventType::OpenIdProviderRemoved,
+                                serde_json::to_value(OpenIdProviderMetadata {
+                                    provider: provider.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::SettingsUpdated => (EventType::SettingsUpdated, None),
+                            DefguardEvent::SettingsUpdatedPartial => {
+                                (EventType::SettingsUpdatedPartial, None)
+                            }
+                            DefguardEvent::SettingsDefaultBrandingRestored => {
+                                (EventType::SettingsDefaultBrandingRestored, None)
+                            }
+                            DefguardEvent::ActivityLogStreamCreated { stream } => (
                                 EventType::ActivityLogStreamCreated,
                                 serde_json::to_value(ActivityLogStreamMetadata {
-                                    id: stream_id,
-                                    name: stream_name,
+                                    stream: stream.into(),
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::ActivityLogStreamRemoved {
-                                stream_id,
-                                stream_name,
-                            } => (
+                            DefguardEvent::ActivityLogStreamRemoved { stream } => (
                                 EventType::ActivityLogStreamRemoved,
                                 serde_json::to_value(ActivityLogStreamMetadata {
-                                    id: stream_id,
-                                    name: stream_name,
+                                    stream: stream.into(),
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::ActivityLogStreamModified {
-                                stream_id,
-                                stream_name,
-                            } => (
+                            DefguardEvent::ActivityLogStreamModified { before, after } => (
                                 EventType::ActivityLogStreamModified,
-                                serde_json::to_value(ActivityLogStreamMetadata {
-                                    id: stream_id,
-                                    name: stream_name,
+                                serde_json::to_value(ActivityLogStreamModifiedMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
                                 })
                                 .ok(),
+                            ),
+                            DefguardEvent::GroupsBulkAssigned { users, groups } => (
+                                EventType::GroupsBulkAssigned,
+                                serde_json::to_value(GroupsBulkAssignedMetadata {
+                                    users: users.into_iter().map(Into::into).collect(),
+                                    groups,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::GroupAdded { group } => (
+                                EventType::GroupAdded,
+                                serde_json::to_value(GroupMetadata { group }).ok(),
+                            ),
+                            DefguardEvent::GroupModified { before, after } => (
+                                EventType::GroupModified,
+                                serde_json::to_value(GroupModifiedMetadata { before, after }).ok(),
+                            ),
+                            DefguardEvent::GroupRemoved { group } => (
+                                EventType::GroupRemoved,
+                                serde_json::to_value(GroupMetadata { group }).ok(),
+                            ),
+                            DefguardEvent::GroupMemberAdded { group, user } => (
+                                EventType::GroupMemberAdded,
+                                serde_json::to_value(GroupAssignedMetadata {
+                                    group,
+                                    user: user.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::GroupMemberRemoved { group, user } => (
+                                EventType::GroupMemberRemoved,
+                                serde_json::to_value(GroupAssignedMetadata {
+                                    group,
+                                    user: user.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::WebHookAdded { webhook } => (
+                                EventType::WebHookAdded,
+                                serde_json::to_value(WebHookMetadata { webhook }).ok(),
+                            ),
+                            DefguardEvent::WebHookModified { before, after } => (
+                                EventType::WebHookModified,
+                                serde_json::to_value(WebHookModifiedMetadata { before, after })
+                                    .ok(),
+                            ),
+                            DefguardEvent::WebHookRemoved { webhook } => (
+                                EventType::WebHookRemoved,
+                                serde_json::to_value(WebHookMetadata { webhook }).ok(),
+                            ),
+                            DefguardEvent::WebHookStateChanged { webhook, enabled } => (
+                                EventType::WebHookStateChanged,
+                                serde_json::to_value(WebHookStateChangedMetadata {
+                                    webhook,
+                                    enabled,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::PasswordReset { user } => (
+                                EventType::PasswordReset,
+                                serde_json::to_value(PasswordResetMetadata { user: user.into() })
+                                    .ok(),
+                            ),
+                            DefguardEvent::ClientConfigurationTokenAdded { user } => (
+                                EventType::ClientConfigurationTokenAdded,
+                                serde_json::to_value(ClientConfigurationTokenMetadata {
+                                    user: user.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::EnrollmentTokenAdded { user } => (
+                                EventType::EnrollmentTokenAdded,
+                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
+                                    .ok(),
                             ),
                         };
                         (module, event_type, metadata)
                     }
-                    LoggerEvent::Client(_event) => {
-                        let _module = ActivityLogModule::Client;
-                        unimplemented!()
-                    }
                     LoggerEvent::Vpn(event) => {
                         let module = ActivityLogModule::Vpn;
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             VpnEvent::MfaFailed {
                                 location,
                                 device,
@@ -344,7 +433,7 @@ pub async fn run_event_logger(
                     }
                     LoggerEvent::Enrollment(event) => {
                         let module = ActivityLogModule::Enrollment;
-                        let (event_type, metadata) = match event {
+                        let (event_type, metadata) = match *event {
                             EnrollmentEvent::EnrollmentStarted => {
                                 (EventType::EnrollmentStarted, None)
                             }
@@ -364,6 +453,11 @@ pub async fn run_event_logger(
                             EnrollmentEvent::PasswordResetCompleted => {
                                 (EventType::PasswordResetCompleted, None)
                             }
+                            EnrollmentEvent::TokenAdded { user } => (
+                                EventType::EnrollmentTokenAdded,
+                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
+                                    .ok(),
+                            ),
                         };
                         (module, event_type, metadata)
                     }

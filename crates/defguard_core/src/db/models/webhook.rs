@@ -46,7 +46,7 @@ impl AppEvent {
     }
 }
 
-#[derive(Debug, Deserialize, FromRow, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize)]
 pub struct WebHook<I = NoId> {
     pub id: I,
     pub url: String,

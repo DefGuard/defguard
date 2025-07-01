@@ -45,6 +45,9 @@
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
+      .labeled-checkbox {
+        padding-bottom: 0;
+      }
     }
 
     section {
