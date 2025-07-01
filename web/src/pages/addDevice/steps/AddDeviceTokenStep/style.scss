@@ -3,5 +3,23 @@
     .expandable-card {
       margin-bottom: 25px;
     }
+
+    #mobile-qr-code {
+      .expanded-content {
+        display: flex;
+        flex-flow: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-sizing: border-box;
+        row-gap: 20px;
+
+        p {
+          max-width: 80%;
+          margin: 0;
+          padding: 0;
+        }
+      }
+    }
   }
 }
