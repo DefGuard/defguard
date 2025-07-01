@@ -7,7 +7,8 @@ use defguard_core::{
         Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
     },
     enterprise::db::models::{
-        api_tokens::ApiToken, audit_stream::AuditStream, openid_provider::OpenIdProvider,
+        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
+        openid_provider::OpenIdProvider,
     },
     events::{
         ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext,
@@ -27,7 +28,7 @@ impl EventLoggerMessage {
     }
 }
 
-/// Possible audit event types split by module
+/// Possible activity log event types split by module
 pub enum LoggerEvent {
     Defguard(Box<DefguardEvent>),
     Vpn(Box<VpnEvent>),
@@ -91,7 +92,7 @@ impl From<InternalEventContext> for EventContext {
     }
 }
 
-/// Represents audit events related to actions performed in Web UI
+/// Represents activity log events related to actions performed in Web UI
 pub enum DefguardEvent {
     UserLogin,
     UserLogout,
@@ -157,15 +158,15 @@ pub enum DefguardEvent {
         after: Device<Id>,
         location: WireguardNetwork<Id>,
     },
-    AuditStreamCreated {
-        stream: AuditStream<Id>,
+    ActivityLogStreamCreated {
+        stream: ActivityLogStream<Id>,
     },
-    AuditStreamModified {
-        before: AuditStream<Id>,
-        after: AuditStream<Id>,
+    ActivityLogStreamModified {
+        before: ActivityLogStream<Id>,
+        after: ActivityLogStream<Id>,
     },
-    AuditStreamRemoved {
-        stream: AuditStream<Id>,
+    ActivityLogStreamRemoved {
+        stream: ActivityLogStream<Id>,
     },
     VpnLocationAdded {
         location: WireguardNetwork<Id>,
@@ -269,7 +270,13 @@ pub enum DefguardEvent {
     },
 }
 
-/// Represents audit events related to VPN
+/// Represents activity log events related to client applications
+pub enum ClientEvent {
+    DesktopClientActivated { device_id: Id, device_name: String },
+    DesktopClientUpdated { device_id: Id, device_name: String },
+}
+
+/// Represents activity log events related to VPN
 pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
@@ -295,7 +302,7 @@ pub enum VpnEvent {
     },
 }
 
-/// Represents audit events related to user enrollment process
+/// Represents activity log events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },

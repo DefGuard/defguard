@@ -88,23 +88,23 @@ impl EventRouter {
                     location,
                 }))
             }
-            ApiEventType::AuditStreamCreated { stream } => {
+            ApiEventType::ActivityLogStreamCreated { stream } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(Box::new(DefguardEvent::AuditStreamCreated { stream }))
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(Box::new(DefguardEvent::ActivityLogStreamCreated { stream }))
             }
-            ApiEventType::AuditStreamModified { before, after } => {
+            ApiEventType::ActivityLogStreamModified { before, after } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(Box::new(DefguardEvent::AuditStreamModified {
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(Box::new(DefguardEvent::ActivityLogStreamModified {
                     before,
                     after,
                 }))
             }
-            ApiEventType::AuditStreamRemoved { stream } => {
+            ApiEventType::ActivityLogStreamRemoved { stream } => {
                 // Notify stream manager about configuration changes
-                self.audit_stream_reload_notify.notify_waiters();
-                LoggerEvent::Defguard(Box::new(DefguardEvent::AuditStreamRemoved { stream }))
+                self.activity_log_stream_reload_notify.notify_waiters();
+                LoggerEvent::Defguard(Box::new(DefguardEvent::ActivityLogStreamRemoved { stream }))
             }
             ApiEventType::VpnLocationAdded { location } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::VpnLocationAdded { location }))

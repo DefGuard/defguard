@@ -26,7 +26,7 @@ import { QueryKeys } from '../../shared/queries';
 import { User } from '../../shared/types';
 import { invalidateMultipleQueries } from '../../shared/utils/invalidateMultipleQueries';
 import { DevicePageNavigationIcon } from './components/DevicesPageNavigationIcon';
-import { NavigationActivityPageIcon } from './components/icons/NavigationActivityPageIcon';
+import { NavigationActivityLogPageIcon } from './components/icons/NavigationActivityLogPageIcon';
 import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
 import { navigationExcludedRoutes } from './config';
@@ -194,9 +194,9 @@ export const Navigation = () => {
       },
       {
         title: LL.navigation.bar.activity(),
-        linkPath: '/admin/activity',
-        icon: <NavigationActivityPageIcon />,
-        adminOnly: true,
+        linkPath: '/activity',
+        icon: <NavigationActivityLogPageIcon />,
+        adminOnly: false,
         enabled: true,
       },
       {
@@ -206,7 +206,6 @@ export const Navigation = () => {
         adminOnly: false,
         enabled: true,
         onClick: () => {
-          resetUserProfile();
           invalidateMultipleQueries(queryClient, [
             [QueryKeys.FETCH_ME],
             [QueryKeys.FETCH_USER_PROFILE],
@@ -227,7 +226,6 @@ export const Navigation = () => {
     networksPresent,
     onlyOneNetworkPresent,
     queryClient,
-    resetUserProfile,
     settings?.openid_enabled,
     settings?.webhooks_enabled,
     settings?.wireguard_enabled,

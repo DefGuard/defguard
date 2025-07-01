@@ -1,9 +1,14 @@
 use std::collections::HashSet;
 
 use ldap3::{Mod, SearchEntry};
+use sqlx::{Error as SqlxError, PgExecutor};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::{db::User, handlers::user::check_username, hashset};
+use crate::{
+    db::{Id, Settings, User},
+    handlers::user::check_username,
+    hashset,
+};
 
 pub(crate) enum UserObjectClass {
     SambaSamAccount,
@@ -66,6 +71,11 @@ impl User {
         user.from_ldap = true;
         if let Some(rdn) = extract_rdn_value(&entry.dn) {
             user.ldap_rdn = Some(rdn);
+        } else {
+            return Err(LdapError::InvalidDN(entry.dn.clone()));
+        }
+        if let Some(dn_path) = extract_dn_path(&entry.dn) {
+            user.ldap_user_path = Some(dn_path);
         } else {
             return Err(LdapError::InvalidDN(entry.dn.clone()));
         }
@@ -158,6 +168,11 @@ impl<I> User<I> {
         changes
     }
 
+    // check if key is already in attrs, if not return false
+    fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
+        attrs.iter().any(|(k, _)| *k == key)
+    }
+
     #[must_use]
     pub fn as_ldap_attrs<'a>(
         &'a self,
@@ -177,11 +192,14 @@ impl<I> User<I> {
                 ("sn", hashset![self.last_name.as_str()]),
                 ("givenName", hashset![self.first_name.as_str()]),
                 ("mail", hashset![self.email.as_str()]),
-                ("uid", hashset![self.username.as_str()]),
             ]);
 
-            if rdn_attr != "cn" {
+            if !Self::in_attrs(&attrs, "cn") {
                 attrs.push(("cn", hashset![self.username.as_str()]));
+            }
+
+            if !Self::in_attrs(&attrs, "uid") {
+                attrs.push(("uid", hashset![self.username.as_str()]));
             }
 
             if let Some(phone) = &self.phone {
@@ -204,7 +222,7 @@ impl<I> User<I> {
         }
 
         // Add the username attr and RDN if we haven't already added it
-        if attrs.iter().all(|(key, _)| *key != username_attr) {
+        if !Self::in_attrs(&attrs, username_attr) {
             attrs.push((username_attr, hashset![self.username.as_str()]));
         }
 
@@ -213,6 +231,55 @@ impl<I> User<I> {
         debug!("Generated LDAP attributes: {:?}", attrs);
 
         attrs
+    }
+
+    /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
+    pub(crate) async fn maybe_update_rdn(&mut self) {
+        debug!("Updating RDN for user {} in Defguard", self.username);
+        let settings = Settings::get_current_settings();
+        if settings.ldap_using_username_as_rdn() {
+            debug!("The user's username is being used as the RDN, setting it to username");
+            self.ldap_rdn = Some(self.username.clone());
+        } else {
+            debug!("The user's username is NOT being used as the RDN, skipping update");
+        }
+    }
+}
+
+impl User<Id> {
+    /// User is syncable with LDAP if:
+    /// - he is in a group that is allowed to be synced or no such groups are configured
+    /// - he is active (not disabled)
+    /// - he is enrolled
+    pub(crate) async fn ldap_sync_allowed<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let sync_groups = Settings::get_current_settings().ldap_sync_groups;
+        let my_groups = self.member_of(executor).await?;
+        Ok(
+            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
+                && self.is_active
+                && self.is_enrolled(),
+        )
+    }
+
+    pub(super) async fn get_without_ldap_path<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        sqlx::query_as!(
+            Self,
+            "
+            SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            FROM \"user\" WHERE ldap_user_path IS NULL
+            ",
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 
@@ -240,296 +307,16 @@ pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-
-    use ldap3::SearchEntry;
-
-    use super::*;
-
-    #[test]
-    fn test_extract_dn_value() {
-        assert_eq!(
-            extract_rdn_value("cn=testuser,dc=example,dc=com"),
-            Some("testuser".to_string())
-        );
-        assert_eq!(
-            extract_rdn_value("cn=Test User,dc=example,dc=com"),
-            Some("Test User".to_string())
-        );
-        assert_eq!(
-            extract_rdn_value("cn=user.name+123,dc=example,dc=com"),
-            Some("user.name+123".to_string())
-        );
-        assert_eq!(extract_rdn_value("invalid-dn"), None);
-        assert_eq!(extract_rdn_value("cn=onlyvalue"), None);
-        assert_eq!(
-            extract_rdn_value("cn=,dc=example,dc=com"),
-            Some("".to_string())
-        );
-        assert_eq!(extract_rdn_value(""), None);
-    }
-
-    #[test]
-    fn test_from_searchentry_success() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
-        attrs.insert("mobile".to_string(), vec!["1234567890".to_string()]);
-
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
-
-        let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
-
-        assert_eq!(user.username, "user1");
-        assert_eq!(user.last_name, "lastname1");
-        assert_eq!(user.first_name, "firstname1");
-        assert_eq!(user.email, "user1@example.com");
-        assert_eq!(user.phone, Some("1234567890".to_string()));
-        assert!(user.from_ldap);
-    }
-
-    #[test]
-    fn test_from_searchentry_without_mobile() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
-
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
-
-        let user = User::from_searchentry(&entry, "user1", None).unwrap();
-
-        assert_eq!(user.username, "user1");
-        assert_eq!(user.last_name, "lastname1");
-        assert_eq!(user.first_name, "firstname1");
-        assert_eq!(user.email, "user1@example.com");
-        assert_eq!(user.phone, None);
-        assert!(user.from_ldap);
-    }
-
-    #[test]
-    fn test_from_searchentry_missing_attribute() {
-        let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
-        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
-
-        let entry = SearchEntry {
-            dn: "cn=user1,dc=example,dc=com".to_string(),
-            attrs,
-            bin_attrs: HashMap::new(),
-        };
-
-        let result = User::from_searchentry(&entry, "user1", None);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            LdapError::MissingAttribute(attr) if attr == "givenName"
-        ));
-    }
-
-    #[test]
-    fn test_as_ldap_attrs() {
-        let user = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("5551234".to_string()),
-        );
-
-        // Basic test with InetOrgPerson
-        let attrs = user.as_ldap_attrs(
-            "{SSHA}hashedpw",
-            "NT_HASH",
-            hashset![UserObjectClass::InetOrgPerson.into()],
-            false,
-            "uid",
-            "cn",
-        );
-
-        assert!(attrs.contains(&("cn", hashset!["testuser"])));
-        assert!(attrs.contains(&("sn", hashset!["Smith"])));
-        assert!(attrs.contains(&("givenName", hashset!["John"])));
-        assert!(attrs.contains(&("mail", hashset!["john.smith@example.com"])));
-        assert!(attrs.contains(&("mobile", hashset!["5551234"])));
-        assert!(attrs.contains(&("objectClass", hashset!["inetOrgPerson"])));
-
-        // Test with ActiveDirectory
-        let attrs = user.as_ldap_attrs(
-            "{SSHA}hashedpw",
-            "NT_HASH",
-            hashset![UserObjectClass::User.into()],
-            true,
-            "uid",
-            "cn",
-        );
-
-        assert!(attrs.contains(&("sAMAccountName", hashset!["testuser"])));
-
-        // Test with SimpleSecurityObject and SambaSamAccount
-        let attrs = user.as_ldap_attrs(
-            "{SSHA}hashedpw",
-            "NT_HASH",
-            hashset![
-                UserObjectClass::SimpleSecurityObject.into(),
-                UserObjectClass::SambaSamAccount.into()
-            ],
-            false,
-            "uid",
-            "uid",
-        );
-
-        assert!(attrs.contains(&("userPassword", hashset!["{SSHA}hashedpw"])));
-        assert!(attrs.contains(&("sambaSID", hashset!["0"])));
-        assert!(attrs.contains(&("sambaNTPassword", hashset!["NT_HASH"])));
-
-        // Test with custom RDN attribute
-        let attrs = user.as_ldap_attrs(
-            "{SSHA}hashedpw",
-            "NT_HASH",
-            hashset![UserObjectClass::User.into()],
-            false,
-            "uid",
-            "customRDN",
-        );
-
-        assert!(attrs.contains(&("customRDN", hashset![user.ldap_rdn_value()])));
-        assert!(attrs.contains(&("uid", hashset!["testuser"])));
-
-        // Test with empty phone
-        let user_no_phone = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("".to_string()),
-        );
-
-        let attrs = user_no_phone.as_ldap_attrs(
-            "{SSHA}hashedpw",
-            "NT_HASH",
-            hashset![UserObjectClass::InetOrgPerson.into()],
-            false,
-            "uid",
-            "cn",
-        );
-
-        assert!(!attrs.iter().any(|(key, _)| *key == "mobile"));
-    }
-
-    #[test]
-    fn test_as_ldap_mod_inetorgperson() {
-        let user = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("5551234".to_string()),
-        );
-
-        let config = LDAPConfig {
-            ldap_user_rdn_attr: Some("cn".to_string()),
-            ldap_username_attr: "uid".to_string(),
-            ..Default::default()
-        };
-
-        let mods = user.as_ldap_mod(&config);
-        assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-        assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-        assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-        assert!(mods.contains(&Mod::Replace("mobile", hashset!["5551234"])));
-    }
-
-    #[test]
-    fn test_as_ldap_mod_with_empty_phone() {
-        let user = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("".to_string()),
-        );
-
-        let config = LDAPConfig {
-            ldap_user_rdn_attr: Some("cn".to_string()),
-            ldap_username_attr: "uid".to_string(),
-            ..Default::default()
-        };
-
-        let mods = user.as_ldap_mod(&config);
-
-        assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-        assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-        assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-        assert!(mods.contains(&Mod::Replace("mobile", HashSet::new())));
-    }
-
-    #[test]
-    fn test_as_ldap_mod_with_active_directory() {
-        let user = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("5551234".to_string()),
-        );
-
-        let config = LDAPConfig {
-            ldap_user_obj_class: "user".to_string(),
-            ldap_user_rdn_attr: Some("cn".to_string()),
-            ldap_username_attr: "sAMAccountName".to_string(),
-            ldap_uses_ad: true,
-            ..Default::default()
-        };
-
-        let mods = user.as_ldap_mod(&config);
-
-        assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-        assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-        assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-        assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
-    }
-
-    #[test]
-    fn test_as_ldap_mod_with_custom_rdn() {
-        let user = User::new(
-            "testuser".to_string(),
-            Some("password123"),
-            "Smith".to_string(),
-            "John".to_string(),
-            "john.smith@example.com".to_string(),
-            Some("5551234".to_string()),
-        );
-
-        let config = LDAPConfig {
-            ldap_user_rdn_attr: Some("customRDN".to_string()),
-            ldap_username_attr: "uid".to_string(),
-            ldap_uses_ad: true,
-            ..Default::default()
-        };
-
-        let mods = user.as_ldap_mod(&config);
-
-        assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-        assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-        assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-        assert!(mods.contains(&Mod::Replace("cn", hashset!["testuser"])));
-        assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+/// Extract the remaining part of the distinguished name after the first comma, for example:
+/// `cn=user,dc=example,dc=com` should return `dc=example,dc=com`.
+#[must_use]
+pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
+    if let Some(parts) = dn.split_once(',') {
+        let path = parts.1.to_string();
+        debug!("Extracted DN path '{path}' from DN '{dn}'");
+        Some(path)
+    } else {
+        warn!("Failed to extract DN path from '{dn}': no comma found");
+        None
     }
 }

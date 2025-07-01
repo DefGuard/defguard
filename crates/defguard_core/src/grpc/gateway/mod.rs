@@ -1,12 +1,12 @@
 mod client_state;
 use std::{
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
 use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
 use thiserror::Error;
@@ -16,6 +16,7 @@ use tokio::{
         mpsc::{self, error::SendError, Receiver, UnboundedSender},
     },
     task::JoinHandle,
+    time::{interval, Duration},
 };
 use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
@@ -33,6 +34,8 @@ use crate::{
     events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
+
+const PEER_DISCONNECT_INTERVAL: u64 = 60;
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
@@ -186,12 +189,13 @@ impl GatewayServer {
     }
 
     pub fn get_client_state_guard(
-        &'_ self,
+        &self,
     ) -> Result<std::sync::MutexGuard<'_, ClientMap>, GatewayServerError> {
         let client_state = self
             .client_state
             .lock()
             .map_err(|_| GatewayServerError::ClientStateMutexError)?;
+        debug!("Current VPN client state map: {client_state:?}");
         Ok(client_state)
     }
 
@@ -726,8 +730,46 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let network_id = Self::get_network_id(request.metadata())?;
         let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
         let mut stream = request.into_inner();
+        let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        while let Some(stats_update) = stream.message().await? {
+        loop {
+            // wait for a message or update client map at least once a mninute if no messages are received
+            let stats_update = tokio::select! {
+                message = stream.message() => {
+                    match message? {
+                        Some(update) => update,
+                        None => break, // Stream ended
+                    }
+                }
+                _ = disconnect_timer.tick() => {
+                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. Updating disconnected VPN clients");
+                    // fetch location to get current peer disconnect threshold
+                    let location = self.fetch_location_from_db(network_id).await?;
+
+                    // perform client state operations in a dedicated block to drop mutex guard
+                    let disconnected_clients = {
+                        // acquire lock on client state map
+                        let mut client_map = self.get_client_state_guard()?;
+
+                        // disconnect inactive clients
+                        client_map.disconnect_inactive_vpn_clients_for_location(
+                            network_id,
+                            location.peer_disconnect_threshold,
+                        )?
+                    };
+
+                    // emit client disconnect events
+                    for (device, context) in disconnected_clients {
+                        self.emit_event(GrpcEvent::ClientDisconnected {
+                            context,
+                            location: location.clone(),
+                            device,
+                        })?;
+                    };
+                    continue;
+                }
+            };
+
             debug!("Received stats message: {stats_update:?}");
             let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
                 debug!("Received stats message is empty, skipping.");
@@ -741,7 +783,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // copy for easier reference later
             let device_id = device.id;
 
-            // fetch user and location from DB for audit log
+            // fetch user and location from DB for activity log
             // TODO: cache usernames since they don't change
             let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
             let location = self.fetch_location_from_db(network_id).await?;
@@ -755,7 +797,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // but has not connected yet
             if let Some(endpoint) = &stats.endpoint {
                 // parse client endpoint IP
-                let ip_addr = endpoint.clone().parse().map_err(|err| {
+                let socket_addr: SocketAddr = endpoint.clone().parse().map_err(|err| {
                     error!("Failed to parse VPN client endpoint: {err}");
                     Status::new(
                         Code::Internal,
@@ -774,37 +816,42 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             // update connected client state
                             client_state.update_client_state(
                                 device,
-                                ip_addr,
+                                socket_addr,
                                 stats.latest_handshake,
                                 stats.upload,
                                 stats.download,
                             );
                         }
                         None => {
-                            // mark new VPN client as connected
-                            client_map.connect_vpn_client(
-                                network_id,
-                                &gateway_hostname,
-                                &public_key,
-                                &device,
-                                &user,
-                                ip_addr,
-                                &stats,
-                            )?;
+                            // don't mark inactive peers as connected
+                            if (Utc::now().naive_utc() - stats.latest_handshake)
+                                < TimeDelta::seconds(location.peer_disconnect_threshold.into())
+                            {
+                                // mark new VPN client as connected
+                                client_map.connect_vpn_client(
+                                    network_id,
+                                    &gateway_hostname,
+                                    &public_key,
+                                    &device,
+                                    &user,
+                                    socket_addr,
+                                    &stats,
+                                )?;
 
-                            // emit connection event
-                            let context = GrpcRequestContext::new(
-                                user.id,
-                                user.username.clone(),
-                                ip_addr,
-                                device.id,
-                                device.name.clone(),
-                            );
-                            self.emit_event(GrpcEvent::ClientConnected {
-                                context,
-                                location: location.clone(),
-                                device: device.clone(),
-                            })?;
+                                // emit connection event
+                                let context = GrpcRequestContext::new(
+                                    user.id,
+                                    user.username.clone(),
+                                    socket_addr.ip(),
+                                    device.id,
+                                    device.name.clone(),
+                                );
+                                self.emit_event(GrpcEvent::ClientConnected {
+                                    context,
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                })?;
+                            }
                         }
                     };
 
