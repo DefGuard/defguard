@@ -3,6 +3,11 @@ name: E2E tests
 on:
   workflow_call:
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: [self-hosted, Linux, X64]
@@ -20,6 +25,19 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Export image tag
+        run: |
+          # strip "refs/heads.” to get just the branch name
+          BRANCH=${GITHUB_REF#refs/heads/}
+          if [[ "$BRANCH" == release/* ]]; then
+            # replace '/' with '-' on release branches
+            IMAGE_TAG=${BRANCH//\//-}
+          else
+            # main/dev branch
+            IMAGE_TAG=$BRANCH
+          fi
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "E2E tests will run on IMAGE_TAG=$IMAGE_TAG"
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -70,4 +88,9 @@ jobs:
     needs: test
     if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     uses: ./.github/workflows/dev-deployment.yml
+    secrets: inherit
+  trigger-staging-deploy:
+    needs: test
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
+    uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit

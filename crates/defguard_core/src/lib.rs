@@ -21,10 +21,11 @@ use enterprise::{
             delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
             list_acl_rules, update_acl_alias, update_acl_rule,
         },
-        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-        audit_stream::{
-            create_audit_stream, delete_audit_stream, get_audit_stream, modify_audit_stream,
+        activity_log_stream::{
+            create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+            modify_activity_log_stream,
         },
+        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
         check_enterprise_info,
         enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
         openid_login::{auth_callback, get_auth_info},
@@ -39,7 +40,7 @@ use enterprise::{
 };
 use events::ApiEvent;
 use handlers::{
-    audit_log::get_audit_log_events,
+    activity_log::get_activity_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -465,8 +466,8 @@ pub fn build_webapp(
             .route("/webhook/{id}", post(change_enabled))
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
-            // audit log
-            .route("/audit_log", get(get_audit_log_events)),
+            // activity log
+            .route("/activity_log", get(get_activity_log_events)),
     );
 
     // Enterprise features
@@ -487,14 +488,14 @@ pub fn build_webapp(
             .route("/test_directory_sync", get(test_dirsync_connection)),
     );
 
-    // audit stream
+    // activity log stream
     let webapp = webapp.nest(
-        "/api/v1/audit_stream",
+        "/api/v1/activity_log_stream",
         Router::new()
-            .route("/", get(get_audit_stream))
-            .route("/", post(create_audit_stream))
-            .route("/{id}", delete(delete_audit_stream))
-            .route("/{id}", put(modify_audit_stream)),
+            .route("/", get(get_activity_log_stream))
+            .route("/", post(create_activity_log_stream))
+            .route("/{id}", delete(delete_activity_log_stream))
+            .route("/{id}", put(modify_activity_log_stream)),
     );
 
     #[cfg(feature = "openid")]
@@ -668,7 +669,12 @@ pub async fn run_web_server(
         event_tx,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
+    let addr = SocketAddr::new(
+        server_config()
+            .http_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().http_port,
+    );
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,
@@ -760,7 +766,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not save device");
         device
-            .assign_next_network_ip(&mut transaction, &network, None)
+            .assign_next_network_ip(&mut transaction, &network, None, None)
             .await
             .expect("Could not assign IP to device");
     }

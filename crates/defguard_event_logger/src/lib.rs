@@ -1,4 +1,23 @@
 use bytes::Bytes;
+use defguard_core::db::{
+    models::activity_log::{
+        metadata::{
+            ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
+            ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
+            ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
+            EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
+            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
+            MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
+            OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
+            OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
+            UserMetadata, UserModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
+            WebHookModifiedMetadata, WebHookStateChangedMetadata,
+        },
+        ActivityLogEvent, ActivityLogModule, EventType,
+    },
+    NoId,
+};
 use error::EventLoggerError;
 use message::{
     DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
@@ -6,27 +25,6 @@ use message::{
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
-
-use defguard_core::db::{
-    models::audit_log::{
-        metadata::{
-            ApiTokenMetadata, ApiTokenRenamedMetadata, AuditStreamMetadata,
-            AuditStreamModifiedMetadata, AuthenticationKeyMetadata,
-            AuthenticationKeyRenamedMetadata, ClientConfigurationTokenMetadata, DeviceMetadata,
-            DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata,
-            GroupAssignedMetadata, GroupMetadata, GroupModifiedMetadata,
-            GroupsBulkAssignedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
-            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
-            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
-            PasswordChangedByAdminMetadata, PasswordResetMetadata, UserMetadata,
-            UserModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
-            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
-            WebHookStateChangedMetadata,
-        },
-        AuditEvent, AuditModule, EventType,
-    },
-    NoId,
-};
 
 pub mod error;
 pub mod message;
@@ -36,13 +34,13 @@ const MESSAGE_LIMIT: usize = 100;
 /// Run the event logger service
 ///
 /// This function runs in an infinite loop, receiving messages from the event_logger_rx channel
-/// and storing them in the database as audit events.
+/// and storing them in the database as activity log events.
 pub async fn run_event_logger(
     pool: PgPool,
     mut event_logger_rx: UnboundedReceiver<EventLoggerMessage>,
-    audit_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
+    activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
-    info!("Starting audit event logger service");
+    info!("Starting activity log event logger service");
 
     // Receive messages in an infinite loop
     loop {
@@ -52,10 +50,10 @@ pub async fn run_event_logger(
             .recv_many(&mut message_buffer, MESSAGE_LIMIT)
             .await;
 
-        debug!("Processing batch of {message_count} audit events");
+        debug!("Processing batch of {message_count} activity log events");
 
         let mut transaction = pool.begin().await?;
-        let mut serialized_audit_events = String::new();
+        let mut serialized_activity_log_events = String::new();
 
         // Process all messages in the batch
         for message in message_buffer {
@@ -68,11 +66,11 @@ pub async fn run_event_logger(
                 device,
             } = message.context;
 
-            // Convert each message to a related audit event
-            let audit_event = {
+            // Convert each message to a related activity log event
+            let activity_log_event = {
                 let (module, event, metadata) = match message.event {
                     LoggerEvent::Defguard(event) => {
-                        let module = AuditModule::Defguard;
+                        let module = ActivityLogModule::Defguard;
 
                         let (event_type, metadata) = match *event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
@@ -290,23 +288,23 @@ pub async fn run_event_logger(
                             DefguardEvent::SettingsDefaultBrandingRestored => {
                                 (EventType::SettingsDefaultBrandingRestored, None)
                             }
-                            DefguardEvent::AuditStreamCreated { stream } => (
-                                EventType::AuditStreamCreated,
-                                serde_json::to_value(AuditStreamMetadata {
+                            DefguardEvent::ActivityLogStreamCreated { stream } => (
+                                EventType::ActivityLogStreamCreated,
+                                serde_json::to_value(ActivityLogStreamMetadata {
                                     stream: stream.into(),
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::AuditStreamRemoved { stream } => (
-                                EventType::AuditStreamRemoved,
-                                serde_json::to_value(AuditStreamMetadata {
+                            DefguardEvent::ActivityLogStreamRemoved { stream } => (
+                                EventType::ActivityLogStreamRemoved,
+                                serde_json::to_value(ActivityLogStreamMetadata {
                                     stream: stream.into(),
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::AuditStreamModified { before, after } => (
-                                EventType::AuditStreamModified,
-                                serde_json::to_value(AuditStreamModifiedMetadata {
+                            DefguardEvent::ActivityLogStreamModified { before, after } => (
+                                EventType::ActivityLogStreamModified,
+                                serde_json::to_value(ActivityLogStreamModifiedMetadata {
                                     before: before.into(),
                                     after: after.into(),
                                 })
@@ -390,7 +388,7 @@ pub async fn run_event_logger(
                         (module, event_type, metadata)
                     }
                     LoggerEvent::Vpn(event) => {
-                        let module = AuditModule::Vpn;
+                        let module = ActivityLogModule::Vpn;
                         let (event_type, metadata) = match *event {
                             VpnEvent::MfaFailed {
                                 location,
@@ -434,7 +432,7 @@ pub async fn run_event_logger(
                         (module, event_type, metadata)
                     }
                     LoggerEvent::Enrollment(event) => {
-                        let module = AuditModule::Enrollment;
+                        let module = ActivityLogModule::Enrollment;
                         let (event_type, metadata) = match *event {
                             EnrollmentEvent::EnrollmentStarted => {
                                 (EventType::EnrollmentStarted, None)
@@ -465,7 +463,7 @@ pub async fn run_event_logger(
                     }
                 };
 
-                AuditEvent {
+                ActivityLogEvent {
                     id: NoId,
                     timestamp,
                     user_id,
@@ -478,25 +476,25 @@ pub async fn run_event_logger(
                 }
             };
 
-            match serde_json::to_string(&audit_event) {
-                Ok(serialized_audit_event) => {
-                    serialized_audit_events += &(serialized_audit_event + "\n");
+            match serde_json::to_string(&activity_log_event) {
+                Ok(serialized_activity_log_event) => {
+                    serialized_activity_log_events += &(serialized_activity_log_event + "\n");
                 }
                 Err(e) => {
-                    error!("Failed to serialize audit event. Reason: {e}");
+                    error!("Failed to serialize activity log event. Reason: {e}");
                 }
             }
 
-            // Store audit event in DB
+            // Store activity log event in DB
             // TODO: do batch inserts
-            audit_event.save(&mut *transaction).await?;
+            activity_log_event.save(&mut *transaction).await?;
         }
 
         // Send serialized events
-        if !serialized_audit_events.is_empty() {
-            let in_bytes = bytes::Bytes::from(serialized_audit_events);
-            if let Err(send_err) = audit_messages_tx.send(in_bytes) {
-                trace!("Sending serialized audit events message failed. Most likely because there is no listeners. Reason: {send_err}");
+        if !serialized_activity_log_events.is_empty() {
+            let in_bytes = bytes::Bytes::from(serialized_activity_log_events);
+            if let Err(send_err) = activity_log_messages_tx.send(in_bytes) {
+                trace!("Sending serialized activity log events message failed. Most likely because there is no listeners. Reason: {send_err}");
             }
         }
 

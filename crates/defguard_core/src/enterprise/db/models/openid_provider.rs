@@ -1,7 +1,7 @@
 use std::fmt;
 
 use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, PgPool, Type};
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
 
 use crate::db::{Id, NoId};
 
@@ -195,7 +195,10 @@ impl OpenIdProvider {
 }
 
 impl OpenIdProvider<Id> {
-    pub async fn find_by_name(pool: &PgPool, name: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, client_id, client_secret, display_name, \
@@ -207,11 +210,14 @@ impl OpenIdProvider<Id> {
             FROM openidprovider WHERE name = $1",
             name
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
-    pub async fn get_current(pool: &PgPool) -> Result<Option<Self>, SqlxError> {
+    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, client_id, client_secret, display_name, \
@@ -222,7 +228,7 @@ impl OpenIdProvider<Id> {
             okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match \
             FROM openidprovider LIMIT 1"
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 }

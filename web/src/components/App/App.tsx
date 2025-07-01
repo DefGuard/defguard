@@ -4,7 +4,7 @@ import './App.scss';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AclRoutes } from '../../pages/acl/AclRoutes';
-import { ActivityPage } from '../../pages/activity/ActivityPage';
+import { ActivityLogPage } from '../../pages/activity-log/ActivityLogPage';
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
@@ -58,14 +58,6 @@ const App = () => {
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
-              <Route
-                path="activity/*"
-                element={
-                  <ProtectedRoute adminRequired>
-                    <ActivityPage />
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path="acl/*"
                 element={
@@ -172,6 +164,14 @@ const App = () => {
               />
               <Route path="*" element={<Navigate to="users" />} />
             </Route>
+            <Route
+              path="activity/*"
+              element={
+                <ProtectedRoute>
+                  <ActivityLogPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="me/*"
               element={

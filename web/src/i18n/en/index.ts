@@ -8,6 +8,7 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      timeRange: 'Time range',
       addNew: 'Add new',
       add: 'Add',
       accept: 'Accept',
@@ -35,6 +36,8 @@ const en: BaseTranslation = {
       selectAll: 'Select all',
       clear: 'Clear',
       clearAll: 'Clear all',
+      filter: 'Filter',
+      filters: 'Filters',
     },
     key: 'Key',
     name: 'Name',
@@ -42,6 +45,9 @@ const en: BaseTranslation = {
     unavailable: 'Unavailable',
     notSet: 'Not set',
     search: 'Search',
+    time: 'Time',
+    from: 'From',
+    until: 'Until',
   },
   messages: {
     error: 'Error has occurred.',
@@ -977,10 +983,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       groups: 'Groups',
       devices: 'Network Devices',
       acl: 'Access Control',
-      activity: 'Activity',
+      activity: 'Activity log',
     },
     mobileTitles: {
-      activity: 'Activity',
+      activity: 'Activity log',
       groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
@@ -1103,7 +1109,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
-      auditStream: 'Audit logs streaming',
+      activityLogStream: 'Activity log streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1115,7 +1121,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       subtitle: 'To learn more, visit our ',
       website: 'website',
     },
-    auditStreamSettings: {
+    activityLogStreamSettings: {
       messages: {
         destinationCrud: {
           create: '{destination: string} destination added',
@@ -1145,9 +1151,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
         },
       },
-      title: 'Audit logs streaming',
+      title: 'Activity log streaming',
       list: {
         noData: 'No destinations',
+        headers: {
+          name: 'Name',
+          destination: 'Destination',
+        },
       },
     },
     ldapSettings: {
@@ -1237,6 +1247,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             'Automatically create user account when logging in for the first time through external OpenID.',
           helper:
             'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
+        },
+        useOpenIdForMfa: {
+          label: 'Use external OpenID for client MFA',
+          helper:
+            'When the external OpenID SSO Multi-Factor (MFA) process is enabled, users connecting to VPN locations that require MFA will need to authenticate via their browser using the configured provider for each connection. If this setting is disabled, MFA for those VPN locations will be handled through the internal Defguard SSO system. In that case, users must have TOTP or email-based MFA configured in their profile.',
         },
         usernameHandling: {
           label: 'Username handling',
@@ -2318,6 +2333,10 @@ Any other requests you can reach us at: support@defguard.net
       expired: 'Expired',
     },
     listPage: {
+      tabs: {
+        rules: 'Rules',
+        aliases: 'Aliases',
+      },
       message: {
         changeDiscarded: 'Change discarded',
         changeAdded: 'Pending change added',
@@ -2542,8 +2561,31 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       },
     },
   },
+  activity: {
+    title: 'Activity log',
+    modals: {
+      timeRange: {
+        title: 'Activity time',
+      },
+    },
+    list: {
+      allLabel: 'All activity',
+      headers: {
+        date: 'Date',
+        user: 'User',
+        ip: 'IP',
+        event: 'Event',
+        module: 'Module',
+        device: 'Device',
+      },
+      noData: {
+        data: 'No activities present',
+        search: 'No activities found',
+      },
+    },
+  },
   enums: {
-    auditEventType: {
+    activityLogEventType: {
       user_login: 'User login',
       user_login_failed: 'User login failed',
       user_mfa_login: 'User MFA login',
@@ -2567,9 +2609,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       network_device_added: 'Network device added',
       network_device_removed: 'Network device removed',
       network_device_modified: 'Network device modified',
-      audit_stream_created: 'Audit stream created',
-      audit_stream_modified: 'Audit stream modified',
-      audit_stream_removed: 'Audit stream removed',
+      activity_log_stream_created: 'Activity log stream created',
+      activity_log_stream_modified: 'Activity log stream modified',
+      activity_log_stream_removed: 'Activity log stream removed',
       vpn_client_connected: 'VPN client connected',
       vpn_client_disconnected: 'VPN client disconnected',
       vpn_client_connected_mfa: 'VPN client connected to MFA location',
@@ -2614,7 +2656,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       password_reset: 'Password reset',
       client_configuration_token_added: 'Client configuration token added',
     },
-    auditModule: {
+    activityLogModule: {
       defguard: 'Defguard',
       client: 'Client',
       enrollment: 'Enrollment',

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"activity_log_stream\" SET \"name\" = $2,\"stream_type\" = $3,\"config\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ee282a71f1ee3dd6aabcef1f7b89e6b5718e77f0b80e0d626caf5cb1aac2bf2"
+}

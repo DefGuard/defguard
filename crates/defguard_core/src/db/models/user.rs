@@ -15,6 +15,7 @@ use rand::{
     prelude::Distribution,
     Rng,
 };
+use serde::Serialize;
 use sqlx::{
     query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
     Type,
@@ -31,7 +32,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork},
+    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::{
@@ -53,15 +54,7 @@ pub enum MFAMethod {
     Email,
 }
 
-impl From<MfaMethod> for MFAMethod {
-    fn from(method: MfaMethod) -> Self {
-        match method {
-            MfaMethod::Totp => Self::OneTimePassword,
-            MfaMethod::Email => Self::Email,
-        }
-    }
-}
-
+// Web MFA methods
 impl fmt::Display for MFAMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -72,6 +65,21 @@ impl fmt::Display for MFAMethod {
                 MFAMethod::OneTimePassword => "TOTP",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
+            }
+        )
+    }
+}
+
+// Client MFA methods
+impl fmt::Display for MfaMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MfaMethod::Totp => "TOTP",
+                MfaMethod::Email => "Email",
+                MfaMethod::Oidc => "OIDC",
             }
         )
     }
@@ -114,6 +122,8 @@ pub struct User<I = NoId> {
     /// This is used to identify the user in LDAP as we sometimes can't use the Defguard's username
     /// since the RDN may contain spaces or other special characters and the username may not.
     pub ldap_rdn: Option<String>,
+    /// Rest of the user's DN
+    pub ldap_user_path: Option<String>,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -145,6 +155,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             from_ldap,
             ldap_pass_randomized,
             ldap_rdn,
+            ldap_user_path,
             openid_sub,
             totp_enabled,
             email_mfa_enabled,
@@ -166,6 +177,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             .field("from_ldap", from_ldap)
             .field("ldap_pass_randomized", ldap_pass_randomized)
             .field("ldap_rdn", ldap_rdn)
+            .field("ldap_user_path", ldap_user_path) // sensitive data
             .field("openid_sub", openid_sub)
             .field("totp_enabled", totp_enabled)
             .field("email_mfa_enabled", email_mfa_enabled)
@@ -220,6 +232,7 @@ impl User {
             from_ldap: false,
             ldap_pass_randomized: false,
             ldap_rdn: Some(username.clone()),
+            ldap_user_path: None,
         }
     }
 }
@@ -447,18 +460,19 @@ impl User<Id> {
             let gateway_events = network
                 .sync_allowed_devices_for_user(&mut *conn, self, None)
                 .await?;
+
             // check if any peers were updated
             if !gateway_events.is_empty() {
                 // send peer update events
                 send_multiple_wireguard_events(gateway_events, wg_tx);
+            }
 
-                // send firewall config update if ACLs & enterprise features are enabled
-                if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
-                    send_wireguard_event(
-                        GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
-                        wg_tx,
-                    );
-                }
+            // send firewall config update if ACLs & enterprise features are enabled
+            if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+                send_wireguard_event(
+                    GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                    wg_tx,
+                );
             }
         }
         info!("Allowed devices of user {} synced", self.username);
@@ -691,7 +705,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -842,7 +856,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -861,7 +875,7 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -879,7 +893,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -900,7 +914,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
@@ -1130,7 +1144,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1152,7 +1166,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1181,44 +1195,13 @@ impl User<Id> {
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
         )
         .fetch_all(executor)
         .await
-    }
-
-    /// User is syncable with LDAP if:
-    /// - he is in a group that is allowed to be synced or no such groups are configured
-    /// - he is active (not disabled)
-    /// - he is enrolled
-    pub(crate) async fn ldap_sync_allowed<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let sync_groups = Settings::get_current_settings().ldap_sync_groups;
-        let my_groups = self.member_of(executor).await?;
-        Ok(
-            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
-                && self.is_active
-                && self.is_enrolled(),
-        )
-    }
-
-    /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
-    pub(crate) async fn maybe_update_rdn(&mut self) -> Result<(), SqlxError> {
-        debug!("Updating RDN for user {} in Defguard", self.username);
-        let settings = Settings::get_current_settings();
-        if settings.ldap_using_username_as_rdn() {
-            debug!("The user's username is being used as the RDN, setting it to username");
-            self.ldap_rdn = Some(self.username.clone());
-        } else {
-            debug!("The user's username is NOT being used as the RDN, skipping update");
-        }
-
-        Ok(())
     }
 }
 
@@ -1257,6 +1240,7 @@ impl Distribution<User<Id>> for Standard {
             from_ldap: false,
             ldap_pass_randomized: false,
             ldap_rdn: None,
+            ldap_user_path: None,
         }
     }
 }
@@ -1296,6 +1280,7 @@ impl Distribution<User<NoId>> for Standard {
             from_ldap: false,
             ldap_pass_randomized: false,
             ldap_rdn: None,
+            ldap_user_path: None,
         }
     }
 }

@@ -1,0 +1,18 @@
+sources:
+  defguard:
+    type: http_server
+    address: 0.0.0.0:8001
+    encoding: ndjson
+    auth:
+      strategy: basic
+      password: strongPassword
+      username: vector
+
+sinks:
+  console:
+    type: console
+    inputs:
+    - defguard
+    target: stdout
+    encoding:
+      codec: json

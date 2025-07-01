@@ -41,6 +41,7 @@ pub struct AddProviderData {
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
+    pub use_openid_for_mfa: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -117,6 +118,7 @@ pub async fn add_openid_provider(
 
     let mut settings = Settings::get_current_settings();
     settings.openid_create_account = provider_data.create_account;
+    settings.use_openid_for_mfa = provider_data.use_openid_for_mfa;
     settings.openid_username_handling = provider_data.username_handling;
     update_current_settings(&appstate.pool, settings).await?;
 
@@ -177,7 +179,6 @@ pub async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let settings = Settings::get_current_settings();
-    let create_account = settings.openid_create_account;
     match OpenIdProvider::get_current(&appstate.pool).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
@@ -186,7 +187,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": create_account, "username_handling": settings.openid_username_handling}),
+                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
                 }),
                 status: StatusCode::OK,
             })
@@ -194,7 +195,7 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({ "create_account": create_account }),
+                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
             }),
             status: StatusCode::NO_CONTENT,
         }),
@@ -213,9 +214,14 @@ pub async fn delete_openid_provider(
         "User {} deleting OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+    let mut trasnaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *trasnaction, &provider_data.name).await?;
     if let Some(provider) = provider {
-        provider.clone().delete(&appstate.pool).await?;
+        let mut settings = Settings::get_current_settings();
+        provider.clone().delete(&mut *trasnaction).await?;
+        settings.use_openid_for_mfa = false;
+        update_current_settings(&mut *trasnaction, settings).await?;
+        trasnaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",
             session.user.username, provider.name
@@ -231,6 +237,44 @@ pub async fn delete_openid_provider(
     } else {
         warn!(
             "User {} failed to delete OpenID provider {}. Such provider does not exist.",
+            session.user.username, provider_data.name
+        );
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        })
+    }
+}
+
+pub async fn modify_openid_provider(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(provider_data): Json<AddProviderData>,
+) -> ApiResult {
+    debug!(
+        "User {} modifying OpenID provider {}",
+        session.user.username, provider_data.name
+    );
+    let mut transaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
+    if let Some(mut provider) = provider {
+        provider.base_url = provider_data.base_url;
+        provider.client_id = provider_data.client_id;
+        provider.client_secret = provider_data.client_secret;
+        provider.save(&mut *transaction).await?;
+        info!(
+            "User {} modified OpenID client {}",
+            session.user.username, provider.name
+        );
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::OK,
+        })
+    } else {
+        warn!(
+            "User {} failed to modify OpenID client {}. Such client does not exist.",
             session.user.username, provider_data.name
         );
         Ok(ApiResponse {
