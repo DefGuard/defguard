@@ -510,12 +510,13 @@ export const buildApi = (client: Axios): Api => {
       })
       .then(unpackRequest);
 
-  const getAuditLog: Api['auditLog']['getAuditLog'] = (params) =>
+  const getActivityLog: Api['activityLog']['getActivityLog'] = (params) =>
     client
-      .get(`/audit_log`, {
+      .get(`/activity_log`, {
         params,
       })
       .then(unpackRequest);
+
   const getAllNetworksStats: Api['network']['getAllNetworksStats'] = (params) => {
     const fromParam = getNetworkStatsFilterValue(params.from ?? 1);
     return client
@@ -530,28 +531,32 @@ export const buildApi = (client: Axios): Api => {
   const getAllGatewaysStatus: Api['network']['getAllGatewaysStatus'] = () =>
     client.get('/network/gateways').then(unpackRequest);
 
-  const getAuditStreams: Api['auditStream']['getAuditStreams'] = () =>
-    client.get('/audit_stream').then(unpackRequest);
-  const createAuditStream: Api['auditStream']['createAuditStream'] = (data) =>
-    client.post('/audit_stream', data).then(unpackRequest);
-  const modifyAuditStream: Api['auditStream']['modifyAuditStream'] = ({ id, ...rest }) =>
-    client.put(`/audit_stream/${id}`, rest).then(unpackRequest);
-  const deleteAuditStream: Api['auditStream']['deleteAuditStream'] = (id) =>
-    client.delete(`/audit_stream/${id}`).then(unpackRequest);
+  const getActivityLogStreams: Api['activityLogStream']['getActivityLogStreams'] = () =>
+    client.get('/activity_log_stream').then(unpackRequest);
+  const createActivityLogStream: Api['activityLogStream']['createActivityLogStream'] = (
+    data,
+  ) => client.post('/activity_log_stream', data).then(unpackRequest);
+  const modifyActivityLogStream: Api['activityLogStream']['modifyActivityLogStream'] = ({
+    id,
+    ...rest
+  }) => client.put(`/activity_log_stream/${id}`, rest).then(unpackRequest);
+  const deleteActivityLogStream: Api['activityLogStream']['deleteActivityLogStream'] = (
+    id,
+  ) => client.delete(`/activity_log_stream/${id}`).then(unpackRequest);
 
   return {
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
-    auditStream: {
-      createAuditStream,
-      deleteAuditStream,
-      getAuditStreams,
-      modifyAuditStream,
+    activityLogStream: {
+      createActivityLogStream,
+      deleteActivityLogStream,
+      getActivityLogStreams,
+      modifyActivityLogStream,
     },
-    auditLog: {
-      getAuditLog,
+    activityLog: {
+      getActivityLog,
     },
     acl: {
       aliases: {

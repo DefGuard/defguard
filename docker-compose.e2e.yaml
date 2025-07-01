@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:current
+    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
     # build:
     #   context: .
     #   dockerfile: Dockerfile
@@ -36,7 +36,7 @@ services:
       - "5432:5432"
 
   proxy:
-    image: ghcr.io/defguard/defguard-proxy:current
+    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
     ports:
       - "8080:8080"
     environment:

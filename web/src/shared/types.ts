@@ -7,7 +7,7 @@ import {
 import { AxiosError, AxiosPromise } from 'axios';
 
 import { AclAlias, AclStatus } from '../pages/acl/types';
-import { AuditEventType, AuditModule } from '../pages/activity/types';
+import { ActivityLogEventType, ActivityLogModule } from '../pages/activity-log/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -499,14 +499,14 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export type AuditEvent = {
+export type ActivityLogEvent = {
   id: number;
   timestamp: string;
   user_id: number;
   username: string;
   ip: string;
-  event: AuditEventType;
-  module: AuditModule;
+  event: ActivityLogEventType;
+  module: ActivityLogModule;
   device: string;
   metadata?: unknown;
 };
@@ -530,18 +530,18 @@ export type PaginatedResponse<T> = {
 
 export type AllGateWaysResponse = Record<string, Array<GatewayStatus>>;
 
-export type AuditLogFilters = {
+export type ActivityLogFilters = {
   // Naive UTC datetime in string
   from?: string;
   // Naive UTC datetime in string
   until?: string;
   username?: string[];
-  event?: AuditEventType[];
-  module?: AuditModule[];
+  event?: ActivityLogEventType[];
+  module?: ActivityLogModule[];
   search?: string;
 };
 
-export type AuditLogSortKey =
+export type ActivityLogSortKey =
   | 'timestamp'
   | 'username'
   | 'ip'
@@ -556,59 +556,65 @@ export type RequestSortParams<T> = {
   sort_order?: ApiSortDirection;
 };
 
-export type AuditLogRequestParams = AuditLogFilters &
-  RequestSortParams<AuditLogSortKey> &
+export type ActivityLogRequestParams = ActivityLogFilters &
+  RequestSortParams<ActivityLogSortKey> &
   PaginationParams;
 
-export type AuditStreamType = 'vector_http' | 'logstash_http';
+export type ActivityLogStreamType = 'vector_http' | 'logstash_http';
 
-export type AuditStream = {
+export type ActivityLogStream = {
   id: number;
   name: string;
-  stream_type: AuditStreamType;
-  config: AuditStreamConfig;
+  stream_type: ActivityLogStreamType;
+  config: ActivityLogStreamConfig;
 };
 
-export type AuditStreamVectorHttp = {
+export type ActivityLogStreamVectorHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type AuditStreamLogstashHttp = {
+export type ActivityLogStreamLogstashHttp = {
   url: string;
   username?: string;
   password?: string;
   cert?: string;
 };
 
-export type AuditStreamModifyRequest = {
+export type ActivityLogStreamModifyRequest = {
   id: number;
   name: string;
-  stream_type: AuditStreamType;
-  stream_config: AuditStreamConfig;
+  stream_type: ActivityLogStreamType;
+  stream_config: ActivityLogStreamConfig;
 };
 
-export type AuditStreamConfig = AuditStreamVectorHttp | AuditStreamLogstashHttp;
+export type ActivityLogStreamConfig =
+  | ActivityLogStreamVectorHttp
+  | ActivityLogStreamLogstashHttp;
 
-export type AuditStreamCreateRequest = Omit<AuditStreamModifyRequest, 'id'>;
+export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
 
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
-  auditLog: {
-    getAuditLog: (
-      params: AuditLogRequestParams,
-    ) => Promise<PaginatedResponse<AuditEvent>>;
+  activityLog: {
+    getActivityLog: (
+      params: ActivityLogRequestParams,
+    ) => Promise<PaginatedResponse<ActivityLogEvent>>;
   };
-  auditStream: {
-    getAuditStreams: () => Promise<AuditStream[]>;
-    createAuditStream: (data: AuditStreamCreateRequest) => Promise<EmptyApiResponse>;
-    modifyAuditStream: (data: AuditStreamModifyRequest) => Promise<EmptyApiResponse>;
-    deleteAuditStream: (id: number) => Promise<EmptyApiResponse>;
+  activityLogStream: {
+    getActivityLogStreams: () => Promise<ActivityLogStream[]>;
+    createActivityLogStream: (
+      data: ActivityLogStreamCreateRequest,
+    ) => Promise<EmptyApiResponse>;
+    modifyActivityLogStream: (
+      data: ActivityLogStreamModifyRequest,
+    ) => Promise<EmptyApiResponse>;
+    deleteActivityLogStream: (id: number) => Promise<EmptyApiResponse>;
   };
   acl: {
     aliases: {
