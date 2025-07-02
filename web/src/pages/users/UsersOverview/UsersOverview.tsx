@@ -26,6 +26,7 @@ import {
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import { User } from '../../../shared/types';
+import { DisableMfaModal } from '../shared/modals/DisableMfaModal/DisableMfaModal';
 import { UsersList } from './components/UsersList/UsersList';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { useAddUserModal } from './modals/AddUserModal/hooks/useAddUserModal';
@@ -242,6 +243,7 @@ export const UsersOverview = () => {
       )}
       <AddUserModal />
       <AssignGroupsModal />
+      <DisableMfaModal />
     </section>
   );
 };
