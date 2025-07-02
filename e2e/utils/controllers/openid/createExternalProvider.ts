@@ -5,7 +5,7 @@ import { OpenIdClient } from '../../../types';
 import { waitForBase } from '../../waitForBase';
 import { loginBasic } from '../login';
 
-export const CreateExternalProvider = async (browser: Browser, client: OpenIdClient) => {
+export const createExternalProvider = async (browser: Browser, client: OpenIdClient) => {
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
@@ -18,5 +18,13 @@ export const CreateExternalProvider = async (browser: Browser, client: OpenIdCli
   await page.getByTestId('field-client_id').fill(client.clientID || '');
   await page.getByTestId('field-client_secret').fill(client.clientSecret || '');
   await page.getByTestId('field-display_name').fill(client.name);
+  if (client.use_external_openid_mfa) {
+    const checkbox = page
+      .locator('div')
+      .filter({ hasText: /^Use external OpenID for client MFA$/ })
+      .nth(1);
+    await checkbox.click();
+  }
   await page.getByRole('button', { name: 'Save changes' }).click();
+  await context.close();
 };

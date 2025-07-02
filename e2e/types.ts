@@ -60,6 +60,7 @@ export type OpenIdClient = {
   clientSecret?: string;
   redirectURL: string[];
   scopes: OpenIdScope[];
+  use_external_openid_mfa: boolean;
 };
 
 export type NetworkForm = {

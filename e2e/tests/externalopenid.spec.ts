@@ -6,7 +6,7 @@ import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
-import { CreateExternalProvider } from '../utils/controllers/openid/createExternalProvider';
+import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
 import { dockerDown, dockerRestart } from '../utils/docker';
@@ -24,6 +24,7 @@ test.describe('External OIDC.', () => {
       'http://localhost:8080/openid/callback',
     ],
     scopes: ['openid', 'profile', 'email'],
+    use_external_openid_mfa: false,
   };
 
   const testNetwork: NetworkForm = {
@@ -42,12 +43,12 @@ test.describe('External OIDC.', () => {
     );
     const context = await browser.newContext();
     const page = await context.newPage();
-    await CreateExternalProvider(browser, client);
+    await createExternalProvider(browser, client);
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
     await logout(page);
     await createNetwork(browser, testNetwork);
-    context.close();
+    await context.close();
   });
 
   test.afterAll(() => {
