@@ -76,7 +76,7 @@ pub(crate) async fn bulk_assign_to_groups(
         "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE id = ANY($1)",
         &data.users
     )

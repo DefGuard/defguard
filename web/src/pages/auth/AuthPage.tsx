@@ -141,11 +141,13 @@ export const AuthPage = () => {
   return (
     <div id="auth-container">
       <div className="logo-container">
-        {settings ? (
-          <img src={settings?.main_logo_url} alt="login_logo" />
-        ) : (
-          <SvgDefguardLogoLogin />
-        )}
+        <a target="_blank" href="https://defguard.net" rel="noreferrer noopener">
+          {settings ? (
+            <img src={settings?.main_logo_url} alt="login_logo" />
+          ) : (
+            <SvgDefguardLogoLogin />
+          )}
+        </a>
       </div>
       <Routes>
         <Route index element={<Navigate to="login" />} />

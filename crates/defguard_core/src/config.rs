@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
@@ -160,6 +162,12 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_CHECK_RENEWAL_WINDOW", default_value = "1h")]
     #[serde(skip_serializing)]
     pub check_period_renewal_window: Duration,
+
+    #[arg(long, env = "DEFGUARD_HTTP_BIND_ADDRESS")]
+    pub http_bind_address: Option<IpAddr>,
+
+    #[arg(long, env = "DEFGUARD_GRPC_BIND_ADDRESS")]
+    pub grpc_bind_address: Option<IpAddr>,
 }
 
 #[derive(Clone, Debug, Subcommand)]

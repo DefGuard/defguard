@@ -28,7 +28,7 @@ pub async fn svg(uri: Uri) -> impl IntoResponse {
 #[include = "src/shared/images/*"]
 struct WebAsset;
 
-pub struct StaticFile<T>(pub T);
+pub(crate) struct StaticFile<T>(pub T);
 
 impl<T> IntoResponse for StaticFile<T>
 where

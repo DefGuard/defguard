@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::IpAddr};
+use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use thiserror::Error;
@@ -31,8 +31,8 @@ pub struct ClientState {
     pub device: Device<Id>,
     pub user_id: Id,
     pub username: String,
-    // current IP from which the client is connecting
-    pub endpoint: IpAddr,
+    // current IP & port from which the client is connecting
+    pub endpoint: SocketAddr,
     pub latest_handshake: NaiveDateTime,
     // when last stats update was received
     pub latest_update: NaiveDateTime,
@@ -46,7 +46,7 @@ impl ClientState {
     pub fn new(
         device: Device<Id>,
         user: &User<Id>,
-        endpoint: IpAddr,
+        endpoint: SocketAddr,
         latest_handshake: NaiveDateTime,
         total_upload: i64,
         total_download: i64,
@@ -67,7 +67,7 @@ impl ClientState {
     pub fn update_client_state(
         &mut self,
         current_device: Device<Id>,
-        current_endpoint: IpAddr,
+        current_endpoint: SocketAddr,
         latest_handshake: NaiveDateTime,
         upload: i64,
         download: i64,
@@ -110,7 +110,7 @@ impl ClientMap {
         public_key: &str,
         device: &Device<Id>,
         user: &User<Id>,
-        endpoint: IpAddr,
+        endpoint: SocketAddr,
         stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
@@ -166,32 +166,29 @@ impl ClientMap {
         let mut disconnected_clients = Vec::new();
 
         // get client state map for given location
-        let location_map = match self.0.get_mut(&location_id) {
-            Some(location_map) => location_map,
-            None => {
-                return Err(ClientMapError::LocationNotFound { location_id });
-            }
+        if let Some(location_map) = self.0.get_mut(&location_id) {
+            let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
+
+            // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
+            location_map.retain(|public_key, client_state| {
+                let now = Utc::now().naive_utc();
+                if (now - client_state.latest_handshake) > disconnect_threshold {
+                	debug!("VPN client's {public_key} ({}, ID {}) latest handshake ({}) was more than {peer_disconnect_threshold_secs} seconds ago. Marking VPN client as disconnected", client_state.device.name, client_state.device.id, client_state.latest_handshake);
+                    let disconnect_event_context = GrpcRequestContext::new(
+                        client_state.user_id,
+                        client_state.username.clone(),
+                        client_state.endpoint.ip(),
+                        client_state.device.id,
+                        client_state.device.name.clone(),
+                    );
+                    disconnected_clients
+                        .push((client_state.device.clone(), disconnect_event_context));
+
+                    return false;
+                };
+                true
+            });
         };
-
-        let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
-
-        // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
-        location_map.retain(|_public_key, client_state| {
-            let now = Utc::now().naive_utc();
-            if (now - client_state.latest_update) > disconnect_threshold {
-                let disconnect_event_context = GrpcRequestContext::new(
-                    client_state.user_id,
-                    client_state.username.clone(),
-                    client_state.endpoint,
-                    client_state.device.id,
-                    client_state.device.name.clone(),
-                );
-                disconnected_clients.push((client_state.device.clone(), disconnect_event_context));
-
-                return false;
-            };
-            true
-        });
 
         Ok(disconnected_clients)
     }

@@ -10,8 +10,8 @@ use crate::{
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::{
-        audit_stream::error::AuditStreamError, db::models::acl::AclError, firewall::FirewallError,
-        ldap::error::LdapError, license::LicenseError,
+        activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
+        firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
     grpc::GatewayMapError,
@@ -69,8 +69,8 @@ pub enum WebError {
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
-    #[error("Audit stream error: {0}")]
-    AuditStreamError(String),
+    #[error("Activity log stream error: {0}")]
+    ActivityLogStreamError(#[from] ActivityLogStreamError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -175,16 +175,6 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
-        }
-    }
-}
-
-impl From<AuditStreamError> for WebError {
-    fn from(err: AuditStreamError) -> Self {
-        match err {
-            AuditStreamError::ConfigDeserializeError(_, _)
-            | AuditStreamError::HeaderValueParsing()
-            | AuditStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
         }
     }
 }

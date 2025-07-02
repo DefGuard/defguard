@@ -32,6 +32,10 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * T​i​m​e​ ​r​a​n​g​e
+			 */
+			timeRange: string
+			/**
 			 * A​d​d​ ​n​e​w
 			 */
 			addNew: string
@@ -139,6 +143,14 @@ type RootTranslation = {
 			 * C​l​e​a​r​ ​a​l​l
 			 */
 			clearAll: string
+			/**
+			 * F​i​l​t​e​r
+			 */
+			filter: string
+			/**
+			 * F​i​l​t​e​r​s
+			 */
+			filters: string
 		}
 		/**
 		 * K​e​y
@@ -164,6 +176,18 @@ type RootTranslation = {
 		 * S​e​a​r​c​h
 		 */
 		search: string
+		/**
+		 * T​i​m​e
+		 */
+		time: string
+		/**
+		 * F​r​o​m
+		 */
+		from: string
+		/**
+		 * U​n​t​i​l
+		 */
+		until: string
 	}
 	messages: {
 		/**
@@ -2320,13 +2344,13 @@ type RootTranslation = {
 			 */
 			acl: string
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 		}
 		mobileTitles: {
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 			/**
@@ -2708,9 +2732,9 @@ type RootTranslation = {
 			 */
 			gatewayNotifications: string
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
-			auditStream: string
+			activityLogStream: string
 		}
 		messages: {
 			/**
@@ -2740,7 +2764,7 @@ type RootTranslation = {
 			 */
 			website: string
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -2813,7 +2837,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
 			title: string
 			list: {
@@ -2821,6 +2845,16 @@ type RootTranslation = {
 				 * N​o​ ​d​e​s​t​i​n​a​t​i​o​n​s
 				 */
 				noData: string
+				headers: {
+					/**
+					 * N​a​m​e
+					 */
+					name: string
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					destination: string
+				}
 			}
 		}
 		ldapSettings: {
@@ -5493,6 +5527,16 @@ type RootTranslation = {
 			expired: string
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * R​u​l​e​s
+				 */
+				rules: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+			}
 			message: {
 				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
@@ -6098,8 +6142,64 @@ type RootTranslation = {
 			}
 		}
 	}
+	activity: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​l​o​g
+		 */
+		title: string
+		modals: {
+			timeRange: {
+				/**
+				 * A​c​t​i​v​i​t​y​ ​t​i​m​e
+				 */
+				title: string
+			}
+		}
+		list: {
+			/**
+			 * A​l​l​ ​a​c​t​i​v​i​t​y
+			 */
+			allLabel: string
+			headers: {
+				/**
+				 * D​a​t​e
+				 */
+				date: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * I​P
+				 */
+				ip: string
+				/**
+				 * E​v​e​n​t
+				 */
+				event: string
+				/**
+				 * M​o​d​u​l​e
+				 */
+				module: string
+				/**
+				 * D​e​v​i​c​e
+				 */
+				device: string
+			}
+			noData: {
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​p​r​e​s​e​n​t
+				 */
+				data: string
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​f​o​u​n​d
+				 */
+				search: string
+			}
+		}
+	}
 	enums: {
-		auditEventType: {
+		activityLogEventType: {
 			/**
 			 * U​s​e​r​ ​l​o​g​i​n
 			 */
@@ -6193,17 +6293,17 @@ type RootTranslation = {
 			 */
 			network_device_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
 			 */
-			audit_stream_created: string
+			activity_log_stream_created: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
 			 */
-			audit_stream_modified: string
+			activity_log_stream_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
 			 */
-			audit_stream_removed: string
+			activity_log_stream_removed: string
 			/**
 			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
 			 */
@@ -6377,7 +6477,7 @@ type RootTranslation = {
 			 */
 			client_configuration_token_added: string
 		}
-		auditModule: {
+		activityLogModule: {
 			/**
 			 * D​e​f​g​u​a​r​d
 			 */
@@ -6415,6 +6515,10 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Time range
+			 */
+			timeRange: () => LocalizedString
 			/**
 			 * Add new
 			 */
@@ -6523,6 +6627,14 @@ export type TranslationFunctions = {
 			 * Clear all
 			 */
 			clearAll: () => LocalizedString
+			/**
+			 * Filter
+			 */
+			filter: () => LocalizedString
+			/**
+			 * Filters
+			 */
+			filters: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -6548,6 +6660,18 @@ export type TranslationFunctions = {
 		 * Search
 		 */
 		search: () => LocalizedString
+		/**
+		 * Time
+		 */
+		time: () => LocalizedString
+		/**
+		 * From
+		 */
+		from: () => LocalizedString
+		/**
+		 * Until
+		 */
+		until: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -8682,13 +8806,13 @@ export type TranslationFunctions = {
 			 */
 			acl: () => LocalizedString
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 			/**
@@ -9062,9 +9186,9 @@ export type TranslationFunctions = {
 			 */
 			gatewayNotifications: () => LocalizedString
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
-			auditStream: () => LocalizedString
+			activityLogStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -9094,7 +9218,7 @@ export type TranslationFunctions = {
 			 */
 			website: () => LocalizedString
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -9164,7 +9288,7 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
 			title: () => LocalizedString
 			list: {
@@ -9172,6 +9296,16 @@ export type TranslationFunctions = {
 				 * No destinations
 				 */
 				noData: () => LocalizedString
+				headers: {
+					/**
+					 * Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Destination
+					 */
+					destination: () => LocalizedString
+				}
 			}
 		}
 		ldapSettings: {
@@ -11824,6 +11958,16 @@ export type TranslationFunctions = {
 			expired: () => LocalizedString
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * Rules
+				 */
+				rules: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+			}
 			message: {
 				/**
 				 * Change discarded
@@ -12421,8 +12565,64 @@ export type TranslationFunctions = {
 			}
 		}
 	}
+	activity: {
+		/**
+		 * Activity log
+		 */
+		title: () => LocalizedString
+		modals: {
+			timeRange: {
+				/**
+				 * Activity time
+				 */
+				title: () => LocalizedString
+			}
+		}
+		list: {
+			/**
+			 * All activity
+			 */
+			allLabel: () => LocalizedString
+			headers: {
+				/**
+				 * Date
+				 */
+				date: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * IP
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Event
+				 */
+				event: () => LocalizedString
+				/**
+				 * Module
+				 */
+				module: () => LocalizedString
+				/**
+				 * Device
+				 */
+				device: () => LocalizedString
+			}
+			noData: {
+				/**
+				 * No activities present
+				 */
+				data: () => LocalizedString
+				/**
+				 * No activities found
+				 */
+				search: () => LocalizedString
+			}
+		}
+	}
 	enums: {
-		auditEventType: {
+		activityLogEventType: {
 			/**
 			 * User login
 			 */
@@ -12516,17 +12716,17 @@ export type TranslationFunctions = {
 			 */
 			network_device_modified: () => LocalizedString
 			/**
-			 * Audit stream created
+			 * Activity log stream created
 			 */
-			audit_stream_created: () => LocalizedString
+			activity_log_stream_created: () => LocalizedString
 			/**
-			 * Audit stream modified
+			 * Activity log stream modified
 			 */
-			audit_stream_modified: () => LocalizedString
+			activity_log_stream_modified: () => LocalizedString
 			/**
-			 * Audit stream removed
+			 * Activity log stream removed
 			 */
-			audit_stream_removed: () => LocalizedString
+			activity_log_stream_removed: () => LocalizedString
 			/**
 			 * VPN client connected
 			 */
@@ -12700,7 +12900,7 @@ export type TranslationFunctions = {
 			 */
 			client_configuration_token_added: () => LocalizedString
 		}
-		auditModule: {
+		activityLogModule: {
 			/**
 			 * Defguard
 			 */

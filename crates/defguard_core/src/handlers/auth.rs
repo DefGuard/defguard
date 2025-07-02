@@ -32,7 +32,7 @@ use crate::{
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
-    enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
+    enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
@@ -231,7 +231,9 @@ pub(crate) async fn authenticate(
                     debug!(
                         "User not found in DB, authenticating user {username_or_email} with LDAP"
                     );
-                    match user_from_ldap(&appstate.pool, &username_or_email, &data.password).await {
+                    match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
+                        .await
+                    {
                         Ok(user) => user,
                         Err(err) => {
                             info!(

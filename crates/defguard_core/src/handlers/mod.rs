@@ -23,8 +23,8 @@ use crate::{
     events::ApiRequestContext,
 };
 
+pub(crate) mod activity_log;
 pub(crate) mod app_info;
-pub(crate) mod audit_log;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
@@ -93,7 +93,7 @@ impl From<WebError> for ApiResponse {
             | WebError::ClientIpError
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)
-            | WebError::AuditStreamError(_) => {
+            | WebError::ActivityLogStreamError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),
