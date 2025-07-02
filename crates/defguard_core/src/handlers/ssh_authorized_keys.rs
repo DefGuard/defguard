@@ -248,7 +248,7 @@ pub async fn delete_authentication_key(
         if !session.is_admin && user.id != key.user_id {
             return Err(WebError::Forbidden(String::new()));
         }
-
+        key.clone().delete(&appstate.pool).await?;
         info!(
             "Removed key \"{:?}\"({}) of type {:?} for user {username}",
             key.name, key.id, key.key_type
