@@ -631,26 +631,24 @@ pub(crate) async fn add_network_device(
         session.session.device_info.clone().as_deref(),
     )?;
 
+    let result = AddNetworkDeviceResult {
+        config,
+        device: NetworkDeviceInfo::from_device(device.clone(), &mut transaction).await?,
+    };
+
+    transaction.commit().await?;
+
     info!(
         "User {} added a new network device {device_name}.",
         user.username
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::NetworkDeviceAdded {
-            device_id: device.id,
-            device_name: device.name.clone(),
-            location_id: network.id,
-            location: network.name,
-        },
+        event: Box::new(ApiEventType::NetworkDeviceAdded {
+            device,
+            location: network,
+        }),
     })?;
-
-    let result = AddNetworkDeviceResult {
-        config,
-        device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
-    };
-
-    transaction.commit().await?;
 
     Ok(ApiResponse {
         json: json!(result),
@@ -681,6 +679,8 @@ pub async fn modify_network_device(
             error!("Failed to update device {device_id}, device not found");
             WebError::ObjectNotFound(format!("Device {device_id} not found"))
         })?;
+    // store device before modifications
+    let before = device.clone();
     let device_network = device
         .find_network_device_networks(&mut *transaction)
         .await?
@@ -733,19 +733,18 @@ pub async fn modify_network_device(
             device_network.name
         );
     }
-
-    let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
-    appstate.emit_event(ApiEvent {
-        context,
-        event: ApiEventType::NetworkDeviceModified {
-            device_id: network_device_info.id,
-            device_name: network_device_info.name.clone(),
-            location_id: device_network.id,
-            location: device_network.name,
-        },
-    })?;
+    let network_device_info =
+        NetworkDeviceInfo::from_device(device.clone(), &mut transaction).await?;
     transaction.commit().await?;
 
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::NetworkDeviceModified {
+            before,
+            after: device,
+            location: device_network,
+        }),
+    })?;
     Ok(ApiResponse {
         json: json!(network_device_info),
         status: StatusCode::OK,

@@ -10,7 +10,7 @@ use std::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
+use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
@@ -56,7 +56,7 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
-        handlers::openid_login::{make_oidc_client, user_from_claims},
+        handlers::openid_login::{build_state, make_oidc_client, user_from_claims},
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
     },
@@ -69,7 +69,7 @@ use crate::{
 use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
-mod desktop_client_mfa;
+pub(crate) mod desktop_client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
@@ -646,7 +646,28 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::ClientMfaFinish(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("client MFA finish error {err}");
+                                    match err.code() {
+                                        Code::FailedPrecondition => {
+                                            // User not yet done with OIDC authentication. Don't log it as an error.
+                                            debug!("Client MFA finish error: {err}");
+                                        }
+                                        _ => {
+                                            // Log other errors as errors.
+                                            error!("Client MFA finish error: {err}");
+                                        }
+                                    }
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
+                            match client_mfa_server
+                                .auth_mfa_session_with_oidc(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("client MFA OIDC authenticate error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -686,7 +707,7 @@ pub async fn run_grpc_bidi_stream(
                                         let (url, csrf_token, nonce) = client
                                             .authorize_url(
                                                 CoreAuthenticationFlow::AuthorizationCode,
-                                                CsrfToken::new_random,
+                                                || build_state(request.state),
                                                 Nonce::new_random,
                                             )
                                             .add_scope(Scope::new("email".to_string()))
@@ -842,7 +863,12 @@ pub async fn run_grpc_server(
         .await;
 
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
+    let addr = SocketAddr::new(
+        server_config()
+            .grpc_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().grpc_port,
+    );
     debug!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
@@ -915,6 +941,8 @@ pub struct InstanceInfo {
     username: String,
     disable_all_traffic: bool,
     enterprise_enabled: bool,
+    use_openid_for_mfa: bool,
+    openid_display_name: Option<String>,
 }
 
 impl InstanceInfo {
@@ -922,8 +950,13 @@ impl InstanceInfo {
         settings: Settings,
         username: S,
         enterprise_settings: &EnterpriseSettings,
+        openid_provider: Option<OpenIdProvider<Id>>,
     ) -> Self {
         let config = server_config();
+        let openid_display_name = openid_provider
+            .as_ref()
+            .map(|provider| provider.display_name.clone())
+            .unwrap_or_default();
         InstanceInfo {
             id: settings.uuid,
             name: settings.instance_name,
@@ -932,6 +965,12 @@ impl InstanceInfo {
             username: username.into(),
             disable_all_traffic: enterprise_settings.disable_all_traffic,
             enterprise_enabled: is_enterprise_enabled(),
+            use_openid_for_mfa: if is_enterprise_enabled() {
+                settings.use_openid_for_mfa
+            } else {
+                false
+            },
+            openid_display_name,
         }
     }
 }
@@ -946,6 +985,8 @@ impl From<InstanceInfo> for proto::proxy::InstanceInfo {
             username: instance.username,
             disable_all_traffic: instance.disable_all_traffic,
             enterprise_enabled: instance.enterprise_enabled,
+            use_openid_for_mfa: instance.use_openid_for_mfa,
+            openid_display_name: instance.openid_display_name,
         }
     }
 }

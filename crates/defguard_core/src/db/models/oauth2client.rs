@@ -7,7 +7,7 @@ use crate::{
     random::gen_alphanumeric,
 };
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize)]
 pub struct OAuth2Client<I = NoId> {
     pub id: I,
     pub client_id: String, // unique

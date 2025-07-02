@@ -5,7 +5,8 @@ use std::{
 };
 
 use ldap3::{
-    adapters::PagedResults, drive, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry,
+    adapters::PagedResults, drive, ldap_escape, LdapConnAsync, LdapConnSettings, Mod, Scope,
+    SearchEntry,
 };
 
 use super::error::LdapError;
@@ -112,7 +113,11 @@ impl super::LDAPConnection {
         &mut self,
         user_dn: &str,
     ) -> Result<Vec<SearchEntry>, LdapError> {
-        let filter = format!("({}={})", self.config.ldap_group_member_attr, user_dn);
+        let user_dn_escaped = ldap_escape(user_dn);
+        let filter = format!(
+            "({}={})",
+            self.config.ldap_group_member_attr, user_dn_escaped
+        );
         let (rs, res) = self
             .ldap
             .search(
@@ -210,7 +215,7 @@ impl super::LDAPConnection {
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
-            .map(|u| (self.config.user_dn_from_user(u), u))
+            .map(|u| (self.config.user_dn_from_user(u).to_lowercase(), u))
             .collect::<HashMap<_, _>>();
 
         for entry in membership_entries.iter_mut() {
@@ -224,7 +229,7 @@ impl super::LDAPConnection {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.as_str()) {
+                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
                                 Some(*user)
                             } else {
                                 debug!(
@@ -252,13 +257,15 @@ impl super::LDAPConnection {
         groupname: &str,
     ) -> Result<bool, LdapError> {
         debug!("Checking if user {user_dn} is member of group {groupname}");
+        let user_dn_escaped = ldap_escape(user_dn);
+        let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
             "(&(objectClass={})({}={})({}={}))",
             self.config.ldap_group_obj_class,
             self.config.ldap_groupname_attr,
-            groupname,
+            groupname_escaped,
             self.config.ldap_group_member_attr,
-            user_dn
+            user_dn_escaped
         );
         debug!(
             "Using the following filter for group search: {filter} and base: {}",
@@ -283,9 +290,10 @@ impl super::LDAPConnection {
         groupname: &str,
     ) -> Result<Vec<String>, LdapError> {
         debug!("Searching for group memberships for group {}", groupname);
+        let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
             "(&(objectClass={})({}={}))",
-            self.config.ldap_group_obj_class, self.config.ldap_groupname_attr, groupname
+            self.config.ldap_group_obj_class, self.config.ldap_groupname_attr, groupname_escaped
         );
         debug!(
             "Using the following filter for group search: {filter} and base: {}",
@@ -335,7 +343,11 @@ impl super::LDAPConnection {
             let mut group_filters = vec![];
             for group in self.config.ldap_sync_groups.iter() {
                 let group_dn = self.config.group_dn(group);
-                group_filters.push(format!("({}={})", self.config.ldap_member_attr, group_dn));
+                let group_dn_escaped = ldap_escape(&group_dn);
+                group_filters.push(format!(
+                    "({}={})",
+                    self.config.ldap_member_attr, group_dn_escaped
+                ));
             }
             debug!(
                 "Using the following group filters for user search: {:?}",

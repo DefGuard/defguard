@@ -31,6 +31,7 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
     let response = reqwest::Client::new()
         .post(UPDATES_URL)
         .json(&body)
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await?;
     Ok(response.json::<Update>().await?)

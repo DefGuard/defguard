@@ -10,6 +10,7 @@ import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layo
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { RowBox } from '../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore.ts';
 import { useModalStore } from '../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../shared/hooks/useApi';
@@ -23,6 +24,8 @@ export const UserAuthInfoMFA = () => {
   const { LL, locale } = useI18nContext();
   const userProfile = useUserProfileStore((store) => store.userProfile);
   const isMe = useUserProfileStore((store) => store.isMe);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
+  const isMeOrAdmin = isMe || isAdmin;
   const editMode = useUserProfileStore((store) => store.editMode);
   const setModalsState = useModalStore((store) => store.setState);
   const smtpEnabled = useAppStore((state) => state.appInfo?.smtp_enabled);
@@ -36,10 +39,9 @@ export const UserAuthInfoMFA = () => {
   };
 
   const {
-    user: { editUser },
+    user: { editUser, disableUserMfa },
     auth: {
       mfa: {
-        disable,
         totp: { disable: disableTOTP },
         email: { disable: disableEmailMFA },
       },
@@ -55,7 +57,7 @@ export const UserAuthInfoMFA = () => {
 
   const { mutate: disableMFA } = useMutation({
     mutationKey: [MutationKeys.DISABLE_MFA],
-    mutationFn: disable,
+    mutationFn: disableUserMfa,
     onSuccess: () => {
       refreshUserQueries();
       toaster.success(LL.userPage.userAuthInfo.mfa.messages.mfaDisabled());
@@ -166,12 +168,12 @@ export const UserAuthInfoMFA = () => {
   return (
     <section className="mfa">
       <header>
-        {editMode && isMe && (
+        {editMode && isMeOrAdmin && (
           <EditButton className="edit-mfa" visible={userProfile?.user.mfa_enabled}>
             <EditButtonOption
               text={LL.userPage.userAuthInfo.mfa.edit.disable()}
               styleVariant={EditButtonOptionStyleVariant.WARNING}
-              onClick={() => disableMFA()}
+              onClick={() => userProfile && disableMFA(userProfile?.user.username)}
             />
           </EditButton>
         )}

@@ -5,11 +5,11 @@ use webauthn_rs::prelude::Passkey;
 use super::error::ModelError;
 use crate::db::{Id, NoId};
 
-#[derive(Model)]
+#[derive(Model, Clone, Debug)]
 pub struct WebAuthn<I = NoId> {
-    id: I,
+    pub(crate) id: I,
     pub(crate) user_id: Id,
-    name: String,
+    pub(crate) name: String,
     // serialize from/to [`Passkey`]
     pub passkey: Vec<u8>,
 }

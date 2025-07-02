@@ -17,6 +17,7 @@ use crate::{
         license::update_cached_license,
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     AppState,
 };
 
@@ -47,6 +48,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
 pub async fn update_settings(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<Settings>,
 ) -> ApiResult {
@@ -57,6 +59,10 @@ pub async fn update_settings(
     update_current_settings(&appstate.pool, data).await?;
 
     info!("User {} updated settings", session.user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::SettingsUpdated),
+    })?;
 
     Ok(ApiResponse::default())
 }
@@ -84,6 +90,7 @@ pub async fn set_default_branding(
     State(appstate): State<AppState>,
     Path(_id): Path<i64>, // TODO: check with front-end and remove.
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} restoring default branding settings",
@@ -100,6 +107,10 @@ pub async fn set_default_branding(
                 "User {} restored default branding settings",
                 session.user.username
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
+            })?;
             Ok(ApiResponse {
                 json: json!(settings),
                 status: StatusCode::OK,
@@ -113,6 +124,7 @@ pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
     debug!(
@@ -150,6 +162,10 @@ pub async fn patch_settings(
     update_current_settings(&appstate.pool, settings).await?;
 
     info!("Admin {} patched settings.", session.user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::SettingsUpdatedPartial),
+    })?;
     Ok(ApiResponse::default())
 }
 

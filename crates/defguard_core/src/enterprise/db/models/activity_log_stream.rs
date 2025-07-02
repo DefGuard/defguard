@@ -19,7 +19,7 @@ pub enum ActivityLogStreamType {
     LogstashHttp,
 }
 
-#[derive(Debug, Serialize, Model, FromRow)]
+#[derive(Clone, Debug, Serialize, Model, FromRow)]
 #[table(activity_log_stream)]
 pub struct ActivityLogStream<I = NoId> {
     pub id: I,

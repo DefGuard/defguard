@@ -8,7 +8,7 @@
 //! and returns an optional description string. Some events may not require additional
 //! description beyond their event type name, in which case `None` is returned.
 
-use crate::message::{ClientEvent, DefguardEvent, EnrollmentEvent, VpnEvent};
+use crate::message::{DefguardEvent, EnrollmentEvent, VpnEvent};
 
 pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
     match event {
@@ -33,116 +33,70 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::MfaTotpDisabled => todo!(),
         DefguardEvent::MfaEmailEnabled => todo!(),
         DefguardEvent::MfaEmailDisabled => todo!(),
-        DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => todo!(),
-        DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => todo!(),
-        DefguardEvent::AuthenticationKeyAdded {
-            key_id,
-            key_name,
-            key_type,
-        } => todo!(),
-        DefguardEvent::AuthenticationKeyRemoved {
-            key_id,
-            key_name,
-            key_type,
-        } => todo!(),
-        DefguardEvent::AuthenticationKeyRenamed {
-            key_id,
-            key_name,
-            key_type,
-        } => todo!(),
-        DefguardEvent::ApiTokenAdded {
-            token_id,
-            token_name,
-        } => todo!(),
-        DefguardEvent::ApiTokenRemoved {
-            token_id,
-            token_name,
-        } => todo!(),
-        DefguardEvent::ApiTokenRenamed {
-            token_id,
-            token_name,
-        } => todo!(),
-        DefguardEvent::UserAdded { username } => todo!(),
-        DefguardEvent::UserRemoved { username } => todo!(),
-        DefguardEvent::UserModified { username } => todo!(),
-        DefguardEvent::UserDisabled { username } => todo!(),
-        DefguardEvent::UserDeviceAdded {
-            device_id,
-            device_name,
-            owner,
-        } => todo!(),
-        DefguardEvent::UserDeviceRemoved {
-            device_id,
-            device_name,
-            owner,
-        } => todo!(),
+        DefguardEvent::PasswordChangedByAdmin { user } => todo!(),
+        DefguardEvent::PasswordReset { user } => todo!(),
+        DefguardEvent::MfaSecurityKeyAdded { key } => todo!(),
+        DefguardEvent::MfaSecurityKeyRemoved { key } => todo!(),
+        DefguardEvent::UserAdded { user } => todo!(),
+        DefguardEvent::UserRemoved { user } => todo!(),
+        DefguardEvent::UserModified { before, after } => todo!(),
+        DefguardEvent::UserDeviceAdded { owner, device } => todo!(),
+        DefguardEvent::UserDeviceRemoved { owner, device } => todo!(),
         DefguardEvent::UserDeviceModified {
-            device_id,
-            device_name,
             owner,
+            before,
+            after,
         } => todo!(),
-        DefguardEvent::NetworkDeviceAdded {
-            device_id,
-            device_name,
-            location_id,
-            location,
-        } => todo!(),
-        DefguardEvent::NetworkDeviceRemoved {
-            device_id,
-            device_name,
-            location_id,
-            location,
-        } => todo!(),
+        DefguardEvent::NetworkDeviceAdded { device, location } => todo!(),
+        DefguardEvent::NetworkDeviceRemoved { device, location } => todo!(),
         DefguardEvent::NetworkDeviceModified {
-            device_id,
-            device_name,
-            location_id,
+            before,
+            after,
             location,
         } => todo!(),
-        DefguardEvent::VpnLocationAdded {
-            location_id,
-            location_name,
+        DefguardEvent::ActivityLogStreamCreated { stream } => todo!(),
+        DefguardEvent::ActivityLogStreamModified { before, after } => todo!(),
+        DefguardEvent::ActivityLogStreamRemoved { stream } => todo!(),
+        DefguardEvent::VpnLocationAdded { location } => todo!(),
+        DefguardEvent::VpnLocationRemoved { location } => todo!(),
+        DefguardEvent::VpnLocationModified { before, after } => todo!(),
+        DefguardEvent::ApiTokenAdded { owner, token } => todo!(),
+        DefguardEvent::ApiTokenRemoved { owner, token } => todo!(),
+        DefguardEvent::ApiTokenRenamed {
+            owner,
+            token,
+            old_name,
+            new_name,
         } => todo!(),
-        DefguardEvent::VpnLocationRemoved {
-            location_id,
-            location_name,
-        } => todo!(),
-        DefguardEvent::VpnLocationModified {
-            location_id,
-            location_name,
-        } => todo!(),
-        DefguardEvent::OpenIdAppAdded { app_id, app_name } => todo!(),
-        DefguardEvent::OpenIdAppRemoved { app_id, app_name } => todo!(),
-        DefguardEvent::OpenIdAppModified { app_id, app_name } => todo!(),
-        DefguardEvent::OpenIdAppDisabled { app_id, app_name } => todo!(),
-        DefguardEvent::OpenIdProviderAdded {
-            provider_id,
-            provider_name,
-        } => todo!(),
-        DefguardEvent::OpenIdProviderRemoved {
-            provider_id,
-            provider_name,
-        } => todo!(),
+        DefguardEvent::OpenIdAppAdded { app } => todo!(),
+        DefguardEvent::OpenIdAppRemoved { app } => todo!(),
+        DefguardEvent::OpenIdAppModified { before, after } => todo!(),
+        DefguardEvent::OpenIdAppStateChanged { app, enabled } => todo!(),
+        DefguardEvent::OpenIdProviderModified { provider } => todo!(),
+        DefguardEvent::OpenIdProviderRemoved { provider } => todo!(),
         DefguardEvent::SettingsUpdated => todo!(),
         DefguardEvent::SettingsUpdatedPartial => todo!(),
         DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
-        DefguardEvent::ActivityLogStreamCreated {
-            stream_id,
-            stream_name,
+        DefguardEvent::GroupsBulkAssigned { users, groups } => todo!(),
+        DefguardEvent::GroupAdded { group } => todo!(),
+        DefguardEvent::GroupModified { before, after } => todo!(),
+        DefguardEvent::GroupRemoved { group } => todo!(),
+        DefguardEvent::GroupMemberAdded { group, user } => todo!(),
+        DefguardEvent::GroupMemberRemoved { group, user } => todo!(),
+        DefguardEvent::WebHookAdded { webhook } => todo!(),
+        DefguardEvent::WebHookModified { before, after } => todo!(),
+        DefguardEvent::WebHookRemoved { webhook } => todo!(),
+        DefguardEvent::WebHookStateChanged { webhook, enabled } => todo!(),
+        DefguardEvent::AuthenticationKeyAdded { key } => todo!(),
+        DefguardEvent::AuthenticationKeyRemoved { key } => todo!(),
+        DefguardEvent::AuthenticationKeyRenamed {
+            key,
+            old_name,
+            new_name,
         } => todo!(),
-        DefguardEvent::ActivityLogStreamModified {
-            stream_id,
-            stream_name,
-        } => todo!(),
-        DefguardEvent::ActivityLogStreamRemoved {
-            stream_id,
-            stream_name,
-        } => todo!(),
+        DefguardEvent::EnrollmentTokenAdded { user } => todo!(),
+        DefguardEvent::ClientConfigurationTokenAdded { user } => todo!(),
     }
-}
-
-pub fn get_client_event_description(event: &ClientEvent) -> Option<String> {
-    todo!()
 }
 
 pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {

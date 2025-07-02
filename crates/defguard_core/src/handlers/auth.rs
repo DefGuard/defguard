@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, State},
     http::StatusCode,
 };
 use axum_client_ip::InsecureClientIp;
@@ -39,7 +39,7 @@ use crate::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
         },
-        SIGN_IN_COOKIE_NAME,
+        user_for_admin_or_self, SIGN_IN_COOKIE_NAME,
     },
     headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
     mail::Mail,
@@ -168,11 +168,11 @@ pub(crate) async fn authenticate(
                                     insecure_ip,
                                     user_agent.to_string(),
                                 ),
-                                event: ApiEventType::UserLoginFailed {
+                                event: Box::new(ApiEventType::UserLoginFailed {
                                     message: format!(
                                         "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
                                     ),
-                                },
+                                }),
                             })?;
                                 return Err(WebError::Authorization(ldap_err.to_string()));
                             }
@@ -187,11 +187,11 @@ pub(crate) async fn authenticate(
                                 insecure_ip,
                                 user_agent.to_string(),
                             ),
-                            event: ApiEventType::UserLoginFailed {
+                            event: Box::new(ApiEventType::UserLoginFailed {
                                 message: format!(
                                     "Authentication for {username_or_email} failed: {err}"
                                 ),
-                            },
+                            }),
                         })?;
                         return Err(WebError::Authorization(err.to_string()));
                     }
@@ -271,7 +271,7 @@ pub(crate) async fn authenticate(
                 insecure_ip,
                 user_agent.to_string(),
             ),
-            event: ApiEventType::UserLogin,
+            event: Box::new(ApiEventType::UserLogin),
         })?;
 
         Ok((
@@ -316,7 +316,7 @@ pub async fn logout(
             insecure_ip,
             user_agent.to_string(),
         ),
-        event: ApiEventType::UserLogout,
+        event: Box::new(ApiEventType::UserLogout),
     })?;
 
     Ok((cookies, ApiResponse::default()))
@@ -347,7 +347,7 @@ pub async fn mfa_enable(
     }
 }
 
-/// Disable MFA
+/// Disable own MFA
 pub async fn mfa_disable(
     session_info: SessionInfo,
     context: ApiRequestContext,
@@ -358,7 +358,25 @@ pub async fn mfa_disable(
     user.disable_mfa(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::MfaDisabled,
+        event: Box::new(ApiEventType::MfaDisabled),
+    })?;
+    info!("Disabled MFA for user {}", user.username);
+    Ok(ApiResponse::default())
+}
+
+/// Disable specific user's MFA
+pub async fn disable_user_mfa(
+    session_info: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+) -> ApiResult {
+    let mut user = user_for_admin_or_self(&appstate.pool, &session_info, &username).await?;
+    debug!("Disabling MFA for user {}", user.username);
+    user.disable_mfa(&appstate.pool).await?;
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaDisabled),
     })?;
     info!("Disabled MFA for user {}", user.username);
     Ok(ApiResponse::default())
@@ -403,6 +421,7 @@ pub async fn webauthn_init(
 /// Finish WebAuthn registration
 pub async fn webauthn_finish(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(webauth_reg): Json<WebAuthnRegistration>,
 ) -> ApiResult {
@@ -446,8 +465,9 @@ pub async fn webauthn_finish(
         .await?
         .ok_or(WebError::WebauthnRegistration("User not found".into()))?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
-    webauthn.save(&appstate.pool).await?;
+    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?
+        .save(&appstate.pool)
+        .await?;
     if user.mfa_method == MFAMethod::None {
         send_mfa_configured_email(
             Some(&session.session),
@@ -460,6 +480,10 @@ pub async fn webauthn_finish(
     }
 
     info!("Finished Webauthn registration for user {}", user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaSecurityKeyAdded { key: webauthn }),
+    })?;
 
     Ok(ApiResponse {
         json: json!(recovery_codes),
@@ -510,9 +534,11 @@ pub async fn webauthn_end(
                         }
                     }
                 }
+
                 session
                     .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                     .await?;
+
                 return if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await?
                 {
                     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -526,9 +552,9 @@ pub async fn webauthn_end(
                             insecure_ip,
                             user_agent.to_string(),
                         ),
-                        event: ApiEventType::UserMfaLogin {
+                        event: Box::new(ApiEventType::UserMfaLogin {
                             mfa_method: MFAMethod::Webauthn,
-                        },
+                        }),
                     })?;
 
                     if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
@@ -574,10 +600,10 @@ pub async fn webauthn_end(
                             insecure_ip,
                             user_agent.to_string(),
                         ),
-                        event: ApiEventType::UserMfaLoginFailed {
+                        event: Box::new(ApiEventType::UserMfaLoginFailed {
                             mfa_method: MFAMethod::Webauthn,
                             message: format!("Passkey authentication failed: {err}"),
-                        },
+                        }),
                     })?;
                 }
             }
@@ -625,7 +651,7 @@ pub async fn totp_enable(
         info!("Enabled TOTP for user {}", user.username);
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::MfaTotpEnabled,
+            event: Box::new(ApiEventType::MfaTotpEnabled),
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -649,7 +675,7 @@ pub async fn totp_disable(
     info!("Disabled TOTP for user {}", user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::MfaTotpDisabled,
+        event: Box::new(ApiEventType::MfaTotpDisabled),
     })?;
     Ok(ApiResponse::default())
 }
@@ -682,9 +708,9 @@ pub async fn totp_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                event: ApiEventType::UserMfaLogin {
+                event: Box::new(ApiEventType::UserMfaLogin {
                     mfa_method: MFAMethod::OneTimePassword,
-                },
+                }),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
@@ -729,10 +755,10 @@ pub async fn totp_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                event: ApiEventType::UserMfaLoginFailed {
+                event: Box::new(ApiEventType::UserMfaLoginFailed {
                     mfa_method: MFAMethod::OneTimePassword,
                     message,
-                },
+                }),
             })?;
             Err(WebError::Authorization("Invalid TOTP code".into()))
         }
@@ -788,7 +814,7 @@ pub async fn email_mfa_enable(
         info!("Enabled email MFA for user {}", user.username);
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::MfaEmailEnabled,
+            event: Box::new(ApiEventType::MfaEmailEnabled),
         })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
@@ -812,7 +838,7 @@ pub async fn email_mfa_disable(
     info!("Disabled email MFA for user {}", user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::MfaEmailDisabled,
+        event: Box::new(ApiEventType::MfaEmailDisabled),
     })?;
     Ok(ApiResponse::default())
 }
@@ -864,9 +890,9 @@ pub async fn email_mfa_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                event: ApiEventType::UserMfaLogin {
+                event: Box::new(ApiEventType::UserMfaLogin {
                     mfa_method: MFAMethod::Email,
-                },
+                }),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
@@ -911,10 +937,10 @@ pub async fn email_mfa_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                event: ApiEventType::UserMfaLoginFailed {
+                event: Box::new(ApiEventType::UserMfaLoginFailed {
                     mfa_method: MFAMethod::Email,
                     message,
-                },
+                }),
             })?;
             Err(WebError::Authorization("Invalid email MFA code".into()))
         }
@@ -954,7 +980,7 @@ pub async fn recovery_code(
                     insecure_ip,
                     user_agent.to_string(),
                 ),
-                event: ApiEventType::RecoveryCodeUsed,
+                event: Box::new(ApiEventType::RecoveryCodeUsed),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
