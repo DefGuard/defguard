@@ -11,12 +11,14 @@ use super::{
         AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
         Protocol,
     },
-    snat::UserSnatBinding,
     utils::merge_ranges,
 };
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
-    enterprise::{db::models::acl::AliasKind, is_enterprise_enabled},
+    enterprise::{
+        db::models::{acl::AliasKind, snat::UserSnatBinding},
+        is_enterprise_enabled,
+    },
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,

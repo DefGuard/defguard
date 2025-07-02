@@ -13,7 +13,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{GatewayEvent, Id, WireguardNetwork},
-    enterprise::{handlers::LicenseInfo, snat::UserSnatBinding},
+    enterprise::{db::models::snat::UserSnatBinding, handlers::LicenseInfo},
     handlers::{ApiResponse, ApiResult},
 };
 
