@@ -32,7 +32,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork, models::group::Permission},
+    db::{GatewayEvent, Id, NoId, Session, WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::{

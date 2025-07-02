@@ -18,8 +18,7 @@ use super::{
 use crate::{
     AsCsv,
     db::{
-        Device, Device, GatewayEvent, GatewayEvent, Id, Id, Settings, Settings, User, User,
-        WireguardNetwork,
+        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
