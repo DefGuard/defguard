@@ -18,7 +18,7 @@ impl EventRouter {
             } => {
                 self.log_event(
                     context.into(),
-                    LoggerEvent::Vpn(VpnEvent::ConnectedToLocation { location, device }),
+                    LoggerEvent::Vpn(Box::new(VpnEvent::ConnectedToLocation { location, device })),
                 )?;
             }
             GrpcEvent::ClientDisconnected {
@@ -28,7 +28,10 @@ impl EventRouter {
             } => {
                 self.log_event(
                     context.into(),
-                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromLocation { location, device }),
+                    LoggerEvent::Vpn(Box::new(VpnEvent::DisconnectedFromLocation {
+                        location,
+                        device,
+                    })),
                 )?;
             }
         }

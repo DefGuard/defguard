@@ -1,11 +1,19 @@
-use chrono::NaiveDateTime;
 use std::net::IpAddr;
 
+use chrono::NaiveDateTime;
 use defguard_core::{
     db::{
-        models::authentication_key::AuthenticationKeyType, Device, Id, MFAMethod, WireguardNetwork,
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
+        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
     },
-    events::{ApiRequestContext, BidiRequestContext, GrpcRequestContext, InternalEventContext},
+    enterprise::db::models::{
+        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
+        openid_provider::OpenIdProvider,
+    },
+    events::{
+        ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext,
+        InternalEventContext,
+    },
 };
 
 /// Messages that can be sent to the event logger
@@ -20,14 +28,11 @@ impl EventLoggerMessage {
     }
 }
 
-/// Possible audit event types split by module
-// TODO: remove lint override below once all events are updated to pass whole objects
-#[allow(clippy::large_enum_variant)]
+/// Possible activity log event types split by module
 pub enum LoggerEvent {
-    Defguard(DefguardEvent),
-    Client(ClientEvent),
-    Vpn(VpnEvent),
-    Enrollment(EnrollmentEvent),
+    Defguard(Box<DefguardEvent>),
+    Vpn(Box<VpnEvent>),
+    Enrollment(Box<EnrollmentEvent>),
 }
 
 /// Shared context that's included in all events
@@ -87,10 +92,10 @@ impl From<InternalEventContext> for EventContext {
     }
 }
 
-/// Represents audit events related to actions performed in Web UI
+/// Represents activity log events related to actions performed in Web UI
 pub enum DefguardEvent {
-    // authentication
     UserLogin,
+    UserLogout,
     UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
@@ -98,169 +103,185 @@ pub enum DefguardEvent {
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
     },
-    UserLogout,
     RecoveryCodeUsed,
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
     PasswordChanged,
-    // user MFA management
+    PasswordReset {
+        user: User<Id>,
+    },
     MfaDisabled,
-    MfaTotpEnabled,
     MfaTotpDisabled,
-    MfaEmailEnabled,
+    MfaTotpEnabled,
     MfaEmailDisabled,
+    MfaEmailEnabled,
     MfaSecurityKeyAdded {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     MfaSecurityKeyRemoved {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
-    // authentication key management
-    AuthenticationKeyAdded {
-        key_id: Id,
-        key_name: String,
-        key_type: AuthenticationKeyType,
-    },
-    AuthenticationKeyRemoved {
-        key_id: Id,
-        key_name: String,
-        key_type: AuthenticationKeyType,
-    },
-    AuthenticationKeyRenamed {
-        key_id: Id,
-        key_name: String,
-        key_type: AuthenticationKeyType,
-    },
-    // API token management
-    ApiTokenAdded {
-        token_id: Id,
-        token_name: String,
-    },
-    ApiTokenRemoved {
-        token_id: Id,
-        token_name: String,
-    },
-    ApiTokenRenamed {
-        token_id: Id,
-        token_name: String,
-    },
-    // user management
     UserAdded {
-        username: String,
+        user: User<Id>,
     },
     UserRemoved {
-        username: String,
+        user: User<Id>,
     },
     UserModified {
-        username: String,
+        before: User<Id>,
+        after: User<Id>,
     },
-    UserDisabled {
-        username: String,
-    },
-    // device management
     UserDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceModified {
-        device_id: Id,
-        device_name: String,
-        owner: String,
+        owner: User<Id>,
+        before: Device<Id>,
+        after: Device<Id>,
     },
     NetworkDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceModified {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        before: Device<Id>,
+        after: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
-    // VPN location management
+    ActivityLogStreamCreated {
+        stream: ActivityLogStream<Id>,
+    },
+    ActivityLogStreamModified {
+        before: ActivityLogStream<Id>,
+        after: ActivityLogStream<Id>,
+    },
+    ActivityLogStreamRemoved {
+        stream: ActivityLogStream<Id>,
+    },
     VpnLocationAdded {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
     },
     VpnLocationRemoved {
-        location_id: Id,
-        location_name: String,
+        location: WireguardNetwork<Id>,
     },
     VpnLocationModified {
-        location_id: Id,
-        location_name: String,
+        before: WireguardNetwork<Id>,
+        after: WireguardNetwork<Id>,
     },
-    // OpenID app management
+    ApiTokenAdded {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRemoved {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRenamed {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+        old_name: String,
+        new_name: String,
+    },
     OpenIdAppAdded {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppRemoved {
-        app_id: Id,
-        app_name: String,
+        app: OAuth2Client<Id>,
     },
     OpenIdAppModified {
-        app_id: Id,
-        app_name: String,
+        before: OAuth2Client<Id>,
+        after: OAuth2Client<Id>,
     },
-    OpenIdAppDisabled {
-        app_id: Id,
-        app_name: String,
+    OpenIdAppStateChanged {
+        app: OAuth2Client<Id>,
+        enabled: bool,
     },
-    // OpenID provider management
-    OpenIdProviderAdded {
-        provider_id: Id,
-        provider_name: String,
+    OpenIdProviderModified {
+        provider: OpenIdProvider<Id>,
     },
     OpenIdProviderRemoved {
-        provider_id: Id,
-        provider_name: String,
+        provider: OpenIdProvider<Id>,
     },
-    // settings management
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
-    // audit stream management
-    AuditStreamCreated {
-        stream_id: Id,
-        stream_name: String,
+    GroupsBulkAssigned {
+        users: Vec<User<Id>>,
+        groups: Vec<Group<Id>>,
     },
-    AuditStreamModified {
-        stream_id: Id,
-        stream_name: String,
+    GroupAdded {
+        group: Group<Id>,
     },
-    AuditStreamRemoved {
-        stream_id: Id,
-        stream_name: String,
+    GroupModified {
+        before: Group<Id>,
+        after: Group<Id>,
+    },
+    GroupRemoved {
+        group: Group<Id>,
+    },
+    GroupMemberAdded {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMemberRemoved {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    WebHookAdded {
+        webhook: WebHook<Id>,
+    },
+    WebHookModified {
+        before: WebHook<Id>,
+        after: WebHook<Id>,
+    },
+    WebHookRemoved {
+        webhook: WebHook<Id>,
+    },
+    WebHookStateChanged {
+        webhook: WebHook<Id>,
+        enabled: bool,
+    },
+    AuthenticationKeyAdded {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRemoved {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRenamed {
+        key: AuthenticationKey<Id>,
+        old_name: Option<String>,
+        new_name: Option<String>,
+    },
+    EnrollmentTokenAdded {
+        user: User<Id>,
+    },
+    ClientConfigurationTokenAdded {
+        user: User<Id>,
     },
 }
 
-/// Represents audit events related to client applications
+/// Represents activity log events related to client applications
 pub enum ClientEvent {
     DesktopClientActivated { device_id: Id, device_name: String },
     DesktopClientUpdated { device_id: Id, device_name: String },
 }
 
-/// Represents audit events related to VPN
+/// Represents activity log events related to VPN
 pub enum VpnEvent {
     ConnectedToMfaLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     DisconnectedFromMfaLocation {
         location: WireguardNetwork<Id>,
@@ -269,7 +290,7 @@ pub enum VpnEvent {
     MfaFailed {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,
@@ -281,7 +302,7 @@ pub enum VpnEvent {
     },
 }
 
-/// Represents audit events related to user enrollment process
+/// Represents activity log events related to user enrollment process
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },
@@ -289,4 +310,5 @@ pub enum EnrollmentEvent {
     PasswordResetRequested,
     PasswordResetStarted,
     PasswordResetCompleted,
+    TokenAdded { user: User<Id> },
 }

@@ -32,6 +32,10 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * T​i​m​e​ ​r​a​n​g​e
+			 */
+			timeRange: string
+			/**
 			 * A​d​d​ ​n​e​w
 			 */
 			addNew: string
@@ -139,6 +143,14 @@ type RootTranslation = {
 			 * C​l​e​a​r​ ​a​l​l
 			 */
 			clearAll: string
+			/**
+			 * F​i​l​t​e​r
+			 */
+			filter: string
+			/**
+			 * F​i​l​t​e​r​s
+			 */
+			filters: string
 		}
 		/**
 		 * K​e​y
@@ -164,6 +176,18 @@ type RootTranslation = {
 		 * S​e​a​r​c​h
 		 */
 		search: string
+		/**
+		 * T​i​m​e
+		 */
+		time: string
+		/**
+		 * F​r​o​m
+		 */
+		from: string
+		/**
+		 * U​n​t​i​l
+		 */
+		until: string
 	}
 	messages: {
 		/**
@@ -648,6 +672,39 @@ type RootTranslation = {
 				cancel: string
 			}
 		}
+		disableMfa: {
+			/**
+			 * D​i​s​a​b​l​e​ ​M​F​A
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​ ​h​a​s​ ​b​e​e​n​ ​d​i​s​a​b​l​e​d
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}
+				 * @param {string} username
+				 */
+				error: RequiredParams<'username'>
+			}
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				submit: string
+				/**
+				 * C​a​n​c​e​l
+				 */
+				cancel: string
+			}
+		}
 		startEnrollment: {
 			/**
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
@@ -996,7 +1053,7 @@ type RootTranslation = {
 				submit: string
 			}
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
@@ -2262,6 +2319,10 @@ type RootTranslation = {
 				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
 				 */
 				resetPassword: string
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				disableMfa: string
 			}
 		}
 	}
@@ -2320,13 +2381,13 @@ type RootTranslation = {
 			 */
 			acl: string
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 		}
 		mobileTitles: {
 			/**
-			 * A​c​t​i​v​i​t​y
+			 * A​c​t​i​v​i​t​y​ ​l​o​g
 			 */
 			activity: string
 			/**
@@ -2708,9 +2769,9 @@ type RootTranslation = {
 			 */
 			gatewayNotifications: string
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
-			auditStream: string
+			activityLogStream: string
 		}
 		messages: {
 			/**
@@ -2740,7 +2801,7 @@ type RootTranslation = {
 			 */
 			website: string
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -2813,7 +2874,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 * A​u​d​i​t​ ​l​o​g​s​ ​s​t​r​e​a​m​i​n​g
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​i​n​g
 			 */
 			title: string
 			list: {
@@ -2821,6 +2882,16 @@ type RootTranslation = {
 				 * N​o​ ​d​e​s​t​i​n​a​t​i​o​n​s
 				 */
 				noData: string
+				headers: {
+					/**
+					 * N​a​m​e
+					 */
+					name: string
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					destination: string
+				}
 			}
 		}
 		ldapSettings: {
@@ -3047,6 +3118,16 @@ type RootTranslation = {
 					label: string
 					/**
 					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
+					 */
+					helper: string
+				}
+				useOpenIdForMfa: {
+					/**
+					 * U​s​e​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​f​o​r​ ​c​l​i​e​n​t​ ​M​F​A
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​S​O​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​(​M​F​A​)​ ​p​r​o​c​e​s​s​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​c​o​n​n​e​c​t​i​n​g​ ​t​o​ ​V​P​N​ ​l​o​c​a​t​i​o​n​s​ ​t​h​a​t​ ​r​e​q​u​i​r​e​ ​M​F​A​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​v​i​a​ ​t​h​e​i​r​ ​b​r​o​w​s​e​r​ ​u​s​i​n​g​ ​t​h​e​ ​c​o​n​f​i​g​u​r​e​d​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​e​a​c​h​ ​c​o​n​n​e​c​t​i​o​n​.​ ​I​f​ ​t​h​i​s​ ​s​e​t​t​i​n​g​ ​i​s​ ​d​i​s​a​b​l​e​d​,​ ​M​F​A​ ​f​o​r​ ​t​h​o​s​e​ ​V​P​N​ ​l​o​c​a​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​h​a​n​d​l​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​i​n​t​e​r​n​a​l​ ​D​e​f​g​u​a​r​d​ ​S​S​O​ ​s​y​s​t​e​m​.​ ​I​n​ ​t​h​a​t​ ​c​a​s​e​,​ ​u​s​e​r​s​ ​m​u​s​t​ ​h​a​v​e​ ​T​O​T​P​ ​o​r​ ​e​m​a​i​l​-​b​a​s​e​d​ ​M​F​A​ ​c​o​n​f​i​g​u​r​e​d​ ​i​n​ ​t​h​e​i​r​ ​p​r​o​f​i​l​e​.
 					 */
 					helper: string
 				}
@@ -3329,7 +3410,7 @@ type RootTranslation = {
 			header: string
 			/**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​i​d​e​ ​u​n​u​s​e​d​ ​m​o​d​u​l​e​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
@@ -5483,6 +5564,16 @@ type RootTranslation = {
 			expired: string
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * R​u​l​e​s
+				 */
+				rules: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+			}
 			message: {
 				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
@@ -6088,8 +6179,64 @@ type RootTranslation = {
 			}
 		}
 	}
+	activity: {
+		/**
+		 * A​c​t​i​v​i​t​y​ ​l​o​g
+		 */
+		title: string
+		modals: {
+			timeRange: {
+				/**
+				 * A​c​t​i​v​i​t​y​ ​t​i​m​e
+				 */
+				title: string
+			}
+		}
+		list: {
+			/**
+			 * A​l​l​ ​a​c​t​i​v​i​t​y
+			 */
+			allLabel: string
+			headers: {
+				/**
+				 * D​a​t​e
+				 */
+				date: string
+				/**
+				 * U​s​e​r
+				 */
+				user: string
+				/**
+				 * I​P
+				 */
+				ip: string
+				/**
+				 * E​v​e​n​t
+				 */
+				event: string
+				/**
+				 * M​o​d​u​l​e
+				 */
+				module: string
+				/**
+				 * D​e​v​i​c​e
+				 */
+				device: string
+			}
+			noData: {
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​p​r​e​s​e​n​t
+				 */
+				data: string
+				/**
+				 * N​o​ ​a​c​t​i​v​i​t​i​e​s​ ​f​o​u​n​d
+				 */
+				search: string
+			}
+		}
+	}
 	enums: {
-		auditEventType: {
+		activityLogEventType: {
 			/**
 			 * U​s​e​r​ ​l​o​g​i​n
 			 */
@@ -6183,17 +6330,17 @@ type RootTranslation = {
 			 */
 			network_device_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​c​r​e​a​t​e​d
 			 */
-			audit_stream_created: string
+			activity_log_stream_created: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​m​o​d​i​f​i​e​d
 			 */
-			audit_stream_modified: string
+			activity_log_stream_modified: string
 			/**
-			 * A​u​d​i​t​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
+			 * A​c​t​i​v​i​t​y​ ​l​o​g​ ​s​t​r​e​a​m​ ​r​e​m​o​v​e​d
 			 */
-			audit_stream_removed: string
+			activity_log_stream_removed: string
 			/**
 			 * V​P​N​ ​c​l​i​e​n​t​ ​c​o​n​n​e​c​t​e​d
 			 */
@@ -6214,6 +6361,10 @@ type RootTranslation = {
 			 * V​P​N​ ​c​l​i​e​n​t​ ​f​a​i​l​e​d​ ​M​F​A​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
 			 */
 			vpn_client_mfa_failed: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			enrollment_token_added: string
 			/**
 			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 			 */
@@ -6238,8 +6389,132 @@ type RootTranslation = {
 			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
 			 */
 			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​a​d​d​e​d
+			 */
+			open_id_app_added: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​r​e​m​o​v​e​d
+			 */
+			open_id_app_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_app_modified: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			open_id_app_state_changed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​r​e​m​o​v​e​d
+			 */
+			open_id_provider_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_provider_modified: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated_partial: string
+			/**
+			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
+			 */
+			settings_default_branding_restored: string
+			/**
+			 * G​r​o​u​p​s​ ​b​u​l​k​ ​a​s​s​i​g​n​e​d
+			 */
+			groups_bulk_assigned: string
+			/**
+			 * G​r​o​u​p​ ​a​d​d​e​d
+			 */
+			group_added: string
+			/**
+			 * G​r​o​u​p​ ​m​o​d​i​f​i​e​d
+			 */
+			group_modified: string
+			/**
+			 * G​r​o​u​p​ ​r​e​m​o​v​e​d
+			 */
+			group_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​a​d​d​e​d
+			 */
+			group_member_added: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
+			 */
+			group_member_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
+			 */
+			web_hook_added: string
+			/**
+			 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d
+			 */
+			web_hook_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
+			 */
+			web_hook_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			authentication_key_added: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			authentication_key_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
+			 */
+			authentication_key_renamed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+			 */
+			password_changed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​ ​b​y​ ​a​d​m​i​n
+			 */
+			password_changed_by_admin: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t
+			 */
+			password_reset: string
+			/**
+			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			client_configuration_token_added: string
 		}
-		auditModule: {
+		activityLogModule: {
 			/**
 			 * D​e​f​g​u​a​r​d
 			 */
@@ -6277,6 +6552,10 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Time range
+			 */
+			timeRange: () => LocalizedString
 			/**
 			 * Add new
 			 */
@@ -6385,6 +6664,14 @@ export type TranslationFunctions = {
 			 * Clear all
 			 */
 			clearAll: () => LocalizedString
+			/**
+			 * Filter
+			 */
+			filter: () => LocalizedString
+			/**
+			 * Filters
+			 */
+			filters: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -6410,6 +6697,18 @@ export type TranslationFunctions = {
 		 * Search
 		 */
 		search: () => LocalizedString
+		/**
+		 * Time
+		 */
+		time: () => LocalizedString
+		/**
+		 * From
+		 */
+		from: () => LocalizedString
+		/**
+		 * Until
+		 */
+		until: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -6890,6 +7189,36 @@ export type TranslationFunctions = {
 				cancel: () => LocalizedString
 			}
 		}
+		disableMfa: {
+			/**
+			 * Disable MFA
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to disable MFA for user {username}?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * MFA for user {username} has been disabled
+				 */
+				success: (arg: { username: string }) => LocalizedString
+				/**
+				 * Failed to disable MFA for user {username}
+				 */
+				error: (arg: { username: string }) => LocalizedString
+			}
+			controls: {
+				/**
+				 * Disable MFA
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Cancel
+				 */
+				cancel: () => LocalizedString
+			}
+		}
 		startEnrollment: {
 			/**
 			 * Start enrollment
@@ -7235,7 +7564,7 @@ export type TranslationFunctions = {
 				submit: () => LocalizedString
 			}
 			/**
-			 * Do you want to delete {username} account permanently ?
+			 * Do you want to delete {username} account permanently?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
@@ -8486,6 +8815,10 @@ export type TranslationFunctions = {
 				 * Reset password
 				 */
 				resetPassword: () => LocalizedString
+				/**
+				 * Disable MFA
+				 */
+				disableMfa: () => LocalizedString
 			}
 		}
 	}
@@ -8544,13 +8877,13 @@ export type TranslationFunctions = {
 			 */
 			acl: () => LocalizedString
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
-			 * Activity
+			 * Activity log
 			 */
 			activity: () => LocalizedString
 			/**
@@ -8924,9 +9257,9 @@ export type TranslationFunctions = {
 			 */
 			gatewayNotifications: () => LocalizedString
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
-			auditStream: () => LocalizedString
+			activityLogStream: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -8956,7 +9289,7 @@ export type TranslationFunctions = {
 			 */
 			website: () => LocalizedString
 		}
-		auditStreamSettings: {
+		activityLogStreamSettings: {
 			messages: {
 				destinationCrud: {
 					/**
@@ -9026,7 +9359,7 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 * Audit logs streaming
+			 * Activity log streaming
 			 */
 			title: () => LocalizedString
 			list: {
@@ -9034,6 +9367,16 @@ export type TranslationFunctions = {
 				 * No destinations
 				 */
 				noData: () => LocalizedString
+				headers: {
+					/**
+					 * Name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Destination
+					 */
+					destination: () => LocalizedString
+				}
 			}
 		}
 		ldapSettings: {
@@ -9260,6 +9603,16 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
+				useOpenIdForMfa: {
+					/**
+					 * Use external OpenID for client MFA
+					 */
+					label: () => LocalizedString
+					/**
+					 * When the external OpenID SSO Multi-Factor (MFA) process is enabled, users connecting to VPN locations that require MFA will need to authenticate via their browser using the configured provider for each connection. If this setting is disabled, MFA for those VPN locations will be handled through the internal Defguard SSO system. In that case, users must have TOTP or email-based MFA configured in their profile.
 					 */
 					helper: () => LocalizedString
 				}
@@ -9542,7 +9895,7 @@ export type TranslationFunctions = {
 			header: () => LocalizedString
 			/**
 			 * <p>
-		            If your not using some modules you can disable their visibility.
+		            Hide unused modules.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
@@ -11676,6 +12029,16 @@ export type TranslationFunctions = {
 			expired: () => LocalizedString
 		}
 		listPage: {
+			tabs: {
+				/**
+				 * Rules
+				 */
+				rules: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+			}
 			message: {
 				/**
 				 * Change discarded
@@ -12273,8 +12636,64 @@ export type TranslationFunctions = {
 			}
 		}
 	}
+	activity: {
+		/**
+		 * Activity log
+		 */
+		title: () => LocalizedString
+		modals: {
+			timeRange: {
+				/**
+				 * Activity time
+				 */
+				title: () => LocalizedString
+			}
+		}
+		list: {
+			/**
+			 * All activity
+			 */
+			allLabel: () => LocalizedString
+			headers: {
+				/**
+				 * Date
+				 */
+				date: () => LocalizedString
+				/**
+				 * User
+				 */
+				user: () => LocalizedString
+				/**
+				 * IP
+				 */
+				ip: () => LocalizedString
+				/**
+				 * Event
+				 */
+				event: () => LocalizedString
+				/**
+				 * Module
+				 */
+				module: () => LocalizedString
+				/**
+				 * Device
+				 */
+				device: () => LocalizedString
+			}
+			noData: {
+				/**
+				 * No activities present
+				 */
+				data: () => LocalizedString
+				/**
+				 * No activities found
+				 */
+				search: () => LocalizedString
+			}
+		}
+	}
 	enums: {
-		auditEventType: {
+		activityLogEventType: {
 			/**
 			 * User login
 			 */
@@ -12368,17 +12787,17 @@ export type TranslationFunctions = {
 			 */
 			network_device_modified: () => LocalizedString
 			/**
-			 * Audit stream created
+			 * Activity log stream created
 			 */
-			audit_stream_created: () => LocalizedString
+			activity_log_stream_created: () => LocalizedString
 			/**
-			 * Audit stream modified
+			 * Activity log stream modified
 			 */
-			audit_stream_modified: () => LocalizedString
+			activity_log_stream_modified: () => LocalizedString
 			/**
-			 * Audit stream removed
+			 * Activity log stream removed
 			 */
-			audit_stream_removed: () => LocalizedString
+			activity_log_stream_removed: () => LocalizedString
 			/**
 			 * VPN client connected
 			 */
@@ -12399,6 +12818,10 @@ export type TranslationFunctions = {
 			 * VPN client failed MFA authentication
 			 */
 			vpn_client_mfa_failed: () => LocalizedString
+			/**
+			 * Enrollment token added
+			 */
+			enrollment_token_added: () => LocalizedString
 			/**
 			 * Enrollment started
 			 */
@@ -12423,8 +12846,132 @@ export type TranslationFunctions = {
 			 * Password reset completed
 			 */
 			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
+			/**
+			 * OpenID app added
+			 */
+			open_id_app_added: () => LocalizedString
+			/**
+			 * OpenID app removed
+			 */
+			open_id_app_removed: () => LocalizedString
+			/**
+			 * OpenID app modified
+			 */
+			open_id_app_modified: () => LocalizedString
+			/**
+			 * OpenID app state changed
+			 */
+			open_id_app_state_changed: () => LocalizedString
+			/**
+			 * OpenID provider removed
+			 */
+			open_id_provider_removed: () => LocalizedString
+			/**
+			 * OpenID provider modified
+			 */
+			open_id_provider_modified: () => LocalizedString
+			/**
+			 * Settings updated
+			 */
+			settings_updated: () => LocalizedString
+			/**
+			 * Settings partially updated
+			 */
+			settings_updated_partial: () => LocalizedString
+			/**
+			 * Default branding restored
+			 */
+			settings_default_branding_restored: () => LocalizedString
+			/**
+			 * Groups bulk assigned
+			 */
+			groups_bulk_assigned: () => LocalizedString
+			/**
+			 * Group added
+			 */
+			group_added: () => LocalizedString
+			/**
+			 * Group modified
+			 */
+			group_modified: () => LocalizedString
+			/**
+			 * Group removed
+			 */
+			group_removed: () => LocalizedString
+			/**
+			 * Group member added
+			 */
+			group_member_added: () => LocalizedString
+			/**
+			 * Group member removed
+			 */
+			group_member_removed: () => LocalizedString
+			/**
+			 * Webhook added
+			 */
+			web_hook_added: () => LocalizedString
+			/**
+			 * Webhook modified
+			 */
+			web_hook_modified: () => LocalizedString
+			/**
+			 * Webhook removed
+			 */
+			web_hook_removed: () => LocalizedString
+			/**
+			 * Authentication key added
+			 */
+			authentication_key_added: () => LocalizedString
+			/**
+			 * Authentication key removed
+			 */
+			authentication_key_removed: () => LocalizedString
+			/**
+			 * Authentication key renamed
+			 */
+			authentication_key_renamed: () => LocalizedString
+			/**
+			 * Password changed
+			 */
+			password_changed: () => LocalizedString
+			/**
+			 * Password changed by admin
+			 */
+			password_changed_by_admin: () => LocalizedString
+			/**
+			 * Password reset
+			 */
+			password_reset: () => LocalizedString
+			/**
+			 * Client configuration token added
+			 */
+			client_configuration_token_added: () => LocalizedString
 		}
-		auditModule: {
+		activityLogModule: {
 			/**
 			 * Defguard
 			 */

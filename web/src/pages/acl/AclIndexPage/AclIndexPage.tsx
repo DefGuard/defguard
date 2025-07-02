@@ -22,13 +22,13 @@ export const AclIndexPage = () => {
     {
       key: AclTab.RULES,
       active: activeTab === AclTab.RULES,
-      content: <p>Rules</p>,
+      content: <p>{LL.acl.listPage.tabs.rules()}</p>,
       onClick: () => setActiveTab(AclTab.RULES),
     },
     {
       key: AclTab.ALIASES,
       active: activeTab === AclTab.ALIASES,
-      content: <p>Aliases</p>,
+      content: <p>{LL.acl.listPage.tabs.aliases()}</p>,
       onClick: () => setActiveTab(AclTab.ALIASES),
     },
   ];

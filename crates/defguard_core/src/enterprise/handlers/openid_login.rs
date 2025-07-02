@@ -8,6 +8,7 @@ use axum_extra::{
     headers::UserAgent,
     TypedHeader,
 };
+use base64::{prelude::BASE64_STANDARD, Engine};
 use openidconnect::{
     core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
@@ -112,6 +113,34 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
                 "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
             )))
         }
+    }
+}
+
+/// Build a state with optional embedded data. Useful for passing additional information around the authentication flow.
+pub(crate) fn build_state(state_data: Option<String>) -> CsrfToken {
+    let csrf_token = CsrfToken::new_random();
+    if let Some(data) = state_data {
+        let combined = format!("{}.{data}", csrf_token.secret());
+        let encoded = BASE64_STANDARD.encode(combined);
+        CsrfToken::new(encoded)
+    } else {
+        csrf_token
+    }
+}
+
+/// Extract the state data from the provided state.
+pub(crate) fn extract_state_data(state: &str) -> Option<String> {
+    let decoded = BASE64_STANDARD.decode(state).ok()?;
+    let decoded_str = String::from_utf8(decoded).ok()?;
+    let result = decoded_str.split_once('.');
+    if let Some((part1, part2)) = result {
+        if part1.is_empty() {
+            None
+        } else {
+            Some(part2.to_string())
+        }
+    } else {
+        None
     }
 }
 
@@ -672,5 +701,55 @@ mod test {
             ),
             "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         );
+    }
+
+    #[test]
+    fn test_state_build_and_extract() {
+        // without data
+        let token = build_state(None);
+        let decoded = BASE64_STANDARD.decode(token.secret());
+        // not base64 encoded
+        assert!(decoded.is_err());
+        assert!(!token.secret().is_empty());
+
+        // with data
+        let data = "somedata".to_string();
+        let token = build_state(Some(data.clone()));
+        let decoded = BASE64_STANDARD.decode(token.secret());
+        assert!(decoded.is_ok());
+        let decoded_str = String::from_utf8(decoded.unwrap()).unwrap();
+        let (csrf, state_data) = decoded_str.split_once('.').unwrap();
+        assert!(!csrf.is_empty());
+        assert_eq!(state_data, data);
+
+        // valid
+        let data = "my_state_data".to_string();
+        let token = build_state(Some(data.clone()));
+        let extracted = extract_state_data(token.secret());
+        assert_eq!(extracted, Some(data));
+
+        // invalid base64
+        let extracted = extract_state_data("not_base64!!");
+        assert_eq!(extracted, None);
+
+        // no dot
+        let encoded = BASE64_STANDARD.encode("no_dot_here");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, None);
+
+        // empty first part
+        let encoded = BASE64_STANDARD.encode(".somedata");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, None);
+
+        // empty second part
+        let encoded = BASE64_STANDARD.encode("csrf.");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, Some("".to_string()));
+
+        // multiple dots
+        let encoded = BASE64_STANDARD.encode("csrf.data.with.dots");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, Some("data.with.dots".to_string()));
     }
 }

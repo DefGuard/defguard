@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN use_openid_for_mfa BOOLEAN NOT NULL DEFAULT FALSE;

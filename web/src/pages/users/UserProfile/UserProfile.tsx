@@ -40,6 +40,7 @@ export const UserProfile = () => {
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileStore((state) => state.editMode);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
+  const resetUserProfileState = useUserProfileStore((state) => state.reset);
   const {
     user: { getUser },
   } = useApi();
@@ -62,6 +63,8 @@ export const UserProfile = () => {
     queryKey: [QueryKeys.FETCH_USER_PROFILE, username],
     queryFn: () => getUser(username),
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    placeholderData: (pervious) => pervious,
     enabled: !isUndefined(username),
   });
 
@@ -84,6 +87,9 @@ export const UserProfile = () => {
     } else {
       setUserProfileState({ isMe: false });
     }
+    return () => {
+      resetUserProfileState();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -9,8 +9,8 @@ use sqlx::{
 };
 
 use super::{
-    get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges,
-    process_destination_addrs,
+    find_largest_subnet_in_range, get_last_ip_in_v6_subnet, get_source_users, merge_addrs,
+    merge_port_ranges, process_destination_addrs,
 };
 use crate::{
     db::{
@@ -118,10 +118,13 @@ fn test_process_source_addrs_v4() {
         source_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.1".to_string(),
-                    end: "10.0.1.5".to_string(),
-                })),
+                address: Some(Address::Ip("10.0.1.1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.2/31".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.1.4/31".to_string()))
             },
             IpAddress {
                 address: Some(Address::Ip("172.16.1.1".to_string())),
@@ -170,10 +173,13 @@ fn test_process_source_addrs_v6() {
         source_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8::1".to_string(),
-                    end: "2001:db8::5".to_string(),
-                })),
+                address: Some(Address::Ip("2001:db8::1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::2/127".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::4/127".to_string()))
             },
             IpAddress {
                 address: Some(Address::Ip("2001:db8:0:1::1".to_string())),
@@ -200,17 +206,17 @@ fn test_process_source_addrs_v6() {
 #[test]
 fn test_process_destination_addrs_v4() {
     // Test data with mixed IPv4 and IPv6 networks
-    let destination_ips = vec![
+    let destination_ips = [
         "10.0.1.0/24".parse().unwrap(),
         "10.0.2.0/24".parse().unwrap(),
         "2001:db8::/64".parse().unwrap(), // Should be filtered out
         "192.168.1.0/24".parse().unwrap(),
     ];
 
-    let destination_ranges = vec![
+    let destination_ranges = [
         AclRuleDestinationRange {
-            start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 1)),
-            end: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 100)),
+            start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 255)),
+            end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 0)),
             ..Default::default()
         },
         AclRuleDestinationRange {
@@ -220,7 +226,7 @@ fn test_process_destination_addrs_v4() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
 
     assert_eq!(
         destination_addrs.0,
@@ -232,23 +238,23 @@ fn test_process_destination_addrs_v4() {
                 address: Some(Address::IpSubnet("10.0.2.0/24".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.3.255".to_string(),
+                    end: "10.0.4.0".to_string(),
+                })),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.3.1".to_string(),
-                    end: "10.0.3.100".to_string(),
-                })),
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
             },
         ]
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], Vec::new());
+    let empty_addrs = process_destination_addrs(&[], &[]);
     assert!(empty_addrs.0.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
-    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], Vec::new());
+    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], &[]);
     assert!(ipv6_only.0.is_empty());
 }
 
@@ -265,7 +271,7 @@ fn test_process_destination_addrs_v6() {
     let destination_ranges = vec![
         AclRuleDestinationRange {
             start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1)),
-            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 100)),
+            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
             ..Default::default()
         },
         AclRuleDestinationRange {
@@ -275,7 +281,7 @@ fn test_process_destination_addrs_v6() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
 
     assert_eq!(
         destination_addrs.1,
@@ -290,20 +296,20 @@ fn test_process_destination_addrs_v6() {
                 address: Some(Address::IpSubnet("2001:db8:3::/64".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8:4::1".to_string(),
-                    end: "2001:db8:4::64".to_string(),
-                })),
+                address: Some(Address::Ip("2001:db8:4::1".to_string()))
             },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8:4::2/127".to_string()))
+            }
         ]
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], Vec::new());
+    let empty_addrs = process_destination_addrs(&[], &[]);
     assert!(empty_addrs.1.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
-    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], Vec::new());
+    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], &[]);
     assert!(ipv4_only.1.is_empty());
 }
 
@@ -312,31 +318,38 @@ fn test_merge_v4_addrs() {
     let addr_ranges = vec![
         IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51))..=IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
+        IpAddr::V4(Ipv4Addr::new(10, 0, 8, 127))..=IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
+        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 31)),
         IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20))..=IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
     ];
 
     let merged_addrs = merge_addrs(addr_ranges);
+
     assert_eq!(
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.8.51".to_string(),
-                    end: "10.0.10.32".to_string(),
-                })),
+                address: Some(Address::Ip("10.0.8.127".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.8.128/25".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.9.0/24".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.10.0/27".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("10.0.20.20".to_string())),
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.60.20".to_string(),
-                    end: "10.0.60.25".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.60.20/30".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("10.0.60.24/31".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("192.168.0.20".to_string())),
@@ -346,10 +359,10 @@ fn test_merge_v4_addrs() {
 
     // merge single IPs into a range
     let addr_ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 0))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 0)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
         IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
     ];
 
@@ -358,10 +371,7 @@ fn test_merge_v4_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.10.1".into(),
-                    end: "10.0.10.4".to_string(),
-                })),
+                address: Some(Address::IpSubnet("10.0.10.0/30".to_string())),
             },
             IpAddress {
                 address: Some(Address::Ip("10.0.10.20".to_string())),
@@ -388,19 +398,271 @@ fn test_merge_v6_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8:1::1".to_string(),
-                    end: "2001:db8:1::8".to_string(),
-                })),
+                address: Some(Address::Ip("2001:db8:1::1".to_string()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:2::1".to_string())),
+                address: Some(Address::IpSubnet("2001:db8:1::2/127".to_string()))
             },
             IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "2001:db8:3::1".to_string(),
-                    end: "2001:db8:3::3".to_string(),
-                })),
+                address: Some(Address::IpSubnet("2001:db8:1::4/126".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:1::8".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:2::1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8:3::1".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8:3::2/127".to_string()))
+            }
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_extracts_ipv4_subnets() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 2, 255)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.2.0/24".to_string()))
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_extracts_ipv6_subnets() {
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db9::ffff".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::/32".to_string()))
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db9::/112".to_string()))
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255))..=IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.255".to_string(),
+                end: "192.168.2.0".to_string(),
+            })),
+        },]
+    );
+
+    let start = "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"
+        .parse::<Ipv6Addr>()
+        .unwrap();
+    let end = "2001:db9::".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_string(),
+                end: "2001:db9::".to_string(),
+            })),
+        },]
+    );
+}
+
+#[test]
+fn test_merge_addrs_handles_single_ip() {
+    // Test case: single IP should remain as IP
+    let ranges =
+        vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::Ip("192.168.1.1".to_string())),
+        },]
+    );
+
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let ranges = vec![IpAddr::V6(start)..=IpAddr::V6(end)];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [IpAddress {
+            address: Some(Address::Ip("2001:db8::".to_string())),
+        },]
+    );
+}
+
+#[test]
+fn test_find_largest_ipv4_subnet_perfect_match() {
+    // Test /24 subnet
+    let start = Ipv4Addr::new(192, 168, 1, 0);
+    let end = Ipv4Addr::new(192, 168, 1, 255);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "192.168.1.0/24");
+
+    // Test /28 subnet (16 addresses)
+    let start = Ipv4Addr::new(192, 168, 1, 0);
+    let end = Ipv4Addr::new(192, 168, 1, 15);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "192.168.1.0/28");
+}
+
+#[test]
+fn test_find_largest_ipv6_subnet_perfect_match() {
+    // Test /112 subnet
+    let start = "2001:db8::".parse::<Ipv6Addr>().unwrap();
+    let end = "2001:db8::ffff".parse::<Ipv6Addr>().unwrap();
+
+    let result = find_largest_subnet_in_range(IpAddr::V6(start), IpAddr::V6(end));
+
+    assert!(result.is_some());
+    let subnet = result.unwrap();
+    assert_eq!(subnet.to_string(), "2001:db8::/112");
+}
+
+#[test]
+fn test_find_largest_subnet_mixed_ip_versions() {
+    // Test mixed IP versions should return None
+    let start = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0));
+    let end = IpAddr::V6("2001:db8::1".parse().unwrap());
+
+    let result = find_largest_subnet_in_range(start, end);
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_find_largest_subnet_invalid_range() {
+    // Test invalid range (start > end) should return None
+    let start = Ipv4Addr::new(192, 168, 1, 10);
+    let end = Ipv4Addr::new(192, 168, 1, 5);
+
+    let result = find_largest_subnet_in_range(IpAddr::V4(start), IpAddr::V4(end));
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_merge_addrs_subnet_at_start_of_range() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 64)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.0/26".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.64".to_string())),
+            },
+        ]
+    );
+
+    let ranges = vec![
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x40)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::/122".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::Ip("2001:db8::40".to_string())),
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_merge_addrs_subnet_at_end_of_range() {
+    let ranges = vec![
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 15))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 31)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::Ip("192.168.1.15".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
+            },
+        ]
+    );
+
+    let ranges = vec![
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x0f))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0x1f)),
+    ];
+
+    let result = merge_addrs(ranges);
+
+    assert_eq!(
+        result,
+        [
+            IpAddress {
+                address: Some(Address::Ip("2001:db8::f".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpSubnet("2001:db8::10/124".to_string())),
             },
         ]
     );
@@ -1024,23 +1286,47 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
             },
         ]
     );
-    assert_eq!(
-        dns_allow_rule.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.13".to_string(),
-                    end: "10.0.1.43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.52".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            }
-        ]
-    );
+
+    let expected_destination_addrs = vec![
+        IpAddress {
+            address: Some(Address::Ip("10.0.1.13".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.14/31".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.16/28".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.32/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.40/30".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+        },
+    ];
+
+    assert_eq!(dns_allow_rule.destination_addrs, expected_destination_addrs);
 
     // Second ACL - DNS Access DENY
     let dns_deny_rule = &generated_firewall_rules[3];
@@ -1048,23 +1334,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.protocols.is_empty(),);
     assert!(dns_deny_rule.destination_ports.is_empty(),);
     assert!(dns_deny_rule.source_addrs.is_empty(),);
-    assert_eq!(
-        dns_deny_rule.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.13".to_string(),
-                    end: "10.0.1.43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.52".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            }
-        ]
-    );
+    assert_eq!(dns_deny_rule.destination_addrs, expected_destination_addrs);
 }
 
 #[sqlx::test]
@@ -1413,6 +1683,70 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
             port: Some(PortInner::SinglePort(53))
         }]
     );
+
+    let expected_destination_addrs = vec![
+        IpAddress {
+            address: Some(Address::Ip("fc00::1:13".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:14/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:18/125".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:20/123".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:40/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+        },
+    ];
+
     // Source addresses should include network_devices 1,2
     assert_eq!(
         dns_allow_rule.source_addrs,
@@ -1437,23 +1771,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
             },
         ]
     );
-    assert_eq!(
-        dns_allow_rule.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:13".to_string(),
-                    end: "fc00::1:43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:52".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
-        ]
-    );
+    assert_eq!(dns_allow_rule.destination_addrs, expected_destination_addrs);
 
     // Second ACL - DNS Access DENY
     let dns_deny_rule = &generated_firewall_rules[3];
@@ -1461,23 +1779,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.protocols.is_empty(),);
     assert!(dns_deny_rule.destination_ports.is_empty(),);
     assert!(dns_deny_rule.source_addrs.is_empty(),);
-    assert_eq!(
-        dns_deny_rule.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:13".to_string(),
-                    end: "fc00::1:43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:52".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
-        ]
-    );
+    assert_eq!(dns_deny_rule.destination_addrs, expected_destination_addrs);
 }
 
 #[sqlx::test]
@@ -1937,22 +2239,49 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             },
         ]
     );
+
+    let expected_destination_addrs_v4 = vec![
+        IpAddress {
+            address: Some(Address::Ip("10.0.1.13".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.14/31".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.16/28".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.32/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.40/30".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+        },
+    ];
+
     assert_eq!(
         dns_allow_rule_ipv4.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.13".to_string(),
-                    end: "10.0.1.43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.52".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            },
-        ]
+        expected_destination_addrs_v4
     );
 
     let dns_allow_rule_ipv6 = &generated_firewall_rules[3];
@@ -1994,22 +2323,73 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             },
         ]
     );
+
+    let expected_destination_addrs_v6 = vec![
+        IpAddress {
+            address: Some(Address::Ip("fc00::1:13".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:14/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:18/125".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:20/123".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:40/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+        },
+    ];
+
     assert_eq!(
         dns_allow_rule_ipv6.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:13".to_string(),
-                    end: "fc00::1:43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:52".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
-        ]
+        expected_destination_addrs_v6
     );
 
     // Second ACL - DNS Access DENY
@@ -2020,20 +2400,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv4.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule_ipv4.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.13".to_string(),
-                    end: "10.0.1.43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.52".to_string(),
-                    end: "10.0.2.43".to_string(),
-                })),
-            },
-        ]
+        expected_destination_addrs_v4
     );
 
     let dns_deny_rule_ipv6 = &generated_firewall_rules[7];
@@ -2043,20 +2410,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv6.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule_ipv6.destination_addrs,
-        [
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:13".to_string(),
-                    end: "fc00::1:43".to_string(),
-                })),
-            },
-            IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "fc00::1:52".to_string(),
-                    end: "fc00::2:43".to_string(),
-                })),
-            }
-        ]
+        expected_destination_addrs_v6
     );
 }
 
@@ -3327,10 +3681,10 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::Ip("10.0.2.3".to_string())),
         },
         IpAddress {
-            address: Some(Address::Ip("10.0.2.3".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
         },
     ];
 

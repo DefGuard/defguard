@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{
     broadcast::Sender,
@@ -13,7 +15,6 @@ use super::{
     },
     InstanceInfo,
 };
-use crate::grpc::utils::parse_client_info;
 use crate::{
     db::{
         models::{
@@ -21,14 +22,15 @@ use crate::{
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
             polling_token::PollingToken,
         },
-        Device, GatewayEvent, Id, Settings, User,
+        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
     },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        ldap::utils::ldap_add_user,
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token},
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     mail::Mail,
@@ -104,7 +106,7 @@ impl EnrollmentServer {
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
             context,
-            event: BidiStreamEventType::Enrollment(event),
+            event: BidiStreamEventType::Enrollment(Box::new(event)),
         };
 
         self.bidi_event_tx.send(event)
@@ -193,7 +195,20 @@ impl EnrollmentServer {
                 "Retrieving instance info for user {}({:?}).",
                 user.username, user.id
             );
-            let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
+
+            let openid_provider = OpenIdProvider::get_current(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!("Failed to get OpenID provider: {err}");
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
+
+            let instance_info = InstanceInfo::new(
+                settings,
+                &user.username,
+                &enterprise_settings,
+                openid_provider,
+            );
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -284,7 +299,7 @@ impl EnrollmentServer {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("IP address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {ip_address}, device info {device_info:?}");
 
         // check if password is strong enough
         debug!("Verifying password strength for user activation process.");
@@ -636,6 +651,39 @@ impl EnrollmentServer {
             (device, network_info, configs)
         };
 
+        // get all locations affected by device being added
+        let mut affected_location_ids = HashSet::new();
+        for network_info_item in network_info.clone() {
+            affected_location_ids.insert(network_info_item.network_id);
+        }
+
+        // send firewall config updates to affected locations
+        // if they have ACL enabled & enterprise features are active
+        for location_id in affected_location_ids {
+            if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id)
+                .await
+                .map_err(|err| {
+                    error!("Failed to fetch WireguardNetwork with ID {location_id}: {err}",);
+                    Status::internal("unexpected error")
+                })?
+            {
+                if let Some(firewall_config) = location
+                    .try_get_firewall_config(&mut transaction)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to get firewall config for location {location}: {err}",);
+                        Status::internal("unexpected error")
+                    })?
+                {
+                    debug!("Sending firewall config update for location {location} affected by adding new device {}, user {}({})", device.wireguard_pubkey, user.username, user.id);
+                    self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                        location_id,
+                        firewall_config,
+                    ));
+                }
+            }
+        }
+
         debug!(
             "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
@@ -709,11 +757,24 @@ impl EnrollmentServer {
 
         info!("Device {} remote configuration done.", device.name);
 
+        let openid_provider = OpenIdProvider::get_current(&self.pool)
+            .await
+            .map_err(|err| {
+                error!("Failed to get OpenID provider: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(
-                InstanceInfo::new(settings, &user.username, &enterprise_settings).into(),
+                InstanceInfo::new(
+                    settings,
+                    &user.username,
+                    &enterprise_settings,
+                    openid_provider,
+                )
+                .into(),
             ),
             token: Some(token.token),
         };
