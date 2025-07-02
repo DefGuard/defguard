@@ -371,6 +371,9 @@ export const buildApi = (client: Axios): Api => {
   const deleteApiToken: Api['user']['deleteApiToken'] = (data) =>
     client.delete(`/user/${data.username}/api_token/${data.id}`).then(unpackRequest);
 
+  const disableUserMfa: Api['user']['disableUserMfa'] = (username) =>
+    client.delete(`/user/${username}/mfa`).then(unpackRequest);
+
   const patchSettings: Api['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -620,6 +623,7 @@ export const buildApi = (client: Axios): Api => {
       addApiToken,
       deleteApiToken,
       renameApiToken,
+      disableUserMfa,
     },
     device: {
       addDevice: addDevice,

@@ -263,6 +263,18 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         cancel: 'Cancel',
       },
     },
+    disableMfa: {
+      title: 'Disable MFA',
+      message: 'Do you want to disable MFA for user {username: string}?',
+      messages: {
+        success: 'MFA for user {username: string} has been disabled',
+        error: 'Failed to disable MFA for user {username: string}',
+      },
+      controls: {
+        submit: 'Disable MFA',
+        cancel: 'Cancel',
+      },
+    },
     startEnrollment: {
       title: 'Start enrollment',
       desktopTitle: 'Desktop activation',
@@ -430,7 +442,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       controls: {
         submit: 'Delete account',
       },
-      message: 'Do you want to delete {username: string} account permanently ?',
+      message: 'Do you want to delete {username: string} account permanently?',
       messages: {
         success: '{username: string} deleted.',
       },
@@ -965,6 +977,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         startEnrollment: 'Start enrollment',
         activateDesktop: 'Configure Desktop Client',
         resetPassword: 'Reset password',
+        disableMfa: 'Disable MFA',
       },
     },
   },

@@ -123,6 +123,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     if field_type == "secret" {
                         // FIXME: don't hard-code struct name
                         cs_aliased_fields.push_str("?: SecretString\"");
+                    } else if field_type == "ip" {
+                        cs_aliased_fields.push_str(": IpAddr\"");
                     } else {
                         cs_aliased_fields.push_str(": _\"");
                     }
@@ -153,6 +155,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     } else if tokens == "secret" {
                         // FIXME: hard-coded struct name
                         return Some(quote! { &self.#name as &Option<SecretString> });
+                    } else if tokens == "ip" {
+                        // FIXME: hard-coded struct name
+                        return Some(quote! { &self.#name as &IpAddr });
                     } else {
                         return Some(quote! { &self.#name });
                     }

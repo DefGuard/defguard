@@ -15,28 +15,34 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use defguard_web_ui::{index, svg, web_asset};
-use enterprise::handlers::{
-    acl::{
-        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
-        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
-        update_acl_alias, update_acl_rule,
+use enterprise::{
+    handlers::{
+        acl::{
+            apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
+            delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
+            list_acl_rules, update_acl_alias, update_acl_rule,
+        },
+        activity_log_stream::{
+            create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+            modify_activity_log_stream,
+        },
+        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+        check_enterprise_info,
+        enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+        openid_login::{auth_callback, get_auth_info},
+        openid_providers::{
+            add_openid_provider, delete_openid_provider, get_current_openid_provider,
+            test_dirsync_connection,
+        },
     },
-    activity_log_stream::{
-        create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
-        modify_activity_log_stream,
-    },
-    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-    check_enterprise_info,
-    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
-    openid_login::{auth_callback, get_auth_info},
-    openid_providers::{
-        add_openid_provider, delete_openid_provider, get_current_openid_provider,
-        test_dirsync_connection,
+    snat::handlers::{
+        create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
     },
 };
 use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
+    auth::disable_user_mfa,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -180,6 +186,7 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
+    use crate::enterprise::snat::handlers as snat;
     use db::{
         AddDevice, UserDetails, UserInfo,
         models::device::{ModifyDevice, UserDevice},
@@ -240,6 +247,12 @@ mod openapi {
             network::delete_network,
             network::list_networks,
             network::network_details,
+            // /network/{location_id}/snat
+			snat::list_snat_bindings,
+			snat::create_snat_binding,
+			snat::modify_snat_binding,
+			snat::delete_snat_binding,
+
         ),
         components(
             schemas(
@@ -271,12 +284,15 @@ Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
-            (name = "nework", description = "
+            (name = "network", description = "
 Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
+            "),
+            (name = "SNAT", description = "
+Endpoints that allow you to control user SNAT bindings for your locations.
             "),
         )
     )]
@@ -414,6 +430,7 @@ pub fn build_webapp(
                 "/user/{username}/oauth_app/{oauth2client_id}",
                 delete(delete_authorized_app),
             )
+            .route("/user/{username}/mfa", delete(disable_user_mfa))
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group
@@ -577,6 +594,16 @@ pub fn build_webapp(
             .route("/network/{network_id}/token", get(create_network_token))
             .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(network_stats))
+            .route("/network/{location_id}/snat", get(list_snat_bindings))
+            .route("/network/{location_id}/snat", post(create_snat_binding))
+            .route(
+                "/network/{location_id}/snat/{user_id}",
+                put(modify_snat_binding),
+            )
+            .route(
+                "/network/{location_id}/snat/{user_id}",
+                delete(delete_snat_binding),
+            )
             .layer(Extension(gateway_state)),
     );
 

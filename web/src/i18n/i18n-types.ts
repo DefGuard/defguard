@@ -672,6 +672,39 @@ type RootTranslation = {
 				cancel: string
 			}
 		}
+		disableMfa: {
+			/**
+			 * D​i​s​a​b​l​e​ ​M​F​A
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​ ​h​a​s​ ​b​e​e​n​ ​d​i​s​a​b​l​e​d
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}
+				 * @param {string} username
+				 */
+				error: RequiredParams<'username'>
+			}
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				submit: string
+				/**
+				 * C​a​n​c​e​l
+				 */
+				cancel: string
+			}
+		}
 		startEnrollment: {
 			/**
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
@@ -1020,7 +1053,7 @@ type RootTranslation = {
 				submit: string
 			}
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
@@ -2286,6 +2319,10 @@ type RootTranslation = {
 				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
 				 */
 				resetPassword: string
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				disableMfa: string
 			}
 		}
 	}
@@ -7152,6 +7189,36 @@ export type TranslationFunctions = {
 				cancel: () => LocalizedString
 			}
 		}
+		disableMfa: {
+			/**
+			 * Disable MFA
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to disable MFA for user {username}?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * MFA for user {username} has been disabled
+				 */
+				success: (arg: { username: string }) => LocalizedString
+				/**
+				 * Failed to disable MFA for user {username}
+				 */
+				error: (arg: { username: string }) => LocalizedString
+			}
+			controls: {
+				/**
+				 * Disable MFA
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Cancel
+				 */
+				cancel: () => LocalizedString
+			}
+		}
 		startEnrollment: {
 			/**
 			 * Start enrollment
@@ -7497,7 +7564,7 @@ export type TranslationFunctions = {
 				submit: () => LocalizedString
 			}
 			/**
-			 * Do you want to delete {username} account permanently ?
+			 * Do you want to delete {username} account permanently?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
@@ -8748,6 +8815,10 @@ export type TranslationFunctions = {
 				 * Reset password
 				 */
 				resetPassword: () => LocalizedString
+				/**
+				 * Disable MFA
+				 */
+				disableMfa: () => LocalizedString
 			}
 		}
 	}

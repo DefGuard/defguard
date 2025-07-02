@@ -11,7 +11,7 @@ pub enum AuthenticationKeyType {
     Gpg,
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Deserialize, Model, Serialize)]
 #[table(authentication_key)]
 pub struct AuthenticationKey<I = NoId> {
     pub(crate) id: I,

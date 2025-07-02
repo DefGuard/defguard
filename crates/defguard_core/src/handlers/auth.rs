@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, State},
     http::StatusCode,
 };
 use axum_client_ip::InsecureClientIp;
@@ -40,6 +40,7 @@ use crate::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
         },
+        user_for_admin_or_self,
     },
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     mail::Mail,
@@ -390,13 +391,31 @@ pub async fn mfa_enable(
     }
 }
 
-/// Disable MFA
+/// Disable own MFA
 pub async fn mfa_disable(
     session_info: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let mut user = session_info.user;
+    debug!("Disabling MFA for user {}", user.username);
+    user.disable_mfa(&appstate.pool).await?;
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::MfaDisabled),
+    })?;
+    info!("Disabled MFA for user {}", user.username);
+    Ok(ApiResponse::default())
+}
+
+/// Disable specific user's MFA
+pub async fn disable_user_mfa(
+    session_info: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+    Path(username): Path<String>,
+) -> ApiResult {
+    let mut user = user_for_admin_or_self(&appstate.pool, &session_info, &username).await?;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
