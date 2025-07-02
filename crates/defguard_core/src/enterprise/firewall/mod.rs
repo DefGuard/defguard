@@ -797,7 +797,7 @@ async fn generate_user_snat_bindings_for_location(
         return Ok(Vec::new());
     }
 
-    // iniitalize output list
+    // initialize output list
     let mut bindings = Vec::new();
 
     // process each user SNAT binding
