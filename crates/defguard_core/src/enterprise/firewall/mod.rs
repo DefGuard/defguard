@@ -854,7 +854,7 @@ async fn generate_user_snat_bindings_for_location(
     }
 
     debug!(
-        "Generated {} SNAT bindings for location {}",
+        "Generated {} SNAT bindings for location {location_id}",
         bindings.len(),
         location_id
     );
