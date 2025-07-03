@@ -12,7 +12,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{GatewayEvent, Id, User, WireguardNetwork},
-    enterprise::{db::models::snat::UserSnatBinding, handlers::LicenseInfo},
+    enterprise::{
+        db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
+    },
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -107,7 +109,10 @@ pub async fn create_snat_binding(
 
     let snat_binding = UserSnatBinding::new(data.user_id, location.id, data.public_ip);
 
-    let binding = snat_binding.save(&appstate.pool).await?;
+    let binding = snat_binding
+        .save(&appstate.pool)
+        .await
+        .map_err(UserSnatBindingError::from)?;
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;

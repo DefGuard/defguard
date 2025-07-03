@@ -1,12 +1,12 @@
 use axum::{
-    Json,
     extract::{FromRef, FromRequestParts},
-    http::{HeaderName, HeaderValue, StatusCode, request::Parts},
+    http::{request::Parts, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
+    Json,
 };
 use axum_client_ip::InsecureClientIp;
-use axum_extra::{TypedHeader, headers::UserAgent};
-use serde_json::{Value, json};
+use axum_extra::{headers::UserAgent, TypedHeader};
+use serde_json::{json, Value};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
@@ -14,13 +14,13 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
-    VERSION,
     appstate::AppState,
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
+    VERSION,
 };
 
 pub(crate) mod activity_log;
@@ -74,6 +74,9 @@ impl From<WebError> for ApiResponse {
             }
             WebError::ObjectNotFound(msg) => {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+            }
+            WebError::ObjectAlreadyExists(msg) => {
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::CONFLICT)
             }
             WebError::Authorization(msg) => {
                 error!(msg);

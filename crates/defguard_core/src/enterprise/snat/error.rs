@@ -1,4 +1,3 @@
-use reqwest::StatusCode;
 use thiserror::Error;
 
 use crate::error::WebError;
@@ -29,7 +28,9 @@ impl From<UserSnatBindingError> for WebError {
     fn from(value: UserSnatBindingError) -> Self {
         match value {
             UserSnatBindingError::BindingNotFound => WebError::ObjectNotFound(value.to_string()),
-            UserSnatBindingError::BindingAlreadyExists => WebError::Http(StatusCode::CONFLICT),
+            UserSnatBindingError::BindingAlreadyExists => {
+                WebError::ObjectAlreadyExists(value.to_string())
+            }
             UserSnatBindingError::DbError { source } => WebError::DbError(source.to_string()),
         }
     }
