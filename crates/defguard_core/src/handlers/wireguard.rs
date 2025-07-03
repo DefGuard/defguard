@@ -6,33 +6,34 @@ use std::{
 };
 
 use axum::{
+    Extension,
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
+use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
+    AsCsv,
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
+        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
                 WireguardNetworkDevice,
             },
             wireguard::{
-                networks_stats, DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow,
-                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow,
+                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
+                WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
             },
         },
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -40,8 +41,7 @@ use crate::{
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
-    wg_config::{parse_wireguard_config, ImportedDevice},
-    AsCsv,
+    wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -741,7 +741,9 @@ pub(crate) async fn add_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
+                debug!(
+                    "Sending firewall config update for location {location} affected by adding new user {username} devices"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location_id,
                     firewall_config,
@@ -874,7 +876,9 @@ pub(crate) async fn modify_device(
     // check pubkeys
     for network in &networks {
         if network.pubkey == data.wireguard_pubkey {
-            error!("Failed to update device {device_id}, device's pubkey must be different from server's pubkey");
+            error!(
+                "Failed to update device {device_id}, device's pubkey must be different from server's pubkey"
+            );
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: StatusCode::BAD_REQUEST,
@@ -1026,7 +1030,9 @@ pub(crate) async fn delete_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by deleting user {username} device");
+                debug!(
+                    "Sending firewall config update for location {location} affected by deleting user {username} device"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location.id,
                     firewall_config,

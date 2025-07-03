@@ -4,7 +4,7 @@ use std::{
 };
 
 use ipnetwork::IpNetwork;
-use sqlx::{query_as, query_scalar, Error as SqlxError, PgConnection};
+use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
 
 use super::{
     db::models::acl::{
@@ -14,15 +14,15 @@ use super::{
     utils::merge_ranges,
 };
 use crate::{
-    db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
+    db::{Device, Id, User, WireguardNetwork, models::error::ModelError},
     enterprise::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
         is_enterprise_enabled,
     },
     grpc::proto::enterprise::firewall::{
-        ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
-        SnatBinding as SnatBindingProto,
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+        PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
+        port::Port as PortInner,
     },
 };
 
@@ -832,7 +832,8 @@ async fn generate_user_snat_bindings_for_location(
 
         if source_addrs.is_empty() {
             debug!(
-                "No compatible device IPs found for user {user_id} in location {location_id} with public IP {}, skipping SNAT binding", user_binding.public_ip
+                "No compatible device IPs found for user {user_id} in location {location_id} with public IP {}, skipping SNAT binding",
+                user_binding.public_ip
             );
             continue;
         }

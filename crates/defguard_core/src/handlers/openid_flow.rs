@@ -4,18 +4,24 @@ use std::{
 };
 
 use axum::{
+    Form,
     extract::{FromRef, OptionalFromRequestParts, Query, State},
     http::{
+        HeaderMap, HeaderValue, StatusCode,
         header::{AUTHORIZATION, LOCATION},
         request::Parts,
-        HeaderMap, HeaderValue, StatusCode,
     },
-    Form,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
 use openidconnect::{
+    AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
+    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
+    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IdToken, IdTokenClaims,
+    IdTokenFields, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge,
+    PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims,
+    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
         CoreGrantType, CoreHmacKey, CoreJsonWebKeySet, CoreJweContentEncryptionAlgorithm,
@@ -23,12 +29,6 @@ use openidconnect::{
         CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
-    AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
-    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
-    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IdToken, IdTokenClaims,
-    IdTokenFields, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge,
-    PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims,
-    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use serde::{
     de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
@@ -43,11 +43,11 @@ use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo},
     db::{
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
     },
     error::WebError,
-    handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
+    handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,
 };
 
@@ -406,7 +406,10 @@ pub async fn authorization(
                             {
                                 // If session expired return login
                                 if session.expired() {
-                                    info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
+                                    info!(
+                                        "Session {} for user id {} has expired, redirecting to login",
+                                        session.id, session.user_id
+                                    );
                                     let _result = session.delete(&appstate.pool).await;
                                     Ok(login_redirect(&data, private_cookies))
                                 } else {
@@ -863,7 +866,10 @@ pub async fn token(
                                     }
                                 }
                             }
-                            error!("Can't issue token - authorized app not found for user {}, client {}", user.username, client.name);
+                            error!(
+                                "Can't issue token - authorized app not found for user {}, client {}",
+                                user.username, client.name
+                            );
                         } else {
                             error!("User id {} not found", auth_code.user_id);
                         }

@@ -5,24 +5,24 @@ use claims::{assert_err, assert_ok};
 use defguard_core::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{
-        models::settings::update_current_settings, MFAInfo, MFAMethod, Settings, User, UserDetails,
+        MFAInfo, MFAMethod, Settings, User, UserDetails, models::settings::update_current_settings,
     },
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp},
 };
-use reqwest::{header::USER_AGENT, StatusCode};
+use reqwest::{StatusCode, header::USER_AGENT};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query,
 };
-use totp_lite::{totp_custom, Sha1};
-use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
+use totp_lite::{Sha1, totp_custom};
+use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
 use crate::common::{
-    fetch_user_details, make_client, make_client_with_db, make_client_with_state, make_test_client,
-    setup_pool, X_FORWARDED_FOR,
+    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
+    make_test_client, setup_pool,
 };
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -271,8 +271,7 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
 static EMAIL_CODE_REGEX: &str = r"<b>(?<code>\d{6})</b>";
 fn extract_email_code(content: &str) -> &str {
     let re = regex::Regex::new(EMAIL_CODE_REGEX).unwrap();
-    let code = re.captures(content).unwrap().name("code").unwrap().as_str();
-    code
+    re.captures(content).unwrap().name("code").unwrap().as_str()
 }
 
 #[sqlx::test]
@@ -716,9 +715,10 @@ async fn test_mfa_method_totp_enabled_mail(_: PgPoolOptions, options: PgConnectO
         "MFA method TOTP has been activated on your account"
     );
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 }
 
 #[sqlx::test]
@@ -747,9 +747,10 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
         "Defguard: new device logged in to your account"
     );
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
+    );
 
     let response = client.post("/api/v1/auth/logout").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -782,9 +783,10 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
         "Defguard: new device logged in to your account"
     );
     assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
-    assert!(mail
-        .content
-        .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"));
+    assert!(
+        mail.content
+            .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView")
+    );
 }
 
 #[sqlx::test]

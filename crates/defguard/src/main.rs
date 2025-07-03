@@ -5,29 +5,29 @@ use std::{
 
 use bytes::Bytes;
 use defguard_core::{
+    SERVER_CONFIG, VERSION,
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{
-        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Settings,
-        User,
+        AppEvent, GatewayEvent, Settings, User, init_db,
+        models::settings::initialize_current_settings,
     },
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
-        license::{run_periodic_license_check, set_cached_license, License},
+        license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
-    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
+    grpc::{GatewayMap, WorkerState, run_grpc_bidi_stream, run_grpc_server},
     init_dev_env, init_vpn_location,
-    mail::{run_mail_handler, Mail},
+    mail::{Mail, run_mail_handler},
     run_web_server,
     utility_thread::run_utility_thread,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
-    SERVER_CONFIG, VERSION,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
-use defguard_event_router::{run_event_router, RouterReceiverSet};
+use defguard_event_router::{RouterReceiverSet, run_event_router};
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

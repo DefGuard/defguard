@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use chrono::Utc;
 use serde_json::json;
@@ -14,7 +14,7 @@ use crate::{
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
     random::gen_alphanumeric,
 };
 

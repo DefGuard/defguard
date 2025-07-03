@@ -7,18 +7,19 @@ use axum::{
 use serde_json::json;
 
 use super::{
-    mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
-    ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
+    AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
+    StartEnrollmentRequest, Username, mail::EMAIL_PASSOWRD_RESET_START_SUBJECT,
+    user_for_admin_or_self,
 };
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::{
-            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-            GroupDiff,
-        },
         AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
+        models::{
+            GroupDiff,
+            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
+        },
     },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -499,7 +500,9 @@ pub async fn start_remote_desktop_configuration(
         ));
     }
 
-    debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
+    debug!(
+        "Verify that the user from the current session is an admin or only peforms desktop activation for self."
+    );
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Successfully fetched user data: {user:?}");
 
@@ -509,7 +512,9 @@ pub async fn start_remote_desktop_configuration(
         None => user.email.clone(),
     };
 
-    debug!("Create a new database transaction to save a desktop configuration token into the database.");
+    debug!(
+        "Create a new database transaction to save a desktop configuration token into the database."
+    );
     let mut transaction = appstate.pool.begin().await?;
 
     debug!(

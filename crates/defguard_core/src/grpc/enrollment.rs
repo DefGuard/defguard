@@ -3,26 +3,27 @@ use std::collections::HashSet;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{
     broadcast::Sender,
-    mpsc::{error::SendError, UnboundedSender},
+    mpsc::{UnboundedSender, error::SendError},
 };
 use tonic::Status;
 
 use super::{
+    InstanceInfo,
     proto::proxy::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
         InitialUserInfo, NewDevice,
     },
-    InstanceInfo,
 };
 use crate::{
+    AsCsv,
     db::{
+        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
         },
-        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
@@ -36,7 +37,6 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
-    AsCsv,
 };
 
 pub(super) struct EnrollmentServer {
@@ -506,11 +506,7 @@ impl EnrollmentServer {
         {
             warn!(
                 "User {}({:?}) failed to add device {}, identical pubkey ({}) already exists for device {}",
-                user.username,
-                user.id,
-                request.name,
-                request.pubkey,
-                device.name
+                user.username, user.id, request.name, request.pubkey, device.name
             );
             return Err(Status::invalid_argument("invalid key"));
         }
@@ -675,7 +671,10 @@ impl EnrollmentServer {
                         Status::internal("unexpected error")
                     })?
                 {
-                    debug!("Sending firewall config update for location {location} affected by adding new device {}, user {}({})", device.wireguard_pubkey, user.username, user.id);
+                    debug!(
+                        "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",
+                        device.wireguard_pubkey, user.username, user.id
+                    );
                     self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                         location_id,
                         firewall_config,

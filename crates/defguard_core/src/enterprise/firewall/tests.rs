@@ -2,10 +2,11 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
 use ipnetwork::{IpNetwork, Ipv6Network};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use sqlx::{
+    PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
-    query, PgPool,
+    query,
 };
 
 use super::{
@@ -14,8 +15,9 @@ use super::{
 };
 use crate::{
     db::{
+        Device, Group, Id, NoId, User, WireguardNetwork,
         models::device::{DeviceType, WireguardNetworkDevice},
-        setup_pool, Device, Group, Id, NoId, User, WireguardNetwork,
+        setup_pool,
     },
     enterprise::{
         db::models::acl::{
@@ -25,8 +27,8 @@ use crate::{
         firewall::{get_source_addrs, get_source_network_devices},
     },
     grpc::proto::enterprise::firewall::{
-        ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
-        IpVersion, Port, PortRange as PortRangeProto, Protocol,
+        FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto, Protocol,
+        ip_address::Address, port::Port as PortInner,
     },
 };
 
@@ -42,13 +44,13 @@ impl Default for AclRuleDestinationRange<Id> {
 }
 
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
-    let mut user: User<Id> = rng.gen();
+    let mut user: User<Id> = rng.r#gen();
     user.id = id;
     user
 }
 
 fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
-    let mut device: Device<Id> = rng.gen();
+    let mut device: Device<Id> = rng.r#gen();
     device.id = id;
     device.device_type = DeviceType::Network;
     device
@@ -935,15 +937,15 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
-    let user_3: User<NoId> = rng.gen();
+    let user_3: User<NoId> = rng.r#gen();
     let user_3 = user_3.save(&pool).await.unwrap();
-    let user_4: User<NoId> = rng.gen();
+    let user_4: User<NoId> = rng.r#gen();
     let user_4 = user_4.save(&pool).await.unwrap();
-    let user_5: User<NoId> = rng.gen();
+    let user_5: User<NoId> = rng.r#gen();
     let user_5 = user_5.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2, &user_3, &user_4, &user_5] {
@@ -1352,15 +1354,15 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
-    let user_3: User<NoId> = rng.gen();
+    let user_3: User<NoId> = rng.r#gen();
     let user_3 = user_3.save(&pool).await.unwrap();
-    let user_4: User<NoId> = rng.gen();
+    let user_4: User<NoId> = rng.r#gen();
     let user_4 = user_4.save(&pool).await.unwrap();
-    let user_5: User<NoId> = rng.gen();
+    let user_5: User<NoId> = rng.r#gen();
     let user_5 = user_5.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2, &user_3, &user_4, &user_5] {
@@ -1801,15 +1803,15 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
-    let user_3: User<NoId> = rng.gen();
+    let user_3: User<NoId> = rng.r#gen();
     let user_3 = user_3.save(&pool).await.unwrap();
-    let user_4: User<NoId> = rng.gen();
+    let user_4: User<NoId> = rng.r#gen();
     let user_4 = user_4.save(&pool).await.unwrap();
-    let user_5: User<NoId> = rng.gen();
+    let user_5: User<NoId> = rng.r#gen();
     let user_5 = user_5.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2, &user_3, &user_4, &user_5] {
@@ -3080,9 +3082,9 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     };
     let location_2 = location_2.save(&pool).await.unwrap();
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2] {
@@ -3234,9 +3236,9 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     let location_2 = location_2.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2] {
@@ -3401,9 +3403,9 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
     };
     let location_2 = location_2.save(&pool).await.unwrap();
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2] {
@@ -3565,9 +3567,9 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2] {
@@ -3758,9 +3760,9 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     .unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.gen();
+    let user_1: User<NoId> = rng.r#gen();
     let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.gen();
+    let user_2: User<NoId> = rng.r#gen();
     let user_2 = user_2.save(&pool).await.unwrap();
 
     for user in [&user_1, &user_2] {

@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use defguard_core::db::{
+    NoId,
     models::activity_log::{
+        ActivityLogEvent, ActivityLogModule, EventType,
         metadata::{
             ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
@@ -14,9 +16,7 @@ use defguard_core::db::{
             VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
             WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
-        ActivityLogEvent, ActivityLogModule, EventType,
     },
-    NoId,
 };
 use error::EventLoggerError;
 use message::{
@@ -494,7 +494,9 @@ pub async fn run_event_logger(
         if !serialized_activity_log_events.is_empty() {
             let in_bytes = bytes::Bytes::from(serialized_activity_log_events);
             if let Err(send_err) = activity_log_messages_tx.send(in_bytes) {
-                trace!("Sending serialized activity log events message failed. Most likely because there is no listeners. Reason: {send_err}");
+                trace!(
+                    "Sending serialized activity log events message failed. Most likely because there is no listeners. Reason: {send_err}"
+                );
             }
         }
 

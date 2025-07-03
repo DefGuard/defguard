@@ -4,7 +4,7 @@ use defguard_core::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
-        license::{set_cached_license, License},
+        license::{License, set_cached_license},
     },
     handlers::Auth,
 };
