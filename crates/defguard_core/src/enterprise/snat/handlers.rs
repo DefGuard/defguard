@@ -51,7 +51,7 @@ pub async fn list_snat_bindings(
     // check if target location exists
     let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
         .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {} not found", location_id)))?;
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
 
     debug!("User {current_user} listing SNAT bindings for WireGuard location {location}");
 
@@ -108,7 +108,7 @@ pub async fn create_snat_binding(
     // check if target location & user exist
     let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
         .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {} not found", location_id)))?;
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
     let _snat_user = User::find_by_id(&appstate.pool, data.user_id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", data.user_id)))?;
