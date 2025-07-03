@@ -50,7 +50,7 @@ pub async fn list_snat_bindings(
 
     debug!("User {current_user} listing SNAT bindings for WireGuard location {location}");
 
-    let bindings = location.get_all_snat_bindings(&appstate.pool).await?;
+    let bindings = UserSnatBinding::all_for_location(&appstate.pool, location.id).await?;
 
     Ok(ApiResponse {
         json: json!(bindings),
