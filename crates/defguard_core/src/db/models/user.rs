@@ -895,7 +895,9 @@ impl User<Id> {
         match maybe_user {
             Some(user) => Ok(Some(user)),
             None => {
-                debug!("Failed to find user by username {username_or_email}. Attempting to find by email");
+                debug!(
+                    "Failed to find user by username {username_or_email}. Attempting to find by email"
+                );
                 Ok(Self::find_by_email(&mut *conn, username_or_email).await?)
             }
         }
