@@ -8,9 +8,10 @@ use std::{
 
 use anyhow::anyhow;
 use axum::{
+    Extension, Json, Router,
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Json, Router,
+    serve,
 };
 use db::models::device::DeviceType;
 use defguard_web_ui::{index, svg, web_asset};
@@ -62,16 +63,16 @@ use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
+        OnceCell,
         broadcast::Sender,
         mpsc::{UnboundedReceiver, UnboundedSender},
-        OnceCell,
     },
 };
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -101,9 +102,8 @@ use self::{
     auth::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
-        init_db,
+        AppEvent, Device, GatewayEvent, User, WireguardNetwork, init_db,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
     },
     handlers::{
         auth::{
@@ -192,19 +192,19 @@ pub(crate) const KEY_LENGTH: usize = 32;
 mod openapi {
     use crate::enterprise::snat::handlers as snat;
     use db::{
-        models::device::{ModifyDevice, UserDevice},
         AddDevice, UserDetails, UserInfo,
+        models::device::{ModifyDevice, UserDevice},
     };
     use handlers::{
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username,
         group::{self, BulkAssignToGroupsRequest, Groups},
         user, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     };
     use utoipa::{
-        openapi::security::{HttpAuthScheme, HttpBuilder},
         OpenApi,
+        openapi::security::{HttpAuthScheme, HttpBuilder},
     };
 
     use super::*;

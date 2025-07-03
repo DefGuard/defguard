@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -102,7 +102,9 @@ pub async fn create_snat_binding(
 ) -> ApiResult {
     let current_user = session.user.username;
 
-    debug!("User {current_user} creating new SNAT binding for WireGuard location {location_id} with {data:?}");
+    debug!(
+        "User {current_user} creating new SNAT binding for WireGuard location {location_id} with {data:?}"
+    );
 
     let snat_binding = UserSnatBinding::new(data.user_id, location_id, data.public_ip);
 
@@ -112,7 +114,9 @@ pub async fn create_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location_id,
                 firewall_config,
@@ -166,7 +170,9 @@ pub async fn modify_snat_binding(
 ) -> ApiResult {
     let current_user = session.user.username;
 
-    debug!("User {current_user} updating SNAT binding for user {user_id} and WireGuard location {location_id} with {data:?}");
+    debug!(
+        "User {current_user} updating SNAT binding for user {user_id} and WireGuard location {location_id} with {data:?}"
+    );
 
     // fetch existing binding
     let mut snat_binding =
@@ -180,7 +186,9 @@ pub async fn modify_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location_id,
                 firewall_config,
@@ -224,7 +232,9 @@ pub async fn delete_snat_binding(
 ) -> ApiResult {
     let current_user = session.user.username;
 
-    debug!("User {current_user} deleting SNAT binding for user {user_id} and WireGuard location {location_id}");
+    debug!(
+        "User {current_user} deleting SNAT binding for user {user_id} and WireGuard location {location_id}"
+    );
 
     // fetch existing binding
     let snat_binding = UserSnatBinding::find_binding(&appstate.pool, location_id, user_id).await?;
@@ -236,7 +246,9 @@ pub async fn delete_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location_id,
                 firewall_config,

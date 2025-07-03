@@ -1,15 +1,15 @@
 use std::time::Duration;
 
 use lettre::{
-    address::AddressError,
-    message::{header::ContentType, Mailbox, MultiPart, SinglePart},
-    transport::smtp::{authentication::Credentials, response::Response},
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+    address::AddressError,
+    message::{Mailbox, MultiPart, SinglePart, header::ContentType},
+    transport::smtp::{authentication::Credentials, response::Response},
 };
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db::{models::settings::SmtpEncryption, Settings};
+use crate::db::{Settings, models::settings::SmtpEncryption};
 
 const SMTP_TIMEOUT_SECONDS: u64 = 15;
 
@@ -184,7 +184,9 @@ impl MailHandler {
                 Ok(mailer) => match mailer.send(message).await {
                     Ok(response) => {
                         Self::send_result(result_tx, Ok(response.clone()));
-                        info!("Mail sent successfully to: {to}, subject: {subject}, response: {response:?}");
+                        info!(
+                            "Mail sent successfully to: {to}, subject: {subject}, response: {response:?}"
+                        );
                     }
                     Err(err) => {
                         error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");

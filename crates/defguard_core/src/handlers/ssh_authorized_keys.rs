@@ -1,19 +1,19 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde_json::json;
-use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
 
-use super::{user_for_admin_or_self, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
         Group, Id, User,
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},

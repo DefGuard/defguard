@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use ldap3::{Mod, SearchEntry};
 use sqlx::{Error as SqlxError, PgExecutor};
 
-use super::{error::LdapError, LDAPConfig};
+use super::{LDAPConfig, error::LdapError};
 use crate::{
     db::{Id, Settings, User},
     handlers::user::check_username,

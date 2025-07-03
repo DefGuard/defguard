@@ -6,30 +6,30 @@ use std::{
 };
 
 use defguard_core::{
+    SERVER_CONFIG,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
     db::{
-        models::settings::initialize_current_settings, AppEvent, GatewayEvent, Id, NoId, User,
-        UserDetails,
+        AppEvent, GatewayEvent, Id, NoId, User, UserDetails,
+        models::settings::initialize_current_settings,
     },
-    enterprise::license::{set_cached_license, License},
+    enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{GatewayMap, WorkerState},
     handlers::Auth,
     mail::Mail,
-    SERVER_CONFIG,
 };
-use reqwest::{header::HeaderName, StatusCode, Url};
+use reqwest::{StatusCode, Url, header::HeaderName};
 use secrecy::ExposeSecret;
 use serde::de::DeserializeOwned;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
         broadcast::{self, Receiver},
-        mpsc::{unbounded_channel, UnboundedReceiver},
+        mpsc::{UnboundedReceiver, unbounded_channel},
     },
 };
 

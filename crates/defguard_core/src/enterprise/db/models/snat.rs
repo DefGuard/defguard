@@ -6,7 +6,7 @@ use crate::{
 };
 use model_derive::Model;
 use serde::Serialize;
-use sqlx::{query_as, PgExecutor};
+use sqlx::{PgExecutor, query_as};
 use utoipa::ToSchema;
 
 #[derive(Debug, Model, Serialize, ToSchema)]

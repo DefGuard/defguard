@@ -6,15 +6,15 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
+    TypedHeader,
     extract::{
-        cookie::{Cookie, CookieJar, SameSite},
         PrivateCookieJar,
+        cookie::{Cookie, CookieJar, SameSite},
     },
     headers::UserAgent,
-    TypedHeader,
 };
 use serde_json::json;
-use sqlx::{types::Uuid, PgPool};
+use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::Parser;
@@ -23,25 +23,26 @@ use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
-    WebAuthnRegistration, SESSION_COOKIE_NAME,
+    SESSION_COOKIE_NAME, WebAuthnRegistration,
 };
 use crate::{
     appstate::AppState,
     auth::{
-        failed_login::{check_failed_logins, log_failed_login_attempt},
         SessionInfo,
+        failed_login::{check_failed_logins, log_failed_login_attempt},
     },
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
+        SIGN_IN_COOKIE_NAME,
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
         },
-        user_for_admin_or_self, SIGN_IN_COOKIE_NAME,
+        user_for_admin_or_self,
     },
-    headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
+    headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     mail::Mail,
     server_config,
 };
@@ -150,7 +151,9 @@ pub(crate) async fn authenticate(
                     {
                         Ok(user) => user,
                         Err(err) => {
-                            info!("Failed to authenticate user {username_or_email} through LDAP: {err}");
+                            info!(
+                                "Failed to authenticate user {username_or_email} through LDAP: {err}"
+                            );
                             log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
                             appstate.emit_event(ApiEvent {
                                 context: ApiRequestContext::new(
