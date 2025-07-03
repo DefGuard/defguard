@@ -5,7 +5,6 @@ use axum::{
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::query_as;
 use std::net::IpAddr;
 use utoipa::ToSchema;
 
@@ -41,19 +40,14 @@ pub async fn list_snat_bindings(
     _admin_role: AdminRole,
     session: SessionInfo,
     Path(location_id): Path<Id>,
+    location: WireguardNetwork<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let current_user = session.user.username;
 
     debug!("User {current_user} listing SNAT bindings for WireGuard location {location_id}");
 
-    let bindings = query_as!(
-        UserSnatBinding::<Id>,
-        "SELECT id, user_id, location_id, \"public_ip\" \"public_ip: IpAddr\" FROM user_snat_binding WHERE location_id = $1",
-        location_id
-    )
-    .fetch_all(&appstate.pool)
-    .await?;
+    let bindings = location.get_all_snat_bindings(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!(bindings),

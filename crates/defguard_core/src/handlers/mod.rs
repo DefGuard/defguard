@@ -1,12 +1,12 @@
 use axum::{
-    extract::{FromRef, FromRequestParts},
-    http::{request::Parts, HeaderName, HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
     Json,
+    extract::{FromRef, FromRequestParts},
+    http::{HeaderName, HeaderValue, StatusCode, request::Parts},
+    response::{IntoResponse, Response},
 };
 use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
-use serde_json::{json, Value};
+use axum_extra::{TypedHeader, headers::UserAgent};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
@@ -14,18 +14,19 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
+    VERSION,
     appstate::AppState,
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
-    VERSION,
 };
 
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
 pub(crate) mod auth;
+pub(crate) mod extractors;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
