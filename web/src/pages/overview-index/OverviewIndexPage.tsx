@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { range } from 'lodash-es';
+import { orderBy, range } from 'lodash-es';
 import { useEffect } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useLocation, useNavigate } from 'react-router';
@@ -35,6 +35,8 @@ export const OverviewIndexPage = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const resetWizard = useWizardStore((state) => state.resetState);

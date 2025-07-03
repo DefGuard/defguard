@@ -21,7 +21,21 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
-const useLocalProxy = true;
+const useLocalProxy = import.meta.env.DEV;
+
+const extractProxyPort = (input: string): string | undefined => {
+  try {
+    const url = new URL(input);
+    const port = url.port;
+    const parsed = port ? parseInt(port, 10) : undefined;
+    if (parsed && !isNaN(parsed)) {
+      return `:${parsed}`;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 export const AddDeviceTokenStep = () => {
   const { writeToClipboard } = useClipboard();
@@ -48,7 +62,8 @@ export const AddDeviceTokenStep = () => {
     if (isPresent(url) && isPresent(token)) {
       let targetUrl: string;
       if (useLocalProxy) {
-        targetUrl = 'http://10.0.2.2:8080';
+        const proxyPort = extractProxyPort(url) ?? '';
+        targetUrl = `http://10.0.2.2${proxyPort}`;
       } else {
         targetUrl = url;
       }
@@ -131,7 +146,7 @@ export const AddDeviceTokenStep = () => {
         <ExpandableCard title={localLL.tokenCardTitle()} actions={tokenActions} expanded>
           <p>{token}</p>
         </ExpandableCard>
-        <MessageBox message="If you have client installed on a mobile device you can scan the QR code below with your camera." />
+        <MessageBox message="If you have defguard client installed on a mobile device you can scan the QR below with your defguard client application." />
         {isPresent(mobileQrData) && (
           <ExpandableCard
             id="mobile-qr-code"

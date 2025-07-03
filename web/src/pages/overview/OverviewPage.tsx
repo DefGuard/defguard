@@ -47,6 +47,8 @@ export const OverviewPage = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const { data: networkStats } = useQuery({
