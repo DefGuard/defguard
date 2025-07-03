@@ -5,15 +5,17 @@ use axum::{
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::query_as;
 use std::net::IpAddr;
 use utoipa::ToSchema;
 
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{GatewayEvent, Id, WireguardNetwork},
-    enterprise::{db::models::snat::UserSnatBinding, handlers::LicenseInfo},
+    db::{GatewayEvent, Id, User, WireguardNetwork},
+    enterprise::{
+        db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
+    },
+    error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -29,6 +31,7 @@ use crate::{
         (status = 200, description = "List of SNAT bindings", body = Vec<UserSnatBinding>),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden - Admin role required"),
+        (status = 404, description = "Not found - location does not exist"),
         (status = 500, description = "Internal server error")
     ),
     security(
@@ -44,16 +47,15 @@ pub async fn list_snat_bindings(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let current_user = session.user.username;
+    //
+    // check if target location exists
+    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
 
-    debug!("User {current_user} listing SNAT bindings for WireGuard location {location_id}");
+    debug!("User {current_user} listing SNAT bindings for WireGuard location {location}");
 
-    let bindings = query_as!(
-        UserSnatBinding::<Id>,
-        "SELECT id, user_id, location_id, \"public_ip\" \"public_ip: IpAddr\" FROM user_snat_binding WHERE location_id = $1",
-        location_id
-    )
-    .fetch_all(&appstate.pool)
-    .await?;
+    let bindings = UserSnatBinding::all_for_location(&appstate.pool, location.id).await?;
 
     Ok(ApiResponse {
         json: json!(bindings),
@@ -64,10 +66,10 @@ pub async fn list_snat_bindings(
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct NewUserSnatBinding {
     /// User ID to bind to the public IP
-    user_id: Id,
+    pub user_id: Id,
     /// Public IP address for SNAT
     #[schema(value_type = String)]
-    public_ip: IpAddr,
+    pub public_ip: IpAddr,
 }
 
 /// Create a new SNAT binding for a user in a WireGuard location
@@ -84,6 +86,7 @@ pub struct NewUserSnatBinding {
         (status = 400, description = "Bad request - Invalid input data"),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden - Admin role required"),
+        (status = 404, description = "Not found - location or user does not exist"),
         (status = 409, description = "Conflict - Binding already exists"),
         (status = 500, description = "Internal server error")
     ),
@@ -102,23 +105,34 @@ pub async fn create_snat_binding(
 ) -> ApiResult {
     let current_user = session.user.username;
 
+    // check if target location & user exist
+    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
+    let _snat_user = User::find_by_id(&appstate.pool, data.user_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", data.user_id)))?;
+
     debug!(
-        "User {current_user} creating new SNAT binding for WireGuard location {location_id} with {data:?}"
+        "User {current_user} creating new SNAT binding for WireGuard location {location} with {data:?}"
     );
 
-    let snat_binding = UserSnatBinding::new(data.user_id, location_id, data.public_ip);
+    let snat_binding = UserSnatBinding::new(data.user_id, location.id, data.public_ip);
 
-    let binding = snat_binding.save(&appstate.pool).await?;
+    let binding = snat_binding
+        .save(&appstate.pool)
+        .await
+        .map_err(UserSnatBindingError::from)?;
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
-    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
+    if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location.id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                location_id,
+                location.id,
                 firewall_config,
             ));
         }
@@ -134,7 +148,7 @@ pub async fn create_snat_binding(
 pub struct EditUserSnatBinding {
     /// New public IP address for SNAT
     #[schema(value_type = String)]
-    public_ip: IpAddr,
+    pub public_ip: IpAddr,
 }
 
 /// Modify an existing SNAT binding for a user in a WireGuard location

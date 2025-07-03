@@ -10,6 +10,7 @@ mod oauth;
 mod openid;
 mod openid_login;
 mod settings;
+mod snat;
 mod user;
 mod webhook;
 mod wireguard;

@@ -74,6 +74,9 @@ impl From<WebError> for ApiResponse {
             WebError::ObjectNotFound(msg) => {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
+            WebError::ObjectAlreadyExists(msg) => {
+                ApiResponse::new(json!({ "msg": msg }), StatusCode::CONFLICT)
+            }
             WebError::Authorization(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
