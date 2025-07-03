@@ -118,7 +118,9 @@ pub async fn create_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location.id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location.id,
                 firewall_config,
@@ -187,7 +189,9 @@ pub async fn modify_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location_id,
                 firewall_config,
@@ -244,7 +248,9 @@ pub async fn delete_snat_binding(
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
         if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
-            debug!("Sending firewall config update for location {location} affected by adding new SNAT binding");
+            debug!(
+                "Sending firewall config update for location {location} affected by adding new SNAT binding"
+            );
             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                 location_id,
                 firewall_config,

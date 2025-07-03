@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, State},
-    http::{header::HeaderValue, request::Parts, StatusCode},
+    http::{StatusCode, header::HeaderValue, request::Parts},
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::cookie::CookieJar;

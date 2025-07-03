@@ -3,13 +3,13 @@ use std::net::IpAddr;
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
+use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
 use reqwest::Url;
 use rsa::{
+    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
-    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 
@@ -311,8 +311,10 @@ mod tests {
 
     #[test]
     fn test_generate_rp_id() {
-        env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        unsafe {
+            env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
+            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        }
 
         let config = DefGuardConfig::new();
 
@@ -321,7 +323,9 @@ mod tests {
             Some("defguard.example.com".to_string())
         );
 
-        env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
+        unsafe {
+            env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
+        }
 
         let config = DefGuardConfig::new();
 
@@ -330,8 +334,10 @@ mod tests {
 
     #[test]
     fn test_generate_cookie_domain() {
-        env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        unsafe {
+            env::remove_var("DEFGUARD_COOKIE_DOMAIN");
+            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        }
 
         let config = DefGuardConfig::new();
 
@@ -340,7 +346,9 @@ mod tests {
             Some("defguard.example.com".to_string())
         );
 
-        env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
+        unsafe {
+            env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
+        }
 
         let config = DefGuardConfig::new();
 
@@ -349,14 +357,18 @@ mod tests {
 
     #[test]
     fn test_callback_url() {
-        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        unsafe {
+            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        }
         let config = DefGuardConfig::new();
         assert_eq!(
             config.callback_url().as_str(),
             "https://defguard.example.com/auth/callback"
         );
 
-        env::set_var("DEFGUARD_URL", "https://defguard.example.com:8443/path");
+        unsafe {
+            env::set_var("DEFGUARD_URL", "https://defguard.example.com:8443/path");
+        }
         let config = DefGuardConfig::new();
         assert_eq!(
             config.callback_url().as_str(),

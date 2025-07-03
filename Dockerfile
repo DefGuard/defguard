@@ -21,6 +21,7 @@ FROM chef AS planner
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
 COPY proto proto
+COPY migrations migrations
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
@@ -38,6 +39,7 @@ COPY .git .git
 COPY .sqlx .sqlx
 COPY crates crates
 COPY proto proto
+COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
