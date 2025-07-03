@@ -26,7 +26,6 @@ use crate::{
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
 pub(crate) mod auth;
-pub(crate) mod extractors;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;

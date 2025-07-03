@@ -268,3 +268,9 @@ pub(crate) async fn make_client_with_state(pool: PgPool) -> (TestClient, ClientS
     let (client, client_state) = make_test_client(pool).await;
     (client, client_state)
 }
+
+pub(crate) async fn authenticate_admin(client: &TestClient) {
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
