@@ -1,8 +1,8 @@
-use sqlx::{error::Error as SqlxError, query, PgPool};
+use sqlx::{PgPool, error::Error as SqlxError, query};
 
+use super::license::License;
 #[cfg(test)]
 use super::license::get_cached_license;
-use super::license::License;
 use crate::global_value;
 
 // Limits for free users
@@ -170,7 +170,7 @@ mod test {
 
     use super::*;
     use crate::{
-        enterprise::license::{set_cached_license, License},
+        enterprise::license::{License, set_cached_license},
         grpc::proto::enterprise::license::LicenseLimits,
     };
 

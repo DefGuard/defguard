@@ -5,8 +5,8 @@ use serde::Serialize;
 
 use crate::{
     db::{
-        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
         Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,

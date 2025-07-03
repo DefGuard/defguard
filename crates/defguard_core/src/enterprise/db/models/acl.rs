@@ -9,19 +9,19 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, query_scalar, Error as SqlxError,
-    FromRow, PgConnection, PgExecutor, PgPool, Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, error::ErrorKind,
+    postgres::types::PgRange, query, query_as, query_scalar,
 };
 use thiserror::Error;
 
 use crate::{
+    DeviceType,
     appstate::AppState,
     db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
-    DeviceType,
 };
 
 #[derive(Debug, Error)]
@@ -567,7 +567,9 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 fn map_relation_error(err: SqlxError, class: &str, id: Id) -> AclError {
     if let SqlxError::Database(dberror) = &err {
         if dberror.kind() == ErrorKind::ForeignKeyViolation {
-            error!("Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}");
+            error!(
+                "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
+            );
             return AclError::InvalidRelationError(format!("{class}({id})"));
         }
     }
@@ -665,7 +667,9 @@ impl AclRule<Id> {
         .fetch_all(&mut *transaction)
         .await?;
         if !invalid_alias_ids.is_empty() {
-            error!("Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}");
+            error!(
+                "Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}"
+            );
             return Err(AclError::CannotUseModifiedAliasInRuleError(
                 invalid_alias_ids,
             ));
@@ -1596,7 +1600,9 @@ impl AclAlias {
         // check if any rules are using this alias
         let rules = existing_alias.get_rules(&mut *transaction).await?;
         if !rules.is_empty() {
-            error!("Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}");
+            error!(
+                "Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}"
+            );
             return Err(AclError::AliasUsedByRulesError(id));
         }
 

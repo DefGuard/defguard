@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, FromRow, PgPool};
+use sqlx::{Error as SqlxError, FromRow, PgPool, query_as};
 
 use super::UserInfo;
 use crate::db::{Id, NoId};

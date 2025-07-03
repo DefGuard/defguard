@@ -2,8 +2,8 @@ use base64::Engine;
 use md4::Md4;
 use rand_core::{OsRng, RngCore};
 use sha1::{
-    digest::generic_array::{sequence::Concat, GenericArray},
     Digest, Sha1,
+    digest::generic_array::{GenericArray, sequence::Concat},
 };
 
 use crate::hex::to_lower_hex;

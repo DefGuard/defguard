@@ -9,7 +9,7 @@ use crate::{
     enterprise::{
         is_enterprise_enabled, is_enterprise_free,
         license::get_cached_license,
-        limits::{get_counts, LimitsExceeded},
+        limits::{LimitsExceeded, get_counts},
     },
 };
 

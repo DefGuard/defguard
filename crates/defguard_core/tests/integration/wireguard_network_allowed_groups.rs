@@ -2,16 +2,16 @@ use std::net::IpAddr;
 
 use claims::assert_err;
 use defguard_core::{
-    db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
-    handlers::{wireguard::ImportedNetworkData, Auth},
     AsCsv,
+    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork, models::device::DeviceType},
+    handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
     PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
 };
 
 use crate::common::{fetch_user_details, make_test_client, setup_pool};

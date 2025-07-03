@@ -1,8 +1,8 @@
 use defguard_core::{
-    grpc::{worker::JobStatus, WorkerDetail},
+    grpc::{WorkerDetail, worker::JobStatus},
     handlers::{
-        worker::{JobData, Jobid},
         Auth,
+        worker::{JobData, Jobid},
     },
 };
 use reqwest::StatusCode;

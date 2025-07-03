@@ -39,9 +39,9 @@ use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEve
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
+    Notify,
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
-    Notify,
 };
 use tracing::{debug, error, info};
 

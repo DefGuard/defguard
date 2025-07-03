@@ -1,6 +1,6 @@
 use std::{fmt, net::IpAddr};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
@@ -8,24 +8,24 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
 use rand::{
+    Rng,
     distributions::{Alphanumeric, DistString, Standard},
     prelude::Distribution,
-    Rng,
 };
 use sqlx::{
-    postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool, Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query, query_as,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{NetworkAddressError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
 };
 use crate::{
-    db::{Id, NoId, User},
     AsCsv, KEY_LENGTH,
+    db::{Id, NoId, User},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -103,10 +103,10 @@ impl fmt::Display for Device<Id> {
 impl Distribution<Device<Id>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
         Device {
-            id: rng.gen(),
+            id: rng.r#gen(),
             name: Alphanumeric.sample_string(rng, 8),
             wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
-            user_id: rng.gen(),
+            user_id: rng.r#gen(),
             created: NaiveDate::from_ymd_opt(
                 rng.gen_range(2000..2026),
                 rng.gen_range(1..13),
@@ -124,9 +124,9 @@ impl Distribution<Device<Id>> for Standard {
                 _ => DeviceType::User,
             },
             description: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 20)),
-            configured: rng.gen(),
+            configured: rng.r#gen(),
         }
     }
 }
@@ -1012,7 +1012,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

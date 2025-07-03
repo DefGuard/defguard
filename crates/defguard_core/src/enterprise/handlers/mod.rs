@@ -13,7 +13,7 @@ pub mod openid_providers;
 
 use axum::{
     extract::{FromRef, FromRequestParts},
-    http::{request::Parts, StatusCode},
+    http::{StatusCode, request::Parts},
 };
 
 use super::{

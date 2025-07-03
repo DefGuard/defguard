@@ -5,7 +5,7 @@ use std::{
 
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
-use sqlx::{error::Error as SqlxError, PgPool};
+use sqlx::{PgPool, error::Error as SqlxError};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
@@ -30,19 +30,21 @@ const REQUEST_PAGINATION_SLOWDOWN: Duration = Duration::from_millis(100);
 pub enum DirectorySyncError {
     #[error("Database error: {0}")]
     DbError(#[from] SqlxError),
-    #[error("Access token has expired or is not present. An issue may have occured while trying to obtain a new one.")]
+    #[error(
+        "Access token has expired or is not present. An issue may have occured while trying to obtain a new one."
+    )]
     AccessTokenExpired,
     #[error("Processing a request to the provider's API failed: {0}")]
     RequestError(String),
-    #[error(
-        "Failed to build a JWT token, required for communicating with the provider's API: {0}"
-    )]
+    #[error("Failed to build a JWT token, required for communicating with the provider's API: {0}")]
     JWTError(#[from] jsonwebtoken::errors::Error),
     #[error("The selected provider {0} is not supported for directory sync")]
     UnsupportedProvider(String),
     #[error("Directory sync is not configured")]
     NotConfigured,
-    #[error("Couldn't map provider's group to a Defguard group as it doesn't exist. There may be an issue with automatic group creation. Error details: {0}")]
+    #[error(
+        "Couldn't map provider's group to a Defguard group as it doesn't exist. There may be an issue with automatic group creation. Error details: {0}"
+    )]
     DefGuardGroupNotFound(String),
     #[error("The provided provider configuration is invalid: {0}")]
     InvalidProviderConfiguration(String),
@@ -63,7 +65,9 @@ pub enum DirectorySyncError {
 impl From<reqwest::Error> for DirectorySyncError {
     fn from(err: reqwest::Error) -> Self {
         if err.is_decode() {
-            Self::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
+            Self::RequestError(format!(
+                "There was an error while trying to decode provider's response, it may be malformed: {err}"
+            ))
         } else if err.is_timeout() {
             Self::RequestError(format!(
                 "The request to the provider's API timed out: {err}"
@@ -216,7 +220,9 @@ impl DirectorySyncClient {
                     provider_settings.admin_email.as_ref(),
                 ) {
                     (Some(key), Some(email), Some(admin_email)) => {
-                        debug!("Google directory has all the configuration needed, proceeding with creating the sync client");
+                        debug!(
+                            "Google directory has all the configuration needed, proceeding with creating the sync client"
+                        );
                         let client = google::GoogleDirectorySync::new(key, email, admin_email);
                         debug!("Google directory sync client created");
                         Ok(Self::Google(client))
@@ -240,7 +246,9 @@ impl DirectorySyncClient {
                     provider_settings.okta_private_jwk.as_ref(),
                     provider_settings.okta_dirsync_client_id.as_ref(),
                 ) {
-                    debug!("Okta directory has all the configuration needed, proceeding with creating the sync client");
+                    debug!(
+                        "Okta directory has all the configuration needed, proceeding with creating the sync client"
+                    );
                     let client =
                         okta::OktaDirectorySync::new(jwk, client_id, &provider_settings.base_url);
                     debug!("Okta directory sync client created");
@@ -493,15 +501,17 @@ async fn sync_all_users_groups<T: DirectorySync>(
                         continue;
                     }
                     debug!(
-                            "Removing user {} from group {} as they are not a member of it in the directory",
-                            user.email, current_group.name
-                        );
+                        "Removing user {} from group {} as they are not a member of it in the directory",
+                        user.email, current_group.name
+                    );
                     user.remove_from_group(&mut *transaction, current_group)
                         .await?;
                     admin_count -= 1;
                 } else {
-                    debug!("Removing user {} from group {} as they are not a member of it in the directory",
-                    user.email, current_group.name);
+                    debug!(
+                        "Removing user {} from group {} as they are not a member of it in the directory",
+                        user.email, current_group.name
+                    );
                     user.remove_from_group(&mut *transaction, current_group)
                         .await?;
                 }
@@ -897,13 +907,14 @@ mod test {
 
     use super::*;
     use crate::{
+        SERVER_CONFIG,
         config::DefGuardConfig,
         db::{
+            Device, Session, SessionState, Settings, WireguardNetwork,
             models::{device::DeviceType, settings::initialize_current_settings},
-            setup_pool, Device, Session, SessionState, Settings, WireguardNetwork,
+            setup_pool,
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
-        SERVER_CONFIG,
     };
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
@@ -1242,10 +1253,12 @@ mod test {
             None,
         );
         disabled_user_session.save(&pool).await.unwrap();
-        assert!(Session::find_by_id(&pool, &disabled_user_session.id)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            Session::find_by_id(&pool, &disabled_user_session.id)
+                .await
+                .unwrap()
+                .is_some()
+        );
 
         assert!(user1.is_active);
         assert!(user2.is_active);
@@ -1274,10 +1287,12 @@ mod test {
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
 
-        assert!(Session::find_by_id(&pool, &disabled_user_session.id)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            Session::find_by_id(&pool, &disabled_user_session.id)
+                .await
+                .unwrap()
+                .is_none()
+        );
         assert!(user1.is_active);
         assert!(!user2.is_active);
         assert!(testuser.is_active);
