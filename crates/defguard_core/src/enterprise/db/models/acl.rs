@@ -9,19 +9,19 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, query_scalar, Error as SqlxError,
-    FromRow, PgConnection, PgExecutor, PgPool, Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, error::ErrorKind,
+    postgres::types::PgRange, query, query_as, query_scalar,
 };
 use thiserror::Error;
 
 use crate::{
+    DeviceType,
     appstate::AppState,
     db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
-    DeviceType,
 };
 
 #[derive(Debug, Error)]
@@ -567,7 +567,9 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 fn map_relation_error(err: SqlxError, class: &str, id: Id) -> AclError {
     if let SqlxError::Database(dberror) = &err {
         if dberror.kind() == ErrorKind::ForeignKeyViolation {
-            error!("Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}");
+            error!(
+                "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
+            );
             return AclError::InvalidRelationError(format!("{class}({id})"));
         }
     }
@@ -665,7 +667,9 @@ impl AclRule<Id> {
         .fetch_all(&mut *transaction)
         .await?;
         if !invalid_alias_ids.is_empty() {
-            error!("Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}");
+            error!(
+                "Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}"
+            );
             return Err(AclError::CannotUseModifiedAliasInRuleError(
                 invalid_alias_ids,
             ));
@@ -964,7 +968,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -990,7 +994,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -1171,7 +1175,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1193,7 +1197,7 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
             WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1232,7 +1236,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1255,7 +1259,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized, ldap_rdn \
+                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1596,7 +1600,9 @@ impl AclAlias {
         // check if any rules are using this alias
         let rules = existing_alias.get_rules(&mut *transaction).await?;
         if !rules.is_empty() {
-            error!("Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}");
+            error!(
+                "Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}"
+            );
             return Err(AclError::AliasUsedByRulesError(id));
         }
 
@@ -1892,12 +1898,6 @@ pub struct AclRuleDestinationRange<I = NoId> {
     pub end: IpAddr,
 }
 
-impl<I> AclRuleDestinationRange<I> {
-    pub(crate) fn fits_in_network(&self, ipnet: &IpNetwork) -> bool {
-        ipnet.contains(self.start) && ipnet.contains(self.end)
-    }
-}
-
 impl AclRuleDestinationRange<NoId> {
     pub async fn save<'e, E>(self, executor: E) -> Result<AclRuleDestinationRange<Id>, SqlxError>
     where
@@ -1934,12 +1934,6 @@ pub struct AclAliasDestinationRange<I = NoId> {
     pub alias_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
-}
-
-impl<I> AclAliasDestinationRange<I> {
-    pub(crate) fn fits_in_network(&self, ipnet: &IpNetwork) -> bool {
-        ipnet.contains(self.start) && ipnet.contains(self.end)
-    }
 }
 
 impl AclAliasDestinationRange<NoId> {

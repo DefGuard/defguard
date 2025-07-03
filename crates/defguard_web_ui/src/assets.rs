@@ -1,5 +1,5 @@
 use axum::{
-    http::{header, StatusCode, Uri},
+    http::{StatusCode, Uri, header},
     response::{IntoResponse, Response},
 };
 use rust_embed::Embed;
@@ -28,7 +28,7 @@ pub async fn svg(uri: Uri) -> impl IntoResponse {
 #[include = "src/shared/images/*"]
 struct WebAsset;
 
-pub struct StaticFile<T>(pub T);
+pub(crate) struct StaticFile<T>(pub T);
 
 impl<T> IntoResponse for StaticFile<T>
 where

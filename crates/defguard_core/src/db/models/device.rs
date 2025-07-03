@@ -1,6 +1,6 @@
 use std::{fmt, net::IpAddr};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
@@ -8,24 +8,24 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
 use rand::{
+    Rng,
     distributions::{Alphanumeric, DistString, Standard},
     prelude::Distribution,
-    Rng,
 };
 use sqlx::{
-    postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool, Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query, query_as,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{NetworkAddressError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
 };
 use crate::{
-    db::{Id, NoId, User},
     AsCsv, KEY_LENGTH,
+    db::{Id, NoId, User},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -103,10 +103,10 @@ impl fmt::Display for Device<Id> {
 impl Distribution<Device<Id>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
         Device {
-            id: rng.gen(),
+            id: rng.r#gen(),
             name: Alphanumeric.sample_string(rng, 8),
             wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
-            user_id: rng.gen(),
+            user_id: rng.r#gen(),
             created: NaiveDate::from_ymd_opt(
                 rng.gen_range(2000..2026),
                 rng.gen_range(1..13),
@@ -124,9 +124,9 @@ impl Distribution<Device<Id>> for Standard {
                 _ => DeviceType::User,
             },
             description: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 20)),
-            configured: rng.gen(),
+            configured: rng.r#gen(),
         }
     }
 }
@@ -800,7 +800,7 @@ impl Device<Id> {
     /// For every CIDR block in `network.address`, this function:
     /// 1. Iterates through the block's IPs in order.
     /// 2. Skips any IP that:
-    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or  
+    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or
     ///    - Appears in the optional `reserved_ips`.
     /// 3. Selects the first remaining IP and records it.
     ///
@@ -808,19 +808,21 @@ impl Device<Id> {
     ///
     /// # Parameters
     ///
-    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.  
-    /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.  
+    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.
+    /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.
     /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
+    /// - `current_ips`: Optional slice of IPs already assigned to the device - won't be reassigned if they are still valid.
     ///
     /// # Returns
     ///
-    /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.  
+    /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.
     /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
     pub(crate) async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
+        current_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
@@ -835,6 +837,17 @@ impl Device<Id> {
                 "Assigning address to device {} in network {} {address}",
                 self.name, network.name,
             );
+            // Don't reassign addresses for networks that didn't change
+            if let Some(ip) =
+                current_ips.and_then(|ips| ips.iter().find(|ip| address.contains(**ip)))
+            {
+                debug!(
+                    "Skipping reassignment of already assigned valid IP {ip} for device {} in network {} with addresses {:?}",
+                    self.name, network.name, network.address
+                );
+                ips.push(*ip);
+                continue;
+            }
             let mut picked = None;
             for ip in address {
                 if network
@@ -984,7 +997,7 @@ impl Device<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await
@@ -999,7 +1012,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

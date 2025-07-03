@@ -1,22 +1,25 @@
-use sqlx::PgPool;
 use std::{net::IpAddr, str::FromStr};
+
+use sqlx::PgPool;
 use tonic::Status;
 
 use super::{
-    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
     InstanceInfo,
+    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
 };
 use crate::{
+    AsCsv,
     db::{
+        Device, Id, Settings, User,
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,
             wireguard::WireguardNetwork,
         },
-        Device, Id, Settings, User,
     },
-    enterprise::db::models::enterprise_settings::EnterpriseSettings,
-    AsCsv,
+    enterprise::db::models::{
+        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
+    },
 };
 
 // Create a new token for configuration polling.
@@ -67,6 +70,11 @@ pub(crate) async fn build_device_config_response(
     token: Option<String>,
 ) -> Result<DeviceConfigResponse, Status> {
     let settings = Settings::get_current_settings();
+
+    let openid_provider = OpenIdProvider::get_current(pool).await.map_err(|err| {
+        error!("Failed to get OpenID provider: {err}");
+        Status::internal(format!("unexpected error: {err}"))
+    })?;
 
     let networks = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
@@ -126,16 +134,17 @@ pub(crate) async fn build_device_config_response(
         }
     } else {
         for network in networks {
-            let wireguard_network_device =
-                WireguardNetworkDevice::find(pool, device.id, network.id)
-                    .await
-                    .map_err(|err| {
-                        error!(
+            let wireguard_network_device = WireguardNetworkDevice::find(
+                pool, device.id, network.id,
+            )
+            .await
+            .map_err(|err| {
+                error!(
                     "Failed to fetch WireGuard network device for device {} and network {}: {err}",
                     device.id, network.id
                 );
-                        Status::internal(format!("unexpected error: {err}"))
-                    })?;
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -162,7 +171,15 @@ pub(crate) async fn build_device_config_response(
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
         configs,
-        instance: Some(InstanceInfo::new(settings, &user.username, &enterprise_settings).into()),
+        instance: Some(
+            InstanceInfo::new(
+                settings,
+                &user.username,
+                &enterprise_settings,
+                openid_provider,
+            )
+            .into(),
+        ),
         token,
     })
 }

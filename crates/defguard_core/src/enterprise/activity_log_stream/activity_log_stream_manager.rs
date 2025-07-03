@@ -4,16 +4,14 @@ use bytes::Bytes;
 use sqlx::PgPool;
 use tokio::{sync::broadcast::Receiver, task::JoinSet, time::interval};
 use tokio_util::sync::CancellationToken;
-
 use tracing::debug;
 
+use super::ActivityLogStreamReconfigurationNotification;
 use crate::enterprise::{
-    activity_log_stream::http_stream::{run_http_stream_task, HttpActivityLogStreamConfig},
+    activity_log_stream::http_stream::{HttpActivityLogStreamConfig, run_http_stream_task},
     db::models::activity_log_stream::{ActivityLogStream, ActivityLogStreamConfig},
     is_enterprise_enabled,
 };
-
-use super::ActivityLogStreamReconfigurationNotification;
 
 // check if enterprise features are enabled every minute
 const ENTERPRISE_CHECK_PERIOD_SECS: u64 = 60;
@@ -78,7 +76,9 @@ pub async fn run_activity_log_stream_manager(
                 }
             }
         } else {
-            info!("Activity log stream manager cannot start streams, license needs enterprise features enabled.");
+            info!(
+                "Activity log stream manager cannot start streams, license needs enterprise features enabled."
+            );
         }
 
         // wait for one of the following:

@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgExecutor, Type};
+use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
 
 use crate::db::{Id, NoId};
 
@@ -11,16 +11,16 @@ pub enum AuthenticationKeyType {
     Gpg,
 }
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Deserialize, Model, Serialize)]
 #[table(authentication_key)]
-pub(crate) struct AuthenticationKey<I = NoId> {
-    id: I,
-    pub yubikey_id: Option<i64>,
-    pub name: Option<String>,
-    pub user_id: Id,
-    pub key: String,
+pub struct AuthenticationKey<I = NoId> {
+    pub(crate) id: I,
+    pub(crate) yubikey_id: Option<i64>,
+    pub(crate) name: Option<String>,
+    pub(crate) user_id: Id,
+    pub(crate) key: String,
     #[model(enum)]
-    key_type: AuthenticationKeyType,
+    pub(crate) key_type: AuthenticationKeyType,
 }
 
 impl AuthenticationKey {

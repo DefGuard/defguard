@@ -7,18 +7,19 @@ use axum::{
 use serde_json::json;
 
 use super::{
-    mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
-    ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
+    AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
+    StartEnrollmentRequest, Username, mail::EMAIL_PASSOWRD_RESET_START_SUBJECT,
+    user_for_admin_or_self,
 };
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::{
-            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-            GroupDiff,
-        },
         AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
+        models::{
+            GroupDiff,
+            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
+        },
     },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -342,9 +343,7 @@ pub async fn add_user(
     }
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserAdded {
-            username: user.username,
-        },
+        event: Box::new(ApiEventType::UserAdded { user }),
     })?;
     Ok(ApiResponse {
         json: json!(&user_info),
@@ -383,12 +382,13 @@ pub async fn add_user(
 pub async fn start_enrollment(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} has started a new enrollment request.",
+        "User {} creating enrollment token for user {username}.",
         session.user.username
     );
 
@@ -435,7 +435,7 @@ pub async fn start_enrollment(
     debug!("Transaction committed.");
 
     info!(
-        "The enrollment process for {} has ended with success.",
+        "User {} created enrollment token for user {username}.",
         session.user.username
     );
     debug!(
@@ -443,6 +443,10 @@ pub async fn start_enrollment(
         enrollment_token,
         config.enrollment_url.to_string()
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
+    })?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
@@ -479,6 +483,7 @@ pub async fn start_enrollment(
 )]
 pub async fn start_remote_desktop_configuration(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
@@ -495,7 +500,9 @@ pub async fn start_remote_desktop_configuration(
         ));
     }
 
-    debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
+    debug!(
+        "Verify that the user from the current session is an admin or only peforms desktop activation for self."
+    );
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Successfully fetched user data: {user:?}");
 
@@ -505,7 +512,9 @@ pub async fn start_remote_desktop_configuration(
         None => user.email.clone(),
     };
 
-    debug!("Create a new database transaction to save a desktop configuration token into the database.");
+    debug!(
+        "Create a new database transaction to save a desktop configuration token into the database."
+    );
     let mut transaction = appstate.pool.begin().await?;
 
     debug!(
@@ -539,6 +548,10 @@ pub async fn start_remote_desktop_configuration(
         desktop_configuration_token,
         config.enrollment_url.to_string()
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::ClientConfigurationTokenAdded { user }),
+    })?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
@@ -630,6 +643,8 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    // store user before mods
+    let before = user.clone();
     let old_username = user.username.clone();
     if let Err(err) = check_username(&user_info.username) {
         debug!("Username {} rejected: {err}", user_info.username);
@@ -699,7 +714,7 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
-    user.maybe_update_rdn().await?;
+    user.maybe_update_rdn().await;
     user.save(&appstate.pool).await?;
 
     ldap_update_user_state(&mut user, &appstate.pool).await;
@@ -737,9 +752,10 @@ pub async fn modify_user(
     info!("User {} updated user {username}", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserModified {
-            username: user.username,
-        },
+        event: Box::new(ApiEventType::UserModified {
+            before,
+            after: user,
+        }),
     })?;
     Ok(ApiResponse::default())
 }
@@ -796,7 +812,8 @@ pub async fn delete_user(
         } else {
             None
         };
-        user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
+        user.clone()
+            .delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
@@ -809,7 +826,7 @@ pub async fn delete_user(
         info!("User {} deleted user {}", session.user.username, &username);
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::UserRemoved { username },
+            event: Box::new(ApiEventType::UserRemoved { user }),
         })?;
         Ok(ApiResponse::default())
     } else {
@@ -843,6 +860,7 @@ pub async fn delete_user(
 )]
 pub async fn change_self_password(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<PasswordChangeSelf>,
 ) -> ApiResult {
@@ -869,6 +887,10 @@ pub async fn change_self_password(
     ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
 
     info!("User {} changed his password.", &user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::PasswordChanged),
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -907,6 +929,7 @@ pub async fn change_self_password(
 pub async fn change_password(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<PasswordChange>,
@@ -949,6 +972,10 @@ pub async fn change_password(
             "Admin {} changed password for user {username}",
             session.user.username
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::PasswordChangedByAdmin { user }),
+        })?;
         Ok(ApiResponse::default())
     } else {
         debug!("Can't change password for user {username}, user not found");
@@ -989,6 +1016,7 @@ pub async fn change_password(
 pub async fn reset_password(
     _role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
 ) -> ApiResult {
@@ -1058,6 +1086,10 @@ pub async fn reset_password(
             "Admin {} reset password for user {username}",
             session.user.username
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::PasswordReset { user }),
+        })?;
         Ok(ApiResponse::default())
     } else {
         debug!("Can't reset password for user {username}, user not found");
@@ -1095,6 +1127,7 @@ pub async fn reset_password(
 )]
 pub async fn delete_security_key(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path((username, id)): Path<(String, i64)>,
 ) -> ApiResult {
@@ -1105,12 +1138,16 @@ pub async fn delete_security_key(
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
         if webauthn.user_id == user.id {
-            webauthn.delete(&appstate.pool).await?;
+            webauthn.clone().delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
                 "User {} deleted security key {id} for user {username}",
                 session.user.username,
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::MfaSecurityKeyRemoved { key: webauthn }),
+            })?;
             Ok(ApiResponse::default())
         } else {
             error!(

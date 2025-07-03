@@ -1,4 +1,6 @@
 name: Deploy to release staging environment
+permissions:
+  contents: read
 on:
   workflow_call:
 

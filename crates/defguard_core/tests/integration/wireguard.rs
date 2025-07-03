@@ -1,12 +1,14 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 use defguard_core::{
     db::{
+        Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
             wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
         },
-        Device, GatewayEvent, Id, WireguardNetwork,
     },
-    handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
+    handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
 use matches::assert_matches;
@@ -273,6 +275,120 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device<Id>> = response.json().await;
     assert!(devices.is_empty());
+}
+
+#[sqlx::test]
+async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let network = json!({
+        "name": "network",
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
+    });
+    let response = client.post("/api/v1/network").json(&network).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // network details
+    let response = client.get("/api/v1/network/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network_from_details: WireguardNetwork<Id> = response.json().await;
+
+    // create devices
+    let device = json!({
+        "name": "device1",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device = json!({
+        "name": "device2",
+        "wireguard_pubkey": "ZqDlG4LQZRO9v57Sd27AHdtTLxegbMp5oVThjYrg21I=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // ensure IPs were assigned for new devices
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        network_devices[0].wireguard_ips,
+        vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2))],
+    );
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 2)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        network_devices[0].wireguard_ips,
+        vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 3))],
+    );
+
+    // delete the first device
+    let response = client.delete("/api/v1/device/1").json(&device).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // modify network addresses
+    let network = json!({
+        "id": network_from_details.id,
+        "name": "network",
+        "address": "10.1.1.1/24,fc00::1/112",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
+    });
+    let response = client
+        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .json(&network)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // ensure IPv4 address wasn't reassigned
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 2)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        network_devices[0].wireguard_ips,
+        vec![
+            IpAddr::V4(Ipv4Addr::new(10, 1, 1, 3)),
+            IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 2)),
+        ],
+    );
 }
 
 #[sqlx::test]

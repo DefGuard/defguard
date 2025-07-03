@@ -6,12 +6,15 @@ use std::collections::{HashMap, HashSet};
 
 use sqlx::PgPool;
 
-use super::{error::LdapError, LDAPConnection};
+use super::{LDAPConnection, error::LdapError};
 use crate::{
     db::{Group, Id, User},
     enterprise::ldap::with_ldap_status,
 };
 
+/// Retrieves a user from LDAP if they are in the configured LDAP sync groups.
+///
+/// Creates a new user in Defguard if they do not exist and marks them as coming from LDAP.
 pub(crate) async fn login_through_ldap(
     pool: &PgPool,
     username: &str,
@@ -20,7 +23,7 @@ pub(crate) async fn login_through_ldap(
     debug!("Logging in user {username} through LDAP");
     let mut ldap_connection = LDAPConnection::create().await?;
     let mut ldap_user = ldap_connection
-        .fetch_user_by_credentials(username, password)
+        .get_user_by_credentials(username, password)
         .await?;
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         info!("User {username} is not in LDAP sync groups, not allowing to login through LDAP.",);
@@ -35,7 +38,9 @@ pub(crate) async fn login_through_ldap(
     let user = if let Some(mut defguard_user) =
         User::find_by_username(pool, &ldap_user.username).await?
     {
-        debug!("User {defguard_user} already exists in Defguard, marking them as coming from LDAP and proceeding with login");
+        debug!(
+            "User {defguard_user} already exists in Defguard, marking them as coming from LDAP and proceeding with login"
+        );
         defguard_user.from_ldap = true;
         defguard_user.save(pool).await?;
         defguard_user
@@ -46,31 +51,6 @@ pub(crate) async fn login_through_ldap(
         ldap_user.from_ldap = true;
         ldap_user.save(pool).await?
     };
-
-    Ok(user)
-}
-
-pub(crate) async fn user_from_ldap(
-    pool: &PgPool,
-    username: &str,
-    password: &str,
-) -> Result<User<Id>, LdapError> {
-    debug!("Getting user {username} from LDAP");
-    let mut ldap_connection = LDAPConnection::create().await?;
-
-    let mut ldap_user = ldap_connection
-        .fetch_user_by_credentials(username, password)
-        .await?;
-    if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
-        return Err(LdapError::UserNotInLDAPSyncGroups(
-            username.to_string(),
-            "LDAP",
-        ));
-    }
-    ldap_user.from_ldap = true;
-    let user = ldap_user.save(pool).await?;
-
-    debug!("User {user} found in LDAP");
 
     Ok(user)
 }

@@ -31,6 +31,7 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
     let response = reqwest::Client::new()
         .post(UPDATES_URL)
         .json(&body)
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await?;
     Ok(response.json::<Update>().await?)
@@ -43,8 +44,10 @@ pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
     let new_version = Version::parse(&update.version)?;
     if new_version > current_version {
         if update.critical {
-            warn!("There is a new critical Defguard update available: {} (Released on {}). It's recommended to update as soon as possible.",
-                  update.version, update.release_date);
+            warn!(
+                "There is a new critical Defguard update available: {} (Released on {}). It's recommended to update as soon as possible.",
+                update.version, update.release_date
+            );
         } else {
             info!(
                 "There is a new Defguard version available: {} (Released on {})",

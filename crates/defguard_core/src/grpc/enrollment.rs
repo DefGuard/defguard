@@ -3,40 +3,40 @@ use std::collections::HashSet;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{
     broadcast::Sender,
-    mpsc::{error::SendError, UnboundedSender},
+    mpsc::{UnboundedSender, error::SendError},
 };
 use tonic::Status;
 
 use super::{
+    InstanceInfo,
     proto::proxy::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
         InitialUserInfo, NewDevice,
     },
-    InstanceInfo,
 };
-use crate::grpc::utils::parse_client_info;
 use crate::{
+    AsCsv,
     db::{
+        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
         },
-        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
     },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        ldap::utils::ldap_add_user,
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token},
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
-    AsCsv,
 };
 
 pub(super) struct EnrollmentServer {
@@ -106,7 +106,7 @@ impl EnrollmentServer {
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
             context,
-            event: BidiStreamEventType::Enrollment(event),
+            event: BidiStreamEventType::Enrollment(Box::new(event)),
         };
 
         self.bidi_event_tx.send(event)
@@ -195,7 +195,20 @@ impl EnrollmentServer {
                 "Retrieving instance info for user {}({:?}).",
                 user.username, user.id
             );
-            let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
+
+            let openid_provider = OpenIdProvider::get_current(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!("Failed to get OpenID provider: {err}");
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
+
+            let instance_info = InstanceInfo::new(
+                settings,
+                &user.username,
+                &enterprise_settings,
+                openid_provider,
+            );
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -229,9 +242,10 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::proxy::Settings {
+            let enrollment_settings = super::proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
+                admin_device_management: enterprise_settings.admin_device_management,
             };
             let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
@@ -400,6 +414,34 @@ impl EnrollmentServer {
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
 
+        // check if adding device by non-admin users is allowed
+        debug!(
+            "Fetching enterprise settings for device creation process for user {}({:?})",
+            user.username, user.id,
+        );
+        let enterprise_settings = EnterpriseSettings::get(&self.pool).await.map_err(|err| {
+            error!(
+            "Failed to fetch enterprise settings for device creation process for user {}({:?}): \
+            {err}",
+            user.username, user.id,
+        );
+            Status::internal("unexpected error")
+        })?;
+        debug!("Enterprise settings: {enterprise_settings:?}");
+
+        if !user.is_admin(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to fetch admin status for user {}({:?}): {err}",
+                user.username, user.id,
+            );
+            Status::internal("unexpected error")
+        })? && enterprise_settings.admin_device_management
+        {
+            return Err(Status::invalid_argument(
+                "only admin users can manage devices",
+            ));
+        }
+
         // add device
         debug!(
             "Verifying if user {}({:?}) is active",
@@ -464,11 +506,7 @@ impl EnrollmentServer {
         {
             warn!(
                 "User {}({:?}) failed to add device {}, identical pubkey ({}) already exists for device {}",
-                user.username,
-                user.id,
-                request.name,
-                request.pubkey,
-                device.name
+                user.username, user.id, request.name, request.pubkey, device.name
             );
             return Err(Status::invalid_argument("invalid key"));
         }
@@ -633,7 +671,10 @@ impl EnrollmentServer {
                         Status::internal("unexpected error")
                     })?
                 {
-                    debug!("Sending firewall config update for location {location} affected by adding new device {}, user {}({})", device.wireguard_pubkey, user.username, user.id);
+                    debug!(
+                        "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",
+                        device.wireguard_pubkey, user.username, user.id
+                    );
                     self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                         location_id,
                         firewall_config,
@@ -661,23 +702,6 @@ impl EnrollmentServer {
         );
         let settings = Settings::get_current_settings();
         debug!("Settings: {settings:?}");
-
-        debug!(
-            "Fetching enterprise settings for device {} creation process for user {}({:?})",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-        let enterprise_settings =
-            EnterpriseSettings::get(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): \
-            {err}",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-                    Status::internal("unexpected error")
-                })?;
-        debug!("Enterprise settings: {enterprise_settings:?}");
 
         // create polling token for further client communication
         debug!(
@@ -732,11 +756,24 @@ impl EnrollmentServer {
 
         info!("Device {} remote configuration done.", device.name);
 
+        let openid_provider = OpenIdProvider::get_current(&self.pool)
+            .await
+            .map_err(|err| {
+                error!("Failed to get OpenID provider: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(
-                InstanceInfo::new(settings, &user.username, &enterprise_settings).into(),
+                InstanceInfo::new(
+                    settings,
+                    &user.username,
+                    &enterprise_settings,
+                    openid_provider,
+                )
+                .into(),
             ),
             token: Some(token.token),
         };
@@ -793,6 +830,7 @@ impl InitialUserInfo {
         let enrolled = user.is_enrolled();
         let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+        let is_admin = user.is_admin(pool).await?;
         Ok(Self {
             first_name: user.first_name,
             last_name: user.last_name,
@@ -802,6 +840,7 @@ impl InitialUserInfo {
             is_active: user.is_active,
             device_names,
             enrolled,
+            is_admin,
         })
     }
 }

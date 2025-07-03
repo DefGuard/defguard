@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use reqwest::StatusCode;
 use serde_json::json;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -15,8 +16,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
-
-use super::LicenseInfo;
 
 pub async fn get_activity_log_stream(
     _admin: AdminRole,
@@ -68,10 +67,7 @@ pub async fn create_activity_log_stream(
     info!("User {session_username} created activity log stream");
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::ActivityLogStreamCreated {
-            stream_id: stream.id,
-            stream_name: stream.name,
-        },
+        event: Box::new(ApiEventType::ActivityLogStreamCreated { stream }),
     })?;
     debug!("ActivityLogStreamCreated api event sent");
     Ok(ApiResponse {
@@ -92,18 +88,23 @@ pub async fn modify_activity_log_stream(
     let session_username = &session.user.username;
     debug!("User {session_username} modifies activity log stream ");
     if let Some(mut stream) = ActivityLogStream::find_by_id(&appstate.pool, id).await? {
+        // store stream before modifications
+        let before = stream.clone();
         //validate config
         let _ = ActivityLogStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
         stream.name = data.name;
         stream.config = data.stream_config;
         stream.save(&appstate.pool).await?;
-        info!("User {session_username} modified activity log stream");
+        info!(
+            "User {session_username} modified activity log stream {}",
+            stream.name
+        );
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::ActivityLogStreamModified {
-                stream_id: stream.id,
-                stream_name: stream.name,
-            },
+            event: Box::new(ApiEventType::ActivityLogStreamModified {
+                before,
+                after: stream,
+            }),
         })?;
         debug!("ActivityLogStreamModified api event sent");
         return Ok(ApiResponse::default());
@@ -124,15 +125,10 @@ pub async fn delete_activity_log_stream(
     let session_username = &session.user.username;
     debug!("User {session_username} deleting Activity Log Stream ({id})");
     if let Some(stream) = ActivityLogStream::find_by_id(&appstate.pool, id).await? {
-        let stream_id = stream.id;
-        let stream_name = stream.name.clone();
-        stream.delete(&appstate.pool).await?;
+        stream.clone().delete(&appstate.pool).await?;
         appstate.emit_event(ApiEvent {
             context,
-            event: ApiEventType::ActivityLogStreamRemoved {
-                stream_id,
-                stream_name,
-            },
+            event: Box::new(ApiEventType::ActivityLogStreamRemoved { stream }),
         })?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(

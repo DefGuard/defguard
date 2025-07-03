@@ -1,10 +1,10 @@
 use std::fmt;
 
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use sqlx::{Error as SqlxError, FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
-use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
+use crate::db::{Id, NoId, User, WireguardNetwork, models::error::ModelError};
 
 #[derive(Debug)]
 pub enum Permission {
@@ -19,7 +19,7 @@ impl fmt::Display for Permission {
     }
 }
 
-#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq)]
+#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq, Serialize)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
@@ -84,7 +84,7 @@ impl Group<Id> {
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" \
             JOIN group_user ON \"user\".id = group_user.user_id \
             WHERE group_user.group_id = $1",
@@ -300,7 +300,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {
@@ -367,19 +367,23 @@ mod test {
         .unwrap();
         user.add_to_group(&pool, &group).await.unwrap();
         assert!(!user.is_admin(&pool).await.unwrap());
-        assert!(!group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            !group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         group
             .set_permission(&pool, Permission::IsAdmin, true)
             .await
             .unwrap();
 
-        assert!(group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         assert!(user.is_admin(&pool).await.unwrap());
         let groups = Group::find_by_permission(&pool, Permission::IsAdmin)
             .await

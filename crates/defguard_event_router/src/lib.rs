@@ -28,19 +28,22 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent};
+use std::sync::Arc;
+
+use defguard_core::{
+    db::GatewayEvent,
+    events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    mail::Mail,
+};
+use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use error::EventRouterError;
 use events::Event;
-use std::sync::Arc;
 use tokio::sync::{
+    Notify,
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
-    Notify,
 };
 use tracing::{debug, error, info};
-
-use defguard_core::{db::GatewayEvent, mail::Mail};
-use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 
 mod error;
 mod events;
@@ -148,7 +151,7 @@ impl EventRouter {
               },
             };
 
-            debug!("Received event: {event:?}");
+            debug!("Received event");
 
             // Route the event to the appropriate handler
             match event {

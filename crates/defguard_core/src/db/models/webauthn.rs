@@ -1,15 +1,15 @@
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query, query_as, query_scalar};
 use webauthn_rs::prelude::Passkey;
 
 use super::error::ModelError;
 use crate::db::{Id, NoId};
 
-#[derive(Model)]
+#[derive(Model, Clone)]
 pub struct WebAuthn<I = NoId> {
-    id: I,
+    pub(crate) id: I,
     pub(crate) user_id: Id,
-    name: String,
+    pub(crate) name: String,
     // serialize from/to [`Passkey`]
     pub passkey: Vec<u8>,
 }

@@ -5,14 +5,14 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
-use base64::prelude::{Engine, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{
-    postgres::types::PgInterval, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, postgres::types::PgInterval,
+    query_as, query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -20,24 +20,24 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
+    UserInfo,
     device::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
     error::ModelError,
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
-    UserInfo,
 };
 use crate::{
+    AsCsv,
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
-        gateway::{send_multiple_wireguard_events, Peer},
-        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
+        gateway::{Peer, send_multiple_wireguard_events},
+        proto::enterprise::firewall::FirewallConfig,
     },
     wg_config::ImportedDevice,
-    AsCsv,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -436,7 +436,7 @@ impl WireguardNetwork<Id> {
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
-                .assign_next_network_ip(&mut *transaction, self, None)
+                .assign_next_network_ip(&mut *transaction, self, None, None)
                 .await?;
         }
         Ok(())
@@ -454,7 +454,7 @@ impl WireguardNetwork<Id> {
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips)
+                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None)
                 .await?;
             Ok(wireguard_network_device)
         } else {
@@ -475,8 +475,8 @@ impl WireguardNetwork<Id> {
         self.address.iter().find(|net| net.contains(addr)).copied()
     }
 
-    /// Works out which devices need to be added, removed, or readdressed
-    /// based on the list of currently configured devices and the list of devices which should be allowed
+    /// Works out which devices need to be added, removed, or readdressed based on the list
+    /// of currently configured devices and the list of devices which should be allowed.
     async fn process_device_access_changes(
         &self,
         transaction: &mut PgConnection,
@@ -484,18 +484,24 @@ impl WireguardNetwork<Id> {
         currently_configured_devices: Vec<WireguardNetworkDevice>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        // Loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
-        // initial list should now contain only devices to be added
+        // Loop through current device configurations; remove no longer allowed, readdress
+        // when necessary; remove processed entry from all devices list initial list should
+        // now contain only devices to be added.
         let mut events: Vec<GatewayEvent> = Vec::new();
         for device_network_config in currently_configured_devices {
             // Device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
-                // Network address changed and IP addresses need to be updated
+                // Network address has changed and IP addresses need to be updated
                 if !self.contains_all(&device_network_config.wireguard_ips)
                     || self.address.len() != device_network_config.wireguard_ips.len()
                 {
                     let wireguard_network_device = device
-                        .assign_next_network_ip(&mut *transaction, self, reserved_ips)
+                        .assign_next_network_ip(
+                            &mut *transaction,
+                            self,
+                            reserved_ips,
+                            Some(&device_network_config.wireguard_ips),
+                        )
                         .await?;
                     events.push(GatewayEvent::DeviceModified(DeviceInfo {
                         device,
@@ -537,7 +543,7 @@ impl WireguardNetwork<Id> {
         // Add configs for new allowed devices
         for device in allowed_devices.into_values() {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips)
+                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None)
                 .await?;
             events.push(GatewayEvent::DeviceCreated(DeviceInfo {
                 device,
@@ -665,9 +671,10 @@ impl WireguardNetwork<Id> {
                     match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ips.as_csv()
-                    );
+                                "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
+                                existing_device.wireguard_pubkey,
+                                imported_device.wireguard_ips.as_csv()
+                            );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
@@ -689,9 +696,9 @@ impl WireguardNetwork<Id> {
                         }
                         None => {
                             warn!(
-                        "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
-                        existing_device.wireguard_pubkey
-                    );
+                                "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
+                                existing_device.wireguard_pubkey
+                            );
                         }
                     }
                 }
@@ -1382,7 +1389,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, Group};
+    use crate::db::{Group, setup_pool};
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {

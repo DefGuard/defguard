@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgPool};
+use sqlx::{Error as SqlxError, PgPool, query_as};
 
 use super::NewOpenIDClient;
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
     random::gen_alphanumeric,
 };
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Deserialize, Model, Serialize)]
 pub struct OAuth2Client<I = NoId> {
     pub id: I,
     pub client_id: String, // unique
