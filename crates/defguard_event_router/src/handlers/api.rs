@@ -237,6 +237,27 @@ impl EventRouter {
                     user,
                 }))
             }
+            ApiEventType::UserSnatBindingAdded { user, binding } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingAdded {
+                    user,
+                    binding,
+                }))
+            }
+            ApiEventType::UserSnatBindingRemoved { user, binding } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingRemoved {
+                    user,
+                    binding,
+                }))
+            }
+            ApiEventType::UserSnatBindingModified {
+                user,
+                before,
+                after,
+            } => LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingModified {
+                user,
+                before,
+                after,
+            })),
         };
         self.log_event(event.context.into(), logger_event)
     }

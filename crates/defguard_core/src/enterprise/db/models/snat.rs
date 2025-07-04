@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query_as};
 use utoipa::ToSchema;
 
-#[derive(Debug, Deserialize, Model, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
 #[table(user_snat_binding)]
 pub struct UserSnatBinding<I = NoId> {
     pub id: I,

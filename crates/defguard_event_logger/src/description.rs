@@ -96,6 +96,19 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         } => todo!(),
         DefguardEvent::EnrollmentTokenAdded { user } => todo!(),
         DefguardEvent::ClientConfigurationTokenAdded { user } => todo!(),
+        DefguardEvent::UserSnatBindingAdded { user, binding } => Some(format!(
+            "Devices owned by user {} bound to public IP {}",
+            user.username, binding.public_ip
+        )),
+        DefguardEvent::UserSnatBindingRemoved { user, binding } => todo!(),
+        DefguardEvent::UserSnatBindingModified {
+            user,
+            before,
+            after,
+        } => Some(format!(
+            "Public IP bound to devices owned by user {} changed from {} to {}",
+            user.username, before.public_ip, after.public_ip
+        )),
     }
 }
 

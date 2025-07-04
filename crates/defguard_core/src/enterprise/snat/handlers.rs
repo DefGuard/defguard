@@ -16,6 +16,7 @@ use crate::{
         db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -99,6 +100,7 @@ pub async fn create_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(location_id): Path<Id>,
     State(appstate): State<AppState>,
     Json(data): Json<NewUserSnatBinding>,
@@ -109,12 +111,12 @@ pub async fn create_snat_binding(
     let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
-    let _snat_user = User::find_by_id(&appstate.pool, data.user_id)
+    let snat_user = User::find_by_id(&appstate.pool, data.user_id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", data.user_id)))?;
 
     debug!(
-        "User {current_user} creating new SNAT binding for WireGuard location {location} with {data:?}"
+        "User {current_user} creating new SNAT binding for user {snat_user} in WireGuard location {location} with {data:?}"
     );
 
     let snat_binding = UserSnatBinding::new(data.user_id, location.id, data.public_ip);
@@ -123,6 +125,15 @@ pub async fn create_snat_binding(
         .save(&appstate.pool)
         .await
         .map_err(UserSnatBindingError::from)?;
+
+    // emit event
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::UserSnatBindingAdded {
+            user: snat_user,
+            binding: binding.clone(),
+        }),
+    })?;
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
@@ -178,23 +189,45 @@ pub async fn modify_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((location_id, user_id)): Path<(Id, Id)>,
     State(appstate): State<AppState>,
     Json(data): Json<EditUserSnatBinding>,
 ) -> ApiResult {
     let current_user = session.user.username;
 
+    // fetch relevant location & user
+    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
+    let snat_user = User::find_by_id(&appstate.pool, user_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", user_id)))?;
+
     debug!(
-        "User {current_user} updating SNAT binding for user {user_id} and WireGuard location {location_id} with {data:?}"
+        "User {current_user} updating SNAT binding for user {snat_user} and WireGuard location {location} with {data:?}",
     );
 
     // fetch existing binding
     let mut snat_binding =
         UserSnatBinding::find_binding(&appstate.pool, location_id, user_id).await?;
 
+    // clone state before modifications
+    let before = snat_binding.clone();
+
     // update public IP
     snat_binding.update_ip(data.public_ip);
     snat_binding.save(&appstate.pool).await?;
+
+    // emit event
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::UserSnatBindingModified {
+            user: snat_user,
+            before,
+            after: snat_binding.clone(),
+        }),
+    })?;
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
@@ -241,20 +274,38 @@ pub async fn delete_snat_binding(
     _license: LicenseInfo,
     _admin_role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((location_id, user_id)): Path<(Id, Id)>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let current_user = session.user.username;
 
+    // fetch relevant location & user
+    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
+    let snat_user = User::find_by_id(&appstate.pool, user_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", user_id)))?;
+
     debug!(
-        "User {current_user} deleting SNAT binding for user {user_id} and WireGuard location {location_id}"
+        "User {current_user} deleting SNAT binding for user {snat_user} and WireGuard location {location}"
     );
 
     // fetch existing binding
     let snat_binding = UserSnatBinding::find_binding(&appstate.pool, location_id, user_id).await?;
 
     // delete binding
-    snat_binding.delete(&appstate.pool).await?;
+    snat_binding.clone().delete(&appstate.pool).await?;
+
+    // emit event
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::UserSnatBindingRemoved {
+            user: snat_user,
+            binding: snat_binding,
+        }),
+    })?;
 
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;

@@ -6517,6 +6517,18 @@ type RootTranslation = {
 			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
 			 */
 			client_configuration_token_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​a​d​d​e​d
+			 */
+			user_snat_binding_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​m​o​d​i​f​i​e​d
+			 */
+			user_snat_binding_modified: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​r​e​m​o​v​e​d
+			 */
+			user_snat_binding_removed: string
 		}
 		activityLogModule: {
 			/**
@@ -12978,6 +12990,18 @@ export type TranslationFunctions = {
 			 * Client configuration token added
 			 */
 			client_configuration_token_added: () => LocalizedString
+			/**
+			 * User SNAT binding added
+			 */
+			user_snat_binding_added: () => LocalizedString
+			/**
+			 * User SNAT binding modified
+			 */
+			user_snat_binding_modified: () => LocalizedString
+			/**
+			 * User SNAT binding removed
+			 */
+			user_snat_binding_removed: () => LocalizedString
 		}
 		activityLogModule: {
 			/**

@@ -109,6 +109,10 @@ pub enum EventType {
     AuthenticationKeyAdded,
     AuthenticationKeyRemoved,
     AuthenticationKeyRenamed,
+    // User SNAT bindings management
+    UserSnatBindingAdded,
+    UserSnatBindingRemoved,
+    UserSnatBindingModified,
 }
 
 #[derive(Model, FromRow, Serialize)]

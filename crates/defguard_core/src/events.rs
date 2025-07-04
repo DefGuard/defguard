@@ -10,7 +10,7 @@ use crate::{
     },
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider,
+        openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
     grpc::proto::proxy::MfaMethod,
 };
@@ -253,6 +253,19 @@ pub enum ApiEventType {
     },
     ClientConfigurationTokenAdded {
         user: User<Id>,
+    },
+    UserSnatBindingAdded {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingRemoved {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingModified {
+        user: User<Id>,
+        before: UserSnatBinding<Id>,
+        after: UserSnatBinding<Id>,
     },
 }
 

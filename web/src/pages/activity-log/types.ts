@@ -75,7 +75,10 @@ export type ActivityLogEventType =
   | 'password_changed'
   | 'password_changed_by_admin'
   | 'password_reset'
-  | 'client_configuration_token_added';
+  | 'client_configuration_token_added'
+  | 'user_snat_binding_added'
+  | 'user_snat_binding_modified'
+  | 'user_snat_binding_removed';
 
 export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_login',
@@ -146,4 +149,7 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'password_changed_by_admin',
   'password_reset',
   'client_configuration_token_added',
+  'user_snat_binding_added',
+  'user_snat_binding_modified',
+  'user_snat_binding_removed',
 ];

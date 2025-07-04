@@ -2669,6 +2669,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       password_changed_by_admin: 'Password changed by admin',
       password_reset: 'Password reset',
       client_configuration_token_added: 'Client configuration token added',
+      user_snat_binding_added: 'User SNAT binding added',
+      user_snat_binding_modified: 'User SNAT binding modified',
+      user_snat_binding_removed: 'User SNAT binding removed',
     },
     activityLogModule: {
       defguard: 'Defguard',

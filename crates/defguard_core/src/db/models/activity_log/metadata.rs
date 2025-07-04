@@ -12,6 +12,7 @@ use crate::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,
         openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
+        snat::UserSnatBinding,
     },
     events::ClientMFAMethod,
 };
@@ -398,4 +399,16 @@ pub struct PasswordResetMetadata {
 #[derive(Serialize)]
 pub struct ClientConfigurationTokenMetadata {
     pub user: UserNoSecrets,
+}
+#[derive(Serialize)]
+pub struct UserSnatBindingMetadata {
+    pub user: UserNoSecrets,
+    pub binding: UserSnatBinding<Id>,
+}
+
+#[derive(Serialize)]
+pub struct UserSnatBindingModifiedMetadata {
+    pub user: UserNoSecrets,
+    pub before: UserSnatBinding<Id>,
+    pub after: UserSnatBinding<Id>,
 }

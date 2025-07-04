@@ -13,7 +13,8 @@ use defguard_core::db::{
             NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
             OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
             PasswordChangedByAdminMetadata, PasswordResetMetadata, UserMetadata,
-            UserModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+            UserModifiedMetadata, UserSnatBindingMetadata, UserSnatBindingModifiedMetadata,
+            VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
             VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
             WebHookStateChangedMetadata,
         },
@@ -399,6 +400,35 @@ pub async fn run_event_logger(
                                 EventType::EnrollmentTokenAdded,
                                 serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
                                     .ok(),
+                            ),
+                            DefguardEvent::UserSnatBindingAdded { user, binding } => (
+                                EventType::UserSnatBindingAdded,
+                                serde_json::to_value(UserSnatBindingMetadata {
+                                    user: user.into(),
+                                    binding,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserSnatBindingRemoved { user, binding } => (
+                                EventType::UserSnatBindingRemoved,
+                                serde_json::to_value(UserSnatBindingMetadata {
+                                    user: user.into(),
+                                    binding,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserSnatBindingModified {
+                                user,
+                                before,
+                                after,
+                            } => (
+                                EventType::UserSnatBindingModified,
+                                serde_json::to_value(UserSnatBindingModifiedMetadata {
+                                    user: user.into(),
+                                    before,
+                                    after,
+                                })
+                                .ok(),
                             ),
                         };
                         (module, event_type, description, metadata)
