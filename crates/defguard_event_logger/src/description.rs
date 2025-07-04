@@ -28,15 +28,24 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::UserLogout => None,
         DefguardEvent::RecoveryCodeUsed => None,
         DefguardEvent::PasswordChanged => None,
-        DefguardEvent::MfaDisabled => todo!(),
+        DefguardEvent::MfaDisabled => Some("Disabled own MFA".to_string()),
+        DefguardEvent::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
         DefguardEvent::MfaTotpEnabled => todo!(),
         DefguardEvent::MfaTotpDisabled => todo!(),
         DefguardEvent::MfaEmailEnabled => todo!(),
         DefguardEvent::MfaEmailDisabled => todo!(),
-        DefguardEvent::PasswordChangedByAdmin { user } => todo!(),
-        DefguardEvent::PasswordReset { user } => todo!(),
-        DefguardEvent::MfaSecurityKeyAdded { key } => todo!(),
-        DefguardEvent::MfaSecurityKeyRemoved { key } => todo!(),
+        DefguardEvent::PasswordChangedByAdmin { user } => {
+            Some(format!("Password for user {user} was changed by an admin"))
+        }
+        DefguardEvent::PasswordReset { user } => {
+            Some(format!("Password for user {user} was reset"))
+        }
+        DefguardEvent::MfaSecurityKeyAdded { key } => {
+            Some(format!("Added MFA security key {}", key.name))
+        }
+        DefguardEvent::MfaSecurityKeyRemoved { key } => {
+            Some(format!("Removed MFA security key {}", key.name))
+        }
         DefguardEvent::UserAdded { user } => todo!(),
         DefguardEvent::UserRemoved { user } => todo!(),
         DefguardEvent::UserModified { before, after } => todo!(),
@@ -60,14 +69,21 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::VpnLocationAdded { location } => todo!(),
         DefguardEvent::VpnLocationRemoved { location } => todo!(),
         DefguardEvent::VpnLocationModified { before, after } => todo!(),
-        DefguardEvent::ApiTokenAdded { owner, token } => todo!(),
-        DefguardEvent::ApiTokenRemoved { owner, token } => todo!(),
+        DefguardEvent::ApiTokenAdded { owner, token } => {
+            Some(format!("Added API token {} for user {owner}", token.name))
+        }
+        DefguardEvent::ApiTokenRemoved { owner, token } => Some(format!(
+            "Removed API token {} owned by user {owner}",
+            token.name
+        )),
         DefguardEvent::ApiTokenRenamed {
             owner,
-            token,
+            token: _,
             old_name,
             new_name,
-        } => todo!(),
+        } => Some(format!(
+            "API token owned by user {owner} was renamed from {old_name} to {new_name}",
+        )),
         DefguardEvent::OpenIdAppAdded { app } => todo!(),
         DefguardEvent::OpenIdAppRemoved { app } => todo!(),
         DefguardEvent::OpenIdAppModified { before, after } => todo!(),

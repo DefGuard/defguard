@@ -38,6 +38,9 @@ impl EventRouter {
             ApiEventType::MfaDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled))
             }
+            ApiEventType::UserMfaDisabled { user } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaDisabled { user }))
+            }
             ApiEventType::MfaTotpDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpDisabled))
             }

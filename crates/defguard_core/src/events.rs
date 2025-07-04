@@ -98,6 +98,9 @@ pub enum ApiEventType {
         user: User<Id>,
     },
     MfaDisabled,
+    UserMfaDisabled {
+        user: User<Id>,
+    },
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,

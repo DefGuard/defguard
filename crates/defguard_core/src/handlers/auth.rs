@@ -379,9 +379,9 @@ pub async fn disable_user_mfa(
     user.disable_mfa(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::MfaDisabled),
+        event: Box::new(ApiEventType::UserMfaDisabled { user }),
     })?;
-    info!("Disabled MFA for user {}", user.username);
+    info!("Disabled MFA for user {username}");
     Ok(ApiResponse::default())
 }
 

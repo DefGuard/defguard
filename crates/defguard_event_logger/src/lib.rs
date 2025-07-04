@@ -13,10 +13,10 @@ use defguard_core::db::{
             NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
             OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
             PasswordChangedByAdminMetadata, PasswordResetMetadata, UserMetadata,
-            UserModifiedMetadata, UserSnatBindingMetadata, UserSnatBindingModifiedMetadata,
-            VpnClientMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
-            VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
-            WebHookStateChangedMetadata,
+            UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
+            VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
+            WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
     },
 };
@@ -140,6 +140,11 @@ pub async fn run_event_logger(
                                 .ok(),
                             ),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
+                            DefguardEvent::UserMfaDisabled { user } => (
+                                EventType::UserMfaDisabled,
+                                serde_json::to_value(UserMfaDisabledMetadata { user: user.into() })
+                                    .ok(),
+                            ),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
                             DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
                             DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),

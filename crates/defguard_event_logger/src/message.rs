@@ -115,6 +115,9 @@ pub enum DefguardEvent {
         user: User<Id>,
     },
     MfaDisabled,
+    UserMfaDisabled {
+        user: User<Id>,
+    },
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,

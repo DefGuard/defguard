@@ -397,6 +397,11 @@ pub struct PasswordResetMetadata {
 }
 
 #[derive(Serialize)]
+pub struct UserMfaDisabledMetadata {
+    pub user: UserNoSecrets,
+}
+
+#[derive(Serialize)]
 pub struct ClientConfigurationTokenMetadata {
     pub user: UserNoSecrets,
 }

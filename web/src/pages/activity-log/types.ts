@@ -18,6 +18,7 @@ export type ActivityLogEventType =
   | 'user_modified'
   | 'user_removed'
   | 'mfa_disabled'
+  | 'user_mfa_disabled'
   | 'mfa_totp_enabled'
   | 'mfa_totp_disabled'
   | 'mfa_email_enabled'
@@ -91,6 +92,7 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_modified',
   'user_removed',
   'mfa_disabled',
+  'user_mfa_disabled',
   'mfa_totp_enabled',
   'mfa_totp_disabled',
   'mfa_email_enabled',

@@ -2611,6 +2611,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_modified: 'User modified',
       mfa_enabled: 'MFA enabled',
       mfa_disabled: 'MFA disabled',
+      user_mfa_disabled: 'User MFA disabled',
       mfa_totp_enabled: 'MFA TOTP enabled',
       mfa_totp_disabled: 'MFA TOTP disabled',
       mfa_email_enabled: 'MFA email enabled',

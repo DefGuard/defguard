@@ -34,6 +34,7 @@ pub enum EventType {
     UserLogout,
     // mfa management
     MfaDisabled,
+    UserMfaDisabled,
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
