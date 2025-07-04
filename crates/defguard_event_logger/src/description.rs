@@ -30,10 +30,10 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::PasswordChanged => None,
         DefguardEvent::MfaDisabled => Some("Disabled own MFA".to_string()),
         DefguardEvent::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
-        DefguardEvent::MfaTotpEnabled => todo!(),
-        DefguardEvent::MfaTotpDisabled => todo!(),
-        DefguardEvent::MfaEmailEnabled => todo!(),
-        DefguardEvent::MfaEmailDisabled => todo!(),
+        DefguardEvent::MfaTotpEnabled => Some("User configured TOTP for MFA".to_string()),
+        DefguardEvent::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_string()),
+        DefguardEvent::MfaEmailEnabled => Some("User configured email for MFA".to_string()),
+        DefguardEvent::MfaEmailDisabled => Some("User disabled email for MFA".to_string()),
         DefguardEvent::PasswordChangedByAdmin { user } => {
             Some(format!("Password for user {user} was changed by an admin"))
         }
@@ -46,23 +46,57 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::MfaSecurityKeyRemoved { key } => {
             Some(format!("Removed MFA security key {}", key.name))
         }
-        DefguardEvent::UserAdded { user } => todo!(),
-        DefguardEvent::UserRemoved { user } => todo!(),
-        DefguardEvent::UserModified { before, after } => todo!(),
-        DefguardEvent::UserDeviceAdded { owner, device } => todo!(),
-        DefguardEvent::UserDeviceRemoved { owner, device } => todo!(),
+        DefguardEvent::UserAdded { user } => {
+            let self_enrollment_enabled = !user.is_enrolled();
+            let enrollment_flag_text = if self_enrollment_enabled {
+                "enabled"
+            } else {
+                "disabled"
+            };
+            Some(format!(
+                "Added user {user} with email {} and self-enrollment {enrollment_flag_text}",
+                user.email
+            ))
+        }
+        DefguardEvent::UserRemoved { user } => Some(format!("Removed user {user}")),
+        DefguardEvent::UserModified { before, after } => {
+            let mut description = format!("Modified user {after}");
+
+            // check if status has changed
+            if before.is_active != after.is_active {
+                let status_change_text = if after.is_active {
+                    "enabled"
+                } else {
+                    "disabled"
+                };
+                description = format!("{description}, status changed to {status_change_text}");
+            };
+            Some(description)
+        }
+        DefguardEvent::UserDeviceAdded { owner, device } => {
+            Some(format!("Added device {device} for user {owner}"))
+        }
+        DefguardEvent::UserDeviceRemoved { owner, device } => {
+            Some(format!("Removed device {device} owned by user {owner}"))
+        }
         DefguardEvent::UserDeviceModified {
             owner,
-            before,
+            before: _,
             after,
-        } => todo!(),
-        DefguardEvent::NetworkDeviceAdded { device, location } => todo!(),
-        DefguardEvent::NetworkDeviceRemoved { device, location } => todo!(),
+        } => Some(format!("Modified device {after} owned by user {owner}")),
+        DefguardEvent::NetworkDeviceAdded { device, location } => Some(format!(
+            "Added network device {device} to location {location}"
+        )),
+        DefguardEvent::NetworkDeviceRemoved { device, location } => Some(format!(
+            "Removed network device {device} from location {location}"
+        )),
         DefguardEvent::NetworkDeviceModified {
-            before,
+            before: _,
             after,
             location,
-        } => todo!(),
+        } => Some(format!(
+            "Modified network device {after} in location {location}"
+        )),
         DefguardEvent::ActivityLogStreamCreated { stream } => todo!(),
         DefguardEvent::ActivityLogStreamModified { before, after } => todo!(),
         DefguardEvent::ActivityLogStreamRemoved { stream } => todo!(),

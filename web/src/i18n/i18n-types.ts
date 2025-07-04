@@ -6286,6 +6286,10 @@ type RootTranslation = {
 			 */
 			mfa_disabled: string
 			/**
+			 * U​s​e​r​ ​M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			user_mfa_disabled: string
+			/**
 			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
 			 */
 			mfa_totp_enabled: string
@@ -12758,6 +12762,10 @@ export type TranslationFunctions = {
 			 * MFA disabled
 			 */
 			mfa_disabled: () => LocalizedString
+			/**
+			 * User MFA disabled
+			 */
+			user_mfa_disabled: () => LocalizedString
 			/**
 			 * MFA TOTP enabled
 			 */

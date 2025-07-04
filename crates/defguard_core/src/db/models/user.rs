@@ -273,7 +273,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub(crate) fn is_enrolled(&self) -> bool {
+    pub fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
     }
 
