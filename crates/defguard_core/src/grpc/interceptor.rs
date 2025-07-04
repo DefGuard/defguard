@@ -1,4 +1,4 @@
-use tonic::{service::Interceptor, Status};
+use tonic::{Status, service::Interceptor};
 
 use crate::auth::{Claims, ClaimsType};
 

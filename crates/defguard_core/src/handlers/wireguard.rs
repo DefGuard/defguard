@@ -6,33 +6,34 @@ use std::{
 };
 
 use axum::{
+    Extension,
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
+use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
+    AsCsv,
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
+        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
                 WireguardNetworkDevice,
             },
             wireguard::{
-                networks_stats, DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow,
-                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow,
+                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
+                WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
             },
         },
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -40,8 +41,7 @@ use crate::{
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
-    wg_config::{parse_wireguard_config, ImportedDevice},
-    AsCsv,
+    wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -129,6 +129,7 @@ pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     let network_name = data.name.clone();
@@ -170,6 +171,13 @@ pub(crate) async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -205,6 +213,7 @@ pub(crate) async fn modify_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     debug!(
@@ -212,6 +221,8 @@ pub(crate) async fn modify_network(
         session.user.username
     );
     let mut network = find_network(network_id, &appstate.pool).await?;
+    // store network before mods
+    let before = network.clone();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -250,6 +261,13 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationModified {
+            before,
+            after: network.clone(),
+        }),
+    })?;
     Ok(ApiResponse {
         json: json!(network),
         status: StatusCode::OK,
@@ -276,6 +294,7 @@ pub(crate) async fn delete_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} deleting WireGuard network {network_id}",
@@ -290,13 +309,17 @@ pub(crate) async fn delete_network(
     for device in network_devices {
         device.delete(&mut *transaction).await?;
     }
-    network.delete(&mut *transaction).await?;
+    network.clone().delete(&mut *transaction).await?;
     transaction.commit().await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationRemoved { location: network }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse::default())
@@ -467,6 +490,7 @@ pub(crate) async fn remove_gateway(
 pub(crate) async fn import_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Json(data): Json<ImportNetworkData>,
 ) -> ApiResult {
     debug!("Importing network from config file");
@@ -507,7 +531,12 @@ pub(crate) async fn import_network(
     transaction.commit().await?;
 
     info!("Imported network {network} with {} devices", devices.len());
-
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -712,7 +741,9 @@ pub(crate) async fn add_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
+                debug!(
+                    "Sending firewall config update for location {location} affected by adding new user {username} devices"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location_id,
                     firewall_config,
@@ -762,21 +793,20 @@ pub(crate) async fn add_device(
         "User {} added device {device_name} for user {username}",
         session.user.username
     );
-    // clone name to be used later
-    let device_name = device.name.clone();
 
-    let device_id = device.id;
-    let result = AddDeviceResult { configs, device };
+    let result = AddDeviceResult {
+        configs,
+        device: device.clone(),
+    };
 
     update_counts(&appstate.pool).await?;
 
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceAdded {
-            device_id,
-            owner: username,
-            device_name,
-        },
+        event: Box::new(ApiEventType::UserDeviceAdded {
+            device,
+            owner: user,
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -831,6 +861,8 @@ pub(crate) async fn modify_device(
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    // store device before mods
+    let before = device.clone();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {
@@ -844,7 +876,9 @@ pub(crate) async fn modify_device(
     // check pubkeys
     for network in &networks {
         if network.pubkey == data.wireguard_pubkey {
-            error!("Failed to update device {device_id}, device's pubkey must be different from server's pubkey");
+            error!(
+                "Failed to update device {device_id}, device's pubkey must be different from server's pubkey"
+            );
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: StatusCode::BAD_REQUEST,
@@ -856,7 +890,6 @@ pub(crate) async fn modify_device(
     device.update_from(data);
 
     // clone to use later
-    let device_name = device.name.clone();
 
     device.save(&appstate.pool).await?;
 
@@ -882,14 +915,14 @@ pub(crate) async fn modify_device(
 
     info!("User {} updated device {device_id}", session.user.username);
 
-    let owner = device.get_owner(&appstate.pool).await?.username;
+    let owner = device.get_owner(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceModified {
+        event: Box::new(ApiEventType::UserDeviceModified {
             owner,
-            device_id: device.id,
-            device_name,
-        },
+            before,
+            after: device.clone(),
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -984,12 +1017,8 @@ pub(crate) async fn delete_device(
     // prepare device info
     let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
 
-    // clone to use later
-    let device_name = device.name.clone();
-    let device_type = device.device_type.clone();
-
     // delete device before firewall config is generated
-    device.delete(&mut *transaction).await?;
+    device.clone().delete(&mut *transaction).await?;
 
     update_counts(&mut *transaction).await?;
 
@@ -1001,7 +1030,9 @@ pub(crate) async fn delete_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by deleting user {username} device");
+                debug!(
+                    "Sending firewall config update for location {location} affected by deleting user {username} device"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location.id,
                     firewall_config,
@@ -1017,20 +1048,12 @@ pub(crate) async fn delete_device(
     appstate.send_multiple_wireguard_events(events);
 
     // Emit event specific to the device type.
-    match device_type {
+    match device.device_type {
         DeviceType::User => {
-            let owner = device_info
-                .device
-                .get_owner(&mut *transaction)
-                .await?
-                .username;
+            let owner = device_info.device.get_owner(&mut *transaction).await?;
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::UserDeviceRemoved {
-                    device_name,
-                    owner,
-                    device_id,
-                },
+                event: Box::new(ApiEventType::UserDeviceRemoved { device, owner }),
             })?
         }
         DeviceType::Network => {
@@ -1041,18 +1064,19 @@ pub(crate) async fn delete_device(
                 if let Some(location) = location {
                     appstate.emit_event(ApiEvent {
                         context,
-                        event: ApiEventType::NetworkDeviceRemoved {
-                            device_id,
-                            device_name,
-                            location_id: location.id,
-                            location: location.name,
-                        },
+                        event: Box::new(ApiEventType::NetworkDeviceRemoved { device, location }),
                     })?;
                 } else {
-                    error!("Network device {device_name}({device_id}) is assigned to non-existent location {}", network_info.network_id);
+                    error!(
+                        "Network device {}({}) is assigned to non-existent location {}",
+                        device.name, device.id, network_info.network_id
+                    );
                 }
             } else {
-                error!("Network device {device_name}({device_id}) has no network assigned");
+                error!(
+                    "Network device {}({}) has no network assigned",
+                    device.name, device.id
+                );
             }
         }
     };

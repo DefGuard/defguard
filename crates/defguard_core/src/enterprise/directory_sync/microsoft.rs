@@ -3,8 +3,8 @@ use serde::Deserialize;
 use tokio::time::sleep;
 
 use super::{
-    make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    make_get_request, parse_response,
 };
 use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
 
@@ -342,7 +342,9 @@ impl MicrosoftDirectorySync {
         } else if let Some(user) = response.value.into_iter().next() {
             user.id
         } else {
-            debug!("User with email {user_email} not found in Microsoft API, trying fallback search of additional email addresses",);
+            debug!(
+                "User with email {user_email} not found in Microsoft API, trying fallback search of additional email addresses",
+            );
             let user_search = USER_SEARCH_URL_FALLBACK
                 .replace("{email}", user_email)
                 .replace("{query_fields}", USER_QUERY_FIELDS);

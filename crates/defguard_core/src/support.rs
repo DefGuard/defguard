@@ -1,12 +1,13 @@
 use std::{collections::HashMap, fmt::Display};
 
 use serde::Serialize;
-use serde_json::{json, value::to_value, Value};
+use serde_json::{Value, json, value::to_value};
 use sqlx::PgPool;
 
 use crate::{
-    db::{models::device::WireguardNetworkDevice, Id, Settings, User, WireguardNetwork},
-    server_config, VERSION,
+    VERSION,
+    db::{Id, Settings, User, WireguardNetwork, models::device::WireguardNetworkDevice},
+    server_config,
 };
 
 /// Unwraps the result returning a JSON representation of value or error

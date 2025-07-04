@@ -2,15 +2,15 @@ use std::borrow::Cow;
 
 use defguard_core::{
     db::{
-        models::{
-            oauth2client::{OAuth2Client, OAuth2ClientSafe},
-            NewOpenIDClient,
-        },
         Id, OAuth2AuthorizedApp,
+        models::{
+            NewOpenIDClient,
+            oauth2client::{OAuth2Client, OAuth2ClientSafe},
+        },
     },
     handlers::Auth,
 };
-use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
+use reqwest::{StatusCode, Url, header::CONTENT_TYPE};
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

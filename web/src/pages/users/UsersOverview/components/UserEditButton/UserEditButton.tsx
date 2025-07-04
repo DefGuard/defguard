@@ -10,6 +10,7 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { User } from '../../../../../shared/types';
 import { useAddAuthorizationKeyModal } from '../../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
+import { useDisableMfaModal } from '../../../shared/modals/DisableMfaModal/store';
 import { useAddUserModal } from '../../modals/AddUserModal/hooks/useAddUserModal';
 import { ResetPasswordButton } from './ResetPasswordButton';
 
@@ -23,6 +24,7 @@ export const UserEditButton = ({ user }: Props) => {
   const setDeleteUserModal = useModalStore((state) => state.setDeleteUserModal);
   const setToggleUserModal = useModalStore((state) => state.setToggleUserModal);
   const setChangePasswordModal = useModalStore((state) => state.setChangePasswordModal);
+  const openDisableMfaModal = useDisableMfaModal((state) => state.open);
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const setAddUserModal = useAddUserModal((state) => state.setState);
   const openAddAuthorizationKeyModal = useAddAuthorizationKeyModal((s) => s.open);
@@ -40,6 +42,14 @@ export const UserEditButton = ({ user }: Props) => {
         />
       )}
       {user.is_active && <ResetPasswordButton user={user} />}
+      {user.username !== currentUser?.username && user.mfa_enabled && (
+        <EditButtonOption
+          key="disable-mfa"
+          text={LL.usersOverview.list.editButton.disableMfa()}
+          onClick={() => openDisableMfaModal(user)}
+          styleVariant={EditButtonOptionStyleVariant.WARNING}
+        />
+      )}
       <EditButtonOption
         key="edit-user"
         text={LL.usersOverview.list.editButton.edit()}

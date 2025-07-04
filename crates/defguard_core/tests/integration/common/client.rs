@@ -1,13 +1,13 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use axum::{serve, Router};
+use axum::{Router, serve};
 use bytes::Bytes;
 use defguard_core::events::ApiEvent;
 use reqwest::{
+    Body, Client, StatusCode, Url,
     cookie::{Cookie, Jar},
     header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
-    Body, Client, StatusCode, Url,
 };
 use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver};
 

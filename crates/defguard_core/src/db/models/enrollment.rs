@@ -1,19 +1,19 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool};
+use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::{Context, Tera};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
-use super::{settings::Settings, User};
+use super::{User, settings::Settings};
 use crate::{
+    VERSION,
     db::Id,
     mail::Mail,
     random::gen_alphanumeric,
     server_config,
     templates::{self, TemplateError},
-    VERSION,
 };
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";

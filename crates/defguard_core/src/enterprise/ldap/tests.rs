@@ -6,14 +6,15 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use super::*;
 use crate::{
     db::{
-        models::settings::{initialize_current_settings, update_current_settings, Settings},
-        setup_pool, Group, User,
+        Group, User,
+        models::settings::{Settings, initialize_current_settings, update_current_settings},
+        setup_pool,
     },
     enterprise::ldap::{
         model::extract_rdn_value,
         sync::{
-            compute_group_sync_changes, compute_user_sync_changes, extract_intersecting_users,
-            Authority,
+            Authority, compute_group_sync_changes, compute_user_sync_changes,
+            extract_intersecting_users,
         },
         test_client::LdapEvent,
     },
@@ -284,10 +285,12 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     // Verify initial LDAP state matches expectations
     assert!(ldap_conn.user_exists(&inactive_user_in_ldap).await.unwrap());
     assert!(ldap_conn.user_exists(&active_user_in_ldap).await.unwrap());
-    assert!(!ldap_conn
-        .user_exists(&active_user_not_in_ldap)
-        .await
-        .unwrap());
+    assert!(
+        !ldap_conn
+            .user_exists(&active_user_not_in_ldap)
+            .await
+            .unwrap()
+    );
 
     // Trigger state synchronization - should add missing active user and remove inactive user
     ldap_conn
@@ -435,19 +438,21 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Now removing the last member should delete both group and user
-    assert!(ldap_conn.test_client.events_match(
-        &[
-            LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.group_dn(&group.name),
-            },
-            LdapEvent::ObjectDeleted {
-                dn: ldap_conn
-                    .config
-                    .user_dn_from_user(&another_active_user_in_ldap),
-            },
-        ],
-        true,
-    ));
+    assert!(
+        ldap_conn.test_client.events_match(
+            &[
+                LdapEvent::ObjectDeleted {
+                    dn: ldap_conn.config.group_dn(&group.name),
+                },
+                LdapEvent::ObjectDeleted {
+                    dn: ldap_conn
+                        .config
+                        .user_dn_from_user(&another_active_user_in_ldap),
+                },
+            ],
+            true,
+        )
+    );
 }
 
 #[tokio::test]
@@ -1520,17 +1525,19 @@ fn test_extract_intersecting_users_with_matches(_: PgPoolOptions, options: PgCon
 fn test_extract_intersecting_users_no_matches(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut defguard_users = vec![User::new(
-        "user1",
-        Some("password"),
-        "Last1",
-        "First1",
-        "user1@example.com",
-        None,
-    )
-    .save(&pool)
-    .await
-    .unwrap()];
+    let mut defguard_users = vec![
+        User::new(
+            "user1",
+            Some("password"),
+            "Last1",
+            "First1",
+            "user1@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap(),
+    ];
 
     let mut ldap_users = vec![User::new(
         "user2",

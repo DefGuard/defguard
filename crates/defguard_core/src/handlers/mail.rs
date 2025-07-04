@@ -10,20 +10,20 @@ use reqwest::Url;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
-    sync::mpsc::{unbounded_channel, UnboundedSender},
+    sync::mpsc::{UnboundedSender, unbounded_channel},
 };
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::enrollment::TokenError, Id, MFAMethod, Session, User},
+    db::{Id, MFAMethod, Session, User, models::enrollment::TokenError},
     error::WebError,
     mail::{Attachment, Mail},
     server_config,
     support::dump_config,
-    templates::{self, support_data_mail, TemplateError, TemplateLocation},
-    PgPool,
+    templates::{self, TemplateError, TemplateLocation, support_data_mail},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"user_id\",\"location_id\",\"public_ip\" \"public_ip: IpAddr\" FROM \"user_snat_binding\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "public_ip: IpAddr",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "87868c21e47dd3b55ba1aefb690ce4ea9b463d7e71533e9c6312939a3d77b49e"
+}

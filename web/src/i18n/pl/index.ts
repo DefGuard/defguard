@@ -1119,6 +1119,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Jeśli ta opcja jest włączona, Defguard automatycznie tworzy nowe konta dla użytkowników, którzy logują się po raz pierwszy za pomocą zewnętrznego dostawcy OpenID. W innym przypadku konto użytkownika musi zostać najpierw utworzone przez administratora.',
         },
+        useOpenIdForMfa: {
+          label: 'Używaj zewnętrznego OpenID dla MFA klienta',
+          helper:
+            'Gdy zewnętrzny proces Multi-Factor Authentication (MFA) OpenID SSO jest włączony, użytkownicy łączący się z lokalizacjami VPN wymagającymi MFA będą musieli uwierzytelniać się przez swoją przeglądarkę używając skonfigurowanego dostawcy dla każdego połączenia. Jeśli to ustawienie jest wyłączone, MFA dla tych lokalizacji VPN będzie obsługiwane przez wewnętrzny system SSO Defguard. W takim przypadku użytkownicy muszą mieć skonfigurowane TOTP lub MFA oparte na e-mailu.',
+        },
         usernameHandling: {
           label: 'Obsługa nazw użytkowników',
           helper:

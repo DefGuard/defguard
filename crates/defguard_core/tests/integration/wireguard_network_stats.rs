@@ -1,6 +1,7 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard_core::{
     db::{
+        Id, NoId,
         models::{
             device::Device,
             wireguard::{
@@ -9,7 +10,6 @@ use defguard_core::{
             },
             wireguard_peer_stats::WireguardPeerStats,
         },
-        Id, NoId,
     },
     handlers::Auth,
 };

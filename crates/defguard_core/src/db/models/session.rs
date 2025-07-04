@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
 use crate::{db::Id, random::gen_alphanumeric, server_config};

@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use chrono::Utc;
 use serde_json::json;
@@ -10,9 +10,11 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    db::User,
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
-    handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
+    handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
     random::gen_alphanumeric,
 };
 
@@ -28,6 +30,7 @@ pub async fn add_api_token(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(username): Path<String>,
     Json(data): Json<AddApiTokenData>,
 ) -> ApiResult {
@@ -53,7 +56,7 @@ pub async fn add_api_token(
     // all API tokens start with a `dg-` prefix
     let token_string = format!("dg-{}", gen_alphanumeric(API_TOKEN_LENGTH));
 
-    ApiToken::new(
+    let token = ApiToken::new(
         user.id,
         Utc::now().naive_utc(),
         data.name.clone(),
@@ -63,7 +66,12 @@ pub async fn add_api_token(
     .await?;
 
     info!("Added new API token {} for user {username}", data.name);
-
+    if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::ApiTokenAdded { owner, token }),
+        })?;
+    }
     Ok(ApiResponse {
         json: json!({"token": token_string}),
         status: StatusCode::CREATED,
@@ -96,6 +104,7 @@ pub async fn delete_api_token(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((username, token_id)): Path<(String, i64)>,
 ) -> ApiResult {
     debug!("Removing API token {token_id} for user {username}");
@@ -104,7 +113,20 @@ pub async fn delete_api_token(
         if !session.is_admin && user.id != token.user_id {
             return Err(WebError::Forbidden(String::new()));
         }
-        token.delete(&appstate.pool).await?;
+        token.clone().delete(&appstate.pool).await?;
+        if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::ApiTokenRemoved {
+                    owner,
+                    token: token.clone(),
+                }),
+            })?;
+        }
+        info!(
+            "User {} removed API token {}({token_id}) for user {username}",
+            user.username, token.name
+        );
     } else {
         error!("API token with id {token_id} not found");
         return Err(WebError::BadRequest("Key not found".into()));
@@ -126,16 +148,35 @@ pub async fn rename_api_token(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((username, token_id)): Path<(String, i64)>,
     Json(data): Json<RenameRequest>,
 ) -> ApiResult {
+    debug!("Renaming API token {token_id} for user {username}");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut token) = ApiToken::find_by_id(&appstate.pool, token_id).await? {
         if !session.is_admin && user.id != token.user_id {
             return Err(WebError::Forbidden(String::new()));
         }
+        let old_name = token.name.clone();
         token.name = data.name;
+        let new_name = token.name.clone();
         token.save(&appstate.pool).await?;
+        if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::ApiTokenRenamed {
+                    owner,
+                    token: token.clone(),
+                    old_name,
+                    new_name,
+                }),
+            })?;
+        }
+        info!(
+            "User {} renamed API token {}({token_id}) for user {username}",
+            user.username, token.name
+        );
     } else {
         error!("User {username} tried to rename non-existing API token with id {token_id}",);
         return Err(WebError::ObjectNotFound(String::new()));

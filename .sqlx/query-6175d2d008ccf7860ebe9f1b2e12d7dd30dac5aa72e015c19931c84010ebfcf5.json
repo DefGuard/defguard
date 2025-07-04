@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"user_snat_binding\" SET \"user_id\" = $2,\"location_id\" = $3,\"public_ip\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Inet"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6175d2d008ccf7860ebe9f1b2e12d7dd30dac5aa72e015c19931c84010ebfcf5"
+}

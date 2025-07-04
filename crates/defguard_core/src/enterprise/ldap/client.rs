@@ -5,8 +5,8 @@ use std::{
 };
 
 use ldap3::{
-    adapters::PagedResults, drive, ldap_escape, LdapConnAsync, LdapConnSettings, Mod, Scope,
-    SearchEntry,
+    LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry, adapters::PagedResults, drive,
+    ldap_escape,
 };
 
 use super::error::LdapError;

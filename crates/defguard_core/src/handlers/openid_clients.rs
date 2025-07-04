@@ -4,31 +4,39 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, webhooks::ChangeStateData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::models::{
-        oauth2client::{OAuth2Client, OAuth2ClientSafe},
         NewOpenIDClient,
+        oauth2client::{OAuth2Client, OAuth2ClientSafe},
     },
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
 pub async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
     debug!(
         "User {} adding OpenID client {}",
-        session.user.username, client.name
+        session.user.username, data.name
     );
+    let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, client.name
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::OpenIdAppAdded {
+            app: client.clone(),
+        }),
+    })?;
     Ok(ApiResponse {
         json: json!(client),
         status: StatusCode::CREATED,
@@ -36,9 +44,9 @@ pub async fn add_openid_client(
 }
 
 pub async fn list_openid_clients(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
-    let openid_clients = OAuth2Client::all(&appstate.pool).await?;
+    let clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
-        json: json!(openid_clients),
+        json: json!(clients),
         status: StatusCode::OK,
     })
 }
@@ -49,15 +57,15 @@ pub async fn get_openid_client(
     session: SessionInfo,
 ) -> ApiResult {
     match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
-        Some(openid_client) => {
+        Some(client) => {
             if session.is_admin {
                 Ok(ApiResponse {
-                    json: json!(openid_client),
+                    json: json!(client),
                     status: StatusCode::OK,
                 })
             } else {
                 Ok(ApiResponse {
-                    json: json!(OAuth2ClientSafe::from(openid_client)),
+                    json: json!(OAuth2ClientSafe::from(client)),
                     status: StatusCode::OK,
                 })
             }
@@ -72,6 +80,7 @@ pub async fn get_openid_client(
 pub async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     Json(data): Json<NewOpenIDClient>,
@@ -81,16 +90,25 @@ pub async fn change_openid_client(
         session.user.username
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
-        Some(mut openid_client) => {
-            openid_client.name = data.name;
-            openid_client.redirect_uri = data.redirect_uri;
-            openid_client.enabled = data.enabled;
-            openid_client.scope = data.scope;
-            openid_client.save(&appstate.pool).await?;
+        Some(mut client) => {
+            // store client before mods
+            let before = client.clone();
+            client.name = data.name;
+            client.redirect_uri = data.redirect_uri;
+            client.enabled = data.enabled;
+            client.scope = data.scope;
+            client.save(&appstate.pool).await?;
             info!(
                 "User {} updated OpenID client {client_id} ({})",
-                session.user.username, openid_client.name
+                session.user.username, client.name
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::OpenIdAppModified {
+                    before,
+                    after: client,
+                }),
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,
@@ -104,6 +122,7 @@ pub async fn change_openid_client(
 pub async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     Json(data): Json<ChangeStateData>,
@@ -113,13 +132,20 @@ pub async fn change_openid_client_state(
         session.user.username
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
-        Some(mut openid_client) => {
-            openid_client.enabled = data.enabled;
-            openid_client.save(&appstate.pool).await?;
+        Some(mut client) => {
+            client.enabled = data.enabled;
+            client.save(&appstate.pool).await?;
             info!(
                 "User {} updated OpenID client {client_id} ({}) enabled state to {}",
-                session.user.username, openid_client.name, openid_client.enabled,
+                session.user.username, client.name, client.enabled,
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::OpenIdAppStateChanged {
+                    enabled: client.enabled,
+                    app: client,
+                }),
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,
@@ -133,6 +159,7 @@ pub async fn change_openid_client_state(
 pub async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
 ) -> ApiResult {
@@ -141,12 +168,16 @@ pub async fn delete_openid_client(
         session.user.username
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
-        Some(openid_client) => {
-            openid_client.delete(&appstate.pool).await?;
+        Some(client) => {
+            client.clone().delete(&appstate.pool).await?;
             info!(
                 "User {} deleted OpenID client {client_id}",
                 session.user.username
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::OpenIdAppRemoved { app: client }),
+            })?;
             StatusCode::OK
         }
         None => StatusCode::NOT_FOUND,

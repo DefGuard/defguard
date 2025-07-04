@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use tokio::sync::mpsc::{error::SendError, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
 use super::proto::proxy::{
@@ -8,8 +8,8 @@ use super::proto::proxy::{
 };
 use crate::{
     db::{
-        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         User,
+        models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
     enterprise::ldap::utils::ldap_change_password,
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
@@ -83,7 +83,7 @@ impl PasswordResetServer {
     ) -> Result<(), SendError<BidiStreamEvent>> {
         let event = BidiStreamEvent {
             context,
-            event: BidiStreamEventType::PasswordReset(event),
+            event: BidiStreamEventType::PasswordReset(Box::new(event)),
         };
 
         self.bidi_event_tx.send(event)

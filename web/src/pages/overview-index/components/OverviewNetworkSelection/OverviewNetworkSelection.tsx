@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -26,6 +27,8 @@ export const OverviewNetworkSelection = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const selectionValue = useMemo(() => {

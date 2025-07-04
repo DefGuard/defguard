@@ -33,6 +33,8 @@ pub enum WebError {
     IncorrectUsername(String),
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
+    #[error("Object already exists: {0}")]
+    ObjectAlreadyExists(String),
     #[error("Serialization error: {0}")]
     Serialization(String),
     #[error("Deserialization error: {0}")]

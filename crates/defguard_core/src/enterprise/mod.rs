@@ -7,6 +7,7 @@ pub mod handlers;
 pub mod ldap;
 pub mod license;
 pub mod limits;
+pub mod snat;
 mod utils;
 
 use license::{get_cached_license, validate_license};

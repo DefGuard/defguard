@@ -29,8 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "src/enterprise/proto",
         ],
     )?;
-    println!("cargo:rerun-if-changed=migrations");
-    println!("cargo:rerun-if-changed=proto");
+    println!("cargo:rerun-if-changed=../../migrations");
+    println!("cargo:rerun-if-changed=../../proto");
     println!("cargo:rerun-if-changed=src/enterprise");
     Ok(())
 }

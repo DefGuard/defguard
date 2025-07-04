@@ -1,9 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
-use sqlx::{query_as, PgPool};
+use sqlx::{PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
-    time::{sleep, Instant},
+    time::{Instant, sleep},
 };
 use tracing::Instrument;
 

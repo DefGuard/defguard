@@ -2,13 +2,13 @@ use std::{net::IpAddr, str::FromStr};
 
 use defguard_core::{
     db::{Device, GatewayEvent, Id, WireguardNetwork},
-    handlers::{network_devices::AddNetworkDevice, Auth},
+    handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::common::{make_test_client, setup_pool};

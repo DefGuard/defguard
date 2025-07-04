@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use base64::prelude::{Engine, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine};
 use bytes::Bytes;
 use reqwest::tls;
 use tokio::sync::broadcast::Receiver;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"activity_log_event\" (\"timestamp\",\"user_id\",\"username\",\"ip\",\"event\",\"module\",\"device\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "query": "INSERT INTO \"activity_log_event\" (\"timestamp\",\"user_id\",\"username\",\"ip\",\"event\",\"module\",\"device\",\"description\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -30,6 +30,7 @@
           }
         },
         "Text",
+        "Text",
         "Jsonb"
       ]
     },
@@ -37,5 +38,5 @@
       false
     ]
   },
-  "hash": "87447fdf74676697cd2a75b790d403af0301b5e6a9f4a69448adc26c767b8e24"
+  "hash": "aeef18b50d9c1033ae21298811b22f406e1b45784899d385ad70db3ec76c5a59"
 }

@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
 use chrono::{DateTime, TimeDelta, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use parse_link_header::parse_with_rel;
 use tokio::time::sleep;
 
 use super::{
-    parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser,
-    REQUEST_PAGINATION_SLOWDOWN,
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    parse_response,
 };
 use crate::enterprise::directory_sync::make_get_request;
 

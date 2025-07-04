@@ -508,7 +508,7 @@ export type ActivityLogEvent = {
   event: ActivityLogEventType;
   module: ActivityLogModule;
   device: string;
-  metadata?: unknown;
+  description?: string;
 };
 
 export type PaginationParams = {
@@ -685,6 +685,7 @@ export type Api = {
       username: string;
       name: string;
     }) => EmptyApiResponse;
+    disableUserMfa: (username: string) => EmptyApiResponse;
   };
   standaloneDevice: {
     createManualDevice: (

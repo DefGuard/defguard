@@ -4,7 +4,7 @@ use defguard_core::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
-        license::{set_cached_license, License},
+        license::{License, set_cached_license},
     },
     handlers::Auth,
 };
@@ -56,6 +56,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         okta_private_jwk: None,
         directory_sync_group_match: None,
         username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        use_openid_for_mfa: false,
     };
 
     let response = client
