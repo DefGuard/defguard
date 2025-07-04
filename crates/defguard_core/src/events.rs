@@ -20,7 +20,7 @@ use crate::{
 /// Mainly meant to be stored in the activity log.
 /// By design this is a duplicate of a similar struct in the `event_logger` module.
 /// This is done in order to avoid circular imports once we split the project into multiple crates.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
@@ -113,6 +113,11 @@ pub enum ApiEventType {
     UserModified {
         before: User<Id>,
         after: User<Id>,
+    },
+    UserGroupsModified {
+        user: User<Id>,
+        before: Vec<Group<Id>>,
+        after: Vec<Group<Id>>,
     },
     UserDeviceAdded {
         owner: User<Id>,
@@ -218,6 +223,11 @@ pub enum ApiEventType {
     GroupMemberRemoved {
         group: Group<Id>,
         user: User<Id>,
+    },
+    GroupMembersModified {
+        group: Group<Id>,
+        before: Vec<User<Id>>,
+        after: Vec<User<Id>>,
     },
     WebHookAdded {
         webhook: WebHook<Id>,

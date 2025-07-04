@@ -31,6 +31,15 @@ impl EventRouter {
             ApiEventType::UserModified { before, after } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::UserModified { before, after }))
             }
+            ApiEventType::UserGroupsModified {
+                user,
+                before,
+                after,
+            } => LoggerEvent::Defguard(Box::new(DefguardEvent::UserGroupsModified {
+                user,
+                before,
+                after,
+            })),
             ApiEventType::MfaDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled))
             }
@@ -186,6 +195,15 @@ impl EventRouter {
             ApiEventType::GroupMemberRemoved { group, user } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::GroupMemberRemoved { group, user }))
             }
+            ApiEventType::GroupMembersModified {
+                group,
+                before,
+                after,
+            } => LoggerEvent::Defguard(Box::new(DefguardEvent::GroupMembersModified {
+                group,
+                before,
+                after,
+            })),
             ApiEventType::WebHookAdded { webhook } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::WebHookAdded { webhook }))
             }

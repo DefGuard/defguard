@@ -653,7 +653,6 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
-
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
@@ -747,7 +746,10 @@ pub async fn modify_user(
         }
     }
 
-    appstate.trigger_action(AppEvent::UserModified(user_info));
+    appstate.trigger_action(AppEvent::UserModified(user_info.clone()));
+    let test1 = group_diff.added;
+    let test2 = group_diff.removed;
+    let test3 = user_info.groups;
 
     info!("User {} updated user {username}", session.user.username);
     appstate.emit_event(ApiEvent {
@@ -762,10 +764,10 @@ pub async fn modify_user(
 
 /// Delete user
 ///
-/// Endpoint helps you delete a user, but `you can't delete yourself as a administrator`.
+/// Endpoint helps you delete a user, but `you can't delete yourself as an administrator`.
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}",
@@ -842,7 +844,7 @@ pub async fn delete_user(
 /// Change your own password, it could return error if password is not strong enough.
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
@@ -905,7 +907,7 @@ pub async fn change_self_password(
 /// `This endpoint doesn't allow you to change your own password. Go to: /api/v1/user/change_password.`
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}/password",
@@ -993,7 +995,7 @@ pub async fn change_password(
 /// `This endpoint doesn't allow you to reset your own password.`
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/reset_password",

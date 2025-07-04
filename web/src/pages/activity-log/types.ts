@@ -66,9 +66,11 @@ export type ActivityLogEventType =
   | 'group_removed'
   | 'group_member_added'
   | 'group_member_removed'
+  | 'group_members_modified'
   | 'web_hook_added'
   | 'web_hook_modified'
   | 'web_hook_removed'
+  | 'web_hook_state_changed'
   | 'authentication_key_added'
   | 'authentication_key_removed'
   | 'authentication_key_renamed'
@@ -136,9 +138,11 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'group_removed',
   'group_member_added',
   'group_member_removed',
+  'group_members_modified',
   'web_hook_added',
   'web_hook_modified',
   'web_hook_removed',
+  'web_hook_state_changed',
   'authentication_key_added',
   'authentication_key_removed',
   'authentication_key_renamed',

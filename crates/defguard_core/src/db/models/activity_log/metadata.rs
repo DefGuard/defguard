@@ -100,6 +100,12 @@ pub struct UserModifiedMetadata {
 }
 
 #[derive(Serialize)]
+pub struct UserGroupsModifiedMetadata {
+    pub user: User<Id>,
+    pub before: Vec<Group<Id>>,
+    pub after: Vec<Group<Id>>,
+}
+#[derive(Serialize)]
 pub struct MfaSecurityKeyMetadata {
     pub key: WebAuthnNoSecrets,
 }
@@ -324,6 +330,12 @@ pub struct GroupAssignedMetadata {
     pub user: UserNoSecrets,
 }
 
+#[derive(Serialize)]
+pub struct GroupMembersModifiedMetadata {
+    pub group: Group<Id>,
+    pub before: Vec<User<Id>>,
+    pub after: Vec<User<Id>>,
+}
 #[derive(Serialize)]
 pub struct WebHookMetadata {
     pub webhook: WebHook<Id>,
