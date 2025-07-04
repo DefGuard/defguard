@@ -52,10 +52,12 @@ impl EventRouter {
                     location,
                     device,
                     method,
+                    message,
                 } => LoggerEvent::Vpn(Box::new(VpnEvent::MfaFailed {
                     location,
                     device,
                     method,
+                    message,
                 })),
             },
         };

@@ -14,9 +14,9 @@ use defguard_core::db::{
             OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
             PasswordChangedByAdminMetadata, PasswordResetMetadata, UserMetadata,
             UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
-            WebHookModifiedMetadata, WebHookStateChangedMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
+            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
     },
 };
@@ -447,12 +447,14 @@ pub async fn run_event_logger(
                                 location,
                                 device,
                                 method,
+                                message,
                             } => (
                                 EventType::VpnClientMfaFailed,
-                                serde_json::to_value(VpnClientMfaMetadata {
+                                serde_json::to_value(VpnClientMfaFailedMetadata {
                                     location,
                                     device,
                                     method,
+                                    message,
                                 })
                                 .ok(),
                             ),

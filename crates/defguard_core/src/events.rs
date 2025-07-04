@@ -378,6 +378,7 @@ pub enum DesktopClientMfaEvent {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
+        message: String,
     },
 }
 

@@ -83,6 +83,7 @@ impl ClientMfaServer {
                             location: location.clone(),
                             device: device.clone(),
                             method,
+                            message: "provided invalid redirect URL".to_string(),
                         },
                     )),
                 })?;
@@ -103,6 +104,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method,
+                                message: format!("user {claims_user} tried to use OIDC MFA for another user: {user}")
                             },
                         )),
                     })?;
@@ -123,6 +125,7 @@ impl ClientMfaServer {
                             location: location.clone(),
                             device: device.clone(),
                             method,
+                            message: format!("failed to verify OIDC code: {err:?}"),
                         },
                     )),
                 })?;

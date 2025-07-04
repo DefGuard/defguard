@@ -310,6 +310,7 @@ pub enum VpnEvent {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
         method: ClientMFAMethod,
+        message: String,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,

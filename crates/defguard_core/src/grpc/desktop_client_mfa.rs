@@ -292,6 +292,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
+                                message: "TOTP code not provided in request".to_string(),
                             },
                         )),
                     })?;
@@ -306,6 +307,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
+                                message: "invalid TOTP code".to_string(),
                             },
                         )),
                     })?;
@@ -324,6 +326,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
+                                message: "email MFA code not provided in request".to_string(),
                             },
                         )),
                     })?;
@@ -338,6 +341,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
+                                message: "invalid email MFA code".to_string(),
                             },
                         )),
                     })?;
@@ -356,6 +360,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
+                                message: format!("tried to finish OIDC MFA login but they haven't completed OIDC authentication yet")
                             },
                         )),
                     })?;
