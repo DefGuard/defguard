@@ -440,6 +440,7 @@ pub(crate) async fn modify_group(
 
     // Modify group members.
     let mut current_members = group.members(&mut *transaction).await?;
+    let users_before = current_members.clone();
     let mut members = Vec::new();
     for username in &group_info.members {
         if let Some(index) = current_members
@@ -475,7 +476,7 @@ pub(crate) async fn modify_group(
     }
 
     WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
-
+    let users_after = group.members(&mut *transaction).await?.clone();
     transaction.commit().await?;
 
     ldap_add_users_to_groups(add_to_ldap_groups, &appstate.pool).await;
@@ -489,6 +490,20 @@ pub(crate) async fn modify_group(
         .chain(current_members.iter_mut())
         .collect::<Vec<_>>();
     ldap_update_users_state(affected_users, &appstate.pool).await;
+
+    let set_users_before: HashSet<_> = users_before.iter().collect();
+    let set_users_after: HashSet<_> = users_after.iter().collect();
+
+    if set_users_before != set_users_after {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::GroupMembersModified {
+                group: group.clone(),
+                before: users_before,
+                after: users_after,
+            }),
+        })?;
+    }
 
     info!("Modified group {}", group.name);
     appstate.emit_event(ApiEvent {
