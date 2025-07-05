@@ -100,9 +100,15 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::ActivityLogStreamCreated { stream } => todo!(),
         DefguardEvent::ActivityLogStreamModified { before, after } => todo!(),
         DefguardEvent::ActivityLogStreamRemoved { stream } => todo!(),
-        DefguardEvent::VpnLocationAdded { location } => todo!(),
-        DefguardEvent::VpnLocationRemoved { location } => todo!(),
-        DefguardEvent::VpnLocationModified { before, after } => todo!(),
+        DefguardEvent::VpnLocationAdded { location } => {
+            Some(format!("Added VPN location {location}"))
+        }
+        DefguardEvent::VpnLocationRemoved { location } => {
+            Some(format!("Removed VPN location {location}"))
+        }
+        DefguardEvent::VpnLocationModified { before: _, after } => {
+            Some(format!("VPN location {after} was modified"))
+        }
         DefguardEvent::ApiTokenAdded { owner, token } => {
             Some(format!("Added API token {} for user {owner}", token.name))
         }
@@ -144,13 +150,18 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             old_name,
             new_name,
         } => todo!(),
-        DefguardEvent::EnrollmentTokenAdded { user } => todo!(),
+        DefguardEvent::EnrollmentTokenAdded { user } => {
+            Some(format!("Added enrollment token for user {user}"))
+        }
         DefguardEvent::ClientConfigurationTokenAdded { user } => todo!(),
         DefguardEvent::UserSnatBindingAdded { user, binding } => Some(format!(
             "Devices owned by user {} bound to public IP {}",
             user.username, binding.public_ip
         )),
-        DefguardEvent::UserSnatBindingRemoved { user, binding } => todo!(),
+        DefguardEvent::UserSnatBindingRemoved { user, binding } => Some(format!(
+            "Removed public IP {} binding for user {user}",
+            binding.public_ip
+        )),
         DefguardEvent::UserSnatBindingModified {
             user,
             before,
