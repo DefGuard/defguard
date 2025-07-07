@@ -643,6 +643,7 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
     // store user before mods
     let before = user.clone();
     let old_username = user.username.clone();
@@ -747,11 +748,23 @@ pub async fn modify_user(
     }
 
     appstate.trigger_action(AppEvent::UserModified(user_info.clone()));
-    let test1 = group_diff.added;
-    let test2 = group_diff.removed;
-    let test3 = user_info.groups;
-
+    let groups_after = user_info.groups.clone();
     info!("User {} updated user {username}", session.user.username);
+
+    let set_groups_before: HashSet<_> = groups_before.iter().collect();
+    let set_groups_after: HashSet<_> = groups_after.iter().collect();
+
+    if set_groups_before != set_groups_after {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserGroupsModified {
+                user: user.clone(),
+                before: groups_before,
+                after: groups_after,
+            }),
+        })?;
+    }
+
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::UserModified {

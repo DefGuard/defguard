@@ -134,8 +134,8 @@ pub enum DefguardEvent {
     },
     UserGroupsModified {
         user: User<Id>,
-        before: Vec<Group<Id>>,
-        after: Vec<Group<Id>>,
+        before: Vec<String>,
+        after: Vec<String>,
     },
     UserDeviceAdded {
         owner: User<Id>,

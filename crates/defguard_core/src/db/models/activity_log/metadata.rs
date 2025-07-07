@@ -101,9 +101,9 @@ pub struct UserModifiedMetadata {
 
 #[derive(Serialize)]
 pub struct UserGroupsModifiedMetadata {
-    pub user: User<Id>,
-    pub before: Vec<Group<Id>>,
-    pub after: Vec<Group<Id>>,
+    pub user: UserNoSecrets,
+    pub before: Vec<String>,
+    pub after: Vec<String>,
 }
 #[derive(Serialize)]
 pub struct MfaSecurityKeyMetadata {
@@ -333,8 +333,8 @@ pub struct GroupAssignedMetadata {
 #[derive(Serialize)]
 pub struct GroupMembersModifiedMetadata {
     pub group: Group<Id>,
-    pub before: Vec<User<Id>>,
-    pub after: Vec<User<Id>>,
+    pub before: Vec<UserNoSecrets>,
+    pub after: Vec<UserNoSecrets>,
 }
 #[derive(Serialize)]
 pub struct WebHookMetadata {

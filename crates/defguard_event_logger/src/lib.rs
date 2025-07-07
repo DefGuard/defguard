@@ -123,7 +123,7 @@ pub async fn run_event_logger(
                             } => (
                                 EventType::UserGroupsModified,
                                 serde_json::to_value(UserGroupsModifiedMetadata {
-                                    user,
+                                    user: user.into(),
                                     before,
                                     after,
                                 })
@@ -370,8 +370,8 @@ pub async fn run_event_logger(
                                 EventType::GroupMembersModified,
                                 serde_json::to_value(GroupMembersModifiedMetadata {
                                     group,
-                                    before,
-                                    after,
+                                    before: before.into_iter().map(Into::into).collect(),
+                                    after: after.into_iter().map(Into::into).collect(),
                                 })
                                 .ok(),
                             ),

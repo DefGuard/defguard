@@ -2608,6 +2608,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_added: 'User added',
       user_removed: 'User removed',
       user_modified: 'User modified',
+      user_groups_modified: 'User groups modified',
       mfa_enabled: 'MFA enabled',
       mfa_disabled: 'MFA disabled',
       mfa_totp_enabled: 'MFA TOTP enabled',
