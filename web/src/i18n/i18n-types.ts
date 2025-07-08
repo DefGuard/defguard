@@ -6222,6 +6222,10 @@ type RootTranslation = {
 				 * D​e​v​i​c​e
 				 */
 				device: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
 			}
 			noData: {
 				/**
@@ -6281,6 +6285,10 @@ type RootTranslation = {
 			 * M​F​A​ ​d​i​s​a​b​l​e​d
 			 */
 			mfa_disabled: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			user_mfa_disabled: string
 			/**
 			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
 			 */
@@ -6513,6 +6521,18 @@ type RootTranslation = {
 			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
 			 */
 			client_configuration_token_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​a​d​d​e​d
+			 */
+			user_snat_binding_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​m​o​d​i​f​i​e​d
+			 */
+			user_snat_binding_modified: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​r​e​m​o​v​e​d
+			 */
+			user_snat_binding_removed: string
 		}
 		activityLogModule: {
 			/**
@@ -12679,6 +12699,10 @@ export type TranslationFunctions = {
 				 * Device
 				 */
 				device: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
 			}
 			noData: {
 				/**
@@ -12738,6 +12762,10 @@ export type TranslationFunctions = {
 			 * MFA disabled
 			 */
 			mfa_disabled: () => LocalizedString
+			/**
+			 * User MFA disabled
+			 */
+			user_mfa_disabled: () => LocalizedString
 			/**
 			 * MFA TOTP enabled
 			 */
@@ -12970,6 +12998,18 @@ export type TranslationFunctions = {
 			 * Client configuration token added
 			 */
 			client_configuration_token_added: () => LocalizedString
+			/**
+			 * User SNAT binding added
+			 */
+			user_snat_binding_added: () => LocalizedString
+			/**
+			 * User SNAT binding modified
+			 */
+			user_snat_binding_modified: () => LocalizedString
+			/**
+			 * User SNAT binding removed
+			 */
+			user_snat_binding_removed: () => LocalizedString
 		}
 		activityLogModule: {
 			/**

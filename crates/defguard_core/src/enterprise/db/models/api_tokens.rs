@@ -4,7 +4,7 @@ use sqlx::{Error as SqlxError, PgExecutor, query_as};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize)]
 #[table(api_token)]
 pub struct ApiToken<I = NoId> {
     pub id: I,

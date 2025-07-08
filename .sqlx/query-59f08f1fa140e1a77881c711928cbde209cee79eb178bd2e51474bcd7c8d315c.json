@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"activity_log_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"username\" = $4,\"ip\" = $5,\"event\" = $6,\"module\" = $7,\"device\" = $8,\"metadata\" = $9 WHERE id = $1",
+  "query": "UPDATE \"activity_log_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"username\" = $4,\"ip\" = $5,\"event\" = $6,\"module\" = $7,\"device\" = $8,\"description\" = $9,\"metadata\" = $10 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -25,10 +25,11 @@
           }
         },
         "Text",
+        "Text",
         "Jsonb"
       ]
     },
     "nullable": []
   },
-  "hash": "2ae013255e664b19ed582b115b46133034efd7cf22ac1562b1696687f5783a46"
+  "hash": "59f08f1fa140e1a77881c711928cbde209cee79eb178bd2e51474bcd7c8d315c"
 }

@@ -103,7 +103,7 @@ pub struct ApiActivityLogEvent {
     pub event: String,
     pub module: ActivityLogModule,
     pub device: String,
-    pub metadata: Option<serde_json::Value>,
+    pub description: Option<String>,
 }
 
 // TODO: add utoipa API schema
@@ -131,7 +131,7 @@ pub async fn get_activity_log_events(
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, username, ip, event, module, device, metadata FROM activity_log_event WHERE 1=1 ",
+        "SELECT id, timestamp, user_id, username, ip, event, module, device, description FROM activity_log_event WHERE 1=1 ",
     );
 
     // filter events for non-admin users to show only their own events
@@ -224,9 +224,10 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     // - module
     // - event
     // - device
+    // - description
     if let Some(search_term) = &filters.search {
         query_builder
-            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ') ILIKE ")
+            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ', description, ' ') ILIKE ")
             .push_bind(format!("%{search_term}%"))
             .push(" ");
     }

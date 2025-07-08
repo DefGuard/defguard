@@ -3,12 +3,12 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_core::{
     db::{
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider,
+        openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
     events::{
         ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext,
@@ -95,13 +95,16 @@ impl From<InternalEventContext> for EventContext {
 /// Represents activity log events related to actions performed in Web UI
 pub enum DefguardEvent {
     UserLogin,
+    UserLoginFailed {
+        message: String,
+    },
     UserLogout,
-    UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
     },
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
+        message: String,
     },
     RecoveryCodeUsed,
     PasswordChangedByAdmin {
@@ -112,6 +115,9 @@ pub enum DefguardEvent {
         user: User<Id>,
     },
     MfaDisabled,
+    UserMfaDisabled {
+        user: User<Id>,
+    },
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
@@ -212,8 +218,14 @@ pub enum DefguardEvent {
     OpenIdProviderRemoved {
         provider: OpenIdProvider<Id>,
     },
-    SettingsUpdated,
-    SettingsUpdatedPartial,
+    SettingsUpdated {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsUpdatedPartial {
+        before: Settings,
+        after: Settings,
+    },
     SettingsDefaultBrandingRestored,
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
@@ -262,11 +274,21 @@ pub enum DefguardEvent {
         old_name: Option<String>,
         new_name: Option<String>,
     },
-    EnrollmentTokenAdded {
-        user: User<Id>,
-    },
     ClientConfigurationTokenAdded {
         user: User<Id>,
+    },
+    UserSnatBindingAdded {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingRemoved {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingModified {
+        user: User<Id>,
+        before: UserSnatBinding<Id>,
+        after: UserSnatBinding<Id>,
     },
 }
 
@@ -291,6 +313,7 @@ pub enum VpnEvent {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
         method: ClientMFAMethod,
+        message: String,
     },
     ConnectedToLocation {
         location: WireguardNetwork<Id>,

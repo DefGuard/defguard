@@ -2590,6 +2590,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         event: 'Event',
         module: 'Module',
         device: 'Device',
+        description: 'Description',
       },
       noData: {
         data: 'No activities present',
@@ -2610,6 +2611,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_modified: 'User modified',
       mfa_enabled: 'MFA enabled',
       mfa_disabled: 'MFA disabled',
+      user_mfa_disabled: 'User MFA disabled',
       mfa_totp_enabled: 'MFA TOTP enabled',
       mfa_totp_disabled: 'MFA TOTP disabled',
       mfa_email_enabled: 'MFA email enabled',
@@ -2668,6 +2670,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       password_changed_by_admin: 'Password changed by admin',
       password_reset: 'Password reset',
       client_configuration_token_added: 'Client configuration token added',
+      user_snat_binding_added: 'User SNAT binding added',
+      user_snat_binding_modified: 'User SNAT binding modified',
+      user_snat_binding_removed: 'User SNAT binding removed',
     },
     activityLogModule: {
       defguard: 'Defguard',
