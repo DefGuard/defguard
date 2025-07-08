@@ -224,9 +224,10 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     // - module
     // - event
     // - device
+    // - description
     if let Some(search_term) = &filters.search {
         query_builder
-            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ') ILIKE ")
+            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ', description, ' ') ILIKE ")
             .push_bind(format!("%{search_term}%"))
             .push(" ");
     }
