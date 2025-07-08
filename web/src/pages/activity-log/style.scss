@@ -37,7 +37,7 @@
 }
 
 @mixin list-sizing() {
-  grid-template-columns: 250px 150px 150px 300px 100px 200px minmax(300px, 1fr);
+  grid-template-columns: 150px 120px 150px 300px 100px 200px minmax(300px, 1fr);
   justify-content: space-between;
   column-gap: var(--spacing-xs);
 
@@ -57,7 +57,7 @@
 }
 
 #activity-list {
-  & > .top {
+  &>.top {
     display: flex;
     flex-flow: row wrap;
     align-items: center;
@@ -155,7 +155,7 @@
   flex-flow: column;
   row-gap: var(--spacing-s);
 
-  & > * {
+  &>* {
     width: 100%;
   }
 
