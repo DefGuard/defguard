@@ -143,7 +143,7 @@ pub(crate) async fn authenticate(
 
     // attempt to find user first by username and then by email
     let mut conn = appstate.pool.acquire().await?;
-    let mut user = match User::find_by_username_or_email(&mut *conn, &username_or_email).await? {
+    let mut user = match User::find_by_username_or_email(&mut conn, &username_or_email).await? {
         Some(user) => {
             // user was found, attempt to authenticate by password first
             match user.verify_password(&data.password) {

@@ -202,7 +202,7 @@ pub async fn modify_snat_binding(
         .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
     let snat_user = User::find_by_id(&appstate.pool, user_id)
         .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", user_id)))?;
+        .ok_or_else(|| WebError::ObjectNotFound(format!("User {user_id} not found")))?;
 
     debug!(
         "User {current_user} updating SNAT binding for user {snat_user} and WireGuard location {location} with {data:?}",
@@ -286,7 +286,7 @@ pub async fn delete_snat_binding(
         .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
     let snat_user = User::find_by_id(&appstate.pool, user_id)
         .await?
-        .ok_or_else(|| WebError::ObjectNotFound(format!("User {} not found", user_id)))?;
+        .ok_or_else(|| WebError::ObjectNotFound(format!("User {user_id} not found")))?;
 
     debug!(
         "User {current_user} deleting SNAT binding for user {snat_user} and WireGuard location {location}"

@@ -360,7 +360,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
-                                message: format!("tried to finish OIDC MFA login but they haven't completed OIDC authentication yet")
+                                message: "tried to finish OIDC MFA login but they haven't completed OIDC authentication yet".to_string()
                             },
                         )),
                     })?;
