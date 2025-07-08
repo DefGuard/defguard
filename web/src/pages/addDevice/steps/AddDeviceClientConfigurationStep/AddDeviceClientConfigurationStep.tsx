@@ -275,7 +275,7 @@ export const AddDeviceClientConfigurationStep = () => {
       <div className="row">
         <a
           className="external"
-          href="https://github.com/DefGuard/client/releases"
+          href="https://defguard.net/download/"
           target="_blank"
           rel="noopener noreferrer"
         >
