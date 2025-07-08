@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use chrono::NaiveDateTime;
 
 use crate::{
@@ -102,8 +103,8 @@ pub struct UserModifiedMetadata {
 #[derive(Serialize)]
 pub struct UserGroupsModifiedMetadata {
     pub user: UserNoSecrets,
-    pub before: Vec<String>,
-    pub after: Vec<String>,
+    pub added: HashSet<String>,
+    pub removed: HashSet<String>,
 }
 #[derive(Serialize)]
 pub struct MfaSecurityKeyMetadata {

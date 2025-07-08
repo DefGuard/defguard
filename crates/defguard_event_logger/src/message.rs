@@ -134,8 +134,8 @@ pub enum DefguardEvent {
     },
     UserGroupsModified {
         user: User<Id>,
-        before: Vec<String>,
-        after: Vec<String>,
+        added: std::collections::HashSet<String>,
+        removed: std::collections::HashSet<String>,
     },
     UserDeviceAdded {
         owner: User<Id>,
