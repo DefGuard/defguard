@@ -163,11 +163,14 @@ impl EventRouter {
             ApiEventType::OpenIdProviderModified { provider } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdProviderModified { provider }))
             }
-            ApiEventType::SettingsUpdated => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated))
+            ApiEventType::SettingsUpdated { before, after } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated { before, after }))
             }
-            ApiEventType::SettingsUpdatedPartial => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdatedPartial))
+            ApiEventType::SettingsUpdatedPartial { before, after } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdatedPartial {
+                    before,
+                    after,
+                }))
             }
             ApiEventType::SettingsDefaultBrandingRestored => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsDefaultBrandingRestored))

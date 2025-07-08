@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 use defguard_core::{
     db::{
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{
@@ -218,8 +218,14 @@ pub enum DefguardEvent {
     OpenIdProviderRemoved {
         provider: OpenIdProvider<Id>,
     },
-    SettingsUpdated,
-    SettingsUpdatedPartial,
+    SettingsUpdated {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsUpdatedPartial {
+        before: Settings,
+        after: Settings,
+    },
     SettingsDefaultBrandingRestored,
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
@@ -267,9 +273,6 @@ pub enum DefguardEvent {
         key: AuthenticationKey<Id>,
         old_name: Option<String>,
         new_name: Option<String>,
-    },
-    EnrollmentTokenAdded {
-        user: User<Id>,
     },
     ClientConfigurationTokenAdded {
         user: User<Id>,

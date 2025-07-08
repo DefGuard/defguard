@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::{
     db::{
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{
@@ -201,8 +201,14 @@ pub enum ApiEventType {
     OpenIdProviderRemoved {
         provider: OpenIdProvider<Id>,
     },
-    SettingsUpdated,
-    SettingsUpdatedPartial,
+    SettingsUpdated {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsUpdatedPartial {
+        before: Settings,
+        after: Settings,
+    },
     SettingsDefaultBrandingRestored,
     GroupsBulkAssigned {
         users: Vec<User<Id>>,

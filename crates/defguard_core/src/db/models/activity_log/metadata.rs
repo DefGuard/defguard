@@ -2,17 +2,21 @@ use chrono::NaiveDateTime;
 
 use crate::{
     db::{
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{
             authentication_key::{AuthenticationKey, AuthenticationKeyType},
             oauth2client::OAuth2Client,
+            settings::{OpenidUsernameHandling, SmtpEncryption},
         },
     },
-    enterprise::db::models::{
-        activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
-        api_tokens::ApiToken,
-        openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
-        snat::UserSnatBinding,
+    enterprise::{
+        db::models::{
+            activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
+            api_tokens::ApiToken,
+            openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
+            snat::UserSnatBinding,
+        },
+        ldap::sync::SyncStatus,
     },
     events::ClientMFAMethod,
 };
@@ -317,6 +321,130 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderNoSecrets {
             directory_sync_target: value.directory_sync_target,
             okta_dirsync_client_id: value.okta_dirsync_client_id,
             directory_sync_group_match: value.directory_sync_group_match,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct SettingsUpdateMetadata {
+    pub before: SettingsNoSecrets,
+    pub after: SettingsNoSecrets,
+}
+
+#[derive(Serialize)]
+pub struct SettingsNoSecrets {
+    // Modules
+    pub openid_enabled: bool,
+    pub wireguard_enabled: bool,
+    pub webhooks_enabled: bool,
+    pub worker_enabled: bool,
+    // MFA
+    pub challenge_template: String,
+    // Branding
+    pub instance_name: String,
+    pub main_logo_url: String,
+    pub nav_logo_url: String,
+    // SMTP
+    pub smtp_server: Option<String>,
+    pub smtp_port: Option<i32>,
+    pub smtp_encryption: SmtpEncryption,
+    pub smtp_user: Option<String>,
+    pub smtp_sender: Option<String>,
+    // Enrollment
+    pub enrollment_vpn_step_optional: bool,
+    pub enrollment_welcome_message: Option<String>,
+    pub enrollment_welcome_email: Option<String>,
+    pub enrollment_welcome_email_subject: Option<String>,
+    pub enrollment_use_welcome_message_as_email: bool,
+    // LDAP
+    pub ldap_url: Option<String>,
+    pub ldap_bind_username: Option<String>,
+    pub ldap_group_search_base: Option<String>,
+    pub ldap_user_search_base: Option<String>,
+    // The structural user class
+    pub ldap_user_obj_class: Option<String>,
+    // The structural group class
+    pub ldap_group_obj_class: Option<String>,
+    pub ldap_username_attr: Option<String>,
+    pub ldap_groupname_attr: Option<String>,
+    pub ldap_group_member_attr: Option<String>,
+    pub ldap_member_attr: Option<String>,
+    pub ldap_use_starttls: bool,
+    pub ldap_tls_verify_cert: bool,
+    pub ldap_sync_status: SyncStatus,
+    pub ldap_enabled: bool,
+    pub ldap_sync_enabled: bool,
+    pub ldap_is_authoritative: bool,
+    pub ldap_uses_ad: bool,
+    pub ldap_sync_interval: i32,
+    // Additional object classes for users which determine the added attributes
+    pub ldap_user_auxiliary_obj_classes: Vec<String>,
+    // The attribute which is used to map LDAP usernames to Defguard usernames
+    pub ldap_user_rdn_attr: Option<String>,
+    pub ldap_sync_groups: Vec<String>,
+    // Whether to create a new account when users try to log in with external OpenID
+    pub openid_create_account: bool,
+    pub openid_username_handling: OpenidUsernameHandling,
+    pub use_openid_for_mfa: bool,
+    pub license: Option<String>,
+    // Gateway disconnect notifications
+    pub gateway_disconnect_notifications_enabled: bool,
+    pub gateway_disconnect_notifications_inactivity_threshold: i32,
+    pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
+}
+
+impl From<Settings> for SettingsNoSecrets {
+    fn from(value: Settings) -> Self {
+        Self {
+            openid_enabled: value.openid_enabled,
+            wireguard_enabled: value.wireguard_enabled,
+            webhooks_enabled: value.webhooks_enabled,
+            worker_enabled: value.worker_enabled,
+            challenge_template: value.challenge_template,
+            instance_name: value.instance_name,
+            main_logo_url: value.main_logo_url,
+            nav_logo_url: value.nav_logo_url,
+            smtp_server: value.smtp_server,
+            smtp_port: value.smtp_port,
+            smtp_encryption: value.smtp_encryption,
+            smtp_user: value.smtp_user,
+            smtp_sender: value.smtp_sender,
+            enrollment_vpn_step_optional: value.enrollment_vpn_step_optional,
+            enrollment_welcome_message: value.enrollment_welcome_message,
+            enrollment_welcome_email: value.enrollment_welcome_email,
+            enrollment_welcome_email_subject: value.enrollment_welcome_email_subject,
+            enrollment_use_welcome_message_as_email: value.enrollment_use_welcome_message_as_email,
+            ldap_url: value.ldap_url,
+            ldap_bind_username: value.ldap_bind_username,
+            ldap_group_search_base: value.ldap_group_search_base,
+            ldap_user_search_base: value.ldap_user_search_base,
+            ldap_user_obj_class: value.ldap_user_obj_class,
+            ldap_group_obj_class: value.ldap_group_obj_class,
+            ldap_username_attr: value.ldap_username_attr,
+            ldap_groupname_attr: value.ldap_groupname_attr,
+            ldap_group_member_attr: value.ldap_group_member_attr,
+            ldap_member_attr: value.ldap_member_attr,
+            ldap_use_starttls: value.ldap_use_starttls,
+            ldap_tls_verify_cert: value.ldap_tls_verify_cert,
+            ldap_sync_status: value.ldap_sync_status,
+            ldap_enabled: value.ldap_enabled,
+            ldap_sync_enabled: value.ldap_sync_enabled,
+            ldap_is_authoritative: value.ldap_is_authoritative,
+            ldap_uses_ad: value.ldap_uses_ad,
+            ldap_sync_interval: value.ldap_sync_interval,
+            ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes,
+            ldap_user_rdn_attr: value.ldap_user_rdn_attr,
+            ldap_sync_groups: value.ldap_sync_groups,
+            openid_create_account: value.openid_create_account,
+            openid_username_handling: value.openid_username_handling,
+            use_openid_for_mfa: value.use_openid_for_mfa,
+            license: value.license,
+            gateway_disconnect_notifications_enabled: value
+                .gateway_disconnect_notifications_enabled,
+            gateway_disconnect_notifications_inactivity_threshold: value
+                .gateway_disconnect_notifications_inactivity_threshold,
+            gateway_disconnect_notifications_reconnect_notification_enabled: value
+                .gateway_disconnect_notifications_reconnect_notification_enabled,
         }
     }
 }

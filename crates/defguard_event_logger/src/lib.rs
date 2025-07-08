@@ -12,8 +12,8 @@ use defguard_core::db::{
             MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
             NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
             OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
-            PasswordChangedByAdminMetadata, PasswordResetMetadata, UserMetadata,
-            UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            PasswordChangedByAdminMetadata, PasswordResetMetadata, SettingsUpdateMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
             VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
             WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
@@ -303,10 +303,22 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::SettingsUpdated => (EventType::SettingsUpdated, None),
-                            DefguardEvent::SettingsUpdatedPartial => {
-                                (EventType::SettingsUpdatedPartial, None)
-                            }
+                            DefguardEvent::SettingsUpdatedPartial { before, after } => (
+                                EventType::SettingsUpdatedPartial,
+                                serde_json::to_value(SettingsUpdateMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::SettingsUpdated { before, after } => (
+                                EventType::SettingsUpdated,
+                                serde_json::to_value(SettingsUpdateMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::SettingsDefaultBrandingRestored => {
                                 (EventType::SettingsDefaultBrandingRestored, None)
                             }
@@ -400,11 +412,6 @@ pub async fn run_event_logger(
                                     user: user.into(),
                                 })
                                 .ok(),
-                            ),
-                            DefguardEvent::EnrollmentTokenAdded { user } => (
-                                EventType::EnrollmentTokenAdded,
-                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
-                                    .ok(),
                             ),
                             DefguardEvent::UserSnatBindingAdded { user, binding } => (
                                 EventType::UserSnatBindingAdded,

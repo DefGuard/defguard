@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
 
@@ -11,16 +13,25 @@ pub enum AuthenticationKeyType {
     Gpg,
 }
 
+impl Display for AuthenticationKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AuthenticationKeyType::Ssh => write!(f, "SSH"),
+            AuthenticationKeyType::Gpg => write!(f, "GPG"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]
 #[table(authentication_key)]
 pub struct AuthenticationKey<I = NoId> {
     pub(crate) id: I,
     pub(crate) yubikey_id: Option<i64>,
-    pub(crate) name: Option<String>,
+    pub name: Option<String>,
     pub(crate) user_id: Id,
     pub(crate) key: String,
     #[model(enum)]
-    pub(crate) key_type: AuthenticationKeyType,
+    pub key_type: AuthenticationKeyType,
 }
 
 impl AuthenticationKey {

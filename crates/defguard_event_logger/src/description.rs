@@ -97,9 +97,18 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         } => Some(format!(
             "Modified network device {after} in location {location}"
         )),
-        DefguardEvent::ActivityLogStreamCreated { stream } => todo!(),
-        DefguardEvent::ActivityLogStreamModified { before, after } => todo!(),
-        DefguardEvent::ActivityLogStreamRemoved { stream } => todo!(),
+        DefguardEvent::ActivityLogStreamCreated { stream } => Some(format!(
+            "Created {} activity log stream {}",
+            stream.stream_type, stream.name
+        )),
+        DefguardEvent::ActivityLogStreamModified { before: _, after } => Some(format!(
+            "Modified {} activity log stream {}",
+            after.stream_type, after.name
+        )),
+        DefguardEvent::ActivityLogStreamRemoved { stream } => Some(format!(
+            "Removed {} activity log stream {}",
+            stream.stream_type, stream.name
+        )),
         DefguardEvent::VpnLocationAdded { location } => {
             Some(format!("Added VPN location {location}"))
         }
@@ -124,39 +133,91 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         } => Some(format!(
             "API token owned by user {owner} was renamed from {old_name} to {new_name}",
         )),
-        DefguardEvent::OpenIdAppAdded { app } => todo!(),
-        DefguardEvent::OpenIdAppRemoved { app } => todo!(),
-        DefguardEvent::OpenIdAppModified { before, after } => todo!(),
-        DefguardEvent::OpenIdAppStateChanged { app, enabled } => todo!(),
-        DefguardEvent::OpenIdProviderModified { provider } => todo!(),
-        DefguardEvent::OpenIdProviderRemoved { provider } => todo!(),
-        DefguardEvent::SettingsUpdated => todo!(),
-        DefguardEvent::SettingsUpdatedPartial => todo!(),
-        DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
-        DefguardEvent::GroupsBulkAssigned { users, groups } => todo!(),
-        DefguardEvent::GroupAdded { group } => todo!(),
-        DefguardEvent::GroupModified { before, after } => todo!(),
-        DefguardEvent::GroupRemoved { group } => todo!(),
-        DefguardEvent::GroupMemberAdded { group, user } => todo!(),
-        DefguardEvent::GroupMemberRemoved { group, user } => todo!(),
-        DefguardEvent::WebHookAdded { webhook } => todo!(),
-        DefguardEvent::WebHookModified { before, after } => todo!(),
-        DefguardEvent::WebHookRemoved { webhook } => todo!(),
-        DefguardEvent::WebHookStateChanged { webhook, enabled } => todo!(),
-        DefguardEvent::AuthenticationKeyAdded { key } => todo!(),
-        DefguardEvent::AuthenticationKeyRemoved { key } => todo!(),
+        DefguardEvent::OpenIdAppAdded { app } => {
+            Some(format!("Added OpenID application {}", app.name))
+        }
+        DefguardEvent::OpenIdAppRemoved { app } => {
+            Some(format!("Removed OpenID application {}", app.name))
+        }
+        DefguardEvent::OpenIdAppModified { before: _, after } => {
+            Some(format!("Modified OpenID application {}", after.name))
+        }
+        DefguardEvent::OpenIdAppStateChanged { app, enabled } => {
+            let state = if *enabled { "Enabled" } else { "Disabled" };
+            Some(format!("{} OpenID application {}", state, app.name))
+        }
+        DefguardEvent::OpenIdProviderModified { provider } => {
+            Some(format!("Modified OpenID provider {}", provider.name))
+        }
+        DefguardEvent::OpenIdProviderRemoved { provider } => {
+            Some(format!("Removed OpenID provider {}", provider.name))
+        }
+        DefguardEvent::SettingsUpdated {
+            before: _,
+            after: _,
+        } => None,
+        DefguardEvent::SettingsUpdatedPartial {
+            before: _,
+            after: _,
+        } => None,
+        DefguardEvent::SettingsDefaultBrandingRestored => {
+            Some("Restored default branding settings".to_string())
+        }
+        DefguardEvent::GroupsBulkAssigned { users, groups } => Some(format!(
+            "Assigned {} users to {} groups",
+            users.len(),
+            groups.len()
+        )),
+        DefguardEvent::GroupAdded { group } => Some(format!("Added group {}", group.name)),
+        DefguardEvent::GroupModified { before: _, after } => {
+            Some(format!("Modified group {}", after.name))
+        }
+        DefguardEvent::GroupRemoved { group } => Some(format!("Removed group {}", group.name)),
+        DefguardEvent::GroupMemberAdded { group, user } => {
+            Some(format!("Added user {user} to group {}", group.name))
+        }
+        DefguardEvent::GroupMemberRemoved { group, user } => {
+            Some(format!("Removed user {user} from group {}", group.name))
+        }
+        DefguardEvent::WebHookAdded { webhook } => {
+            Some(format!("Added webhook with URL {}", webhook.url))
+        }
+        DefguardEvent::WebHookModified { before: _, after } => {
+            Some(format!("Modified webhook with URL {}", after.url))
+        }
+        DefguardEvent::WebHookRemoved { webhook } => {
+            Some(format!("Removed webhook with ULR {}", webhook.url))
+        }
+        DefguardEvent::WebHookStateChanged { webhook, enabled } => {
+            let state = if *enabled { "Enabled" } else { "Disabled" };
+            Some(format!("{} webhook with URL {}", state, webhook.url))
+        }
+        DefguardEvent::AuthenticationKeyAdded { key } => Some(format!(
+            "Added {} authentication key {}",
+            key.key_type,
+            key.name.clone().unwrap_or_default()
+        )),
+        DefguardEvent::AuthenticationKeyRemoved { key } => Some(format!(
+            "Removed {} authentication key {}",
+            key.key_type,
+            key.name.clone().unwrap_or_default()
+        )),
         DefguardEvent::AuthenticationKeyRenamed {
             key,
             old_name,
             new_name,
-        } => todo!(),
-        DefguardEvent::EnrollmentTokenAdded { user } => {
-            Some(format!("Added enrollment token for user {user}"))
+        } => Some(format!(
+            "Renamed {} authentication key from {} to {}",
+            key.key_type,
+            old_name.clone().unwrap_or_default(),
+            new_name.clone().unwrap_or_default()
+        )),
+        DefguardEvent::ClientConfigurationTokenAdded { user } => {
+            Some(format!("Added client configuration token for user {user}",))
         }
-        DefguardEvent::ClientConfigurationTokenAdded { user } => todo!(),
         DefguardEvent::UserSnatBindingAdded { user, binding } => Some(format!(
-            "Devices owned by user {} bound to public IP {}",
-            user.username, binding.public_ip
+            "Devices owned by user {user} bound to public IP {}",
+            binding.public_ip
         )),
         DefguardEvent::UserSnatBindingRemoved { user, binding } => Some(format!(
             "Removed public IP {} binding for user {user}",
@@ -167,8 +228,8 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             before,
             after,
         } => Some(format!(
-            "Public IP bound to devices owned by user {} changed from {} to {}",
-            user.username, before.public_ip, after.public_ip
+            "Public IP bound to devices owned by user {user} changed from {} to {}",
+            before.public_ip, after.public_ip
         )),
     }
 }
@@ -203,5 +264,19 @@ pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
 }
 
 pub fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<String> {
-    todo!()
+    match event {
+        EnrollmentEvent::EnrollmentStarted => Some("User started enrollment process".to_string()),
+        EnrollmentEvent::EnrollmentDeviceAdded { device } => {
+            Some(format!("Added device {} during enrollment", device.name))
+        }
+        EnrollmentEvent::EnrollmentCompleted => {
+            Some("User completed enrollment process".to_string())
+        }
+        EnrollmentEvent::PasswordResetRequested => None,
+        EnrollmentEvent::PasswordResetStarted => None,
+        EnrollmentEvent::PasswordResetCompleted => None,
+        EnrollmentEvent::TokenAdded { user } => {
+            Some(format!("Added enrollment token for user {user}"))
+        }
+    }
 }
