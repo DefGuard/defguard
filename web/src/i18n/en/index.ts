@@ -643,13 +643,17 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       client: {
         title: 'Client Activation',
         message:
-          'Please enter the provided Instance Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
-        tokenLabel: 'Defguard Instance Token',
+          'Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
         qrDescription:
           "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
         desktopDownload: 'Download defguard Client for desktop device',
         tokenCopy: 'Token copied to clipboard',
         tokenFailure: 'Failed to prepare client setup',
+        labels: {
+          mergedToken: 'Defguard Instance Token (new)',
+          token: 'Authentication Token',
+          url: 'URL',
+        },
       },
       configDevice: {
         title: 'Configure device',

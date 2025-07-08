@@ -1501,13 +1501,9 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
+				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
 				 */
 				message: string
-				/**
-				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n
-				 */
-				tokenLabel: string
 				/**
 				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
 				 */
@@ -1524,6 +1520,20 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​p​a​r​e​ ​c​l​i​e​n​t​ ​s​e​t​u​p
 				 */
 				tokenFailure: string
+				labels: {
+					/**
+					 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n​ ​(​n​e​w​)
+					 */
+					mergedToken: string
+					/**
+					 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+					 */
+					token: string
+					/**
+					 * U​R​L
+					 */
+					url: string
+				}
 			}
 			configDevice: {
 				/**
@@ -8039,13 +8049,9 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * Please enter the provided Instance Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
+				 * Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
 				 */
 				message: () => LocalizedString
-				/**
-				 * Defguard Instance Token
-				 */
-				tokenLabel: () => LocalizedString
 				/**
 				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
 				 */
@@ -8062,6 +8068,20 @@ export type TranslationFunctions = {
 				 * Failed to prepare client setup
 				 */
 				tokenFailure: () => LocalizedString
+				labels: {
+					/**
+					 * Defguard Instance Token (new)
+					 */
+					mergedToken: () => LocalizedString
+					/**
+					 * Authentication Token
+					 */
+					token: () => LocalizedString
+					/**
+					 * URL
+					 */
+					url: () => LocalizedString
+				}
 			}
 			configDevice: {
 				/**

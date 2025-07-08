@@ -20,6 +20,7 @@ export const AddDeviceClientConfigurationStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.client;
   const toaster = useToaster();
+  const clientData = useAddDevicePageStore((s) => s.clientSetup);
   const tokenValue = useAddDevicePageStore((s) =>
     s.clientSetup
       ? enrollmentToImportToken(s.clientSetup.url, s.clientSetup.token)
@@ -34,15 +35,29 @@ export const AddDeviceClientConfigurationStep = () => {
     }
   }, [setStep, tokenValue]);
 
-  if (!isPresent(tokenValue)) return null;
+  if (!isPresent(tokenValue) || !isPresent(clientData)) return null;
 
   return (
     <Card id="add-device-client-configuration" shaded>
       <h2>{localLL.title()}</h2>
       <MessageBox message={localLL.message()} />
-      <CopyField
-        label={localLL.tokenLabel()}
+      {/* <CopyField
+        label={localLL.labels.mergedToken()}
         value={tokenValue}
+        onCopy={(value) => {
+          void writeToClipboard(value, localLL.tokenCopy());
+        }}
+      /> */}
+      <CopyField
+        label={localLL.labels.url()}
+        value={clientData.url}
+        onCopy={(value) => {
+          void writeToClipboard(value, localLL.tokenCopy());
+        }}
+      />
+      <CopyField
+        label={localLL.labels.token()}
+        value={clientData.token}
         onCopy={(value) => {
           void writeToClipboard(value, localLL.tokenCopy());
         }}
@@ -56,7 +71,7 @@ export const AddDeviceClientConfigurationStep = () => {
       <div className="row">
         <a
           onClick={() => {
-            toaster.success('There will be dragons');
+            toaster.success('Unimplemented yet');
           }}
         >
           <svg
@@ -147,7 +162,7 @@ export const AddDeviceClientConfigurationStep = () => {
         </a>
         <a
           onClick={() => {
-            toaster.success('There will be dragons');
+            toaster.success('Unimplemented yet');
           }}
         >
           <svg
@@ -258,7 +273,12 @@ export const AddDeviceClientConfigurationStep = () => {
         </a>
       </div>
       <div className="row">
-        <a className="external">
+        <a
+          className="external"
+          href="https://github.com/DefGuard/client/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span>{localLL.desktopDownload()}</span>
           <SvgIconOutsideLink />
         </a>

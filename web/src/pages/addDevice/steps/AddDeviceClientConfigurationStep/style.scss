@@ -11,6 +11,12 @@
     @include typography(app-input);
   }
 
+  .copy-field.spacer {
+    &:not(:last-of-type) {
+      padding-bottom: var(--spacing-s);
+    }
+  }
+
   .row {
     display: flex;
     flex-flow: row;
@@ -47,5 +53,11 @@
     align-items: center;
     justify-content: center;
     column-gap: var(--spacing-xs);
+    text-decoration: none;
+    text-align: center;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
