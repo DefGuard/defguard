@@ -35,7 +35,9 @@ export const NetworkGatewaysStatus = ({ networkId }: Props) => {
       isError={isError}
       isLoading={isLoading}
     >
-      {data?.map((status) => <GatewaysFloatingStatus status={status} key={status.uid} />)}
+      {data?.map((status) => (
+        <GatewaysFloatingStatus status={status} key={status.uid} />
+      ))}
     </GatewaysStatusInfo>
   );
 };
