@@ -18,14 +18,14 @@ export const DeviceSetupMethodCard = ({ methodType, active, onClick }: Props) =>
 
   const [title, description] = useMemo(() => {
     switch (methodType) {
-      case DeviceSetupMethod.DESKTOP_CLIENT:
-        return [localLL.desktop.title(), localLL.desktop.description()];
+      case DeviceSetupMethod.CLIENT:
+        return [localLL.client.title(), localLL.client.description()];
       case DeviceSetupMethod.NATIVE_WG:
-        return [localLL.mobile.title(), localLL.mobile.description()];
+        return [localLL.wg.title(), localLL.wg.description()];
       default:
         throw Error('Unimplemented setup method supplied to method card.');
     }
-  }, [localLL.desktop, localLL.mobile, methodType]);
+  }, [localLL.client, localLL.wg, methodType]);
 
   return (
     <div
@@ -38,7 +38,7 @@ export const DeviceSetupMethodCard = ({ methodType, active, onClick }: Props) =>
     >
       <p className="title">{title}</p>
       <p className="description">{description}</p>
-      {methodType === DeviceSetupMethod.DESKTOP_CLIENT && (
+      {methodType === DeviceSetupMethod.CLIENT && (
         <>
           <div className="icon">
             <PhoneSvg />

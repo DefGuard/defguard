@@ -1469,30 +1469,26 @@ type RootTranslation = {
 				 */
 				message: string
 				methods: {
-					mobile: {
+					client: {
 						/**
-						 * M​o​b​i​l​e​ ​D​e​v​i​c​e
+						 * R​e​m​o​t​e​ ​D​e​v​i​c​e​ ​A​c​t​i​v​a​t​i​o​n
 						 */
 						title: string
 						/**
-						 * E​a​s​i​l​y​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​a​ ​Q​R​ ​C​o​d​e​.​ ​I​n​s​t​a​l​l​ ​d​e​f​g​u​a​r​d​ ​a​p​p​ ​v​i​a​ ​y​o​u​r​ ​a​p​p​ ​s​t​o​r​e​,​ ​a​n​d​ ​s​c​a​n​ ​p​r​o​v​i​d​e​d​ ​Q​R​.
+						 * U​s​e​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​t​o​ ​s​e​t​ ​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​.​ ​E​a​s​i​l​y​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​w​i​t​h​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​ ​o​r​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​a​ ​Q​R​ ​c​o​d​e​.
 						 */
 						description: string
 					}
-					desktop: {
+					wg: {
 						/**
-						 * D​e​s​k​t​o​p​ ​D​e​v​i​c​e
+						 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
 						 */
 						title: string
 						/**
-						 * E​a​s​i​l​y​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​ ​o​r​ ​Q​R​ ​C​o​d​e​.​ ​I​n​s​t​a​l​l​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​w​i​l​l​ ​g​e​t​ ​a​n​ ​e​m​a​i​l​ ​w​i​t​h​ ​d​e​t​a​i​l​s​.
+						 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​a​n​y​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
 						 */
 						description: string
 					}
-					/**
-					 * U​s​e​ ​W​i​r​e​G​u​a​r​d​®​ ​C​l​i​e​n​t​ ​C​o​n​f​i​g​ ​i​n​s​t​e​a​d​ ​(​f​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​)
-					 */
-					nativeWg: string
 				}
 			}
 			client: {
@@ -8017,30 +8013,26 @@ export type TranslationFunctions = {
 				 */
 				message: () => LocalizedString
 				methods: {
-					mobile: {
+					client: {
 						/**
-						 * Mobile Device
+						 * Remote Device Activation
 						 */
 						title: () => LocalizedString
 						/**
-						 * Easily set up with a QR Code. Install defguard app via your app store, and scan provided QR.
+						 * Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.
 						 */
 						description: () => LocalizedString
 					}
-					desktop: {
+					wg: {
 						/**
-						 * Desktop Device
+						 * Manual WireGuard Client
 						 */
 						title: () => LocalizedString
 						/**
-						 * Easily set up with a single token or QR Code. Install defguard Client on your device. You will get an email with details.
+						 * For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.
 						 */
 						description: () => LocalizedString
 					}
-					/**
-					 * Use WireGuard® Client Config instead (for advanced users)
-					 */
-					nativeWg: () => LocalizedString
 				}
 			}
 			client: {

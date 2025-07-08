@@ -1,4 +1,4 @@
 export enum DeviceSetupMethod {
-  DESKTOP_CLIENT = 'desktop-client',
+  CLIENT = 'client',
   NATIVE_WG = 'native-wg',
 }

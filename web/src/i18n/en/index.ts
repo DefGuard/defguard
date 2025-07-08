@@ -627,17 +627,16 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         message:
           "You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.",
         methods: {
-          mobile: {
-            title: 'Mobile Device',
+          client: {
+            title: 'Remote Device Activation',
             description:
-              'Easily set up with a QR Code. Install defguard app via your app store, and scan provided QR.',
+              'Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.',
           },
-          desktop: {
-            title: 'Desktop Device',
+          wg: {
+            title: 'Manual WireGuard Client',
             description:
-              'Easily set up with a single token or QR Code. Install defguard Client on your device. You will get an email with details.',
+              'For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.',
           },
-          nativeWg: 'Use WireGuard® Client Config instead (for advanced users)',
         },
       },
       client: {

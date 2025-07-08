@@ -92,7 +92,7 @@ export const AddDeviceSetupMethodStep = () => {
           <MessageBox message={localLL.message()} />
           <div className="primary-methods">
             <DeviceSetupMethodCard
-              methodType={DeviceSetupMethod.DESKTOP_CLIENT}
+              methodType={DeviceSetupMethod.CLIENT}
               active={setupMethod === AddDeviceStep.CLIENT_CONFIGURATION}
               onClick={() => {
                 setSetupMethod(AddDeviceStep.CLIENT_CONFIGURATION);
