@@ -1460,34 +1460,70 @@ type RootTranslation = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
+				/**
+				 * C​h​o​o​s​e​ ​Y​o​u​r​ ​C​o​n​n​e​c​t​i​o​n​ ​M​e​t​h​o​d
+				 */
+				title: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​T​o​ ​p​r​o​c​e​e​d​,​ ​y​o​u​'​l​l​ ​n​e​e​d​ ​t​o​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e​ ​y​o​u​'​r​e​ ​a​d​d​i​n​g​.​ ​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​u​s​e​ ​a​n​y​ ​s​t​a​n​d​a​r​d​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​,​ ​b​u​t​ ​f​o​r​ ​t​h​e​ ​b​e​s​t​ ​e​x​p​e​r​i​e​n​c​e​ ​a​n​d​ ​e​a​s​e​ ​o​f​ ​s​e​t​u​p​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​o​u​r​ ​n​a​t​i​v​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.
+				 */
+				message: string
+				methods: {
+					mobile: {
+						/**
+						 * M​o​b​i​l​e​ ​D​e​v​i​c​e
+						 */
+						title: string
+						/**
+						 * E​a​s​i​l​y​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​a​ ​Q​R​ ​C​o​d​e​.​ ​I​n​s​t​a​l​l​ ​d​e​f​g​u​a​r​d​ ​a​p​p​ ​v​i​a​ ​y​o​u​r​ ​a​p​p​ ​s​t​o​r​e​,​ ​a​n​d​ ​s​c​a​n​ ​p​r​o​v​i​d​e​d​ ​Q​R​.
+						 */
+						description: string
+					}
+					desktop: {
+						/**
+						 * D​e​s​k​t​o​p​ ​D​e​v​i​c​e
+						 */
+						title: string
+						/**
+						 * E​a​s​i​l​y​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​ ​o​r​ ​Q​R​ ​C​o​d​e​.​ ​I​n​s​t​a​l​l​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​w​i​l​l​ ​g​e​t​ ​a​n​ ​e​m​a​i​l​ ​w​i​t​h​ ​d​e​t​a​i​l​s​.
+						 */
+						description: string
+					}
 					/**
-					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
+					 * U​s​e​ ​W​i​r​e​G​u​a​r​d​®​ ​C​l​i​e​n​t​ ​C​o​n​f​i​g​ ​i​n​s​t​e​a​d​ ​(​f​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​)
 					 */
-					title: string
-					/**
-					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
-					 */
-					subTitle: string
-					/**
-					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
-					 */
-					link: string
+					nativeWg: string
 				}
-				manual: {
-					/**
-					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-					 */
-					title: string
-					/**
-					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
-					 */
-					subTitle: string
-					/**
-					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
-					 */
-					link: string
-				}
+			}
+			client: {
+				/**
+				 * C​l​i​e​n​t​ ​A​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
+				 */
+				message: string
+				/**
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n
+				 */
+				tokenLabel: string
+				/**
+				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
+				 */
+				qrDescription: string
+				/**
+				 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​f​o​r​ ​d​e​s​k​t​o​p​ ​d​e​v​i​c​e
+				 */
+				desktopDownload: string
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+				 */
+				tokenCopy: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​p​a​r​e​ ​c​l​i​e​n​t​ ​s​e​t​u​p
+				 */
+				tokenFailure: string
 			}
 			configDevice: {
 				/**
@@ -7962,34 +7998,70 @@ export type TranslationFunctions = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
+				/**
+				 * Choose Your Connection Method
+				 */
+				title: () => LocalizedString
+				/**
+				 * You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.
+				 */
+				message: () => LocalizedString
+				methods: {
+					mobile: {
+						/**
+						 * Mobile Device
+						 */
+						title: () => LocalizedString
+						/**
+						 * Easily set up with a QR Code. Install defguard app via your app store, and scan provided QR.
+						 */
+						description: () => LocalizedString
+					}
+					desktop: {
+						/**
+						 * Desktop Device
+						 */
+						title: () => LocalizedString
+						/**
+						 * Easily set up with a single token or QR Code. Install defguard Client on your device. You will get an email with details.
+						 */
+						description: () => LocalizedString
+					}
 					/**
-					 * Configure Desktop Client
+					 * Use WireGuard® Client Config instead (for advanced users)
 					 */
-					title: () => LocalizedString
-					/**
-					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
-					 */
-					subTitle: () => LocalizedString
-					/**
-					 * Download defguard Client
-					 */
-					link: () => LocalizedString
+					nativeWg: () => LocalizedString
 				}
-				manual: {
-					/**
-					 * Manual WireGuard Client
-					 */
-					title: () => LocalizedString
-					/**
-					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
-					 */
-					subTitle: () => LocalizedString
-					/**
-					 * Download WireGuard Client
-					 */
-					link: () => LocalizedString
-				}
+			}
+			client: {
+				/**
+				 * Client Activation
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please enter the provided Instance Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
+				 */
+				message: () => LocalizedString
+				/**
+				 * Defguard Instance Token
+				 */
+				tokenLabel: () => LocalizedString
+				/**
+				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
+				 */
+				qrDescription: () => LocalizedString
+				/**
+				 * Download defguard Client for desktop device
+				 */
+				desktopDownload: () => LocalizedString
+				/**
+				 * Token copied to clipboard
+				 */
+				tokenCopy: () => LocalizedString
+				/**
+				 * Failed to prepare client setup
+				 */
+				tokenFailure: () => LocalizedString
 			}
 			configDevice: {
 				/**

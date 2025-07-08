@@ -1,23 +1,19 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import SvgDefguardNavLogo from '../../../../shared/components/svg/DefguardNavLogo';
-import SvgWireguardLogo from '../../../../shared/components/svg/WireguardLogo';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import useEffectOnce from '../../../../shared/helpers/useEffectOnce';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../shared/hooks/useApi';
-import { externalLink } from '../../../../shared/links';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
-import { AddDeviceMethod } from '../../types';
+import { AddDeviceNavigationEvent, AddDeviceStep } from '../../types';
 import { DeviceSetupMethodCard } from './components/DeviceSetupMethodCard/DeviceSetupMethodCard';
+import { DeviceSetupMethod } from './types';
 
 export const AddDeviceSetupMethodStep = () => {
   const {
@@ -25,22 +21,21 @@ export const AddDeviceSetupMethodStep = () => {
   } = useApi();
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.setupMethod;
-  const setupMethod = useAddDevicePageStore((state) => state.method);
-  const methodRef = useRef(setupMethod);
 
+  const [setupMethod, setSetupMethod] = useState(AddDeviceStep.CLIENT_CONFIGURATION);
   const userData = useAddDevicePageStore((state) => state.userData);
-  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
-  const [setPageState, next, nextSubject] = useAddDevicePageStore(
-    (state) => [state.setState, state.nextStep, state.nextSubject],
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
+  const [navSubject, setPageState, setStep] = useAddDevicePageStore(
+    (s) => [s.navigationSubject, s.setState, s.setStep],
     shallow,
   );
 
-  const { isPending: isLoading, mutate } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: startDesktopActivation,
     onSuccess: (resp) => {
-      next({
-        enrollment: {
+      setStep(setupMethod, {
+        clientSetup: {
           url: resp.enrollment_url,
           token: resp.enrollment_token,
         },
@@ -48,78 +43,70 @@ export const AddDeviceSetupMethodStep = () => {
     },
   });
 
+  const startActivation = useCallback(() => {
+    mutate({
+      username: userData?.username as string,
+      send_enrollment_notification: true,
+      email: userData?.email as string,
+    });
+  }, [mutate, userData?.email, userData?.username]);
+
   useEffect(() => {
-    const sub = nextSubject.subscribe(() => {
-      if (methodRef.current === AddDeviceMethod.MANUAL) {
-        next();
-      } else {
-        mutate({
-          username: userData?.username as string,
-          send_enrollment_notification: true,
-          email: userData?.email as string,
-        });
+    const sub = navSubject.subscribe((event) => {
+      if (event === AddDeviceNavigationEvent.NEXT) {
+        switch (setupMethod) {
+          case AddDeviceStep.NATIVE_CHOOSE_METHOD:
+            setPageState({ currentStep: AddDeviceStep.NATIVE_CHOOSE_METHOD });
+            break;
+          case AddDeviceStep.CLIENT_CONFIGURATION:
+            startActivation();
+            break;
+        }
       }
     });
     return () => {
       sub.unsubscribe();
     };
-  }, [nextSubject, next, userData?.username, userData?.email, methodRef, mutate]);
+  }, [mutate, navSubject, setPageState, setupMethod, startActivation]);
 
   useEffect(() => {
-    methodRef.current = setupMethod;
-  }, [setupMethod]);
-
-  useEffect(() => {
-    setPageState({ loading: isLoading });
-  }, [isLoading, setPageState]);
-
-  useEffectOnce(() => {
-    if (enterpriseSettings?.only_client_activation) {
-      setPageState({ method: AddDeviceMethod.DESKTOP });
-      nextSubject.next();
+    if (
+      enterpriseSettings?.only_client_activation &&
+      setupMethod === AddDeviceStep.NATIVE_CHOOSE_METHOD
+    ) {
+      setSetupMethod(AddDeviceStep.CLIENT_CONFIGURATION);
+      startActivation();
     }
-  });
+  }, [
+    enterpriseSettings?.only_client_activation,
+    setPageState,
+    setupMethod,
+    startActivation,
+  ]);
 
   return (
     <>
-      {!enterpriseSettings?.only_client_activation ? (
-        <>
-          <MessageBox
-            type={MessageBoxType.WARNING}
-            message={LL.addDevicePage.helpers.setupOpt()}
-            dismissId="add-device-page-method-opt-message"
-          />
-          <Card shaded id="setup-method-step">
+      {!isPending ? (
+        <Card shaded id="setup-method-step">
+          <p className="title">{localLL.title()}</p>
+          <MessageBox message={localLL.message()} />
+          <div className="primary-methods">
             <DeviceSetupMethodCard
-              testId="choice-desktop"
-              title={localLL.remote.title()}
-              subtitle={localLL.remote.subTitle()}
-              logo={<SvgDefguardNavLogo />}
-              linkText={localLL.remote.link()}
-              link={externalLink.defguardReleases}
-              selected={setupMethod === AddDeviceMethod.DESKTOP}
-              onSelect={() => {
-                if (setupMethod !== AddDeviceMethod.DESKTOP) {
-                  setPageState({ method: AddDeviceMethod.DESKTOP });
-                }
+              methodType={DeviceSetupMethod.DESKTOP_CLIENT}
+              active={setupMethod === AddDeviceStep.CLIENT_CONFIGURATION}
+              onClick={() => {
+                setSetupMethod(AddDeviceStep.CLIENT_CONFIGURATION);
               }}
             />
             <DeviceSetupMethodCard
-              testId="choice-manual"
-              title={localLL.manual.title()}
-              subtitle={localLL.manual.subTitle()}
-              logo={<SvgWireguardLogo />}
-              linkText={localLL.manual.link()}
-              link={externalLink.wireguard.download}
-              selected={setupMethod === AddDeviceMethod.MANUAL}
-              onSelect={() => {
-                if (setupMethod !== AddDeviceMethod.MANUAL) {
-                  setPageState({ method: AddDeviceMethod.MANUAL });
-                }
+              methodType={DeviceSetupMethod.NATIVE_WG}
+              active={setupMethod === AddDeviceStep.NATIVE_CHOOSE_METHOD}
+              onClick={() => {
+                setSetupMethod(AddDeviceStep.NATIVE_CHOOSE_METHOD);
               }}
             />
-          </Card>
-        </>
+          </div>
+        </Card>
       ) : (
         <div id="spinner-box">
           <LoaderSpinner size={80} />

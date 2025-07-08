@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { Placement } from '@floating-ui/react';
 import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
 import { useCallback, useRef, useState } from 'react';
@@ -14,9 +15,10 @@ import { useClipboard } from '../../../hooks/useClipboard';
 type Props = {
   text: string;
   withCopy?: boolean;
+  placement?: Placement;
 };
 
-export const ListCellText = ({ text, withCopy }: Props) => {
+export const ListCellText = ({ text, withCopy, placement = 'left' }: Props) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [overflows, setOverflows] = useState(false);
 
@@ -30,7 +32,7 @@ export const ListCellText = ({ text, withCopy }: Props) => {
 
   useResizeObserver(containerRef, handleResize);
   return (
-    <FloatingMenuProvider disabled={!overflows}>
+    <FloatingMenuProvider disabled={!overflows} placement={placement}>
       <div
         className={clsx('list-cell-text', {
           overflows,

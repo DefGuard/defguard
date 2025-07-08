@@ -1,0 +1,51 @@
+#add-device-client-configuration {
+  .message-box.spacer {
+    padding-bottom: var(--spacing-s);
+  }
+
+  .qr-description {
+    color: var(--text-body-secondary);
+    text-align: center;
+    max-width: 480px;
+    user-select: none;
+    @include typography(app-input);
+  }
+
+  .row {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--spacing-xs);
+
+    &:not(:last-child) {
+      padding-bottom: var(--spacing-s);
+    }
+
+    a {
+      cursor: pointer;
+      user-select: none;
+    }
+  }
+
+  .links:first-of-type {
+    padding-bottom: var(--spacing-s);
+  }
+
+  .qr {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-l) var(--spacing-s);
+    box-sizing: border-box;
+  }
+
+  .external {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--spacing-xs);
+  }
+}

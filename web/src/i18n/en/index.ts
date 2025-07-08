@@ -623,18 +623,33 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     steps: {
       setupMethod: {
-        remote: {
-          title: 'Configure Desktop Client',
-          subTitle:
-            'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
-          link: 'Download defguard Client',
+        title: 'Choose Your Connection Method',
+        message:
+          "You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.",
+        methods: {
+          mobile: {
+            title: 'Mobile Device',
+            description:
+              'Easily set up with a QR Code. Install defguard app via your app store, and scan provided QR.',
+          },
+          desktop: {
+            title: 'Desktop Device',
+            description:
+              'Easily set up with a single token or QR Code. Install defguard Client on your device. You will get an email with details.',
+          },
+          nativeWg: 'Use WireGuard® Client Config instead (for advanced users)',
         },
-        manual: {
-          title: 'Manual WireGuard Client',
-          subTitle:
-            'For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.',
-          link: 'Download WireGuard Client',
-        },
+      },
+      client: {
+        title: 'Client Activation',
+        message:
+          'Please enter the provided Instance Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
+        tokenLabel: 'Defguard Instance Token',
+        qrDescription:
+          "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
+        desktopDownload: 'Download defguard Client for desktop device',
+        tokenCopy: 'Token copied to clipboard',
+        tokenFailure: 'Failed to prepare client setup',
       },
       configDevice: {
         title: 'Configure device',

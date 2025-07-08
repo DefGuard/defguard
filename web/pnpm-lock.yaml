@@ -104,6 +104,9 @@ importers:
       itertools:
         specifier: ^2.4.1
         version: 2.4.1
+      js-base64:
+        specifier: ^3.7.7
+        version: 3.7.7
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2487,6 +2490,9 @@ packages:
 
   itertools@2.4.1:
     resolution: {integrity: sha512-dFTSYzmbfeNE3q/qxwAr/QdKsK6/rp+LTz8SJdTg1+lo9omXFYpDcOKw47/7TevlnC0LorR5pRSf68+yB3N0GA==}
+
+  js-base64@3.7.7:
+    resolution: {integrity: sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -6231,6 +6237,8 @@ snapshots:
       set-function-name: 2.0.2
 
   itertools@2.4.1: {}
+
+  js-base64@3.7.7: {}
 
   js-tokens@4.0.0: {}
 
