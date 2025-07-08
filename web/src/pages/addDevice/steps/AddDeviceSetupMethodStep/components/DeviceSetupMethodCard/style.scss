@@ -1,68 +1,61 @@
-@use '@scssutils' as *;
-
-.device-setup-method {
+.device-method-card {
   width: 100%;
-  box-sizing: border-box;
   display: flex;
   flex-flow: column;
+  box-sizing: border-box;
   align-items: center;
-  padding: 68px 42px;
+  justify-content: flex-start;
   background-color: var(--surface-frame-bg);
-  box-shadow: var(--box-shadow);
   border-radius: 15px;
+  padding: var(--spacing-l) var(--spacing-s);
+  box-shadow: var(--box-shadow);
+  cursor: pointer;
+  outline: 0px solid transparent;
+  transition-property: outline;
 
-  & > h3 {
+  @include animate-standard;
+
+  &:not(.active):hover {
+    outline: 1px solid var(--surface-main-primary);
+  }
+
+  &.active {
+    outline: 3px solid var(--surface-main-primary);
+  }
+
+  .title {
+    text-align: center;
+    padding-bottom: var(--spacing-s);
     @include typography(app-body-1);
-    color: var(--text-body-primary);
-    text-align: center;
-    padding-bottom: 20px;
   }
 
-  & > .sub-title {
-    @include typography(welcome-h2);
-    color: var(--text-body-tertiary);
-    width: 100%;
+  .description {
+    text-align: center;
     max-width: 280px;
-    text-align: center;
+    color: var(--text-body-tertiary);
+    padding-bottom: var(--spacing-m);
+
+    @include typography(welcome-h2);
   }
 
-  & > .logo-wrapper {
+  & > .icon {
     display: flex;
     flex-flow: row;
     align-items: center;
     justify-content: center;
-    min-height: 166px;
-    box-sizing: border-box;
-    padding-bottom: 20px;
-    user-select: none;
-  }
-
-  & > .btn {
+    column-gap: var(--spacing-s);
     width: 100%;
-    max-width: 225px;
-    height: 47px;
-    user-select: none;
-  }
 
-  & > a {
-    box-sizing: border-box;
-    margin-top: 40px;
-    @include typography(app-body-2);
-    color: var(--text-body-primary);
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    column-gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    text-decoration: none;
-
-    & > svg {
-      path {
-        fill: var(--text-body-primary);
-      }
+    &:first-of-type {
+      padding-bottom: var(--spacing-l);
     }
+  }
+
+  .wg-icon {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 210px;
   }
 }

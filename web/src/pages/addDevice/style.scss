@@ -11,14 +11,18 @@
     overflow: auto;
 
     h1 {
-      @include typography(app-title);
       color: var(--text-body-primary);
+      user-select: none;
+
+      @include typography(app-title);
     }
 
     h2 {
-      @include typography(app-body-1);
       color: var(--text-body-primary);
-      margin-bottom: 25px;
+      padding-bottom: var(--spacing-s);
+      user-select: none;
+
+      @include typography(app-body-1);
     }
 
     & > .content-wrapper {
@@ -37,7 +41,7 @@
 
       & > .card {
         box-sizing: border-box;
-        padding: 55px;
+        padding: var(--spacing-l);
 
         .message-box-spacer {
           padding-bottom: 20px;
@@ -67,6 +71,16 @@
 
           & > .btn {
             min-width: 180px;
+
+            &.nav-back {
+              .arrow-single {
+                svg {
+                  g {
+                    fill: var(--surface-icon-primary);
+                  }
+                }
+              }
+            }
 
             .arrow-single {
               svg {

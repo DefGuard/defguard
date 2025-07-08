@@ -623,17 +623,35 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     steps: {
       setupMethod: {
-        remote: {
-          title: 'Configure Desktop Client',
-          subTitle:
-            'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
-          link: 'Download defguard Client',
+        title: 'Choose Your Connection Method',
+        message:
+          "You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.",
+        methods: {
+          client: {
+            title: 'Remote Device Activation',
+            description:
+              'Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.',
+          },
+          wg: {
+            title: 'Manual WireGuard Client',
+            description:
+              'For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.',
+          },
         },
-        manual: {
-          title: 'Manual WireGuard Client',
-          subTitle:
-            'For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.',
-          link: 'Download WireGuard Client',
+      },
+      client: {
+        title: 'Client Activation',
+        message:
+          'Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
+        qrDescription:
+          "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
+        desktopDownload: 'Download defguard Client for desktop device',
+        tokenCopy: 'Token copied to clipboard',
+        tokenFailure: 'Failed to prepare client setup',
+        labels: {
+          mergedToken: 'Defguard Instance Token (new)',
+          token: 'Authentication Token',
+          url: 'URL',
         },
       },
       configDevice: {

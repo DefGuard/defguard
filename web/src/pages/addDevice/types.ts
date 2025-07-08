@@ -1,9 +1,16 @@
-export enum AddDeviceMethod {
-  DESKTOP,
+export enum AddDeviceStep {
+  CHOOSE_METHOD,
+  NATIVE_CHOOSE_METHOD,
+  NATIVE_CONFIGURATION,
+  CLIENT_CONFIGURATION,
+}
+
+export enum AddNativeWgDeviceMode {
+  AUTO,
   MANUAL,
 }
 
-export enum AddDeviceSetupMethod {
-  MANUAL,
-  AUTO,
+export enum AddDeviceNavigationEvent {
+  NEXT,
+  BACK,
 }

@@ -19,10 +19,13 @@
 
 .list-cell-text-floating {
   max-width: min(480px, 90dvw);
+  overflow: hidden;
 
   p {
     @include typography(app-modal-1);
     color: var(--text-body-primary);
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   &.copy {
