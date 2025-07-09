@@ -508,7 +508,7 @@ pub(crate) async fn modify_group(
         }
     }
 
-    if !added.is_empty() || !removed.is_empty() {
+    if !(added.is_empty() && removed.is_empty()) {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::GroupMembersModified {
