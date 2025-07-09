@@ -6320,6 +6320,10 @@ type RootTranslation = {
 			 */
 			user_modified: string
 			/**
+			 * U​s​e​r​ ​g​r​o​u​p​s​ ​m​o​d​i​f​i​e​d
+			 */
+			user_groups_modified: string
+			/**
 			 * M​F​A​ ​e​n​a​b​l​e​d
 			 */
 			mfa_enabled: string
@@ -6524,6 +6528,10 @@ type RootTranslation = {
 			 */
 			group_member_removed: string
 			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​s​ ​m​o​d​i​f​i​e​d
+			 */
+			group_members_modified: string
+			/**
 			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
 			 */
 			web_hook_added: string
@@ -6535,6 +6543,10 @@ type RootTranslation = {
 			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
 			 */
 			web_hook_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			web_hook_state_changed: string
 			/**
 			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
 			 */
@@ -12839,6 +12851,10 @@ export type TranslationFunctions = {
 			 */
 			user_modified: () => LocalizedString
 			/**
+			 * User groups modified
+			 */
+			user_groups_modified: () => LocalizedString
+			/**
 			 * MFA enabled
 			 */
 			mfa_enabled: () => LocalizedString
@@ -13043,6 +13059,10 @@ export type TranslationFunctions = {
 			 */
 			group_member_removed: () => LocalizedString
 			/**
+			 * Group members modified
+			 */
+			group_members_modified: () => LocalizedString
+			/**
 			 * Webhook added
 			 */
 			web_hook_added: () => LocalizedString
@@ -13054,6 +13074,10 @@ export type TranslationFunctions = {
 			 * Webhook removed
 			 */
 			web_hook_removed: () => LocalizedString
+			/**
+			 * Webhook state changed
+			 */
+			web_hook_state_changed: () => LocalizedString
 			/**
 			 * Authentication key added
 			 */
