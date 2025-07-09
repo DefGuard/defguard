@@ -191,7 +191,10 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             added,
             removed,
         } => Some(format!(
-            "Added: {added:?}, Removed: {removed:?}, for group {group:?}",
+            "Added: {}, Removed: {}, for group {}",
+            added.iter().map(|user| user.username.clone()).collect::<Vec<_>>().join(", "),
+            removed.iter().map(|user| user.username.clone()).collect::<Vec<_>>().join(", "),
+            group.name
         )),
         DefguardEvent::WebHookAdded { webhook } => {
             Some(format!("Added webhook with URL {}", webhook.url))

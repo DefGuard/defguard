@@ -493,22 +493,16 @@ pub(crate) async fn modify_group(
 
     let set_users_before: HashSet<_> = users_before.into_iter().collect();
     let set_users_after: HashSet<_> = users_after.into_iter().collect();
+    let added: Vec<_> = set_users_after
+        .difference(&set_users_before)
+        .cloned()
+        .collect();
+    let removed: Vec<_> = set_users_before
+        .difference(&set_users_after)
+        .cloned()
+        .collect();
 
-    let mut added = Vec::new();
-    let mut removed = Vec::new();
-
-    for user in &set_users_after {
-        if !set_users_before.contains(user) {
-            added.push(user.clone());
-        }
-    }
-    for user in set_users_before {
-        if !set_users_after.contains(&user) {
-            removed.push(user.clone());
-        }
-    }
-
-    if !added.is_empty() || !removed.is_empty() {
+    if !(added.is_empty() && removed.is_empty()) {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::GroupMembersModified {
