@@ -73,6 +73,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             };
             Some(description)
         }
+        DefguardEvent::UserGroupsModified {user,before,after} => Some(format!("User groups modified! User:{user} Before: {before:?} After {after:?}")),
         DefguardEvent::UserDeviceAdded { owner, device } => {
             Some(format!("Added device {device} for user {owner}"))
         }
@@ -179,6 +180,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::GroupMemberRemoved { group, user } => {
             Some(format!("Removed user {user} from group {}", group.name))
         }
+        DefguardEvent::GroupMembersModified {group,added,removed} => Some(format!("Added: {added:?}, Removed: {removed:?}, for group {group:?}",)),
         DefguardEvent::WebHookAdded { webhook } => {
             Some(format!("Added webhook with URL {}", webhook.url))
         }

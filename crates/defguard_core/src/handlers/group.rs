@@ -497,8 +497,8 @@ pub(crate) async fn modify_group(
     let mut added = Vec::new();
     let mut removed = Vec::new();
 
-    for user in set_users_after.clone() {
-        if !set_users_before.contains(&user) {
+    for user in &set_users_after {
+        if !set_users_before.contains(user) {
             added.push(user.clone());
         }
     }
