@@ -45,6 +45,7 @@ pub enum EventType {
     UserAdded,
     UserRemoved,
     UserModified,
+    UserGroupsModified,
     PasswordChanged,
     PasswordChangedByAdmin,
     PasswordReset,
@@ -101,6 +102,7 @@ pub enum EventType {
     GroupRemoved,
     GroupMemberAdded,
     GroupMemberRemoved,
+    GroupMembersModified,
     // WebHook management
     WebHookAdded,
     WebHookModified,

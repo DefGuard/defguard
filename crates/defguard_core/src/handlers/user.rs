@@ -643,6 +643,7 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
     // store user before mods
     let before = user.clone();
     let old_username = user.username.clone();
@@ -653,7 +654,6 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
-
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
@@ -747,9 +747,24 @@ pub async fn modify_user(
         }
     }
 
-    appstate.trigger_action(AppEvent::UserModified(user_info));
-
+    appstate.trigger_action(AppEvent::UserModified(user_info.clone()));
+    let groups_after = user_info.groups.clone();
     info!("User {} updated user {username}", session.user.username);
+
+    let set_groups_before: HashSet<_> = groups_before.iter().collect();
+    let set_groups_after: HashSet<_> = groups_after.iter().collect();
+
+    if set_groups_before != set_groups_after {
+        appstate.emit_event(ApiEvent {
+            context: context.clone(),
+            event: Box::new(ApiEventType::UserGroupsModified {
+                user: user.clone(),
+                before: groups_before,
+                after: groups_after,
+            }),
+        })?;
+    }
+
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::UserModified {
@@ -762,10 +777,10 @@ pub async fn modify_user(
 
 /// Delete user
 ///
-/// Endpoint helps you delete a user, but `you can't delete yourself as a administrator`.
+/// Endpoint helps you delete a user, but `you can't delete yourself as an administrator`.
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}",
@@ -842,7 +857,7 @@ pub async fn delete_user(
 /// Change your own password, it could return error if password is not strong enough.
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
@@ -905,7 +920,7 @@ pub async fn change_self_password(
 /// `This endpoint doesn't allow you to change your own password. Go to: /api/v1/user/change_password.`
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}/password",
@@ -993,7 +1008,7 @@ pub async fn change_password(
 /// `This endpoint doesn't allow you to reset your own password.`
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/reset_password",

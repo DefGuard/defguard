@@ -138,6 +138,11 @@ pub enum DefguardEvent {
         before: User<Id>,
         after: User<Id>,
     },
+    UserGroupsModified {
+        user: User<Id>,
+        before: Vec<String>,
+        after: Vec<String>,
+    },
     UserDeviceAdded {
         owner: User<Id>,
         device: Device<Id>,
@@ -248,6 +253,11 @@ pub enum DefguardEvent {
     GroupMemberRemoved {
         group: Group<Id>,
         user: User<Id>,
+    },
+    GroupMembersModified {
+        group: Group<Id>,
+        added: Vec<User<Id>>,
+        removed: Vec<User<Id>>,
     },
     WebHookAdded {
         webhook: WebHook<Id>,

@@ -17,6 +17,7 @@ export type ActivityLogEventType =
   | 'user_added'
   | 'user_modified'
   | 'user_removed'
+  | 'user_groups_modified'
   | 'mfa_disabled'
   | 'user_mfa_disabled'
   | 'mfa_totp_enabled'
@@ -67,9 +68,11 @@ export type ActivityLogEventType =
   | 'group_removed'
   | 'group_member_added'
   | 'group_member_removed'
+  | 'group_members_modified'
   | 'web_hook_added'
   | 'web_hook_modified'
   | 'web_hook_removed'
+  | 'web_hook_state_changed'
   | 'authentication_key_added'
   | 'authentication_key_removed'
   | 'authentication_key_renamed'
@@ -86,6 +89,7 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_login_failed',
   'user_mfa_login',
   'user_mfa_login_failed',
+  'user_groups_modified',
   'recovery_code_used',
   'user_logout',
   'user_added',
@@ -141,9 +145,11 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'group_removed',
   'group_member_added',
   'group_member_removed',
+  'group_members_modified',
   'web_hook_added',
   'web_hook_modified',
   'web_hook_removed',
+  'web_hook_state_changed',
   'authentication_key_added',
   'authentication_key_removed',
   'authentication_key_renamed',

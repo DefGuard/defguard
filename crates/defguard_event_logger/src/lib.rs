@@ -1,4 +1,7 @@
 use bytes::Bytes;
+use defguard_core::db::models::activity_log::metadata::{
+    GroupMembersModifiedMetadata, UserGroupsModifiedMetadata,
+};
 use defguard_core::db::{
     NoId,
     models::activity_log::{
@@ -125,6 +128,19 @@ pub async fn run_event_logger(
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {
                                     owner: owner.into(),
+                                    before,
+                                    after,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserGroupsModified {
+                                user,
+                                before,
+                                after,
+                            } => (
+                                EventType::UserGroupsModified,
+                                serde_json::to_value(UserGroupsModifiedMetadata {
+                                    user: user.into(),
                                     before,
                                     after,
                                 })
@@ -377,6 +393,19 @@ pub async fn run_event_logger(
                                 serde_json::to_value(GroupAssignedMetadata {
                                     group,
                                     user: user.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::GroupMembersModified {
+                                group,
+                                added,
+                                removed,
+                            } => (
+                                EventType::GroupMembersModified,
+                                serde_json::to_value(GroupMembersModifiedMetadata {
+                                    group,
+                                    added: added.into_iter().map(Into::into).collect(),
+                                    removed: removed.into_iter().map(Into::into).collect(),
                                 })
                                 .ok(),
                             ),
