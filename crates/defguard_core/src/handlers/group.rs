@@ -491,16 +491,30 @@ pub(crate) async fn modify_group(
         .collect::<Vec<_>>();
     ldap_update_users_state(affected_users, &appstate.pool).await;
 
-    let set_users_before: HashSet<_> = users_before.iter().collect();
-    let set_users_after: HashSet<_> = users_after.iter().collect();
+    let set_users_before: HashSet<_> = users_before.into_iter().collect();
+    let set_users_after: HashSet<_> = users_after.into_iter().collect();
 
-    if set_users_before != set_users_after {
+    let mut added = Vec::new();
+    let mut removed = Vec::new();
+
+    for user in set_users_after.clone() {
+        if !set_users_before.contains(&user) {
+            added.push(user.clone());
+        }
+    }
+    for user in set_users_before {
+        if !set_users_after.contains(&user) {
+            removed.push(user.clone());
+        }
+    }
+
+    if !added.is_empty() || !removed.is_empty() {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(ApiEventType::GroupMembersModified {
                 group: group.clone(),
-                before: users_before,
-                after: users_after,
+                added,
+                removed,
             }),
         })?;
     }

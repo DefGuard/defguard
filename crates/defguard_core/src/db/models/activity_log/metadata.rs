@@ -333,8 +333,8 @@ pub struct GroupAssignedMetadata {
 #[derive(Serialize)]
 pub struct GroupMembersModifiedMetadata {
     pub group: Group<Id>,
-    pub before: Vec<UserNoSecrets>,
-    pub after: Vec<UserNoSecrets>,
+    pub added: Vec<UserNoSecrets>,
+    pub removed: Vec<UserNoSecrets>,
 }
 #[derive(Serialize)]
 pub struct WebHookMetadata {

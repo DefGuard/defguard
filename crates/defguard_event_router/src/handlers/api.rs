@@ -197,12 +197,12 @@ impl EventRouter {
             }
             ApiEventType::GroupMembersModified {
                 group,
-                before,
-                after,
+                added,
+                removed,
             } => LoggerEvent::Defguard(Box::new(DefguardEvent::GroupMembersModified {
                 group,
-                before,
-                after,
+                added,
+                removed,
             })),
             ApiEventType::WebHookAdded { webhook } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::WebHookAdded { webhook }))

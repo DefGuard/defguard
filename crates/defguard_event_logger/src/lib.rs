@@ -364,14 +364,14 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::GroupMembersModified {
                                 group,
-                                before,
-                                after,
+                                added,
+                                removed,
                             } => (
                                 EventType::GroupMembersModified,
                                 serde_json::to_value(GroupMembersModifiedMetadata {
                                     group,
-                                    before: before.into_iter().map(Into::into).collect(),
-                                    after: after.into_iter().map(Into::into).collect(),
+                                    added: added.into_iter().map(Into::into).collect(),
+                                    removed: removed.into_iter().map(Into::into).collect(),
                                 })
                                 .ok(),
                             ),

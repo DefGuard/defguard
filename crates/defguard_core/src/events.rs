@@ -226,8 +226,8 @@ pub enum ApiEventType {
     },
     GroupMembersModified {
         group: Group<Id>,
-        before: Vec<User<Id>>,
-        after: Vec<User<Id>>,
+        added: Vec<User<Id>>,
+        removed: Vec<User<Id>>,
     },
     WebHookAdded {
         webhook: WebHook<Id>,
