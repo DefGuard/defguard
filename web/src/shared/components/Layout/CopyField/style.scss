@@ -1,0 +1,38 @@
+.copy-field {
+  .label {
+    color: var(--text-body-tertiary);
+    padding-bottom: var(--spacing-xs);
+    user-select: none;
+
+    @include typography(app-wizard-1);
+  }
+
+  .box {
+    width: 100%;
+    background-color: var(--surface-frame-bg);
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    box-sizing: border-box;
+    padding: 15px var(--spacing-s);
+
+    & > .track {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      justify-content: space-between;
+      column-gap: var(--spacing-xs);
+
+      .list-cell-text {
+        & > p {
+          color: var(--text-body-primary);
+          @include typography(app-input);
+        }
+      }
+
+      & > .copy {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+}

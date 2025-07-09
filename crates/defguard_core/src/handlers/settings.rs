@@ -54,14 +54,20 @@ pub async fn update_settings(
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
 
+    // fetch current settings for event
+    let before = Settings::get_current_settings();
+
     update_cached_license(data.license.as_deref())?;
     data.validate()?;
+    // clone for event
+    let after = data.clone();
+
     update_current_settings(&appstate.pool, data).await?;
 
     info!("User {} updated settings", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::SettingsUpdated),
+        event: Box::new(ApiEventType::SettingsUpdated { before, after }),
     })?;
 
     Ok(ApiResponse::default())
@@ -132,6 +138,8 @@ pub async fn patch_settings(
         session.user.username
     );
     let mut settings = Settings::get_current_settings();
+    // prepare clone for emitting an event
+    let before = settings.clone();
 
     // Handle updating the cached license
     if let Some(license_key) = &data.license {
@@ -159,12 +167,14 @@ pub async fn patch_settings(
 
     settings.apply(data);
     settings.validate()?;
+    // clone for event
+    let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
 
     info!("Admin {} patched settings.", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::SettingsUpdatedPartial),
+        event: Box::new(ApiEventType::SettingsUpdatedPartial { before, after }),
     })?;
     Ok(ApiResponse::default())
 }

@@ -6,18 +6,22 @@ use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
-        debug!("Processing API event");
+        debug!("Processing API event: {event:?}");
         let logger_event = match *event.event {
             ApiEventType::UserLogin => LoggerEvent::Defguard(Box::new(DefguardEvent::UserLogin)),
-            ApiEventType::UserLoginFailed => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::UserLoginFailed))
+            ApiEventType::UserLoginFailed { message } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserLoginFailed { message }))
             }
             ApiEventType::UserMfaLogin { mfa_method } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaLogin { mfa_method }))
             }
-            ApiEventType::UserMfaLoginFailed { mfa_method } => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaLoginFailed { mfa_method }))
-            }
+            ApiEventType::UserMfaLoginFailed {
+                mfa_method,
+                message,
+            } => LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaLoginFailed {
+                mfa_method,
+                message,
+            })),
             ApiEventType::RecoveryCodeUsed => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::RecoveryCodeUsed))
             }
@@ -42,6 +46,9 @@ impl EventRouter {
             })),
             ApiEventType::MfaDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled))
+            }
+            ApiEventType::UserMfaDisabled { user } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserMfaDisabled { user }))
             }
             ApiEventType::MfaTotpDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaTotpDisabled))
@@ -165,11 +172,14 @@ impl EventRouter {
             ApiEventType::OpenIdProviderModified { provider } => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::OpenIdProviderModified { provider }))
             }
-            ApiEventType::SettingsUpdated => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated))
+            ApiEventType::SettingsUpdated { before, after } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdated { before, after }))
             }
-            ApiEventType::SettingsUpdatedPartial => {
-                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdatedPartial))
+            ApiEventType::SettingsUpdatedPartial { before, after } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsUpdatedPartial {
+                    before,
+                    after,
+                }))
             }
             ApiEventType::SettingsDefaultBrandingRestored => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::SettingsDefaultBrandingRestored))
@@ -251,6 +261,27 @@ impl EventRouter {
                     user,
                 }))
             }
+            ApiEventType::UserSnatBindingAdded { user, binding } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingAdded {
+                    user,
+                    binding,
+                }))
+            }
+            ApiEventType::UserSnatBindingRemoved { user, binding } => {
+                LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingRemoved {
+                    user,
+                    binding,
+                }))
+            }
+            ApiEventType::UserSnatBindingModified {
+                user,
+                before,
+                after,
+            } => LoggerEvent::Defguard(Box::new(DefguardEvent::UserSnatBindingModified {
+                user,
+                before,
+                after,
+            })),
         };
         self.log_event(event.context.into(), logger_event)
     }

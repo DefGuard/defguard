@@ -5,12 +5,12 @@ use serde::Serialize;
 
 use crate::{
     db::{
-        Device, Group, Id, MFAMethod, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider,
+        openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
     grpc::proto::proxy::MfaMethod,
 };
@@ -75,15 +75,19 @@ impl GrpcRequestContext {
     }
 }
 
+#[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
+    UserLoginFailed {
+        message: String,
+    },
     UserLogout,
-    UserLoginFailed,
     UserMfaLogin {
         mfa_method: MFAMethod,
     },
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
+        message: String,
     },
     RecoveryCodeUsed,
     PasswordChangedByAdmin {
@@ -94,6 +98,9 @@ pub enum ApiEventType {
         user: User<Id>,
     },
     MfaDisabled,
+    UserMfaDisabled {
+        user: User<Id>,
+    },
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
@@ -199,8 +206,14 @@ pub enum ApiEventType {
     OpenIdProviderRemoved {
         provider: OpenIdProvider<Id>,
     },
-    SettingsUpdated,
-    SettingsUpdatedPartial,
+    SettingsUpdated {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsUpdatedPartial {
+        before: Settings,
+        after: Settings,
+    },
     SettingsDefaultBrandingRestored,
     GroupsBulkAssigned {
         users: Vec<User<Id>>,
@@ -260,9 +273,23 @@ pub enum ApiEventType {
     ClientConfigurationTokenAdded {
         user: User<Id>,
     },
+    UserSnatBindingAdded {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingRemoved {
+        user: User<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingModified {
+        user: User<Id>,
+        before: UserSnatBinding<Id>,
+        after: UserSnatBinding<Id>,
+    },
 }
 
 /// Events from Web API
+#[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
     pub event: Box<ApiEventType>,
@@ -367,6 +394,7 @@ pub enum DesktopClientMfaEvent {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
+        message: String,
     },
 }
 

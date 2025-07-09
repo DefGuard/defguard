@@ -273,7 +273,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub(crate) fn is_enrolled(&self) -> bool {
+    pub fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
     }
 
@@ -885,6 +885,23 @@ impl User<Id> {
         .await
     }
 
+    /// Attempts to find user by username and then by email
+    /// of none is initially found
+    pub async fn find_by_username_or_email(
+        conn: &mut PgConnection,
+        username_or_email: &str,
+    ) -> Result<Option<Self>, SqlxError> {
+        let maybe_user = Self::find_by_username(&mut *conn, username_or_email).await?;
+        match maybe_user {
+            Some(user) => Ok(Some(user)),
+            None => {
+                debug!(
+                    "Failed to find user by username {username_or_email}. Attempting to find by email"
+                );
+                Ok(Self::find_by_email(&mut *conn, username_or_email).await?)
+            }
+        }
+    }
     pub(crate) async fn find_many_by_emails<'e, E>(
         executor: E,
         emails: &[&str],

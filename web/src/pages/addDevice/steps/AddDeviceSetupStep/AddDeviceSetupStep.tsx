@@ -6,6 +6,7 @@ import parser from 'html-react-parser';
 import { useEffect, useMemo, useRef } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -23,13 +24,11 @@ import { QueryKeys } from '../../../../shared/queries';
 import { generateWGKeys } from '../../../../shared/utils/generateWGKeys';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
-import { AddDeviceSetupMethod } from '../../types';
-
-interface FormValues {
-  name: string;
-  choice: AddDeviceSetupMethod;
-  publicKey?: string;
-}
+import {
+  AddDeviceNavigationEvent,
+  AddDeviceStep,
+  AddNativeWgDeviceMode,
+} from '../../types';
 
 export const AddDeviceSetupStep = () => {
   const { LL } = useI18nContext();
@@ -40,19 +39,20 @@ export const AddDeviceSetupStep = () => {
   } = useApi();
   const submitRef = useRef<HTMLInputElement | null>(null);
   const userData = useAddDevicePageStore((state) => state.userData);
-  const nextStep = useAddDevicePageStore((state) => state.nextStep);
-  const nextSubject = useAddDevicePageStore((state) => state.nextSubject);
-  const setPageState = useAddDevicePageStore((state) => state.setState);
+  const [setStep, navSubject] = useAddDevicePageStore(
+    (state) => [state.setStep, state.navigationSubject],
+    shallow,
+  );
 
   const toggleOptions = useMemo(() => {
-    const res: ToggleOption<number>[] = [
+    const res: ToggleOption<AddNativeWgDeviceMode>[] = [
       {
         text: localLL.options.auto(),
-        value: AddDeviceSetupMethod.AUTO,
+        value: AddNativeWgDeviceMode.AUTO,
       },
       {
         text: localLL.options.manual(),
-        value: AddDeviceSetupMethod.MANUAL,
+        value: AddNativeWgDeviceMode.MANUAL,
       },
     ];
     return res;
@@ -62,7 +62,7 @@ export const AddDeviceSetupStep = () => {
     () =>
       z
         .object({
-          choice: z.nativeEnum(AddDeviceSetupMethod),
+          choice: z.nativeEnum(AddNativeWgDeviceMode),
           name: z
             .string()
             .min(4, LL.form.error.minimumLength())
@@ -73,7 +73,7 @@ export const AddDeviceSetupStep = () => {
         })
         .superRefine((val, ctx) => {
           const { publicKey, choice } = val;
-          if (choice === AddDeviceSetupMethod.MANUAL) {
+          if (choice === AddNativeWgDeviceMode.MANUAL) {
             const pubKeyRes = z
               .string()
               .min(44, LL.form.error.minimumLength())
@@ -100,10 +100,12 @@ export const AddDeviceSetupStep = () => {
     [LL.form.error, localLL.form.errors.name, userData?.reservedDevices],
   );
 
-  const { handleSubmit, control } = useForm<FormValues>({
+  type FormFields = z.infer<typeof zodSchema>;
+
+  const { handleSubmit, control } = useForm<FormFields>({
     defaultValues: {
       name: '',
-      choice: AddDeviceSetupMethod.AUTO,
+      choice: AddNativeWgDeviceMode.AUTO,
       publicKey: '',
     },
     resolver: zodResolver(zodSchema),
@@ -112,12 +114,15 @@ export const AddDeviceSetupStep = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: addDeviceMutation, isPending } = useMutation({
+  const { mutateAsync: addDeviceMutation } = useMutation({
     mutationFn: addDevice,
     mutationKey: [MutationKeys.ADD_DEVICE],
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['user'],
       });
       toaster.success(LL.addDevicePage.messages.deviceAdded());
     },
@@ -127,17 +132,17 @@ export const AddDeviceSetupStep = () => {
     },
   });
 
-  const validSubmitHandler: SubmitHandler<FormValues> = (values) => {
+  const validSubmitHandler: SubmitHandler<FormFields> = (values) => {
     if (!userData) return;
     values = trimObjectStrings(values);
-    if (values.choice === AddDeviceSetupMethod.AUTO) {
+    if (values.choice === AddNativeWgDeviceMode.AUTO) {
       const keys = generateWGKeys();
       void addDeviceMutation({
         name: values.name,
         wireguard_pubkey: keys.publicKey,
         username: userData.username,
       }).then((response) => {
-        nextStep({
+        setStep(AddDeviceStep.NATIVE_CONFIGURATION, {
           device: response.device,
           publicKey: keys.publicKey,
           privateKey: keys.privateKey,
@@ -150,12 +155,12 @@ export const AddDeviceSetupStep = () => {
     } else {
       void addDeviceMutation({
         name: values.name,
-        wireguard_pubkey: values.publicKey as string,
+        wireguard_pubkey: values.publicKey,
         username: userData.username,
       }).then((response) => {
-        nextStep({
+        setStep(AddDeviceStep.NATIVE_CONFIGURATION, {
           device: response.device,
-          publicKey: values.publicKey as string,
+          publicKey: values.publicKey,
           privateKey: undefined,
           networks: response.configs.map((c) => ({
             networkName: c.network_name,
@@ -171,18 +176,15 @@ export const AddDeviceSetupStep = () => {
   } = useController({ control, name: 'choice' });
 
   useEffect(() => {
-    const sub = nextSubject.subscribe(() => {
-      submitRef?.current?.click();
+    const sub = navSubject.subscribe((event) => {
+      if (event === AddDeviceNavigationEvent.NEXT) {
+        submitRef.current?.click();
+      }
     });
-
     return () => {
       sub.unsubscribe();
     };
-  }, [nextSubject, submitRef]);
-
-  useEffect(() => {
-    setPageState({ loading: isPending });
-  }, [isPending, setPageState]);
+  }, [navSubject]);
 
   return (
     <Card id="add-device-setup-step" shaded>
@@ -203,7 +205,7 @@ export const AddDeviceSetupStep = () => {
         <FormInput
           label={localLL.form.fields.publicKey.label()}
           controller={{ control, name: 'publicKey' }}
-          disabled={choiceValue === AddDeviceSetupMethod.AUTO}
+          disabled={choiceValue === AddNativeWgDeviceMode.AUTO}
         />
         <input type="submit" className="hidden" ref={submitRef} />
       </form>

@@ -11,15 +11,20 @@ use defguard_core::db::{
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
             ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
             EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
-            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, MfaLoginMetadata,
-            MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
-            OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
-            OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
-            UserMetadata, UserModifiedMetadata, VpnClientMetadata, VpnClientMfaMetadata,
-            VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
-            WebHookModifiedMetadata, WebHookStateChangedMetadata,
+            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
+            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
+            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
+            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
+            PasswordChangedByAdminMetadata, PasswordResetMetadata, SettingsUpdateMetadata,
+            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
+            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
+            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
         },
     },
+};
+use description::{
+    get_defguard_event_description, get_enrollment_event_description, get_vpn_event_description,
 };
 use error::EventLoggerError;
 use message::{
@@ -29,6 +34,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, error, info, trace};
 
+pub mod description;
 pub mod error;
 pub mod message;
 
@@ -71,20 +77,31 @@ pub async fn run_event_logger(
 
             // Convert each message to a related activity log event
             let activity_log_event = {
-                let (module, event, metadata) = match message.event {
+                let (module, event, description, metadata) = match message.event {
                     LoggerEvent::Defguard(event) => {
                         let module = ActivityLogModule::Defguard;
+                        let description = get_defguard_event_description(&event);
 
                         let (event_type, metadata) = match *event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
-                            DefguardEvent::UserLoginFailed => (EventType::UserLoginFailed, None),
+                            DefguardEvent::UserLoginFailed { message } => (
+                                EventType::UserLoginFailed,
+                                serde_json::to_value(LoginFailedMetadata { message }).ok(),
+                            ),
                             DefguardEvent::UserMfaLogin { mfa_method } => (
                                 EventType::UserMfaLogin,
                                 serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
                             ),
-                            DefguardEvent::UserMfaLoginFailed { mfa_method } => (
+                            DefguardEvent::UserMfaLoginFailed {
+                                mfa_method,
+                                message,
+                            } => (
                                 EventType::UserMfaLoginFailed,
-                                serde_json::to_value(MfaLoginMetadata { mfa_method }).ok(),
+                                serde_json::to_value(MfaLoginFailedMetadata {
+                                    mfa_method,
+                                    message,
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::UserLogout => (EventType::UserLogout, None),
                             DefguardEvent::UserDeviceAdded { owner, device } => (
@@ -139,6 +156,11 @@ pub async fn run_event_logger(
                                 .ok(),
                             ),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
+                            DefguardEvent::UserMfaDisabled { user } => (
+                                EventType::UserMfaDisabled,
+                                serde_json::to_value(UserMfaDisabledMetadata { user: user.into() })
+                                    .ok(),
+                            ),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
                             DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
                             DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
@@ -297,10 +319,22 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::SettingsUpdated => (EventType::SettingsUpdated, None),
-                            DefguardEvent::SettingsUpdatedPartial => {
-                                (EventType::SettingsUpdatedPartial, None)
-                            }
+                            DefguardEvent::SettingsUpdatedPartial { before, after } => (
+                                EventType::SettingsUpdatedPartial,
+                                serde_json::to_value(SettingsUpdateMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::SettingsUpdated { before, after } => (
+                                EventType::SettingsUpdated,
+                                serde_json::to_value(SettingsUpdateMetadata {
+                                    before: before.into(),
+                                    after: after.into(),
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::SettingsDefaultBrandingRestored => {
                                 (EventType::SettingsDefaultBrandingRestored, None)
                             }
@@ -408,27 +442,55 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::EnrollmentTokenAdded { user } => (
-                                EventType::EnrollmentTokenAdded,
-                                serde_json::to_value(EnrollmentTokenMetadata { user: user.into() })
-                                    .ok(),
+                            DefguardEvent::UserSnatBindingAdded { user, binding } => (
+                                EventType::UserSnatBindingAdded,
+                                serde_json::to_value(UserSnatBindingMetadata {
+                                    user: user.into(),
+                                    binding,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserSnatBindingRemoved { user, binding } => (
+                                EventType::UserSnatBindingRemoved,
+                                serde_json::to_value(UserSnatBindingMetadata {
+                                    user: user.into(),
+                                    binding,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::UserSnatBindingModified {
+                                user,
+                                before,
+                                after,
+                            } => (
+                                EventType::UserSnatBindingModified,
+                                serde_json::to_value(UserSnatBindingModifiedMetadata {
+                                    user: user.into(),
+                                    before,
+                                    after,
+                                })
+                                .ok(),
                             ),
                         };
-                        (module, event_type, metadata)
+                        (module, event_type, description, metadata)
                     }
                     LoggerEvent::Vpn(event) => {
                         let module = ActivityLogModule::Vpn;
+                        let description = get_vpn_event_description(&event);
+
                         let (event_type, metadata) = match *event {
                             VpnEvent::MfaFailed {
                                 location,
                                 device,
                                 method,
+                                message,
                             } => (
                                 EventType::VpnClientMfaFailed,
-                                serde_json::to_value(VpnClientMfaMetadata {
+                                serde_json::to_value(VpnClientMfaFailedMetadata {
                                     location,
                                     device,
                                     method,
+                                    message,
                                 })
                                 .ok(),
                             ),
@@ -458,10 +520,12 @@ pub async fn run_event_logger(
                                 serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                             ),
                         };
-                        (module, event_type, metadata)
+                        (module, event_type, description, metadata)
                     }
                     LoggerEvent::Enrollment(event) => {
                         let module = ActivityLogModule::Enrollment;
+                        let description = get_enrollment_event_description(&event);
+
                         let (event_type, metadata) = match *event {
                             EnrollmentEvent::EnrollmentStarted => {
                                 (EventType::EnrollmentStarted, None)
@@ -488,7 +552,7 @@ pub async fn run_event_logger(
                                     .ok(),
                             ),
                         };
-                        (module, event_type, metadata)
+                        (module, event_type, description, metadata)
                     }
                 };
 
@@ -501,6 +565,7 @@ pub async fn run_event_logger(
                     event,
                     module,
                     device,
+                    description,
                     metadata,
                 }
             };

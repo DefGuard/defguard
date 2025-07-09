@@ -1460,33 +1460,75 @@ type RootTranslation = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
-					/**
-					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
-					 */
-					title: string
-					/**
-					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
-					 */
-					subTitle: string
-					/**
-					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
-					 */
-					link: string
+				/**
+				 * C​h​o​o​s​e​ ​Y​o​u​r​ ​C​o​n​n​e​c​t​i​o​n​ ​M​e​t​h​o​d
+				 */
+				title: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​T​o​ ​p​r​o​c​e​e​d​,​ ​y​o​u​'​l​l​ ​n​e​e​d​ ​t​o​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e​ ​y​o​u​'​r​e​ ​a​d​d​i​n​g​.​ ​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​u​s​e​ ​a​n​y​ ​s​t​a​n​d​a​r​d​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​,​ ​b​u​t​ ​f​o​r​ ​t​h​e​ ​b​e​s​t​ ​e​x​p​e​r​i​e​n​c​e​ ​a​n​d​ ​e​a​s​e​ ​o​f​ ​s​e​t​u​p​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​o​u​r​ ​n​a​t​i​v​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.
+				 */
+				message: string
+				methods: {
+					client: {
+						/**
+						 * R​e​m​o​t​e​ ​D​e​v​i​c​e​ ​A​c​t​i​v​a​t​i​o​n
+						 */
+						title: string
+						/**
+						 * U​s​e​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​t​o​ ​s​e​t​ ​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​.​ ​E​a​s​i​l​y​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​w​i​t​h​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​ ​o​r​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​a​ ​Q​R​ ​c​o​d​e​.
+						 */
+						description: string
+					}
+					wg: {
+						/**
+						 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+						 */
+						title: string
+						/**
+						 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​a​n​y​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+						 */
+						description: string
+					}
 				}
-				manual: {
+			}
+			client: {
+				/**
+				 * C​l​i​e​n​t​ ​A​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
+				 */
+				message: string
+				/**
+				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
+				 */
+				qrDescription: string
+				/**
+				 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​f​o​r​ ​d​e​s​k​t​o​p​ ​d​e​v​i​c​e
+				 */
+				desktopDownload: string
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+				 */
+				tokenCopy: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​p​a​r​e​ ​c​l​i​e​n​t​ ​s​e​t​u​p
+				 */
+				tokenFailure: string
+				labels: {
 					/**
-					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n​ ​(​n​e​w​)
 					 */
-					title: string
+					mergedToken: string
 					/**
-					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+					 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
 					 */
-					subTitle: string
+					token: string
 					/**
-					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 * U​R​L
 					 */
-					link: string
+					url: string
 				}
 			}
 			configDevice: {
@@ -6222,6 +6264,10 @@ type RootTranslation = {
 				 * D​e​v​i​c​e
 				 */
 				device: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
 			}
 			noData: {
 				/**
@@ -6281,6 +6327,10 @@ type RootTranslation = {
 			 * M​F​A​ ​d​i​s​a​b​l​e​d
 			 */
 			mfa_disabled: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			user_mfa_disabled: string
 			/**
 			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
 			 */
@@ -6513,6 +6563,18 @@ type RootTranslation = {
 			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
 			 */
 			client_configuration_token_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​a​d​d​e​d
+			 */
+			user_snat_binding_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​m​o​d​i​f​i​e​d
+			 */
+			user_snat_binding_modified: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​r​e​m​o​v​e​d
+			 */
+			user_snat_binding_removed: string
 		}
 		activityLogModule: {
 			/**
@@ -7962,33 +8024,75 @@ export type TranslationFunctions = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
-					/**
-					 * Configure Desktop Client
-					 */
-					title: () => LocalizedString
-					/**
-					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
-					 */
-					subTitle: () => LocalizedString
-					/**
-					 * Download defguard Client
-					 */
-					link: () => LocalizedString
+				/**
+				 * Choose Your Connection Method
+				 */
+				title: () => LocalizedString
+				/**
+				 * You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.
+				 */
+				message: () => LocalizedString
+				methods: {
+					client: {
+						/**
+						 * Remote Device Activation
+						 */
+						title: () => LocalizedString
+						/**
+						 * Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.
+						 */
+						description: () => LocalizedString
+					}
+					wg: {
+						/**
+						 * Manual WireGuard Client
+						 */
+						title: () => LocalizedString
+						/**
+						 * For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.
+						 */
+						description: () => LocalizedString
+					}
 				}
-				manual: {
+			}
+			client: {
+				/**
+				 * Client Activation
+				 */
+				title: () => LocalizedString
+				/**
+				 * Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
+				 */
+				message: () => LocalizedString
+				/**
+				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
+				 */
+				qrDescription: () => LocalizedString
+				/**
+				 * Download defguard Client for desktop device
+				 */
+				desktopDownload: () => LocalizedString
+				/**
+				 * Token copied to clipboard
+				 */
+				tokenCopy: () => LocalizedString
+				/**
+				 * Failed to prepare client setup
+				 */
+				tokenFailure: () => LocalizedString
+				labels: {
 					/**
-					 * Manual WireGuard Client
+					 * Defguard Instance Token (new)
 					 */
-					title: () => LocalizedString
+					mergedToken: () => LocalizedString
 					/**
-					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
+					 * Authentication Token
 					 */
-					subTitle: () => LocalizedString
+					token: () => LocalizedString
 					/**
-					 * Download WireGuard Client
+					 * URL
 					 */
-					link: () => LocalizedString
+					url: () => LocalizedString
 				}
 			}
 			configDevice: {
@@ -12679,6 +12783,10 @@ export type TranslationFunctions = {
 				 * Device
 				 */
 				device: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
 			}
 			noData: {
 				/**
@@ -12738,6 +12846,10 @@ export type TranslationFunctions = {
 			 * MFA disabled
 			 */
 			mfa_disabled: () => LocalizedString
+			/**
+			 * User MFA disabled
+			 */
+			user_mfa_disabled: () => LocalizedString
 			/**
 			 * MFA TOTP enabled
 			 */
@@ -12970,6 +13082,18 @@ export type TranslationFunctions = {
 			 * Client configuration token added
 			 */
 			client_configuration_token_added: () => LocalizedString
+			/**
+			 * User SNAT binding added
+			 */
+			user_snat_binding_added: () => LocalizedString
+			/**
+			 * User SNAT binding modified
+			 */
+			user_snat_binding_modified: () => LocalizedString
+			/**
+			 * User SNAT binding removed
+			 */
+			user_snat_binding_removed: () => LocalizedString
 		}
 		activityLogModule: {
 			/**

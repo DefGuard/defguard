@@ -20,6 +20,7 @@ import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { ActivityLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
@@ -77,6 +78,7 @@ const PageContent = () => {
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.DESC,
   );
+  const isAdmin = useAuthStore((s) => s.user?.is_admin ?? false);
 
   const activeFiltersCount = useMemo(
     () => Object.values(activeFilters).flat().length,
@@ -94,6 +96,7 @@ const PageContent = () => {
   const { data: users } = useQuery({
     queryFn: getUsers,
     queryKey: ['user'],
+    enabled: isAdmin,
   });
 
   const queryKey = useMemo(

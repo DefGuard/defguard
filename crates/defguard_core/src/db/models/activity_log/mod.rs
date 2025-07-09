@@ -34,6 +34,7 @@ pub enum EventType {
     UserLogout,
     // mfa management
     MfaDisabled,
+    UserMfaDisabled,
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
@@ -111,6 +112,10 @@ pub enum EventType {
     AuthenticationKeyAdded,
     AuthenticationKeyRemoved,
     AuthenticationKeyRenamed,
+    // User SNAT bindings management
+    UserSnatBindingAdded,
+    UserSnatBindingRemoved,
+    UserSnatBindingModified,
 }
 
 #[derive(Model, FromRow, Serialize)]
@@ -126,5 +131,6 @@ pub struct ActivityLogEvent<I = NoId> {
     #[model(enum)]
     pub module: ActivityLogModule,
     pub device: String,
+    pub description: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }
