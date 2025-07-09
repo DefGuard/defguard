@@ -116,8 +116,8 @@ pub enum ApiEventType {
     },
     UserGroupsModified {
         user: User<Id>,
-        added: std::collections::HashSet<String>,
-        removed: std::collections::HashSet<String>,
+        before: Vec<String>,
+        after: Vec<String>,
     },
     UserDeviceAdded {
         owner: User<Id>,

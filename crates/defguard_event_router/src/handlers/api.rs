@@ -33,12 +33,12 @@ impl EventRouter {
             }
             ApiEventType::UserGroupsModified {
                 user,
-                added,
-                removed,
+                before,
+                after,
             } => LoggerEvent::Defguard(Box::new(DefguardEvent::UserGroupsModified {
                 user,
-                added,
-                removed,
+                before,
+                after,
             })),
             ApiEventType::MfaDisabled => {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::MfaDisabled))

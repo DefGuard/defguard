@@ -118,14 +118,14 @@ pub async fn run_event_logger(
                             ),
                             DefguardEvent::UserGroupsModified {
                                 user,
-                                added,
-                                removed,
+                                before,
+                                after,
                             } => (
                                 EventType::UserGroupsModified,
                                 serde_json::to_value(UserGroupsModifiedMetadata {
                                     user: user.into(),
-                                    added,
-                                    removed,
+                                    before,
+                                    after,
                                 })
                                 .ok(),
                             ),
