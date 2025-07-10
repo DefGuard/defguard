@@ -13,7 +13,6 @@ import { changePassword, changePasswordByAdmin } from '../utils/controllers/prof
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
