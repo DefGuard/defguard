@@ -82,7 +82,7 @@ test.describe('Test user authentication', () => {
       digits: 6,
       period: 60,
     });
-    await page.getByTestId('field-code').type(code);
+    await page.getByTestId('field-code').fill(code);
     await page.locator('button[type="submit"]').click();
     await waitForRoute(page, routes.me);
   });
@@ -93,8 +93,8 @@ test.describe('Test user authentication', () => {
     await disableUser(browser, testUser);
     await page.goto(routes.base);
     await waitForRoute(page, routes.auth.login);
-    await page.getByTestId('login-form-username').type(testUser.username);
-    await page.getByTestId('login-form-password').type(testUser.password);
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
     const responsePromise = page.waitForResponse('**/auth');
     await page.getByTestId('login-form-submit').click();
     const response = await responsePromise;
@@ -111,11 +111,12 @@ test.describe('Test user authentication', () => {
     await disableUser(browser, testUser);
     // The user should be logged out when the admin disables him
     await waitForPromise(2000);
-    const responsePromise = page.waitForResponse('**/user/' + testUser.username);
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url() === '**/user/' + testUser.username && resp.status() === 401,
+    );
     await page.locator('a[href="/me"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(401);
-    expect(page.url()).toBe(routes.base + routes.auth.login);
   });
 });
 

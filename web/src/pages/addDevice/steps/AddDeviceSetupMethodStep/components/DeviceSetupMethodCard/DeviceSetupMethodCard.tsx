@@ -1,43 +1,64 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { useId, useMemo } from 'react';
+import { PropsWithChildren, ReactNode, useId, useMemo } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import { DeviceSetupMethod } from '../../types';
 
+type StandaloneConfig = {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  testId: string;
+  extras?: ReactNode;
+};
+
 type Props = {
-  methodType: DeviceSetupMethod;
+  methodType?: DeviceSetupMethod;
+  custom?: StandaloneConfig;
   active: boolean;
   onClick: () => void;
 };
 
-export const DeviceSetupMethodCard = ({ methodType, active, onClick }: Props) => {
+type ContentConfiguration = {
+  title: string;
+  description: string;
+  testId: string;
+} & Pick<Props, 'onClick' | 'active'> &
+  PropsWithChildren;
+
+export const DeviceSetupMethodCard = ({ methodType, active, onClick, custom }: Props) => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.setupMethod.methods;
 
-  const [title, description] = useMemo(() => {
-    switch (methodType) {
-      case DeviceSetupMethod.CLIENT:
-        return [localLL.client.title(), localLL.client.description()];
-      case DeviceSetupMethod.NATIVE_WG:
-        return [localLL.wg.title(), localLL.wg.description()];
-      default:
-        throw Error('Unimplemented setup method supplied to method card.');
+  const [title, description, testId] = useMemo(() => {
+    if (!isPresent(custom) && methodType) {
+      const testId = `add-device-method-${methodType.valueOf()}`;
+      switch (methodType) {
+        case DeviceSetupMethod.CLIENT:
+          return [localLL.client.title(), localLL.client.description(), testId];
+        case DeviceSetupMethod.NATIVE_WG:
+          return [localLL.wg.title(), localLL.wg.description(), testId];
+        default:
+          throw Error('Unimplemented setup method supplied to method card.');
+      }
     }
-  }, [localLL.client, localLL.wg, methodType]);
+    if (isPresent(custom)) {
+      return [custom.title, custom.description, custom.testId];
+    }
+    throw Error('Bad props for DeviceSetupMethodCard');
+  }, [custom, localLL.client, localLL.wg, methodType]);
 
   return (
-    <div
-      className={clsx('device-method-card', {
-        active,
-      })}
-      data-testid={`add-device-method-${methodType.valueOf()}`}
-      data-active={active}
+    <Content
+      active={active}
+      description={description}
       onClick={onClick}
+      testId={testId}
+      title={title}
     >
-      <p className="title">{title}</p>
-      <p className="description">{description}</p>
       {methodType === DeviceSetupMethod.CLIENT && (
         <>
           <div className="icon">
@@ -54,6 +75,36 @@ export const DeviceSetupMethodCard = ({ methodType, active, onClick }: Props) =>
           <WireguardLogo />
         </div>
       )}
+      {isPresent(custom) && (
+        <>
+          <div className="icon">{custom.icon}</div>
+          {custom.extras}
+        </>
+      )}
+    </Content>
+  );
+};
+
+const Content = ({
+  active,
+  description,
+  onClick,
+  testId,
+  title,
+  children,
+}: ContentConfiguration) => {
+  return (
+    <div
+      className={clsx('device-method-card', {
+        active,
+      })}
+      data-testid={testId}
+      data-active={active}
+      onClick={onClick}
+    >
+      <p className="title">{title}</p>
+      <p className="description">{description}</p>
+      {children}
     </div>
   );
 };

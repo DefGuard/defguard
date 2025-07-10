@@ -16,7 +16,7 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   const modalElement = page.locator('#openid-client-modal');
   await modalElement.waitFor({ state: 'visible' });
   const modalForm = modalElement.locator('form');
-  await modalForm.getByTestId('field-name').type(client.name);
+  await modalForm.getByTestId('field-name').fill(client.name);
   const urls = client.redirectURL.length;
   for (let i = 0; i < urls; i++) {
     const isLast = i === urls - 1;

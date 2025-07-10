@@ -61,7 +61,7 @@ export const enableEmailMFA = async (
     digits: 6,
     period: 60,
   });
-  await page.getByTestId('field-code').type(code);
+  await page.getByTestId('field-code').fill(code);
   await formElement.locator('button[type="submit"]').click();
   await formElement.waitFor({ state: 'detached', timeout: 1000 });
   const recovery = await acceptRecovery(page);

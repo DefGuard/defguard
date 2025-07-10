@@ -15,21 +15,21 @@ export const createDevice = async (browser: Browser, user: User, device: DeviceF
   // chose manual
   const choiceCard = page.locator('#setup-method-step');
   await choiceCard.waitFor({ state: 'visible' });
-  await choiceCard.getByTestId('choice-manual').click();
-  await page.getByTestId('next-step').click();
+  await choiceCard.getByTestId('add-device-method-native-wg').click();
+  await page.getByTestId('nav-next-step').click();
   const configStep = page.locator('#add-device-setup-step');
   await configStep.waitFor({ state: 'visible' });
   // fill form
   await configStep.getByTestId('field-name').clear();
-  await configStep.getByTestId('field-name').type(device.name);
+  await configStep.getByTestId('field-name').fill(device.name);
   if (device.pubKey && device.pubKey.length) {
     await page.locator('.toggle-option').nth(1).click();
     await configStep.getByTestId('field-publicKey').clear();
-    await configStep.getByTestId('field-publicKey').type(device.pubKey);
+    await configStep.getByTestId('field-publicKey').fill(device.pubKey);
   }
   // await response
   const responsePromise = page.waitForResponse('**/device/**');
-  await page.getByTestId('next-step').click();
+  await page.getByTestId('nav-next-step').click();
   const response = await responsePromise;
   expect(response.status()).toBe(201);
   await context.close();
