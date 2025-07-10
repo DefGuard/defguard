@@ -15,8 +15,8 @@ type AuthInfo = User | Pick<User, 'username' | 'password'>;
 export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
-  await page.getByTestId('login-form-username').type(userInfo.username);
-  await page.getByTestId('login-form-password').type(userInfo.password);
+  await page.getByTestId('login-form-username').fill(userInfo.username);
+  await page.getByTestId('login-form-password').fill(userInfo.password);
   const responsePromise = page.waitForResponse('**/auth');
   await page.getByTestId('login-form-submit').click();
   const response = await responsePromise;
@@ -47,6 +47,6 @@ export const loginRecoveryCodes = async (
     waitUntil: 'networkidle',
   });
   await page.getByTestId('field-code').clear();
-  await page.getByTestId('field-code').type(code.trim(), { delay: 100 });
+  await page.getByTestId('field-code').fill(code.trim(), { delay: 100 });
   await page.locator('button[type="submit"]').click();
 };

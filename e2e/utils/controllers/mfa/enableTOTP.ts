@@ -32,7 +32,7 @@ export const enableTOTP = async (
   const totpSecret = await getPageClipboard(page);
   const { otp: token } = TOTP.generate(totpSecret);
   const totpForm = page.getByTestId('register-totp-form');
-  await totpForm.getByTestId('field-code').type(token);
+  await totpForm.getByTestId('field-code').fill(token);
   await totpForm.locator('button[type="submit"]').click();
   await totpForm.waitFor({ state: 'hidden' });
   const recovery = await acceptRecovery(page);

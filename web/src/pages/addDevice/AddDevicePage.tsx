@@ -107,6 +107,7 @@ export const AddDevicePage = () => {
           <h1>{pageLL.title()}</h1>
           <div className="controls">
             <Button
+              data-testid="nav-step-back"
               className="nav-back"
               size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.STANDARD}
@@ -138,7 +139,7 @@ export const AddDevicePage = () => {
               }}
             />
             <Button
-              data-testid="next-step"
+              data-testid="nav-next-step"
               size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.PRIMARY}
               text={isFinalStep ? LL.common.controls.finish() : LL.common.controls.next()}

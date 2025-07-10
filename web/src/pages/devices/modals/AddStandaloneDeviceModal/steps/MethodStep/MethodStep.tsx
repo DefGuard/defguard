@@ -12,6 +12,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
+import SvgIconOutsideLink from '../../../../../../shared/defguard-ui/components/svg/IconOutsideLink';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -110,20 +111,38 @@ export const MethodStep = () => {
     <div className="method-step">
       <div className="choices">
         <DeviceSetupMethodCard
-          title={localLL.cards.cli.title()}
-          subtitle={localLL.cards.cli.subtitle()}
-          link={externalLink.defguardCliDocs}
-          linkText={localLL.cards.cli.docs()}
-          logo={<DefguardIcon />}
-          selected={choice === AddStandaloneDeviceModalChoice.CLI}
-          onSelect={() => handleChange(AddStandaloneDeviceModalChoice.CLI)}
+          custom={{
+            title: localLL.cards.cli.title(),
+            description: localLL.cards.cli.subtitle(),
+            icon: <DefguardIcon />,
+            testId: 'standalone-device-choice-card-cli',
+            extras: (
+              <div className="link-container">
+                <a
+                  href={externalLink.defguardCliDocs}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link"
+                >
+                  {localLL.cards.cli.docs()}
+                  <div className="spacer"></div>
+                  <SvgIconOutsideLink />
+                </a>
+              </div>
+            ),
+          }}
+          active={choice === AddStandaloneDeviceModalChoice.CLI}
+          onClick={() => handleChange(AddStandaloneDeviceModalChoice.CLI)}
         />
         <DeviceSetupMethodCard
-          title={localLL.cards.manual.title()}
-          subtitle={localLL.cards.manual.subtitle()}
-          logo={<SvgWireguardLogo />}
-          selected={choice === AddStandaloneDeviceModalChoice.MANUAL}
-          onSelect={() => handleChange(AddStandaloneDeviceModalChoice.MANUAL)}
+          custom={{
+            title: localLL.cards.cli.title(),
+            description: localLL.cards.cli.subtitle(),
+            icon: <SvgWireguardLogo />,
+            testId: 'standalone-device-choice-card-manual',
+          }}
+          active={choice === AddStandaloneDeviceModalChoice.MANUAL}
+          onClick={() => handleChange(AddStandaloneDeviceModalChoice.MANUAL)}
         />
       </div>
       <div className="controls">
