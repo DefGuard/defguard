@@ -62,22 +62,6 @@ impl EventContext {
         }
     }
 
-    pub fn from_grpc_context(
-        val: GrpcRequestContext,
-        location: Option<WireguardNetwork<Id>>,
-    ) -> Self {
-        let location = location.map(|location| location.name);
-
-        EventContext {
-            timestamp: val.timestamp,
-            user_id: val.user_id,
-            username: val.username,
-            location,
-            ip: val.ip,
-            device: format!("{} (ID {})", val.device_name, val.device_id),
-        }
-    }
-
     pub fn from_bidi_context(
         val: BidiRequestContext,
         location: Option<WireguardNetwork<Id>>,
@@ -107,6 +91,19 @@ impl EventContext {
             location,
             ip: val.ip,
             device: format!("{} (ID {})", val.device.name, val.device.id),
+        }
+    }
+}
+
+impl From<GrpcRequestContext> for EventContext {
+    fn from(val: GrpcRequestContext) -> Self {
+        Self {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            location: Some(val.location.name),
+            ip: val.ip,
+            device: format!("{} (ID {})", val.device_name, val.device_id),
         }
     }
 }
