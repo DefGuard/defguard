@@ -70,6 +70,7 @@ pub async fn run_event_logger(
             let EventContext {
                 user_id,
                 username,
+                location,
                 timestamp,
                 ip,
                 device,
@@ -561,6 +562,7 @@ pub async fn run_event_logger(
                     timestamp,
                     user_id,
                     username,
+                    location,
                     ip: ip.into(),
                     event,
                     module,

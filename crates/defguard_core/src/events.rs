@@ -275,14 +275,17 @@ pub enum ApiEventType {
     },
     UserSnatBindingAdded {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         binding: UserSnatBinding<Id>,
     },
     UserSnatBindingRemoved {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         binding: UserSnatBinding<Id>,
     },
     UserSnatBindingModified {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         before: UserSnatBinding<Id>,
         after: UserSnatBinding<Id>,
     },
@@ -298,8 +301,12 @@ pub struct ApiEvent {
 /// Events from gRPC server
 #[derive(Debug)]
 pub enum GrpcEvent {
-    GatewayConnected,
-    GatewayDisconnected,
+    GatewayConnected {
+        location: WireguardNetwork<Id>,
+    },
+    GatewayDisconnected {
+        location: WireguardNetwork<Id>,
+    },
     ClientConnected {
         context: GrpcRequestContext,
         location: WireguardNetwork<Id>,
