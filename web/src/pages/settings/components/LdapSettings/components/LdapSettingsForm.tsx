@@ -29,21 +29,18 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 import { LdapConnectionTest } from './LdapConnectionTest';
 
-const options: SelectOption<boolean>[] = useMemo(
-  () => [
-    {
-      value: false,
-      label: 'Defguard',
-      key: 0,
-    },
-    {
-      value: true,
-      label: 'LDAP',
-      key: 1,
-    },
-  ],
-  [],
-);
+const options: SelectOption<boolean>[] = [
+  {
+    value: false,
+    label: 'Defguard',
+    key: 0,
+  },
+  {
+    value: true,
+    label: 'LDAP',
+    key: 1,
+  },
+];
 
 export const LdapSettingsForm = () => {
   const { LL } = useI18nContext();

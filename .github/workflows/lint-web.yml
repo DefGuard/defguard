@@ -31,7 +31,7 @@ jobs:
           pnpm i --frozen-lockfile
       - name: Lint
         working-directory: ./web
-        run: pnpm lint
+        run: pnpm run lint-ci
       - name: Audit
         working-directory: ./web
         run: pnpm audit --prod
