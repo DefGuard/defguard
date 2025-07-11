@@ -22,6 +22,8 @@ pub struct FilterParams {
     pub until: Option<DateTime<Utc>>,
     #[serde(default = "default_username")]
     pub username: Vec<String>,
+    #[serde(default = "default_location")]
+    pub location: Vec<String>,
     #[serde(default = "default_event")]
     pub event: Vec<String>,
     #[serde(default = "default_module")]
@@ -30,6 +32,10 @@ pub struct FilterParams {
 }
 
 fn default_username() -> Vec<String> {
+    Vec::new()
+}
+
+fn default_location() -> Vec<String> {
     Vec::new()
 }
 
@@ -56,6 +62,7 @@ pub enum SortKey {
     #[default]
     Timestamp,
     Username,
+    Location,
     Ip,
     Event,
     Module,
@@ -67,6 +74,7 @@ impl Display for SortKey {
         match self {
             Self::Timestamp => write!(f, "timestamp"),
             Self::Username => write!(f, "username"),
+            Self::Location => write!(f, "location"),
             Self::Ip => write!(f, "ip"),
             Self::Event => write!(f, "event"),
             Self::Module => write!(f, "module"),
@@ -203,6 +211,14 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
             .push(") ");
     }
 
+    // location filter
+    if !filters.location.is_empty() {
+        query_builder
+            .push(" AND location = ANY(")
+            .push_bind(filters.location.clone())
+            .push(") ");
+    }
+
     // event filter
     if !filters.event.is_empty() {
         query_builder
@@ -222,13 +238,14 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     // search by provided term
     // following columns are supported:
     // - username
+    // - location
     // - module
     // - event
     // - device
     // - description
     if let Some(search_term) = &filters.search {
         query_builder
-            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ', description, ' ') ILIKE ")
+            .push(" AND CONCAT(username, ' ', location, ' ', module, ' ', event, ' ', device, ' ', description, ' ') ILIKE ")
             .push_bind(format!("%{search_term}%"))
             .push(" ");
     }
