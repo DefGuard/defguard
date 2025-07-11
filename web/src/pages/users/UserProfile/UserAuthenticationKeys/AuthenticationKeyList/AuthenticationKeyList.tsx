@@ -7,7 +7,7 @@ import { Fragment, useMemo } from 'react';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../shared/queries';
-import { AuthenticationKey } from '../../../../../shared/types';
+import type { AuthenticationKey } from '../../../../../shared/types';
 import { AuthenticationKeyItem } from './AuthenticationKeyItem/AuthenticationKeyItem';
 import { AuthenticationKeyItemYubikey } from './AuthenticationKeyItemYubiKey/AuthenticationKeyItemYubiKey';
 

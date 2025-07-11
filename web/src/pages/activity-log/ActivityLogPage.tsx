@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { type QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { range } from 'lodash-es';
 import { useMemo, useState } from 'react';
@@ -11,7 +11,7 @@ import { FilterButton } from '../../shared/components/Layout/buttons/FilterButto
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { PageLimiter } from '../../shared/components/Layout/PageLimiter/PageLimiter';
 import { FilterGroupsModal } from '../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
-import { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
+import type { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonSize } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
@@ -22,13 +22,13 @@ import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/Vi
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
-import { ActivityLogSortKey } from '../../shared/types';
+import type { ActivityLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
 import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
-  ActivityLogEventType,
+  type ActivityLogEventType,
+  type ActivityLogModule,
   activityLogEventTypeValues,
-  ActivityLogModule,
   activityLogModuleValues,
 } from './types';
 
@@ -149,7 +149,7 @@ const PageContent = () => {
   const filterOptions = useMemo(() => {
     const res: Record<string, FilterGroupsModalFilter> = {};
     if (users) {
-      res['users'] = {
+      res.users = {
         label: 'Users',
         identifier: 'username',
         order: 3,
@@ -160,7 +160,7 @@ const PageContent = () => {
         })),
       };
     }
-    res['module'] = {
+    res.module = {
       identifier: 'module',
       label: 'Module',
       order: 2,
@@ -173,7 +173,7 @@ const PageContent = () => {
         };
       }),
     };
-    res['event'] = {
+    res.event = {
       identifier: 'event',
       label: 'Event',
       order: 1,
@@ -191,7 +191,7 @@ const PageContent = () => {
 
   const activityData = useMemo(() => {
     if (data) {
-      return data.pages.map((page) => page.data).flat(1);
+      return data.pages.flatMap((page) => page.data);
     }
     return undefined;
   }, [data]);

@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { PropsWithChildren } from 'react';
+import type { PropsWithChildren } from 'react';
 
 import { PageContainer } from '../PageContainer/PageContainer';
 

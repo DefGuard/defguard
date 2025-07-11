@@ -1,12 +1,12 @@
 import parse from 'html-react-parser';
-import { Control } from 'react-hook-form';
+import type { Control } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
-import { FormFields } from './NotificationSettingsForm';
+import type { FormFields } from './NotificationSettingsForm';
 
 export const GatewayNotificationsForm = ({
   control,

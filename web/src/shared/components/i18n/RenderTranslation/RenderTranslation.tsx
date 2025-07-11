@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, useMemo } from 'react';
+import { Fragment, type ReactNode, useMemo } from 'react';
 
 type Props = {
   translation: string;

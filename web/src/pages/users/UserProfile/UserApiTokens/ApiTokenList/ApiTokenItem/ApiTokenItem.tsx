@@ -10,7 +10,7 @@ import { EditButtonOptionStyleVariant } from '../../../../../../shared/defguard-
 import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { TextContainer } from '../../../../../../shared/defguard-ui/components/Layout/TextContainer/TextContainer';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
-import { ApiToken } from '../../../../../../shared/types';
+import type { ApiToken } from '../../../../../../shared/types';
 import { useRenameApiTokenModal } from '../../../../shared/modals/RenameApiTokenModal/useRenameApiTokenModal';
 import { useDeleteApiTokenModal } from '../../DeleteApiTokenModal/useDeleteApiTokenModal';
 

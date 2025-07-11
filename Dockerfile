@@ -1,4 +1,4 @@
-FROM node:23-alpine AS web
+FROM node:24-alpine AS web
 
 WORKDIR /app
 COPY web/package.json web/pnpm-lock.yaml web/.npmrc .

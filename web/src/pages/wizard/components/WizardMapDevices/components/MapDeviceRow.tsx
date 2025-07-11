@@ -1,20 +1,20 @@
-import { TargetAndTransition } from 'framer-motion';
+import type { TargetAndTransition } from 'framer-motion';
 import { useCallback, useMemo } from 'react';
-import { Control, useController } from 'react-hook-form';
+import { type Control, useController } from 'react-hook-form';
 
 import { ColorsRGB } from '../../../../../shared/constants';
 import { RowBox } from '../../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
 import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { WizardMapFormValues } from '../WizardMapDevices';
+import type { WizardMapDevicesFormFields } from '../types';
 
 type Props = {
   options: SelectOption<number>[];
-  control: Control<WizardMapFormValues>;
+  control: Control<WizardMapDevicesFormFields>;
   index: number;
 };
 

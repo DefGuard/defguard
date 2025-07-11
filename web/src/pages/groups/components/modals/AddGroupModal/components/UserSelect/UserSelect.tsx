@@ -1,11 +1,11 @@
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
-import { Control, useController } from 'react-hook-form';
+import { type Control, useController } from 'react-hook-form';
 
 import { SelectRow } from '../../../../../../../shared/defguard-ui/components/Layout/SelectRow/SelectRow';
-import { User } from '../../../../../../../shared/types';
+import type { User } from '../../../../../../../shared/types';
 import { titleCase } from '../../../../../../../shared/utils/titleCase';
-import { ModifyGroupFormFields } from '../../AddGroupModal';
+import type { ModifyGroupFormFields } from '../../AddGroupModal';
 
 type Props = {
   control: Control<ModifyGroupFormFields>;

@@ -14,15 +14,15 @@ import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layo
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LimitedText } from '../../../../shared/defguard-ui/components/Layout/LimitedText/LimitedText';
 import {
-  ListHeader,
+  type ListHeader,
   ListSortDirection,
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import { StandaloneDevice } from '../../../../shared/types';
-import { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
+import type { StandaloneDevice } from '../../../../shared/types';
+import type { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';

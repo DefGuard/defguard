@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -21,7 +21,7 @@ import { Search } from '../../../../../shared/defguard-ui/components/Layout/Sear
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { ModifyGroupsRequest } from '../../../../../shared/types';
+import type { ModifyGroupsRequest } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { GroupFormSelectAll } from './components/GroupFormSelectAll/GroupFormSelectAll';
 import { UserSelect } from './components/UserSelect/UserSelect';

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { EnterpriseUpgradeToast } from '../../components/Layout/EnterpriseUpgradeToast/EnterpriseUpgradeToast';
-import { EnterpriseUpgradeToastMeta } from '../../components/Layout/EnterpriseUpgradeToast/types';
+import type { EnterpriseUpgradeToastMeta } from '../../components/Layout/EnterpriseUpgradeToast/types';
 import { versionUpdateToastMetaSchema } from '../../components/Layout/VersionUpdateToast/types';
 import { ToastType } from '../../defguard-ui/components/Layout/ToastManager/Toast/types';
 import { useToastsStore } from '../../defguard-ui/hooks/toasts/useToastStore';

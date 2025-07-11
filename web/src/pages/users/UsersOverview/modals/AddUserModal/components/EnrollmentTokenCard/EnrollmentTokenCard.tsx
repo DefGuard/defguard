@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { isUndefined } from 'lodash-es';
-import { ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { ActionButton } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';

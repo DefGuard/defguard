@@ -25,13 +25,13 @@ import { ConfirmModalType } from '../../shared/defguard-ui/components/Layout/mod
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../shared/defguard-ui/components/Layout/Select/types';
 import {
-  ListHeader,
-  ListRowCell,
+  type ListHeader,
+  type ListRowCell,
   ListSortDirection,
 } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
@@ -40,7 +40,7 @@ import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { MutationKeys } from '../../shared/mutations';
 import { QueryKeys } from '../../shared/queries';
-import { Webhook } from '../../shared/types';
+import type { Webhook } from '../../shared/types';
 import { WebhookModal } from './modals/WebhookModal/WebhookModal';
 
 export const WebhooksListPage = () => {
@@ -239,7 +239,7 @@ export const WebhooksListPage = () => {
     let res: Webhook[] = [];
     if (webhooks) {
       res = clone(webhooks);
-      if (searchValue && searchValue.length) {
+      if (searchValue?.length) {
         res = res.filter((webhook) =>
           webhook.url.toLowerCase().includes(searchValue.toLowerCase()),
         );

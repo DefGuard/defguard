@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -13,7 +13,7 @@ import { Modal } from '../../../../../../shared/defguard-ui/components/Layout/mo
 import { Search } from '../../../../../../shared/defguard-ui/components/Layout/Search/Search';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import { searchByKeys } from '../../../../../../shared/utils/searchByKeys';
-import { DialogSelectProps } from '../types';
+import type { DialogSelectProps } from '../types';
 
 type Props<T, I> = {
   initiallySelected: I[];

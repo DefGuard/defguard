@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgIconCheckmark from '../../../../shared/components/svg/IconCheckmark';

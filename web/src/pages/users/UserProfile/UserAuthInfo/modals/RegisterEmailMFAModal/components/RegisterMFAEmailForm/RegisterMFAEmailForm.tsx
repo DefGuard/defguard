@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../../../i18n/i18n-react';
@@ -74,7 +74,7 @@ export const RegisterMFAEmailForm = () => {
       void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_USER_PROFILE],
       });
-      if (res && res.codes) {
+      if (res?.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: res.codes },
         });
@@ -114,52 +114,50 @@ export const RegisterMFAEmailForm = () => {
   };
 
   return (
-    <>
-      <form id="register-mfa-email-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormInput
-          type="text"
-          inputMode="numeric"
-          controller={{ control, name: 'code' }}
-          label={localLL.form.fields.code.label()}
+    <form id="register-mfa-email-form" onSubmit={handleSubmit(handleValidSubmit)}>
+      <FormInput
+        type="text"
+        inputMode="numeric"
+        controller={{ control, name: 'code' }}
+        label={localLL.form.fields.code.label()}
+      />
+      <div className="form-extras">
+        <Button
+          className="resend"
+          size={ButtonSize.LARGE}
+          styleVariant={ButtonStyleVariant.LINK}
+          loading={startLoading || initStartLoading}
+          disabled={disableResend}
+          text={localLL.form.controls.resend()}
+          onClick={() => {
+            void mutateStart().then(() => {
+              toaster.success(localLL.messages.resend());
+            });
+            setDisableResend(true);
+            setTimeout(() => {
+              if (setDisableResend) {
+                setDisableResend(false);
+              }
+            }, 5000);
+          }}
         />
-        <div className="form-extras">
-          <Button
-            className="resend"
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.LINK}
-            loading={startLoading || initStartLoading}
-            disabled={disableResend}
-            text={localLL.form.controls.resend()}
-            onClick={() => {
-              void mutateStart().then(() => {
-                toaster.success(localLL.messages.resend());
-              });
-              setDisableResend(true);
-              setTimeout(() => {
-                if (setDisableResend) {
-                  setDisableResend(false);
-                }
-              }, 5000);
-            }}
-          />
-        </div>
-        <div className="controls">
-          <Button
-            className="cancel"
-            size={ButtonSize.LARGE}
-            text={LL.common.controls.cancel()}
-            onClick={() => closeModal()}
-          />
-          <Button
-            type="submit"
-            size={ButtonSize.LARGE}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            className="submit"
-            text={localLL.form.controls.submit()}
-            loading={finishLoading || startLoading || initStartLoading}
-          />
-        </div>
-      </form>
-    </>
+      </div>
+      <div className="controls">
+        <Button
+          className="cancel"
+          size={ButtonSize.LARGE}
+          text={LL.common.controls.cancel()}
+          onClick={() => closeModal()}
+        />
+        <Button
+          type="submit"
+          size={ButtonSize.LARGE}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          className="submit"
+          text={localLL.form.controls.submit()}
+          loading={finishLoading || startLoading || initStartLoading}
+        />
+      </div>
+    </form>
   );
 };

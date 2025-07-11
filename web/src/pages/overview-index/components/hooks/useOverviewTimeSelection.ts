@@ -8,7 +8,7 @@ export const useOverviewTimeSelection = () => {
     const searchValue = searchParams.get('from');
     if (searchValue) {
       const parsed = parseInt(searchValue);
-      if (parsed && !isNaN(parsed)) {
+      if (parsed && !Number.isNaN(parsed)) {
         return parsed;
       }
     }

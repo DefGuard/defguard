@@ -18,7 +18,7 @@ import {
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
-import { Network } from '../../shared/types';
+import type { Network } from '../../shared/types';
 import { OverviewStats } from '../overview/OverviewStats/OverviewStats';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { EditLocationsSettingsButton } from './components/EditLocationsSettingsButton/EditLocationsSettingsButton';

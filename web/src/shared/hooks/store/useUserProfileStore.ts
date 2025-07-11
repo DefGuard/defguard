@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { UserProfile } from '../../types';
+import type { UserProfile } from '../../types';
 
 const defaultValues: StoreValues = {
   editMode: false,

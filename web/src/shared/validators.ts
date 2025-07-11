@@ -87,7 +87,7 @@ export const validateIPv6 = (ip: string, allowMask = false): boolean => {
 
 export const validatePort = (val: string) => {
   const parsed = parseInt(val);
-  if (!isNaN(parsed)) {
+  if (!Number.isNaN(parsed)) {
     return parsed <= 65535;
   }
 };

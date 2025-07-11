@@ -8,7 +8,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
-import { User } from '../../../../../shared/types';
+import type { User } from '../../../../../shared/types';
 import { useAddAuthorizationKeyModal } from '../../../shared/modals/AddAuthenticationKeyModal/useAddAuthorizationKeyModal';
 import { useDisableMfaModal } from '../../../shared/modals/DisableMfaModal/store';
 import { useAddUserModal } from '../../modals/AddUserModal/hooks/useAddUserModal';

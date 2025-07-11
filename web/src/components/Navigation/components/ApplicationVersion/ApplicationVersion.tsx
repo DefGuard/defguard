@@ -14,7 +14,7 @@ export const ApplicationVersion = ({ isOpen }: Props) => {
   return (
     <div className="app-version">
       <p>
-        <>{isOpen ? LL.navigation.copyright() : '©'}&nbsp;</>
+        {isOpen ? LL.navigation.copyright() : '©'}&nbsp;
         <a href="https://www.teonite.com" target="_blank" rel="noreferrer">
           teonite
         </a>

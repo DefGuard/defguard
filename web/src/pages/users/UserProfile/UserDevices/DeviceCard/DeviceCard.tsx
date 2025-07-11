@@ -2,7 +2,7 @@ import './style.scss';
 
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import { TargetAndTransition } from 'framer-motion';
+import type { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
@@ -25,9 +25,9 @@ import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoDa
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { useClipboard } from '../../../../../shared/hooks/useClipboard';
-import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
+import type { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
-import { ListCellTag } from '../../../../acl/AclIndexPage/components/shared/types';
+import type { ListCellTag } from '../../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
@@ -136,7 +136,7 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           </div>
           <div className="limited">
             <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
-            {latestLocation && latestLocation.last_connected_at && (
+            {latestLocation?.last_connected_at && (
               <LimitedText
                 text={latestLocation?.network_name}
                 otherContent={
@@ -159,7 +159,7 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           </div>
           <div>
             <Label>{LL.userPage.devices.card.labels.connectionDate()}</Label>
-            {latestLocation && latestLocation.last_connected_at && (
+            {latestLocation?.last_connected_at && (
               <p>{formatDate(latestLocation.last_connected_at)}</p>
             )}
             {!latestLocation?.last_connected_at && (

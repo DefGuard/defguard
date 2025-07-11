@@ -1,7 +1,7 @@
 import './styles.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';

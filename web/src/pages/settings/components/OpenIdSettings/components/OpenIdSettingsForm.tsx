@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
+import { FormProvider, type SubmitHandler, useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 
@@ -21,7 +21,6 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { OpenIdProvider } from '../../../../../shared/types';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdProviderSettings } from './OpenIdProviderSettings';
@@ -31,12 +30,6 @@ export type UsernameHandling =
   | 'RemoveForbidden'
   | 'ReplaceForbidden'
   | 'PruneEmailDomain';
-
-type FormFields = OpenIdProvider & {
-  create_account: boolean;
-  use_openid_for_mfa: boolean;
-  username_handling: UsernameHandling;
-};
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -107,9 +100,9 @@ export const OpenIdSettingsForm = () => {
           google_service_account_key: z.string(),
           directory_sync_enabled: z.boolean(),
           directory_sync_interval: z.number().min(60, LL.form.error.invalid()),
-          directory_sync_user_behavior: z.string(),
-          directory_sync_admin_behavior: z.string(),
-          directory_sync_target: z.string(),
+          directory_sync_user_behavior: z.enum(['keep', 'disable', 'delete']),
+          directory_sync_admin_behavior: z.enum(['keep', 'disable', 'delete']),
+          directory_sync_target: z.enum(['all', 'users', 'groups']),
           create_account: z.boolean(),
           username_handling: z.string(),
           okta_private_jwk: z.string(),
@@ -157,9 +150,10 @@ export const OpenIdSettingsForm = () => {
     [LL.form.error],
   );
 
+  type FormFields = z.infer<typeof schema>;
+
   const defaultValues = useMemo((): FormFields => {
     let defaults: FormFields = {
-      id: 0,
       name: '',
       base_url: '',
       client_id: '',
@@ -223,7 +217,7 @@ export const OpenIdSettingsForm = () => {
   }, [defaultValues, reset]);
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    mutate(data);
+    mutate({ id: openidData?.provider?.id ?? 0, ...data, name: data.name ?? '' });
   };
 
   const handleDeleteProvider = useCallback(() => {

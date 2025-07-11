@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useEffect, useMemo } from 'react';
+import { type ReactNode, useEffect, useMemo } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { shallow } from 'zustand/shallow';
 

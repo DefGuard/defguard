@@ -3,9 +3,9 @@ import { Subject } from 'rxjs';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { DeviceConfigsCardNetworkInfo } from '../../../shared/components/network/DeviceConfigsCard/types';
-import { AddDeviceResponseDevice } from '../../../shared/types';
-import { AddDeviceNavigationEvent, AddDeviceStep } from '../types';
+import type { DeviceConfigsCardNetworkInfo } from '../../../shared/components/network/DeviceConfigsCard/types';
+import type { AddDeviceResponseDevice } from '../../../shared/types';
+import { type AddDeviceNavigationEvent, AddDeviceStep } from '../types';
 
 const defaultValues: StoreValues = {
   navigationSubject: new Subject(),

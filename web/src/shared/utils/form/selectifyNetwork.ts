@@ -1,5 +1,5 @@
-import { SelectOption } from '../../defguard-ui/components/Layout/Select/types';
-import { Network } from '../../types';
+import type { SelectOption } from '../../defguard-ui/components/Layout/Select/types';
+import type { Network } from '../../types';
 
 export const selectifyNetworks = (data: Network[]): SelectOption<number>[] =>
   data.map((network) => ({

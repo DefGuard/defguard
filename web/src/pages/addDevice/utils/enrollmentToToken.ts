@@ -12,7 +12,7 @@ const extractProxyPort = (input: string): string | undefined => {
     const url = new URL(input);
     const port = url.port;
     const parsed = port ? parseInt(port, 10) : undefined;
-    if (parsed && !isNaN(parsed)) {
+    if (parsed && !Number.isNaN(parsed)) {
       return `:${parsed}`;
     }
     return undefined;

@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Network } from '../../../shared/types';
+import type { Network } from '../../../shared/types';
 
 type NetworkPageStore = {
   saveSubject: Subject<void>;

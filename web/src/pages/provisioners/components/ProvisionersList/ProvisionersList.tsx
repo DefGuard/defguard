@@ -12,11 +12,11 @@ import { EditButton } from '../../../../shared/defguard-ui/components/Layout/Edi
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import {
-  ListHeader,
+  type ListHeader,
   ListSortDirection,
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
-import { Provisioner } from '../../../../shared/types';
+import type { Provisioner } from '../../../../shared/types';
 import { useDeleteProvisionerModal } from '../modals/useDeleteProvisionerModal';
 
 interface Props {

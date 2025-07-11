@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
+  type SelectOption,
   SelectSizeVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewTimeSelection } from '../hooks/useOverviewTimeSelection';

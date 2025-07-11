@@ -9,8 +9,8 @@ import { FormInput } from '../../../../../shared/defguard-ui/components/Form/For
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 

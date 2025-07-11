@@ -1,4 +1,5 @@
-import { useId, type SVGProps } from 'react';
+import { type SVGProps, useId } from 'react';
+
 const SvgIconTagDismiss = (props: SVGProps<SVGSVGElement>) => {
   const maskId = useId();
   return (

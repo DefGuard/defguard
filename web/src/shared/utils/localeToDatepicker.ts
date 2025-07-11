@@ -1,4 +1,4 @@
-import { Locales } from '../../i18n/i18n-types';
+import type { Locales } from '../../i18n/i18n-types';
 
 export const localeToDatePicker = (val: Locales): string => {
   switch (val) {

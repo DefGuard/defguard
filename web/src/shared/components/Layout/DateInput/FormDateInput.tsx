@@ -1,9 +1,13 @@
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
-import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
+import {
+  type FieldValues,
+  type UseControllerProps,
+  useController,
+} from 'react-hook-form';
 
 import { DateInput } from './DateInput';
-import { DateInputProps } from './types';
+import type { DateInputProps } from './types';
 
 type Props<T extends FieldValues> = {
   onChange?: (value: string | null) => void;

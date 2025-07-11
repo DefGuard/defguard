@@ -1,5 +1,8 @@
 {
   "files": [],
+  "exclude": [
+    "./src/i18n/**"
+  ],
   "references": [
     {
       "path": "./tsconfig.app.json"

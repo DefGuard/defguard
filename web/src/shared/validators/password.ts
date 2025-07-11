@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { TranslationFunctions } from '../../i18n/i18n-types';
+import type { TranslationFunctions } from '../../i18n/i18n-types';
 import {
   patternAtLeastOneDigit,
   patternAtLeastOneLowerCaseChar,

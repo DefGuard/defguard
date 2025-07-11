@@ -1,16 +1,15 @@
 // eslint-disable-next-line simple-import-sort/imports
 import { shallow } from 'zustand/shallow';
-
-import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
-import { useUpdatesStore } from '../../../hooks/store/useUpdatesStore';
-import { UpdateNotificationModalIcons } from './components/UpdateNotificationModalIcons';
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Button } from '../../../defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../defguard-ui/components/Layout/Button/types';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
+import { useUpdatesStore } from '../../../hooks/store/useUpdatesStore';
 import { RenderMarkdown } from '../../Layout/RenderMarkdown/RenderMarkdown';
+import { UpdateNotificationModalIcons } from './components/UpdateNotificationModalIcons';
 import './style.scss';
 import dayjs from 'dayjs';
 

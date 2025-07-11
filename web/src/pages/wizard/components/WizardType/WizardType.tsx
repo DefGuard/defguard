@@ -20,7 +20,7 @@ export const WizardType = () => {
   const submitSubject = useWizardStore((state) => state.submitSubject);
 
   useEffect(() => {
-    if (submitSubject && submitSubject.subscribe) {
+    if (submitSubject?.subscribe) {
       const sub = submitSubject.subscribe(() => {
         nextStepSubject.next();
       });

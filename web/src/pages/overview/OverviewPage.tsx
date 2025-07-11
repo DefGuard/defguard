@@ -60,7 +60,7 @@ export const OverviewPage = () => {
       }),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
-    enabled: !isUndefined(selectedNetworkId) && !isNaN(selectedNetworkId),
+    enabled: !isUndefined(selectedNetworkId) && !Number.isNaN(selectedNetworkId),
   });
 
   const { data: overviewStats, isLoading: userStatsLoading } = useQuery({
@@ -73,7 +73,7 @@ export const OverviewPage = () => {
     enabled:
       !isUndefined(statsFilter) &&
       !isUndefined(selectedNetworkId) &&
-      !isNaN(selectedNetworkId),
+      !Number.isNaN(selectedNetworkId),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
   });
@@ -104,7 +104,7 @@ export const OverviewPage = () => {
   }, [setOverViewStore, viewMode]);
 
   useEffect(() => {
-    if (isNaN(selectedNetworkId)) {
+    if (Number.isNaN(selectedNetworkId)) {
       navigate(`/admin/overview/${location.search}`, {
         replace: true,
       });

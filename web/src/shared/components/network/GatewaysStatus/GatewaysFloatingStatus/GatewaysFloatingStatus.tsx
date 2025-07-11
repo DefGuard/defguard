@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { InteractionBox } from '../../../../defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import useApi from '../../../../hooks/useApi';
 import { useToaster } from '../../../../hooks/useToaster';
-import { GatewayStatus } from '../../../../types';
+import type { GatewayStatus } from '../../../../types';
 
 type Props = {
   status: GatewayStatus;

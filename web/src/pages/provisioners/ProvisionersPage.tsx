@@ -12,7 +12,7 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../shared/defguard-ui/components/Layout/Select/Select';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../shared/defguard-ui/components/Layout/Select/types';

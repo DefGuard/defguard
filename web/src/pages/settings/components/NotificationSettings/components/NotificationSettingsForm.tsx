@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -18,7 +18,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { ApiError } from '../../../../../shared/types';
+import type { ApiError } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 import { GatewayNotificationsForm } from './GatewayNotificationsForm';

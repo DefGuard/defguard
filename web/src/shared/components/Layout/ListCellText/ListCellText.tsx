@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { Placement } from '@floating-ui/react';
+import type { Placement } from '@floating-ui/react';
 import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
 import { useCallback, useRef, useState } from 'react';

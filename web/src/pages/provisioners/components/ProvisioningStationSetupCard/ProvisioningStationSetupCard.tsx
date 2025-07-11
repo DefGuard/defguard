@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';

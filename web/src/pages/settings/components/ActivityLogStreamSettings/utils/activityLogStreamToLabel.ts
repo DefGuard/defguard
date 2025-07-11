@@ -1,4 +1,7 @@
-import { ActivityLogStream, ActivityLogStreamType } from '../../../../../shared/types';
+import type {
+  ActivityLogStream,
+  ActivityLogStreamType,
+} from '../../../../../shared/types';
 
 export const activityLogStreamToLabel = (value: ActivityLogStream): string =>
   activityLogStreamTypeToLabel(value.stream_type);

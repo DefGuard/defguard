@@ -1,5 +1,5 @@
 import { useNavigationStore } from '../../hooks/useNavigationStore';
-import { NavigationItems } from '../../types';
+import type { NavigationItems } from '../../types';
 import { NavigationBar } from '../NavigationBar/NavigationBar';
 import { NavigationCollapse } from './NavigationCollapse/NavigationCollapse';
 

@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { AclAlias } from '../../../../../types';
+import type { AclAlias } from '../../../../../types';
 
 const defaults: StoreValues = {
   visible: false,

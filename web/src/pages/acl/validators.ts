@@ -1,7 +1,7 @@
 import * as ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 
-import { TranslationFunctions } from '../../i18n/i18n-types';
+import type { TranslationFunctions } from '../../i18n/i18n-types';
 import { patternStrictIpV4 } from '../../shared/patterns';
 
 export const aclPortsValidator = (LL: TranslationFunctions) =>
@@ -24,7 +24,7 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
       const found: number[] = [];
       for (const entry of trimmed) {
         const num = parseInt(entry);
-        if (isNaN(num)) {
+        if (Number.isNaN(num)) {
           return false;
         }
         if (found.includes(num)) {
@@ -87,7 +87,7 @@ function parseSubnet(input: string): [ipaddr.IPv4 | ipaddr.IPv6, number] | null 
 
   if (kind === 'ipv6') {
     const prefix = parseInt(maskPart);
-    if (typeof prefix !== 'number' || isNaN(prefix)) {
+    if (typeof prefix !== 'number' || Number.isNaN(prefix)) {
       return null;
     }
     return [ip, prefix];
