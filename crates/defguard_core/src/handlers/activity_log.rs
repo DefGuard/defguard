@@ -99,6 +99,7 @@ pub struct ApiActivityLogEvent {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
+    pub location: Option<String>,
     pub ip: IpNetwork,
     pub event: String,
     pub module: ActivityLogModule,
@@ -131,7 +132,7 @@ pub async fn get_activity_log_events(
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, username, ip, event, module, device, description FROM activity_log_event WHERE 1=1 ",
+        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description FROM activity_log_event WHERE 1=1 ",
     );
 
     // filter events for non-admin users to show only their own events

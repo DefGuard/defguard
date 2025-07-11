@@ -73,6 +73,10 @@ export const ActivityList = ({
         key: 'ip',
       },
       {
+        label: headersLL.location(),
+        key: 'location',
+      },
+      {
         label: headersLL.event(),
         key: 'event',
       },
@@ -138,6 +142,9 @@ export const ActivityList = ({
                 </div>
                 <div className="cell ip">
                   <ListCellText text={activity.ip} />
+                </div>
+                <div className="cell location">
+                  <ListCellText text={activity.location || ''} />
                 </div>
                 <div className="cell event">
                   <ListCellText text={LL.enums.activityLogEventType[activity.event]()} />

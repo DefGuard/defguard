@@ -504,6 +504,7 @@ export type ActivityLogEvent = {
   timestamp: string;
   user_id: number;
   username: string;
+  location?: string;
   ip: string;
   event: ActivityLogEventType;
   module: ActivityLogModule;
