@@ -2605,6 +2605,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         date: 'Date',
         user: 'User',
         ip: 'IP',
+        location: 'Location',
         event: 'Event',
         module: 'Module',
         device: 'Device',

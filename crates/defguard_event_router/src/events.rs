@@ -6,7 +6,7 @@ use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent}
 /// The enum itself is organized based on event source to make splitting logic into smaller chunks easier.
 pub enum Event {
     Api(ApiEvent),
-    Grpc(GrpcEvent),
+    Grpc(Box<GrpcEvent>),
     Bidi(BidiStreamEvent),
-    Internal(InternalEvent),
+    Internal(Box<InternalEvent>),
 }

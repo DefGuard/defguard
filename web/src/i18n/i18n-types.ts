@@ -6253,6 +6253,10 @@ type RootTranslation = {
 				 */
 				ip: string
 				/**
+				 * L​o​c​a​t​i​o​n
+				 */
+				location: string
+				/**
 				 * E​v​e​n​t
 				 */
 				event: string
@@ -12783,6 +12787,10 @@ export type TranslationFunctions = {
 				 * IP
 				 */
 				ip: () => LocalizedString
+				/**
+				 * Location
+				 */
+				location: () => LocalizedString
 				/**
 				 * Event
 				 */

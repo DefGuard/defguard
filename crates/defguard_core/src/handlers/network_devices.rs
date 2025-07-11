@@ -742,9 +742,9 @@ pub async fn modify_network_device(
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::NetworkDeviceModified {
+            location: device_network,
             before,
             after: device,
-            location: device_network,
         }),
     })?;
     Ok(ApiResponse {

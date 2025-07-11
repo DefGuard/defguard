@@ -125,6 +125,7 @@ pub struct ActivityLogEvent<I = NoId> {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
+    pub location: Option<String>,
     pub ip: IpNetwork,
     #[model(enum)]
     pub event: EventType,

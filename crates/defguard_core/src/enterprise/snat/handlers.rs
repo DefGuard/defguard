@@ -131,6 +131,7 @@ pub async fn create_snat_binding(
         context,
         event: Box::new(ApiEventType::UserSnatBindingAdded {
             user: snat_user,
+            location: location.clone(),
             binding: binding.clone(),
         }),
     })?;
@@ -224,6 +225,7 @@ pub async fn modify_snat_binding(
         context,
         event: Box::new(ApiEventType::UserSnatBindingModified {
             user: snat_user,
+            location: location.clone(),
             before,
             after: snat_binding.clone(),
         }),
@@ -303,6 +305,7 @@ pub async fn delete_snat_binding(
         context,
         event: Box::new(ApiEventType::UserSnatBindingRemoved {
             user: snat_user,
+            location: location.clone(),
             binding: snat_binding,
         }),
     })?;

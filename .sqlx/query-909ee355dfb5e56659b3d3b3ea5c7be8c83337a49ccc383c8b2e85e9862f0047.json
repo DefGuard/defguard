@@ -1,13 +1,19 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"activity_log_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"username\" = $4,\"ip\" = $5,\"event\" = $6,\"module\" = $7,\"device\" = $8,\"description\" = $9,\"metadata\" = $10 WHERE id = $1",
+  "query": "INSERT INTO \"activity_log_event\" (\"timestamp\",\"user_id\",\"username\",\"location\",\"ip\",\"event\",\"module\",\"device\",\"description\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Timestamp",
         "Int8",
+        "Text",
         "Text",
         "Inet",
         "Text",
@@ -29,7 +35,9 @@
         "Jsonb"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "59f08f1fa140e1a77881c711928cbde209cee79eb178bd2e51474bcd7c8d315c"
+  "hash": "909ee355dfb5e56659b3d3b3ea5c7be8c83337a49ccc383c8b2e85e9862f0047"
 }

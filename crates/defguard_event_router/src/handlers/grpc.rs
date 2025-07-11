@@ -9,8 +9,8 @@ impl EventRouter {
         debug!("Processing gRPC server event: {event:?}");
 
         match event {
-            GrpcEvent::GatewayConnected => todo!(),
-            GrpcEvent::GatewayDisconnected => todo!(),
+            GrpcEvent::GatewayConnected { location: _ } => todo!(),
+            GrpcEvent::GatewayDisconnected { location: _ } => todo!(),
             GrpcEvent::ClientConnected {
                 context,
                 location,

@@ -53,6 +53,7 @@ pub struct GrpcRequestContext {
     pub ip: IpAddr,
     pub device_id: Id,
     pub device_name: String,
+    pub location: WireguardNetwork<Id>,
 }
 
 impl GrpcRequestContext {
@@ -62,6 +63,7 @@ impl GrpcRequestContext {
         ip: IpAddr,
         device_id: Id,
         device_name: String,
+        location: WireguardNetwork<Id>,
     ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -71,6 +73,7 @@ impl GrpcRequestContext {
             ip,
             device_id,
             device_name,
+            location,
         }
     }
 }
@@ -275,14 +278,17 @@ pub enum ApiEventType {
     },
     UserSnatBindingAdded {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         binding: UserSnatBinding<Id>,
     },
     UserSnatBindingRemoved {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         binding: UserSnatBinding<Id>,
     },
     UserSnatBindingModified {
         user: User<Id>,
+        location: WireguardNetwork<Id>,
         before: UserSnatBinding<Id>,
         after: UserSnatBinding<Id>,
     },
@@ -298,8 +304,12 @@ pub struct ApiEvent {
 /// Events from gRPC server
 #[derive(Debug)]
 pub enum GrpcEvent {
-    GatewayConnected,
-    GatewayDisconnected,
+    GatewayConnected {
+        location: WireguardNetwork<Id>,
+    },
+    GatewayDisconnected {
+        location: WireguardNetwork<Id>,
+    },
     ClientConnected {
         context: GrpcRequestContext,
         location: WireguardNetwork<Id>,

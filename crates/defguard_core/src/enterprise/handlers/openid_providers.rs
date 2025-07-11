@@ -214,14 +214,14 @@ pub async fn delete_openid_provider(
         "User {} deleting OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let mut trasnaction = appstate.pool.begin().await?;
-    let provider = OpenIdProvider::find_by_name(&mut *trasnaction, &provider_data.name).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(provider) = provider {
         let mut settings = Settings::get_current_settings();
-        provider.clone().delete(&mut *trasnaction).await?;
+        provider.clone().delete(&mut *transaction).await?;
         settings.use_openid_for_mfa = false;
-        update_current_settings(&mut *trasnaction, settings).await?;
-        trasnaction.commit().await?;
+        update_current_settings(&mut *transaction, settings).await?;
+        transaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",
             session.user.username, provider.name

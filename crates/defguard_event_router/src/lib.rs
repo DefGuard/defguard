@@ -129,7 +129,7 @@ impl EventRouter {
                   }
               },
               event = self.receivers.grpc.recv() => match event {
-                  Some(grpc_event) => Event::Grpc(grpc_event),
+                  Some(grpc_event) => Event::Grpc(Box::new(grpc_event)),
                   None => {
                         error!("gRPC event channel closed");
                         return Err(EventRouterError::GrpcEventChannelClosed);
@@ -143,7 +143,7 @@ impl EventRouter {
                   }
               },
               event = self.receivers.internal.recv() => match event {
-                  Some(internal_event) => Event::Internal(internal_event),
+                  Some(internal_event) => Event::Internal(Box::new(internal_event)),
                   None => {
                         error!("Internal event channel closed");
                         return Err(EventRouterError::InternalEventChannelClosed);
@@ -156,9 +156,9 @@ impl EventRouter {
             // Route the event to the appropriate handler
             match event {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
-                Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
+                Event::Grpc(grpc_event) => self.handle_grpc_event(*grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
-                Event::Internal(internal_event) => self.handle_internal_event(internal_event)?,
+                Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
             };
         }
     }
