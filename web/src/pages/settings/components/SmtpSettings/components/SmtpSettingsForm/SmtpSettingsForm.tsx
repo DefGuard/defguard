@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -17,7 +17,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
@@ -25,7 +25,7 @@ import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { SettingsSMTP } from '../../../../../../shared/types';
+import type { SettingsSMTP } from '../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { validateIpOrDomain } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';

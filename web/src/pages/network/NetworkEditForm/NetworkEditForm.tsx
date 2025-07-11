@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -16,12 +16,12 @@ import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types.ts';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import { Network } from '../../../shared/types';
+import type { Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
 import {

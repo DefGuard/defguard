@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { FieldValues, UseControllerProps } from 'react-hook-form';
+import type { FieldValues, UseControllerProps } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormSelect } from '../../../defguard-ui/components/Form/FormSelect/FormSelect';
-import { SelectOption } from '../../../defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../hooks/store/useAppStore';
 
 type Props<T extends FieldValues> = {

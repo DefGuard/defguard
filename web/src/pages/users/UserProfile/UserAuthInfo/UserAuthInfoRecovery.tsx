@@ -15,27 +15,21 @@ export const UserAuthInfoRecovery = () => {
         <h3>{LL.userPage.userAuthInfo.recovery.header()}</h3>
       </header>
       {editMode && isMe ? (
-        <>
-          <RowBox>
-            <p>{LL.userPage.userAuthInfo.recovery.codes.label()}</p>
-            <div className="right">
-              {user.mfa_enabled && (
-                <>
-                  <span>{LL.userPage.userAuthInfo.recovery.codes.viewed()}</span>
-                </>
-              )}
-            </div>
-          </RowBox>
-        </>
-      ) : (
-        <>
-          <div className="row">
-            <p>{LL.userPage.userAuthInfo.recovery.codes.label()}</p>
-            <p className="info">
-              {user.mfa_enabled && LL.userPage.userAuthInfo.recovery.codes.viewed()}
-            </p>
+        <RowBox>
+          <p>{LL.userPage.userAuthInfo.recovery.codes.label()}</p>
+          <div className="right">
+            {user.mfa_enabled && (
+              <span>{LL.userPage.userAuthInfo.recovery.codes.viewed()}</span>
+            )}
           </div>
-        </>
+        </RowBox>
+      ) : (
+        <div className="row">
+          <p>{LL.userPage.userAuthInfo.recovery.codes.label()}</p>
+          <p className="info">
+            {user.mfa_enabled && LL.userPage.userAuthInfo.recovery.codes.viewed()}
+          </p>
+        </div>
       )}
     </section>
   );

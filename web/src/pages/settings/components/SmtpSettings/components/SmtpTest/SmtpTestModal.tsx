@@ -2,9 +2,9 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -16,7 +16,7 @@ import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/compone
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { patternValidEmail } from '../../../../../../shared/patterns';
-import { TestMail } from '../../../../../../shared/types';
+import type { TestMail } from '../../../../../../shared/types';
 import { useSmtpTestModal } from './useSmtpTestModal';
 
 type SMTPError = AxiosError<{ error: string }>;

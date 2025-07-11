@@ -1,14 +1,17 @@
-import {
+import type {
   CredentialCreationOptionsJSON,
   CredentialRequestOptionsJSON,
   PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { AxiosError, AxiosPromise } from 'axios';
+import type { AxiosError, AxiosPromise } from 'axios';
 
-import { AclAlias, AclStatus } from '../pages/acl/types';
-import { ActivityLogEventType, ActivityLogModule } from '../pages/activity-log/types';
-import { UpdateInfo } from './hooks/store/useUpdatesStore';
+import type { AclAlias, AclStatus } from '../pages/acl/types';
+import type {
+  ActivityLogEventType,
+  ActivityLogModule,
+} from '../pages/activity-log/types';
+import type { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
 
@@ -61,9 +64,9 @@ export type UserProfile = {
 };
 
 export interface OAuth2AuthorizedApps {
-  oauth2client_id: string;
+  oauth2client_id: number;
   oauth2client_name: string;
-  user_id: string;
+  user_id: number;
 }
 
 export interface SecurityKey {
@@ -312,7 +315,7 @@ export interface RecoveryLoginRequest {
   code: string;
 }
 
-export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
+export type MFARecoveryCodesResponse = Promise<undefined | RecoveryCodes>;
 
 export interface VersionResponse {
   version: string;
@@ -1160,6 +1163,18 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string;
 }
 
+export enum OpenIdSyncBehavior {
+  KEEP = 'keep',
+  DISABLE = 'disable',
+  DELETE = 'delete',
+}
+
+export enum OpenIdSyncTarget {
+  ALL = 'all',
+  USERS = 'users',
+  GROUPS = 'groups',
+}
+
 export interface EditOpenidClientRequest {
   id: string;
   name: string;
@@ -1277,7 +1292,7 @@ export interface WebAuthnRegistrationRequest {
 
 export interface RemoveUserClientRequest {
   username: string;
-  client_id: string;
+  client_id: number;
 }
 
 export interface TestMail {

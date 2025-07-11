@@ -2,7 +2,7 @@
 import { useCallback, useState } from 'react';
 import { createContainer } from 'react-tracked';
 
-import { AclCreateContext, AclCreateContextLoaded } from './types';
+import type { AclCreateContext, AclCreateContextLoaded } from './types';
 
 const init: AclCreateContext = {
   devices: undefined,

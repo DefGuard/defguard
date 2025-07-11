@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect } from 'react';
+import { type PropsWithChildren, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';

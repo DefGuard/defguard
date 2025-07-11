@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { GroupInfo } from '../../../../../shared/types';
+import type { GroupInfo } from '../../../../../shared/types';
 
 const defaults: StoreValues = {
   visible: false,

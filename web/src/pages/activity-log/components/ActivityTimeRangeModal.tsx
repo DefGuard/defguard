@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -69,40 +69,38 @@ const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: P
   };
 
   return (
-    <>
-      <form
-        onSubmit={handleSubmit(handleValidSubmit)}
-        id="activity-time-selection-modal-form"
-      >
-        <FormDateInput
-          clearable
-          label={LL.common.from()}
-          controller={{ control, name: 'from' }}
-          showTimeSelection
+    <form
+      onSubmit={handleSubmit(handleValidSubmit)}
+      id="activity-time-selection-modal-form"
+    >
+      <FormDateInput
+        clearable
+        label={LL.common.from()}
+        controller={{ control, name: 'from' }}
+        showTimeSelection
+      />
+      <FormDateInput
+        clearable
+        label={LL.common.until()}
+        controller={{ control, name: 'until' }}
+        showTimeSelection
+      />
+      <div className="controls">
+        <Button
+          type="button"
+          size={ButtonSize.STANDARD}
+          text={LL.common.controls.cancel()}
+          onClick={() => {
+            onOpenChange(false);
+          }}
         />
-        <FormDateInput
-          clearable
-          label={LL.common.until()}
-          controller={{ control, name: 'until' }}
-          showTimeSelection
+        <Button
+          type="submit"
+          size={ButtonSize.STANDARD}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text={LL.common.controls.save()}
         />
-        <div className="controls">
-          <Button
-            type="button"
-            size={ButtonSize.STANDARD}
-            text={LL.common.controls.cancel()}
-            onClick={() => {
-              onOpenChange(false);
-            }}
-          />
-          <Button
-            type="submit"
-            size={ButtonSize.STANDARD}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            text={LL.common.controls.save()}
-          />
-        </div>
-      </form>
-    </>
+      </div>
+    </form>
   );
 };

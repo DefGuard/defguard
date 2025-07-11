@@ -5,7 +5,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import { z } from 'zod';
 
@@ -94,7 +94,7 @@ const TOTPRegisterQRCode = () => {
   );
 
   const handleCopy = () => {
-    if (data && data.secret) {
+    if (data?.secret) {
       void writeToClipboard(data.secret, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
@@ -149,7 +149,7 @@ const TOTPRegisterForm = () => {
       void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_USER_PROFILE],
       });
-      if (data && data.codes) {
+      if (data?.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: data.codes },
         });

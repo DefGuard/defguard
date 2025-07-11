@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';

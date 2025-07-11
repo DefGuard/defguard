@@ -3,11 +3,11 @@ import { Subject } from 'rxjs';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { ImportedDevice, Network } from '../../../shared/types';
+import type { ImportedDevice, Network } from '../../../shared/types';
 
 export enum WizardSetupType {
-  'IMPORT' = 'IMPORT',
-  'MANUAL' = 'MANUAL',
+  IMPORT = 'IMPORT',
+  MANUAL = 'MANUAL',
 }
 
 const defaultValues: StoreFields = {

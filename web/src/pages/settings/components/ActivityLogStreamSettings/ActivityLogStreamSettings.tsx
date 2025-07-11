@@ -9,7 +9,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ListCellText } from '../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../shared/components/Layout/ListHeader/ListHeader';
-import { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
+import type { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -25,7 +25,7 @@ import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
-import { ActivityLogStream } from '../../../../shared/types';
+import type { ActivityLogStream } from '../../../../shared/types';
 import { CreateActivityLogStreamModal } from './modals/CreateActivityLogStreamModal/CreateActivityLogStreamModal';
 import { useCreateActivityLogStreamModalStore } from './modals/CreateActivityLogStreamModal/store';
 import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';

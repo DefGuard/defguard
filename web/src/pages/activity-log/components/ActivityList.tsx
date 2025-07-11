@@ -6,10 +6,10 @@ import { useInView } from 'react-intersection-observer';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
-import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
+import type { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
-import { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';
+import type { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import type { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';
 
 type Props = {
   data: ActivityLogEvent[];

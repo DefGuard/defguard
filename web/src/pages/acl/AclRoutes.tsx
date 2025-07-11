@@ -1,10 +1,9 @@
-import { PropsWithChildren } from 'react';
+import type { PropsWithChildren } from 'react';
 import { Route, Routes } from 'react-router';
-
-import { AclCreateTrackedProvider } from './acl-context';
 import { AclCreateDataProvider } from './AclCreateDataProvider';
 import { AlcCreatePage } from './AclCreatePage/AclCreatePage';
 import { AclIndexPage } from './AclIndexPage/AclIndexPage';
+import { AclCreateTrackedProvider } from './acl-context';
 
 const AclProvide = ({ children }: PropsWithChildren) => {
   return (

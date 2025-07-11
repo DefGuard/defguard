@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';

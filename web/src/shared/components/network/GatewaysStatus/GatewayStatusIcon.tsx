@@ -1,4 +1,4 @@
-import { motion, TargetAndTransition } from 'framer-motion';
+import { motion, type TargetAndTransition } from 'framer-motion';
 import { useMemo } from 'react';
 
 import { ColorsRGB } from '../../../constants';

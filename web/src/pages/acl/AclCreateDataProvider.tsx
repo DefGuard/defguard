@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { PropsWithChildren, useEffect, useMemo } from 'react';
+import { type PropsWithChildren, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 

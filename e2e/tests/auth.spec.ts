@@ -13,7 +13,6 @@ import { changePassword, changePasswordByAdmin } from '../utils/controllers/prof
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerDown, dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
@@ -109,14 +108,9 @@ test.describe('Test user authentication', () => {
     await waitForRoute(page, routes.me);
     expect(page.url()).toBe(routes.base + routes.me);
     await disableUser(browser, testUser);
-    // The user should be logged out when the admin disables him
-    await waitForPromise(2000);
-    const responsePromise = page.waitForResponse(
-      (resp) => resp.url() === '**/user/' + testUser.username && resp.status() === 401,
-    );
+    const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
     await page.locator('a[href="/me"]').click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(401);
+    await responsePromise;
   });
 });
 

@@ -19,13 +19,13 @@ import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/Loa
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
-import { User } from '../../../shared/types';
+import type { User } from '../../../shared/types';
 import { DisableMfaModal } from '../shared/modals/DisableMfaModal/DisableMfaModal';
 import { UsersList } from './components/UsersList/UsersList';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
@@ -185,7 +185,7 @@ export const UsersOverview = () => {
         <div className="items-count">
           <span>{LL.usersOverview.usersCount()}</span>
           <div className="count" data-testid="users-count">
-            <span>{users && users.length ? users.length : 0}</span>
+            <span>{users?.length ? users.length : 0}</span>
           </div>
         </div>
         <div className="controls">

@@ -1,7 +1,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
-import { ActivityLogStreamVectorHttp } from '../../../../../../shared/types';
+import type { ActivityLogStreamVectorHttp } from '../../../../../../shared/types';
 
 type ModifyData = {
   id: number;

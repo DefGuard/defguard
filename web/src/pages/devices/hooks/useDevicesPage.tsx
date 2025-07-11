@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createContainer } from 'react-tracked';
 
-import { StandaloneDevice } from '../../../shared/types';
+import type { StandaloneDevice } from '../../../shared/types';
 
 export type DevicesPageContext = {
   devices: StandaloneDevice[];

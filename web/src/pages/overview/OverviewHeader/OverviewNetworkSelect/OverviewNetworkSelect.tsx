@@ -4,7 +4,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../../../shared/defguard-ui/components/Layout/Select/types';

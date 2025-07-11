@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { isUndefined, sortBy, sumBy } from 'lodash-es';
 
-import {
+import type {
   NetworkDeviceStats,
   NetworkSpeedStats,
   NetworkUserStats,

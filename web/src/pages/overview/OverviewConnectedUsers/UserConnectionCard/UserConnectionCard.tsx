@@ -20,21 +20,21 @@ import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/D
 import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
-import {
+import type {
   NetworkDeviceStats,
   NetworkUserStats,
   StandaloneDeviceStats,
 } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import {
-  summarizeDevicesStats,
   summarizeDeviceStats,
+  summarizeDevicesStats,
   summarizeUsersNetworkStats,
 } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 import { formatConnectionTime } from './formatConnectionTime';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 
 type DeviceConnectionCardProps = {
   data: StandaloneDeviceStats;

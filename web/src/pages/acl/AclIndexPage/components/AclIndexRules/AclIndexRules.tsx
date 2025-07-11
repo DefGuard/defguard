@@ -1,10 +1,10 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { concat, intersection, orderBy } from 'lodash-es';
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
 
@@ -12,9 +12,9 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { ListCellTags } from '../../../../../shared/components/Layout/ListCellTags/ListCellTags';
 import { ListCellText } from '../../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
-import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
+import type { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
 import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
-import { FilterGroupsModalFilter } from '../../../../../shared/components/modals/FilterGroupsModal/types';
+import type { FilterGroupsModalFilter } from '../../../../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -33,21 +33,21 @@ import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { AclRuleInfo } from '../../../../../shared/types';
+import type { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import {
-  AclAlias,
+  type AclAlias,
   AclAliasStatus,
-  AclCreateContextLoaded,
+  type AclCreateContextLoaded,
   AclStatus,
 } from '../../../types';
 import { aclRuleToStatusInt, aclStatusToInt } from '../../../utils';
 import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
 import { DeployChangesIcon } from '../DeployChangesIcon';
 import { DividerHeader } from '../shared/DividerHeader';
-import { ListCellTag } from '../shared/types';
-import { AclRulesApplyConfirmModal } from './components/AclRulesApplyConfirmModal/AclRulesApplyConfirmModal';
+import type { ListCellTag } from '../shared/types';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
+import { AclRulesApplyConfirmModal } from './components/AclRulesApplyConfirmModal/AclRulesApplyConfirmModal';
 
 type RulesFilters = {
   networks: number[];

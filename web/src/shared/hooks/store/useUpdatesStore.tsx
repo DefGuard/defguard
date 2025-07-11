@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import {
-  VersionUpdateToastMeta,
+  type VersionUpdateToastMeta,
   versionUpdateToastMetaSchema,
 } from '../../components/Layout/VersionUpdateToast/types';
 import { VersionUpdateToast } from '../../components/Layout/VersionUpdateToast/VersionUpdateToast';

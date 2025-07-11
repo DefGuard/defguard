@@ -18,7 +18,7 @@ import {
 import { ConfirmModal } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';

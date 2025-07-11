@@ -1,5 +1,5 @@
-import { AclAlias } from '../../../types';
-import { ListCellTag } from '../shared/types';
+import type { AclAlias } from '../../../types';
+import type { ListCellTag } from '../shared/types';
 
 export type AclAliasListData = {
   display: {

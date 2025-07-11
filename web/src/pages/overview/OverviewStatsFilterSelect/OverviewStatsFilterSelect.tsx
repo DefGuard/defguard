@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';

@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { shallow } from 'zustand/shallow';
 

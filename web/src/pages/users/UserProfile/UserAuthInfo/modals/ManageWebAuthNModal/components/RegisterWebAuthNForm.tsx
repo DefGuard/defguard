@@ -5,7 +5,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
@@ -50,7 +50,7 @@ export const RegisterWebAuthNForm = () => {
         queryKey: [QueryKeys.FETCH_USER_PROFILE],
       });
       reset();
-      if (data && data.codes) {
+      if (data?.codes) {
         setModalState({
           recoveryCodesModal: { visible: true, codes: data.codes },
           manageWebAuthNKeysModal: { visible: false },

@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 
 import { useNavigationStore } from '../../../../components/Navigation/hooks/useNavigationStore';
 import { Search } from '../../../defguard-ui/components/Layout/Search/Search';
-import { ManagementPageProps } from './types';
+import type { ManagementPageProps } from './types';
 
 export const ManagementPageLayout = ({
   children,

@@ -147,7 +147,7 @@ export const UserAuthInfoMFA = () => {
 
   const getWebAuthNInfoText = useMemo(() => {
     if (userProfile) {
-      if (userProfile.security_keys && userProfile.security_keys.length) {
+      if (userProfile.security_keys?.length) {
         const res = [
           `${userProfile.security_keys.length} ${
             userProfile.security_keys.length > 1

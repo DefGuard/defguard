@@ -7,7 +7,7 @@ import { useEffect, useMemo } from 'react';
 import { isPresent } from '../../../../defguard-ui/utils/isPresent';
 import useApi from '../../../../hooks/useApi';
 import { useToaster } from '../../../../hooks/useToaster';
-import { GatewayStatus } from '../../../../types';
+import type { GatewayStatus } from '../../../../types';
 import { GatewaysFloatingStatus } from '../GatewaysFloatingStatus/GatewaysFloatingStatus';
 import { GatewaysStatusInfo } from '../GatewaysStatusInfo/GatewaysStatusInfo';
 

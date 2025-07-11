@@ -9,10 +9,10 @@ import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/Fo
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import {
-  SelectOption,
+  type SelectOption,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { UsernameHandling } from './OpenIdSettingsForm';
+import type { UsernameHandling } from './OpenIdSettingsForm';
 
 export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();

@@ -12,15 +12,15 @@ import { ExpandableCard } from '../../../defguard-ui/components/Layout/Expandabl
 import { LoaderSpinner } from '../../../defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { Select } from '../../../defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../defguard-ui/components/Layout/Select/types';
 import useApi from '../../../hooks/useApi';
 import { useClipboard } from '../../../hooks/useClipboard';
 import { QueryKeys } from '../../../queries';
 import { downloadWGConfig } from '../../../utils/downloadWGConfig';
-import { DeviceConfigsCardNetworkInfo } from './types';
+import type { DeviceConfigsCardNetworkInfo } from './types';
 
 type Props = {
   deviceId: number;

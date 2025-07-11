@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Bar, BarChart, XAxis, YAxis } from 'recharts';
 
 import { ColorsRGB } from '../../../../../../shared/constants';
-import { NetworkDeviceStats } from '../../../../../../shared/types';
+import type { NetworkDeviceStats } from '../../../../../../shared/types';
 import { parseStatsForCharts } from '../../../../helpers/stats';
 
 interface NetworkUsageProps {

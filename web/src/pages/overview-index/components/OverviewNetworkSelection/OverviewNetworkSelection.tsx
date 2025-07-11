@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
+  type SelectOption,
   SelectSizeVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
@@ -34,7 +34,7 @@ export const OverviewNetworkSelection = () => {
   const selectionValue = useMemo(() => {
     if (networkId) {
       const value = parseInt(networkId);
-      if (!isNaN(value) && typeof value === 'number') {
+      if (!Number.isNaN(value) && typeof value === 'number') {
         return value;
       }
     }

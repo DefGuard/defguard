@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { DeviceConfigsCardNetworkInfo } from '../../../../../shared/components/network/DeviceConfigsCard/types';
+import type { DeviceConfigsCardNetworkInfo } from '../../../../../shared/components/network/DeviceConfigsCard/types';
 
 const defaultValues: StoreValues = {
   isOpen: false,

@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';

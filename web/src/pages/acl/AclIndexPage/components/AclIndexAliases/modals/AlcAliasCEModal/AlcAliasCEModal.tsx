@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -17,7 +17,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
-import { SelectOption } from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';

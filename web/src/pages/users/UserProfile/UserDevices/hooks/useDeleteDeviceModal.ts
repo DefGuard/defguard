@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Device } from '../../../../../shared/types';
+import type { Device } from '../../../../../shared/types';
 
 const defaultValues: StoreValues = {
   visible: false,

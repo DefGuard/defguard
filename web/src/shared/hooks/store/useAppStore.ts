@@ -2,8 +2,8 @@ import { pick } from 'lodash-es';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Locales } from '../../../i18n/i18n-types';
-import { AppInfo, SettingsEnterprise, SettingsEssentials } from '../../types';
+import type { Locales } from '../../../i18n/i18n-types';
+import type { AppInfo, SettingsEnterprise, SettingsEssentials } from '../../types';
 
 const defaultValues: StoreValues = {
   settings: undefined,

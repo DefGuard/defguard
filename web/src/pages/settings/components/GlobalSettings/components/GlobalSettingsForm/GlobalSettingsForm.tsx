@@ -4,9 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
-import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
@@ -26,20 +25,10 @@ import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
+import { type GlobalSettingsFormFields, globalSettingsSchema } from '../../types';
 import { LicenseSettings } from '../LicenseSettings/LicenseSettings';
 
-export type FormFields = {
-  instance_name: string;
-  main_logo_url: string;
-  nav_logo_url: string;
-  openid_enabled: boolean;
-  wireguard_enabled: boolean;
-  worker_enabled: boolean;
-  webhooks_enabled: boolean;
-  license: string;
-};
-
-const defaultSettings: FormFields = {
+const defaultSettings = {
   instance_name: 'Defguard',
   main_logo_url: '/svg/logo-defguard-white.svg',
   nav_logo_url: '/svg/defguard-nav-logo.svg',
@@ -81,25 +70,9 @@ export const GlobalSettingsForm = () => {
     },
   });
 
-  const zodSchema = useMemo(
-    () =>
-      z.object({
-        main_logo_url: z.string(),
-        nav_logo_url: z.string(),
-        instance_name: z
-          .string()
-          .min(3, LL.form.error.minimumLength())
-          .max(12, LL.form.error.maximumLength()),
-        openid_enabled: z.boolean(),
-        wireguard_enabled: z.boolean(),
-        worker_enabled: z.boolean(),
-        webhooks_enabled: z.boolean(),
-        license: z.string().optional(),
-      }),
-    [LL.form.error],
-  );
+  const zodSchema = useMemo(() => globalSettingsSchema(LL), [LL]);
 
-  const defaultValues = useMemo((): FormFields => {
+  const defaultValues = useMemo((): GlobalSettingsFormFields => {
     return {
       instance_name: settings?.instance_name ?? '',
       main_logo_url:
@@ -118,13 +91,13 @@ export const GlobalSettingsForm = () => {
     };
   }, [settings]);
 
-  const { control, handleSubmit, setValue } = useForm<FormFields>({
+  const { control, handleSubmit, setValue } = useForm<GlobalSettingsFormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
 
-  const onSubmit: SubmitHandler<FormFields> = (submitted) => {
+  const onSubmit: SubmitHandler<GlobalSettingsFormFields> = (submitted) => {
     mutate(submitted);
   };
 

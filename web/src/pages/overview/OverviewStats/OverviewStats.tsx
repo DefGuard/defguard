@@ -3,7 +3,7 @@ import './style.scss';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import millify from 'millify';
-import { forwardRef, ReactNode, useId, useMemo } from 'react';
+import { forwardRef, type ReactNode, useId, useMemo } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -13,7 +13,7 @@ import { Card } from '../../../shared/defguard-ui/components/Layout/Card/Card';
 import { NetworkSpeed } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkDirection } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { WireguardNetworkStats } from '../../../shared/types';
+import type { WireguardNetworkStats } from '../../../shared/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';
 import { networkTrafficToChartData } from './utils';

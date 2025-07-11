@@ -3,7 +3,7 @@ import './style.scss';
 import SvgIconHamburgerClose from '../../../../../shared/components/svg/IconHamburgerClose';
 import { Modal } from '../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 import { useNavigationStore } from '../../../hooks/useNavigationStore';
-import { NavigationItems } from '../../../types';
+import type { NavigationItems } from '../../../types';
 import { NavigationBar } from '../../NavigationBar/NavigationBar';
 
 interface Props {

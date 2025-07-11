@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { useCallback, useEffect } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { ToastOptions } from '../../../defguard-ui/components/Layout/ToastManager/Toast/types';
+import type { ToastOptions } from '../../../defguard-ui/components/Layout/ToastManager/Toast/types';
 import { useToastsStore } from '../../../defguard-ui/hooks/toasts/useToastStore';
 import { useUpdatesStore } from '../../../hooks/store/useUpdatesStore';
 

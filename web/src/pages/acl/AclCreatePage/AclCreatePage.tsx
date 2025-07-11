@@ -2,10 +2,10 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { intersection } from 'lodash-es';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -34,7 +34,7 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import {
+import type {
   AclRuleInfo,
   CreateAclRuleRequest,
   EditAclRuleRequest,
@@ -44,11 +44,11 @@ import {
   User,
 } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
-import { useAclLoadedContext } from '../acl-context';
 import { AclAliasKindIcon } from '../AclIndexPage/components/shared/AclAliasKindIcon';
 import { AclMessageBoxes } from '../AclIndexPage/components/shared/AclMessageBoxes/AclMessageBoxes';
 import { NetworkAccessTypeIcon } from '../AclIndexPage/components/shared/NetworkAccessTypeIcon';
-import { AclAlias, AclAliasStatus } from '../types';
+import { useAclLoadedContext } from '../acl-context';
+import { type AclAlias, AclAliasStatus } from '../types';
 import { networkToNetworkAccessType, protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';

@@ -1,21 +1,21 @@
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
-import { ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { upperCaseFirst } from 'text-case';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { ListCellTags } from '../../../../../../shared/components/Layout/ListCellTags/ListCellTags';
 import { ListCellText } from '../../../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../../../shared/components/Layout/ListHeader/ListHeader';
-import { ListHeaderColumnConfig } from '../../../../../../shared/components/Layout/ListHeader/types';
+import type { ListHeaderColumnConfig } from '../../../../../../shared/components/Layout/ListHeader/types';
 import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { InteractionBox } from '../../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { NoData } from '../../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { ListSortDirection } from '../../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
-import { AclAlias } from '../../../../types';
+import type { AclAlias } from '../../../../types';
 import { DividerHeader } from '../../shared/DividerHeader';
-import { AclAliasListData } from '../types';
+import type { AclAliasListData } from '../types';
 import { AclAliasStatusDisplay } from './AclAliasStatus/AclAliasStatus';
 import { AliasEditButton } from './AliasEditButton';
 

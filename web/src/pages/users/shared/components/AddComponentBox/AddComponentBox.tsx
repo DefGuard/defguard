@@ -1,7 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { motion, Variant, Variants } from 'framer-motion';
+import { motion, type Variant, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
 
 import { ColorsRGB } from '../../../../../shared/constants';

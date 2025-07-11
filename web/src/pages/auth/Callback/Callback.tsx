@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -12,7 +12,7 @@ import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
-import { CallbackData } from '../../../shared/types';
+import type { CallbackData } from '../../../shared/types';
 
 type ErrorResponse = {
   msg: string;

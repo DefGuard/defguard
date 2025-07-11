@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -14,7 +14,7 @@ import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormIn
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
