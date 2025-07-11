@@ -1,9 +1,10 @@
 import { deepmerge } from 'deepmerge-ts';
+import { PartialDeep } from 'type-fest';
 
 import en from '../en';
 import { Translation } from '../i18n-types';
 
-const translation: Translation = {
+const translation: PartialDeep<Translation> = {
   common: {
     conditions: {
       and: 'I',
@@ -108,7 +109,7 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
     },
     deleteStandaloneDevice: {
       title: 'Usuń urządzenie sieciowe',
-      content: 'Urządzenie {name: string} zostanie usunięte.',
+      content: 'Urządzenie {name} zostanie usunięte.',
       messages: {
         success: 'Urządzenie zostało usunięte',
         error: 'Nie udało się usunąć urządzenia.',
@@ -624,19 +625,6 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
         },
         infoMessage: `<p>W razie problemów możesz odwiedzić <a href="{addDevicesDocs}">dokumentacje</a>.</p>`,
       },
-      setupMethod: {
-        manual: {
-          subTitle:
-            'Dla zaawansowanych użytkowników, pobierz konfigurację i skonfiguruj VPN na własnych zasadach.',
-          link: 'Pobierz WireGuard',
-          title: 'Konfiguracja ręczna',
-        },
-        remote: {
-          title: 'Aktywacja klienta desktop',
-          link: 'Pobierz klienta Defguard',
-          subTitle: 'Prosta konfiguracja jednym tokenem.',
-        },
-      },
       configDevice: {
         title: 'Skonfiguruj urządzenie',
         messages: {
@@ -726,9 +714,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       password: {
         header: 'Ustawienia hasła',
         changePassword: 'Zmiana hasła',
-        ldap_change_heading: 'Wymagana aktualizacja hasła {ldapName:string}',
+        ldap_change_heading: 'Wymagana aktualizacja hasła {ldapName}',
         ldap_change_message:
-          'Defguard nie ma możliwości odczytania twojego hasła, więc nie możemy go pobrać do automatycznej synchronizacji z danymi logowania {ldapName:string}. Aby umożliwić logowanie do innych usług za pomocą {ldapName:string}, zaktualizuj swoje hasło Defguard, aby jednocześnie ustawić hasło {ldapName:string} — możesz ponownie wpisać swoje obecne hasło, jeśli chcesz. Ten krok jest konieczny, aby zapewnić spójną i bezpieczną autoryzację w obu systemach.',
+          'Defguard nie ma możliwości odczytania twojego hasła, więc nie możemy go pobrać do automatycznej synchronizacji z danymi logowania {ldapName}. Aby umożliwić logowanie do innych usług za pomocą {ldapName}, zaktualizuj swoje hasło Defguard, aby jednocześnie ustawić hasło {ldapName} — możesz ponownie wpisać swoje obecne hasło, jeśli chcesz. Ten krok jest konieczny, aby zapewnić spójną i bezpieczną autoryzację w obu systemach.',
       },
       recovery: {
         header: 'Opcje odzyskiwania danych',
@@ -882,7 +870,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       deleteModal: {
         title: 'Usuń API Token',
-        confirmMessage: 'API token {name: string} zostanie trwale usunięty.',
+        confirmMessage: 'API token {name} zostanie trwale usunięty.',
       },
       addModal: {
         header: 'Dodaj nowy API Token',
@@ -1032,13 +1020,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       label: 'Gateways',
       states: {
         error: 'Błąd pobierania statusu',
-        loading: 'Pobieranie informacji',
-        partial: 'Jeden lub więcej odłączonych',
-        connected: 'Połączone',
-        disconnected: 'Brak połączenia',
       },
       messages: {
-        error: 'Błąd pobierania statusu połączeń gatway',
+        error: 'Błąd pobierania statusu połączeń gateway',
         deleteError: 'Błąd usuwania gateway',
       },
     },
@@ -1338,7 +1322,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       licenseInfo: {
         title: 'Informacje o licencji',
-        noLicense: 'Brak ważnej licencji',
         licenseNotRequired:
           "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
@@ -1743,10 +1726,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     stats: {
       currentlyActiveUsers: 'Obecnie aktywni użytkownicy',
-      currentlyActiveDevices: 'Obecnie aktywne urządzenia',
       activeUsersFilter: 'Aktywni użytkownicy w {hour}H',
       activeDevicesFilter: 'Aktywne urządzenia w {hour}H',
-      totalTransfer: 'Całkowity transfer:',
       activityIn: 'Aktywność w {hour}H',
       in: 'Przychodzący:',
       out: 'Wychodzący:',
@@ -2115,7 +2096,6 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         labels: {
           name: 'Nazwa',
           location: 'Położenie',
-          assignedIp: 'Adres IP',
           description: 'Opis',
           addedBy: 'Dodane przez',
           addedAt: 'Data dodania',
@@ -2186,7 +2166,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         modals: {
           applyConfirm: {
             title: 'Wdróż oczekujące zmiany',
-            subtitle: '{count: number} zmian zostanie zastosowanych',
+            subtitle: '{count} zmian zostanie zastosowanych',
             submit: 'Wdróż zmiany',
           },
           filterGroupsModal: {
@@ -2204,12 +2184,12 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
           addNew: 'Dodaj nową',
           filter: {
             nothingApplied: 'Filtr',
-            applied: 'Filtry ({count: number})',
+            applied: 'Filtry ({count})',
           },
           apply: {
             noChanges: 'Wdróż oczekujące zmiany',
-            all: 'Wdróż oczekujące zmiany ({count: number})',
-            selective: 'Wdróż zaznaczone zmiany ({count: number})',
+            all: 'Wdróż oczekujące zmiany ({count})',
+            selective: 'Wdróż zaznaczone zmiany ({count})',
           },
         },
         list: {
@@ -2262,7 +2242,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
             title: 'Usuwanie zablokowane',
             //md
             content: `
-Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usunięty. Aby go usunąć, należy najpierw wykasować go z tych reguł({rulesCount: number}):
+Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usunięty. Aby go usunąć, należy najpierw wykasować go z tych reguł({rulesCount}):
 `,
           },
           filterGroupsModal: {
@@ -2304,12 +2284,12 @@ Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usu
           addNew: 'Dodaj nową',
           filter: {
             nothingApplied: 'Filtr',
-            applied: 'Filtry ({count: number})',
+            applied: 'Filtry ({count})',
           },
           apply: {
             noChanges: 'Wdróż oczkujące zmiany',
-            all: 'Wdróż oczkujące zmiany ({count: number})',
-            selective: 'Wdróż zaznaczone zmiany ({count: number})',
+            all: 'Wdróż oczkujące zmiany ({count})',
+            selective: 'Wdróż zaznaczone zmiany ({count})',
           },
         },
         list: {
@@ -2400,8 +2380,8 @@ Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usu
       },
     },
   },
-};
+} as PartialDeep<Translation>;
 
-const pl = deepmerge(en, translation);
+const pl = deepmerge(en, translation) as Translation;
 
 export default pl;

@@ -2,7 +2,7 @@ import './style.scss';
 
 import clsx from 'clsx';
 import { flatten, orderBy } from 'lodash-es';
-import { PropsWithChildren, useCallback, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { ArrowSingleDirection } from '../../../defguard-ui/components/icons/ArrowSingle/types';
@@ -15,7 +15,7 @@ import { LabeledCheckbox } from '../../../defguard-ui/components/Layout/LabeledC
 import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
 import { Search } from '../../../defguard-ui/components/Layout/Search/Search';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { FilterGroupsModalFilter } from './types';
+import type { FilterGroupsModalFilter } from './types';
 
 type InternalStore = Record<string, Record<string, boolean>>;
 

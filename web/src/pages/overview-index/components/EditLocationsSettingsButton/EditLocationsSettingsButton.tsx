@@ -17,7 +17,7 @@ export const EditLocationsSettingsButton = () => {
   const setNetworkPageStore = useNetworkPageStore((s) => s.setState);
 
   const handleClick = () => {
-    if (!isNaN(selectedNetwork)) {
+    if (!Number.isNaN(selectedNetwork)) {
       setNetworkPageStore({
         selectedNetworkId: selectedNetwork,
       });

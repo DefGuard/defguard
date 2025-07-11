@@ -77,7 +77,7 @@ export const AuthPage = () => {
       }
 
       // application already had consent from user
-      if (url && url.length && user) {
+      if (url?.length && user) {
         setShowRedirect(true);
         resetMFAStore();
         window.location.replace(url);

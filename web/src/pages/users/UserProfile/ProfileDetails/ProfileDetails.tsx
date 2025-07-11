@@ -147,11 +147,9 @@ const ViewMode = () => {
                 }
               />
             ))}
-            {!(
-              user.authorized_apps &&
-              user?.authorized_apps.length &&
-              user?.authorized_apps?.length > 0
-            ) && <NoData customMessage={LL.userPage.userDetails.fields.apps.noData()} />}
+            {!(user?.authorized_apps?.length && user?.authorized_apps?.length > 0) && (
+              <NoData customMessage={LL.userPage.userDetails.fields.apps.noData()} />
+            )}
           </div>
         </div>
       )}

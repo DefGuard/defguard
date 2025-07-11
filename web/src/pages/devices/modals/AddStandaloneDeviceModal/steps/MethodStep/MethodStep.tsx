@@ -11,12 +11,12 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import SvgIconOutsideLink from '../../../../../../shared/defguard-ui/components/svg/IconOutsideLink';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { Network } from '../../../../../../shared/types';
+import type { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {

@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import {
+import type {
   ActivityLogStream,
   ActivityLogStreamLogstashHttp,
 } from '../../../../../../shared/types';

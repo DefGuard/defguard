@@ -1,7 +1,7 @@
 import './styles.scss';
 
 import { useMemo } from 'react';
-import { Control } from 'react-hook-form';
+import type { Control } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -13,9 +13,13 @@ import { Label } from '../../../../../../shared/defguard-ui/components/Layout/La
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
-import { FormFields } from '../GlobalSettingsForm/GlobalSettingsForm';
+import type { GlobalSettingsFormFields } from '../../types';
 
-export const LicenseSettings = ({ control }: { control: Control<FormFields> }) => {
+export const LicenseSettings = ({
+  control,
+}: {
+  control: Control<GlobalSettingsFormFields>;
+}) => {
   const { LL } = useI18nContext();
   const appInfo = useAppStore((s) => s.appInfo);
   const enterpriseInfo = useSettingsPage((s) => s.enterpriseInfo);
@@ -107,11 +111,9 @@ export const LicenseSettings = ({ control }: { control: Control<FormFields> }) =
               </div>
             </div>
           ) : (
-            <>
-              <p id="no-license">
-                {LL.settingsPage.license.licenseInfo.status.noLicense()}
-              </p>
-            </>
+            <p id="no-license">
+              {LL.settingsPage.license.licenseInfo.status.noLicense()}
+            </p>
           )}
         </ExpandableCard>
       </div>

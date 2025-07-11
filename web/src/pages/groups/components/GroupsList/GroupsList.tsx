@@ -12,14 +12,14 @@ import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/com
 import { ConfirmModal } from '../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/ConfirmModal';
 import { ConfirmModalType } from '../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import {
-  ListHeader,
+  type ListHeader,
   ListSortDirection,
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { GroupInfo } from '../../../../shared/types';
+import type { GroupInfo } from '../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { useAddGroupModal } from '../modals/AddGroupModal/useAddGroupModal';

@@ -32,9 +32,5 @@ export const AddApiTokenModal = () => {
 };
 
 const ModalContent = () => {
-  return (
-    <>
-      <AddApiTokenForm />
-    </>
-  );
+  return <AddApiTokenForm />;
 };

@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { Control, useController } from 'react-hook-form';
+import { type Control, useController } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
-import { OpenIdClientFormFields, OpenIdClientScope } from '../types';
+import { type OpenIdClientFormFields, OpenIdClientScope } from '../types';
 
 type Props = {
   control: Control<OpenIdClientFormFields>;

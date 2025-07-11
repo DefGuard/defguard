@@ -25,13 +25,13 @@ import { ConfirmModalType } from '../../../shared/defguard-ui/components/Layout/
 import { NoData } from '../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import {
-  ListHeader,
-  ListRowCell,
+  type ListHeader,
+  type ListRowCell,
   ListSortDirection,
 } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
@@ -41,7 +41,7 @@ import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { QueryKeys } from '../../../shared/queries';
-import { OpenidClient } from '../../../shared/types';
+import type { OpenidClient } from '../../../shared/types';
 import { OpenIdClientModal } from '../modals/OpenIdClientModal/OpenIdClientModal';
 
 export const OpenidClientsListPage = () => {

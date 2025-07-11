@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Badge } from '../../../defguard-ui/components/Layout/Badge/Badge';
 import { BadgeStyleVariant } from '../../../defguard-ui/components/Layout/Badge/types';
-import { ToastOptions } from '../../../defguard-ui/components/Layout/ToastManager/Toast/types';
+import type { ToastOptions } from '../../../defguard-ui/components/Layout/ToastManager/Toast/types';
 import { useToastsStore } from '../../../defguard-ui/hooks/toasts/useToastStore';
 import SvgIconX from '../../svg/IconX';
 

@@ -1,7 +1,7 @@
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { MFALoginResponse, UserMFAMethod } from '../../../../shared/types';
+import { type MFALoginResponse, UserMFAMethod } from '../../../../shared/types';
 
 interface MFAStore extends MFALoginResponse {
   setState: (data: Partial<MFAStore>) => void;

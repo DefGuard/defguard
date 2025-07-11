@@ -135,16 +135,15 @@ const ModalContent = () => {
         </div>
         <div className="groups-container">
           <div className="scroll-wrapper">
-            {filteredGroups &&
-              filteredGroups?.map((g) => (
-                <SelectRow
-                  key={g}
-                  onClick={() => handleSelect(g)}
-                  selected={!isUndefined(selected.find((group) => g === group))}
-                >
-                  <p>{g}</p>
-                </SelectRow>
-              ))}
+            {filteredGroups?.map((g) => (
+              <SelectRow
+                key={g}
+                onClick={() => handleSelect(g)}
+                selected={!isUndefined(selected.find((group) => g === group))}
+              >
+                <p>{g}</p>
+              </SelectRow>
+            ))}
           </div>
         </div>
       </div>

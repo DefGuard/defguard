@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { PropsWithChildren, ReactNode, useId, useMemo } from 'react';
+import { type PropsWithChildren, type ReactNode, useId, useMemo } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';

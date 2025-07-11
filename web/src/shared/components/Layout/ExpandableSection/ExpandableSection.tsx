@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { PropsWithChildren, useState } from 'react';
+import { type PropsWithChildren, useState } from 'react';
 
 import { ArrowSingle } from '../../../defguard-ui/components/icons/ArrowSingle/ArrowSingle';
 import { ArrowSingleDirection } from '../../../defguard-ui/components/icons/ArrowSingle/types';

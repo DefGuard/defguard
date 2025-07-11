@@ -1,10 +1,10 @@
 import { isUndefined } from 'lodash-es';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { useAppStore } from '../../../../hooks/store/useAppStore';
 import { useAuthStore } from '../../../../hooks/store/useAuthStore';
-import { SettingsModules } from '../../../../types';
+import type { SettingsModules } from '../../../../types';
 
 interface Props {
   children?: ReactNode;

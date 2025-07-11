@@ -1,7 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { ComponentPropsWithoutRef, forwardRef, useMemo } from 'react';
+import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react';
 
 import { useNavigationStore } from '../../../../components/Navigation/hooks/useNavigationStore';
 

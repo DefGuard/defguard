@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { UseModalStore } from '../../types';
+import type { UseModalStore } from '../../types';
 
 /**
  * This approach is deprecated, please use separate stores for each modal to keep things clean

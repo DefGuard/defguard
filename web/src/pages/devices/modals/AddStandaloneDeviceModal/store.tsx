@@ -2,8 +2,8 @@ import { isObject } from 'lodash-es';
 import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
-import {
+import type { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import type {
   CreateStandaloneDeviceResponse,
   GetAvailableLocationIpResponse,
   Network,

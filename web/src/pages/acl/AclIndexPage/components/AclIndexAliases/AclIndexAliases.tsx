@@ -7,7 +7,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
-import { FilterGroupsModalFilter } from '../../../../../shared/components/modals/FilterGroupsModal/types';
+import type { FilterGroupsModalFilter } from '../../../../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -19,7 +19,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useAclLoadedContext } from '../../../acl-context';
-import { AclAlias, AclAliasStatus } from '../../../types';
+import { type AclAlias, AclAliasStatus } from '../../../types';
 import {
   aclAliasStatusToInt,
   aclDestinationToListTagDisplay,
@@ -34,7 +34,7 @@ import { AclAliasApplyConfirmModal } from './modals/AclAliasApplyConfirmModal/Ac
 import { AclAliasDeleteBlockModal } from './modals/AclAliasDeleteBlockModal/AclAliasDeleteBlockModal';
 import { AlcAliasCEModal } from './modals/AlcAliasCEModal/AlcAliasCEModal';
 import { useAclAliasCEModal } from './modals/AlcAliasCEModal/store';
-import { AclAliasListData } from './types';
+import type { AclAliasListData } from './types';
 
 type ListTagDisplay = {
   key: string | number;
@@ -236,6 +236,7 @@ export const AclIndexAliases = () => {
   const filters = useMemo(() => {
     const res: Record<keyof AliasesFilters, FilterGroupsModalFilter> = {
       rules: {
+        identifier: 'rules',
         label: localLL.modals.filterGroupsModal.groupLabels.rules(),
         items:
           aclRules?.map((rule) => ({
@@ -246,6 +247,7 @@ export const AclIndexAliases = () => {
         order: 2,
       },
       status: {
+        identifier: 'status',
         label: localLL.modals.filterGroupsModal.groupLabels.status(),
         items: [
           {

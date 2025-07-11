@@ -3,22 +3,22 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { type SubmitErrorHandler, type SubmitHandler, useForm } from 'react-hook-form';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
-import { ListHeader } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import type { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { ListHeader } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { ImportedDevice, MappedDevice } from '../../../../shared/types';
+import type { ImportedDevice, MappedDevice } from '../../../../shared/types';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { MapDeviceRow } from './components/MapDeviceRow';
+import { type WizardMapDevicesFormFields, wizardMapDevicesSchema } from './types';
 
 export type WizardMapFormValues = {
   devices: ImportedDevice[];
@@ -44,24 +44,7 @@ export const WizardMapDevices = () => {
     user: { getUsers },
   } = useApi();
 
-  const zodSchema = useMemo(
-    () =>
-      z.object({
-        devices: z.array(
-          z.object({
-            wireguard_ips: z.array(z.string().min(1, LL.form.error.required())),
-            user_id: z
-              .number({
-                invalid_type_error: LL.form.error.required(),
-              })
-              .min(1, LL.form.error.required()),
-            wireguard_pubkey: z.string().min(1, LL.form.error.required()),
-            name: z.string().min(1, LL.form.error.required()),
-          }),
-        ),
-      }),
-    [LL.form.error],
-  );
+  const zodSchema = useMemo(() => wizardMapDevicesSchema(LL), [LL]);
 
   const { isLoading, data: users } = useQuery({
     queryKey: [QueryKeys.FETCH_USERS_LIST],
@@ -83,11 +66,13 @@ export const WizardMapDevices = () => {
     },
   });
 
-  const { handleSubmit, control, reset, getValues } = useForm<WizardMapFormValues>({
-    defaultValues: { devices: importedDevices ?? [] },
-    mode: 'onSubmit',
-    resolver: zodResolver(zodSchema),
-  });
+  const { handleSubmit, control, reset, getValues } = useForm<WizardMapDevicesFormFields>(
+    {
+      defaultValues: { devices: importedDevices ?? [] },
+      mode: 'onSubmit',
+      resolver: zodResolver(zodSchema),
+    },
+  );
 
   const getUsersOptions = useMemo(
     (): SelectOption<number>[] =>

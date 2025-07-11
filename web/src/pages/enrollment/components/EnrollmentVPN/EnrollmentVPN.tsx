@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectSelectedValue,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';

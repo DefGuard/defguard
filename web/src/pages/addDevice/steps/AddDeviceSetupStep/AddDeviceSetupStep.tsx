@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parser from 'html-react-parser';
 import { useEffect, useMemo, useRef } from 'react';
-import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import { type SubmitHandler, useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -14,7 +14,7 @@ import { FormToggle } from '../../../../shared/defguard-ui/components/Form/FormT
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { ToggleOption } from '../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import type { ToggleOption } from '../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { externalLink } from '../../../../shared/links';

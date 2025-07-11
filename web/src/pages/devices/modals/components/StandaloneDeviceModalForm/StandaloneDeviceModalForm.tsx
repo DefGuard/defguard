@@ -2,8 +2,8 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { Subject } from 'rxjs';
+import { type SubmitHandler, useForm } from 'react-hook-form';
+import type { Subject } from 'rxjs';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -11,17 +11,17 @@ import { FormInput } from '../../../../../shared/defguard-ui/components/Form/For
 import { FormLocationIp } from '../../../../../shared/defguard-ui/components/Form/FormLocationIp/FormLocationIp';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { FormToggle } from '../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
-import {
+import type {
   SelectOption,
   SelectSelectedValue,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import type { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { GetAvailableLocationIpResponse } from '../../../../../shared/types';
+import type { GetAvailableLocationIpResponse } from '../../../../../shared/types';
 import { validateWireguardPublicKey } from '../../../../../shared/validators';
 import {
-  AddStandaloneDeviceFormFields,
+  type AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
 } from '../../AddStandaloneDeviceModal/types';
 import { StandaloneDeviceModalFormMode } from '../types';

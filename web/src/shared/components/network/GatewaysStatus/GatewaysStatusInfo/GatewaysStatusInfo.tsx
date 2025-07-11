@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { PropsWithChildren, useMemo, useState } from 'react';
+import { type PropsWithChildren, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';

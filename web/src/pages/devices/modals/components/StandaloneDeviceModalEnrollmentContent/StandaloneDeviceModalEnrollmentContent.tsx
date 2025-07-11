@@ -15,7 +15,7 @@ import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/
 import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useClipboard } from '../../../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../../../shared/links';
-import { StartEnrollmentResponse } from '../../../../../shared/types';
+import type { StartEnrollmentResponse } from '../../../../../shared/types';
 
 type Props = {
   enrollmentData: StartEnrollmentResponse;

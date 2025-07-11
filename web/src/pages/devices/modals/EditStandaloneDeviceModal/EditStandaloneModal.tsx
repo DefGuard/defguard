@@ -22,7 +22,7 @@ import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMu
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
-  AddStandaloneDeviceFormFields,
+  type AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
 } from '../AddStandaloneDeviceModal/types';
 import { StandaloneDeviceModalForm } from '../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';

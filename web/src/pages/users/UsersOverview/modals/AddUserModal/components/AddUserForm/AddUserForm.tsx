@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import { type SubmitHandler, useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -30,17 +30,6 @@ import { invalidateMultipleQueries } from '../../../../../../../shared/utils/inv
 import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
-
-interface Inputs {
-  username: string;
-  email: string;
-  last_name: string;
-  first_name: string;
-  enable_enrollment: boolean;
-  // disabled when enableEnrollment is true
-  password?: string;
-  phone?: string;
-}
 
 export const AddUserForm = () => {
   const { LL } = useI18nContext();
@@ -87,7 +76,7 @@ export const AddUserForm = () => {
               });
             }
           }
-          if (val.phone && val.phone.length) {
+          if (val.phone?.length) {
             const phoneRes = z
               .string()
               .regex(patternValidPhoneNumber)
@@ -111,12 +100,14 @@ export const AddUserForm = () => {
     [LL],
   );
 
+  type FormFields = z.infer<typeof zodSchema>;
+
   const {
     handleSubmit,
     control,
     formState: { isValid },
     trigger,
-  } = useForm<Inputs>({
+  } = useForm<FormFields>({
     resolver: zodResolver(zodSchema),
     mode: 'all',
     criteriaMode: 'all',
@@ -180,7 +171,7 @@ export const AddUserForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
     const trimmed = trimObjectStrings(data);
     if (reservedUserNames.current.includes(trimmed.username)) {
       void trigger('username', { shouldFocus: true });
@@ -215,7 +206,7 @@ export const AddUserForm = () => {
           label={LL.modals.addUser.form.fields.enableEnrollment.label()}
           controller={{ control, name: 'enable_enrollment' }}
         />
-        <>{parse(LL.modals.addUser.form.fields.enableEnrollment.link())}</>
+        {parse(LL.modals.addUser.form.fields.enableEnrollment.link())}
       </div>
       <div className="row">
         <div className="item">

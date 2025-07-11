@@ -2,7 +2,7 @@ import { omit } from 'lodash-es';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { OverviewLayoutType, OverviewStore } from '../../../../shared/types';
+import { OverviewLayoutType, type OverviewStore } from '../../../../shared/types';
 
 export const useOverviewStore = createWithEqualityFn<
   OverviewStore,

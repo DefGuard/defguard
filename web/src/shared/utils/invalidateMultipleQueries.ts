@@ -1,4 +1,4 @@
-import { QueryClient, QueryKey } from '@tanstack/query-core';
+import type { QueryClient, QueryKey } from '@tanstack/query-core';
 
 export const invalidateMultipleQueries = (
   client: QueryClient,

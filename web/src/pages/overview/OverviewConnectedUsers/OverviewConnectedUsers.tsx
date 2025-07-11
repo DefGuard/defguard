@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { NetworkUserStats } from '../../../shared/types';
+import type { NetworkUserStats } from '../../../shared/types';
 import { UserConnectionCard } from './UserConnectionCard/UserConnectionCard';
 
 interface Props {

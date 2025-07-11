@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 export type DialogSelectProps<T, I> = {
   options: T[];
