@@ -57,7 +57,7 @@
 }
 
 #activity-list {
-  &>.top {
+  & > .top {
     display: flex;
     flex-flow: row wrap;
     align-items: center;
@@ -155,7 +155,7 @@
   flex-flow: column;
   row-gap: var(--spacing-s);
 
-  &>* {
+  & > * {
     width: 100%;
   }
 

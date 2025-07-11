@@ -537,6 +537,7 @@ export type ActivityLogFilters = {
   // Naive UTC datetime in string
   until?: string;
   username?: string[];
+  location?: string[];
   event?: ActivityLogEventType[];
   module?: ActivityLogModule[];
   search?: string;
@@ -545,6 +546,7 @@ export type ActivityLogFilters = {
 export type ActivityLogSortKey =
   | 'timestamp'
   | 'username'
+  | 'location'
   | 'ip'
   | 'event'
   | 'module'

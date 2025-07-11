@@ -59,7 +59,7 @@ const applySearch = (val: string): string | undefined => {
   return undefined;
 };
 
-type Filters = 'event' | 'username' | 'module';
+type Filters = 'event' | 'username' | 'module' | 'location';
 
 const PageContent = () => {
   const [activeFilters, setActiveFilters] = useState<
@@ -68,6 +68,7 @@ const PageContent = () => {
     event: [],
     module: [],
     username: [],
+    location: [],
   });
   const [searchValue, setSearchValue] = useState<string>('');
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
@@ -91,12 +92,18 @@ const PageContent = () => {
   const {
     activityLog: { getActivityLog },
     user: { getUsers },
+    network: { getNetworks },
   } = useApi();
 
   const { data: users } = useQuery({
     queryFn: getUsers,
     queryKey: ['user'],
     enabled: isAdmin,
+  });
+
+  const { data: locations } = useQuery({
+    queryFn: getNetworks,
+    queryKey: ['location'],
   });
 
   const queryKey = useMemo(
@@ -131,6 +138,7 @@ const PageContent = () => {
         event: applyFilterArray(activeFilters.event as ActivityLogEventType[]),
         module: applyFilterArray(activeFilters.module as ActivityLogModule[]),
         username: applyFilterArray(activeFilters.username as string[]),
+        location: applyFilterArray(activeFilters.location as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
         search: applySearch(searchValue),
@@ -157,6 +165,18 @@ const PageContent = () => {
           label: `${user.first_name} ${user.last_name} (${user.username})`,
           searchValues: [user.first_name, user.username, user.last_name, user.email],
           value: user.username,
+        })),
+      };
+    }
+    if (locations) {
+      res['locations'] = {
+        label: 'Locations',
+        identifier: 'location',
+        order: 4,
+        items: locations.map((location) => ({
+          label: location.name,
+          searchValues: [location.name],
+          value: location.name,
         })),
       };
     }
@@ -187,7 +207,7 @@ const PageContent = () => {
       }),
     };
     return res;
-  }, [LL.enums, users]);
+  }, [LL.enums, users, locations]);
 
   const activityData = useMemo(() => {
     if (data) {
