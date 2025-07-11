@@ -746,9 +746,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                         let mut client_map = self.get_client_state_guard()?;
 
                         // disconnect inactive clients
-                        client_map.disconnect_inactive_vpn_clients_for_location(
-                            network_id,
-                            location.peer_disconnect_threshold,
+                        client_map.disconnect_inactive_vpn_clients_for_location(&location
                         )?
                     };
 
@@ -781,7 +779,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // TODO: cache usernames since they don't change
             let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
             let location = self.fetch_location_from_db(network_id).await?;
-            let peer_disconnect_threshold = location.peer_disconnect_threshold;
 
             // convert stats to DB storage format
             let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
@@ -839,6 +836,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                     socket_addr.ip(),
                                     device.id,
                                     device.name.clone(),
+                                    location.clone(),
                                 );
                                 self.emit_event(GrpcEvent::ClientConnected {
                                     context,
@@ -850,10 +848,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     };
 
                     // disconnect inactive clients
-                    client_map.disconnect_inactive_vpn_clients_for_location(
-                        network_id,
-                        peer_disconnect_threshold,
-                    )?
+                    client_map.disconnect_inactive_vpn_clients_for_location(&location)?
                 };
 
                 // emit client disconnect events

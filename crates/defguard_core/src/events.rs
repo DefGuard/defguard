@@ -53,6 +53,7 @@ pub struct GrpcRequestContext {
     pub ip: IpAddr,
     pub device_id: Id,
     pub device_name: String,
+    pub location: WireguardNetwork<Id>,
 }
 
 impl GrpcRequestContext {
@@ -62,6 +63,7 @@ impl GrpcRequestContext {
         ip: IpAddr,
         device_id: Id,
         device_name: String,
+        location: WireguardNetwork<Id>,
     ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -71,6 +73,7 @@ impl GrpcRequestContext {
             ip,
             device_id,
             device_name,
+            location,
         }
     }
 }

@@ -5,7 +5,7 @@ use thiserror::Error;
 use tonic::{Code, Status};
 
 use crate::{
-    db::{Device, Id, User, models::wireguard_peer_stats::WireguardPeerStats},
+    db::{Device, Id, User, WireguardNetwork, models::wireguard_peer_stats::WireguardPeerStats},
     events::GrpcRequestContext,
 };
 
@@ -157,16 +157,19 @@ impl ClientMap {
     /// Returns a list of devices.
     pub fn disconnect_inactive_vpn_clients_for_location(
         &mut self,
-        location_id: Id,
-        peer_disconnect_threshold_secs: i32,
+        location: &WireguardNetwork<Id>,
     ) -> Result<Vec<(Device<Id>, GrpcRequestContext)>, ClientMapError> {
-        debug!("Disconnecting inactive VPN clients for location {location_id}");
+        debug!(
+            "Disconnecting inactive VPN clients for location {}",
+            location.id
+        );
+        let peer_disconnect_threshold_secs = location.peer_disconnect_threshold;
 
         // initialize result
         let mut disconnected_clients = Vec::new();
 
         // get client state map for given location
-        if let Some(location_map) = self.0.get_mut(&location_id) {
+        if let Some(location_map) = self.0.get_mut(&location.id) {
             let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
 
             // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
@@ -180,6 +183,7 @@ impl ClientMap {
                         client_state.endpoint.ip(),
                         client_state.device.id,
                         client_state.device.name.clone(),
+                        location.clone()
                     );
                     disconnected_clients
                         .push((client_state.device.clone(), disconnect_event_context));
