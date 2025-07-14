@@ -11,8 +11,8 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, postgres::types::PgInterval,
-    query_as, query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query_as, query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -83,6 +83,14 @@ pub enum GatewayEvent {
     FirewallDisabled(Id),
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[sqlx(type_name = "location_mfa_type", rename_all = "snake_case")]
+pub enum LocationMfaType {
+    Disabled,
+    Internal,
+    External,
+}
+
 /// Stores configuration required to setup a WireGuard network
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
@@ -102,11 +110,12 @@ pub struct WireguardNetwork<I = NoId> {
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
-    pub mfa_enabled: bool,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    #[model(enum)]
+    pub location_mfa: LocationMfaType,
 }
 
 pub struct WireguardKey {
