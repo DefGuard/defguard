@@ -136,8 +136,8 @@ export const MethodStep = () => {
         />
         <DeviceSetupMethodCard
           custom={{
-            title: localLL.cards.cli.title(),
-            description: localLL.cards.cli.subtitle(),
+            title: localLL.cards.manual.title(),
+            description: localLL.cards.manual.subtitle(),
             icon: <SvgWireguardLogo />,
             testId: 'standalone-device-choice-card-manual',
           }}
