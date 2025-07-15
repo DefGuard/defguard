@@ -1130,6 +1130,14 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         contact: 'by contacting:',
       },
     },
+    locationMfaTypeSelect: {
+      label: 'MFA Requirement',
+      options: {
+        disabled: 'Do not enforce MFA',
+        internal: 'Internal MFA',
+        external: 'External MFA',
+      },
+    },
   },
   settingsPage: {
     title: 'Settings',

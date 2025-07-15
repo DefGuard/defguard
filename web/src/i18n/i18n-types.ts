@@ -2779,6 +2779,26 @@ type RootTranslation = {
 				contact: string
 			}
 		}
+		locationMfaTypeSelect: {
+			/**
+			 * M​F​A​ ​R​e​q​u​i​r​e​m​e​n​t
+			 */
+			label: string
+			options: {
+				/**
+				 * D​o​ ​n​o​t​ ​e​n​f​o​r​c​e​ ​M​F​A
+				 */
+				disabled: string
+				/**
+				 * I​n​t​e​r​n​a​l​ ​M​F​A
+				 */
+				internal: string
+				/**
+				 * E​x​t​e​r​n​a​l​ ​M​F​A
+				 */
+				external: string
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -9343,6 +9363,26 @@ export type TranslationFunctions = {
 				 * by contacting:
 				 */
 				contact: () => LocalizedString
+			}
+		}
+		locationMfaTypeSelect: {
+			/**
+			 * MFA Requirement
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Do not enforce MFA
+				 */
+				disabled: () => LocalizedString
+				/**
+				 * Internal MFA
+				 */
+				internal: () => LocalizedString
+				/**
+				 * External MFA
+				 */
+				external: () => LocalizedString
 			}
 		}
 	}

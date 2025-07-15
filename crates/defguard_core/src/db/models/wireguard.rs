@@ -84,7 +84,8 @@ pub enum GatewayEvent {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
-#[sqlx(type_name = "location_mfa_type", rename_all = "snake_case")]
+#[sqlx(type_name = "location_mfa_type", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum LocationMfaType {
     #[default]
     Disabled,

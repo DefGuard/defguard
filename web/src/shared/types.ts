@@ -118,6 +118,12 @@ export type GatewayStatus = {
   uid: string;
 };
 
+export enum LocationMfaType {
+  DISABLED = 'disabled',
+  INTERNAL = 'internal',
+  EXTERNAL = 'external',
+}
+
 export interface Network {
   id: number;
   name: string;
@@ -130,11 +136,11 @@ export interface Network {
   allowed_ips?: string[];
   allowed_groups?: string[];
   dns?: string;
-  mfa_enabled: boolean;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;
+  location_mfa: LocationMfaType;
 }
 
 export type ModifyNetworkRequest = {
