@@ -5,7 +5,9 @@ use defguard_core::{
         Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaType,
+            },
         },
     },
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
@@ -56,11 +58,11 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
         allowed_groups: vec!["admin".into()],
-        mfa_enabled: false,
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
+        location_mfa: LocationMfaType::Disabled,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))

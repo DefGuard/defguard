@@ -30,8 +30,8 @@ use crate::{
                 WireguardNetworkDevice,
             },
             wireguard::{
-                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
-                WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
+                DateTimeAggregation, LocationMfaType, MappedDevice, WireguardDeviceStatsRow,
+                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
             },
         },
     },
@@ -75,11 +75,11 @@ pub struct WireguardNetworkData {
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
-    pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub location_mfa: LocationMfaType,
 }
 
 impl WireguardNetworkData {
@@ -149,7 +149,7 @@ pub(crate) async fn create_network(
         data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
-        todo!(),
+        data.location_mfa,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -237,7 +237,7 @@ pub(crate) async fn modify_network(
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
-    network.location_mfa = todo!();
+    network.location_mfa = data.location_mfa;
 
     network.save(&mut *transaction).await?;
     network
