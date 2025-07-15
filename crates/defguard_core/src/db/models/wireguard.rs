@@ -83,9 +83,10 @@ pub enum GatewayEvent {
     FirewallDisabled(Id),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "location_mfa_type", rename_all = "snake_case")]
 pub enum LocationMfaType {
+    #[default]
     Disabled,
     Internal,
     External,
@@ -149,11 +150,11 @@ impl Default for WireguardNetwork<Id> {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
-            mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_default_allow: false,
             acl_enabled: false,
+            location_mfa: LocationMfaType::default(),
         }
     }
 }
@@ -206,11 +207,11 @@ impl WireguardNetwork {
         endpoint: String,
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
-        mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
         acl_enabled: bool,
         acl_default_allow: bool,
+        location_mfa: LocationMfaType,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
@@ -225,11 +226,12 @@ impl WireguardNetwork {
             dns,
             allowed_ips,
             connected_at: None,
-            mfa_enabled,
+
             keepalive_interval,
             peer_disconnect_threshold,
             acl_enabled,
             acl_default_allow,
+            location_mfa,
         })
     }
 
@@ -259,8 +261,8 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" \
             FROM wireguard_network WHERE name = $1",
             name
         )
@@ -1236,6 +1238,13 @@ impl WireguardNetwork<Id> {
 
         Ok(())
     }
+
+    pub fn mfa_enabled(&self) -> bool {
+        match self.location_mfa {
+            LocationMfaType::Internal | LocationMfaType::External => true,
+            LocationMfaType::Disabled => false,
+        }
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]
@@ -1252,11 +1261,11 @@ impl Default for WireguardNetwork {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
-            mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_enabled: false,
             acl_default_allow: false,
+            location_mfa: LocationMfaType::default(),
         }
     }
 }
@@ -1964,11 +1973,11 @@ mod test {
             String::new(),
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
             300,
             300,
             false,
             false,
+            LocationMfaType::Disabled,
         )
         .unwrap()
         .save(&pool)
@@ -2096,11 +2105,11 @@ mod test {
             String::new(),
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
             300,
             300,
             false,
             false,
+            LocationMfaType::Disabled,
         )
         .unwrap()
         .save(&pool)

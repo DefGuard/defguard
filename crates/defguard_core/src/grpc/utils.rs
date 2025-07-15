@@ -118,6 +118,7 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
+            let mfa_enabled = network.mfa_enabled();
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
@@ -127,7 +128,7 @@ pub(crate) async fn build_device_config_response(
                 pubkey: network.pubkey,
                 allowed_ips: network.allowed_ips.as_csv(),
                 dns: network.dns,
-                mfa_enabled: network.mfa_enabled,
+                mfa_enabled,
                 keepalive_interval: network.keepalive_interval,
             };
             configs.push(config);
@@ -145,6 +146,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+            let mfa_enabled = network.mfa_enabled();
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -155,7 +157,7 @@ pub(crate) async fn build_device_config_response(
                     pubkey: network.pubkey,
                     allowed_ips: network.allowed_ips.as_csv(),
                     dns: network.dns,
-                    mfa_enabled: network.mfa_enabled,
+                    mfa_enabled,
                     keepalive_interval: network.keepalive_interval,
                 };
                 configs.push(config);

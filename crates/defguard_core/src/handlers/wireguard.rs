@@ -145,11 +145,11 @@ pub(crate) async fn create_network(
         data.endpoint,
         data.dns,
         allowed_ips,
-        data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
+        todo!(),
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -233,11 +233,11 @@ pub(crate) async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = parse_address_list(&data.address);
-    network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.location_mfa = todo!();
 
     network.save(&mut *transaction).await?;
     network

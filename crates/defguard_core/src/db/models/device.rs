@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
+    wireguard::{LocationMfaType, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
 };
 use crate::{
     AsCsv, KEY_LENGTH,
@@ -499,8 +499,8 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
         )
@@ -692,7 +692,7 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled,
+            mfa_enabled: network.mfa_enabled(),
             keepalive_interval: network.keepalive_interval,
         };
 
@@ -725,7 +725,7 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled,
+            mfa_enabled: network.mfa_enabled(),
             keepalive_interval: network.keepalive_interval,
         };
 
@@ -778,6 +778,7 @@ impl Device<Id> {
                 network_info.push(device_network_info);
 
                 let config = Self::create_config(&network, &wireguard_network_device);
+                let mfa_enabled = network.mfa_enabled();
                 configs.push(DeviceConfig {
                     network_id: network.id,
                     network_name: network.name,
@@ -787,7 +788,7 @@ impl Device<Id> {
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
-                    mfa_enabled: network.mfa_enabled,
+                    mfa_enabled,
                     keepalive_interval: network.keepalive_interval,
                 });
             }
@@ -934,8 +935,8 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at,  keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
