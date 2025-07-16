@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow FROM wireguard_network WHERE mfa_enabled = true",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa\" \"location_mfa: _\" FROM \"wireguard_network\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "address: _",
         "type_info": "InetArray"
       },
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "allowed_ips",
+        "name": "allowed_ips: _",
         "type_info": "InetArray"
       },
       {
@@ -55,32 +55,45 @@
       },
       {
         "ordinal": 10,
-        "name": "mfa_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 11,
-        "name": "keepalive_interval",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 12,
-        "name": "peer_disconnect_threshold",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 13,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 14,
+        "ordinal": 11,
         "name": "acl_default_allow",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "keepalive_interval",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "location_mfa: _",
+        "type_info": {
+          "Custom": {
+            "name": "location_mfa_type",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -100,5 +113,5 @@
       false
     ]
   },
-  "hash": "86f65d13c3f0221b4de39a7042b578149eca53934959119f61635b276b8b0c9e"
+  "hash": "133baa96e578cf2ca3e551b3d9f3e1130676812d3c5ed48cffe347e59d930b9b"
 }
