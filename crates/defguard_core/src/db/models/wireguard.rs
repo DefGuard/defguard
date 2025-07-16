@@ -35,7 +35,7 @@ use crate::{
     grpc::{
         GatewayState,
         gateway::{Peer, send_multiple_wireguard_events},
-        proto::enterprise::firewall::FirewallConfig,
+        proto::{enterprise::firewall::FirewallConfig, proxy::LocationMfa as ProtoLocationMfa},
     },
     wg_config::ImportedDevice,
 };
@@ -91,6 +91,25 @@ pub enum LocationMfaType {
     Disabled,
     Internal,
     External,
+}
+
+impl From<ProtoLocationMfa> for LocationMfaType {
+    fn from(value: ProtoLocationMfa) -> Self {
+        match value {
+            ProtoLocationMfa::Unspecified | ProtoLocationMfa::Disabled => LocationMfaType::Disabled,
+            ProtoLocationMfa::Internal => LocationMfaType::Internal,
+            ProtoLocationMfa::External => LocationMfaType::External,
+        }
+    }
+}
+impl From<LocationMfaType> for ProtoLocationMfa {
+    fn from(value: LocationMfaType) -> Self {
+        match value {
+            LocationMfaType::Disabled => ProtoLocationMfa::Disabled,
+            LocationMfaType::Internal => ProtoLocationMfa::Internal,
+            LocationMfaType::External => ProtoLocationMfa::External,
+        }
+    }
 }
 
 /// Stores configuration required to setup a WireGuard network

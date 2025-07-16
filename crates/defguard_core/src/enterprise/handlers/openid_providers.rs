@@ -118,7 +118,6 @@ pub async fn add_openid_provider(
 
     let mut settings = Settings::get_current_settings();
     settings.openid_create_account = provider_data.create_account;
-    settings.use_openid_for_mfa = provider_data.use_openid_for_mfa;
     settings.openid_username_handling = provider_data.username_handling;
     update_current_settings(&appstate.pool, settings).await?;
 
@@ -187,7 +186,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
+                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
                 }),
                 status: StatusCode::OK,
             })
@@ -195,7 +194,7 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling, "use_openid_for_mfa": settings.use_openid_for_mfa }),
+                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
             }),
             status: StatusCode::NO_CONTENT,
         }),
@@ -217,10 +216,8 @@ pub async fn delete_openid_provider(
     let mut transaction = appstate.pool.begin().await?;
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(provider) = provider {
-        let mut settings = Settings::get_current_settings();
         provider.clone().delete(&mut *transaction).await?;
-        settings.use_openid_for_mfa = false;
-        update_current_settings(&mut *transaction, settings).await?;
+        // FIXME: update locations using external MFA
         transaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",

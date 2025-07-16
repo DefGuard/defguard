@@ -40,8 +40,8 @@ pub struct DeviceConfig {
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
-    pub(crate) mfa_enabled: bool,
     pub(crate) keepalive_interval: i32,
+    pub(crate) location_mfa: LocationMfaType,
 }
 
 // The type of a device:
@@ -692,8 +692,8 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled(),
             keepalive_interval: network.keepalive_interval,
+            location_mfa: network.location_mfa.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -725,8 +725,8 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled(),
             keepalive_interval: network.keepalive_interval,
+            location_mfa: network.location_mfa.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -778,7 +778,6 @@ impl Device<Id> {
                 network_info.push(device_network_info);
 
                 let config = Self::create_config(&network, &wireguard_network_device);
-                let mfa_enabled = network.mfa_enabled();
                 configs.push(DeviceConfig {
                     network_id: network.id,
                     network_name: network.name,
@@ -788,8 +787,8 @@ impl Device<Id> {
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
-                    mfa_enabled,
                     keepalive_interval: network.keepalive_interval,
+                    location_mfa: network.location_mfa.clone(),
                 });
             }
         }

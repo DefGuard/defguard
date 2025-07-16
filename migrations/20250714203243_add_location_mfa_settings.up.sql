@@ -21,3 +21,6 @@ ALTER TABLE wireguard_network ALTER COLUMN "location_mfa" SET NOT NULL;
 
 -- drop the `mfa_enabled` column since it's no longer needed
 ALTER TABLE wireguard_network DROP COLUMN mfa_enabled;
+
+-- remove `use_openid_for_mfa` setting
+ALTER TABLE settings DROP COLUMN use_openid_for_mfa;

@@ -16,7 +16,7 @@ use super::proto::proxy::{
 use crate::{
     auth::{Claims, ClaimsType},
     db::{
-        Device, GatewayEvent, Id, Settings, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
@@ -166,6 +166,8 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
+        // FIXME: check which method is enabled for this location
+
         // check if selected method is enabled
         let method = MfaMethod::try_from(request.method).map_err(|err| {
             error!("Invalid MFA method selected ({}): {err}", request.method);
@@ -199,14 +201,6 @@ impl ClientMfaServer {
             MfaMethod::Oidc => {
                 if !is_enterprise_enabled() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
-                    return Err(Status::invalid_argument(
-                        "selected MFA method not available",
-                    ));
-                }
-
-                let settings = Settings::get_current_settings();
-                if !settings.use_openid_for_mfa {
-                    error!("OIDC MFA method is not enabled in settings");
                     return Err(Status::invalid_argument(
                         "selected MFA method not available",
                     ));

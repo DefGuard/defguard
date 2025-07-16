@@ -23,6 +23,7 @@ use crate::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
+            wireguard::LocationMfaType,
         },
     },
     enterprise::{
@@ -31,7 +32,10 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
+    grpc::{
+        proto::proxy::LocationMfa as ProtoLocationMfa,
+        utils::{build_device_config_response, new_polling_token, parse_client_info},
+    },
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     mail::Mail,
@@ -856,8 +860,10 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             pubkey: config.pubkey,
             allowed_ips: config.allowed_ips.as_csv(),
             dns: config.dns,
-            mfa_enabled: config.mfa_enabled,
             keepalive_interval: config.keepalive_interval,
+            location_mfa: Some(
+                <LocationMfaType as Into<ProtoLocationMfa>>::into(config.location_mfa).into(),
+            ),
         }
     }
 }

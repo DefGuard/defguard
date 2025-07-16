@@ -14,3 +14,6 @@ ALTER TABLE wireguard_network ALTER COLUMN "mfa_enabled" SET NOT NULL;
 -- drop new column and type
 ALTER TABLE wireguard_network DROP COLUMN "location_mfa";
 DROP TYPE location_mfa_type;
+
+-- restore `use_openid_for_mfa` setting
+ALTER TABLE settings ADD COLUMN use_openid_for_mfa BOOLEAN NOT NULL DEFAULT FALSE;

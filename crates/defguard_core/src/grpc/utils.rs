@@ -14,12 +14,13 @@ use crate::{
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,
-            wireguard::WireguardNetwork,
+            wireguard::{LocationMfaType, WireguardNetwork},
         },
     },
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
+    grpc::proto::proxy::LocationMfa as ProtoLocationMfa,
 };
 
 // Create a new token for configuration polling.
@@ -118,7 +119,6 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
-            let mfa_enabled = network.mfa_enabled();
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
@@ -128,8 +128,10 @@ pub(crate) async fn build_device_config_response(
                 pubkey: network.pubkey,
                 allowed_ips: network.allowed_ips.as_csv(),
                 dns: network.dns,
-                mfa_enabled,
                 keepalive_interval: network.keepalive_interval,
+                location_mfa: Some(
+                    <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa).into(),
+                ),
             };
             configs.push(config);
         }
@@ -146,7 +148,6 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            let mfa_enabled = network.mfa_enabled();
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -157,8 +158,11 @@ pub(crate) async fn build_device_config_response(
                     pubkey: network.pubkey,
                     allowed_ips: network.allowed_ips.as_csv(),
                     dns: network.dns,
-                    mfa_enabled,
                     keepalive_interval: network.keepalive_interval,
+                    location_mfa: Some(
+                        <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa)
+                            .into(),
+                    ),
                 };
                 configs.push(config);
             }
