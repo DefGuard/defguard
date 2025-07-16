@@ -851,6 +851,8 @@ impl InitialUserInfo {
 
 impl From<DeviceConfig> for ProtoDeviceConfig {
     fn from(config: DeviceConfig) -> Self {
+        // used by pre-1.5 clients which don't support external MFA
+        let mfa_enabled = config.location_mfa == LocationMfaType::Internal;
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
@@ -861,6 +863,8 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             allowed_ips: config.allowed_ips.as_csv(),
             dns: config.dns,
             keepalive_interval: config.keepalive_interval,
+            #[allow(deprecated)]
+            mfa_enabled,
             location_mfa: Some(
                 <LocationMfaType as Into<ProtoLocationMfa>>::into(config.location_mfa).into(),
             ),

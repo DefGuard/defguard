@@ -119,6 +119,8 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
+            // used by pre-1.5 clients which don't support external MFA
+            let mfa_enabled = network.location_mfa == LocationMfaType::Internal;
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
@@ -129,6 +131,8 @@ pub(crate) async fn build_device_config_response(
                 allowed_ips: network.allowed_ips.as_csv(),
                 dns: network.dns,
                 keepalive_interval: network.keepalive_interval,
+                #[allow(deprecated)]
+                mfa_enabled,
                 location_mfa: Some(
                     <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa).into(),
                 ),
@@ -148,6 +152,8 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+            // used by pre-1.5 clients which don't support external MFA
+            let mfa_enabled = network.location_mfa == LocationMfaType::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -159,6 +165,8 @@ pub(crate) async fn build_device_config_response(
                     allowed_ips: network.allowed_ips.as_csv(),
                     dns: network.dns,
                     keepalive_interval: network.keepalive_interval,
+                    #[allow(deprecated)]
+                    mfa_enabled,
                     location_mfa: Some(
                         <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa)
                             .into(),
