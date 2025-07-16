@@ -108,7 +108,6 @@ export const OpenIdSettingsForm = () => {
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
           directory_sync_group_match: z.string(),
-          use_openid_for_mfa: z.boolean(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -172,7 +171,6 @@ export const OpenIdSettingsForm = () => {
       okta_dirsync_client_id: '',
       directory_sync_group_match: '',
       username_handling: 'RemoveForbidden',
-      use_openid_for_mfa: false,
     };
 
     if (openidData) {

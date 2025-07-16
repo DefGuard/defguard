@@ -41,7 +41,6 @@ pub struct AddProviderData {
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
-    pub use_openid_for_mfa: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
