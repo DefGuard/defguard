@@ -11,6 +11,7 @@ use crate::db::{Id, NoId};
 // Delete: Delete the user
 #[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "dirsync_user_behavior", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum DirectorySyncUserBehavior {
     Keep,
     Disable,
@@ -51,6 +52,7 @@ impl From<String> for DirectorySyncUserBehavior {
 // Groups: Sync only groups (members without their state)
 #[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "dirsync_target", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum DirectorySyncTarget {
     All,
     Users,
