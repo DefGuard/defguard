@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" FROM wireguard_network WHERE location_mfa != 'disabled'::location_mfa_type",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
   "describe": {
     "columns": [
       {
@@ -75,10 +75,10 @@
       },
       {
         "ordinal": 14,
-        "name": "location_mfa: LocationMfaType",
+        "name": "location_mfa_mode: LocationMfaMode",
         "type_info": {
           "Custom": {
-            "name": "location_mfa_type",
+            "name": "location_mfa_mode",
             "kind": {
               "Enum": [
                 "disabled",
@@ -111,5 +111,5 @@
       false
     ]
   },
-  "hash": "317f3bca456c72f2be625b9b50a5a801fb6b9c61b20240ab9f365473373756ef"
+  "hash": "89ec538b614f4ea6440ce15ec58044149463f9a39f673b1f83587980c527c575"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa\" \"location_mfa: _\" FROM \"wireguard_network\"",
+  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address: _",
+        "name": "address",
         "type_info": "InetArray"
       },
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "allowed_ips: _",
+        "name": "allowed_ips",
         "type_info": "InetArray"
       },
       {
@@ -55,30 +55,30 @@
       },
       {
         "ordinal": 10,
-        "name": "acl_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 11,
-        "name": "acl_default_allow",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 12,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
+        "ordinal": 12,
+        "name": "acl_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "acl_default_allow",
+        "type_info": "Bool"
+      },
+      {
         "ordinal": 14,
-        "name": "location_mfa: _",
+        "name": "location_mfa_mode: LocationMfaMode",
         "type_info": {
           "Custom": {
-            "name": "location_mfa_type",
+            "name": "location_mfa_mode",
             "kind": {
               "Enum": [
                 "disabled",
@@ -91,7 +91,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -111,5 +113,5 @@
       false
     ]
   },
-  "hash": "4c2bac7f884c1dd477a48a51e60be04120ebdfc78c0dfac15b15781a85a212c1"
+  "hash": "5350e57595e044cea6976a73910210e5106af580e45647ae620850de0b77785b"
 }
