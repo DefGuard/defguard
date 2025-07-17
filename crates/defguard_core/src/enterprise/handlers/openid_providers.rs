@@ -11,8 +11,11 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        Settings,
-        models::settings::{OpenidUsernameHandling, update_current_settings},
+        Settings, WireguardNetwork,
+        models::{
+            settings::{OpenidUsernameHandling, update_current_settings},
+            wireguard::LocationMfaMode,
+        },
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
@@ -216,7 +219,19 @@ pub async fn delete_openid_provider(
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(provider) = provider {
         provider.clone().delete(&mut *transaction).await?;
-        // FIXME: update locations using external MFA
+        // fetch all locations using external MFA
+        let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
+        if locations.is_empty() {
+            debug!("No locations are using OIDC provider for external MFA");
+        };
+        // fall back to internal MFA in all relevant locations
+        for mut location in locations {
+            debug!(
+                "Falling back to internal MFA for {location} because exteral OIDC provider has been removed"
+            );
+            location.location_mfa_mode = LocationMfaMode::Internal;
+            location.save(&mut *transaction).await?;
+        }
         transaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",

@@ -1269,6 +1269,26 @@ impl WireguardNetwork<Id> {
             LocationMfaMode::Disabled => false,
         }
     }
+
+    // fetch all locations using external MFA
+    pub(crate) async fn all_using_external_mfa<'e, E>(
+        executor: E,
+    ) -> Result<Vec<Self>, WireguardNetworkError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let locations = query_as!(
+            WireguardNetwork,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(locations)
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]
