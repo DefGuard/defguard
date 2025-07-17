@@ -2779,7 +2779,7 @@ type RootTranslation = {
 				contact: string
 			}
 		}
-		locationMfaTypeSelect: {
+		locationMfaModeSelect: {
 			/**
 			 * M​F​A​ ​R​e​q​u​i​r​e​m​e​n​t
 			 */
@@ -9355,7 +9355,7 @@ export type TranslationFunctions = {
 				contact: () => LocalizedString
 			}
 		}
-		locationMfaTypeSelect: {
+		locationMfaModeSelect: {
 			/**
 			 * MFA Requirement
 			 */

@@ -23,7 +23,7 @@ use crate::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
-            wireguard::LocationMfaType,
+            wireguard::LocationMfaMode,
         },
     },
     enterprise::{
@@ -33,7 +33,7 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        proto::proxy::LocationMfa as ProtoLocationMfa,
+        proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
         utils::{build_device_config_response, new_polling_token, parse_client_info},
     },
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
@@ -852,7 +852,7 @@ impl InitialUserInfo {
 impl From<DeviceConfig> for ProtoDeviceConfig {
     fn from(config: DeviceConfig) -> Self {
         // used by pre-1.5 clients which don't support external MFA
-        let mfa_enabled = config.location_mfa == LocationMfaType::Internal;
+        let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
@@ -865,8 +865,9 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             keepalive_interval: config.keepalive_interval,
             #[allow(deprecated)]
             mfa_enabled,
-            location_mfa: Some(
-                <LocationMfaType as Into<ProtoLocationMfa>>::into(config.location_mfa).into(),
+            location_mfa_mode: Some(
+                <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(config.location_mfa_mode)
+                    .into(),
             ),
         }
     }

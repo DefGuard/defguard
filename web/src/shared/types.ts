@@ -118,7 +118,7 @@ export type GatewayStatus = {
   uid: string;
 };
 
-export enum LocationMfaType {
+export enum LocationMfaMode {
   DISABLED = 'disabled',
   INTERNAL = 'internal',
   EXTERNAL = 'external',
@@ -140,7 +140,7 @@ export interface Network {
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;
-  location_mfa: LocationMfaType;
+  location_mfa_mode: LocationMfaMode;
 }
 
 export type ModifyNetworkRequest = {

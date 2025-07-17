@@ -5,7 +5,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 
 import {
   type ImportedDevice,
-  LocationMfaType,
+  LocationMfaMode,
   type Network,
 } from '../../../shared/types';
 
@@ -33,7 +33,7 @@ const defaultValues: StoreFields = {
     peer_disconnect_threshold: 180,
     acl_enabled: false,
     acl_default_allow: false,
-    location_mfa: LocationMfaType.DISABLED,
+    location_mfa_mode: LocationMfaMode.DISABLED,
   },
 };
 
@@ -89,7 +89,7 @@ type StoreFields = {
     peer_disconnect_threshold: number;
     acl_enabled: boolean;
     acl_default_allow: boolean;
-    location_mfa: LocationMfaType;
+    location_mfa_mode: LocationMfaMode;
   };
 };
 

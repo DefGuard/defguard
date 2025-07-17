@@ -14,13 +14,13 @@ use crate::{
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,
-            wireguard::{LocationMfaType, WireguardNetwork},
+            wireguard::{LocationMfaMode, WireguardNetwork},
         },
     },
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::proto::proxy::LocationMfa as ProtoLocationMfa,
+    grpc::proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
 };
 
 // Create a new token for configuration polling.
@@ -120,7 +120,7 @@ pub(crate) async fn build_device_config_response(
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
             // used by pre-1.5 clients which don't support external MFA
-            let mfa_enabled = network.location_mfa == LocationMfaType::Internal;
+            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
@@ -133,8 +133,11 @@ pub(crate) async fn build_device_config_response(
                 keepalive_interval: network.keepalive_interval,
                 #[allow(deprecated)]
                 mfa_enabled,
-                location_mfa: Some(
-                    <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa).into(),
+                location_mfa_mode: Some(
+                    <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
+                        network.location_mfa_mode,
+                    )
+                    .into(),
                 ),
             };
             configs.push(config);
@@ -153,7 +156,7 @@ pub(crate) async fn build_device_config_response(
                 Status::internal(format!("unexpected error: {err}"))
             })?;
             // used by pre-1.5 clients which don't support external MFA
-            let mfa_enabled = network.location_mfa == LocationMfaType::Internal;
+            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -167,9 +170,11 @@ pub(crate) async fn build_device_config_response(
                     keepalive_interval: network.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
-                    location_mfa: Some(
-                        <LocationMfaType as Into<ProtoLocationMfa>>::into(network.location_mfa)
-                            .into(),
+                    location_mfa_mode: Some(
+                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
+                            network.location_mfa_mode,
+                        )
+                        .into(),
                     ),
                 };
                 configs.push(config);

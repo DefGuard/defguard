@@ -10,7 +10,7 @@ use crate::{
     db::{
         Device, WireguardNetwork,
         models::wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaType,
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             WireguardNetworkError,
         },
     },
@@ -111,7 +111,7 @@ pub(crate) fn parse_wireguard_config(
         DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
-        LocationMfaType::Disabled,
+        LocationMfaMode::Disabled,
     )?;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();

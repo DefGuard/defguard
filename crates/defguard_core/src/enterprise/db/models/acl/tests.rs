@@ -181,7 +181,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         100,
         false,
         false,
-        LocationMfaType::Disabled,
+        LocationMfaMode::Disabled,
     )
     .unwrap()
     .save(&pool)
@@ -198,7 +198,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         200,
         false,
         false,
-        LocationMfaType::Disabled,
+        LocationMfaMode::Disabled,
     )
     .unwrap()
     .save(&pool)

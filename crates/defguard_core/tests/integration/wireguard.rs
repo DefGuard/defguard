@@ -6,7 +6,7 @@ use defguard_core::{
         models::{
             device::WireguardNetworkDevice,
             wireguard::{
-                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaType,
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             },
         },
     },
@@ -62,7 +62,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
         acl_default_allow: false,
-        location_mfa: LocationMfaType::Disabled,
+        location_mfa_mode: LocationMfaMode::Disabled,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))

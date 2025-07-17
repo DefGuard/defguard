@@ -27,7 +27,7 @@ use crate::{
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
             error::ModelError,
-            wireguard::{LocationMfaType, WireguardNetworkError},
+            wireguard::{LocationMfaMode, WireguardNetworkError},
         },
     },
     events::{InternalEvent, InternalEventContext},
@@ -97,8 +97,8 @@ pub async fn run_periodic_peer_disconnect(
             "SELECT \
                 id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" \
-            FROM wireguard_network WHERE location_mfa != 'disabled'::location_mfa_type",
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            FROM wireguard_network WHERE location_mfa_mode != 'disabled'::location_mfa_mode",
         )
         .fetch_all(&pool)
         .await?;

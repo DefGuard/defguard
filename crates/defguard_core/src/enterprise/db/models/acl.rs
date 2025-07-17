@@ -19,7 +19,7 @@ use crate::{
     appstate::AppState,
     db::{
         Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork,
-        models::wireguard::LocationMfaType,
+        models::wireguard::LocationMfaMode,
     },
     enterprise::{
         firewall::FirewallError,
@@ -908,7 +908,7 @@ impl AclRule<Id> {
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa \"location_mfa: LocationMfaType\" \
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \

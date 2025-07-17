@@ -913,7 +913,7 @@ mod test {
             Device, Session, SessionState, Settings, WireguardNetwork,
             models::{
                 device::DeviceType, settings::initialize_current_settings,
-                wireguard::LocationMfaType,
+                wireguard::LocationMfaMode,
             },
             setup_pool,
         },
@@ -955,7 +955,7 @@ mod test {
             32,
             false,
             false,
-            LocationMfaType::Disabled,
+            LocationMfaMode::Disabled,
         )
         .unwrap()
         .save(pool)

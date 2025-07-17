@@ -1130,7 +1130,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         contact: 'by contacting:',
       },
     },
-    locationMfaTypeSelect: {
+    locationMfaModeSelect: {
       label: 'MFA Requirement',
       options: {
         disabled: 'Do not enforce MFA',
