@@ -106,7 +106,7 @@ impl WireguardNetwork<Id> {
             AND u.is_active = true \
             ORDER BY d.id ASC",
             self.id,
-            self.mfa_enabled
+            self.mfa_enabled()
         )
         .fetch_all(executor)
         .await?;
@@ -393,7 +393,7 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
-                            if self.network.mfa_enabled && !network_info.is_authorized {
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
                                 debug!(
                                     "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
                                     device.device.name, self.network.name
@@ -428,7 +428,7 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
-                            if self.network.mfa_enabled && !network_info.is_authorized {
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
                                 debug!(
                                     "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
                                     device.device.name, self.network.name

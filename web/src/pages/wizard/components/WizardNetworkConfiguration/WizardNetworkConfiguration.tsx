@@ -9,6 +9,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
+import { FormLocationMfaModeSelect } from '../../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
 import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
@@ -18,6 +19,7 @@ import type { SelectOption } from '../../../../shared/defguard-ui/components/Lay
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
+import { LocationMfaMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import { validateIpList, validateIpOrDomainList } from '../../../../shared/validators';
@@ -118,7 +120,6 @@ export const WizardNetworkConfiguration = () => {
             return validateIpOrDomainList(val, ',', true);
           }, LL.form.error.allowedIps()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
-        mfa_enabled: z.boolean(),
         keepalive_interval: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
@@ -131,6 +132,7 @@ export const WizardNetworkConfiguration = () => {
           .refine((v) => v >= 120, LL.form.error.minimumLength()),
         acl_enabled: z.boolean(),
         acl_default_allow: z.boolean(),
+        location_mfa_mode: z.nativeEnum(LocationMfaMode),
       }),
     [LL.form.error],
   );
@@ -222,11 +224,6 @@ export const WizardNetworkConfiguration = () => {
           })}
         />
         <FormCheckBox
-          controller={{ control, name: 'mfa_enabled' }}
-          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
-          labelPlacement="right"
-        />
-        <FormCheckBox
           controller={{ control, name: 'acl_enabled' }}
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
@@ -242,6 +239,7 @@ export const WizardNetworkConfiguration = () => {
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
         />
+        <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>
     </Card>

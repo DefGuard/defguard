@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" FROM wireguard_network WHERE location_mfa_mode != 'disabled'::location_mfa_mode",
   "describe": {
     "columns": [
       {
@@ -55,34 +55,43 @@
       },
       {
         "ordinal": 10,
-        "name": "mfa_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 11,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "acl_default_allow",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "location_mfa_mode: LocationMfaMode",
+        "type_info": {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -102,5 +111,5 @@
       false
     ]
   },
-  "hash": "f65176f7b65f553ddcb0240903de3b8b1951a5c48de9f25b9c921e1967a972b9"
+  "hash": "d6298964d89e9fdb087f7860a38f2f325d5ec81e6e0ea10660f74084718ac48e"
 }

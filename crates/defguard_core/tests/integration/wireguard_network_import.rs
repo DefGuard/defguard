@@ -5,7 +5,9 @@ use defguard_core::{
         Device, GatewayEvent, WireguardNetwork,
         models::{
             device::{DeviceType, UserDevice},
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+            },
         },
     },
     handlers::{Auth, wireguard::ImportedNetworkData},
@@ -55,11 +57,11 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         String::new(),
         None,
         vec![],
-        false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
+        LocationMfaMode::Disabled,
     )
     .unwrap();
     initial_network.save(&pool).await.unwrap();

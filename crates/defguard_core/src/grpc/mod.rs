@@ -948,7 +948,6 @@ pub struct InstanceInfo {
     username: String,
     disable_all_traffic: bool,
     enterprise_enabled: bool,
-    use_openid_for_mfa: bool,
     openid_display_name: Option<String>,
 }
 
@@ -972,11 +971,6 @@ impl InstanceInfo {
             username: username.into(),
             disable_all_traffic: enterprise_settings.disable_all_traffic,
             enterprise_enabled: is_enterprise_enabled(),
-            use_openid_for_mfa: if is_enterprise_enabled() {
-                settings.use_openid_for_mfa
-            } else {
-                false
-            },
             openid_display_name,
         }
     }
@@ -992,7 +986,6 @@ impl From<InstanceInfo> for proto::proxy::InstanceInfo {
             username: instance.username,
             disable_all_traffic: instance.disable_all_traffic,
             enterprise_enabled: instance.enterprise_enabled,
-            use_openid_for_mfa: instance.use_openid_for_mfa,
             openid_display_name: instance.openid_display_name,
         }
     }

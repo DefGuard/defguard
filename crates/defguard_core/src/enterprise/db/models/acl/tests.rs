@@ -177,11 +177,11 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         "endpoint1".to_string(),
         None,
         Vec::new(),
-        false,
         100,
         100,
         false,
         false,
+        LocationMfaMode::Disabled,
     )
     .unwrap()
     .save(&pool)
@@ -194,11 +194,11 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         "endpoint2".to_string(),
         None,
         Vec::new(),
-        false,
         200,
         200,
         false,
         false,
+        LocationMfaMode::Disabled,
     )
     .unwrap()
     .save(&pool)

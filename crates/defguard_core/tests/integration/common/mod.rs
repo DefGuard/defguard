@@ -200,11 +200,11 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "allowed_ips": "10.1.1.0/24",
             "dns": "1.1.1.1",
             "allowed_groups": [],
-            "mfa_enabled": false,
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 180,
             "acl_enabled": false,
-            "acl_default_allow": false
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled"
         }))
         .send()
         .await;
@@ -220,11 +220,11 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
                 "allowed_ips": "10.1.1.0/24",
                 "dns": "1.1.1.1",
                 "allowed_groups": [],
-                "mfa_enabled": false,
                 "keepalive_interval": 25,
                 "peer_disconnect_threshold": 180,
                 "acl_enabled": false,
-                "acl_default_allow": false
+                "acl_default_allow": false,
+                "location_mfa_mode": "disabled"
         }))
         .send()
         .await;
@@ -240,11 +240,11 @@ pub(crate) fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
-        "mfa_enabled": false,
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 180,
         "acl_enabled": false,
-        "acl_default_allow": false
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled"
     })
 }
 

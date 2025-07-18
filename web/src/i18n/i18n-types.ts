@@ -2779,6 +2779,26 @@ type RootTranslation = {
 				contact: string
 			}
 		}
+		locationMfaModeSelect: {
+			/**
+			 * M​F​A​ ​R​e​q​u​i​r​e​m​e​n​t
+			 */
+			label: string
+			options: {
+				/**
+				 * D​o​ ​n​o​t​ ​e​n​f​o​r​c​e​ ​M​F​A
+				 */
+				disabled: string
+				/**
+				 * I​n​t​e​r​n​a​l​ ​M​F​A
+				 */
+				internal: string
+				/**
+				 * E​x​t​e​r​n​a​l​ ​M​F​A
+				 */
+				external: string
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -3160,16 +3180,6 @@ type RootTranslation = {
 					label: string
 					/**
 					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
-					 */
-					helper: string
-				}
-				useOpenIdForMfa: {
-					/**
-					 * U​s​e​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​f​o​r​ ​c​l​i​e​n​t​ ​M​F​A
-					 */
-					label: string
-					/**
-					 * W​h​e​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​S​O​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​(​M​F​A​)​ ​p​r​o​c​e​s​s​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​c​o​n​n​e​c​t​i​n​g​ ​t​o​ ​V​P​N​ ​l​o​c​a​t​i​o​n​s​ ​t​h​a​t​ ​r​e​q​u​i​r​e​ ​M​F​A​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​v​i​a​ ​t​h​e​i​r​ ​b​r​o​w​s​e​r​ ​u​s​i​n​g​ ​t​h​e​ ​c​o​n​f​i​g​u​r​e​d​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​e​a​c​h​ ​c​o​n​n​e​c​t​i​o​n​.​ ​I​f​ ​t​h​i​s​ ​s​e​t​t​i​n​g​ ​i​s​ ​d​i​s​a​b​l​e​d​,​ ​M​F​A​ ​f​o​r​ ​t​h​o​s​e​ ​V​P​N​ ​l​o​c​a​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​h​a​n​d​l​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​i​n​t​e​r​n​a​l​ ​D​e​f​g​u​a​r​d​ ​S​S​O​ ​s​y​s​t​e​m​.​ ​I​n​ ​t​h​a​t​ ​c​a​s​e​,​ ​u​s​e​r​s​ ​m​u​s​t​ ​h​a​v​e​ ​T​O​T​P​ ​o​r​ ​e​m​a​i​l​-​b​a​s​e​d​ ​M​F​A​ ​c​o​n​f​i​g​u​r​e​d​ ​i​n​ ​t​h​e​i​r​ ​p​r​o​f​i​l​e​.
 					 */
 					helper: string
 				}
@@ -4835,12 +4845,6 @@ type RootTranslation = {
 					 * A​l​l​ ​g​r​o​u​p​s
 					 */
 					placeholder: string
-				}
-				mfa_enabled: {
-					/**
-					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
-					 */
-					label: string
 				}
 				keepalive_interval: {
 					/**
@@ -9345,6 +9349,26 @@ export type TranslationFunctions = {
 				contact: () => LocalizedString
 			}
 		}
+		locationMfaModeSelect: {
+			/**
+			 * MFA Requirement
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Do not enforce MFA
+				 */
+				disabled: () => LocalizedString
+				/**
+				 * Internal MFA
+				 */
+				internal: () => LocalizedString
+				/**
+				 * External MFA
+				 */
+				external: () => LocalizedString
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -9723,16 +9747,6 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
-					 */
-					helper: () => LocalizedString
-				}
-				useOpenIdForMfa: {
-					/**
-					 * Use external OpenID for client MFA
-					 */
-					label: () => LocalizedString
-					/**
-					 * When the external OpenID SSO Multi-Factor (MFA) process is enabled, users connecting to VPN locations that require MFA will need to authenticate via their browser using the configured provider for each connection. If this setting is disabled, MFA for those VPN locations will be handled through the internal Defguard SSO system. In that case, users must have TOTP or email-based MFA configured in their profile.
 					 */
 					helper: () => LocalizedString
 				}
@@ -11382,12 +11396,6 @@ export type TranslationFunctions = {
 					 * All groups
 					 */
 					placeholder: () => LocalizedString
-				}
-				mfa_enabled: {
-					/**
-					 * Require MFA for this Location
-					 */
-					label: () => LocalizedString
 				}
 				keepalive_interval: {
 					/**

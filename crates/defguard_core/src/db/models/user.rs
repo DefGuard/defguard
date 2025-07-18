@@ -377,7 +377,7 @@ impl User<Id> {
         .await
     }
 
-    /// Verify the state of mfa flags are correct.
+    /// Verify the state of MFA flags are correct.
     /// Recovers from invalid mfa_method
     /// Use this function after removing any of the authentication factors.
     pub async fn verify_mfa_state(&mut self, pool: &PgPool) -> Result<(), WebError> {

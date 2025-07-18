@@ -391,7 +391,6 @@ pub struct SettingsNoSecrets {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenidUsernameHandling,
-    pub use_openid_for_mfa: bool,
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
@@ -443,7 +442,6 @@ impl From<Settings> for SettingsNoSecrets {
             ldap_sync_groups: value.ldap_sync_groups,
             openid_create_account: value.openid_create_account,
             openid_username_handling: value.openid_username_handling,
-            use_openid_for_mfa: value.use_openid_for_mfa,
             license: value.license,
             gateway_disconnect_notifications_enabled: value
                 .gateway_disconnect_notifications_enabled,

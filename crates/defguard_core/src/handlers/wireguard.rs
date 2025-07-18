@@ -30,8 +30,8 @@ use crate::{
                 WireguardNetworkDevice,
             },
             wireguard::{
-                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
-                WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
+                DateTimeAggregation, LocationMfaMode, MappedDevice, WireguardDeviceStatsRow,
+                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
             },
         },
     },
@@ -75,11 +75,11 @@ pub struct WireguardNetworkData {
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
-    pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub location_mfa_mode: LocationMfaMode,
 }
 
 impl WireguardNetworkData {
@@ -145,11 +145,11 @@ pub(crate) async fn create_network(
         data.endpoint,
         data.dns,
         allowed_ips,
-        data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
+        data.location_mfa_mode,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -233,11 +233,11 @@ pub(crate) async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = parse_address_list(&data.address);
-    network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;
     network
@@ -637,8 +637,8 @@ pub struct AddDeviceResult {
                         "allowed_ips": ["0.0.0.0:8000"],
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
-                        "mfa_enabled": false,
-                        "keepalive_interval": 5
+                        "keepalive_interval": 5,
+			            "location_mfa_mode": "disabled"
                     }
                 ],
                 "device": {

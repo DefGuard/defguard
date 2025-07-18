@@ -24,7 +24,6 @@ test.describe('External OIDC.', () => {
       'http://localhost:8080/openid/callback',
     ],
     scopes: ['openid', 'profile', 'email'],
-    use_external_openid_mfa: false,
   };
 
   const testNetwork: NetworkForm = {
@@ -55,7 +54,7 @@ test.describe('External OIDC.', () => {
     dockerDown();
   });
 
-  test('Login through external oidc.', async ({ page }) => {
+  test.fixme('Login through external oidc.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);

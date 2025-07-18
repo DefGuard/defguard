@@ -13,7 +13,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     serve,
 };
-use db::models::device::DeviceType;
+use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -734,11 +734,11 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             "0.0.0.0".to_string(),
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
-            false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
+            LocationMfaMode::Disabled,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -833,11 +833,11 @@ pub async fn init_vpn_location(
                 args.endpoint.clone(),
                 args.dns.clone(),
                 args.allowed_ips.clone(),
-                false,
                 DEFAULT_KEEPALIVE_INTERVAL,
                 DEFAULT_DISCONNECT_THRESHOLD,
                 false,
                 false,
+                LocationMfaMode::Disabled,
             )?
             .save(&mut *transaction)
             .await?;
@@ -872,11 +872,11 @@ pub async fn init_vpn_location(
             args.endpoint.clone(),
             args.dns.clone(),
             args.allowed_ips.clone(),
-            false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
+            LocationMfaMode::Disabled,
         )?
         .save(pool)
         .await?

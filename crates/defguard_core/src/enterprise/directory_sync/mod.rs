@@ -911,7 +911,10 @@ mod test {
         config::DefGuardConfig,
         db::{
             Device, Session, SessionState, Settings, WireguardNetwork,
-            models::{device::DeviceType, settings::initialize_current_settings},
+            models::{
+                device::DeviceType, settings::initialize_current_settings,
+                wireguard::LocationMfaMode,
+            },
             setup_pool,
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
@@ -948,11 +951,11 @@ mod test {
             "123.123.123.123".to_string(),
             None,
             vec![],
-            false,
             32,
             32,
             false,
             false,
+            LocationMfaMode::Disabled,
         )
         .unwrap()
         .save(pool)
