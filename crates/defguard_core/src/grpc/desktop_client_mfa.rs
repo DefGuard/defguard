@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use sqlx::{PgConnection, PgPool};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
     broadcast::Sender,
@@ -140,14 +140,8 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // begin transaction
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
-            Status::internal("unexpected error")
-        })?;
-
         // validate user is allowed to connect to a given location
-        Self::validate_location_access(&mut *transaction, &location, &user_info).await?;
+        Self::validate_location_access(&self.pool, &location, &user_info).await?;
 
         user.verify_mfa_state(&self.pool).await.map_err(|err| {
             error!(
@@ -261,13 +255,19 @@ impl ClientMfaServer {
 
     /// Checks if given user is allowed to access a location
     async fn validate_location_access(
-        conn: &mut PgConnection,
+        pool: &PgPool,
         location: &WireguardNetwork<Id>,
         user_info: &UserInfo,
     ) -> Result<(), Status> {
+        // acquire connection
+        let mut conn = pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            Status::internal("unexpected error")
+        })?;
+
         // fetch allowed group names for a given location
         let allowed_groups = location
-            .get_allowed_groups(&mut *conn)
+            .get_allowed_groups(&mut conn)
             .await
             .map_err(|err| {
                 error!("Failed to fetch allowed groups for location {location}: {err:?}");

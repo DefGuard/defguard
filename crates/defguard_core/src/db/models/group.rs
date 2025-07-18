@@ -184,14 +184,13 @@ impl WireguardNetwork<Id> {
     /// access to networks based on allowed groups.
     pub async fn get_allowed_groups(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_groups =
-            Group::find_by_permission(&mut *transaction, Permission::IsAdmin).await?;
+        let admin_groups = Group::find_by_permission(&mut *conn, Permission::IsAdmin).await?;
 
         // get allowed groups from DB
-        let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
+        let mut groups = self.fetch_allowed_groups(&mut *conn).await?;
 
         // if no allowed groups are set then all groups are allowed
         if groups.is_empty() {
