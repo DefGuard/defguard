@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
 use tokio::sync::{
     broadcast::Sender,
@@ -17,7 +17,10 @@ use crate::{
     auth::{Claims, ClaimsType},
     db::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
-        models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+        models::{
+            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            wireguard::LocationMfaMode,
+        },
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
@@ -115,6 +118,12 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("location not found"));
         };
 
+        // return early if MFA is not enabled for this location
+        if !location.mfa_enabled() {
+            error!("MFA is not enabled for location {location}");
+            return Err(Status::invalid_argument("MFA not enabled for location"));
+        }
+
         // fetch device
         let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
             error!("Failed to find device with pubkey {}", request.pubkey);
@@ -131,32 +140,14 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // validate user is allowed to connect to a given location
+        // begin transaction
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
             Status::internal("unexpected error")
         })?;
-        let allowed_groups = location
-            .get_allowed_groups(&mut transaction)
-            .await
-            .map_err(|err| {
-                error!("Failed to fetch allowed groups for location {location}: {err:?}");
-                Status::internal("unexpected error")
-            })?;
-        if let Some(groups) = allowed_groups {
-            // check if user belongs to one of allowed groups
-            if !groups
-                .iter()
-                .any(|allowed_group| user_info.groups.contains(allowed_group))
-            {
-                error!(
-                    "User {} not allowed to connect to location {location} because he doesn't belong to any of the allowed groups.
-                    User groups: {:?}, allowed groups: {:?}",
-                    user.username, user_info.groups, groups
-                );
-                return Err(Status::unauthenticated("unauthorized"));
-            }
-        }
+
+        // validate user is allowed to connect to a given location
+        Self::validate_location_access(&mut *transaction, &location, &user_info).await?;
 
         user.verify_mfa_state(&self.pool).await.map_err(|err| {
             error!(
@@ -166,14 +157,37 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // FIXME: check which method is enabled for this location
-
-        // check if selected method is enabled
-        let method = MfaMethod::try_from(request.method).map_err(|err| {
+        // extract user selected method from request
+        let selected_method = MfaMethod::try_from(request.method).map_err(|err| {
             error!("Invalid MFA method selected ({}): {err}", request.method);
             Status::invalid_argument("invalid MFA method selected")
         })?;
-        match method {
+
+        // check if selected MFA method matches location settings
+        match (&location.location_mfa_mode, selected_method) {
+            // MFA enabled status is already verified
+            (LocationMfaMode::Disabled, _) => unreachable!(),
+            (LocationMfaMode::Internal, MfaMethod::Totp)
+            | (LocationMfaMode::Internal, MfaMethod::Email) => {
+                debug!("Location uses internal MFA. Selected method: {selected_method}")
+            }
+            (LocationMfaMode::External, MfaMethod::Oidc) => {
+                debug!("Location uses external MFA. Selected method: {selected_method}")
+            }
+            _ => {
+                error!(
+                    "Selected MFA method ({selected_method}) is not supported by location {location} which uses {}",
+                    location.location_mfa_mode
+                );
+
+                return Err(Status::invalid_argument(
+                    "selected MFA method not supported by location",
+                ));
+            }
+        }
+
+        // check if selected method is configured
+        match selected_method {
             MfaMethod::Totp => {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
@@ -234,7 +248,7 @@ impl ClientMfaServer {
         self.sessions.insert(
             request.pubkey,
             ClientLoginSession {
-                method,
+                method: selected_method,
                 location,
                 device,
                 user,
@@ -243,6 +257,38 @@ impl ClientMfaServer {
         );
 
         Ok(ClientMfaStartResponse { token })
+    }
+
+    /// Checks if given user is allowed to access a location
+    async fn validate_location_access(
+        conn: &mut PgConnection,
+        location: &WireguardNetwork<Id>,
+        user_info: &UserInfo,
+    ) -> Result<(), Status> {
+        // fetch allowed group names for a given location
+        let allowed_groups = location
+            .get_allowed_groups(&mut *conn)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch allowed groups for location {location}: {err:?}");
+                Status::internal("unexpected error")
+            })?;
+        // if no groups are specified all users are allowed
+        if let Some(groups) = allowed_groups {
+            // check if user belongs to one of allowed groups
+            if !groups
+                .iter()
+                .any(|allowed_group| user_info.groups.contains(allowed_group))
+            {
+                error!(
+                    "User {} not allowed to connect to location {location} because he doesn't belong to any of the allowed groups.
+                    User groups: {:?}, allowed groups: {:?}",
+                    user_info.username, user_info.groups, groups
+                );
+                return Err(Status::unauthenticated("unauthorized"));
+            }
+        }
+        Ok(())
     }
 
     #[instrument(skip_all)]

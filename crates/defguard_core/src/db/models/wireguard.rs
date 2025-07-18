@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fmt,
+    fmt::{self, Display},
     iter::zip,
     net::{IpAddr, Ipv4Addr},
 };
@@ -93,6 +93,16 @@ pub enum LocationMfaMode {
     Disabled,
     Internal,
     External,
+}
+
+impl Display for LocationMfaMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LocationMfaMode::Disabled => write!(f, "MFA disabled"),
+            LocationMfaMode::Internal => write!(f, "Internal MFA"),
+            LocationMfaMode::External => write!(f, "External MFA"),
+        }
+    }
 }
 
 impl From<ProtoLocationMfaMode> for LocationMfaMode {
