@@ -119,7 +119,7 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
-            // used by pre-1.5 clients which don't support external MFA
+            // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
@@ -155,7 +155,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            // used by pre-1.5 clients which don't support external MFA
+            // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {

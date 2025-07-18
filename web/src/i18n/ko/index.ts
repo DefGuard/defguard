@@ -1450,9 +1450,6 @@ const translation: PartialDeep<Translation> = {
           label: '허용된 그룹',
           placeholder: '모든 그룹',
         },
-        mfa_enabled: {
-          label: '이 위치에 MFA 필요',
-        },
         keepalive_interval: {
           label: 'Keepalive 간격 [초]',
         },

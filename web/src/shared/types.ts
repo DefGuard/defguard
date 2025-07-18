@@ -1380,10 +1380,10 @@ export type DeviceConfigurationResponse = {
   config: string;
   endpoint: string;
   keepalive_interval: number;
-  mfa_enabled: boolean;
   network_id: number;
   network_name: string;
   pubkey: string;
+  location_mfa_mode: LocationMfaMode;
 };
 
 export type CreateStandaloneDeviceResponse = {

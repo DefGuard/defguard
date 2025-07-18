@@ -637,8 +637,8 @@ pub struct AddDeviceResult {
                         "allowed_ips": ["0.0.0.0:8000"],
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
-                        "mfa_enabled": false,
-                        "keepalive_interval": 5
+                        "keepalive_interval": 5,
+			            "location_mfa_mode": "disabled"
                     }
                 ],
                 "device": {

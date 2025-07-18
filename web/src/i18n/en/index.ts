@@ -2019,9 +2019,6 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Allowed groups',
           placeholder: 'All groups',
         },
-        mfa_enabled: {
-          label: 'Require MFA for this Location',
-        },
         keepalive_interval: {
           label: 'Keepalive interval [seconds]',
         },
