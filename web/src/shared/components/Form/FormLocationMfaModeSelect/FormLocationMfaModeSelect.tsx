@@ -1,8 +1,13 @@
+import './style.scss';
+import clsx from 'clsx';
 import { useMemo } from 'react';
-import type { FieldValues, UseControllerProps } from 'react-hook-form';
-
+import {
+  type FieldValues,
+  type UseControllerProps,
+  useController,
+} from 'react-hook-form';
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormSelect } from '../../../defguard-ui/components/Form/FormSelect/FormSelect';
+import { RadioButton } from '../../../defguard-ui/components/Layout/RadioButton/Radiobutton';
 import type { SelectOption } from '../../../defguard-ui/components/Layout/Select/types';
 import { LocationMfaMode } from '../../../types';
 
@@ -13,9 +18,11 @@ type Props<T extends FieldValues> = {
 
 export const FormLocationMfaModeSelect = <T extends FieldValues>({
   controller,
-  disabled = false,
 }: Props<T>) => {
   const { LL } = useI18nContext();
+  const {
+    field: { onChange, value: fieldValue },
+  } = useController(controller);
 
   const options = useMemo(
     (): SelectOption<LocationMfaMode>[] => [
@@ -37,12 +44,26 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
     ],
     [LL.components.aclDefaultPolicySelect.options],
   );
+
   return (
-    <FormSelect
-      controller={controller}
-      options={options}
-      label={LL.components.locationMfaModeSelect.label()}
-      disabled={disabled}
-    />
+    <div className="location-mfa-mode-select">
+      {options.map(({ key, value, label }) => {
+        const active = fieldValue === value;
+        return (
+          <div
+            className={clsx('location-mfa-mode', {
+              active,
+            })}
+            key={key}
+            onClick={() => {
+              onChange(value);
+            }}
+          >
+            <p className="label">{label}</p>
+            <RadioButton active={active} />
+          </div>
+        );
+      })}
+    </div>
   );
 };
