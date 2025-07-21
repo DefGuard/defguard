@@ -54,7 +54,7 @@ test.describe('External OIDC.', () => {
     dockerDown();
   });
 
-  test.fixme('Login through external oidc.', async ({ page }) => {
+  test('Login through external oidc.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);

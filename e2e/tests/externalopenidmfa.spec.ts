@@ -52,7 +52,7 @@ test.describe('External OIDC.', () => {
     dockerDown();
   });
 
-  test.fixme('Complete client MFA through external OpenID', async ({ page, browser }) => {
+  test('Complete client MFA through external OpenID', async ({ page, browser }) => {
     await waitForBase(page);
     const mfaStartUrl = `${testsConfig.ENROLLMENT_URL}/api/v1/client-mfa/start`;
     await createDevice(browser, testUser, {
