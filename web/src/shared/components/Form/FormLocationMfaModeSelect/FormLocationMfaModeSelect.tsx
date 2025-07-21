@@ -13,7 +13,6 @@ import { LocationMfaMode } from '../../../types';
 
 type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
-  disabled?: boolean;
 };
 
 export const FormLocationMfaModeSelect = <T extends FieldValues>({
