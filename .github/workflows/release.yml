@@ -1,58 +1,60 @@
 name: Publish to GitHub registry
 on:
   push:
-    tags:
-      - v*.*.*
+    # tags:
+    #   - v*.*.*
+    branches:
+      - core-ami
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-docker-release:
-    # Ignore tags with -, like v1.0.0-alpha
-    # This job will build the docker container with the "latest" tag which
-    # is a tag used in production, thus it should only be run for full releases.
-    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
-    name: Build Release Docker image
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      tags: |
-        type=raw,value=latest
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=sha
+  # build-docker-release:
+  #   # Ignore tags with -, like v1.0.0-alpha
+  #   # This job will build the docker container with the "latest" tag which
+  #   # is a tag used in production, thus it should only be run for full releases.
+  #   if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
+  #   name: Build Release Docker image
+  #   uses: ./.github/workflows/build-docker.yml
+  #   with:
+  #     tags: |
+  #       type=raw,value=latest
+  #       type=semver,pattern={{version}}
+  #       type=semver,pattern={{major}}.{{minor}}
+  #       type=sha
 
-  build-docker-prerelease:
-    # Only build tags with -, like v1.0.0-alpha
-    if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-')
-    name: Build Pre-release Docker image
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      tags: |
-        type=raw,value=pre-release
-        type=semver,pattern={{version}}
-        type=sha
-      # Explicitly disable latest tag. It will be added otherwise.
-      flavor: |
-        latest=false
+  # build-docker-prerelease:
+  #   # Only build tags with -, like v1.0.0-alpha
+  #   if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, '-')
+  #   name: Build Pre-release Docker image
+  #   uses: ./.github/workflows/build-docker.yml
+  #   with:
+  #     tags: |
+  #       type=raw,value=pre-release
+  #       type=semver,pattern={{version}}
+  #       type=sha
+  #     # Explicitly disable latest tag. It will be added otherwise.
+  #     flavor: |
+  #       latest=false
 
-  create-release:
-    name: create-release
-    runs-on: self-hosted
-    outputs:
-      upload_url: ${{ steps.release.outputs.upload_url }}
-    steps:
-      - name: Create GitHub release
-        id: release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          draft: true
-          generate_release_notes: true
+  # create-release:
+  #   name: create-release
+  #   runs-on: self-hosted
+  #   outputs:
+  #     upload_url: ${{ steps.release.outputs.upload_url }}
+  #   steps:
+  #     - name: Create GitHub release
+  #       id: release
+  #       uses: softprops/action-gh-release@v2
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       with:
+  #         draft: true
+  #         generate_release_notes: true
 
   build-binaries:
-    needs: [create-release]
+    # needs: [create-release]
     runs-on:
       - self-hosted
       - Linux
@@ -60,17 +62,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [linux, linux-arm64, freebsd]
+        build: [linux]
         include:
           - build: linux
             arch: amd64
             target: x86_64-unknown-linux-gnu
-          - build: linux-arm64
-            arch: arm64
-            target: aarch64-unknown-linux-gnu
-          - build: freebsd
-            arch: amd64
-            target: x86_64-unknown-freebsd
+        # build: [linux, linux-arm64, freebsd]
+        # include:
+        #   - build: linux
+        #     arch: amd64
+        #     target: x86_64-unknown-linux-gnu
+        #   - build: linux-arm64
+        #     arch: arm64
+        #     target: aarch64-unknown-linux-gnu
+        #   - build: freebsd
+        #     arch: amd64
+        #     target: x86_64-unknown-freebsd
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
@@ -83,6 +90,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup `packer`
+        uses: hashicorp/setup-packer@main
+        id: setup
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
@@ -136,15 +147,15 @@ jobs:
             defguard-${{ github.ref_name }}-${{ matrix.target }}
           outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
 
-      - name: Upload release archive
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-          asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-          asset_content_type: application/octet-stream
+      # - name: Upload release archive
+      #   uses: actions/upload-release-asset@v1.0.2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+      #     asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+      #     asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+      #     asset_content_type: application/octet-stream
 
       - name: Build DEB package
         if: matrix.build == 'linux'
@@ -153,49 +164,63 @@ jobs:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
           fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
-      - name: Upload DEB
-        if: matrix.build == 'linux'
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
-          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
-          asset_content_type: application/octet-stream
+      - name: Run `packer init`
+        if: matrix.build == 'linux' && matrix.arch == 'amd64'
+        id: init
+        run: "packer init ./images/ami/core.pkr.hcl"
 
-      - name: Build RPM package
-        if: matrix.build == 'linux'
-        uses: defGuard/fpm-action@main
-        with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+      - name: Run `packer validate`
+        if: matrix.build == 'linux' && matrix.arch == 'amd64'
+        id: validate
+        run: "packer validate ./images/ami/core.pkr.hcl"
 
-      - name: Upload RPM
-        if: matrix.build == 'linux'
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
-          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
-          asset_content_type: application/octet-stream
+      - name: Build AMI image
+        if: matrix.build == 'linux' && matrix.arch == 'amd64'
+        run: packer build -color=false -on-error=abort ./images/ami/core.pkr.hcl
 
-      - name: Build FreeBSD package
-        if: matrix.build == 'freebsd'
-        uses: defGuard/fpm-action@main
-        with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+      # - name: Upload DEB
+      #   if: matrix.build == 'linux'
+      #   uses: actions/upload-release-asset@v1.0.2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+      #     asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
+      #     asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
+      #     asset_content_type: application/octet-stream
 
-      - name: Upload FreeBSD
-        if: matrix.build == 'freebsd'
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
-          asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
-          asset_content_type: application/octet-stream
+      # - name: Build RPM package
+      #   if: matrix.build == 'linux'
+      #   uses: defGuard/fpm-action@main
+      #   with:
+      #     fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
+      #     fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+
+      # - name: Upload RPM
+      #   if: matrix.build == 'linux'
+      #   uses: actions/upload-release-asset@v1.0.2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+      #     asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+      #     asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+      #     asset_content_type: application/octet-stream
+
+      # - name: Build FreeBSD package
+      #   if: matrix.build == 'freebsd'
+      #   uses: defGuard/fpm-action@main
+      #   with:
+      #     fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
+      #     fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+
+      # - name: Upload FreeBSD
+      #   if: matrix.build == 'freebsd'
+      #   uses: actions/upload-release-asset@v1.0.2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+      #     asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
+      #     asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
+      #     asset_content_type: application/octet-stream
