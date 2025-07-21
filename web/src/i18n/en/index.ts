@@ -1991,6 +1991,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
         aclFeatureDisabled:
           "ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.",
+        locationMfaMode: {
+          description: 'Choose how MFA is enforced when connecting to this location:', 
+          internal: "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
+          external: 'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
+        },
       },
       messages: {
         networkModified: 'Location modified.',
@@ -2031,6 +2036,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         acl_default_allow: {
           label: 'Default ACL policy',
         },
+        location_mfa_mode: {
+          label: 'MFA requirement',
+        }
       },
       controls: {
         submit: 'Save changes',

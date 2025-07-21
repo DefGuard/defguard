@@ -15,11 +15,20 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
   const navNext = page.getByTestId('wizard-next');
   await page.getByTestId('setup-option-manual').click();
   await navNext.click();
-  for (const key of Object.keys(network)) {
+
+  // fill form
+  for (const key of Object.keys(network).filter((key) => key !== 'location_mfa_mode')) {
     const field = page.getByTestId(`field-${key}`);
     await field.clear();
     await field.type(network[key]);
   }
+  // select location MFA mode
+  if (network.location_mfa_mode) {
+    const mfaModeSelect = page.locator('div.location-mfa-mode-select');
+    const mfaMode = mfaModeSelect.locator(`div.${network.location_mfa_mode}`);
+    await mfaMode.click();
+  }
+
   const responseCreateNetworkPromise = page.waitForResponse('**/network');
   await navNext.click();
   const response = await responseCreateNetworkPromise;

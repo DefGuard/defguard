@@ -4788,6 +4788,20 @@ type RootTranslation = {
 				 * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
 				 */
 				aclFeatureDisabled: string
+				locationMfaMode: {
+					/**
+					 * C​h​o​o​s​e​ ​h​o​w​ ​M​F​A​ ​i​s​ ​e​n​f​o​r​c​e​d​ ​w​h​e​n​ ​c​o​n​n​e​c​t​i​n​g​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​:
+					 */
+					description: string
+					/**
+					 * I​n​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​M​F​A​ ​i​s​ ​e​n​f​o​r​c​e​d​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​'​s​ ​b​u​i​l​t​-​i​n​ ​M​F​A​ ​(​e​.​g​.​ ​T​O​T​P​,​ ​W​e​b​A​u​t​h​n​)​ ​w​i​t​h​ ​i​n​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y
+					 */
+					internal: string
+					/**
+					 * E​x​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​ ​(​s​e​e​ ​[​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s​]​(​s​e​t​t​i​n​g​s​)​)​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​u​s​e​s​ ​e​x​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​M​F​A
+					 */
+					external: string
+				}
 			}
 			messages: {
 				/**
@@ -4867,6 +4881,12 @@ type RootTranslation = {
 				acl_default_allow: {
 					/**
 					 * D​e​f​a​u​l​t​ ​A​C​L​ ​p​o​l​i​c​y
+					 */
+					label: string
+				}
+				location_mfa_mode: {
+					/**
+					 * M​F​A​ ​r​e​q​u​i​r​e​m​e​n​t
 					 */
 					label: string
 				}
@@ -11339,6 +11359,20 @@ export type TranslationFunctions = {
 				 * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
 				 */
 				aclFeatureDisabled: () => LocalizedString
+				locationMfaMode: {
+					/**
+					 * Choose how MFA is enforced when connecting to this location:
+					 */
+					description: () => LocalizedString
+					/**
+					 * Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity
+					 */
+					internal: () => LocalizedString
+					/**
+					 * External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA
+					 */
+					external: () => LocalizedString
+				}
 			}
 			messages: {
 				/**
@@ -11418,6 +11452,12 @@ export type TranslationFunctions = {
 				acl_default_allow: {
 					/**
 					 * Default ACL policy
+					 */
+					label: () => LocalizedString
+				}
+				location_mfa_mode: {
+					/**
+					 * MFA requirement
 					 */
 					label: () => LocalizedString
 				}
