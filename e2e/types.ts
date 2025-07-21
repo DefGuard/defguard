@@ -69,7 +69,7 @@ export type NetworkForm = {
   port: string;
   allowed_ips?: string;
   dns?: string;
-  location_mfa_mode?:string;
+  location_mfa_mode?: string;
 };
 
 export type DeviceForm = {

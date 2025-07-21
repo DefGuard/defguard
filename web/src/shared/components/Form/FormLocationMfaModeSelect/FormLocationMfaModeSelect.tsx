@@ -50,7 +50,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         const active = fieldValue === value;
         return (
           <div
-            className={clsx('location-mfa-mode', {
+            className={clsx(`location-mfa-mode ${value}`, {
               active,
             })}
             key={key}
