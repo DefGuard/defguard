@@ -181,7 +181,7 @@ jobs:
 
       - name: Build AMI image
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        run: packer build -color=false -on-error=abort ./images/ami/core.pkr.hcl --var "package_version=${{ env.VERSION }}"
+        run: packer build -color=false -on-error=abort --var "package_version=${{ env.VERSION }}" ./images/ami/core.pkr.hcl
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
