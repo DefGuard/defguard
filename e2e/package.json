@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "lint": "pnpm prettier --check './tests/**.ts' './utils/**/*.ts' && pnpm eslint './tests/**.ts' './utils/**/*.ts'",
-    "fix": "pnpm prettier -w ./tests/**/*.ts ./utils/**/*.ts && pnpm eslint --fix ./tests/**/*.ts ./utils/**/*.ts",
+    "fix": "pnpm prettier -w './tests/**.ts' './utils/**/*.ts' && pnpm eslint --fix ./tests/**/*.ts ./utils/**/*.ts",
     "test": "pnpm playwright test"
   },
   "keywords": [],
