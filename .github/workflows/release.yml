@@ -80,9 +80,14 @@ jobs:
         #     target: x86_64-unknown-freebsd
     steps:
       # Store the version, stripping any v-prefix
+      # - name: Write release version
+      #   run: |
+      #     VERSION=${GITHUB_REF_NAME#v}
+      #     echo Version: $VERSION
+      #     echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Write release version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          VERSION=1.5.0
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -176,7 +181,10 @@ jobs:
 
       - name: Build AMI image
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        run: packer build -color=false -on-error=abort ./images/ami/core.pkr.hcl
+        run: packer build -color=false -on-error=abort ./images/ami/core.pkr.hcl --var "package_version=${{ env.VERSION }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       # - name: Upload DEB
       #   if: matrix.build == 'linux'
