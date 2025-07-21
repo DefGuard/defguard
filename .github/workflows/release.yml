@@ -177,7 +177,7 @@ jobs:
       - name: Run `packer validate`
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
         id: validate
-        run: packer validate ./images/ami/core.pkr.hcl --var "package_version=${{ env.VERSION }}"
+        run: packer validate --var "package_version=${{ env.VERSION }}" ./images/ami/core.pkr.hcl
 
       - name: Build AMI image
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
