@@ -49,7 +49,7 @@ build {
   }
 
   provisioner "shell" {
-    script = "core.sh"
+    script = "./images/ami/core.sh"
   }
 
   provisioner "shell" {
