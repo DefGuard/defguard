@@ -341,11 +341,6 @@ export const NetworkEditForm = () => {
         <DividerHeader
           text={LL.networkConfiguration.form.sections.mfa.header()}
         />
-        <FormInput
-          controller={{ control, name: 'peer_disconnect_threshold' }}
-          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
-          type="number"
-        />
         <MessageBox id="location-mfa-mode-explain-message-box">
           <p>{LL.networkConfiguration.form.helpers.locationMfaMode.description()}</p>
           <ul>
@@ -360,6 +355,14 @@ export const NetworkEditForm = () => {
           </ul>
         </MessageBox>
         <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'peer_disconnect_threshold' }}
+          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
+          type="number"
+        />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>
     </section>
