@@ -338,13 +338,13 @@ export const NetworkEditForm = () => {
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
           type="number"
         />
+        <DividerHeader
+          text={LL.networkConfiguration.form.sections.mfa.header()}
+        />
         <FormInput
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
-        />
-        <DividerHeader
-          text={LL.networkConfiguration.form.fields.location_mfa_mode.label()}
         />
         <MessageBox id="location-mfa-mode-explain-message-box">
           <p>{LL.networkConfiguration.form.helpers.locationMfaMode.description()}</p>

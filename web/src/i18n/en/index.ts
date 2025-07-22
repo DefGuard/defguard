@@ -1997,6 +1997,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           external: 'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
         },
       },
+      sections: {
+        mfa: {
+          header: 'Multi-Factor Authentication'
+        },
+      },
       messages: {
         networkModified: 'Location modified.',
         networkCreated: 'Location created',
@@ -2028,7 +2033,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Keepalive interval [seconds]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold [seconds]',
+          label: 'Client disconnect threshold [seconds]',
         },
         acl_enabled: {
           label: 'Enable ACL for this location',

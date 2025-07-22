@@ -4803,6 +4803,14 @@ type RootTranslation = {
 					external: string
 				}
 			}
+			sections: {
+				mfa: {
+					/**
+					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
+					 */
+					header: string
+				}
+			}
 			messages: {
 				/**
 				 * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
@@ -4868,7 +4876,7 @@ type RootTranslation = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
+					 * C​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -11374,6 +11382,14 @@ export type TranslationFunctions = {
 					external: () => LocalizedString
 				}
 			}
+			sections: {
+				mfa: {
+					/**
+					 * Multi-Factor Authentication
+					 */
+					header: () => LocalizedString
+				}
+			}
 			messages: {
 				/**
 				 * Location modified.
@@ -11439,7 +11455,7 @@ export type TranslationFunctions = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold [seconds]
+					 * Client disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}
