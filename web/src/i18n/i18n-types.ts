@@ -4788,6 +4788,10 @@ type RootTranslation = {
 				 * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
 				 */
 				aclFeatureDisabled: string
+				/**
+				 * C​l​i​e​n​t​s​ ​a​u​t​h​o​r​i​z​e​d​ ​w​i​t​h​ ​M​F​A​ ​w​i​l​l​ ​b​e​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​o​n​c​e​ ​t​h​e​r​e​ ​h​a​s​ ​b​e​e​n​ ​n​o​ ​n​e​t​w​o​r​k​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d​ ​b​e​t​w​e​e​n​ ​t​h​e​m​ ​a​n​d​ ​t​h​e​ ​V​P​N​ ​g​a​t​e​w​a​y​ ​f​o​r​ ​a​ ​l​e​n​g​t​h​ ​o​f​ ​t​i​m​e​ ​c​o​n​f​i​g​u​r​e​d​ ​b​e​l​o​w​.
+				 */
+				peerDisconnectThreshold: string
 				locationMfaMode: {
 					/**
 					 * C​h​o​o​s​e​ ​h​o​w​ ​M​F​A​ ​i​s​ ​e​n​f​o​r​c​e​d​ ​w​h​e​n​ ​c​o​n​n​e​c​t​i​n​g​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​:
@@ -4801,6 +4805,20 @@ type RootTranslation = {
 					 * E​x​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​ ​(​s​e​e​ ​[​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s​]​(​s​e​t​t​i​n​g​s​)​)​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​u​s​e​s​ ​e​x​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​M​F​A
 					 */
 					external: string
+				}
+			}
+			sections: {
+				accessControl: {
+					/**
+					 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​&​ ​F​i​r​e​w​a​l​l
+					 */
+					header: string
+				}
+				mfa: {
+					/**
+					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
+					 */
+					header: string
 				}
 			}
 			messages: {
@@ -4868,7 +4886,7 @@ type RootTranslation = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
+					 * C​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -11359,6 +11377,10 @@ export type TranslationFunctions = {
 				 * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
 				 */
 				aclFeatureDisabled: () => LocalizedString
+				/**
+				 * Clients authorized with MFA will be disconnected from the location once there has been no network activity detected between them and the VPN gateway for a length of time configured below.
+				 */
+				peerDisconnectThreshold: () => LocalizedString
 				locationMfaMode: {
 					/**
 					 * Choose how MFA is enforced when connecting to this location:
@@ -11372,6 +11394,20 @@ export type TranslationFunctions = {
 					 * External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA
 					 */
 					external: () => LocalizedString
+				}
+			}
+			sections: {
+				accessControl: {
+					/**
+					 * Access Control & Firewall
+					 */
+					header: () => LocalizedString
+				}
+				mfa: {
+					/**
+					 * Multi-Factor Authentication
+					 */
+					header: () => LocalizedString
 				}
 			}
 			messages: {
@@ -11439,7 +11475,7 @@ export type TranslationFunctions = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold [seconds]
+					 * Client disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}

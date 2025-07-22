@@ -231,16 +231,23 @@ export const NetworkEditForm = () => {
   });
 
   const fieldAclEnabled = watch('acl_enabled');
+  const locationMfaMode = watch('location_mfa_mode');
+  const mfaDisabled = useMemo(
+    () => locationMfaMode === LocationMfaMode.DISABLED,
+    [locationMfaMode],
+  );
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
-    values = trimObjectStrings(values);
-    setStoreState({ loading: true });
-    mutate({
-      id: selectedNetworkId,
-      network: {
-        ...values,
-      },
-    });
+    if (selectedNetworkId) {
+      values = trimObjectStrings(values);
+      setStoreState({ loading: true });
+      mutate({
+        id: selectedNetworkId,
+        network: {
+          ...values,
+        },
+      });
+    }
   };
 
   // reset form when network is selected
@@ -298,6 +305,14 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'dns' }}
           label={LL.networkConfiguration.form.fields.dns.label()}
         />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
+        />
+        <DividerHeader
+          text={LL.networkConfiguration.form.sections.accessControl.header()}
+        />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
@@ -333,19 +348,7 @@ export const NetworkEditForm = () => {
           disabled={!fieldAclEnabled}
           controller={{ control, name: 'acl_default_allow' }}
         />
-        <FormInput
-          controller={{ control, name: 'keepalive_interval' }}
-          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
-          type="number"
-        />
-        <FormInput
-          controller={{ control, name: 'peer_disconnect_threshold' }}
-          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
-          type="number"
-        />
-        <DividerHeader
-          text={LL.networkConfiguration.form.fields.location_mfa_mode.label()}
-        />
+        <DividerHeader text={LL.networkConfiguration.form.sections.mfa.header()} />
         <MessageBox id="location-mfa-mode-explain-message-box">
           <p>{LL.networkConfiguration.form.helpers.locationMfaMode.description()}</p>
           <ul>
@@ -360,6 +363,15 @@ export const NetworkEditForm = () => {
           </ul>
         </MessageBox>
         <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
+        </MessageBox>
+        <FormInput
+          controller={{ control, name: 'peer_disconnect_threshold' }}
+          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
+          type="number"
+          disabled={mfaDisabled}
+        />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>
     </section>

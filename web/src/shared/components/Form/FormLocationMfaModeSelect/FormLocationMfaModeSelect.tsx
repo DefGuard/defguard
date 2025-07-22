@@ -46,6 +46,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
 
   return (
     <div className="location-mfa-mode-select">
+      <label>{LL.networkConfiguration.form.fields.location_mfa_mode.label()}</label>
       {options.map(({ key, value, label }) => {
         const active = fieldValue === value;
         return (

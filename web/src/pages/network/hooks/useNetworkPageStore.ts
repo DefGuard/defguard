@@ -7,7 +7,7 @@ type NetworkPageStore = {
   saveSubject: Subject<void>;
   loading: boolean;
   networks: Network[];
-  selectedNetworkId: number;
+  selectedNetworkId?: number;
   setState: (data: Partial<NetworkPageStore>) => void;
   setNetworks: (data: Network[]) => void;
 };
@@ -17,7 +17,7 @@ export const useNetworkPageStore = createWithEqualityFn<NetworkPageStore>()(
     saveSubject: new Subject(),
     loading: false,
     networks: [],
-    selectedNetworkId: 1,
+    selectedNetworkId: undefined,
     setState: (newState) => set(() => newState),
     setNetworks: (networks) => {
       if (get().selectedNetworkId === undefined) {
