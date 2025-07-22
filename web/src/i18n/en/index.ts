@@ -1999,6 +1999,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
       },
       sections: {
+        accessControl: {
+          header: 'Access Control & Firewall'
+        },
         mfa: {
           header: 'Multi-Factor Authentication'
         },

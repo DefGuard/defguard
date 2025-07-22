@@ -4808,6 +4808,12 @@ type RootTranslation = {
 				}
 			}
 			sections: {
+				accessControl: {
+					/**
+					 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​&​ ​F​i​r​e​w​a​l​l
+					 */
+					header: string
+				}
 				mfa: {
 					/**
 					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
@@ -11391,6 +11397,12 @@ export type TranslationFunctions = {
 				}
 			}
 			sections: {
+				accessControl: {
+					/**
+					 * Access Control & Firewall
+					 */
+					header: () => LocalizedString
+				}
 				mfa: {
 					/**
 					 * Multi-Factor Authentication
