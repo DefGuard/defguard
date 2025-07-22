@@ -143,7 +143,7 @@ export const NetworkControls = () => {
         type={ConfirmModalType.WARNING}
         isOpen={isDeleteModalOpen}
         setIsOpen={(v) => setDeleteModalOpen(v)}
-        onSubmit={() => deleteNetworkMutate(selectedNetworkId)}
+        onSubmit={() => selectedNetworkId && deleteNetworkMutate(selectedNetworkId)}
         onCancel={() => setDeleteModalOpen(false)}
         title={LL.modals.deleteNetwork.title({
           name: selectedNetwork?.name || '',

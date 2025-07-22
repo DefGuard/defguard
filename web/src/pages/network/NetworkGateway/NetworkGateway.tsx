@@ -31,9 +31,10 @@ export const NetworkGatewaySetup = () => {
 
   const { data: networkToken } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORK_TOKEN, selectedNetworkId],
-    queryFn: () => getNetworkToken(selectedNetworkId),
+    queryFn: () => getNetworkToken(selectedNetworkId as number),
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    enabled: Boolean(selectedNetworkId),
   });
 
   const command = useCallback(() => {

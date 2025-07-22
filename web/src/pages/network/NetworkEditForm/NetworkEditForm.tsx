@@ -238,14 +238,16 @@ export const NetworkEditForm = () => {
   );
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
-    values = trimObjectStrings(values);
-    setStoreState({ loading: true });
-    mutate({
-      id: selectedNetworkId,
-      network: {
-        ...values,
-      },
-    });
+    if (selectedNetworkId) {
+      values = trimObjectStrings(values);
+      setStoreState({ loading: true });
+      mutate({
+        id: selectedNetworkId,
+        network: {
+          ...values,
+        },
+      });
+    }
   };
 
   // reset form when network is selected
