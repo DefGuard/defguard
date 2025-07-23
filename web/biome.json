@@ -142,7 +142,9 @@
             "noSetterReturn": "off",
             "noUndeclaredVariables": "off",
             "noUnreachable": "off",
-            "noUnreachableSuper": "off"
+            "noUnreachableSuper": "off",
+            "useExhaustiveDependencies": "error",
+            "useHookAtTopLevel": "error"
           },
           "style": { "useConst": "error" },
           "suspicious": {
@@ -156,181 +158,12 @@
             "noUnsafeNegation": "off",
             "noVar": "error",
             "noWith": "off",
-            "useGetterReturn": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.{js,cjs,mjs,jsx,ts,tsx,mtsx}"],
-      "javascript": {
-        "globals": [
-          "onanimationend",
-          "onabortpayment",
-          "ongamepadconnected",
-          "onlostpointercapture",
-          "onanimationiteration",
-          "onkeyup",
-          "onmousedown",
-          "onanimationstart",
-          "onslotchange",
-          "onprogress",
-          "ontransitionstart",
-          "onpause",
-          "onended",
-          "onpointerover",
-          "onscrollend",
-          "onformdata",
-          "ontransitionrun",
-          "onanimationcancel",
-          "ondrag",
-          "oninstall",
-          "onbeforeinstallprompt",
-          "onbeforexrselect",
-          "onmessage",
-          "onabort",
-          "ontransitioncancel",
-          "onpointerdown",
-          "onchange",
-          "onpointerout",
-          "oncuechange",
-          "ongotpointercapture",
-          "onscrollsnapchanging",
-          "onsearch",
-          "onsubmit",
-          "onstalled",
-          "onsuspend",
-          "onreset",
-          "onerror",
-          "onmouseenter",
-          "ongamepaddisconnected",
-          "ondragover",
-          "onresize",
-          "onbeforetoggle",
-          "onmouseover",
-          "onpagehide",
-          "onmousemove",
-          "onratechange",
-          "oncommand",
-          "onmessageerror",
-          "onwheel",
-          "ondevicemotion",
-          "onauxclick",
-          "ontransitionend",
-          "onpaste",
-          "onpageswap",
-          "ononline",
-          "ondeviceorientationabsolute",
-          "onkeydown",
-          "onclose",
-          "onselect",
-          "onpaymentrequest",
-          "onpageshow",
-          "onactivate",
-          "onpointercancel",
-          "onbeforematch",
-          "onpointerrawupdate",
-          "ondragleave",
-          "onscrollsnapchange",
-          "onseeked",
-          "onwaiting",
-          "onbeforeunload",
-          "onplaying",
-          "onvolumechange",
-          "onnotificationclose",
-          "onbackgroundfetchfail",
-          "ondragend",
-          "onstorage",
-          "onloadeddata",
-          "onfocus",
-          "onoffline",
-          "onplay",
-          "onbackgroundfetchclick",
-          "onafterprint",
-          "onclick",
-          "oncut",
-          "onmouseout",
-          "ondblclick",
-          "oncanplay",
-          "onloadstart",
-          "onpushsubscriptionchange",
-          "onappinstalled",
-          "onpointermove",
-          "ontoggle",
-          "oncontextmenu",
-          "onblur",
-          "onperiodicsync",
-          "oncookiechange",
-          "oncancel",
-          "onbeforeprint",
-          "oncontextrestored",
-          "onnotificationclick",
-          "onloadedmetadata",
-          "onpointerup",
-          "onlanguagechange",
-          "oncopy",
-          "onselectstart",
-          "onscroll",
-          "onload",
-          "ondragstart",
-          "onbeforeinput",
-          "oncanplaythrough",
-          "oninput",
-          "oninvalid",
-          "ontimeupdate",
-          "ondurationchange",
-          "onselectionchange",
-          "onmouseup",
-          "location",
-          "onkeypress",
-          "onpointerleave",
-          "oncontextlost",
-          "ondrop",
-          "onsecuritypolicyviolation",
-          "oncontentvisibilityautostatechange",
-          "onsync",
-          "onpush",
-          "ondeviceorientation",
-          "onbackgroundfetchabort",
-          "onseeking",
-          "onbackgroundfetchsuccess",
-          "onfetch",
-          "oncanmakepayment",
-          "onrejectionhandled",
-          "onunload",
-          "onmouseleave",
-          "onhashchange",
-          "onpointerenter",
-          "onmousewheel",
-          "onunhandledrejection",
-          "ondragenter",
-          "onpopstate",
-          "onpagereveal",
-          "onemptied"
-        ]
-      },
-      "linter": {
-        "rules": {
-          "correctness": {
-            "useExhaustiveDependencies": "error",
-            "useHookAtTopLevel": "error"
-          },
-          "suspicious": {
+            "useGetterReturn": "off",
             "noConsole": {
               "level": "error",
               "options": { "allow": ["warn", "error"] }
             }
           }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.js"],
-      "javascript": { "globals": [] },
-      "linter": {
-        "rules": {
-          "complexity": { "useLiteralKeys": "off", "useOptionalChain": "off" },
-          "suspicious": { "useAwait": "off" }
         }
       }
     },
@@ -428,18 +261,6 @@
         "rules": {
           "complexity": { "noArguments": "off" },
           "suspicious": { "noVar": "off" }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.{js,cjs,mjs,jsx,ts,tsx,mtsx}"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "useExhaustiveDependencies": "off",
-            "useHookAtTopLevel": "off"
-          },
-          "suspicious": { "noConsole": "off" }
         }
       }
     }

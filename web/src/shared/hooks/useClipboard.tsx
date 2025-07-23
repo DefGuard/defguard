@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
-import { useToaster } from './useToaster';
+import { useToaster } from '../defguard-ui/hooks/toasts/useToaster';
 
 export const useClipboard = () => {
   const { LL } = useI18nContext();
