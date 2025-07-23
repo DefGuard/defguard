@@ -10,6 +10,7 @@ const ApiContextManager = ({ children }: PropsWithChildren) => {
 
   const { LL } = useI18nContext();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (client && LL && LL.messages) {
       const defaultResponseInterceptor = client.interceptors.response.use(

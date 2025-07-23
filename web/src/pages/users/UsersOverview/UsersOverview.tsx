@@ -46,6 +46,7 @@ export const UsersOverview = () => {
   const openGroupsAssign = useAssignGroupsModal((s) => s.open);
   const successSubject = useAssignGroupsModal((s) => s.successSubject, shallow);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const filterSelectOptions = useMemo(() => {
     const res: SelectOption<FilterOptions>[] = [
       {
@@ -149,8 +150,9 @@ export const UsersOverview = () => {
         setSelectedUsers([]);
       }
     }
-  }, [users, selectedUsers, setSelectedUsers]);
+  }, [users, selectedUsers]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOptions.ALL) {
       setSelectedFilter(FilterOptions.ALL);

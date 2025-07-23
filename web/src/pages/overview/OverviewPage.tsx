@@ -103,6 +103,7 @@ export const OverviewPage = () => {
     }
   }, [setOverViewStore, viewMode]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (Number.isNaN(selectedNetworkId)) {
       navigate(`/admin/overview/${location.search}`, {

@@ -91,7 +91,7 @@ const ModalContent = () => {
         setSelected((state) => [...state, group]);
       }
     },
-    [setSelected, selected],
+    [selected],
   );
 
   const handleSelectAll = useCallback(() => {

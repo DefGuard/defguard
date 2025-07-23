@@ -33,6 +33,7 @@ export const UsersList = ({
   const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const listHeaders = useMemo((): ListHeader[] => {
     if (breakpoint !== 'desktop') {
       return [];

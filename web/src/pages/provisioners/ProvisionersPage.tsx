@@ -90,6 +90,7 @@ export const ProvisionersPage = () => {
     return res;
   }, [provisioners, searchValue, selectedFilterOption]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilterOption === FilterOptions.ALL) {
       setSelectedFilterOption(FilterOptions.ALL);

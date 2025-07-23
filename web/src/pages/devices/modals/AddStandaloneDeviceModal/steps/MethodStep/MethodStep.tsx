@@ -85,6 +85,7 @@ export const MethodStep = () => {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (networks) {
       const options: SelectOption<number>[] = networks.map((n) => ({
@@ -100,6 +101,7 @@ export const MethodStep = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networks]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (availableIpResponse) {
       setState({ initLocationIpResponse: availableIpResponse });

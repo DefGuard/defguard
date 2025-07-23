@@ -42,6 +42,7 @@ export const OverviewIndexPage = () => {
   const resetWizard = useWizardStore((state) => state.resetState);
   const navigate = useNavigate();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (isPresent(data) && data.length === 0 && !isLoading && !isStale) {
       resetWizard();

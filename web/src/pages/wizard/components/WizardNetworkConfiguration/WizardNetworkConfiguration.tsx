@@ -72,6 +72,7 @@ export const WizardNetworkConfiguration = () => {
     refetchOnReconnect: 'always',
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (fetchGroupsError) {
       toaster.error(LL.messages.error());

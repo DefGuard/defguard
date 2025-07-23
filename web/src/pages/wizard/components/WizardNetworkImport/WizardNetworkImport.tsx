@@ -173,6 +173,7 @@ export const WizardNetworkImport = () => {
     queryFn: getGroups,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (fetchGroupsError) {
       toaster.error(LL.messages.error());

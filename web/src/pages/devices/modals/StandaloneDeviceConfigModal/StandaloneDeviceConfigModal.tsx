@@ -15,6 +15,7 @@ export const StandaloneDeviceConfigModal = () => {
     shallow,
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     return () => {
       reset();

@@ -74,6 +74,7 @@ const Page = () => {
     refetchOnWindowFocus: true,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (devicesData) {
       setPageState((s) => ({

@@ -72,6 +72,7 @@ export const OpenidAllowPage = () => {
     setRedirectUri(params.get('redirect_uri'));
   }, [params]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (paramsValid && clientId) {
       getOpenidClient(clientId)

@@ -52,18 +52,21 @@ export const MFANav = () => {
     let res: MFALink[] = [
       {
         key: 0,
+        // biome-ignore lint/correctness/useHookAtTopLevel: below
         text: localLL.controls.useEmail(),
         link: '/auth/mfa/email',
         type: UserMFAMethod.EMAIL,
       },
       {
         key: 1,
+        // biome-ignore lint/correctness/useHookAtTopLevel: below
         text: localLL.controls.useAuthenticator(),
         link: '/auth/mfa/totp',
         type: UserMFAMethod.ONE_TIME_PASSWORD,
       },
       {
         key: 2,
+        // biome-ignore lint/correctness/useHookAtTopLevel: mislint due to key having prefix use
         text: localLL.controls.useWebauthn(),
         link: '/auth/mfa/webauthn',
         type: UserMFAMethod.WEB_AUTH_N,
@@ -89,6 +92,7 @@ export const MFANav = () => {
       ))}
       {!recoveryRoute && (
         <Button
+          // biome-ignore lint/correctness/useHookAtTopLevel: above
           text={LL.loginPage.mfa.controls.useRecoveryCode()}
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.LINK}

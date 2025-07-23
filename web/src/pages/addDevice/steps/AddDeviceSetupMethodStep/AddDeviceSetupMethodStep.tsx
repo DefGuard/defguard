@@ -67,7 +67,7 @@ export const AddDeviceSetupMethodStep = () => {
     return () => {
       sub.unsubscribe();
     };
-  }, [mutate, navSubject, setPageState, setupMethod, startActivation]);
+  }, [navSubject, setPageState, setupMethod, startActivation]);
 
   useEffect(() => {
     if (
@@ -77,12 +77,7 @@ export const AddDeviceSetupMethodStep = () => {
       setSetupMethod(AddDeviceStep.CLIENT_CONFIGURATION);
       startActivation();
     }
-  }, [
-    enterpriseSettings?.only_client_activation,
-    setPageState,
-    setupMethod,
-    startActivation,
-  ]);
+  }, [enterpriseSettings?.only_client_activation, setupMethod, startActivation]);
 
   return (
     <>

@@ -268,7 +268,7 @@ export const OpenidClientsListPage = () => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
       setSelectedFilter(FilterOption.ALL);
     }
-  }, [breakpoint, selectOptions, selectedFilter]);
+  }, [breakpoint, selectedFilter]);
 
   return (
     <PageContainer id="openid-clients-list">
