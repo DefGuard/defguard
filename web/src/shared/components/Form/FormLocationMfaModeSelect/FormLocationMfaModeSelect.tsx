@@ -41,7 +41,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         label: LL.components.locationMfaModeSelect.options.external(),
       },
     ],
-    [LL.components.aclDefaultPolicySelect.options],
+    [LL.components.locationMfaModeSelect.options],
   );
 
   return (
