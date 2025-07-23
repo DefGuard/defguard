@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -148,14 +148,26 @@ export const WizardNetworkConfiguration = () => {
     return { ...wizardNetworkConfiguration, allowed_groups: [] };
   }, [wizardNetworkConfiguration]);
 
-  const { handleSubmit, control, watch } = useForm<FormInputs>({
+  const { handleSubmit, control } = useForm<FormInputs>({
     mode: 'all',
     defaultValues: getDefaultValues,
     resolver: zodResolver(zodSchema),
   });
 
-  const aclEnabled = watch('acl_enabled');
-  const locationMfaMode = watch('location_mfa_mode');
+  const aclEnabled = useWatch({
+    control,
+    name: 'acl_enabled',
+    defaultValue: getDefaultValues.acl_enabled,
+  });
+  const locationMfaMode = useWatch({
+    control,
+    name: 'location_mfa_mode',
+    defaultValue: getDefaultValues.location_mfa_mode,
+  });
+  const mfaDisabled = useMemo(
+    () => locationMfaMode === LocationMfaMode.DISABLED,
+    [locationMfaMode],
+  );
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     const trimmed = trimObjectStrings(values);
@@ -275,7 +287,7 @@ export const WizardNetworkConfiguration = () => {
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
-          disabled={locationMfaMode === LocationMfaMode.DISABLED}
+          disabled={mfaDisabled}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>
