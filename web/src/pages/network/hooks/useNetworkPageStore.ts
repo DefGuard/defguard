@@ -20,10 +20,11 @@ export const useNetworkPageStore = createWithEqualityFn<NetworkPageStore>()(
     selectedNetworkId: undefined,
     setState: (newState) => set(() => newState),
     setNetworks: (networks) => {
+      const sortedNetworks = networks.sort((a, b) => a.name.localeCompare(b.name));
       if (get().selectedNetworkId === undefined) {
-        set({ selectedNetworkId: networks[0]?.id });
+        set({ selectedNetworkId: sortedNetworks[0]?.id });
       }
-      set({ networks });
+      set({ networks: sortedNetworks });
     },
   }),
   Object.is,
