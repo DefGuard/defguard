@@ -4,9 +4,9 @@ import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
 import type { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
+import { ListCellText } from '../../../shared/defguard-ui/components/Layout/ListCellText/ListCellText';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import type { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import type { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';

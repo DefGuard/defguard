@@ -7,7 +7,6 @@ import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { ListCellText } from '../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../shared/components/Layout/ListHeader/ListHeader';
 import type { ListHeaderColumnConfig } from '../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -18,6 +17,7 @@ import {
 import { EditButton } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { ListCellText } from '../../../../shared/defguard-ui/components/Layout/ListCellText/ListCellText';
 import { NoData } from '../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { ListSortDirection } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import SvgIconPlus from '../../../../shared/defguard-ui/components/svg/IconPlus';
