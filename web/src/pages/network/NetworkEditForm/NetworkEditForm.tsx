@@ -232,10 +232,6 @@ export const NetworkEditForm = () => {
 
   const fieldAclEnabled = watch('acl_enabled');
   const locationMfaMode = watch('location_mfa_mode');
-  const mfaDisabled = useMemo(
-    () => locationMfaMode === LocationMfaMode.DISABLED,
-    [locationMfaMode],
-  );
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     if (selectedNetworkId) {
@@ -370,7 +366,7 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
-          disabled={mfaDisabled}
+          disabled={locationMfaMode === LocationMfaMode.DISABLED}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>
