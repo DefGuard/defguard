@@ -36,10 +36,9 @@ export const SmtpTest = () => {
       toaster.success(LL.settingsPage.smtp.testForm.controls.success());
     },
     onError: (err: SMTPError) => {
-      toaster.error(
-        `${LL.settingsPage.smtp.testForm.controls.error()}`,
-        `${err.response?.data.error}`,
-      );
+      toaster.error(`${LL.settingsPage.smtp.testForm.controls.error()}`, {
+        subMessage: `${err.response?.data.error}`,
+      });
       console.error(err);
     },
   });
