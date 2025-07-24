@@ -29,6 +29,7 @@
     }
 
     a {
+      display: flex;
       cursor: pointer;
       user-select: none;
     }
@@ -45,19 +46,5 @@
     justify-content: center;
     padding: var(--spacing-l) var(--spacing-s);
     box-sizing: border-box;
-  }
-
-  .external {
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: center;
-    column-gap: var(--spacing-xs);
-    text-decoration: none;
-    text-align: center;
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 }
