@@ -242,6 +242,7 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
     return LL.common.noData();
   }, [connectedAt, LL.common]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intended
   useEffect(() => {
     const interval = 60 * 1000;
     const sub = timer(0, interval).subscribe(() => {

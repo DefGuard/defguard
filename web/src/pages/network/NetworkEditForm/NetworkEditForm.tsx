@@ -263,6 +263,7 @@ export const NetworkEditForm = () => {
     reset(defaultFormValues);
   }, [defaultFormValues, reset]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     setTimeout(() => setComponentMount(true), 100);
     const sub = submitSubject.subscribe(() => submitRef.current?.click());

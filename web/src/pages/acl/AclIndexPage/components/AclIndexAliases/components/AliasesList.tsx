@@ -5,11 +5,11 @@ import { upperCaseFirst } from 'text-case';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { ListCellTags } from '../../../../../../shared/components/Layout/ListCellTags/ListCellTags';
-import { ListCellText } from '../../../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../../../shared/components/Layout/ListHeader/ListHeader';
 import type { ListHeaderColumnConfig } from '../../../../../../shared/components/Layout/ListHeader/types';
 import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { InteractionBox } from '../../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
+import { ListCellText } from '../../../../../../shared/defguard-ui/components/Layout/ListCellText/ListCellText';
 import { NoData } from '../../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { ListSortDirection } from '../../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';

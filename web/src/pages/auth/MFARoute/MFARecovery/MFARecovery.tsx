@@ -69,6 +69,7 @@ export const MFARecovery = () => {
     },
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (!totpAvailable && !webauthnAvailable && !emailAvailable) {
       navigate('../');

@@ -51,5 +51,5 @@ const RedirectToDefaultMFA = () => {
     }
   }, [defaultMFAMethod, navigate]);
 
-  return <></>;
+  return null;
 };

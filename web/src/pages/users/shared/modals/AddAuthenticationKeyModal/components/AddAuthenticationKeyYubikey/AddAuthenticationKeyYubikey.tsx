@@ -87,6 +87,7 @@ export const AddAuthenticationKeyYubikey = () => {
     }
   }, [statusSubject, workerJobStatus]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (workerError) {
       const message: string | undefined = (
@@ -99,6 +100,7 @@ export const AddAuthenticationKeyYubikey = () => {
   }, [workerError]);
 
   // handle last known status
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     const sub = statusSubject.subscribe((jobStatus) => {
       if (jobStatus) {

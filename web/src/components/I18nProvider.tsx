@@ -18,6 +18,7 @@ export const I18nProvider = ({ children }: PropsWithChildren) => {
   const detectedLocale = detectLocale(navigatorDetector);
   const [localeLoaded, setLocaleLoaded] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration
   useEffect(() => {
     const lang = detectedLocale ?? baseLocale;
     loadLocale(lang);

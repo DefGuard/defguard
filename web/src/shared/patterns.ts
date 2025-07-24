@@ -65,14 +65,13 @@ export const patternValidUrl = new RegExp(
 );
 
 export const patternValidDomain =
-  /^(?:(?:(?:[a-zA-z\-]+)\:\/{1,3})?(?:[a-zA-Z0-9])(?:[a-zA-Z0-9\-\.]){1,61}(?:\.[a-zA-Z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3}))(?:\:[0-9]{1,5})?$/;
+  /^(?:(?:(?:[A-Za-z-]+):\/{1,3})?(?:[A-Za-z0-9])(?:[A-Za-z0-9\-.]){1,61}(?:\.[A-Za-z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3}))(?::[0-9]{1,5})?$/;
 
 export const patternSafeUsernameCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]*$/;
 
 export const patternLoginCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_@]*$/;
 
-export const patternSafePasswordCharacters =
-  /^[a-zA-Z0-9.!@#$%^&*()_+\-=\[\]{}|,<>\/?~]+$/;
+export const patternSafePasswordCharacters = /^[a-zA-Z0-9.!@#$%^&*()_+\-=[\]{}|,<>/?~]+$/;
 
 export const patternStrictIpV4 =
   /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;

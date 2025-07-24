@@ -119,6 +119,7 @@ export const UserAuthInfoMFA = () => {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const getTOTPInfoText = useMemo(() => {
     if (userProfile?.user.totp_enabled) {
       const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
@@ -132,6 +133,7 @@ export const UserAuthInfoMFA = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, locale]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const getEmailMFAInfoText = useMemo(() => {
     if (userProfile?.user.email_mfa_enabled) {
       const res: string[] = [LL.userPage.userAuthInfo.mfa.enabled()];
@@ -145,6 +147,7 @@ export const UserAuthInfoMFA = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, locale]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const getWebAuthNInfoText = useMemo(() => {
     if (userProfile) {
       if (userProfile.security_keys?.length) {

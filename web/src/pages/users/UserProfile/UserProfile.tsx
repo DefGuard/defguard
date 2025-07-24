@@ -81,6 +81,7 @@ export const UserProfile = () => {
     }
   }, [LL.userPage.messages, fetchProfileError, toaster]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (currentUser?.username === username) {
       setUserProfileState({ isMe: true });

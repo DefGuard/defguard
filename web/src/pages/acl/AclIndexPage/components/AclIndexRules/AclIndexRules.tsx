@@ -10,7 +10,6 @@ import { upperCaseFirst } from 'text-case';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { ListCellTags } from '../../../../../shared/components/Layout/ListCellTags/ListCellTags';
-import { ListCellText } from '../../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
 import type { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
 import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
@@ -25,6 +24,7 @@ import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { InteractionBox } from '../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
+import { ListCellText } from '../../../../../shared/defguard-ui/components/Layout/ListCellText/ListCellText';
 import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';

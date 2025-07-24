@@ -70,6 +70,7 @@ export const MFATOTPAuth = () => {
     mutate({ code: String(trimmed.code) });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (!totpAvailable) {
       navigate('../');

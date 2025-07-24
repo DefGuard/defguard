@@ -18,6 +18,7 @@ export const AclAliasDeleteBlockModal = () => {
   const rules = useAclAliasDeleteBlockModal((s) => s.rulesNames);
   const isOpen = useAclAliasDeleteBlockModal((s) => s.visible);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     return () => {
       reset?.();

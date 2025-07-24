@@ -261,6 +261,7 @@ export const WebhooksListPage = () => {
     setFilteredWebhooks(res);
   }, [webhooks, searchValue, selectedFilter]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOption.ALL) {
       setSelectedFilter(FilterOption.ALL);

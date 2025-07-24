@@ -47,6 +47,7 @@ export const OpenIDCallback = () => {
     retry: false,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (window.location.search && window.location.search.length > 0) {
       // const hashFragment = window.location.search.substring(1);

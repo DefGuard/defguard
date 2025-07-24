@@ -80,6 +80,7 @@ const TOTPRegisterQRCode = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (totpInitError) {
       toaster.error(LL.messages.error());

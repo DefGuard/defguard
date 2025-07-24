@@ -57,6 +57,7 @@ export const AuthPage = () => {
     }
   }, [mfaMethod, navigate, openIdParams, user]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     const sub = loginSubject.subscribe(async ({ user, url, mfa }): Promise<void> => {

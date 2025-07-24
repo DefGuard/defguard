@@ -32,6 +32,7 @@ export const EnrollmentPage = () => {
     refetchOnWindowFocus: false,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (settingsData) {
       setEnrollment({ settings: settingsData });

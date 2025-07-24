@@ -26,10 +26,9 @@ export const SendSupportDataModal = ({ isOpen, onOpenChange }: Props) => {
       onOpenChange(false);
     },
     onError: (err: SMTPError) => {
-      toaster.error(
-        `${LL.supportPage.debugDataCard.mailError()}`,
-        `${err.response?.data.error}`,
-      );
+      toaster.error(`${LL.supportPage.debugDataCard.mailError()}`, {
+        subMessage: `${err.response?.data.error}`,
+      });
       console.error(err);
     },
   });

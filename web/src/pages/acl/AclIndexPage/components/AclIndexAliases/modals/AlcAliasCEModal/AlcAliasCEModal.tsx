@@ -35,6 +35,7 @@ export const AlcAliasCEModal = () => {
 
   const [close, reset] = useAclAliasCEModal((s) => [s.close, s.reset], shallow);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     return () => {
       reset();

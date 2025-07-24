@@ -140,6 +140,7 @@ export const SettingsPage = () => {
     });
   }, [settingsData, setPageState, enterpriseInfo?.license_info]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on mount
   useEffect(() => {
     void queryClient.invalidateQueries({
       queryKey: [QueryKeys.FETCH_APP_INFO],
@@ -147,7 +148,6 @@ export const SettingsPage = () => {
     return () => {
       resetPageState?.();
     };
-    // eslint-disable-next-line
   }, []);
 
   // if appinfo changes and license is not enterprise anymore then change active tab to global
