@@ -1505,7 +1505,7 @@ type RootTranslation = {
 				 */
 				qrDescription: string
 				/**
-				 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​f​o​r​ ​d​e​s​k​t​o​p​ ​d​e​v​i​c​e
+				 * D​o​w​n​l​o​a​d​ ​f​o​r​ ​D​e​s​k​t​o​p
 				 */
 				desktopDownload: string
 				/**
@@ -8127,7 +8127,7 @@ export type TranslationFunctions = {
 				 */
 				qrDescription: () => LocalizedString
 				/**
-				 * Download defguard Client for desktop device
+				 * Download for Desktop
 				 */
 				desktopDownload: () => LocalizedString
 				/**

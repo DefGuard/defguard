@@ -5,10 +5,14 @@ import QRCode from 'react-qr-code';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { CopyField } from '../../../../shared/defguard-ui/components/Layout/CopyField/CopyField';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import SvgIconOutsideLink from '../../../../shared/defguard-ui/components/svg/IconOutsideLink';
 import { useToaster } from '../../../../shared/defguard-ui/hooks/toasts/useToaster';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
@@ -271,16 +275,18 @@ export const AddDeviceClientConfigurationStep = () => {
             />
           </svg>
         </a>
-      </div>
-      <div className="row">
         <a
           className="external"
           href="https://defguard.net/download/"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <span>{localLL.desktopDownload()}</span>
-          <SvgIconOutsideLink />
+          <Button
+            text={localLL.desktopDownload()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.LINK}
+            onClick={() => {}}
+          />
         </a>
       </div>
     </Card>
