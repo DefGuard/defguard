@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -224,14 +224,22 @@ export const NetworkEditForm = () => {
     return defaultValues;
   }, [defaultValues, networkToForm, networks, selectedNetworkId]);
 
-  const { control, handleSubmit, reset, watch } = useForm<FormFields>({
+  const { control, handleSubmit, reset } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: zodResolver(zodSchema),
     mode: 'all',
   });
 
-  const fieldAclEnabled = watch('acl_enabled');
-  const locationMfaMode = watch('location_mfa_mode');
+  const fieldAclEnabled = useWatch({
+    control,
+    name: 'acl_enabled',
+    defaultValue: defaultFormValues.acl_enabled,
+  });
+  const locationMfaMode = useWatch({
+    control,
+    name: 'location_mfa_mode',
+    defaultValue: defaultFormValues.location_mfa_mode,
+  });
   const mfaDisabled = useMemo(
     () => locationMfaMode === LocationMfaMode.DISABLED,
     [locationMfaMode],
