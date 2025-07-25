@@ -52,7 +52,7 @@ jobs:
           generate_release_notes: true
 
   build-binaries:
-    # needs: [create-release]
+    needs: [create-release]
     runs-on:
       - self-hosted
       - Linux
