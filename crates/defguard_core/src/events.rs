@@ -331,7 +331,7 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub user_agent: String,
+    pub device_name: String,
 }
 
 impl BidiRequestContext {
@@ -342,7 +342,7 @@ impl BidiRequestContext {
             user_id,
             username,
             ip,
-            user_agent,
+            device_name: user_agent,
         }
     }
 }
