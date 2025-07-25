@@ -65,8 +65,13 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
-        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
+        let (ip, _user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(
+            user.id,
+            user.username.clone(),
+            ip,
+            format!("{} (ID {})", device.name, device.id),
+        );
 
         let code = AuthorizationCode::new(request.code.clone());
         let url = match Url::parse(&request.callback_url).map_err(|err| {
