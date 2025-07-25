@@ -165,7 +165,7 @@ jobs:
       - name: Build AMI images for multiple regions
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
         run: |
-          regions=(us-east-1 eu-west-1)
+          regions=(us-east-1 eu-west-1 ap-northeast-1)
           for region in "${regions[@]}"; do
             echo "Building AMI for region: $region"
             echo "Running packer validate for $region..."
