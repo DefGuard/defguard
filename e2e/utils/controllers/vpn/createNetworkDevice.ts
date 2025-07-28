@@ -4,7 +4,6 @@ import { routes } from '../../../config';
 import { EditNetworkDeviceForm, NetworkDeviceForm, User } from '../../../types';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
-import { waitForPromise } from '../../waitForPromise';
 
 export const getDeviceRow = async ({
   page,
