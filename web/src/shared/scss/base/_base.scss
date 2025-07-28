@@ -102,9 +102,11 @@ body {
   font-family: Poppins, 'Roboto Condensed', Roboto, 'Open Sans', Helvetica, Arial;
   background: v.$bg-light;
   overflow-x: hidden;
-  height: inherit;
-  max-height: inherit;
   position: relative;
+}
+
+#app {
+  min-height: 100dvh;
 }
 
 h1,
