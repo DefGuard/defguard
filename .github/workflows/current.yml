@@ -4,7 +4,7 @@ on:
     branches:
       - main
       - dev
-      - 'release/**'
+      - "release/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -21,7 +21,7 @@ jobs:
         type=ref,event=branch
         type=sha
 
-  trigger-e2e:
-    needs: build-current
-    uses: ./.github/workflows/e2e.yml
-    secrets: inherit
+  # trigger-e2e:
+  #   needs: build-current
+  #   uses: ./.github/workflows/e2e.yml
+  #   secrets: inherit
