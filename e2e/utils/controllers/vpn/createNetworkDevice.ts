@@ -4,6 +4,7 @@ import { routes } from '../../../config';
 import { EditNetworkDeviceForm, NetworkDeviceForm, User } from '../../../types';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
+import { waitForPromise } from '../../waitForPromise';
 
 export const getDeviceRow = async ({
   page,
@@ -47,11 +48,14 @@ export const createNetworkDevice = async (
   const context = await browser.newContext();
   const page = await context.newPage();
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.admin.devices);
+  await page.goto(routes.base + routes.admin.devices, {
+    waitUntil: 'networkidle',
+  });
   await page.getByRole('button', { name: 'Add new' }).click();
   const configCard = page.locator('#add-standalone-device-modal');
+  await configCard.waitFor({ state: 'visible' });
   // select native-wg method
-  await configCard.getByTestId('standalone-device-choice-card-manual').click();
+  await page.getByTestId('standalone-device-choice-card-manual').click();
   await configCard.getByRole('button', { name: 'Next' }).click();
   const deviceNameInput = configCard.getByTestId('field-name');
   await deviceNameInput.fill(device.name);

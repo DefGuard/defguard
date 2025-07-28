@@ -60,7 +60,7 @@ test.describe('Network devices', () => {
 
     // Check if the device is really there
     await page.goto(routes.base + routes.admin.devices);
-    const deviceList = await page.locator('#devices-page-devices-list').first();
+    const deviceList = page.locator('#devices-page-devices-list').first();
     const deviceRows = deviceList.locator('.device-row');
     await expect(deviceRows).toHaveCount(1);
     const deviceRow = await getDeviceRow({ page, deviceName });
