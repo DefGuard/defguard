@@ -8,6 +8,13 @@
   justify-content: center;
   align-items: center;
   justify-items: center;
+  min-height: 100dvh;
+
+  & > * {
+    @include media-breakpoint-up(lg) {
+      min-height: 100dvh;
+    }
+  }
 
   .logo-container {
     display: none;
@@ -34,8 +41,9 @@
     flex-direction: column;
 
     ul {
-      margin-top: 5rem;
-      margin-bottom: 5rem;
+      margin: 0;
+      box-sizing: border-box;
+      padding: var(--spacing-l) 0;
       width: 330px;
     }
 
@@ -45,7 +53,7 @@
 
       button {
         width: 330px;
-        margin-bottom: 2rem;
+        margin-bottom: var(--spacing-s);
 
         &:last-of-type {
           margin: 0;
