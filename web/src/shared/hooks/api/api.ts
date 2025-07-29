@@ -44,9 +44,8 @@ import type { UpdateInfo } from '../store/useUpdatesStore';
 const unpackRequest = <T>(res: AxiosResponse<T>): T => res.data;
 
 export const buildApi = (client: Axios): Api => {
-  const addUser = (data: AddUserRequest) => {
-    return client.post<User>(`/user`, data).then(unpackRequest);
-  };
+  const addUser = (data: AddUserRequest) =>
+    client.post<User>(`/user`, data).then(unpackRequest);
 
   const getMe = () => client.get<User>(`/me`).then(unpackRequest);
 
