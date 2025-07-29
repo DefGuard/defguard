@@ -19,4 +19,11 @@ export const externalLink = {
     download: 'https://www.wireguard.com/install/',
   },
   defguardCliDocs: 'https://docs.defguard.net/help/cli-client',
+  clientApp: {
+    download: {
+      android: 'https://play.google.com/store/apps/details?id=net.defguard.mobile',
+      ios: 'https://testflight.apple.com/join/Jvdhkt7h',
+      desktop: 'https://defguard.net/download/',
+    },
+  },
 };

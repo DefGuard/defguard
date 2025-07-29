@@ -13,9 +13,9 @@ import {
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { CopyField } from '../../../../shared/defguard-ui/components/Layout/CopyField/CopyField';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { useToaster } from '../../../../shared/defguard-ui/hooks/toasts/useToaster';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
+import { externalLink } from '../../../../shared/links';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 import { AddDeviceStep } from '../../types';
 import { enrollmentToImportToken } from '../../utils/enrollmentToToken';
@@ -23,7 +23,6 @@ import { enrollmentToImportToken } from '../../utils/enrollmentToToken';
 export const AddDeviceClientConfigurationStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.client;
-  const toaster = useToaster();
   const clientData = useAddDevicePageStore((s) => s.clientSetup);
   const tokenValue = useAddDevicePageStore((s) =>
     s.clientSetup
@@ -74,9 +73,9 @@ export const AddDeviceClientConfigurationStep = () => {
       </div>
       <div className="row">
         <a
-          onClick={() => {
-            toaster.success('Unimplemented yet');
-          }}
+          href={externalLink.clientApp.download.android}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -165,9 +164,9 @@ export const AddDeviceClientConfigurationStep = () => {
           </svg>
         </a>
         <a
-          onClick={() => {
-            toaster.success('Unimplemented yet');
-          }}
+          href={externalLink.clientApp.download.ios}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -277,7 +276,7 @@ export const AddDeviceClientConfigurationStep = () => {
         </a>
         <a
           className="external"
-          href="https://defguard.net/download/"
+          href={externalLink.clientApp.download.desktop}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -285,7 +284,6 @@ export const AddDeviceClientConfigurationStep = () => {
             text={localLL.desktopDownload()}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => {}}
           />
         </a>
       </div>
