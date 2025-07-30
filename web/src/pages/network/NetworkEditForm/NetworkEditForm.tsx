@@ -174,7 +174,7 @@ export const NetworkEditForm = () => {
       allowed_groups: [],
       dns: '',
       keepalive_interval: 25,
-      peer_disconnect_threshold: 180,
+      peer_disconnect_threshold: 300,
       acl_enabled: false,
       acl_default_allow: false,
       location_mfa_mode: LocationMfaMode.DISABLED,

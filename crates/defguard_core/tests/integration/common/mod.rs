@@ -201,7 +201,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "dns": "1.1.1.1",
             "allowed_groups": [],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -221,7 +221,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
                 "dns": "1.1.1.1",
                 "allowed_groups": [],
                 "keepalive_interval": 25,
-                "peer_disconnect_threshold": 180,
+                "peer_disconnect_threshold": 300,
                 "acl_enabled": false,
                 "acl_default_allow": false,
                 "location_mfa_mode": "disabled"
@@ -241,7 +241,7 @@ pub(crate) fn make_network() -> Value {
         "dns": "1.1.1.1",
         "allowed_groups": [],
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180,
+        "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
         "location_mfa_mode": "disabled"

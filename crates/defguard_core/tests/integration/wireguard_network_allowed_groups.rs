@@ -148,7 +148,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -194,7 +194,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": [],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -227,7 +227,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -254,7 +254,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group", "not allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -282,7 +282,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": ["not allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -309,7 +309,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": [],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -558,7 +558,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
@@ -657,7 +657,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
             "dns": "1.1.1.1",
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180,
+            "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
             "location_mfa_mode": "disabled"
