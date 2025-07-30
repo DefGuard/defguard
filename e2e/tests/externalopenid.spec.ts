@@ -88,7 +88,7 @@ test.describe('External OIDC.', () => {
       .locator('div.copy-field div.list-cell-text ')
       .first()
       .textContent();
-    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL);
+    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL + '/');
 
     const instanceTokenBoxText = await page
       .locator('div.copy-field div.list-cell-text ')
