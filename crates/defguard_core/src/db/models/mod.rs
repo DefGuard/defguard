@@ -7,6 +7,7 @@ pub mod device_login;
 pub mod enrollment;
 pub mod error;
 pub mod group;
+pub mod mobile_auth;
 #[cfg(feature = "openid")]
 pub mod oauth2authorizedapp;
 #[cfg(feature = "openid")]
