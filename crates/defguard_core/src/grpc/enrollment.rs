@@ -22,6 +22,7 @@ use crate::{
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
+            mobile_auth::MobileAuth,
             polling_token::PollingToken,
             wireguard::LocationMfaMode,
         },
@@ -33,7 +34,7 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
+        proto::proxy::{LocationMfaMode as ProtoLocationMfaMode, RegisterMobileAuthRequest},
         utils::{build_device_config_response, new_polling_token, parse_client_info},
     },
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
@@ -282,6 +283,46 @@ impl EnrollmentServer {
             debug!("Invalid enrollment token, the token does not have specified type.");
             Err(Status::permission_denied("invalid token"))
         }
+    }
+
+    #[instrument(skip_all)]
+    pub async fn register_mobile_auth(
+        &self,
+        request: RegisterMobileAuthRequest,
+    ) -> Result<(), Status> {
+        debug!("Register mobile auth started");
+        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let user = enrollment.fetch_user(&self.pool).await?;
+        Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
+            error!(
+                "Invalid pubkey {}, device won't be registered as mobile mfa auth for user {}({:?}): {err}",
+                request.device_pub_key, user.username, user.id
+            );
+            Status::invalid_argument("invalid pubkey")
+        })?;
+        let device = match Device::find_by_pubkey(&self.pool, &request.device_pub_key)
+            .await
+            .map_err(|err| {
+                error!("Failed to read devices from db : {err}");
+                Status::internal("Something went wrong")
+            })? {
+            Some(d) => d,
+            None => {
+                return Err(Status::invalid_argument(
+                    "Device with given public key doesn't exist",
+                ));
+            }
+        };
+        let mobile_auth = MobileAuth::new(device.id, request.auth_pub_key);
+        let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
+            error!("Failed to save mobile auth into db : {err}");
+            Status::internal("Failed to save results")
+        })?;
+        info!(
+            "User {}({}) registered mobile auth for device {}({})",
+            user.username, user.id, device.name, device.id
+        );
+        Ok(())
     }
 
     #[instrument(skip_all)]

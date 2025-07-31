@@ -10,6 +10,17 @@ pub struct MobileAuth<I = NoId> {
     pub device_id: Id,
 }
 
+impl MobileAuth {
+    #[must_use]
+    pub fn new(device_id: Id, pub_key: String) -> Self {
+        Self {
+            id: NoId,
+            device_id,
+            pub_key,
+        }
+    }
+}
+
 #[derive(Model, Clone)]
 #[table(mobile_challenge)]
 pub struct MobileChallenge<I = NoId> {

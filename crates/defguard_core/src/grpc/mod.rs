@@ -528,6 +528,16 @@ pub async fn run_grpc_bidi_stream(
                     info!("Received message from proxy.");
                     debug!("Received the following message from proxy: {received:?}");
                     let payload = match received.payload {
+                        // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
+                        Some(core_request::Payload::RegisterMobileAuth(request)) => {
+                            match enrollment_server.register_mobile_auth(request).await {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("Register mobile auth error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
                             match enrollment_server
