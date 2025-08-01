@@ -80,6 +80,7 @@ impl fmt::Display for MfaMethod {
                 MfaMethod::Totp => "TOTP",
                 MfaMethod::Email => "Email",
                 MfaMethod::Oidc => "OIDC",
+                MfaMethod::Biometric => "Biometric",
             }
         )
     }

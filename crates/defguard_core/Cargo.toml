@@ -83,6 +83,7 @@ x25519-dalek = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 bytes = { workspace = true }
+ed25519-dalek = "2.2.0"
 
 # https://github.com/juhaku/utoipa/issues/1345
 [dependencies.zip]

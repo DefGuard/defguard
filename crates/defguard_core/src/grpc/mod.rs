@@ -36,7 +36,7 @@ use uuid::Uuid;
 use self::gateway::{GatewayServer, gateway_service_server::GatewayServiceServer};
 use self::{
     auth::{AuthServer, auth_service_server::AuthServiceServer},
-    desktop_client_mfa::ClientMfaServer,
+    client_mfa::ClientMfaServer,
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
     proto::proxy::core_response,
@@ -69,7 +69,7 @@ use crate::{
 };
 
 mod auth;
-pub(crate) mod desktop_client_mfa;
+pub(crate) mod client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;

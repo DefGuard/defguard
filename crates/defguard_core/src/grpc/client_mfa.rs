@@ -19,6 +19,7 @@ use crate::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            mobile_auth::{MobileAuth, MobileChallenge},
             wireguard::LocationMfaMode,
         },
     },
@@ -50,6 +51,7 @@ pub(crate) struct ClientLoginSession {
     pub(crate) device: Device<Id>,
     pub(crate) user: User<Id>,
     pub(crate) openid_auth_completed: bool,
+    pub(crate) biometric_challenge: Option<MobileChallenge>,
 }
 
 pub(crate) struct ClientMfaServer {
@@ -180,8 +182,23 @@ impl ClientMfaServer {
             }
         }
 
+        let mut selected_mobile_auth: Option<MobileAuth<Id>> = None;
+
         // check if selected method is configured
         match selected_method {
+            MfaMethod::Biometric => {
+                let configured = MobileAuth::all(&self.pool).await.map_err(|err| {
+                    error!("Failed to fetch configured mobile auth keys : {err}");
+                    Status::internal("unexpected error")
+                })?;
+                if let Some(found) = configured.iter().find(|auth| auth.device_id == device.id) {
+                    selected_mobile_auth = Some(found.clone());
+                } else {
+                    return Err(Status::invalid_argument(
+                        "Select MFA method not available for the device.",
+                    ));
+                }
+            }
             MfaMethod::Totp => {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
@@ -238,6 +255,24 @@ impl ClientMfaServer {
             user.username, location.name
         );
 
+        let biometric_challenge: Option<MobileChallenge> = match selected_method {
+            MfaMethod::Biometric => match selected_mobile_auth {
+                Some(mobile_auth) => {
+                    let challenge = MobileChallenge::new(Some(mobile_auth.pub_key));
+                    Some(challenge)
+                }
+                None => {
+                    return Err(Status::internal("unexpected error"));
+                }
+            },
+            _ => None,
+        };
+
+        let response_challenge = match &biometric_challenge {
+            Some(challenge) => Some(challenge.challenge.clone()),
+            None => None,
+        };
+
         // store login session
         self.sessions.insert(
             request.pubkey,
@@ -247,10 +282,14 @@ impl ClientMfaServer {
                 device,
                 user,
                 openid_auth_completed: false,
+                biometric_challenge,
             },
         );
 
-        Ok(ClientMfaStartResponse { token })
+        Ok(ClientMfaStartResponse {
+            token,
+            challenge: response_challenge,
+        })
     }
 
     /// Checks if given user is allowed to access a location
@@ -312,6 +351,7 @@ impl ClientMfaServer {
             location,
             user,
             openid_auth_completed,
+            biometric_challenge,
         } = session;
 
         // Prepare event context
@@ -325,6 +365,39 @@ impl ClientMfaServer {
 
         // validate code
         match method {
+            MfaMethod::Biometric => {
+                if let Some(challenge) = biometric_challenge {
+                    if let Some(signed_challenge) = request.code {
+                        match challenge.verify(&signed_challenge.as_str()) {
+                            // verification passed
+                            true => {
+                                debug!("Signed challenge verified successfully.");
+                            }
+                            // challenge rejected
+                            false => {
+                                self.emit_event(BidiStreamEvent {
+                                    context,
+                                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                        DesktopClientMfaEvent::Failed {
+                                            location: location.clone(),
+                                            device: device.clone(),
+                                            method: *method,
+                                            message: "Signed challenge rejected".to_string(),
+                                        },
+                                    )),
+                                })?;
+                                return Err(Status::unauthenticated("unauthorized"));
+                            }
+                        }
+                    } else {
+                        error!("Signed challenge not found in request");
+                        return Err(Status::invalid_argument("Challenge not found in request"));
+                    }
+                } else {
+                    error!("Challenge not found in MFA session !");
+                    return Err(Status::internal("Challenge not found in MFA session"));
+                }
+            }
             MfaMethod::Totp => {
                 let code = if let Some(code) = request.code {
                     code.to_string()

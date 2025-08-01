@@ -6,10 +6,10 @@ CREATE TABLE mobile_auth (
     CONSTRAINT mobile_auth_device UNIQUE (device_id)
 );
 
-CREATE TABLE mobile_challenge (
-    id bigserial PRIMARY KEY,
-    auth_id bigint,
-    challenge text NOT NULL,
-    created_at timestamp without time zone NOT NULL,
-    FOREIGN KEY(auth_id) REFERENCES "mobile_auth"(id) ON DELETE CASCADE
-);
+-- CREATE TABLE mobile_challenge (
+--     id bigserial PRIMARY KEY,
+--     auth_id bigint,
+--     challenge text NOT NULL,
+--     created_at timestamp without time zone NOT NULL,
+--     FOREIGN KEY(auth_id) REFERENCES "mobile_auth"(id) ON DELETE CASCADE
+-- );
