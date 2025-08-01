@@ -44,7 +44,7 @@ impl MobileChallenge {
     }
 
     #[must_use]
-    pub fn verify(self: &Self, signed_challenge: &str) -> bool {
+    pub fn verify(&self, signed_challenge: &str) -> bool {
         if let Some(auth_pub_key) = &self.auth_pub_key {
             return verify(signed_challenge, auth_pub_key.as_str(), &self.challenge);
         }

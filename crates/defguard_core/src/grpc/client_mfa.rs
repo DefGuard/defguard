@@ -164,7 +164,8 @@ impl ClientMfaServer {
             // MFA enabled status is already verified
             (LocationMfaMode::Disabled, _) => unreachable!(),
             (LocationMfaMode::Internal, MfaMethod::Totp)
-            | (LocationMfaMode::Internal, MfaMethod::Email) => {
+            | (LocationMfaMode::Internal, MfaMethod::Email)
+            | (LocationMfaMode::Internal, MfaMethod::Biometric) => {
                 debug!("Location uses internal MFA. Selected method: {selected_method}")
             }
             (LocationMfaMode::External, MfaMethod::Oidc) => {
@@ -268,10 +269,7 @@ impl ClientMfaServer {
             _ => None,
         };
 
-        let response_challenge = match &biometric_challenge {
-            Some(challenge) => Some(challenge.challenge.clone()),
-            None => None,
-        };
+        let response_challenge = biometric_challenge.as_ref().map(|challenge| challenge.challenge.clone());
 
         // store login session
         self.sessions.insert(
@@ -368,7 +366,7 @@ impl ClientMfaServer {
             MfaMethod::Biometric => {
                 if let Some(challenge) = biometric_challenge {
                     if let Some(signed_challenge) = request.code {
-                        match challenge.verify(&signed_challenge.as_str()) {
+                        match challenge.verify(signed_challenge.as_str()) {
                             // verification passed
                             true => {
                                 debug!("Signed challenge verified successfully.");
@@ -542,8 +540,10 @@ impl ClientMfaServer {
         })?;
 
         info!(
-            "Desktop client login finished for {} at location {}",
-            user.username, location.name
+            "Desktop client login finished for {} at location {} with method {}",
+            user.username,
+            location.name,
+            method.as_str_name()
         );
         self.emit_event(BidiStreamEvent {
             context,
