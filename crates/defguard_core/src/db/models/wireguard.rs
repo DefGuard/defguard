@@ -43,7 +43,7 @@ use crate::{
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
-pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
+pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 
 // Used in process of importing network from wireguard config
 #[derive(Clone, Debug, Deserialize, Serialize)]
