@@ -1,5 +1,4 @@
 import 'react-loading-skeleton/dist/skeleton.css';
-import './App.scss';
 
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
