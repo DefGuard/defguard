@@ -1,4 +1,6 @@
 name: Build current image
+permissions:
+  contents: read
 on:
   push:
     branches:
