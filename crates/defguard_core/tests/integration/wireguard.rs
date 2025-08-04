@@ -299,7 +299,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "dns": "1.1.1.1",
         "allowed_groups": [],
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180,
+        "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
         "location_mfa_mode": "disabled"
@@ -367,7 +367,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "dns": "1.1.1.1",
         "allowed_groups": [],
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180,
+        "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
         "location_mfa_mode": "disabled"

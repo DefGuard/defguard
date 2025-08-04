@@ -6,7 +6,6 @@ import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
-
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -15,6 +14,7 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
@@ -41,6 +41,7 @@ export const Login = () => {
   const toaster = useToaster();
 
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
@@ -82,8 +83,9 @@ export const Login = () => {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
-      if (error.response) {
-        switch (error.response.status) {
+      const status = error.response?.status;
+      if (isPresent(status)) {
+        switch (status) {
           case 401: {
             setError(
               'password',
@@ -99,12 +101,10 @@ export const Login = () => {
             break;
           }
           default: {
-            console.error(error);
             toaster.error(LL.messages.error());
           }
         }
       } else {
-        console.error(error);
         toaster.error(LL.messages.error());
       }
     },

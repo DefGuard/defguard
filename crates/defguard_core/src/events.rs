@@ -331,18 +331,18 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub user_agent: String,
+    pub device_name: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpAddr, user_agent: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device_name: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
             ip,
-            user_agent,
+            device_name,
         }
     }
 }

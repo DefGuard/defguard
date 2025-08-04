@@ -74,7 +74,7 @@ impl EventContext {
             username: val.username,
             location,
             ip: val.ip,
-            device: val.user_agent,
+            device: val.device_name,
         }
     }
 

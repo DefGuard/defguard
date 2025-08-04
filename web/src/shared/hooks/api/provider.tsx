@@ -15,22 +15,21 @@ const ApiContextManager = ({ children }: PropsWithChildren) => {
     if (client && LL && LL.messages) {
       const defaultResponseInterceptor = client.interceptors.response.use(
         (res) => {
-          // API sometimes returns null in optional fields.
+          // API returns null in optional fields.
           if (res.data) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             res.data = removeNulls(res.data);
           }
           return res;
         },
         (error) => {
           console.error('Axios Error ', error);
+          throw error;
         },
       );
       return () => {
         client.interceptors.response.eject(defaultResponseInterceptor);
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [LL?.messages, client]);
 
   if (!client || !endpoints) return null;

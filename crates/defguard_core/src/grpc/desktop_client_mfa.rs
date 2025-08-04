@@ -315,8 +315,13 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
-        let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
-        let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
+        let (ip, _user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let context = BidiRequestContext::new(
+            user.id,
+            user.username.clone(),
+            ip,
+            format!("{} (ID {})", device.name, device.id),
+        );
 
         // validate code
         match method {

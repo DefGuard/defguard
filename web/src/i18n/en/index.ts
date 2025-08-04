@@ -522,6 +522,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
       form: {
         submit: 'Add user',
+        error: {
+          emailReserved: 'Email already taken',
+        },
         fields: {
           username: {
             placeholder: 'login',
@@ -1991,19 +1994,22 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
         aclFeatureDisabled:
           "ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.",
-          peerDisconnectThreshold: 'Clients authorized with MFA will be disconnected from the location once there has been no network activity detected between them and the VPN gateway for a length of time configured below.',
+        peerDisconnectThreshold:
+          'Clients authorized with MFA will be disconnected from the location once there has been no network activity detected between them and the VPN gateway for a length of time configured below.',
         locationMfaMode: {
-          description: 'Choose how MFA is enforced when connecting to this location:', 
-          internal: "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
-          external: 'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
+          description: 'Choose how MFA is enforced when connecting to this location:',
+          internal:
+            "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
+          external:
+            'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
         },
       },
       sections: {
         accessControl: {
-          header: 'Access Control & Firewall'
+          header: 'Access Control & Firewall',
         },
         mfa: {
-          header: 'Multi-Factor Authentication'
+          header: 'Multi-Factor Authentication',
         },
       },
       messages: {
@@ -2047,7 +2053,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         location_mfa_mode: {
           label: 'MFA requirement',
-        }
+        },
       },
       controls: {
         submit: 'Save changes',

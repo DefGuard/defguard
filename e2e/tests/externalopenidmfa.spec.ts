@@ -19,7 +19,7 @@ test.describe('External OIDC.', () => {
 
   const client: OpenIdClient = {
     name: 'test 01',
-    redirectURL: ['http://localhost:8080/openid/mfa/callback'],
+    redirectURL: [`${testsConfig.ENROLLMENT_URL}/openid/mfa/callback`],
     scopes: ['openid', 'profile', 'email'],
   };
 

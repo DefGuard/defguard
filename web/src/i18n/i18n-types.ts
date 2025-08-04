@@ -1229,6 +1229,12 @@ type RootTranslation = {
 				 * A​d​d​ ​u​s​e​r
 				 */
 				submit: string
+				error: {
+					/**
+					 * E​m​a​i​l​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n
+					 */
+					emailReserved: string
+				}
 				fields: {
 					username: {
 						/**
@@ -7852,6 +7858,12 @@ export type TranslationFunctions = {
 				 * Add user
 				 */
 				submit: () => LocalizedString
+				error: {
+					/**
+					 * Email already taken
+					 */
+					emailReserved: () => LocalizedString
+				}
 				fields: {
 					username: {
 						/**
