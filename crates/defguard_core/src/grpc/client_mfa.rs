@@ -18,8 +18,8 @@ use crate::{
     db::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
         models::{
+            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-            mobile_auth::{MobileAuth, MobileChallenge},
             wireguard::LocationMfaMode,
         },
     },
@@ -51,7 +51,7 @@ pub(crate) struct ClientLoginSession {
     pub(crate) device: Device<Id>,
     pub(crate) user: User<Id>,
     pub(crate) openid_auth_completed: bool,
-    pub(crate) biometric_challenge: Option<MobileChallenge>,
+    pub(crate) biometric_challenge: Option<BiometricChallenge>,
 }
 
 pub(crate) struct ClientMfaServer {
@@ -183,17 +183,16 @@ impl ClientMfaServer {
             }
         }
 
-        let mut selected_mobile_auth: Option<MobileAuth<Id>> = None;
+        let mut selected_mobile_auth: Option<BiometricAuth<Id>> = None;
 
         // check if selected method is configured
         match selected_method {
             MfaMethod::Biometric => {
-                let configured = MobileAuth::all(&self.pool).await.map_err(|err| {
-                    error!("Failed to fetch configured mobile auth keys : {err}");
-                    Status::internal("unexpected error")
-                })?;
-                if let Some(found) = configured.iter().find(|auth| auth.device_id == device.id) {
-                    selected_mobile_auth = Some(found.clone());
+                if let Some(found) = BiometricAuth::find_by_device_id(&self.pool, device.id)
+                    .await
+                    .map_err(|_| Status::internal("unexpected_error"))?
+                {
+                    selected_mobile_auth = Some(found);
                 } else {
                     return Err(Status::invalid_argument(
                         "Select MFA method not available for the device.",
@@ -256,12 +255,17 @@ impl ClientMfaServer {
             user.username, location.name
         );
 
-        let biometric_challenge: Option<MobileChallenge> = match selected_method {
+        let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
-                Some(mobile_auth) => {
-                    let challenge = MobileChallenge::new(Some(mobile_auth.pub_key));
-                    Some(challenge)
-                }
+                Some(mobile_auth) => match BiometricChallenge::new(Some(mobile_auth.pub_key)) {
+                    Ok(challenge) => Some(challenge),
+                    Err(e) => {
+                        error!(
+                            "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
+                        );
+                        return Err(Status::invalid_argument("Invalid public key"));
+                    }
+                },
                 None => {
                     return Err(Status::internal("unexpected error"));
                 }
@@ -269,7 +273,9 @@ impl ClientMfaServer {
             _ => None,
         };
 
-        let response_challenge = biometric_challenge.as_ref().map(|challenge| challenge.challenge.clone());
+        let response_challenge = biometric_challenge
+            .as_ref()
+            .map(|challenge| challenge.challenge.clone());
 
         // store login session
         self.sessions.insert(

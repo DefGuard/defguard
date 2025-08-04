@@ -20,9 +20,9 @@ use crate::{
     db::{
         Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
         models::{
+            biometric_auth::BiometricAuth,
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
-            mobile_auth::MobileAuth,
             polling_token::PollingToken,
             wireguard::LocationMfaMode,
         },
@@ -313,7 +313,7 @@ impl EnrollmentServer {
                 ));
             }
         };
-        let mobile_auth = MobileAuth::new(device.id, request.auth_pub_key);
+        let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
             error!("Failed to save mobile auth into db : {err}");
             Status::internal("Failed to save results")
