@@ -8,7 +8,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-
+use defguard_version::{DefguardVersionLayer, ComponentInfo};
 use chrono::{NaiveDateTime, Utc};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -893,7 +893,13 @@ pub async fn run_grpc_server(
     } else {
         Server::builder()
     };
+    let version_layer = tower::ServiceBuilder::new()
+        .layer(DefguardVersionLayer {
+            component_info: ComponentInfo::parse("1.5.666").unwrap(),
+        })
+        .into_inner();
     let router = builder
+        .layer(version_layer)
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)

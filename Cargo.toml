@@ -14,6 +14,7 @@ resolver = "2"
 defguard_core = { path = "./crates/defguard_core", version = "1.5.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
+defguard_version = { path = "./crates/defguard_version", version = "0.0.0" }
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
 model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 
