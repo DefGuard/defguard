@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 use thiserror::Error;
-use tower::{Layer, Service};
+use tower::{layer::util::{Identity, Stack}, Layer, Service};
 use tracing::error;
 
 #[derive(Debug, Error)]
@@ -90,6 +90,15 @@ pub struct DefguardVersionLayer {
     pub component_info: ComponentInfo,
 }
 
+impl DefguardVersionLayer {
+    pub fn make_layer() -> Stack<DefguardVersionLayer, Identity> {
+        tower::ServiceBuilder::new()
+            .layer(DefguardVersionLayer {
+                component_info: ComponentInfo::parse("1.5.666").unwrap(),
+            })
+            .into_inner()
+    }
+}
 impl<S> Layer<S> for DefguardVersionLayer {
     type Service = DefguardVersionMiddleware<S>;
 
@@ -135,17 +144,18 @@ where
         Box::pin(async move {
             // copy request header map for later use
             let req_header_map = &req.headers().clone();
-            let version = req_header_map.get("DFG-version");
+            let version = req_header_map.get("dfg-version");
+            for key in req_header_map.keys() {
+                error!("key: {key}");
+            }
             error!(
-                "DFG-version: {}",
+                "dfg-version: {}",
                 version
                     .map(|h| h.to_str().unwrap())
                     .unwrap_or("missing header")
             );
             let mut response = inner.call(req).await?;
-            response
-                .headers_mut()
-                .insert("DFG-version", header_value);
+            response.headers_mut().insert("dfg-version", header_value);
 
             Ok(response)
         })

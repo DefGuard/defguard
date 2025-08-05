@@ -893,13 +893,8 @@ pub async fn run_grpc_server(
     } else {
         Server::builder()
     };
-    let version_layer = tower::ServiceBuilder::new()
-        .layer(DefguardVersionLayer {
-            component_info: ComponentInfo::parse("1.5.666").unwrap(),
-        })
-        .into_inner();
     let router = builder
-        .layer(version_layer)
+        .layer(DefguardVersionLayer::make_layer())
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
