@@ -1,6 +1,8 @@
 name: Build current image
 permissions:
   contents: read
+  id-token: write
+  packages: write
 on:
   push:
     branches:
