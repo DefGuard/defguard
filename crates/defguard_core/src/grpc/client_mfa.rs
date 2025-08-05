@@ -18,6 +18,7 @@ use crate::{
     db::{
         Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
         models::{
+            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
             wireguard::LocationMfaMode,
         },
@@ -50,6 +51,7 @@ pub(crate) struct ClientLoginSession {
     pub(crate) device: Device<Id>,
     pub(crate) user: User<Id>,
     pub(crate) openid_auth_completed: bool,
+    pub(crate) biometric_challenge: Option<BiometricChallenge>,
 }
 
 pub(crate) struct ClientMfaServer {
@@ -162,7 +164,8 @@ impl ClientMfaServer {
             // MFA enabled status is already verified
             (LocationMfaMode::Disabled, _) => unreachable!(),
             (LocationMfaMode::Internal, MfaMethod::Totp)
-            | (LocationMfaMode::Internal, MfaMethod::Email) => {
+            | (LocationMfaMode::Internal, MfaMethod::Email)
+            | (LocationMfaMode::Internal, MfaMethod::Biometric) => {
                 debug!("Location uses internal MFA. Selected method: {selected_method}")
             }
             (LocationMfaMode::External, MfaMethod::Oidc) => {
@@ -180,8 +183,22 @@ impl ClientMfaServer {
             }
         }
 
+        let mut selected_mobile_auth: Option<BiometricAuth<Id>> = None;
+
         // check if selected method is configured
         match selected_method {
+            MfaMethod::Biometric => {
+                if let Some(found) = BiometricAuth::find_by_device_id(&self.pool, device.id)
+                    .await
+                    .map_err(|_| Status::internal("unexpected_error"))?
+                {
+                    selected_mobile_auth = Some(found);
+                } else {
+                    return Err(Status::invalid_argument(
+                        "Select MFA method not available for the device.",
+                    ));
+                }
+            }
             MfaMethod::Totp => {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
@@ -238,6 +255,28 @@ impl ClientMfaServer {
             user.username, location.name
         );
 
+        let biometric_challenge: Option<BiometricChallenge> = match selected_method {
+            MfaMethod::Biometric => match selected_mobile_auth {
+                Some(mobile_auth) => match BiometricChallenge::new(Some(mobile_auth.pub_key)) {
+                    Ok(challenge) => Some(challenge),
+                    Err(e) => {
+                        error!(
+                            "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
+                        );
+                        return Err(Status::invalid_argument("Invalid public key"));
+                    }
+                },
+                None => {
+                    return Err(Status::internal("unexpected error"));
+                }
+            },
+            _ => None,
+        };
+
+        let response_challenge = biometric_challenge
+            .as_ref()
+            .map(|challenge| challenge.challenge.clone());
+
         // store login session
         self.sessions.insert(
             request.pubkey,
@@ -247,10 +286,14 @@ impl ClientMfaServer {
                 device,
                 user,
                 openid_auth_completed: false,
+                biometric_challenge,
             },
         );
 
-        Ok(ClientMfaStartResponse { token })
+        Ok(ClientMfaStartResponse {
+            token,
+            challenge: response_challenge,
+        })
     }
 
     /// Checks if given user is allowed to access a location
@@ -312,6 +355,7 @@ impl ClientMfaServer {
             location,
             user,
             openid_auth_completed,
+            biometric_challenge,
         } = session;
 
         // Prepare event context
@@ -325,6 +369,39 @@ impl ClientMfaServer {
 
         // validate code
         match method {
+            MfaMethod::Biometric => {
+                if let Some(challenge) = biometric_challenge {
+                    if let Some(signed_challenge) = request.code {
+                        match challenge.verify(signed_challenge.as_str()) {
+                            // verification passed
+                            true => {
+                                debug!("Signed challenge verified successfully.");
+                            }
+                            // challenge rejected
+                            false => {
+                                self.emit_event(BidiStreamEvent {
+                                    context,
+                                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                        DesktopClientMfaEvent::Failed {
+                                            location: location.clone(),
+                                            device: device.clone(),
+                                            method: *method,
+                                            message: "Signed challenge rejected".to_string(),
+                                        },
+                                    )),
+                                })?;
+                                return Err(Status::unauthenticated("unauthorized"));
+                            }
+                        }
+                    } else {
+                        error!("Signed challenge not found in request");
+                        return Err(Status::invalid_argument("Challenge not found in request"));
+                    }
+                } else {
+                    error!("Challenge not found in MFA session !");
+                    return Err(Status::internal("Challenge not found in MFA session"));
+                }
+            }
             MfaMethod::Totp => {
                 let code = if let Some(code) = request.code {
                     code.to_string()
@@ -469,8 +546,10 @@ impl ClientMfaServer {
         })?;
 
         info!(
-            "Desktop client login finished for {} at location {}",
-            user.username, location.name
+            "Desktop client login finished for {} at location {} with method {}",
+            user.username,
+            location.name,
+            method.as_str_name()
         );
         self.emit_event(BidiStreamEvent {
             context,

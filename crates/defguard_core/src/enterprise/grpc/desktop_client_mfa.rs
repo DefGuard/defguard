@@ -9,7 +9,7 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
-        desktop_client_mfa::{ClientLoginSession, ClientMfaServer},
+        client_mfa::{ClientLoginSession, ClientMfaServer},
         proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod},
         utils::parse_client_info,
     },
@@ -52,6 +52,7 @@ impl ClientMfaServer {
             location,
             user,
             openid_auth_completed,
+            biometric_challenge: _,
         } = session;
 
         if openid_auth_completed {
@@ -146,6 +147,7 @@ impl ClientMfaServer {
                 location: location.clone(),
                 user: user.clone(),
                 openid_auth_completed: true,
+                biometric_challenge: None,
             },
         );
 

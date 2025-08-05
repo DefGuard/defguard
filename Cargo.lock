@@ -1090,6 +1090,7 @@ dependencies = [
  "clap",
  "defguard_web_ui",
  "dotenvy",
+ "ed25519-dalek",
  "humantime",
  "ipnetwork",
  "jsonwebkey",
