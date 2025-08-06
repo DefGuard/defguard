@@ -215,11 +215,11 @@ impl UserDetails {
     pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let devices = user.user_devices(pool).await?;
         let security_keys = user.security_keys(pool).await?;
-        let biometric_enabled_devices: Vec<i64> = BiometricAuth::find_by_user_id(pool, user.id)
+        let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
             .await?
             .iter()
             .map(|a| a.device_id)
-            .collect();
+            .collect::<Vec<_>>();
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
             devices,
