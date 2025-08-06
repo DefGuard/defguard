@@ -46,7 +46,7 @@ pub struct DeviceConfig {
 
 // The type of a device:
 // User: A device of a user, which may be in multiple networks, e.g. a laptop
-// Network: A standalone device added by a user permamently bound to one network, e.g. a printer
+// Network: A stand-alone device added by a user permanently bound to one network, e.g. a printer
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "device_type", rename_all = "snake_case")]
 pub enum DeviceType {

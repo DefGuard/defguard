@@ -54,6 +54,21 @@ impl BiometricAuth<Id> {
         .fetch_optional(executor)
         .await
     }
+
+    pub(crate) async fn find_by_user_id<'e, E>(
+        executor: E,
+        user_id: Id,
+    ) -> Result<Vec<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT b.id, b.pub_key, b.device_id FROM biometric_auth as b JOIN device d ON b.device_id = d.id WHERE d.user_id = $1", &user_id
+        )
+        .fetch_all(executor)
+        .await
+    }
 }
 
 #[derive(Clone, Debug)]

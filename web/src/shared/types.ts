@@ -61,6 +61,7 @@ export type UserProfile = {
   user: User;
   devices: Device[];
   security_keys: SecurityKey[];
+  biometric_enabled_devices: number[];
 };
 
 export interface OAuth2AuthorizedApps {

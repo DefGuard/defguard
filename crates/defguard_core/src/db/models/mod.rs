@@ -29,6 +29,8 @@ use std::collections::HashSet;
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
+use crate::db::models::biometric_auth::BiometricAuth;
+
 use self::{
     device::UserDevice,
     user::{MFAMethod, User},
@@ -204,6 +206,7 @@ pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]
     pub devices: Vec<UserDevice>,
+    pub biometric_enabled_devices: Vec<i64>,
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
 }
@@ -212,11 +215,16 @@ impl UserDetails {
     pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let devices = user.user_devices(pool).await?;
         let security_keys = user.security_keys(pool).await?;
-
+        let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
+            .await?
+            .iter()
+            .map(|a| a.device_id)
+            .collect::<Vec<_>>();
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
             devices,
             security_keys,
+            biometric_enabled_devices,
         })
     }
 }
