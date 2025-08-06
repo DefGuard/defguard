@@ -509,6 +509,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Checks if all device addresses are contained in at least one of the network addresses
+    #[must_use]
     pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
         addresses
             .iter()
@@ -516,6 +517,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Finds [`IpNetwork`] containing given [`IpAddr`]
+    #[must_use]
     pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
         self.address.iter().find(|net| net.contains(addr)).copied()
     }
@@ -1273,6 +1275,7 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
+    #[must_use]
     pub fn mfa_enabled(&self) -> bool {
         match self.location_mfa_mode {
             LocationMfaMode::Internal | LocationMfaMode::External => true,

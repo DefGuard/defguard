@@ -163,9 +163,10 @@ impl ClientMfaServer {
         match (&location.location_mfa_mode, selected_method) {
             // MFA enabled status is already verified
             (LocationMfaMode::Disabled, _) => unreachable!(),
-            (LocationMfaMode::Internal, MfaMethod::Totp)
-            | (LocationMfaMode::Internal, MfaMethod::Email)
-            | (LocationMfaMode::Internal, MfaMethod::Biometric) => {
+            (
+                LocationMfaMode::Internal,
+                MfaMethod::Totp | MfaMethod::Email | MfaMethod::Biometric,
+            ) => {
                 debug!("Location uses internal MFA. Selected method: {selected_method}")
             }
             (LocationMfaMode::External, MfaMethod::Oidc) => {
@@ -173,7 +174,8 @@ impl ClientMfaServer {
             }
             _ => {
                 error!(
-                    "Selected MFA method ({selected_method}) is not supported by location {location} which uses {}",
+                    "Selected MFA method ({selected_method}) is not supported by location \
+                    {location} which uses {}",
                     location.location_mfa_mode
                 );
 
@@ -473,7 +475,8 @@ impl ClientMfaServer {
             MfaMethod::Oidc => {
                 if !*openid_auth_completed {
                     debug!(
-                        "User {user} tried to finish OIDC MFA login but they haven't completed the OIDC authentication yet."
+                        "User {user} tried to finish OIDC MFA login but they haven't completed \
+                        the OIDC authentication yet."
                     );
                     self.emit_event(BidiStreamEvent {
                         context,
@@ -482,18 +485,20 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
-                                message: "tried to finish OIDC MFA login but they haven't completed OIDC authentication yet".to_string()
+                                message: "tried to finish OIDC MFA login but they haven't \
+                                    completed OIDC authentication yet"
+                                    .to_string(),
                             },
                         )),
                     })?;
                     return Err(Status::failed_precondition(
                         "OIDC authentication not completed yet",
                     ));
-                } else {
-                    debug!(
-                        "User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding."
-                    );
                 }
+                debug!(
+                    "User {user} is trying to finish OIDC MFA login and the OIDC authentication \
+                    has already been completed; proceeding."
+                );
             }
         }
 

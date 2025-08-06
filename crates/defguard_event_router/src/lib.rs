@@ -159,7 +159,7 @@ impl EventRouter {
                 Event::Grpc(grpc_event) => self.handle_grpc_event(*grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
                 Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
-            };
+            }
         }
     }
 }
