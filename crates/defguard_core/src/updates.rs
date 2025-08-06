@@ -8,7 +8,7 @@ use crate::global_value;
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const REQURST_TIMEOUT: Duration = Duration::from_secs(10);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Deserialize, Debug, Serialize)]
 #[cfg_attr(test, derive(Clone))]
@@ -32,7 +32,7 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
     let response = reqwest::Client::new()
         .post(UPDATES_URL)
         .json(&body)
-        .timeout(REQURST_TIMEOUT)
+        .timeout(REQUEST_TIMEOUT)
         .send()
         .await?;
     Ok(response.json::<Update>().await?)
