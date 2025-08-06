@@ -1138,7 +1138,6 @@ dependencies = [
  "tonic-build",
  "tonic-health",
  "totp-lite",
- "tower 0.5.2",
  "tower-http",
  "tracing",
  "tracing-subscriber",
