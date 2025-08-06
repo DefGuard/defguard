@@ -48,6 +48,9 @@ export const UserDevices = () => {
                   key={device.id}
                   device={device}
                   modifiable={canManageDevices}
+                  biometricEnabled={userProfile.biometric_enabled_devices.includes(
+                    device.id,
+                  )}
                 />
               ))}
             </div>
