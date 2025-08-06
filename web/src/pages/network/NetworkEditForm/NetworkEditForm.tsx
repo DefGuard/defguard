@@ -295,6 +295,9 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'endpoint' }}
           label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.endpoint()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
