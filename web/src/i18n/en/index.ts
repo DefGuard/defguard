@@ -1986,6 +1986,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
+        endpoint: '',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
@@ -2024,7 +2025,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Gateway VPN IP address and netmask',
         },
         endpoint: {
-          label: 'Gateway address',
+          label: 'Gateway IP address or domain name',
         },
         allowedIps: {
           label: 'Allowed Ips',
