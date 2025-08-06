@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{ComponentInfo, DefguardVersionInterceptor};
+use defguard_version::{DefguardComponent, DefguardVersionInterceptor, DefguardVersionSet};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
@@ -8,6 +8,7 @@ use sqlx::PgPool;
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
+    sync::RwLock,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -25,9 +26,8 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
-use tonic::{service::Interceptor,
-    Code, Status,
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+use tonic::{
+    service::{interceptor::InterceptedService, Interceptor}, transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig}, Code, Status
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -860,6 +860,7 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    version_set: Arc<RwLock<DefguardVersionSet>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
@@ -870,21 +871,28 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = {
+        let jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
+        let version_interceptor =
+            DefguardVersionInterceptor::new(DefguardComponent::Gateway, version_set);
 
-        let mut jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
-        let mut version_interceptor =
-            DefguardVersionInterceptor::new(ComponentInfo::parse(VERSION).unwrap());
-
-        // combine both interceptors
-        let combined_interceptor =
-            move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
-                let req = version_interceptor.call(req)?;
-                jwt_interceptor.call(req)
-            };
-
-        GatewayServiceServer::with_interceptor(
+		let service_with_version = InterceptedService::new(
             GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-            combined_interceptor,
+			version_interceptor,
+		);
+        // // combine both interceptors
+        // let combined_interceptor =
+        //     move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
+        //         let req = version_interceptor.call(req)?;
+        //         jwt_interceptor.call(req)
+        //     };
+
+        // GatewayServiceServer::with_interceptor(
+        //     GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
+        //     combined_interceptor,
+        // )
+        GatewayServiceServer::with_interceptor(
+            service_with_version,
+            jwt_interceptor,
         )
     };
 

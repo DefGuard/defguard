@@ -12,6 +12,7 @@ rust-version.workspace = true
 defguard_core = { workspace = true }
 defguard_event_router = { workspace = true }
 defguard_event_logger = { workspace = true }
+defguard_version = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }

@@ -1,6 +1,6 @@
 use std::{
     fs::read_to_string,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use bytes::Bytes;
@@ -28,6 +28,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
+use defguard_version::DefguardVersionSet;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -42,6 +43,8 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let config = DefGuardConfig::new();
     SERVER_CONFIG.set(config.clone())?;
+	let version_set = Arc::new(RwLock::new(DefguardVersionSet::try_from(VERSION)?));
+	// TODO: tracing with version-set
     // initialize tracing
     tracing_subscriber::registry()
         .with(
@@ -145,7 +148,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx) => error!("gRPC server returned early: {res:?}"),
+        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx, Arc::clone(&version_set)) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, api_event_tx) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),

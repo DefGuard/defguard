@@ -1066,6 +1066,7 @@ dependencies = [
  "defguard_core",
  "defguard_event_logger",
  "defguard_event_router",
+ "defguard_version",
  "dotenvy",
  "secrecy",
  "tokio",

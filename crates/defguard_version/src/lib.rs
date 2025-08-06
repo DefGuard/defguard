@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    sync::{Arc, RwLock},
+};
 use thiserror::Error;
 use tonic::{Status, service::Interceptor};
 use tracing::error;
@@ -7,6 +10,25 @@ use tracing::error;
 pub enum DefguardVersionError {
     #[error(transparent)]
     SemverError(#[from] semver::Error),
+}
+
+#[derive(Clone, Debug)]
+pub struct DefguardVersionSet {
+    pub own: ComponentInfo,
+    pub core: Arc<RwLock<Option<ComponentInfo>>>,
+    pub proxy: Arc<RwLock<Option<ComponentInfo>>>,
+    pub gateway: Arc<RwLock<Option<ComponentInfo>>>,
+}
+
+impl DefguardVersionSet {
+    pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
+        Ok(Self {
+            own: ComponentInfo::try_from(version)?,
+            core: Arc::new(RwLock::new(None)),
+            proxy: Arc::new(RwLock::new(None)),
+            gateway: Arc::new(RwLock::new(None)),
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -58,7 +80,7 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    pub fn parse(version: &str) -> Result<Self, DefguardVersionError> {
+    pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
         let info = os_info::get();
         let version = semver::Version::parse(version)?;
         Ok(Self {
@@ -73,33 +95,51 @@ impl ComponentInfo {
 }
 
 #[derive(Clone)]
+pub enum DefguardComponent {
+    Core,
+    Proxy,
+    Gateway,
+}
+
+#[derive(Clone)]
 pub struct DefguardVersionInterceptor {
-    component_info: ComponentInfo,
+    component: DefguardComponent,
+    version_set: Arc<RwLock<DefguardVersionSet>>,
 }
 
 impl DefguardVersionInterceptor {
-    pub fn new(component_info: ComponentInfo) -> Self {
-        Self { component_info }
+    pub fn new(component: DefguardComponent, version_set: Arc<RwLock<DefguardVersionSet>>) -> Self {
+        Self {
+            component,
+            version_set,
+        }
     }
 }
 
 impl Interceptor for DefguardVersionInterceptor {
     fn call(&mut self, mut req: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
-        // Read client version from metadata
+        // read and set client version from metadata
         let client_version = req
             .metadata()
             .get("dfg-version")
             .map(|v| v.to_str().unwrap_or("unknown"))
             .unwrap_or("missing");
+        // TODO set appropriate component version
+        // match self.component {
+        // 	DefguardComponent::Core => self.version_set.write().unwrap().core =
+        // }
+		for header in req.metadata().keys() {
+			error!("key: {:?}", header);
+		}
+        let own_version = &self.version_set.read().unwrap().own.version;
+        error!("Remote version: {}", client_version);
+        error!("Own version: {}", own_version);
 
-        let server_version = self.component_info.version.to_string();
-        error!("Client version: {}", client_version);
-        error!("Server version: {}", server_version);
-
-        // Add server version to response metadata
+        // add own version to response metadata
         req.metadata_mut().insert(
             "dfg-version",
-            server_version
+            own_version
+                .to_string()
                 .parse()
                 .map_err(|_| Status::internal("Failed to set server version metadata"))?,
         );
