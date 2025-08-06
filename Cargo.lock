@@ -1189,6 +1189,7 @@ dependencies = [
  "os_info",
  "semver",
  "thiserror 2.0.12",
+ "tonic",
  "tower 0.5.2",
  "tracing",
 ]

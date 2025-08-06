@@ -1,3 +1,10 @@
+use chrono::{NaiveDateTime, Utc};
+use defguard_version::{ComponentInfo, DefguardVersionInterceptor};
+use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
+use reqwest::Url;
+use serde::Serialize;
+#[cfg(feature = "worker")]
+use sqlx::PgPool;
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
@@ -8,13 +15,6 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
 };
-use defguard_version::{DefguardVersionLayer, ComponentInfo};
-use chrono::{NaiveDateTime, Utc};
-use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
-use reqwest::Url;
-use serde::Serialize;
-#[cfg(feature = "worker")]
-use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -25,7 +25,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
-use tonic::{
+use tonic::{service::Interceptor,
     Code, Status,
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
@@ -869,10 +869,38 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
     #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-        JwtInterceptor::new(ClaimsType::Gateway),
-    );
+    let gateway_service = {
+        // use tonic::service::interceptor::interceptor;
+        // use tower::ServiceBuilder;
+
+        let jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
+        let version_interceptor =
+            DefguardVersionInterceptor::new(ComponentInfo::parse("1.5.666").unwrap());
+
+        // let layered_service = ServiceBuilder::new()
+        //     .layer(interceptor(version_interceptor))
+        //     .layer(interceptor(jwt_interceptor))
+        //     .service(GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx));
+
+        // layered_service
+        // GatewayServiceServer::new(layered_service)
+
+        // Create a combined interceptor function that applies both
+        let combined_interceptor =
+            move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
+                let mut version_interceptor = version_interceptor.clone();
+                let mut jwt_interceptor = jwt_interceptor.clone();
+                // Apply version interceptor first
+                let req = version_interceptor.call(req)?;
+                // Then apply JWT interceptor
+                jwt_interceptor.call(req)
+            };
+
+        GatewayServiceServer::with_interceptor(
+            GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
+            combined_interceptor,
+        )
+    };
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
@@ -894,7 +922,6 @@ pub async fn run_grpc_server(
         Server::builder()
     };
     let router = builder
-        .layer(DefguardVersionLayer::make_layer())
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)

@@ -1,12 +1,12 @@
-use http::HeaderValue;
 use std::{
     fmt::Display,
     pin::Pin,
     task::{Context, Poll},
 };
 use thiserror::Error;
+use tonic::{service::Interceptor, Status};
 use tower::{layer::util::{Identity, Stack}, Layer, Service};
-use tracing::error;
+use tracing::{debug, error};
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
@@ -85,79 +85,107 @@ impl ComponentInfo {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DefguardVersionLayer {
-    pub component_info: ComponentInfo,
-}
+// #[derive(Debug, Clone)]
+// pub struct DefguardVersionLayer {
+//     pub component_info: ComponentInfo,
+// }
 
-impl DefguardVersionLayer {
-    pub fn make_layer() -> Stack<DefguardVersionLayer, Identity> {
-        tower::ServiceBuilder::new()
-            .layer(DefguardVersionLayer {
-                component_info: ComponentInfo::parse("1.5.666").unwrap(),
-            })
-            .into_inner()
-    }
-}
-impl<S> Layer<S> for DefguardVersionLayer {
-    type Service = DefguardVersionMiddleware<S>;
+// impl DefguardVersionLayer {
+//     pub fn make_layer() -> Stack<DefguardVersionLayer, Identity> {
+//         tower::ServiceBuilder::new()
+//             .layer(DefguardVersionLayer {
+//                 component_info: ComponentInfo::parse("1.5.666").unwrap(),
+//             })
+//             .into_inner()
+//     }
 
-    fn layer(&self, service: S) -> Self::Service {
-        DefguardVersionMiddleware {
-            inner: service,
-            component_info: self.component_info.clone(),
-        }
-    }
-}
+//     pub fn make_interceptor() -> DefguardVersionInterceptor {
+//         DefguardVersionInterceptor::new(
+//             ComponentInfo::parse("1.5.666").unwrap()
+//         )
+//     }
+// }
+// impl<S> Layer<S> for DefguardVersionLayer {
+//     type Service = DefguardVersionMiddleware<S>;
 
-#[derive(Debug, Clone)]
-pub struct DefguardVersionMiddleware<S> {
-    inner: S,
+//     fn layer(&self, service: S) -> Self::Service {
+//         DefguardVersionMiddleware {
+//             inner: service,
+//             component_info: self.component_info.clone(),
+//         }
+//     }
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct DefguardVersionMiddleware<S> {
+//     inner: S,
+//     component_info: ComponentInfo,
+// }
+
+#[derive(Clone)]
+pub struct DefguardVersionInterceptor {
     component_info: ComponentInfo,
 }
 
-type BoxFuture<'a, T> = Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
-
-impl<S, ReqBody, ResBody> Service<http::Request<ReqBody>> for DefguardVersionMiddleware<S>
-where
-    S: Service<http::Request<ReqBody>, Response = http::Response<ResBody>> + Clone + Send + 'static,
-    S::Future: Send + 'static,
-    ReqBody: Send + 'static,
-    ResBody: Send + 'static,
-{
-    type Response = S::Response;
-    type Error = S::Error;
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
-    }
-
-    fn call(&mut self, req: http::Request<ReqBody>) -> Self::Future {
-        // This is necessary because tonic internally uses `tower::buffer::Buffer`.
-        // See https://github.com/tower-rs/tower/issues/547#issuecomment-767629149
-        // for details on why this is necessary
-        let clone = self.inner.clone();
-        let mut inner = std::mem::replace(&mut self.inner, clone);
-
-        let header_value = HeaderValue::from_str(&self.component_info.version.to_string()).unwrap();
-        Box::pin(async move {
-            // copy request header map for later use
-            let req_header_map = &req.headers().clone();
-            let version = req_header_map.get("dfg-version");
-            for key in req_header_map.keys() {
-                error!("key: {key}");
-            }
-            error!(
-                "dfg-version: {}",
-                version
-                    .map(|h| h.to_str().unwrap())
-                    .unwrap_or("missing header")
-            );
-            let mut response = inner.call(req).await?;
-            response.headers_mut().insert("dfg-version", header_value);
-
-            Ok(response)
-        })
+impl DefguardVersionInterceptor {
+    pub fn new(component_info: ComponentInfo) -> Self {
+        Self { component_info }
     }
 }
+
+impl Interceptor for DefguardVersionInterceptor {
+    fn call(&mut self, mut req: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
+        // Read client version from metadata
+        let client_version = req
+            .metadata()
+            .get("dfg-version")
+            .map(|v| v.to_str().unwrap_or("unknown"))
+            .unwrap_or("missing");
+
+        let server_version = self.component_info.version.to_string();
+        error!("Client version: {}", client_version);
+        error!("Server version: {}", server_version);
+
+        // Add server version to response metadata
+        req.metadata_mut().insert(
+            "dfg-version",
+            server_version.parse()
+                .map_err(|_| Status::internal("Failed to set server version metadata"))?
+        );
+
+        Ok(req)
+    }
+}
+
+// type BoxFuture<'a, T> = Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
+
+// impl<S, ReqBody, ResBody> Service<http::Request<ReqBody>> for DefguardVersionMiddleware<S>
+// where
+//     S: Service<http::Request<ReqBody>, Response = http::Response<ResBody>> + Clone + Send + 'static,
+//     S::Future: Send + 'static,
+//     ReqBody: Send + 'static,
+//     ResBody: Send + 'static,
+// {
+//     type Response = S::Response;
+//     type Error = S::Error;
+//     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+//     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+//         self.inner.poll_ready(cx)
+//     }
+
+//     fn call(&mut self, req: http::Request<ReqBody>) -> Self::Future {
+//         // This is necessary because tonic internally uses `tower::buffer::Buffer`.
+//         // See https://github.com/tower-rs/tower/issues/547#issuecomment-767629149
+//         // for details on why this is necessary
+//         let clone = self.inner.clone();
+//         let mut inner = std::mem::replace(&mut self.inner, clone);
+
+//         let version_string = self.component_info.version.to_string();
+//         Box::pin(async move {
+//             // For gRPC requests, we don't modify HTTP headers but let the interceptor handle metadata
+//             let response = inner.call(req).await?;
+//             Ok(response)
+//         })
+//     }
+// }
