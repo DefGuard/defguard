@@ -117,7 +117,6 @@ impl BiometricChallenge {
         })
     }
 
-    #[must_use]
     pub fn verify(&self, signed_challenge: &str) -> Result<(), BiometricAuthError> {
         if let Some(auth_pub_key) = &self.auth_pub_key {
             return verify(signed_challenge, auth_pub_key.as_str(), &self.challenge);
@@ -155,12 +154,12 @@ mod test {
         let mut csprng = rand_core::OsRng;
         let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
         let challenge = "test-challenge";
-        let signed = signing_key.sign(&challenge.as_bytes());
+        let signed = signing_key.sign(challenge.as_bytes());
         let serialized_signature = BASE64_STANDARD.encode(signed.to_bytes());
         let serialized_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().as_bytes());
 
         assert_matches!(
-            verify(&serialized_signature, &serialized_pub_key, &challenge),
+            verify(&serialized_signature, &serialized_pub_key, challenge),
             Ok(())
         );
     }
@@ -187,7 +186,7 @@ mod test {
         let signature = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
         let signature_b64 = general_purpose::STANDARD.encode(signature);
 
-        let bad_pub_key = general_purpose::STANDARD.encode(&[1, 2, 3]);
+        let bad_pub_key = general_purpose::STANDARD.encode([1, 2, 3]);
 
         let result = verify(&signature_b64, &bad_pub_key, challenge);
 
