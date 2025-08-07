@@ -1,4 +1,3 @@
-use http::HeaderValue;
 use std::{
     fmt::Display,
     sync::{Arc, RwLock},
