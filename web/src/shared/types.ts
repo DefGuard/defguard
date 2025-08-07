@@ -1235,7 +1235,6 @@ export enum OverviewLayoutType {
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
-  statsFilter: number;
   networks?: Network[];
   selectedNetworkId?: number;
   setState: (override: Partial<OverviewStore>) => void;
