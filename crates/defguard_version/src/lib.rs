@@ -1,3 +1,4 @@
+use http::HeaderValue;
 use std::{
     fmt::Display,
     sync::{Arc, RwLock},
@@ -15,6 +16,9 @@ static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
 pub enum DefguardVersionError {
     #[error(transparent)]
     SemverError(#[from] semver::Error),
+
+    #[error("Failed to parse SystemInfo header: {0}")]
+    SystemInfoParseError(String),
 }
 
 #[derive(Clone)]
@@ -73,14 +77,45 @@ pub struct SystemInfo {
     pub os_type: String,
     /// The operating system version (e.g., "22.04", "11", "13.0")
     pub os_version: String,
-    /// The operating system edition (e.g., "Server", "Pro", "Home")
-    pub os_edition: String,
-    /// The operating system codename (e.g., "jammy", "focal")
-    pub os_codename: String,
     /// The system bitness (e.g., "64-bit", "32-bit")
     pub bitness: String,
     /// The system architecture (e.g., "x86_64", "aarch64", "arm")
     pub architecture: String,
+}
+
+impl Display for SystemInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {} {}",
+            self.os_type, self.os_version, self.bitness, self.architecture
+        )
+    }
+}
+
+impl SystemInfo {
+    fn as_header_value(&self) -> String {
+        format!(
+            "{};{};{};{}",
+            self.os_type, self.os_version, self.bitness, self.architecture
+        )
+    }
+
+    fn try_from_header_value(header_value: &str) -> Result<Self, DefguardVersionError> {
+        let parts: Vec<&str> = header_value.split(';').collect();
+        if parts.len() != 4 {
+            return Err(DefguardVersionError::SystemInfoParseError(
+                header_value.to_string(),
+            ));
+        }
+
+        Ok(Self {
+            os_type: parts[0].to_string(),
+            os_version: parts[1].to_string(),
+            bitness: parts[2].to_string(),
+            architecture: parts[3].to_string(),
+        })
+    }
 }
 
 impl From<os_info::Info> for SystemInfo {
@@ -88,8 +123,6 @@ impl From<os_info::Info> for SystemInfo {
         Self {
             os_type: info.os_type().to_string(),
             os_version: info.version().to_string(),
-            os_edition: info.edition().unwrap_or_else(|| "?").to_string(),
-            os_codename: info.codename().unwrap_or_else(|| "?").to_string(),
             bitness: info.bitness().to_string(),
             architecture: info.architecture().unwrap_or_else(|| "?").to_string(),
         }

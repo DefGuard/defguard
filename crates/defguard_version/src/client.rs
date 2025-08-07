@@ -64,60 +64,57 @@ where
     }
 
     fn call(&mut self, mut request: Request<BoxBody>) -> Self::Future {
-        // Add our version to the outgoing request metadata
+        // add version and system info headers
         request.headers_mut().insert(
             VERSION_HEADER,
             self.own_info
                 .version
                 .to_string()
                 .parse()
-                // TODO
-                .expect("Version should be valid header value"),
+                .expect("Failed to parse SemanticVersion as HeaderValue"),
+        );
+        request.headers_mut().insert(
+            SYSTEM_INFO_HEADER,
+            self.own_info
+                .system
+                .as_header_value()
+                .parse()
+                .expect("Failed to parse SystemInfo as HeaderValue"),
         );
 
-        // TODO add system info header
+        // send the request
+        let response_future = self.inner.call(request);
 
-        // Call the inner service directly (don't clone)
-        let future = self.inner.call(request);
-
+        // handle response
         let remote_info = Arc::clone(&self.remote_info);
         let own_info = self.own_info.clone();
         Box::pin(async move {
-            // Make the request
-            let response = future.await.map_err(Into::into)?;
+            let response = response_future.await.map_err(Into::into)?;
 
+            // extract version headers
             let server_version = response.headers().get(VERSION_HEADER);
             let server_info = response.headers().get(SYSTEM_INFO_HEADER);
 
-            if let (Some(server_version), _) = (server_version, server_info) {
-                if let Ok(version) = server_version.to_str() {
-                    if let Ok(version) = SemanticVersion::try_from(version) {
-                        error!("OWN VERSION: {}", own_info.version.to_string());
-                        error!("SERVER VERSION: {}", version.to_string());
-                        // TODO
-                        let system = SystemInfo {
-                            os_type: "?".to_string(),
-                            os_version: "?".to_string(),
-                            os_edition: "?".to_string(),
-                            os_codename: "?".to_string(),
-                            bitness: "?".to_string(),
-                            architecture: "?".to_string(),
-                        };
+            if let (Some(version), Some(system)) = (server_version, server_info) {
+                if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
+                    if let (Ok(version), Ok(system)) = (
+                        SemanticVersion::try_from(version),
+                        SystemInfo::try_from_header_value(system),
+                    ) {
+                        error!("OWN VERSION: {}", own_info.version);
+                        error!("OWN SYSTEM: {}", own_info.system);
+                        error!("SERVER VERSION: {}", version);
+                        error!("SERVER SYSTEM: {}", system);
                         *remote_info.write().unwrap() = Some(ComponentInfo { version, system });
+                    } else {
+                        warn!("Failed to parse SemanticVersion or SystemInfo");
                     }
+                } else {
+                    warn!("Failed to stringify HeaderValues");
                 }
             } else {
                 warn!("Missing version and/or system info header");
             }
-
-            // // Read server version from response metadata
-            // let server_version = response
-            //     .headers()
-            //     .get(VERSION_HEADER);
-            //     // .and_then(|v| v.to_str().ok())
-            //     // .unwrap_or("unknown");
-
-            // error!("Client: Received server dfg-version: {}", server_version);
 
             Ok(response)
         })

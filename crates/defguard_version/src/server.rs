@@ -39,22 +39,22 @@ where
         let client_version = request.headers().get(VERSION_HEADER);
         let client_info = request.headers().get(SYSTEM_INFO_HEADER);
 
-        if let (Some(client_version), _) = (client_version, client_info) {
-            if let Ok(version) = client_version.to_str() {
-                if let Ok(version) = SemanticVersion::try_from(version) {
-                    error!("OWN VERSION: {}", self.own_info.version.to_string());
-                    error!("CLIENT VERSION: {}", version.to_string());
-                    // TODO
-                    let system = SystemInfo {
-                        os_type: "?".to_string(),
-                        os_version: "?".to_string(),
-                        os_edition: "?".to_string(),
-                        os_codename: "?".to_string(),
-                        bitness: "?".to_string(),
-                        architecture: "?".to_string(),
-                    };
+        if let (Some(version), Some(system)) = (client_version, client_info) {
+            if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
+                if let (Ok(version), Ok(system)) = (
+                    SemanticVersion::try_from(version),
+                    SystemInfo::try_from_header_value(system),
+                ) {
+                    error!("OWN VERSION: {}", self.own_info.version);
+                    error!("OWN SYSTEM: {}", self.own_info.system);
+                    error!("CLIENT VERSION: {}", version);
+                    error!("CLIENT SYSTEM: {}", system);
                     *self.remote_info.write().unwrap() = Some(ComponentInfo { version, system });
+                } else {
+                    warn!("Failed to parse SemanticVersion or SystemInfo");
                 }
+            } else {
+                warn!("Failed to stringify HeaderValues");
             }
         } else {
             warn!("Missing version and/or system info header");
@@ -64,6 +64,10 @@ where
         response.headers_mut().insert(
             VERSION_HEADER,
             self.own_info.version.to_string().parse().unwrap(),
+        );
+        response.headers_mut().insert(
+            SYSTEM_INFO_HEADER,
+            self.own_info.system.as_header_value().parse().unwrap(),
         );
         Ok(response)
     }
