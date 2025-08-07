@@ -88,6 +88,7 @@ pub struct GroupDiff {
 }
 
 impl GroupDiff {
+    #[must_use]
     pub fn changed(&self) -> bool {
         !self.added.is_empty() || !self.removed.is_empty()
     }

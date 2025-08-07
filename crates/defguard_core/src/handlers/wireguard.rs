@@ -1079,7 +1079,7 @@ pub(crate) async fn delete_device(
                 );
             }
         }
-    };
+    }
     transaction.commit().await?;
     info!("User {username} deleted device {device_id}");
 

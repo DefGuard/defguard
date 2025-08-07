@@ -29,6 +29,7 @@ pub struct BiometricAuth<I = NoId> {
 }
 
 impl BiometricAuth {
+    #[must_use]
     pub fn new(device_id: Id, pub_key: String) -> Self {
         Self {
             id: NoId,
@@ -95,8 +96,8 @@ impl BiometricChallenge {
         }
         let challenge = gen_alphanumeric(44);
         Ok(Self {
-            challenge,
             auth_pub_key,
+            challenge,
         })
     }
 

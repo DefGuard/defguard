@@ -425,7 +425,7 @@ export const buildApi = (client: Axios): Api => {
 
   const getNewVersion: Api['getNewVersion'] = () =>
     client.get('/updates').then((res) => {
-      if (res.status === 204) {
+      if (res.data === null) {
         return null;
       }
       return res.data as UpdateInfo;

@@ -83,7 +83,7 @@ pub async fn run_utility_thread(
             .await
         {
             error!("Failed to check expired ACL rules: {err}");
-        };
+        }
     };
 
     directory_sync_task().await;

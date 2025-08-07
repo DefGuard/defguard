@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
@@ -12,18 +12,16 @@ pub async fn check_new_version(_admin: AdminRole, session: SessionInfo) -> ApiRe
         "User {} is checking if there is a new version available",
         session.user.username
     );
-    let update = get_update();
-    if let Some(update) = update.as_ref() {
+    let json = if let Some(update) = get_update().as_ref() {
         debug!("A new version is available, returning the update information");
-        Ok(ApiResponse {
-            json: json!(update),
-            status: StatusCode::OK,
-        })
+        json!(update)
     } else {
         debug!("No new version available");
-        Ok(ApiResponse {
-            json: serde_json::json!({ "message": "No updates available" }),
-            status: StatusCode::NO_CONTENT,
-        })
-    }
+        // Front-end expects empty JSON.
+        Value::Null
+    };
+    Ok(ApiResponse {
+        json,
+        status: StatusCode::OK,
+    })
 }

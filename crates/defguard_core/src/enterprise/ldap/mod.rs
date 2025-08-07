@@ -389,7 +389,6 @@ impl LDAPConnection {
                 );
                 self.sync_user_data(user, pool).await?;
                 debug!("User {user} data synchronized");
-                continue;
             }
         }
 
