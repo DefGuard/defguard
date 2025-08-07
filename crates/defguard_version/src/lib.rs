@@ -6,6 +6,8 @@ use thiserror::Error;
 use tonic::{Status, service::Interceptor};
 use tracing::error;
 
+pub mod client;
+pub mod middleware;
 pub mod server;
 
 #[derive(Debug, Error)]

@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{DefguardComponent, DefguardVersionInterceptor, DefguardVersionSet, server::DefguardVersionLayer};
+use defguard_version::{DefguardVersionSet, middleware::DefguardVersionMiddleware};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
@@ -28,9 +28,9 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
     Code, Status,
-    service::{Interceptor, interceptor::InterceptedService},
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
+use tonic_middleware::MiddlewareFor;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -901,13 +901,15 @@ pub async fn run_grpc_server(
     };
 
     let router = builder
-		.layer(DefguardVersionLayer)
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
         .add_service(auth_service);
     #[cfg(feature = "wireguard")]
-    let router = router.add_service(gateway_service);
+    let router = router.add_service(MiddlewareFor::new(
+        gateway_service,
+        DefguardVersionMiddleware::default(),
+    ));
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
