@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{DefguardComponent, DefguardVersionInterceptor, DefguardVersionSet};
+use defguard_version::{DefguardComponent, DefguardVersionInterceptor, DefguardVersionSet, server::DefguardVersionLayer};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
@@ -27,7 +27,9 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
-    service::{interceptor::InterceptedService, Interceptor}, transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig}, Code, Status
+    Code, Status,
+    service::{Interceptor, interceptor::InterceptedService},
+    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -871,21 +873,10 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = {
-        let mut jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
-        let mut version_interceptor =
-            DefguardVersionInterceptor::new(DefguardComponent::Gateway, version_set);
-
-        // combine both interceptors
-        let combined_interceptor =
-            move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
-                let req = version_interceptor.call(req)?;
-				error!("BETWEEEN INTERCEPTORS");
-                jwt_interceptor.call(req)
-            };
-
+        let jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
         GatewayServiceServer::with_interceptor(
             GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-            combined_interceptor,
+            jwt_interceptor,
         )
     };
 
@@ -908,7 +899,9 @@ pub async fn run_grpc_server(
     } else {
         Server::builder()
     };
+
     let router = builder
+		.layer(DefguardVersionLayer)
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
