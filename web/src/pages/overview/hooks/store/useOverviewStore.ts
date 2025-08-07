@@ -14,7 +14,6 @@ export const useOverviewStore = createWithEqualityFn<
       networks: [],
       viewMode: OverviewLayoutType.GRID,
       defaultViewMode: OverviewLayoutType.GRID,
-      statsFilter: 1,
       setState: (newValues) => set((state) => ({ ...state, ...newValues })),
     }),
     {
