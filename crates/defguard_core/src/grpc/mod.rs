@@ -871,28 +871,21 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = {
-        let jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
-        let version_interceptor =
+        let mut jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
+        let mut version_interceptor =
             DefguardVersionInterceptor::new(DefguardComponent::Gateway, version_set);
 
-		let service_with_version = InterceptedService::new(
-            GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-			version_interceptor,
-		);
-        // // combine both interceptors
-        // let combined_interceptor =
-        //     move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
-        //         let req = version_interceptor.call(req)?;
-        //         jwt_interceptor.call(req)
-        //     };
+        // combine both interceptors
+        let combined_interceptor =
+            move |req: tonic::Request<()>| -> Result<tonic::Request<()>, tonic::Status> {
+                let req = version_interceptor.call(req)?;
+				error!("BETWEEEN INTERCEPTORS");
+                jwt_interceptor.call(req)
+            };
 
-        // GatewayServiceServer::with_interceptor(
-        //     GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-        //     combined_interceptor,
-        // )
         GatewayServiceServer::with_interceptor(
-            service_with_version,
-            jwt_interceptor,
+            GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
+            combined_interceptor,
         )
     };
 

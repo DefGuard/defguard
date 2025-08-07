@@ -6,6 +6,8 @@ use thiserror::Error;
 use tonic::{Status, service::Interceptor};
 use tracing::error;
 
+pub mod server;
+
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
     #[error(transparent)]
@@ -143,6 +145,7 @@ impl Interceptor for DefguardVersionInterceptor {
                 .parse()
                 .map_err(|_| Status::internal("Failed to set server version metadata"))?,
         );
+		error!("STORED VERSION metadta");
 
         Ok(req)
     }
