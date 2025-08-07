@@ -37,19 +37,9 @@ where
         mut service: S,
     ) -> Result<Response<BoxBody>, S::Error> {
         let client_version = request.headers().get(VERSION_HEADER);
-        // .and_then(|v| v.to_str().ok())
-        // .unwrap_or("unknown")
-        // .to_string();
-
         let client_info = request.headers().get(SYSTEM_INFO_HEADER);
-        // .and_then(|v| v.to_str().ok())
-        // .unwrap_or("unknown")
-        // .to_string();
 
-        // error!("Remote version: {}", client_version);
-        // error!("Remote system: {}", client_info);
-
-        if let (Some(client_version), Some(_client_info)) = (client_version, client_info) {
+        if let (Some(client_version), _) = (client_version, client_info) {
             if let Ok(version) = client_version.to_str() {
                 if let Ok(version) = SemanticVersion::try_from(version) {
                     error!("OWN VERSION: {}", self.own_info.version.to_string());
@@ -75,7 +65,6 @@ where
             VERSION_HEADER,
             self.own_info.version.to_string().parse().unwrap(),
         );
-
         Ok(response)
     }
 }
