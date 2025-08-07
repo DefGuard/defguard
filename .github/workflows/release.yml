@@ -53,10 +53,12 @@ jobs:
 
   build-binaries:
     needs: [create-release]
+
     runs-on:
       - self-hosted
       - Linux
       - X64
+
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +73,12 @@ jobs:
           - build: freebsd
             arch: amd64
             target: x86_64-unknown-freebsd
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
+
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
@@ -83,6 +91,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.9.2
 
       - name: Setup `packer`
         uses: hashicorp/setup-packer@main
@@ -140,6 +151,11 @@ jobs:
             defguard-${{ github.ref_name }}-${{ matrix.target }}
           outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
 
+      - name: Sign release archive
+        run: |
+          archive='defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz'
+          cosign sign-blob --yes ${archive} --output-signature ${archive}.sig
+
       - name: Upload release archive
         uses: actions/upload-release-asset@v1.0.2
         env:
@@ -148,6 +164,16 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
           asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          asset_content_type: application/octet-stream
+
+      - name: Upload release archive signature
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sig
+          asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sig
           asset_content_type: application/octet-stream
 
       - name: Build DEB package
