@@ -16,3 +16,4 @@ tonic.workspace = true
 tonic-middleware = "0.2"
 tower = "0.5.2"
 tracing.workspace = true
+tracing-subscriber.workspace = true

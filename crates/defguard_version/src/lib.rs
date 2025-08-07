@@ -3,10 +3,11 @@ use std::{
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
-use tracing::error;
+use ::tracing::error;
 
 pub mod client;
 pub mod server;
+pub mod tracing;
 
 static VERSION_HEADER: &str = "dfg-version";
 static SYSTEM_INFO_HEADER: &str = "dfg-system-info";

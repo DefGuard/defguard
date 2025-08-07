@@ -1,6 +1,6 @@
 use std::{
     fs::read_to_string,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex},
 };
 
 use bytes::Bytes;
@@ -28,10 +28,8 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_version::DefguardVersionSet;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -43,16 +41,13 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let config = DefGuardConfig::new();
     SERVER_CONFIG.set(config.clone())?;
-    let version_set = Arc::new(RwLock::new(DefguardVersionSet::try_from(VERSION)?));
-    // TODO: tracing with version-set
+
     // initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    let version_set = defguard_version::tracing::init(
+        VERSION,
+        &config.log_level,
+        &["run_grpc_bidi_stream", "run_grpc_server"],
+    );
 
     info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");
