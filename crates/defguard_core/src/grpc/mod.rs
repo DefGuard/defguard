@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{DefguardVersionSet, middleware::DefguardVersionMiddleware};
+use defguard_version::{DefguardVersionSet, server::DefguardVersionMiddleware};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;

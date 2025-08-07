@@ -1,12 +1,12 @@
+use http::{Request, Response};
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
-use http::{Request, Response};
 use tonic::body::BoxBody;
 use tower::{Layer, Service};
-use tracing::{debug, error};
+use tracing::error;
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -63,11 +63,8 @@ where
                 .expect("Version should be valid header value"),
         );
 
-        debug!("Client: Sending dfg-version: {}", self.version);
-
         // Call the inner service directly (don't clone)
         let future = self.inner.call(request);
-        let version = self.version.clone();
 
         Box::pin(async move {
             // Make the request

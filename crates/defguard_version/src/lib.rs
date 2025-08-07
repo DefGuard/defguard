@@ -3,17 +3,22 @@ use std::{
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
-use tonic::{Status, service::Interceptor};
 use tracing::error;
 
 pub mod client;
-pub mod middleware;
 pub mod server;
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
     #[error(transparent)]
     SemverError(#[from] semver::Error),
+}
+
+#[derive(Clone)]
+pub enum DefguardComponent {
+    Core,
+    Proxy,
+    Gateway,
 }
 
 #[derive(Clone, Debug)]
@@ -95,60 +100,5 @@ impl ComponentInfo {
             },
             system: info.into(),
         })
-    }
-}
-
-#[derive(Clone)]
-pub enum DefguardComponent {
-    Core,
-    Proxy,
-    Gateway,
-}
-
-#[derive(Clone)]
-pub struct DefguardVersionInterceptor {
-    component: DefguardComponent,
-    version_set: Arc<RwLock<DefguardVersionSet>>,
-}
-
-impl DefguardVersionInterceptor {
-    pub fn new(component: DefguardComponent, version_set: Arc<RwLock<DefguardVersionSet>>) -> Self {
-        Self {
-            component,
-            version_set,
-        }
-    }
-}
-
-impl Interceptor for DefguardVersionInterceptor {
-    fn call(&mut self, mut req: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
-        // read and set client version from metadata
-        let client_version = req
-            .metadata()
-            .get("dfg-version")
-            .map(|v| v.to_str().unwrap_or("unknown"))
-            .unwrap_or("missing");
-        // TODO set appropriate component version
-        // match self.component {
-        // 	DefguardComponent::Core => self.version_set.write().unwrap().core =
-        // }
-		for header in req.metadata().keys() {
-			error!("key: {:?}", header);
-		}
-        let own_version = &self.version_set.read().unwrap().own.version;
-        error!("Remote version: {}", client_version);
-        error!("Own version: {}", own_version);
-
-        // add own version to response metadata
-        req.metadata_mut().insert(
-            "dfg-version",
-            own_version
-                .to_string()
-                .parse()
-                .map_err(|_| Status::internal("Failed to set server version metadata"))?,
-        );
-		error!("STORED VERSION metadta");
-
-        Ok(req)
     }
 }

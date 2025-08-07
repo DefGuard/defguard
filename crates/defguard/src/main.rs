@@ -43,8 +43,8 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let config = DefGuardConfig::new();
     SERVER_CONFIG.set(config.clone())?;
-	let version_set = Arc::new(RwLock::new(DefguardVersionSet::try_from(VERSION)?));
-	// TODO: tracing with version-set
+    let version_set = Arc::new(RwLock::new(DefguardVersionSet::try_from(VERSION)?));
+    // TODO: tracing with version-set
     // initialize tracing
     tracing_subscriber::registry()
         .with(
