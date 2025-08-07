@@ -155,6 +155,7 @@ jobs:
         run: |
           archive='defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz'
           cosign sign-blob --yes ${archive} --output-signature ${archive}.sig
+          ls -la
 
       - name: Upload release archive
         uses: actions/upload-release-asset@v1.0.2
