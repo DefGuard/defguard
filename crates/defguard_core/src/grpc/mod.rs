@@ -908,7 +908,10 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(MiddlewareFor::new(
         gateway_service,
-        DefguardVersionMiddleware::default(),
+        DefguardVersionMiddleware::new(
+            version_set.read().unwrap().own.clone(),
+            Arc::clone(&version_set.read().unwrap().gateway),
+        ),
     ));
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);

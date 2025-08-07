@@ -8,6 +8,9 @@ use tracing::error;
 pub mod client;
 pub mod server;
 
+static VERSION_HEADER: &str = "dfg-version";
+static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
+
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
     #[error(transparent)]
@@ -45,6 +48,17 @@ pub struct SemanticVersion {
     pub major: u64,
     pub minor: u64,
     pub patch: u64,
+}
+
+impl SemanticVersion {
+    fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
+        let parsed = semver::Version::parse(version)?;
+        Ok(Self {
+            major: parsed.major,
+            minor: parsed.minor,
+            patch: parsed.patch,
+        })
+    }
 }
 
 impl Display for SemanticVersion {
@@ -90,14 +104,10 @@ pub struct ComponentInfo {
 
 impl ComponentInfo {
     pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
+        let version = SemanticVersion::try_from(version)?;
         let info = os_info::get();
-        let version = semver::Version::parse(version)?;
         Ok(Self {
-            version: SemanticVersion {
-                major: version.major,
-                minor: version.minor,
-                patch: version.patch,
-            },
+            version,
             system: info.into(),
         })
     }
