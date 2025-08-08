@@ -872,13 +872,10 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
     #[cfg(feature = "wireguard")]
-    let gateway_service = {
-        let jwt_interceptor = JwtInterceptor::new(ClaimsType::Gateway);
-        GatewayServiceServer::with_interceptor(
-            GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-            jwt_interceptor,
-        )
-    };
+    let gateway_service = GatewayServiceServer::with_interceptor(
+        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
+        JwtInterceptor::new(ClaimsType::Gateway),
+    );
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
