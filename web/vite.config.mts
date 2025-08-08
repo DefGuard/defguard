@@ -51,6 +51,7 @@ export default ({}) => {
       },
     },
     build: {
+      sourcemap: true,
       chunkSizeWarningLimit: 10000,
       rollupOptions: {
         logLevel: 'silent',
