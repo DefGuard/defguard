@@ -122,21 +122,29 @@ pub(crate) fn parse_version_headers(
     version: Option<&HeaderValue>,
     info: Option<&HeaderValue>,
 ) -> Option<(Version, SystemInfo)> {
-    if let (Some(version), Some(system)) = (version, info) {
-        if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
-            if let (Ok(version), Ok(system)) = (
-                Version::from_str(version),
-                SystemInfo::try_from_header_value(system),
-            ) {
-                return Some((version, system));
-            } else {
-                warn!("Failed to parse SemanticVersion or SystemInfo");
-            }
-        } else {
-            warn!("Failed to stringify HeaderValues");
-        }
-    } else {
-        warn!("Missing version and/or system info header");
-    }
-    None
+    let Some(version) = version else {
+        warn!("Missing version header");
+        return None;
+    };
+    let Some(info) = info else {
+        warn!("Missing system info header");
+        return None;
+    };
+
+    let (Ok(version), Ok(info)) = (version.to_str(), info.to_str()) else {
+        warn!("Failed to stringify version or system info header value");
+        return None;
+    };
+
+    let Ok(version) = Version::from_str(version) else {
+        warn!("Failed to parse version: {version}");
+        return None;
+    };
+
+    let Ok(info) = SystemInfo::try_from_header_value(info) else {
+        warn!("Failed to parse system info: {info}");
+        return None;
+    };
+
+    Some((version, info))
 }
