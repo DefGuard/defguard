@@ -1,6 +1,4 @@
-use std::{
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use tonic::{
     async_trait,
@@ -10,7 +8,7 @@ use tonic::{
 use tonic_middleware::{Middleware, ServiceBound};
 use tracing::error;
 
-use crate::{parse_version_headers, ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
+use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER, parse_version_headers};
 
 #[derive(Clone)]
 pub struct DefguardVersionServerMiddleware {

@@ -1140,6 +1140,7 @@ dependencies = [
  "tonic-health",
  "tonic-middleware",
  "totp-lite",
+ "tower 0.5.2",
  "tower-http",
  "tracing",
  "tracing-subscriber",

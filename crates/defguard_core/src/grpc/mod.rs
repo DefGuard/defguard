@@ -1,5 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{DefguardVersionSet, server::DefguardVersionServerMiddleware};
+use defguard_version::{
+    DefguardVersionSet, client::DefguardVersionClientLayer, server::DefguardVersionServerMiddleware,
+};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
@@ -30,6 +32,7 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
 use tonic_middleware::MiddlewareFor;
+use tower::ServiceBuilder;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -476,6 +479,7 @@ pub async fn run_grpc_bidi_stream(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    version_set: Arc<DefguardVersionSet>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -507,7 +511,14 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let mut client = ProxyClient::new(endpoint.connect_lazy());
+        let version_layer = DefguardVersionClientLayer::new(
+            version_set.own.clone(),
+            Arc::clone(&version_set.proxy),
+        );
+        let channel = ServiceBuilder::new()
+            .layer(version_layer)
+            .service(endpoint.connect_lazy());
+        let mut client = ProxyClient::new(channel);
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
             error!(

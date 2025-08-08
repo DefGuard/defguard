@@ -140,12 +140,12 @@ pub fn init(
     log_level: &str,
     always_version_spans: &[&str],
 ) -> Arc<DefguardVersionSet> {
-	let version_set = Arc::new(DefguardVersionSet {
-		own: ComponentInfo::try_from(version).expect("Failed to parse version: {version}"),
-		core: Arc::new(RwLock::new(None)),
-		proxy: Arc::new(RwLock::new(None)),
-		gateway: Arc::new(RwLock::new(None)),
-	});
+    let version_set = Arc::new(DefguardVersionSet {
+        own: ComponentInfo::try_from(version).expect("Failed to parse version: {version}"),
+        core: Arc::new(RwLock::new(None)),
+        proxy: Arc::new(RwLock::new(None)),
+        gateway: Arc::new(RwLock::new(None)),
+    });
 
     let spans: HashSet<String> = always_version_spans
         .iter()
