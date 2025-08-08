@@ -26,18 +26,18 @@ jobs:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container: rust:1
 
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: defguard
-          POSTGRES_USER: defguard
-          POSTGRES_PASSWORD: defguard
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # services:
+    #   postgres:
+    #     image: postgres:17-alpine
+    #     env:
+    #       POSTGRES_DB: defguard
+    #       POSTGRES_USER: defguard
+    #       POSTGRES_PASSWORD: defguard
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
 
     env:
       CARGO_TERM_COLOR: always
