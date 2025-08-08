@@ -376,11 +376,15 @@ impl ClientMfaServer {
                     if let Some(signed_challenge) = request.code {
                         match challenge.verify(signed_challenge.as_str()) {
                             // verification passed
-                            true => {
+                            Ok(()) => {
                                 debug!("Signed challenge verified successfully.");
                             }
                             // challenge rejected
-                            false => {
+                            Err(e) => {
+                                error!(
+                                    "Verification of challenge for device {0} failed ! Reason {e}",
+                                    &device.name
+                                );
                                 self.emit_event(BidiStreamEvent {
                                     context,
                                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
