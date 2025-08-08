@@ -20,7 +20,10 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64]
+    # FIXME: remove once migration to AWS runners is complete
+    # runs-on: [self-hosted, Linux, X64]
+    runs-on:
+      - codebuild-defguard-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container: rust:1
 
     services:
