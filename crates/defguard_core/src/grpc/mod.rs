@@ -8,7 +8,6 @@ use sqlx::PgPool;
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
-    sync::RwLock,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -862,7 +861,7 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
-    version_set: Arc<RwLock<DefguardVersionSet>>,
+    version_set: Arc<DefguardVersionSet>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
@@ -906,8 +905,8 @@ pub async fn run_grpc_server(
     let router = router.add_service(MiddlewareFor::new(
         gateway_service,
         DefguardVersionMiddleware::new(
-            version_set.read().unwrap().own.clone(),
-            Arc::clone(&version_set.read().unwrap().gateway),
+            version_set.own.clone(),
+            Arc::clone(&version_set.gateway),
         ),
     ));
     #[cfg(feature = "worker")]

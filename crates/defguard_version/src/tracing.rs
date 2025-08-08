@@ -23,7 +23,7 @@ struct VersionPrefixFormat {
     /// The underlying tracing formatter
     inner: tracing_subscriber::fmt::format::Format,
     /// Shared version information of all components
-    version_set: Arc<RwLock<DefguardVersionSet>>,
+    version_set: Arc<DefguardVersionSet>,
     /// Set of span names that should always include version info in their logs
     always_version_spans: HashSet<String>,
 }
@@ -69,18 +69,17 @@ where
 
         let should_log_version = is_error_level || is_in_version_span;
         if should_log_version {
-            let version_set = self.version_set.read().unwrap();
             write!(
                 writer,
                 "[v{}|{}|{}|{}|{}] ",
-                version_set.own.version,
-                version_set.own.system.os_type,
-                version_set.own.system.os_version,
-                version_set.own.system.bitness,
-                version_set.own.system.architecture,
+                self.version_set.own.version,
+                self.version_set.own.system.os_type,
+                self.version_set.own.system.os_version,
+                self.version_set.own.system.bitness,
+                self.version_set.own.system.architecture,
             )?;
 
-            if let Some(ref core) = *version_set.core.read().unwrap() {
+            if let Some(ref core) = *self.version_set.core.read().unwrap() {
                 write!(
                     writer,
                     "[C:v{}|{}|{}|{}|{}] ",
@@ -91,7 +90,7 @@ where
                     core.system.architecture,
                 )?;
             }
-            if let Some(ref proxy) = *version_set.proxy.read().unwrap() {
+            if let Some(ref proxy) = *self.version_set.proxy.read().unwrap() {
                 write!(
                     writer,
                     "[PX:v{}|{}|{}|{}|{}] ",
@@ -103,7 +102,7 @@ where
                 )?;
             }
 
-            if let Some(ref gateway) = *version_set.gateway.read().unwrap() {
+            if let Some(ref gateway) = *self.version_set.gateway.read().unwrap() {
                 write!(
                     writer,
                     "[GW:v{}|{}|{}|{}|{}] ",
@@ -140,13 +139,13 @@ pub fn init(
     version: &str,
     log_level: &str,
     always_version_spans: &[&str],
-) -> Arc<RwLock<DefguardVersionSet>> {
-    let version_set = Arc::new(RwLock::new(DefguardVersionSet {
-        own: ComponentInfo::try_from(version).expect("Failed to parse version: {version}"),
-        core: Arc::new(RwLock::new(None)),
-        proxy: Arc::new(RwLock::new(None)),
-        gateway: Arc::new(RwLock::new(None)),
-    }));
+) -> Arc<DefguardVersionSet> {
+	let version_set = Arc::new(DefguardVersionSet {
+		own: ComponentInfo::try_from(version).expect("Failed to parse version: {version}"),
+		core: Arc::new(RwLock::new(None)),
+		proxy: Arc::new(RwLock::new(None)),
+		gateway: Arc::new(RwLock::new(None)),
+	});
 
     let spans: HashSet<String> = always_version_spans
         .iter()
