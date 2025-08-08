@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::DefguardVersionClientLayer, server::DefguardVersionServerMiddleware,
+    parse_metadata, client::DefguardVersionClientLayer, server::DefguardVersionServerMiddleware,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -525,6 +525,7 @@ pub async fn run_grpc_bidi_stream(
             sleep(TEN_SECS).await;
             continue;
         };
+        let (version, info) = parse_metadata(response.metadata()).unwrap();
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
         'message: loop {

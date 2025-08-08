@@ -1,11 +1,9 @@
 use ::tracing::{error, warn};
 use http::HeaderValue;
 use semver::Version;
-use std::{
-    fmt::Display,
-    str::FromStr,
-};
+use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
+use tonic::metadata::MetadataMap;
 
 pub mod client;
 pub mod server;
@@ -140,6 +138,31 @@ pub(crate) fn parse_version_headers(
         return None;
     };
 
+    let Ok(info) = SystemInfo::try_from_header_value(info) else {
+        warn!("Failed to parse system info: {info}");
+        return None;
+    };
+
+    Some((version, info))
+}
+
+pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
+    let Some(version) = metadata.get(VERSION_HEADER) else {
+        warn!("Missing version header");
+        return None;
+    };
+    let Some(info) = metadata.get(SYSTEM_INFO_HEADER) else {
+        warn!("Missing system info header");
+        return None;
+    };
+    let (Ok(version), Ok(info)) = (version.to_str(), info.to_str()) else {
+        warn!("Failed to stringify version or system info header value");
+        return None;
+    };
+    let Ok(version) = Version::from_str(version) else {
+        warn!("Failed to parse version: {version}");
+        return None;
+    };
     let Ok(info) = SystemInfo::try_from_header_value(info) else {
         warn!("Failed to parse system info: {info}");
         return None;
