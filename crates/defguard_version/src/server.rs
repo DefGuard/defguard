@@ -1,18 +1,16 @@
 use std::{
-    str::FromStr,
     sync::{Arc, RwLock},
 };
 
-use semver::Version;
 use tonic::{
     async_trait,
     body::BoxBody,
     codegen::http::{Request, Response},
 };
 use tonic_middleware::{Middleware, ServiceBound};
-use tracing::{error, warn};
+use tracing::error;
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SystemInfo, VERSION_HEADER};
+use crate::{parse_version_headers, ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 
 #[derive(Clone)]
 pub struct DefguardVersionMiddleware {
@@ -40,28 +38,15 @@ where
         request: Request<BoxBody>,
         mut service: S,
     ) -> Result<Response<BoxBody>, S::Error> {
-        let client_version = request.headers().get(VERSION_HEADER);
-        let client_info = request.headers().get(SYSTEM_INFO_HEADER);
+        let version = request.headers().get(VERSION_HEADER);
+        let info = request.headers().get(SYSTEM_INFO_HEADER);
 
-        if let (Some(version), Some(system)) = (client_version, client_info) {
-            if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
-                if let (Ok(version), Ok(system)) = (
-                    Version::from_str(version),
-                    SystemInfo::try_from_header_value(system),
-                ) {
-                    error!("OWN VERSION: {}", self.own_info.version);
-                    error!("OWN SYSTEM: {}", self.own_info.system);
-                    error!("CLIENT VERSION: {}", version);
-                    error!("CLIENT SYSTEM: {}", system);
-                    *self.remote_info.write().unwrap() = Some(ComponentInfo { version, system });
-                } else {
-                    warn!("Failed to parse SemanticVersion or SystemInfo");
-                }
-            } else {
-                warn!("Failed to stringify HeaderValues");
-            }
-        } else {
-            warn!("Missing version and/or system info header");
+        if let Some((version, system)) = parse_version_headers(version, info) {
+            error!("OWN VERSION: {}", self.own_info.version);
+            error!("OWN SYSTEM: {}", self.own_info.system);
+            error!("CLIENT VERSION: {}", version);
+            error!("CLIENT SYSTEM: {}", system);
+            *self.remote_info.write().unwrap() = Some(ComponentInfo { version, system });
         }
 
         let mut response = service.call(request).await?;

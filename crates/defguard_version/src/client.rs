@@ -1,17 +1,15 @@
 use http::{Request, Response};
-use semver::Version;
 use std::{
     future::Future,
     pin::Pin,
-    str::FromStr,
     sync::{Arc, RwLock},
     task::{Context, Poll},
 };
 use tonic::body::BoxBody;
 use tower::{Layer, Service};
-use tracing::{error, warn};
+use tracing::{error};
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SystemInfo, VERSION_HEADER};
+use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER, parse_version_headers};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -94,30 +92,16 @@ where
             let response = response_future.await.map_err(Into::into)?;
 
             // extract version headers
-            let server_version = response.headers().get(VERSION_HEADER);
-            let server_info = response.headers().get(SYSTEM_INFO_HEADER);
+            let version = response.headers().get(VERSION_HEADER);
+            let info = response.headers().get(SYSTEM_INFO_HEADER);
 
-            if let (Some(version), Some(system)) = (server_version, server_info) {
-                if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
-                    if let (Ok(version), Ok(system)) = (
-                        Version::from_str(version),
-                        SystemInfo::try_from_header_value(system),
-                    ) {
-                        error!("OWN VERSION: {}", own_info.version);
-                        error!("OWN SYSTEM: {}", own_info.system);
-                        error!("SERVER VERSION: {}", version);
-                        error!("SERVER SYSTEM: {}", system);
-                        *remote_info.write().unwrap() = Some(ComponentInfo { version, system });
-                    } else {
-                        warn!("Failed to parse SemanticVersion or SystemInfo");
-                    }
-                } else {
-                    warn!("Failed to stringify HeaderValues");
-                }
-            } else {
-                warn!("Missing version and/or system info header");
+            if let Some((version, system)) = parse_version_headers(version, info) {
+                error!("OWN VERSION: {}", own_info.version);
+                error!("OWN SYSTEM: {}", own_info.system);
+                error!("SERVER VERSION: {}", version);
+                error!("SERVER SYSTEM: {}", system);
+                *remote_info.write().unwrap() = Some(ComponentInfo { version, system });
             }
-
             Ok(response)
         })
     }

@@ -1,12 +1,12 @@
-use ::tracing::error;
+use ::tracing::{error, warn};
+use http::HeaderValue;
+use semver::Version;
 use std::{
     fmt::Display,
     str::FromStr,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
-use semver::Version;
-
 
 pub mod client;
 pub mod server;
@@ -116,4 +116,27 @@ impl ComponentInfo {
             system: info.into(),
         })
     }
+}
+
+pub(crate) fn parse_version_headers(
+    version: Option<&HeaderValue>,
+    info: Option<&HeaderValue>,
+) -> Option<(Version, SystemInfo)> {
+    if let (Some(version), Some(system)) = (version, info) {
+        if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
+            if let (Ok(version), Ok(system)) = (
+                Version::from_str(version),
+                SystemInfo::try_from_header_value(system),
+            ) {
+                return Some((version, system));
+            } else {
+                warn!("Failed to parse SemanticVersion or SystemInfo");
+            }
+        } else {
+            warn!("Failed to stringify HeaderValues");
+        }
+    } else {
+        warn!("Missing version and/or system info header");
+    }
+    None
 }
