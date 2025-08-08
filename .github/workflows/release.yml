@@ -75,8 +75,7 @@ jobs:
             target: x86_64-unknown-freebsd
 
     permissions:
-      contents: read
-      packages: write
+      contents: write # needed to upload release assets
       id-token: write # needed for signing the images with GitHub OIDC Token
 
     steps:
@@ -151,11 +150,10 @@ jobs:
             defguard-${{ github.ref_name }}-${{ matrix.target }}
           outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
 
-      - name: Sign release archive
+      - name: Sign release archive with GitHub OIDC token
         run: |
           archive='defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz'
           cosign sign-blob --yes ${archive} --output-signature ${archive}.sig
-          ls -la
 
       - name: Upload release archive
         uses: actions/upload-release-asset@v1.0.2
