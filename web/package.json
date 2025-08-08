@@ -2,6 +2,7 @@
   "name": "web",
   "type": "module",
   "scripts": {
+    "preview": "pnpm run build && pnpm run vite preview",
     "dev": "concurrently \"pnpm run vite\" \"pnpm run typesafe-i18n\"",
     "build": "pnpm run typecheck && vite build",
     "serve": "vite preview",
