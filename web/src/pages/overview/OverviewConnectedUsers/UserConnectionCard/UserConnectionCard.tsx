@@ -3,8 +3,8 @@ import './style.scss';
 
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import { motion } from 'framer-motion';
 import { sumBy } from 'lodash-es';
+import { motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { timer } from 'rxjs';
