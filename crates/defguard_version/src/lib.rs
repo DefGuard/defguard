@@ -21,13 +21,6 @@ pub enum DefguardVersionError {
     SystemInfoParseError(String),
 }
 
-#[derive(Clone)]
-pub enum DefguardComponent {
-    Core,
-    Proxy,
-    Gateway,
-}
-
 #[derive(Clone, Debug)]
 pub struct DefguardVersionSet {
     pub own: ComponentInfo,
