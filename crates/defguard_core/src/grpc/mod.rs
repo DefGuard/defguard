@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardVersionSet, client::DefguardVersionClientLayer, server::DefguardVersionServerMiddleware,
+    client::DefguardVersionClientLayer, server::DefguardVersionServerMiddleware,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -50,9 +50,8 @@ use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
-#[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
+    VERSION,
     auth::failed_login::FailedLoginMap,
     db::{
         AppEvent, Id, Settings,
@@ -71,6 +70,8 @@ use crate::{
     mail::Mail,
     server_config,
 };
+#[cfg(feature = "worker")]
+use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
 pub(crate) mod client_mfa;
@@ -479,7 +480,6 @@ pub async fn run_grpc_bidi_stream(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
-    version_set: Arc<DefguardVersionSet>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -511,10 +511,7 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let version_layer = DefguardVersionClientLayer::new(
-            version_set.own.clone(),
-            Arc::clone(&version_set.proxy),
-        );
+        let version_layer = DefguardVersionClientLayer::from_str(VERSION)?;
         let channel = ServiceBuilder::new()
             .layer(version_layer)
             .service(endpoint.connect_lazy());
@@ -872,7 +869,6 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
-    version_set: Arc<DefguardVersionSet>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
@@ -915,10 +911,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(MiddlewareFor::new(
         gateway_service,
-        DefguardVersionServerMiddleware::new(
-            version_set.own.clone(),
-            Arc::clone(&version_set.gateway),
-        ),
+        DefguardVersionServerMiddleware::from_str(VERSION)?,
     ));
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);

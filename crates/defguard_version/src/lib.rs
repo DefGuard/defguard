@@ -4,7 +4,6 @@ use semver::Version;
 use std::{
     fmt::Display,
     str::FromStr,
-    sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
@@ -24,24 +23,24 @@ pub enum DefguardVersionError {
     SystemInfoParseError(String),
 }
 
-#[derive(Clone, Debug)]
-pub struct DefguardVersionSet {
-    pub own: ComponentInfo,
-    pub core: Arc<RwLock<Option<ComponentInfo>>>,
-    pub proxy: Arc<RwLock<Option<ComponentInfo>>>,
-    pub gateway: Arc<RwLock<Option<ComponentInfo>>>,
-}
+// #[derive(Clone, Debug)]
+// pub struct DefguardVersionSet {
+//     pub own: ComponentInfo,
+//     pub core: Arc<RwLock<Option<ComponentInfo>>>,
+//     pub proxy: Arc<RwLock<Option<ComponentInfo>>>,
+//     pub gateway: Arc<RwLock<Option<ComponentInfo>>>,
+// }
 
-impl DefguardVersionSet {
-    pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
-        Ok(Self {
-            own: ComponentInfo::try_from(version)?,
-            core: Arc::new(RwLock::new(None)),
-            proxy: Arc::new(RwLock::new(None)),
-            gateway: Arc::new(RwLock::new(None)),
-        })
-    }
-}
+// impl DefguardVersionSet {
+//     pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
+//         Ok(Self {
+//             own: ComponentInfo::from_str(version)?,
+//             core: Arc::new(RwLock::new(None)),
+//             proxy: Arc::new(RwLock::new(None)),
+//             gateway: Arc::new(RwLock::new(None)),
+//         })
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct SystemInfo {
@@ -108,7 +107,7 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
+    pub fn from_str(version: &str) -> Result<Self, DefguardVersionError> {
         let version = Version::from_str(version)?;
         let info = os_info::get();
         Ok(Self {

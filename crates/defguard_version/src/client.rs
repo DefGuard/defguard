@@ -9,23 +9,21 @@ use tonic::body::BoxBody;
 use tower::{Layer, Service};
 use tracing::error;
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER, parse_version_headers};
+use crate::{parse_version_headers, ComponentInfo, DefguardVersionError, SYSTEM_INFO_HEADER, VERSION_HEADER};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 /// Layer for adding version information to outgoing gRPC requests (client-side)
 #[derive(Clone)]
 pub struct DefguardVersionClientLayer {
-    own_info: ComponentInfo,
-    remote_info: Arc<RwLock<Option<ComponentInfo>>>,
+    component_info: ComponentInfo,
 }
 
 impl DefguardVersionClientLayer {
-    pub fn new(own_info: ComponentInfo, remote_info: Arc<RwLock<Option<ComponentInfo>>>) -> Self {
-        Self {
-            own_info,
-            remote_info,
-        }
+    pub fn from_str(version: &str) -> Result<Self, DefguardVersionError> {
+        Ok(Self {
+            component_info: ComponentInfo::from_str(version)?,
+        })
     }
 }
 
@@ -35,8 +33,7 @@ impl<S> Layer<S> for DefguardVersionClientLayer {
     fn layer(&self, inner: S) -> Self::Service {
         DefguardVersionClientService {
             inner,
-            own_info: self.own_info.clone(),
-            remote_info: Arc::clone(&self.remote_info),
+            component_info: self.component_info.clone(),
         }
     }
 }
@@ -45,8 +42,7 @@ impl<S> Layer<S> for DefguardVersionClientLayer {
 #[derive(Clone)]
 pub struct DefguardVersionClientService<S> {
     inner: S,
-    own_info: ComponentInfo,
-    remote_info: Arc<RwLock<Option<ComponentInfo>>>,
+    component_info: ComponentInfo,
 }
 
 impl<S> Service<Request<BoxBody>> for DefguardVersionClientService<S>
@@ -67,7 +63,7 @@ where
         // add version and system info headers
         request.headers_mut().insert(
             VERSION_HEADER,
-            self.own_info
+            self.component_info
                 .version
                 .to_string()
                 .parse()
@@ -75,7 +71,7 @@ where
         );
         request.headers_mut().insert(
             SYSTEM_INFO_HEADER,
-            self.own_info
+            self.component_info
                 .system
                 .as_header_value()
                 .parse()
@@ -84,24 +80,8 @@ where
 
         // send the request
         let response_future = self.inner.call(request);
-
-        // handle response
-        let remote_info = Arc::clone(&self.remote_info);
-        let own_info = self.own_info.clone();
         Box::pin(async move {
             let response = response_future.await.map_err(Into::into)?;
-
-            // extract version headers
-            let version = response.headers().get(VERSION_HEADER);
-            let info = response.headers().get(SYSTEM_INFO_HEADER);
-
-            if let Some((version, system)) = parse_version_headers(version, info) {
-                error!("OWN VERSION: {}", own_info.version);
-                error!("OWN SYSTEM: {}", own_info.system);
-                error!("SERVER VERSION: {}", version);
-                error!("SERVER SYSTEM: {}", system);
-                *remote_info.write().unwrap() = Some(ComponentInfo { version, system });
-            }
             Ok(response)
         })
     }

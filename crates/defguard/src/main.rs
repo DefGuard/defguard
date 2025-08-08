@@ -1,8 +1,3 @@
-use std::{
-    fs::read_to_string,
-    sync::{Arc, Mutex},
-};
-
 use bytes::Bytes;
 use defguard_core::{
     SERVER_CONFIG, VERSION,
@@ -29,7 +24,12 @@ use defguard_core::{
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use secrecy::ExposeSecret;
+use std::{
+    fs::read_to_string,
+    sync::{Arc, Mutex},
+};
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -43,11 +43,13 @@ async fn main() -> Result<(), anyhow::Error> {
     SERVER_CONFIG.set(config.clone())?;
 
     // initialize tracing
-    let version_set = defguard_version::tracing::init(
-        VERSION,
-        &config.log_level,
-        &["run_grpc_bidi_stream", "run_grpc_server"],
-    );
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");
@@ -142,8 +144,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx, Arc::clone(&version_set)), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx, version_set) => error!("gRPC server returned early: {res:?}"),
+        res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
+        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, api_event_tx) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),
