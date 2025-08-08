@@ -43,30 +43,31 @@ export const AddComponentBox = ({
       className={cn}
       initial="idle"
       animate={getAnimate}
+      variants={boxVariants}
+      custom={{ disabled }}
+      whileTap={{
+        scale: 0.9,
+      }}
       onHoverStart={() => {
         if (!disabled) {
           setHovered(true);
         }
       }}
       onHoverEnd={() => setHovered(false)}
-      whileTap={{
-        scale: 0.9,
-      }}
-      variants={boxVariants}
       onClick={() => {
         if (!disabled) {
           callback();
         }
       }}
-      custom={{ disabled }}
     >
-      <motion.button
+      <motion.div
         variants={buttonVariants}
         initial="idle"
         animate={hovered ? 'hover' : 'idle'}
+        className="button"
       >
         <AddButtonIcon rectVariants={iconVariants} hover={hovered} />
-      </motion.button>
+      </motion.div>
       <motion.span variants={textVariants}>{text}</motion.span>
     </motion.div>
   );
