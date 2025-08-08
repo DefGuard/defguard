@@ -1,5 +1,9 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
+use semver::Version;
 use tonic::{
     async_trait,
     body::BoxBody,
@@ -8,7 +12,7 @@ use tonic::{
 use tonic_middleware::{Middleware, ServiceBound};
 use tracing::{error, warn};
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SemanticVersion, SystemInfo, VERSION_HEADER};
+use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SystemInfo, VERSION_HEADER};
 
 #[derive(Clone)]
 pub struct DefguardVersionMiddleware {
@@ -42,7 +46,7 @@ where
         if let (Some(version), Some(system)) = (client_version, client_info) {
             if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
                 if let (Ok(version), Ok(system)) = (
-                    SemanticVersion::try_from(version),
+                    Version::from_str(version),
                     SystemInfo::try_from_header_value(system),
                 ) {
                     error!("OWN VERSION: {}", self.own_info.version);

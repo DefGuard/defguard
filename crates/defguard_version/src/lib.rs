@@ -1,9 +1,12 @@
+use ::tracing::error;
 use std::{
     fmt::Display,
+    str::FromStr,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
-use ::tracing::error;
+use semver::Version;
+
 
 pub mod client;
 pub mod server;
@@ -37,30 +40,6 @@ impl DefguardVersionSet {
             proxy: Arc::new(RwLock::new(None)),
             gateway: Arc::new(RwLock::new(None)),
         })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SemanticVersion {
-    pub major: u64,
-    pub minor: u64,
-    pub patch: u64,
-}
-
-impl SemanticVersion {
-    fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
-        let parsed = semver::Version::parse(version)?;
-        Ok(Self {
-            major: parsed.major,
-            minor: parsed.minor,
-            patch: parsed.patch,
-        })
-    }
-}
-
-impl Display for SemanticVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
@@ -124,13 +103,13 @@ impl From<os_info::Info> for SystemInfo {
 
 #[derive(Debug, Clone)]
 pub struct ComponentInfo {
-    pub version: SemanticVersion,
+    pub version: Version,
     pub system: SystemInfo,
 }
 
 impl ComponentInfo {
     pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
-        let version = SemanticVersion::try_from(version)?;
+        let version = Version::from_str(version)?;
         let info = os_info::get();
         Ok(Self {
             version,

@@ -1,7 +1,9 @@
 use http::{Request, Response};
+use semver::Version;
 use std::{
     future::Future,
     pin::Pin,
+    str::FromStr,
     sync::{Arc, RwLock},
     task::{Context, Poll},
 };
@@ -9,7 +11,7 @@ use tonic::body::BoxBody;
 use tower::{Layer, Service};
 use tracing::{error, warn};
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SemanticVersion, SystemInfo, VERSION_HEADER};
+use crate::{ComponentInfo, SYSTEM_INFO_HEADER, SystemInfo, VERSION_HEADER};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -98,7 +100,7 @@ where
             if let (Some(version), Some(system)) = (server_version, server_info) {
                 if let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) {
                     if let (Ok(version), Ok(system)) = (
-                        SemanticVersion::try_from(version),
+                        Version::from_str(version),
                         SystemInfo::try_from_header_value(system),
                     ) {
                         error!("OWN VERSION: {}", own_info.version);
