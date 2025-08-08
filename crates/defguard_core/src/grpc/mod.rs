@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_version::{DefguardVersionSet, server::DefguardVersionMiddleware};
+use defguard_version::{DefguardVersionSet, server::DefguardVersionServerMiddleware};
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
@@ -904,7 +904,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(MiddlewareFor::new(
         gateway_service,
-        DefguardVersionMiddleware::new(
+        DefguardVersionServerMiddleware::new(
             version_set.own.clone(),
             Arc::clone(&version_set.gateway),
         ),

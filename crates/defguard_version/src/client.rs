@@ -7,7 +7,7 @@ use std::{
 };
 use tonic::body::BoxBody;
 use tower::{Layer, Service};
-use tracing::{error};
+use tracing::error;
 
 use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER, parse_version_headers};
 

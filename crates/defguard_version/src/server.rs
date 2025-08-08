@@ -13,12 +13,12 @@ use tracing::error;
 use crate::{parse_version_headers, ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 
 #[derive(Clone)]
-pub struct DefguardVersionMiddleware {
+pub struct DefguardVersionServerMiddleware {
     own_info: ComponentInfo,
     remote_info: Arc<RwLock<Option<ComponentInfo>>>,
 }
 
-impl DefguardVersionMiddleware {
+impl DefguardVersionServerMiddleware {
     pub fn new(own_info: ComponentInfo, remote_info: Arc<RwLock<Option<ComponentInfo>>>) -> Self {
         Self {
             own_info,
@@ -28,7 +28,7 @@ impl DefguardVersionMiddleware {
 }
 
 #[async_trait]
-impl<S> Middleware<S> for DefguardVersionMiddleware
+impl<S> Middleware<S> for DefguardVersionServerMiddleware
 where
     S: ServiceBound,
     S::Future: Send,
