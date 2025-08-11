@@ -61,6 +61,8 @@ where
         event: &tracing::Event<'_>,
     ) -> std::fmt::Result {
         // Extract version information from current span context
+        let mut core_version = None;
+        let mut core_info = None;
         let mut proxy_version = None;
         let mut proxy_info = None;
         let mut gateway_version = None;
@@ -73,6 +75,12 @@ where
 
                 // Try to get stored visitor from span extensions
                 if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
+                    if core_version.is_none() && stored_visitor.core_version.is_some() {
+                        core_version = stored_visitor.core_version.clone();
+                    }
+                    if core_info.is_none() && stored_visitor.core_info.is_some() {
+                        core_info = stored_visitor.core_info.clone();
+                    }
                     if proxy_version.is_none() && stored_visitor.proxy_version.is_some() {
                         proxy_version = stored_visitor.proxy_version.clone();
                     }
@@ -92,7 +100,8 @@ where
         }
 
         // Format version prefix based on log level and available information
-        let is_versioned_span = proxy_version.is_some() || gateway_version.is_some();
+        let is_versioned_span =
+            core_version.is_some() || proxy_version.is_some() || gateway_version.is_some();
         let is_error = *event.metadata().level() == Level::ERROR;
         if is_versioned_span || is_error {
             // Own version
@@ -104,6 +113,17 @@ where
             write!(writer, "{}", own_version_str)?;
         }
 
+        // Core version
+        if let Some(ref core_version) = core_version {
+            let mut core_version_str = format!("[C:{}", core_version);
+            if is_error {
+                if let Some(ref core_info) = core_info {
+                    core_version_str = format!("{core_version_str} {}", core_info);
+                }
+            }
+            core_version_str = format!("{core_version_str}]");
+            write!(writer, "{}", core_version_str)?;
+        }
         // Proxy version
         if let Some(ref proxy_version) = proxy_version {
             let mut proxy_version_str = format!("[PX:{}", proxy_version);
@@ -135,6 +155,8 @@ where
 /// A visitor that extracts version fields from spans
 #[derive(Default, Clone)]
 struct SpanFieldVisitor {
+    core_version: Option<String>,
+    core_info: Option<String>,
     proxy_version: Option<String>,
     proxy_info: Option<String>,
     gateway_version: Option<String>,
@@ -144,6 +166,8 @@ struct SpanFieldVisitor {
 impl tracing::field::Visit for SpanFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
+            "core_version" => self.core_version = Some(value.to_string()),
+            "core_info" => self.core_info = Some(value.to_string()),
             "proxy_version" => self.proxy_version = Some(value.to_string()),
             "proxy_info" => self.proxy_info = Some(value.to_string()),
             "gateway_version" => self.gateway_version = Some(value.to_string()),
@@ -154,6 +178,8 @@ impl tracing::field::Visit for SpanFieldVisitor {
 
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
         match field.name() {
+            "core_version" => self.core_version = Some(format!("{:?}", value)),
+            "core_info" => self.core_info = Some(format!("{:?}", value)),
             "proxy_version" => self.proxy_version = Some(format!("{:?}", value)),
             "proxy_info" => self.proxy_info = Some(format!("{:?}", value)),
             "gateway_version" => self.gateway_version = Some(format!("{:?}", value)),
