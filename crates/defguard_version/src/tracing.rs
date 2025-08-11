@@ -124,6 +124,7 @@ where
             core_version_str = format!("{core_version_str}]");
             write!(writer, "{}", core_version_str)?;
         }
+
         // Proxy version
         if let Some(ref proxy_version) = proxy_version {
             let mut proxy_version_str = format!("[PX:{}", proxy_version);

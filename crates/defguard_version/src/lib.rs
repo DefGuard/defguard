@@ -21,25 +21,6 @@ pub enum DefguardVersionError {
     SystemInfoParseError(String),
 }
 
-// #[derive(Clone, Debug)]
-// pub struct DefguardVersionSet {
-//     pub own: ComponentInfo,
-//     pub core: Arc<RwLock<Option<ComponentInfo>>>,
-//     pub proxy: Arc<RwLock<Option<ComponentInfo>>>,
-//     pub gateway: Arc<RwLock<Option<ComponentInfo>>>,
-// }
-
-// impl DefguardVersionSet {
-//     pub fn try_from(version: &str) -> Result<Self, DefguardVersionError> {
-//         Ok(Self {
-//             own: ComponentInfo::from_str(version)?,
-//             core: Arc::new(RwLock::new(None)),
-//             proxy: Arc::new(RwLock::new(None)),
-//             gateway: Arc::new(RwLock::new(None)),
-//         })
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub struct SystemInfo {
     /// The operating system type (e.g., "Linux", "Windows", "macOS")
