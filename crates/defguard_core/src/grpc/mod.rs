@@ -1,6 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::DefguardVersionClientLayer, parse_metadata, server::DefguardVersionServerMiddleware, SystemInfo,
+    SystemInfo, client::DefguardVersionClientLayer, parse_metadata,
+    server::DefguardVersionServerMiddleware,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -474,6 +475,17 @@ impl From<Status> for CoreError {
     }
 }
 
+struct ProxyMessageLoopContext<'a> {
+    pool: PgPool,
+    tx: UnboundedSender<CoreResponse>,
+    wireguard_tx: Sender<GatewayEvent>,
+    resp_stream: &'a mut Streaming<CoreRequest>,
+    enrollment_server: &'a mut EnrollmentServer,
+    password_reset_server: &'a mut PasswordResetServer,
+    client_mfa_server: &'a mut ClientMfaServer,
+    polling_server: &'a mut PollingServer,
+}
+
 #[instrument(
     name = "proxy_message_loop",
     skip_all,
@@ -486,18 +498,11 @@ impl From<Status> for CoreError {
 async fn handle_message_loop(
     proxy_version: &Version,
     proxy_info: &SystemInfo,
-    pool: PgPool,
-    tx: UnboundedSender<CoreResponse>,
-    wireguard_tx: Sender<GatewayEvent>,
-    resp_stream: &mut Streaming<CoreRequest>,
-    enrollment_server: &mut EnrollmentServer,
-    password_reset_server: &mut PasswordResetServer,
-    client_mfa_server: &mut ClientMfaServer,
-    polling_server: &mut PollingServer,
+    context: ProxyMessageLoopContext<'_>,
 ) -> Result<(), anyhow::Error> {
     'message: loop {
-		let pool = pool.clone();
-        match resp_stream.message().await {
+        let pool = context.pool.clone();
+        match context.resp_stream.message().await {
             Ok(None) => {
                 info!("stream was closed by the sender");
                 break 'message;
@@ -508,7 +513,11 @@ async fn handle_message_loop(
                 let payload = match received.payload {
                     // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                     Some(core_request::Payload::RegisterMobileAuth(request)) => {
-                        match enrollment_server.register_mobile_auth(request).await {
+                        match context
+                            .enrollment_server
+                            .register_mobile_auth(request)
+                            .await
+                        {
                             Ok(()) => Some(core_response::Payload::Empty(())),
                             Err(err) => {
                                 error!("Register mobile auth error {err}");
@@ -518,7 +527,8 @@ async fn handle_message_loop(
                     }
                     // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                     Some(core_request::Payload::EnrollmentStart(request)) => {
-                        match enrollment_server
+                        match context
+                            .enrollment_server
                             .start_enrollment(request, received.device_info)
                             .await
                         {
@@ -533,7 +543,8 @@ async fn handle_message_loop(
                     }
                     // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                     Some(core_request::Payload::ActivateUser(request)) => {
-                        match enrollment_server
+                        match context
+                            .enrollment_server
                             .activate_user(request, received.device_info)
                             .await
                         {
@@ -546,7 +557,8 @@ async fn handle_message_loop(
                     }
                     // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                     Some(core_request::Payload::NewDevice(request)) => {
-                        match enrollment_server
+                        match context
+                            .enrollment_server
                             .create_device(request, received.device_info)
                             .await
                         {
@@ -561,7 +573,7 @@ async fn handle_message_loop(
                     }
                     // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                     Some(core_request::Payload::ExistingDevice(request)) => {
-                        match enrollment_server.get_network_info(request).await {
+                        match context.enrollment_server.get_network_info(request).await {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::DeviceConfig(response_payload))
                             }
@@ -573,7 +585,8 @@ async fn handle_message_loop(
                     }
                     // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                     Some(core_request::Payload::PasswordResetInit(request)) => {
-                        match password_reset_server
+                        match context
+                            .password_reset_server
                             .request_password_reset(request, received.device_info)
                             .await
                         {
@@ -586,7 +599,8 @@ async fn handle_message_loop(
                     }
                     // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                     Some(core_request::Payload::PasswordResetStart(request)) => {
-                        match password_reset_server
+                        match context
+                            .password_reset_server
                             .start_password_reset(request, received.device_info)
                             .await
                         {
@@ -601,7 +615,8 @@ async fn handle_message_loop(
                     }
                     // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                     Some(core_request::Payload::PasswordReset(request)) => {
-                        match password_reset_server
+                        match context
+                            .password_reset_server
                             .reset_password(request, received.device_info)
                             .await
                         {
@@ -614,7 +629,11 @@ async fn handle_message_loop(
                     }
                     // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
                     Some(core_request::Payload::ClientMfaStart(request)) => {
-                        match client_mfa_server.start_client_mfa_login(request).await {
+                        match context
+                            .client_mfa_server
+                            .start_client_mfa_login(request)
+                            .await
+                        {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::ClientMfaStart(response_payload))
                             }
@@ -626,7 +645,8 @@ async fn handle_message_loop(
                     }
                     // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                     Some(core_request::Payload::ClientMfaFinish(request)) => {
-                        match client_mfa_server
+                        match context
+                            .client_mfa_server
                             .finish_client_mfa_login(request, received.device_info)
                             .await
                         {
@@ -649,7 +669,8 @@ async fn handle_message_loop(
                         }
                     }
                     Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
-                        match client_mfa_server
+                        match context
+                            .client_mfa_server
                             .auth_mfa_session_with_oidc(request, received.device_info)
                             .await
                         {
@@ -662,7 +683,7 @@ async fn handle_message_loop(
                     }
                     // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
                     Some(core_request::Payload::InstanceInfo(request)) => {
-                        match polling_server.info(request).await {
+                        match context.polling_server.info(request).await {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::InstanceInfo(response_payload))
                             }
@@ -746,7 +767,7 @@ async fn handle_message_loop(
                                         if let Err(err) = sync_user_groups_if_configured(
                                             &user,
                                             &pool,
-                                            &wireguard_tx,
+                                            &context.wireguard_tx,
                                         )
                                         .await
                                         {
@@ -812,7 +833,7 @@ async fn handle_message_loop(
                     id: received.id,
                     payload,
                 };
-                tx.send(req).unwrap();
+                context.tx.send(req).unwrap();
             }
             Err(err) => {
                 // error!("Disconnected from proxy at {}", endpoint.uri());
@@ -884,15 +905,17 @@ pub async fn run_grpc_bidi_stream(
         let mut resp_stream = response.into_inner();
         handle_message_loop(
             &version,
-			&info,
-            pool.clone(),
-            tx,
-            wireguard_tx.clone(),
-            &mut resp_stream,
-            &mut enrollment_server,
-            &mut password_reset_server,
-            &mut client_mfa_server,
-            &mut polling_server,
+            &info,
+            ProxyMessageLoopContext {
+                pool: pool.clone(),
+                tx: tx,
+                wireguard_tx: wireguard_tx.clone(),
+                resp_stream: &mut resp_stream,
+                enrollment_server: &mut enrollment_server,
+                password_reset_server: &mut password_reset_server,
+                client_mfa_server: &mut client_mfa_server,
+                polling_server: &mut polling_server,
+            },
         )
         .await?;
     }
