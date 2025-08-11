@@ -1,4 +1,4 @@
-import type { TargetAndTransition } from 'framer-motion';
+import type { TargetAndTransition } from 'motion/react';
 import { useCallback, useMemo } from 'react';
 import { type Control, useController } from 'react-hook-form';
 
