@@ -15,8 +15,7 @@
     border-radius: 10px;
     cursor: pointer;
     user-select: none;
-    transition-property: border-color;
-
+    transition-property: border-color, opacity;
     @include animate-standard;
 
     &:not(.active) {
@@ -33,6 +32,20 @@
     &:hover {
       .label {
         color: var(--text-body-primary);
+      }
+    }
+
+    &.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: var(--surface-secondary);
+
+      .label {
+        color: var(--text-body-disabled);
+      }
+
+      &:hover {
+        border-color: var(--border-primary);
       }
     }
 

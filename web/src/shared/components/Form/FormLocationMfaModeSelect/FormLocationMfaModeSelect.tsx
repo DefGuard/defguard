@@ -10,6 +10,7 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RadioButton } from '../../../defguard-ui/components/Layout/RadioButton/Radiobutton';
 import type { SelectOption } from '../../../defguard-ui/components/Layout/Select/types';
 import { LocationMfaMode } from '../../../types';
+import { useAppStore } from '../../../hooks/store/useAppStore';
 
 type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
@@ -22,6 +23,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
   const {
     field: { onChange, value: fieldValue },
   } = useController(controller);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const options = useMemo(
     (): SelectOption<LocationMfaMode>[] => [
@@ -39,6 +41,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         key: LocationMfaMode.EXTERNAL,
         value: LocationMfaMode.EXTERNAL,
         label: LL.components.locationMfaModeSelect.options.external(),
+        disabled: !enterpriseEnabled
       },
     ],
     [
@@ -51,16 +54,19 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
   return (
     <div className="location-mfa-mode-select">
       <label>{LL.networkConfiguration.form.fields.location_mfa_mode.label()}</label>
-      {options.map(({ key, value, label }) => {
+      {options.map(({ key, value, label, disabled = false }) => {
         const active = fieldValue === value;
         return (
           <div
-            className={clsx(`location-mfa-mode ${value}`, {
+            className={clsx(`location-mfa-mode`, {
               active,
+              disabled
             })}
             key={key}
             onClick={() => {
-              onChange(value);
+              if (!disabled) {
+                onChange(value);
+              }
             }}
           >
             <p className="label">{label}</p>
