@@ -2,14 +2,12 @@ use http::{Request, Response};
 use std::{
     future::Future,
     pin::Pin,
-    sync::{Arc, RwLock},
     task::{Context, Poll},
 };
 use tonic::body::BoxBody;
 use tower::{Layer, Service};
-use tracing::error;
 
-use crate::{parse_version_headers, ComponentInfo, DefguardVersionError, SYSTEM_INFO_HEADER, VERSION_HEADER};
+use crate::{ComponentInfo, DefguardVersionError, SYSTEM_INFO_HEADER, VERSION_HEADER};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 

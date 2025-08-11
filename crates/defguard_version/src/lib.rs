@@ -63,6 +63,10 @@ impl Display for SystemInfo {
 }
 
 impl SystemInfo {
+    fn get() -> Self {
+        os_info::get().into()
+    }
+
     fn as_header_value(&self) -> String {
         format!(
             "{};{};{};{}",

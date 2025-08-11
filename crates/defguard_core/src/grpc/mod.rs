@@ -490,12 +490,11 @@ struct ProxyMessageLoopContext<'a> {
     name = "proxy_message_loop",
     skip_all,
     fields(
-        core_version = %VERSION,
         proxy_version = %proxy_version,
         proxy_info = %proxy_info,
     )
 )]
-async fn handle_message_loop(
+async fn handle_proxy_message_loop(
     proxy_version: &Version,
     proxy_info: &SystemInfo,
     context: ProxyMessageLoopContext<'_>,
@@ -903,7 +902,7 @@ pub async fn run_grpc_bidi_stream(
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
-        handle_message_loop(
+        handle_proxy_message_loop(
             &version,
             &info,
             ProxyMessageLoopContext {
