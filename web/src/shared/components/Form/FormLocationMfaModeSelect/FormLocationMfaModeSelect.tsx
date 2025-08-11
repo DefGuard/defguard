@@ -24,6 +24,8 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
     field: { onChange, value: fieldValue },
   } = useController(controller);
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const externalOpenIdConfigured = useAppStore((s) => s.appInfo?.external_openid_enabled);
+  const externalMfaDisabled = !(enterpriseEnabled && externalOpenIdConfigured);
 
   const options = useMemo(
     (): SelectOption<LocationMfaMode>[] => [
@@ -41,7 +43,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         key: LocationMfaMode.EXTERNAL,
         value: LocationMfaMode.EXTERNAL,
         label: LL.components.locationMfaModeSelect.options.external(),
-        disabled: !enterpriseEnabled
+        disabled: externalMfaDisabled
       },
     ],
     [
