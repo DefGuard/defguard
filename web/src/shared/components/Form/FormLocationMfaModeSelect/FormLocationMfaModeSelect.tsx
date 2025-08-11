@@ -9,8 +9,8 @@ import {
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RadioButton } from '../../../defguard-ui/components/Layout/RadioButton/Radiobutton';
 import type { SelectOption } from '../../../defguard-ui/components/Layout/Select/types';
-import { LocationMfaMode } from '../../../types';
 import { useAppStore } from '../../../hooks/store/useAppStore';
+import { LocationMfaMode } from '../../../types';
 
 type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
@@ -43,13 +43,14 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         key: LocationMfaMode.EXTERNAL,
         value: LocationMfaMode.EXTERNAL,
         label: LL.components.locationMfaModeSelect.options.external(),
-        disabled: externalMfaDisabled
+        disabled: externalMfaDisabled,
       },
     ],
     [
       LL.components.locationMfaModeSelect.options.disabled,
       LL.components.locationMfaModeSelect.options.external,
       LL.components.locationMfaModeSelect.options.internal,
+      externalMfaDisabled,
     ],
   );
 
@@ -62,7 +63,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
           <div
             className={clsx(`location-mfa-mode`, {
               active,
-              disabled
+              disabled,
             })}
             key={key}
             onClick={() => {
