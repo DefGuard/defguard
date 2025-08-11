@@ -52,21 +52,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
+
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
+
       - name: Check format
         run: |
           rustup component add rustfmt
           cargo fmt -- --check
+
       - name: Run clippy linter
         run: |
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
+
       - name: Run cargo deny
         uses: EmbarkStudios/cargo-deny-action@v2
+
       - name: Install nextest
         uses: taiki-e/install-action@nextest
+
       - name: Run tests
         run: cargo nextest run --locked --no-fail-fast

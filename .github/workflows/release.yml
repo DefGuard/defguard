@@ -53,10 +53,12 @@ jobs:
 
   build-binaries:
     needs: [create-release]
+
     runs-on:
       - self-hosted
       - Linux
       - X64
+
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +73,10 @@ jobs:
           - build: freebsd
             arch: amd64
             target: x86_64-unknown-freebsd
+
+    permissions:
+      contents: write # needed to upload release assets
+
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
