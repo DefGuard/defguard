@@ -907,7 +907,7 @@ pub async fn run_grpc_bidi_stream(
             &info,
             ProxyMessageLoopContext {
                 pool: pool.clone(),
-                tx: tx,
+                tx,
                 wireguard_tx: wireguard_tx.clone(),
                 resp_stream: &mut resp_stream,
                 enrollment_server: &mut enrollment_server,

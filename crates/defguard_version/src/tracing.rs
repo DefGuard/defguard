@@ -63,6 +63,8 @@ where
         // Extract version information from current span context
         let mut proxy_version = None;
         let mut proxy_info = None;
+        let mut gateway_version = None;
+        let mut gateway_info = None;
 
         if let Some(span_ref) = ctx.lookup_current() {
             let mut current_span = Some(span_ref);
@@ -77,6 +79,12 @@ where
                     if proxy_info.is_none() && stored_visitor.proxy_info.is_some() {
                         proxy_info = stored_visitor.proxy_info.clone();
                     }
+                    if gateway_version.is_none() && stored_visitor.gateway_version.is_some() {
+                        gateway_version = stored_visitor.gateway_version.clone();
+                    }
+                    if gateway_info.is_none() && stored_visitor.gateway_info.is_some() {
+                        gateway_info = stored_visitor.gateway_info.clone();
+                    }
                 }
 
                 current_span = span.parent();
@@ -84,7 +92,7 @@ where
         }
 
         // Format version prefix based on log level and available information
-        let is_versioned_span = proxy_version.is_some();
+        let is_versioned_span = proxy_version.is_some() || gateway_version.is_some();
         let is_error = *event.metadata().level() == Level::ERROR;
         if is_versioned_span || is_error {
             // Own version
@@ -95,6 +103,7 @@ where
             own_version_str = format!("{own_version_str}]");
             write!(writer, "{}", own_version_str)?;
         }
+
         // Proxy version
         if let Some(ref proxy_version) = proxy_version {
             let mut proxy_version_str = format!("[PX:{}", proxy_version);
@@ -107,6 +116,18 @@ where
             write!(writer, "{}", proxy_version_str)?;
         }
 
+        // Gateway version
+        if let Some(ref gateway_version) = gateway_version {
+            let mut gateway_version_str = format!("[GW:{}", gateway_version);
+            if is_error {
+                if let Some(ref gateway_info) = gateway_info {
+                    gateway_version_str = format!("{gateway_version_str} {}", gateway_info);
+                }
+            }
+            gateway_version_str = format!("{gateway_version_str}]");
+            write!(writer, "{}", gateway_version_str)?;
+        }
+
         self.inner.format_event(ctx, writer, event)
     }
 }
@@ -116,6 +137,8 @@ where
 struct SpanFieldVisitor {
     proxy_version: Option<String>,
     proxy_info: Option<String>,
+    gateway_version: Option<String>,
+    gateway_info: Option<String>,
 }
 
 impl tracing::field::Visit for SpanFieldVisitor {
@@ -123,6 +146,8 @@ impl tracing::field::Visit for SpanFieldVisitor {
         match field.name() {
             "proxy_version" => self.proxy_version = Some(value.to_string()),
             "proxy_info" => self.proxy_info = Some(value.to_string()),
+            "gateway_version" => self.gateway_version = Some(value.to_string()),
+            "gateway_info" => self.gateway_info = Some(value.to_string()),
             _ => {}
         }
     }
@@ -131,6 +156,8 @@ impl tracing::field::Visit for SpanFieldVisitor {
         match field.name() {
             "proxy_version" => self.proxy_version = Some(format!("{:?}", value)),
             "proxy_info" => self.proxy_info = Some(format!("{:?}", value)),
+            "gateway_version" => self.gateway_version = Some(format!("{:?}", value)),
+            "gateway_info" => self.gateway_info = Some(format!("{:?}", value)),
             _ => {}
         }
     }

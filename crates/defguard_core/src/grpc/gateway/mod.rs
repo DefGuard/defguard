@@ -8,6 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
+use defguard_version::parse_metadata;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
@@ -721,11 +722,19 @@ impl gateway_service_server::GatewayService for GatewayServer {
         &self,
         request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
-        let network_id = Self::get_network_id(request.metadata())?;
-        let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
+        let metadata = request.metadata();
+        let network_id = Self::get_network_id(metadata)?;
+        let (version, info) = parse_metadata(metadata).unwrap();
+        let gateway_hostname = Self::get_gateway_hostname(metadata)?;
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
+        let span = tracing::info_span!(
+			"gateway_stats",
+            gateway_version = %version,
+            gateway_info = %info,
+        );
+        let _guard = span.enter();
         loop {
             // wait for a message or update client map at least once a mninute if no messages are received
             let stats_update = tokio::select! {
