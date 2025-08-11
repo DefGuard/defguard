@@ -113,8 +113,12 @@ jobs:
           done
         
       - name: Sign the images with GitHub OIDC Token
-        env:
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: |
           images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
           cosign sign --yes ${images}
+
+      - name: Verify image signatures
+        run: |
+          images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+          cosign verify ${images} --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp="https://github.com/DefGuard/defguard" -o text
+        
