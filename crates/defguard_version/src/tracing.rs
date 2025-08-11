@@ -110,43 +110,43 @@ where
                 own_version_str = format!("{own_version_str} {}", self.own_info);
             }
             own_version_str = format!("{own_version_str}]");
-            write!(writer, "{}", own_version_str)?;
+            write!(writer, "{own_version_str}")?;
         }
 
         // Core version
         if let Some(ref core_version) = core_version {
-            let mut core_version_str = format!("[C:{}", core_version);
+            let mut core_version_str = format!("[C:{core_version}");
             if is_error {
                 if let Some(ref core_info) = core_info {
-                    core_version_str = format!("{core_version_str} {}", core_info);
+                    core_version_str = format!("{core_version_str} {core_info}");
                 }
             }
             core_version_str = format!("{core_version_str}]");
-            write!(writer, "{}", core_version_str)?;
+            write!(writer, "{core_version_str}")?;
         }
 
         // Proxy version
         if let Some(ref proxy_version) = proxy_version {
-            let mut proxy_version_str = format!("[PX:{}", proxy_version);
+            let mut proxy_version_str = format!("[PX:{proxy_version}");
             if is_error {
                 if let Some(ref proxy_info) = proxy_info {
-                    proxy_version_str = format!("{proxy_version_str} {}", proxy_info);
+                    proxy_version_str = format!("{proxy_version_str} {proxy_info}");
                 }
             }
             proxy_version_str = format!("{proxy_version_str}]");
-            write!(writer, "{}", proxy_version_str)?;
+            write!(writer, "{proxy_version_str}")?;
         }
 
         // Gateway version
         if let Some(ref gateway_version) = gateway_version {
-            let mut gateway_version_str = format!("[GW:{}", gateway_version);
+            let mut gateway_version_str = format!("[GW:{gateway_version}");
             if is_error {
                 if let Some(ref gateway_info) = gateway_info {
-                    gateway_version_str = format!("{gateway_version_str} {}", gateway_info);
+                    gateway_version_str = format!("{gateway_version_str} {gateway_info}");
                 }
             }
             gateway_version_str = format!("{gateway_version_str}]");
-            write!(writer, "{}", gateway_version_str)?;
+            write!(writer, "{gateway_version_str}")?;
         }
 
         self.inner.format_event(ctx, writer, event)
@@ -179,12 +179,12 @@ impl tracing::field::Visit for SpanFieldVisitor {
 
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
         match field.name() {
-            "core_version" => self.core_version = Some(format!("{:?}", value)),
-            "core_info" => self.core_info = Some(format!("{:?}", value)),
-            "proxy_version" => self.proxy_version = Some(format!("{:?}", value)),
-            "proxy_info" => self.proxy_info = Some(format!("{:?}", value)),
-            "gateway_version" => self.gateway_version = Some(format!("{:?}", value)),
-            "gateway_info" => self.gateway_info = Some(format!("{:?}", value)),
+            "core_version" => self.core_version = Some(format!("{value:?}")),
+            "core_info" => self.core_info = Some(format!("{value:?}")),
+            "proxy_version" => self.proxy_version = Some(format!("{value:?}")),
+            "proxy_info" => self.proxy_info = Some(format!("{value:?}")),
+            "gateway_version" => self.gateway_version = Some(format!("{value:?}")),
+            "gateway_info" => self.gateway_info = Some(format!("{value:?}")),
             _ => {}
         }
     }
@@ -213,7 +213,7 @@ pub fn init(own_version: &str, log_level: &str) {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{},h2=info", log_level).into()),
+                .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
         )
         .with(VersionFieldLayer) // Add our custom layer to capture span fields
         .with(

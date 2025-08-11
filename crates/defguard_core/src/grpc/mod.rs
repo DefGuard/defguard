@@ -884,7 +884,7 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let version_layer = DefguardVersionClientLayer::from_str(VERSION)?;
+        let version_layer = DefguardVersionClientLayer::new(VERSION)?;
         let channel = ServiceBuilder::new()
             .layer(version_layer)
             .service(endpoint.connect_lazy());
@@ -974,7 +974,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(MiddlewareFor::new(
         gateway_service,
-        DefguardVersionServerMiddleware::from_str(VERSION)?,
+        DefguardVersionServerMiddleware::new(VERSION)?,
     ));
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);

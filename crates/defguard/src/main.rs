@@ -21,7 +21,6 @@ use defguard_core::{
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
 };
-use defguard_version;
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use secrecy::ExposeSecret;

@@ -18,9 +18,9 @@ pub struct DefguardVersionClientLayer {
 }
 
 impl DefguardVersionClientLayer {
-    pub fn from_str(version: &str) -> Result<Self, DefguardVersionError> {
+    pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
         Ok(Self {
-            component_info: ComponentInfo::from_str(version)?,
+            component_info: ComponentInfo::new(version)?,
         })
     }
 }

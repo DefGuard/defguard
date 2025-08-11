@@ -1,5 +1,4 @@
 use ::tracing::{error, warn};
-use http::HeaderValue;
 use semver::Version;
 use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
@@ -78,7 +77,7 @@ impl From<os_info::Info> for SystemInfo {
             os_type: info.os_type().to_string(),
             os_version: info.version().to_string(),
             bitness: info.bitness().to_string(),
-            architecture: info.architecture().unwrap_or_else(|| "?").to_string(),
+            architecture: info.architecture().unwrap_or("?").to_string(),
         }
     }
 }
@@ -90,7 +89,7 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    pub fn from_str(version: &str) -> Result<Self, DefguardVersionError> {
+    pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
         let version = Version::from_str(version)?;
         let info = os_info::get();
         Ok(Self {
@@ -98,37 +97,6 @@ impl ComponentInfo {
             system: info.into(),
         })
     }
-}
-
-pub(crate) fn parse_version_headers(
-    version: Option<&HeaderValue>,
-    info: Option<&HeaderValue>,
-) -> Option<(Version, SystemInfo)> {
-    let Some(version) = version else {
-        warn!("Missing version header");
-        return None;
-    };
-    let Some(info) = info else {
-        warn!("Missing system info header");
-        return None;
-    };
-
-    let (Ok(version), Ok(info)) = (version.to_str(), info.to_str()) else {
-        warn!("Failed to stringify version or system info header value");
-        return None;
-    };
-
-    let Ok(version) = Version::from_str(version) else {
-        warn!("Failed to parse version: {version}");
-        return None;
-    };
-
-    let Ok(info) = SystemInfo::try_from_header_value(info) else {
-        warn!("Failed to parse system info: {info}");
-        return None;
-    };
-
-    Some((version, info))
 }
 
 pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
