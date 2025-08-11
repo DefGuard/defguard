@@ -246,10 +246,10 @@ impl WireguardNetwork {
         acl_enabled: bool,
         acl_default_allow: bool,
         location_mfa_mode: LocationMfaMode,
-    ) -> Result<Self, WireguardNetworkError> {
+    ) -> Self {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
-        Ok(Self {
+        Self {
             id: NoId,
             name,
             address,
@@ -266,7 +266,7 @@ impl WireguardNetwork {
             acl_enabled,
             acl_default_allow,
             location_mfa_mode,
-        })
+        }
     }
 
     /// Try to set `address` from `&str`.
@@ -2036,7 +2036,6 @@ mod test {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();
@@ -2168,7 +2167,6 @@ mod test {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();

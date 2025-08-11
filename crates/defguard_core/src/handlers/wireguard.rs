@@ -150,8 +150,7 @@ pub(crate) async fn create_network(
         data.acl_enabled,
         data.acl_default_allow,
         data.location_mfa_mode,
-    )
-    .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
+    );
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
