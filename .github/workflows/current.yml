@@ -5,6 +5,7 @@ on:
       - main
       - dev
       - "release/**"
+      - sign_release_assets
     paths-ignore:
       - "*.md"
       - "LICENSE"
