@@ -893,8 +893,16 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<ConfigurationRequest>,
     ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
-        let network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+		let metadata = request.metadata();
+        let network_id = Self::get_network_id(metadata)?;
+        let hostname = Self::get_gateway_hostname(metadata)?;
+        let (version, info) = parse_metadata(metadata).unwrap();
+        let span = tracing::info_span!(
+			"gateway_config",
+            gateway_version = %version,
+            gateway_info = %info,
+        );
+        let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
             error!("Failed to acquire DB connection: {e}");
@@ -965,8 +973,16 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let gateway_network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+		let metadata = request.metadata();
+        let gateway_network_id = Self::get_network_id(metadata)?;
+        let hostname = Self::get_gateway_hostname(metadata)?;
+        let (version, info) = parse_metadata(metadata).unwrap();
+        let span = tracing::info_span!(
+			"gateway_updates",
+            gateway_version = %version,
+            gateway_info = %info,
+        );
+        let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
             .await
