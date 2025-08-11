@@ -526,6 +526,14 @@ pub async fn run_grpc_bidi_stream(
             continue;
         };
         let (version, info) = parse_metadata(response.metadata()).unwrap();
+
+        let span = tracing::error_span!(
+            "proxy_connection",
+            core_version = %VERSION,
+            proxy_version = %version,
+        );
+        let _guard = span.enter();
+
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
         'message: loop {
