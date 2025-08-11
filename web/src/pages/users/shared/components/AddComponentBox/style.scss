@@ -20,9 +20,9 @@
     user-select: none;
   }
 
-  & > button {
-    width: 4rem;
-    height: 4rem;
+  .button {
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     display: flex;
     flex-flow: row nowrap;
