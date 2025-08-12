@@ -4,6 +4,7 @@ use tracing_subscriber::{
     fmt::{FormatEvent, FormatFields, format::Writer},
     layer::{Context, SubscriberExt},
     util::SubscriberInitExt,
+    field::RecordFields,
 };
 
 use crate::SystemInfo;
@@ -190,6 +191,65 @@ impl tracing::field::Visit for SpanFieldVisitor {
     }
 }
 
+/// Custom field formatter that filters out version fields to prevent duplication
+struct VersionFilteredFields;
+
+impl<'writer> FormatFields<'writer> for VersionFilteredFields {
+    fn format_fields<R: RecordFields>(
+        &self,
+        writer: Writer<'writer>,
+        fields: R,
+    ) -> std::fmt::Result {
+        let mut visitor = FieldFilterVisitor::new(writer);
+        fields.record(&mut visitor);
+        Ok(())
+    }
+}
+
+/// Field visitor that skips version-related fields
+struct FieldFilterVisitor<'writer> {
+    writer: Writer<'writer>,
+    first: bool,
+}
+
+impl<'writer> FieldFilterVisitor<'writer> {
+    fn new(writer: Writer<'writer>) -> Self {
+        Self { writer, first: true }
+    }
+}
+
+impl<'writer> tracing::field::Visit for FieldFilterVisitor<'writer> {
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        match field.name() {
+            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version" | "gateway_info" => {
+                // Skip version fields to prevent duplication
+            }
+            _ => {
+                if !self.first {
+                    let _ = write!(self.writer, " ");
+                }
+                let _ = write!(self.writer, "{}={}", field.name(), value);
+                self.first = false;
+            }
+        }
+    }
+
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        match field.name() {
+            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version" | "gateway_info" => {
+                // Skip version fields to prevent duplication
+            }
+            _ => {
+                if !self.first {
+                    let _ = write!(self.writer, " ");
+                }
+                let _ = write!(self.writer, "{}={:?}", field.name(), value);
+                self.first = false;
+            }
+        }
+    }
+}
+
 /// Initializes tracing with custom formatter that conditionally displays version information.
 ///
 /// The formatter will:
@@ -217,11 +277,13 @@ pub fn init(own_version: &str, log_level: &str) {
         )
         .with(VersionFieldLayer) // Add our custom layer to capture span fields
         .with(
-            tracing_subscriber::fmt::layer().event_format(VersionPrefixFormat {
-                inner: tracing_subscriber::fmt::format::Format::default(),
-                own_version: own_version.to_string(),
-                own_info: SystemInfo::get(),
-            }),
+            tracing_subscriber::fmt::layer()
+                .event_format(VersionPrefixFormat {
+                    inner: tracing_subscriber::fmt::format::Format::default(),
+                    own_version: own_version.to_string(),
+                    own_info: SystemInfo::get(),
+                })
+                .fmt_fields(VersionFilteredFields),
         )
         .init();
 }

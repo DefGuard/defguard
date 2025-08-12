@@ -730,7 +730,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
         let span = tracing::info_span!(
-			"gateway_stats",
+            "gateway_stats",
             gateway_version = %version,
             gateway_info = %info,
         );
@@ -893,12 +893,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<ConfigurationRequest>,
     ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
-		let metadata = request.metadata();
+        let metadata = request.metadata();
         let network_id = Self::get_network_id(metadata)?;
         let hostname = Self::get_gateway_hostname(metadata)?;
         let (version, info) = parse_metadata(metadata).unwrap();
         let span = tracing::info_span!(
-			"gateway_config",
+            "gateway_config",
             gateway_version = %version,
             gateway_info = %info,
         );
@@ -973,12 +973,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-		let metadata = request.metadata();
+        let metadata = request.metadata();
         let gateway_network_id = Self::get_network_id(metadata)?;
         let hostname = Self::get_gateway_hostname(metadata)?;
         let (version, info) = parse_metadata(metadata).unwrap();
         let span = tracing::info_span!(
-			"gateway_updates",
+            "gateway_updates",
             gateway_version = %version,
             gateway_info = %info,
         );
