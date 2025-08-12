@@ -100,18 +100,21 @@ where
             }
         }
 
-        // Format version prefix based on log level and available information
+
+        // Build version suffix
+        let mut version_suffix = String::new();
         let is_versioned_span =
             core_version.is_some() || proxy_version.is_some() || gateway_version.is_some();
         let is_error = *event.metadata().level() == Level::ERROR;
+        
         if is_versioned_span || is_error {
             // Own version
-            let mut own_version_str = format!("[{}", self.own_version);
+            let mut own_version_str = format!(" [{}",  self.own_version);
             if is_error {
                 own_version_str = format!("{own_version_str} {}", self.own_info);
             }
             own_version_str = format!("{own_version_str}]");
-            write!(writer, "{own_version_str}")?;
+            version_suffix.push_str(&own_version_str);
         }
 
         // Core version
@@ -123,7 +126,7 @@ where
                 }
             }
             core_version_str = format!("{core_version_str}]");
-            write!(writer, "{core_version_str}")?;
+            version_suffix.push_str(&core_version_str);
         }
 
         // Proxy version
@@ -135,7 +138,7 @@ where
                 }
             }
             proxy_version_str = format!("{proxy_version_str}]");
-            write!(writer, "{proxy_version_str}")?;
+            version_suffix.push_str(&proxy_version_str);
         }
 
         // Gateway version
@@ -147,10 +150,21 @@ where
                 }
             }
             gateway_version_str = format!("{gateway_version_str}]");
-            write!(writer, "{gateway_version_str}")?;
+            version_suffix.push_str(&gateway_version_str);
         }
 
-        self.inner.format_event(ctx, writer, event)
+        // Format the regular event to a string first
+        let mut buffer = String::new();
+        let temp_writer = Writer::new(&mut buffer);
+        self.inner.format_event(ctx, temp_writer, event)?;
+        
+        // Remove trailing newline if present
+        if buffer.ends_with('\n') {
+            buffer.pop();
+        }
+        
+        // Write the complete line with version suffix
+        write!(writer, "{}{}\n", buffer, version_suffix)
     }
 }
 
