@@ -1071,7 +1071,6 @@ dependencies = [
  "secrecy",
  "tokio",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
