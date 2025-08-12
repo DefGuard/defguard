@@ -35,7 +35,10 @@ use crate::{
             },
         },
     },
-    enterprise::{handlers::CanManageDevices, limits::update_counts},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, handlers::CanManageDevices,
+        is_enterprise_enabled, limits::update_counts,
+    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
@@ -88,6 +91,36 @@ impl WireguardNetworkData {
             .as_ref()
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
+
+    pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<(), WebError> {
+        // if external MFA was chosen verify if enterprise features are enabled
+        // and external OpenID provider is configured
+        if self.location_mfa_mode == LocationMfaMode::External {
+            if !is_enterprise_enabled() {
+                error!(
+                    "Unable to create location with external MFA. External OpenID provider is not configured"
+                );
+
+                return Err(WebError::Forbidden(
+                    "Cannot enable external MFA. Enterprise features are disabled".into(),
+                ));
+            }
+
+            if OpenIdProvider::get_current(executor).await?.is_none() {
+                error!(
+                    "Unable to create location with external MFA. External OpenID provider is not configured"
+                );
+                return Err(WebError::BadRequest(
+                    "Cannot enable external MFA. External OpenID provider is not configured".into(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 // Used in process of importing network from WireGuard config
@@ -137,6 +170,9 @@ pub(crate) async fn create_network(
         "User {} creating WireGuard network {network_name}",
         session.user.username
     );
+
+    data.validate_location_mfa_mode(&appstate.pool).await?;
+
     let allowed_ips = data.parse_allowed_ips();
     let network = WireguardNetwork::new(
         data.name,
@@ -219,6 +255,8 @@ pub(crate) async fn modify_network(
         "User {} updating WireGuard network {network_id}",
         session.user.username
     );
+    data.validate_location_mfa_mode(&appstate.pool).await?;
+
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();

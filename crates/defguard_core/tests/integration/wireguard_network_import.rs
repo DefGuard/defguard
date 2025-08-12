@@ -62,7 +62,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         LocationMfaMode::Disabled,
-    )
+    );
     initial_network.save(&pool).await.unwrap();
 
     // add existing devices
