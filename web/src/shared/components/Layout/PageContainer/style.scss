@@ -1,27 +1,13 @@
 @use '@scssutils' as *;
 
 .page-container {
+  min-height: inherit;
+
   @include media-breakpoint-down(lg) {
     height: 100%;
     max-height: inherit;
     box-sizing: border-box;
     position: relative;
-
-    & > .page-content {
-      overflow-y: auto;
-      box-sizing: border-box;
-      margin-top: 6rem;
-      height: calc(100% - 6rem);
-      max-height: 100%;
-
-      // hide scroll
-      &::-webkit-scrollbar {
-        display: none;
-      }
-
-      -ms-overflow-style: none;
-      scrollbar-width: none; /* Firefox */
-    }
   }
 
   @include media-breakpoint-up(lg) {
@@ -33,14 +19,20 @@
     & > .page-content {
       width: calc(100% - 87px);
       margin-left: 87px;
-      height: inherit;
-      max-height: inherit;
-      position: relative;
 
       &.nav-open {
         margin-left: 230px;
         width: calc(100% - 230px);
       }
     }
+  }
+}
+
+.page-container > .page-content.default-padding {
+  box-sizing: border-box;
+  padding: var(--spacing-m) var(--spacing-s) var(--spacing-m);
+
+  @include media-breakpoint-up(lg) {
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-m);
   }
 }
