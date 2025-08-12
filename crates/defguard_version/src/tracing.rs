@@ -1,7 +1,8 @@
+use std::io::{self, Write as IoWrite};
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
     Layer,
-    fmt::{FormatEvent, FormatFields, format::Writer},
+    fmt::{FormatEvent, FormatFields, format::Writer, MakeWriter},
     layer::{Context, SubscriberExt},
     util::SubscriberInitExt,
     field::RecordFields,
@@ -153,18 +154,34 @@ where
             version_suffix.push_str(&gateway_version_str);
         }
 
-        // Format the regular event to a string first
-        let mut buffer = String::new();
-        let temp_writer = Writer::new(&mut buffer);
-        self.inner.format_event(ctx, temp_writer, event)?;
-        
-        // Remove trailing newline if present
-        if buffer.ends_with('\n') {
-            buffer.pop();
+        // Create a wrapper writer that will append version info before newlines
+        let mut wrapper = VersionSuffixWriter::new(writer, version_suffix);
+        self.inner.format_event(ctx, Writer::new(&mut wrapper), event)
+    }
+}
+
+/// A wrapper writer that appends version suffix before newlines
+struct VersionSuffixWriter<'a> {
+    inner: Writer<'a>,
+    version_suffix: String,
+}
+
+impl<'a> VersionSuffixWriter<'a> {
+    fn new(inner: Writer<'a>, version_suffix: String) -> Self {
+        Self { inner, version_suffix }
+    }
+}
+
+impl<'a> std::fmt::Write for VersionSuffixWriter<'a> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        if s.ends_with('\n') {
+            // Remove the newline, add version suffix, then add newline back
+            let content = &s[..s.len() - 1];
+            write!(self.inner, "{}{}\n", content, self.version_suffix)
+        } else {
+            // No newline at end, just pass through
+            write!(self.inner, "{}", s)
         }
-        
-        // Write the complete line with version suffix
-        write!(writer, "{}{}\n", buffer, version_suffix)
     }
 }
 
@@ -292,8 +309,10 @@ pub fn init(own_version: &str, log_level: &str) {
         .with(VersionFieldLayer) // Add our custom layer to capture span fields
         .with(
             tracing_subscriber::fmt::layer()
+                .with_ansi(true) // Enable ANSI colors at layer level
                 .event_format(VersionPrefixFormat {
-                    inner: tracing_subscriber::fmt::format::Format::default(),
+                    inner: tracing_subscriber::fmt::format::Format::default()
+                        .with_ansi(true), // Enable ANSI colors at format level
                     own_version: own_version.to_string(),
                     own_info: SystemInfo::get(),
                 })
