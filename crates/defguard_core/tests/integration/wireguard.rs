@@ -5,10 +5,16 @@ use defguard_core::{
         Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
+            settings::OpenidUsernameHandling,
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             },
         },
+    },
+    enterprise::{
+        db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
+        handlers::openid_providers::AddProviderData,
+        license::{get_cached_license, set_cached_license},
     },
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
@@ -18,7 +24,9 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{make_network, make_test_client, setup_pool};
+use crate::common::{
+    authenticate_admin, exceed_enterprise_limits, make_network, make_test_client, setup_pool,
+};
 
 #[sqlx::test]
 async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
@@ -114,6 +122,183 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
+}
+
+#[sqlx::test]
+async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&client).await;
+
+    exceed_enterprise_limits(&client).await;
+
+    // unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    let location_data = WireguardNetworkData {
+        name: "test_location".into(),
+        address: "10.1.1.0/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
+        dns: None,
+        allowed_groups: vec!["admin".into()],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::External,
+    };
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // restore valid license and try again
+    set_cached_license(license);
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // add external OpenID provider
+    let provider_data = AddProviderData {
+        name: "test".to_string(),
+        base_url: "https://accounts.google.com".to_string(),
+        client_id: "client_id".to_string(),
+        client_secret: "client_secret".to_string(),
+        display_name: Some("display_name".to_string()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: None,
+        directory_sync_group_match: None,
+        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+    };
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // try again
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&client).await;
+
+    let mut location_data = WireguardNetworkData {
+        name: "test_location".into(),
+        address: "10.1.1.0/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
+        dns: None,
+        allowed_groups: vec!["admin".into()],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::Disabled,
+    };
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    exceed_enterprise_limits(&client).await;
+
+    // unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    // attempt to modify location
+    location_data.location_mfa_mode = LocationMfaMode::External;
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // restore valid license and try again
+    set_cached_license(license);
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // add external OpenID provider
+    let provider_data = AddProviderData {
+        name: "test".to_string(),
+        base_url: "https://accounts.google.com".to_string(),
+        client_id: "client_id".to_string(),
+        client_secret: "client_secret".to_string(),
+        display_name: Some("display_name".to_string()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: None,
+        directory_sync_group_match: None,
+        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+    };
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // try again
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[sqlx::test]

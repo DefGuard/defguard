@@ -360,6 +360,7 @@ export interface AppInfo {
   smtp_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
+  external_openid_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
