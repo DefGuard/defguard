@@ -1,8 +1,7 @@
-use std::io::{self, Write as IoWrite};
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
     Layer,
-    fmt::{FormatEvent, FormatFields, format::Writer, MakeWriter},
+    fmt::{FormatEvent, FormatFields, format::Writer},
     layer::{Context, SubscriberExt},
     util::SubscriberInitExt,
     field::RecordFields,
@@ -59,7 +58,7 @@ where
     fn format_event(
         &self,
         ctx: &tracing_subscriber::fmt::FmtContext<'_, S, N>,
-        mut writer: Writer<'_>,
+        writer: Writer<'_>,
         event: &tracing::Event<'_>,
     ) -> std::fmt::Result {
         // Extract version information from current span context
@@ -107,7 +106,7 @@ where
         let is_versioned_span =
             core_version.is_some() || proxy_version.is_some() || gateway_version.is_some();
         let is_error = *event.metadata().level() == Level::ERROR;
-        
+
         if is_versioned_span || is_error {
             // Own version
             let mut own_version_str = format!(" [{}",  self.own_version);
@@ -174,13 +173,12 @@ impl<'a> VersionSuffixWriter<'a> {
 
 impl<'a> std::fmt::Write for VersionSuffixWriter<'a> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        if s.ends_with('\n') {
+        if let Some(content) = s.strip_suffix('\n') {
             // Remove the newline, add version suffix, then add newline back
-            let content = &s[..s.len() - 1];
-            write!(self.inner, "{}{}\n", content, self.version_suffix)
+            writeln!(self.inner, "{}{}", content, self.version_suffix)
         } else {
             // No newline at end, just pass through
-            write!(self.inner, "{}", s)
+            write!(self.inner, "{s}")
         }
     }
 }
