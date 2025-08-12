@@ -206,7 +206,17 @@ export const NetworkEditForm = () => {
         address = data.address.join(',');
       }
 
-      return { ...defaultValues, ...omited, allowed_ips, address };
+      // we changed the default and this field is conditionally disabled
+      const peer_disconnect_threshold =
+        data.peer_disconnect_threshold < 120 ? 120 : data.peer_disconnect_threshold;
+
+      return {
+        ...defaultValues,
+        ...omited,
+        allowed_ips,
+        address,
+        peer_disconnect_threshold,
+      };
     },
     [defaultValues],
   );

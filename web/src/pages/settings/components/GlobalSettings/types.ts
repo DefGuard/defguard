@@ -8,7 +8,7 @@ export const globalSettingsSchema = (LL: TranslationFunctions) =>
     instance_name: z
       .string()
       .min(3, LL.form.error.minimumLength())
-      .max(12, LL.form.error.maximumLength()),
+      .max(64, LL.form.error.maximumLength()),
     openid_enabled: z.boolean(),
     wireguard_enabled: z.boolean(),
     worker_enabled: z.boolean(),
