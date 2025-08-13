@@ -14,11 +14,9 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 pub fn version_interceptor(
     version: &str,
 ) -> impl Fn(Request<()>) -> Result<Request<()>, Status> + Clone {
-    let component_info = ComponentInfo::new(version);
-    if let Err(ref err) = component_info {
-        warn!("Failed to get component info: {err}");
-    };
-    let component_info = component_info.ok();
+    let component_info = ComponentInfo::new(version)
+        .inspect_err(|err| warn!("Failed to get component info: {err}"))
+        .ok();
 
     move |mut request: Request<()>| -> Result<Request<()>, Status> {
         let Some(component_info) = &component_info else {
@@ -28,20 +26,16 @@ pub fn version_interceptor(
         let metadata = request.metadata_mut();
 
         // Add version header
-        let version_value = component_info
-            .version
-            .to_string()
-            .parse()
-            .map_err(|_| Status::internal("Failed to parse version as metadata value"))?;
-        metadata.insert(VERSION_HEADER, version_value);
+        match component_info.version.to_string().parse() {
+            Ok(version_value) => { metadata.insert(VERSION_HEADER, version_value); }
+            Err(err) => warn!("Failed to parse version: {err}"),
+        }
 
         // Add system info header
-        let system_info_value = component_info
-            .system
-            .as_header_value()
-            .parse()
-            .map_err(|_| Status::internal("Failed to parse system info as metadata value"))?;
-        metadata.insert(SYSTEM_INFO_HEADER, system_info_value);
+        match component_info.system.as_header_value().parse() {
+            Ok(system_info_value) => { metadata.insert(SYSTEM_INFO_HEADER, system_info_value); }
+            Err(err) => warn!("Failed to parse system info: {err}"),
+        }
 
         Ok(request)
     }
