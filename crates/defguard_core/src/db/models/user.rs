@@ -81,6 +81,7 @@ impl fmt::Display for MfaMethod {
                 MfaMethod::Email => "Email",
                 MfaMethod::Oidc => "OIDC",
                 MfaMethod::Biometric => "Biometric",
+                MfaMethod::MobileApprove => "MobileApprove",
             }
         )
     }

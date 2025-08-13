@@ -201,6 +201,15 @@ impl ClientMfaServer {
                     ));
                 }
             }
+            // just check if the account has any devices with biometric auth present
+            MfaMethod::MobileApprove => {
+                let result = BiometricAuth::find_by_user_id(&self.pool, user.id)
+                    .await
+                    .map_err(|_| Status::internal("unexpected error"))?;
+                if result.is_empty() {
+                    return Err(Status::invalid_argument("No devices available"));
+                }
+            }
             MfaMethod::Totp => {
                 if !user.totp_enabled {
                     error!("TOTP not enabled for user {}", user.username);
@@ -272,6 +281,8 @@ impl ClientMfaServer {
                     return Err(Status::internal("unexpected error"));
                 }
             },
+            // this cannot fail
+            MfaMethod::MobileApprove => Some(BiometricChallenge::new(None).unwrap()),
             _ => None,
         };
 
@@ -371,13 +382,48 @@ impl ClientMfaServer {
 
         // validate code
         match method {
+            MfaMethod::MobileApprove => {
+                if let Some(challenge) = biometric_challenge {
+                    if let Some(signature) = request.code {
+                        match challenge.verify(signature.as_str()) {
+                            Ok(()) => {
+                                debug!("Signature verified successfully.");
+                            }
+                            Err(err) => {
+                                error!(
+                                    "Verification of challenge for device {0} failed ! Reason {err}",
+                                    &device.name
+                                );
+                                self.emit_event(BidiStreamEvent {
+                                    context,
+                                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                        DesktopClientMfaEvent::Failed {
+                                            location: location.clone(),
+                                            device: device.clone(),
+                                            method: *method,
+                                            message: "Signed challenge rejected".to_string(),
+                                        },
+                                    )),
+                                })?;
+                                return Err(Status::unauthenticated("unauthorized"));
+                            }
+                        }
+                    } else {
+                        error!("Signed challenge not found in request");
+                        return Err(Status::invalid_argument("Signature not found in request"));
+                    }
+                } else {
+                    error!("Challenge not found in MFA session !");
+                    return Err(Status::invalid_argument("Challenge not found in session"));
+                }
+            }
             MfaMethod::Biometric => {
                 if let Some(challenge) = biometric_challenge {
                     if let Some(signed_challenge) = request.code {
                         match challenge.verify(signed_challenge.as_str()) {
                             // verification passed
                             Ok(()) => {
-                                debug!("Signed challenge verified successfully.");
+                                debug!("Signature verified successfully.");
                             }
                             // challenge rejected
                             Err(e) => {
@@ -571,6 +617,14 @@ impl ClientMfaServer {
             )),
         })?;
 
+        let response = ClientMfaFinishResponse {
+            preshared_key: key.public,
+            token: match method {
+                MfaMethod::MobileApprove => Some(request.token.clone()),
+                _ => None,
+            },
+        };
+
         // remove login session from map
         self.sessions.remove(&pubkey);
 
@@ -580,8 +634,6 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        Ok(ClientMfaFinishResponse {
-            preshared_key: key.public,
-        })
+        Ok(response)
     }
 }
