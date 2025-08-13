@@ -1,12 +1,10 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    SystemInfo, parse_metadata,
-    client::version_interceptor,
+    client::version_interceptor, parse_metadata,
     server::DefguardVersionServerMiddleware,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
-use semver::Version;
 use serde::Serialize;
 #[cfg(feature = "worker")]
 use sqlx::PgPool;
@@ -490,13 +488,13 @@ struct ProxyMessageLoopContext<'a> {
     name = "proxy_message_loop",
     skip_all,
     fields(
-        proxy_version = %proxy_version,
-        proxy_info = %proxy_info,
+        proxy_version = proxy_version,
+        proxy_info = proxy_info,
     )
 )]
 async fn handle_proxy_message_loop(
-    proxy_version: &Version,
-    proxy_info: &SystemInfo,
+    proxy_version: &str,
+    proxy_info: &str,
     context: ProxyMessageLoopContext<'_>,
 ) -> Result<(), anyhow::Error> {
     'message: loop {
@@ -895,7 +893,10 @@ pub async fn run_grpc_bidi_stream(
             sleep(TEN_SECS).await;
             continue;
         };
-        let (version, info) = parse_metadata(response.metadata()).unwrap();
+        let (version, info) = parse_metadata(response.metadata()).map_or(
+            ("unknown".to_string(), "unknown".to_string()),
+            |(version, info)| (version.to_string(), info.to_string()),
+        );
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
