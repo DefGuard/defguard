@@ -11,12 +11,12 @@ use crate::SystemInfo;
 
 /// Custom tracing formatter that conditionally includes version information in log messages.
 ///
-/// This formatter wraps the default tracing formatter and adds version prefixes to log messages:
-/// - For ERROR level logs: includes core_version, proxy_version, and proxy_info (if available)
-/// - For other levels: includes only core_version and proxy_version (if available)
+/// This formatter wraps the default tracing formatter and adds version suffix to log messages:
+/// - For ERROR level logs: includes own_version, own_info and components version and info
+/// - For other levels: includes only own_version and proxy_version (if available)
 ///
 /// The version information is extracted from tracing span fields.
-struct VersionPrefixFormat {
+struct VersionSuffixFormat {
     /// The underlying tracing formatter
     inner: tracing_subscriber::fmt::format::Format,
     /// The core application version to display as fallback
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<S, N> FormatEvent<S, N> for VersionPrefixFormat
+impl<S, N> FormatEvent<S, N> for VersionSuffixFormat
 where
     S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
@@ -307,10 +307,10 @@ pub fn init(own_version: &str, log_level: &str) {
         .with(VersionFieldLayer) // Add our custom layer to capture span fields
         .with(
             tracing_subscriber::fmt::layer()
-                .with_ansi(true) // Enable ANSI colors at layer level
-                .event_format(VersionPrefixFormat {
+                .with_ansi(true)
+                .event_format(VersionSuffixFormat {
                     inner: tracing_subscriber::fmt::format::Format::default()
-                        .with_ansi(true), // Enable ANSI colors at format level
+                        .with_ansi(true),
                     own_version: own_version.to_string(),
                     own_info: SystemInfo::get(),
                 })
