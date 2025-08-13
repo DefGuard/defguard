@@ -8,8 +8,8 @@ pub mod client;
 pub mod server;
 pub mod tracing;
 
-static VERSION_HEADER: &str = "dfg-version";
-static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
+pub static VERSION_HEADER: &str = "dfg-version";
+pub static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
@@ -43,7 +43,7 @@ impl Display for SystemInfo {
 }
 
 impl SystemInfo {
-    fn get() -> Self {
+    pub fn get() -> Self {
         os_info::get().into()
     }
 

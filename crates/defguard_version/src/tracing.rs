@@ -16,16 +16,16 @@ use crate::SystemInfo;
 /// - For other levels: includes only own_version and proxy_version (if available)
 ///
 /// The version information is extracted from tracing span fields.
-struct VersionSuffixFormat {
+pub struct VersionSuffixFormat {
     /// The underlying tracing formatter
-    inner: tracing_subscriber::fmt::format::Format,
+    pub inner: tracing_subscriber::fmt::format::Format,
     /// The core application version to display as fallback
-    own_version: String,
-    own_info: SystemInfo,
+    pub own_version: String,
+    pub own_info: SystemInfo,
 }
 
 /// A layer that captures version fields from spans and stores them for use by the formatter
-struct VersionFieldLayer;
+pub struct VersionFieldLayer;
 
 impl<S> Layer<S> for VersionFieldLayer
 where
@@ -160,13 +160,13 @@ where
 }
 
 /// A wrapper writer that appends version suffix before newlines
-struct VersionSuffixWriter<'a> {
+pub struct VersionSuffixWriter<'a> {
     inner: Writer<'a>,
     version_suffix: String,
 }
 
 impl<'a> VersionSuffixWriter<'a> {
-    fn new(inner: Writer<'a>, version_suffix: String) -> Self {
+    pub fn new(inner: Writer<'a>, version_suffix: String) -> Self {
         Self { inner, version_suffix }
     }
 }
@@ -185,13 +185,13 @@ impl<'a> std::fmt::Write for VersionSuffixWriter<'a> {
 
 /// A visitor that extracts version fields from spans
 #[derive(Default, Clone)]
-struct SpanFieldVisitor {
-    core_version: Option<String>,
-    core_info: Option<String>,
-    proxy_version: Option<String>,
-    proxy_info: Option<String>,
-    gateway_version: Option<String>,
-    gateway_info: Option<String>,
+pub struct SpanFieldVisitor {
+    pub core_version: Option<String>,
+    pub core_info: Option<String>,
+    pub proxy_version: Option<String>,
+    pub proxy_info: Option<String>,
+    pub gateway_version: Option<String>,
+    pub gateway_info: Option<String>,
 }
 
 impl tracing::field::Visit for SpanFieldVisitor {
@@ -221,7 +221,7 @@ impl tracing::field::Visit for SpanFieldVisitor {
 }
 
 /// Custom field formatter that filters out version fields to prevent duplication
-struct VersionFilteredFields;
+pub struct VersionFilteredFields;
 
 impl<'writer> FormatFields<'writer> for VersionFilteredFields {
     fn format_fields<R: RecordFields>(
@@ -236,13 +236,13 @@ impl<'writer> FormatFields<'writer> for VersionFilteredFields {
 }
 
 /// Field visitor that skips version-related fields
-struct FieldFilterVisitor<'writer> {
+pub struct FieldFilterVisitor<'writer> {
     writer: Writer<'writer>,
     first: bool,
 }
 
 impl<'writer> FieldFilterVisitor<'writer> {
-    fn new(writer: Writer<'writer>) -> Self {
+    pub fn new(writer: Writer<'writer>) -> Self {
         Self { writer, first: true }
     }
 }
@@ -304,7 +304,7 @@ pub fn init(own_version: &str, log_level: &str) {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
         )
-        .with(VersionFieldLayer) // Add our custom layer to capture span fields
+        .with(VersionFieldLayer) // Add custom layer to capture span fields
         .with(
             tracing_subscriber::fmt::layer()
                 .with_ansi(true)
