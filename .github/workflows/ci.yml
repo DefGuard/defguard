@@ -20,10 +20,9 @@ on:
 
 jobs:
   test:
-    # runs-on: [self-hosted, Linux, X64]
-    # 
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+
     container: rust:1
 
     services:
