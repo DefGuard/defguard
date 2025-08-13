@@ -1,6 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    SystemInfo, client::DefguardVersionClientLayer, parse_metadata,
+    SystemInfo, parse_metadata,
+    client::version_interceptor,
     server::DefguardVersionServerMiddleware,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
@@ -34,7 +35,6 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
 use tonic_middleware::MiddlewareFor;
-use tower::ServiceBuilder;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -884,11 +884,8 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let version_layer = DefguardVersionClientLayer::new(VERSION)?;
-        let channel = ServiceBuilder::new()
-            .layer(version_layer)
-            .service(endpoint.connect_lazy());
-        let mut client = ProxyClient::new(channel);
+        let interceptor = version_interceptor(VERSION);
+        let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
             error!(
