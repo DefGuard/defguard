@@ -1,7 +1,7 @@
 FROM node:24-alpine AS web
 
 WORKDIR /app
-COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
@@ -45,8 +45,8 @@ RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 # run
 FROM debian:bookworm-slim
 RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
-  rm -rf /var/lib/apt/lists/*
+    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 ENTRYPOINT ["./defguard"]
