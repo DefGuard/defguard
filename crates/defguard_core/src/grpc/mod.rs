@@ -1,6 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::version_interceptor, server::DefguardVersionServerMiddleware, version_info_from_metadata,
+    client::version_interceptor, server::DefguardVersionServerMiddleware,
+    version_info_from_metadata,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;

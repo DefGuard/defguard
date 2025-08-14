@@ -27,13 +27,17 @@ pub fn version_interceptor(
 
         // Add version header
         match component_info.version.to_string().parse() {
-            Ok(version_value) => { metadata.insert(VERSION_HEADER, version_value); }
+            Ok(version_value) => {
+                metadata.insert(VERSION_HEADER, version_value);
+            }
             Err(err) => warn!("Failed to parse version: {err}"),
         }
 
         // Add system info header
         match component_info.system.as_header_value().parse() {
-            Ok(system_info_value) => { metadata.insert(SYSTEM_INFO_HEADER, system_info_value); }
+            Ok(system_info_value) => {
+                metadata.insert(SYSTEM_INFO_HEADER, system_info_value);
+            }
             Err(err) => warn!("Failed to parse system info: {err}"),
         }
 

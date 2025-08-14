@@ -1,11 +1,11 @@
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
     Layer,
-    fmt::{FormatEvent, FormatFields, format::Writer, FmtContext},
-    layer::{Context, SubscriberExt},
-    util::SubscriberInitExt,
     field::RecordFields,
+    fmt::{FmtContext, FormatEvent, FormatFields, format::Writer},
+    layer::{Context, SubscriberExt},
     registry::LookupSpan,
+    util::SubscriberInitExt,
 };
 
 use crate::SystemInfo;
@@ -24,23 +24,23 @@ pub struct ExtractedVersionInfo {
 impl ExtractedVersionInfo {
     /// Check if any version information is present
     pub fn has_version_info(&self) -> bool {
-        self.core_version.is_some() || self.proxy_version.is_some() || self.gateway_version.is_some()
+        self.core_version.is_some()
+            || self.proxy_version.is_some()
+            || self.gateway_version.is_some()
     }
 }
 
 /// Extract version information from current span context
-/// 
-/// This function walks up the span hierarchy and extracts version information 
+///
+/// This function walks up the span hierarchy and extracts version information
 /// from span extensions that were stored by VersionFieldLayer.
-/// 
+///
 /// # Arguments
 /// * `ctx` - The format context from the tracing formatter
-/// 
+///
 /// # Returns
 /// An `ExtractedVersionInfo` struct containing all version information found in the span hierarchy
-pub fn extract_version_info_from_context<S, N>(
-    ctx: &FmtContext<'_, S, N>,
-) -> ExtractedVersionInfo
+pub fn extract_version_info_from_context<S, N>(ctx: &FmtContext<'_, S, N>) -> ExtractedVersionInfo
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
@@ -75,13 +75,13 @@ where
 }
 
 /// Build a version suffix string based on extracted version info
-/// 
+///
 /// # Arguments
 /// * `extracted` - The extracted version information
 /// * `own_version` - The application's own version
 /// * `own_info` - The application's own system info
 /// * `is_error` - Whether this is for an ERROR level log
-/// 
+///
 /// # Returns
 /// A formatted string containing version information suitable for appending to log lines
 pub fn build_version_suffix(
@@ -196,14 +196,16 @@ where
     ) -> std::fmt::Result {
         // Extract version information from current span context using utility function
         let extracted = extract_version_info_from_context(ctx);
-        
+
         // Build version suffix using utility function
         let is_error = *event.metadata().level() == Level::ERROR;
-        let version_suffix = build_version_suffix(&extracted, &self.own_version, &self.own_info, is_error);
+        let version_suffix =
+            build_version_suffix(&extracted, &self.own_version, &self.own_info, is_error);
 
         // Create a wrapper writer that will append version info before newlines
         let mut wrapper = VersionSuffixWriter::new(writer, version_suffix);
-        self.inner.format_event(ctx, Writer::new(&mut wrapper), event)
+        self.inner
+            .format_event(ctx, Writer::new(&mut wrapper), event)
     }
 }
 
@@ -215,7 +217,10 @@ pub struct VersionSuffixWriter<'a> {
 
 impl<'a> VersionSuffixWriter<'a> {
     pub fn new(inner: Writer<'a>, version_suffix: String) -> Self {
-        Self { inner, version_suffix }
+        Self {
+            inner,
+            version_suffix,
+        }
     }
 }
 
@@ -291,14 +296,18 @@ pub struct FieldFilterVisitor<'writer> {
 
 impl<'writer> FieldFilterVisitor<'writer> {
     pub fn new(writer: Writer<'writer>) -> Self {
-        Self { writer, first: true }
+        Self {
+            writer,
+            first: true,
+        }
     }
 }
 
 impl<'writer> tracing::field::Visit for FieldFilterVisitor<'writer> {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
-            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version" | "gateway_info" => {
+            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version"
+            | "gateway_info" => {
                 // Skip version fields to prevent duplication
             }
             _ => {
@@ -313,7 +322,8 @@ impl<'writer> tracing::field::Visit for FieldFilterVisitor<'writer> {
 
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
         match field.name() {
-            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version" | "gateway_info" => {
+            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version"
+            | "gateway_info" => {
                 // Skip version fields to prevent duplication
             }
             _ => {
@@ -357,8 +367,7 @@ pub fn init(own_version: &str, log_level: &str) {
             tracing_subscriber::fmt::layer()
                 .with_ansi(true)
                 .event_format(VersionSuffixFormat {
-                    inner: tracing_subscriber::fmt::format::Format::default()
-                        .with_ansi(true),
+                    inner: tracing_subscriber::fmt::format::Format::default().with_ansi(true),
                     own_version: own_version.to_string(),
                     own_info: SystemInfo::get(),
                 })
