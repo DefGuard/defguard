@@ -9,24 +9,13 @@
 //!
 //! The event router acts as a central hub for all application events:
 //!
-//! 1. Components (web API, gRPC server etc.) send events to the router via the `event_tx` MPSC channel
+//! 1. Components (web API, gRPC server etc.) send events to the router via the `event_tx`
+//!    MPSC channel.
 //! 2. The router processes these events and forwards them to the appropriate services:
 //!    - Activity log events go to the event logger service
 //!    - WireGuard events go to the gateway service
 //!    - Mail events go to the mail service
 //!    - etc.
-//!
-//! # Usage
-//!
-//! To use the event router, components should send `MainEvent` instances to the
-//! event channel. The router will handle routing these events to the appropriate
-//! services based on their type.
-//!
-//! ```
-//! // Example:
-//! let event = MainEvent::UserLogin { context: user_context };
-//! event_tx.send(event).await.unwrap();
-//! ```
 
 use std::sync::Arc;
 
