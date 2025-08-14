@@ -294,6 +294,7 @@ impl GatewayMap {
     ///
     /// # Returns
     /// Returns `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
+    #[must_use]
     pub fn into_flattened(self) -> HashMap<Id, Vec<GatewayState>> {
         self.0
             .into_iter()

@@ -726,7 +726,7 @@ pub async fn modify_user(
                 group_diff
                     .added
                     .iter()
-                    .map(|g| g.as_str())
+                    .map(String::as_str)
                     .collect::<HashSet<&str>>(),
                 &appstate.pool,
             )
@@ -739,7 +739,7 @@ pub async fn modify_user(
                 group_diff
                     .removed
                     .iter()
-                    .map(|g| g.as_str())
+                    .map(String::as_str)
                     .collect::<HashSet<&str>>(),
                 &appstate.pool,
             )
