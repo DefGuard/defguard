@@ -1,8 +1,3 @@
-use std::{
-    fs::read_to_string,
-    sync::{Arc, Mutex},
-};
-
 use bytes::Bytes;
 use defguard_core::{
     SERVER_CONFIG, VERSION,
@@ -29,8 +24,11 @@ use defguard_core::{
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use secrecy::ExposeSecret;
+use std::{
+    fs::read_to_string,
+    sync::{Arc, Mutex},
+};
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -42,14 +40,9 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let config = DefGuardConfig::new();
     SERVER_CONFIG.set(config.clone())?;
-    // initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+
+    // initialize tracing with version formatter
+    defguard_version::tracing::init(VERSION, &config.log_level);
 
     info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");
