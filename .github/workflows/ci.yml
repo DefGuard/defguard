@@ -20,7 +20,6 @@ on:
 
 jobs:
   test:
-
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
 
