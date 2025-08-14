@@ -12,10 +12,6 @@
     width: 100%;
   }
 
-  @include media-breakpoint-up(lg) {
-    padding: 0 40px;
-  }
-
   .expanded-content {
     p,
     span,
@@ -27,6 +23,14 @@
     }
   }
 
+  .qr {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-m) 0;
+  }
+
   & > .controls {
     display: none;
 
@@ -36,7 +40,6 @@
 
     @include media-breakpoint-up(lg) {
       display: block;
-      margin-top: 40px;
     }
   }
 }

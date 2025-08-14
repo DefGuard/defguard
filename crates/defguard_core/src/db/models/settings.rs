@@ -326,6 +326,7 @@ impl Settings {
             && self.smtp_sender != Some(String::new())
     }
 
+    #[must_use]
     pub fn ldap_using_username_as_rdn(&self) -> bool {
         self.ldap_user_rdn_attr
             .as_deref()

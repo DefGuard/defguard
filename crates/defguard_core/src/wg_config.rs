@@ -112,7 +112,7 @@ pub(crate) fn parse_wireguard_config(
         false,
         false,
         LocationMfaMode::Disabled,
-    )?;
+    );
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 

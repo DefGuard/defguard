@@ -1,7 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
-import { motion, type TargetAndTransition } from 'framer-motion';
+import { motion, type TargetAndTransition } from 'motion/react';
 import { useMemo, useState } from 'react';
 
 import { ColorsRGB } from '../../../../../shared/constants';

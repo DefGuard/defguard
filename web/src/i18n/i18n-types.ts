@@ -4775,6 +4775,10 @@ type RootTranslation = {
 				 */
 				address: string
 				/**
+				 * P​u​b​l​i​c​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e​ ​t​o​ ​w​h​i​c​h​ ​t​h​e​ ​r​e​m​o​t​e​ ​p​e​e​r​s​/​u​s​e​r​s​ ​w​i​l​l​ ​c​o​n​n​e​c​t​ ​t​o​.​ ​T​h​i​s​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​i​n​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​c​l​i​e​n​t​s​,​ ​b​u​t​ ​D​e​f​g​u​a​r​d​ ​G​a​t​e​w​a​y​s​ ​d​o​ ​n​o​t​ ​b​i​n​d​ ​t​o​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.
+				 */
+				endpoint: string
+				/**
 				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
 				gateway: string
@@ -4852,7 +4856,7 @@ type RootTranslation = {
 				}
 				endpoint: {
 					/**
-					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
+					 * G​a​t​e​w​a​y​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e
 					 */
 					label: string
 				}
@@ -11370,6 +11374,10 @@ export type TranslationFunctions = {
 				 */
 				address: () => LocalizedString
 				/**
+				 * Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.
+				 */
+				endpoint: () => LocalizedString
+				/**
 				 * Gateway public address, used by VPN users to connect
 				 */
 				gateway: () => LocalizedString
@@ -11447,7 +11455,7 @@ export type TranslationFunctions = {
 				}
 				endpoint: {
 					/**
-					 * Gateway address
+					 * Gateway IP address or domain name
 					 */
 					label: () => LocalizedString
 				}

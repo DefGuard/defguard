@@ -739,8 +739,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             false,
             LocationMfaMode::Disabled,
-        )
-        .expect("Could not create network");
+        );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -838,7 +837,7 @@ pub async fn init_vpn_location(
                 false,
                 false,
                 LocationMfaMode::Disabled,
-            )?
+            )
             .save(&mut *transaction)
             .await?;
             if network.id != location_id {
@@ -862,7 +861,7 @@ pub async fn init_vpn_location(
             return Err(anyhow!(
                 "Failed to initialize first VPN location. Location already exists."
             ));
-        };
+        }
 
         // create a new network
         WireguardNetwork::new(
@@ -877,7 +876,7 @@ pub async fn init_vpn_location(
             false,
             false,
             LocationMfaMode::Disabled,
-        )?
+        )
         .save(pool)
         .await?
     };

@@ -1,18 +1,17 @@
 import './style.scss';
 
-import { isUndefined } from 'lodash-es';
-import { type ReactNode, useMemo } from 'react';
-
+import { useMemo } from 'react';
+import QRCode from 'react-qr-code';
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { ActionButton } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
-import { ActionButtonVariant } from '../../../../../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { ExpandableCard } from '../../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { CopyField } from '../../../../../../../shared/defguard-ui/components/Layout/CopyField/CopyField';
+import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { useClipboard } from '../../../../../../../shared/hooks/useClipboard';
+import { enrollmentToImportToken } from '../../../../../../addDevice/utils/enrollmentToToken';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 export const EnrollmentTokenCard = () => {
@@ -21,56 +20,34 @@ export const EnrollmentTokenCard = () => {
   const { writeToClipboard } = useClipboard();
   const closeModal = useAddUserModal((state) => state.close);
 
-  const tokenActions = useMemo(
-    (): ReactNode[] => [
-      <ActionButton
-        data-testid="copy-enrollment-token"
-        variant={ActionButtonVariant.COPY}
-        disabled={isUndefined(tokenResponse)}
-        onClick={() => {
-          if (tokenResponse) {
-            void writeToClipboard(tokenResponse.enrollment_token);
-          }
-        }}
-        key={0}
-      />,
-    ],
-    [tokenResponse, writeToClipboard],
-  );
+  const qrData = useMemo(() => {
+    if (tokenResponse) {
+      return enrollmentToImportToken(
+        tokenResponse.enrollment_url,
+        tokenResponse.enrollment_token,
+      );
+    }
+  }, [tokenResponse]);
 
-  const urlActions = useMemo(
-    (): ReactNode[] => [
-      <ActionButton
-        data-testid="copy-enrollment-url"
-        variant={ActionButtonVariant.COPY}
-        disabled={!tokenResponse}
-        onClick={() => {
-          if (tokenResponse) {
-            void writeToClipboard(tokenResponse.enrollment_url);
-          }
-        }}
-        key={0}
-      />,
-    ],
-    [tokenResponse, writeToClipboard],
-  );
+  if (!isPresent(tokenResponse)) return null;
 
   return (
     <div id="enrollment-token-step">
-      <ExpandableCard
-        title={LL.modals.startEnrollment.urlCard.title()}
-        actions={urlActions}
-        expanded
-      >
-        <p>{tokenResponse?.enrollment_url}</p>
-      </ExpandableCard>
-      <ExpandableCard
-        title={LL.modals.startEnrollment.tokenCard.title()}
-        actions={tokenActions}
-        expanded
-      >
-        <p>{tokenResponse?.enrollment_token}</p>
-      </ExpandableCard>
+      <CopyField
+        label={LL.modals.startEnrollment.urlCard.title()}
+        onCopy={writeToClipboard}
+        value={tokenResponse.enrollment_url}
+      />
+      <CopyField
+        label={LL.modals.startEnrollment.tokenCard.title()}
+        onCopy={writeToClipboard}
+        value={tokenResponse.enrollment_token}
+      />
+      {isPresent(qrData) && (
+        <div className="qr">
+          <QRCode value={qrData} />
+        </div>
+      )}
       <div className="controls">
         <Button
           type="button"

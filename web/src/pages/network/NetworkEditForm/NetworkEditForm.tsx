@@ -206,7 +206,17 @@ export const NetworkEditForm = () => {
         address = data.address.join(',');
       }
 
-      return { ...defaultValues, ...omited, allowed_ips, address };
+      // we changed the default and this field is conditionally disabled
+      const peer_disconnect_threshold =
+        data.peer_disconnect_threshold < 120 ? 120 : data.peer_disconnect_threshold;
+
+      return {
+        ...defaultValues,
+        ...omited,
+        allowed_ips,
+        address,
+        peer_disconnect_threshold,
+      };
     },
     [defaultValues],
   );
@@ -295,6 +305,9 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'endpoint' }}
           label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.endpoint()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
