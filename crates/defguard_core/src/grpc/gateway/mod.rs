@@ -8,7 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_version::parse_metadata;
+use defguard_version::version_info_from_metadata;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
@@ -724,15 +724,15 @@ impl gateway_service_server::GatewayService for GatewayServer {
     ) -> Result<Response<()>, Status> {
         let metadata = request.metadata();
         let network_id = Self::get_network_id(metadata)?;
-        let (version, info) = parse_metadata(metadata).unwrap();
+        let (version, info) = version_info_from_metadata(metadata);
         let gateway_hostname = Self::get_gateway_hostname(metadata)?;
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
         let span = tracing::info_span!(
             "gateway_stats",
-            gateway_version = %version,
-            gateway_info = %info,
+            gateway_version = version,
+            gateway_info = info,
         );
         let _guard = span.enter();
         loop {
@@ -896,11 +896,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let metadata = request.metadata();
         let network_id = Self::get_network_id(metadata)?;
         let hostname = Self::get_gateway_hostname(metadata)?;
-        let (version, info) = parse_metadata(metadata).unwrap();
+        let (version, info) = version_info_from_metadata(metadata);
         let span = tracing::info_span!(
             "gateway_config",
-            gateway_version = %version,
-            gateway_info = %info,
+            gateway_version = version,
+            gateway_info = info,
         );
         let _guard = span.enter();
 
@@ -976,11 +976,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let metadata = request.metadata();
         let gateway_network_id = Self::get_network_id(metadata)?;
         let hostname = Self::get_gateway_hostname(metadata)?;
-        let (version, info) = parse_metadata(metadata).unwrap();
+        let (version, info) = version_info_from_metadata(metadata);
         let span = tracing::info_span!(
             "gateway_updates",
-            gateway_version = %version,
-            gateway_info = %info,
+            gateway_version = version,
+            gateway_info = info,
         );
         let _guard = span.enter();
 

@@ -123,3 +123,9 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
 
     Some((version, info))
 }
+
+pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
+    parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |(version, info)| {
+        (version.to_string(), info.to_string())
+    })
+}
