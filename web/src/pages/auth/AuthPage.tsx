@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 
@@ -16,6 +16,21 @@ import { OpenIDCallback } from './Callback/Callback';
 import { Login } from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
+
+const VALID_URL_PATTERN =
+  /^(https?:\/\/[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+(?::[0-9]{1,5})?(?:\/[a-zA-Z0-9\-._~%!$&'()*+,;=:@/]*)?(?:\?[a-zA-Z0-9\-._~%!$&'()*+,;=:@/?]*)?|\/[a-zA-Z0-9\-._~%!$&'()*+,;=:@/]*(?:\?[a-zA-Z0-9\-._~%!$&'()*+,;=:@/?]*)?)$/gi;
+
+// Return redirect URL only if it matches a safe pattern:
+// - starts with http/https
+// - contains only safe characters (no <, >)
+// - can include query params
+//
+// Once a URL matches this pattern we also explicitly check for unsafe elements in case they are a part of redirect URL query params
+const sanitizeRedirectUrl = (url: string | null) => {
+  if (url?.match(VALID_URL_PATTERN) && !/javascript:|data:|\\/.test(url)) return url;
+
+  return null;
+};
 
 export const AuthPage = () => {
   const {
@@ -49,7 +64,7 @@ export const AuthPage = () => {
   const setAppStore = useAppStore((state) => state.setState);
 
   const [params] = useSearchParams();
-  const redirectUrl = params.get('r');
+  const redirectUrl = useMemo(() => sanitizeRedirectUrl(params.get('r')), [params]);
 
   useEffect(() => {
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
