@@ -234,6 +234,7 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    #[must_use]
     pub fn new(
         name: String,
         address: Vec<IpNetwork>,

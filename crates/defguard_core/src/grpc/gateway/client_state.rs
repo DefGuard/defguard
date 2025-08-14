@@ -119,13 +119,12 @@ impl ClientMap {
         );
 
         // initialize location map if it doesn't exist yet
-        let location_map = match self.0.get_mut(&location_id) {
-            Some(location_map) => location_map,
-            None => {
-                // initialize new map for location and immediately return a mutable reference
-                self.0.insert(location_id, HashMap::new());
-                self.0.get_mut(&location_id).unwrap()
-            }
+        let location_map = if let Some(location_map) = self.0.get_mut(&location_id) {
+            location_map
+        } else {
+            // initialize new map for location and immediately return a mutable reference
+            self.0.insert(location_id, HashMap::new());
+            self.0.get_mut(&location_id).unwrap()
         };
 
         // check if client is already connected
@@ -134,7 +133,7 @@ impl ClientMap {
                 public_key: public_key.to_string(),
                 location_id,
             });
-        };
+        }
 
         // add client state to location map
         let client_state = ClientState::new(
@@ -189,10 +188,10 @@ impl ClientMap {
                         .push((client_state.device.clone(), disconnect_event_context));
 
                     return false;
-                };
+                }
                 true
             });
-        };
+        }
 
         Ok(disconnected_clients)
     }

@@ -49,6 +49,7 @@ use crate::{
 /// - starts with non-special character
 /// - only special characters allowed: . - _
 /// - no whitespaces
+#[must_use]
 pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> String {
     let mut result = username.to_string();
 

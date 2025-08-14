@@ -21,6 +21,7 @@ pub struct UserSnatBinding<I = NoId> {
 }
 
 impl UserSnatBinding {
+    #[must_use]
     pub fn new(user_id: Id, location_id: Id, public_ip: IpAddr) -> Self {
         Self {
             id: NoId,

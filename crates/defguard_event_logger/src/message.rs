@@ -23,6 +23,7 @@ pub struct EventLoggerMessage {
 }
 
 impl EventLoggerMessage {
+    #[must_use]
     pub fn new(context: EventContext, event: LoggerEvent) -> Self {
         Self { context, event }
     }
@@ -46,6 +47,7 @@ pub struct EventContext {
 }
 
 impl EventContext {
+    #[must_use]
     pub fn from_api_context(
         val: ApiRequestContext,
         location: Option<WireguardNetwork<Id>>,
@@ -62,6 +64,7 @@ impl EventContext {
         }
     }
 
+    #[must_use]
     pub fn from_bidi_context(
         val: BidiRequestContext,
         location: Option<WireguardNetwork<Id>>,
@@ -78,6 +81,7 @@ impl EventContext {
         }
     }
 
+    #[must_use]
     pub fn from_internal_context(
         val: InternalEventContext,
         location: Option<WireguardNetwork<Id>>,

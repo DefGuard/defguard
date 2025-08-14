@@ -94,11 +94,13 @@ pub enum SyncStatus {
 }
 
 impl SyncStatus {
+    #[must_use]
     pub fn is_out_of_sync(&self) -> bool {
         matches!(self, SyncStatus::OutOfSync)
     }
 }
 
+#[must_use]
 pub fn get_ldap_sync_status() -> SyncStatus {
     let settings = Settings::get_current_settings();
     settings.ldap_sync_status
@@ -113,6 +115,7 @@ pub async fn set_ldap_sync_status(status: SyncStatus, pool: &PgPool) -> Result<(
     Ok(())
 }
 
+#[must_use]
 pub fn is_ldap_desynced() -> bool {
     get_ldap_sync_status().is_out_of_sync()
 }
@@ -244,7 +247,7 @@ pub(super) fn compute_group_sync_changes<'a>(
                         ldap_config.user_dn_from_user(m) == ldap_config.user_dn_from_user(u)
                     })
                 })
-                .cloned()
+                .copied()
                 .collect::<HashSet<_>>();
 
             let missing_from_ldap = members
@@ -261,7 +264,9 @@ pub(super) fn compute_group_sync_changes<'a>(
                 "Group {group:?} members missing from Defguard: {missing_from_defguard:?}, missing from LDAP: {missing_from_ldap:?}"
             );
 
-            if !missing_from_defguard.is_empty() {
+            if missing_from_defguard.is_empty() {
+                debug!("Group {group:?} has no members missing from Defguard");
+            } else {
                 match authority {
                     Authority::Defguard => {
                         debug!(
@@ -276,11 +281,11 @@ pub(super) fn compute_group_sync_changes<'a>(
                         add_defguard.insert(group.clone(), missing_from_defguard);
                     }
                 }
-            } else {
-                debug!("Group {group:?} has no members missing from Defguard");
             }
 
-            if !missing_from_ldap.is_empty() {
+            if missing_from_ldap.is_empty() {
+                debug!("Group {group:?} has no members missing from LDAP");
+            } else {
                 match authority {
                     Authority::Defguard => {
                         debug!(
@@ -295,8 +300,6 @@ pub(super) fn compute_group_sync_changes<'a>(
                         delete_defguard.insert(group.clone(), missing_from_ldap);
                     }
                 }
-            } else {
-                debug!("Group {group:?} has no members missing from LDAP");
             }
         } else {
             match authority {
@@ -418,7 +421,7 @@ pub(super) fn extract_intersecting_users(
         }
     }
 
-    for user in intersecting_users_ldap.into_iter() {
+    for user in intersecting_users_ldap {
         if let Some(defguard_user) = defguard_users
             .iter()
             .position(|u| ldap_config.user_dn_from_user(u) == ldap_config.user_dn_from_user(&user))
@@ -433,6 +436,7 @@ pub(super) fn extract_intersecting_users(
 
 const DEFAULT_LDAP_SYNC_INTERVAL: u64 = 60 * 5;
 
+#[must_use]
 pub fn get_ldap_sync_interval() -> u64 {
     let settings = Settings::get_current_settings();
     settings
@@ -451,7 +455,7 @@ impl super::LDAPConnection {
     ) -> Result<(), LdapError> {
         let mut transaction = pool.begin().await?;
 
-        for (ldap_user, defguard_user) in intersecting_users.iter_mut() {
+        for (ldap_user, defguard_user) in &mut intersecting_users {
             if attrs_different(defguard_user, ldap_user, &self.config) {
                 debug!(
                     "User {defguard_user} attributes differ between LDAP and Defguard, merging..."
@@ -860,7 +864,7 @@ impl super::LDAPConnection {
             self.delete_user(&user).await?;
         }
 
-        for user in changes.add_ldap.iter_mut() {
+        for user in &mut changes.add_ldap {
             debug!("Adding user {} to LDAP", user.username);
             self.add_user(user, None, pool).await?;
         }

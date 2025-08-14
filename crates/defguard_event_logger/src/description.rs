@@ -10,6 +10,7 @@
 
 use crate::message::{DefguardEvent, EnrollmentEvent, VpnEvent};
 
+#[must_use]
 pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
     match event {
         DefguardEvent::UserLogin => None,
@@ -70,7 +71,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
                     "disabled"
                 };
                 description = format!("{description}, status changed to {status_change_text}");
-            };
+            }
             Some(description)
         }
         DefguardEvent::UserGroupsModified {
@@ -259,6 +260,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
     }
 }
 
+#[must_use]
 pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
     match event {
         VpnEvent::ConnectedToMfaLocation {
@@ -288,6 +290,7 @@ pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
     }
 }
 
+#[must_use]
 pub fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<String> {
     match event {
         EnrollmentEvent::EnrollmentStarted => Some("User started enrollment process".to_string()),

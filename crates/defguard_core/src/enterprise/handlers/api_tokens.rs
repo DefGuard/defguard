@@ -90,7 +90,7 @@ pub async fn fetch_api_tokens(
     let tokens_info: Vec<ApiTokenInfo> = ApiToken::find_by_user_id(&appstate.pool, user.id)
         .await?
         .into_iter()
-        .map(|token| token.into())
+        .map(Into::into)
         .collect();
 
     Ok(ApiResponse {

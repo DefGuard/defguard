@@ -126,11 +126,11 @@ pub(crate) async fn ldap_handle_user_modify(
         debug!("Handling user modify for {old_username} in LDAP");
 
         let mut ldap_connection = LDAPConnection::create().await?;
-        if !ldap_connection.user_exists(current_user).await? {
+        if ldap_connection.user_exists(current_user).await? {
+            debug!("User {current_user} exists in LDAP, modifying it");
+        } else {
             debug!("User {current_user} doesn't exist in LDAP, updating his state first as it may be stale");
             ldap_connection.update_users_state(vec![current_user], pool).await?;
-        } else {
-            debug!("User {current_user} exists in LDAP, modifying it");
         }
         ldap_connection
             .modify_user(old_username, current_user)
@@ -183,7 +183,7 @@ pub(crate) async fn ldap_remove_user_from_groups(
 /// Add singular user to multiple groups in ldap. Convenience wrapper around [`ldap_add_users_to_groups`].
 pub(crate) async fn ldap_add_user_to_groups(user: &User<Id>, groups: HashSet<&str>, pool: &PgPool) {
     let map = HashMap::from([(user, groups)]);
-    ldap_add_users_to_groups(map, pool).await
+    ldap_add_users_to_groups(map, pool).await;
 }
 
 /// Bulk add users to groups in ldap.
@@ -194,7 +194,7 @@ pub(crate) async fn ldap_add_users_to_groups(
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         let sync_groups = ldap_connection.config.ldap_sync_groups.clone();
-        let sync_groups_lookup = sync_groups.iter().map(|s| s.as_str()).collect::<HashSet<_>>();
+        let sync_groups_lookup = sync_groups.iter().map(String::as_str).collect::<HashSet<_>>();
 
         for (user, groups) in user_groups {
             let adding_to_sync_groups = groups
@@ -223,7 +223,7 @@ pub(crate) async fn ldap_remove_users_from_groups(
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         let sync_groups = ldap_connection.config.ldap_sync_groups.clone();
-        let sync_groups_lookup = sync_groups.iter().map(|s| s.as_str()).collect::<HashSet<_>>();
+        let sync_groups_lookup = sync_groups.iter().map(String::as_str).collect::<HashSet<_>>();
 
         for (user, groups) in user_groups {
             let removing_from_sync_groups = groups
@@ -255,15 +255,7 @@ pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, po
             return Ok(());
         }
         let mut ldap_connection = LDAPConnection::create().await?;
-        if !ldap_connection.user_exists(user).await? {
-            debug!("User {user} doesn't exist in LDAP, creating it with the provided password");
-            let user_groups = user.member_of_names(pool).await?;
-            ldap_connection.add_user(user, Some(password), pool).await?;
-            for group in user_groups {
-                ldap_connection.add_user_to_group(user, &group).await?;
-            }
-           debug!("User {user} created in LDAP with the provided password");
-        } else {
+        if ldap_connection.user_exists(user).await? {
             debug!("User {user} exists in LDAP, changing password");
             ldap_connection
                 .set_password(user, password)
@@ -276,6 +268,14 @@ pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, po
             debug!(
                 "LDAP password state updated in Defguard for user {user}"
             );
+        } else {
+            debug!("User {user} doesn't exist in LDAP, creating it with the provided password");
+            let user_groups = user.member_of_names(pool).await?;
+            ldap_connection.add_user(user, Some(password), pool).await?;
+            for group in user_groups {
+                ldap_connection.add_user_to_group(user, &group).await?;
+            }
+           debug!("User {user} created in LDAP with the provided password");
         }
 
         Ok(())

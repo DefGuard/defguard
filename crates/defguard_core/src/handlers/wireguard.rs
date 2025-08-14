@@ -1091,7 +1091,7 @@ pub(crate) async fn delete_device(
             appstate.emit_event(ApiEvent {
                 context,
                 event: Box::new(ApiEventType::UserDeviceRemoved { device, owner }),
-            })?
+            })?;
         }
         DeviceType::Network => {
             if let Some(network_info) = device_info.network_info.first() {

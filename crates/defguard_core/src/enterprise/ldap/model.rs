@@ -99,13 +99,13 @@ impl<I> User<I> {
         self.email = ldap_user.email.clone();
         self.phone = ldap_user.phone.clone();
         // It should be ok to update the username if we are not using it in the DN (not as RDN)
-        if !config.using_username_as_rdn() {
-            self.username = ldap_user.username.clone();
-        } else {
+        if config.using_username_as_rdn() {
             debug!(
                 "Not updating username {} from LDAP because it is used as RDN",
                 self.username
             );
+        } else {
+            self.username = ldap_user.username.clone();
         }
     }
 

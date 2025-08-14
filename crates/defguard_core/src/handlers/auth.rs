@@ -143,47 +143,26 @@ pub(crate) async fn authenticate(
 
     // attempt to find user first by username and then by email
     let mut conn = appstate.pool.acquire().await?;
-    let mut user = match User::find_by_username_or_email(&mut conn, &username_or_email).await? {
-        Some(user) => {
-            // user was found, attempt to authenticate by password first
-            match user.verify_password(&data.password) {
-                Ok(()) => user,
-                Err(err) => {
-                    // password authentication failed, try authenticating with LDAP if configured
-                    if settings.ldap_enabled {
-                        match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
-                            .await
-                        {
-                            Ok(user) => user,
-                            Err(ldap_err) => {
-                                warn!(
-                                    "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
-                                );
+    let mut user = if let Some(user) =
+        User::find_by_username_or_email(&mut conn, &username_or_email).await?
+    {
+        // user was found, attempt to authenticate by password first
+        match user.verify_password(&data.password) {
+            Ok(()) => user,
+            Err(err) => {
+                // password authentication failed, try authenticating with LDAP if configured
+                if settings.ldap_enabled {
+                    match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
+                        .await
+                    {
+                        Ok(user) => user,
+                        Err(ldap_err) => {
+                            warn!(
+                                "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
+                            );
 
-                                log_failed_login_attempt(
-                                    &appstate.failed_logins,
-                                    &username_or_email,
-                                );
-                                appstate.emit_event(ApiEvent {
-                                context: ApiRequestContext::new(
-                                    user.id,
-                                    user.username,
-                                    insecure_ip,
-                                    user_agent.to_string(),
-                                ),
-                                event: Box::new(ApiEventType::UserLoginFailed {
-                                    message: format!(
-                                        "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
-                                    ),
-                                }),
-                            })?;
-                                return Err(WebError::Authorization(ldap_err.to_string()));
-                            }
-                        }
-                    } else {
-                        warn!("Failed to authenticate user {username_or_email}: {err}");
-                        log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                        appstate.emit_event(ApiEvent {
+                            log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            appstate.emit_event(ApiEvent {
                             context: ApiRequestContext::new(
                                 user.id,
                                 user.username,
@@ -192,25 +171,42 @@ pub(crate) async fn authenticate(
                             ),
                             event: Box::new(ApiEventType::UserLoginFailed {
                                 message: format!(
-                                    "Authentication for {username_or_email} failed: {err}"
+                                    "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
                                 ),
                             }),
                         })?;
-                        return Err(WebError::Authorization(err.to_string()));
+                            return Err(WebError::Authorization(ldap_err.to_string()));
+                        }
                     }
+                } else {
+                    warn!("Failed to authenticate user {username_or_email}: {err}");
+                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    appstate.emit_event(ApiEvent {
+                        context: ApiRequestContext::new(
+                            user.id,
+                            user.username,
+                            insecure_ip,
+                            user_agent.to_string(),
+                        ),
+                        event: Box::new(ApiEventType::UserLoginFailed {
+                            message: format!(
+                                "Authentication for {username_or_email} failed: {err}"
+                            ),
+                        }),
+                    })?;
+                    return Err(WebError::Authorization(err.to_string()));
                 }
             }
         }
-        None => {
-            // try to create user from LDAP
-            debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
-            match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
-                Ok(user) => user,
-                Err(err) => {
-                    info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
-                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                    return Err(WebError::Authorization(err.to_string()));
-                }
+    } else {
+        // try to create user from LDAP
+        debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
+        match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
+            Ok(user) => user,
+            Err(err) => {
+                info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
+                log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                return Err(WebError::Authorization(err.to_string()));
             }
         }
     };
