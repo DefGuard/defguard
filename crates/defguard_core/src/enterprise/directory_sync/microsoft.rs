@@ -125,10 +125,10 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .into_iter()
             .filter_map(|user| {
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: user.account_enabled })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
                 } else if let Some(email) = user.other_mails.into_iter().next() {
                     warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
-                    Some(DirectoryUser { email, active: user.account_enabled })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
                 } else {
                     warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
                     None
@@ -499,10 +499,10 @@ impl DirectorySync for MicrosoftDirectorySync {
 
     async fn get_user_groups(
         &self,
-        user_id: &str,
+        user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Querying groups of user: {user_id}");
-        let groups = self.query_user_groups(user_id).await?;
+        debug!("Querying groups of user: {user_email}");
+        let groups = self.query_user_groups(user_email).await?;
         debug!("User groups queried successfully.");
         Ok(groups.into())
     }
@@ -510,6 +510,7 @@ impl DirectorySync for MicrosoftDirectorySync {
     async fn get_group_members(
         &self,
         group: &DirectoryGroup,
+        _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
         debug!("Querying members of group: {}", group.name);
         let members = self.query_group_members(group).await?;

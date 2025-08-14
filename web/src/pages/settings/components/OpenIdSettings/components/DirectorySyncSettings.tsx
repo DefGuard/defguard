@@ -173,6 +173,21 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
                 />
               </>
             ) : null}
+            {providerName === 'JumpCloud' ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'jumpcloud_api_key' }}
+                  label={localLL.form.labels.jumpcloud_api_key.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>
+                      {parse(localLL.form.labels.jumpcloud_api_key.helper())}
+                    </Helper>
+                  }
+                  required={dirsyncEnabled}
+                />
+              </>
+            ) : null}
             {providerName === 'Google' ? (
               <>
                 <FormInput
