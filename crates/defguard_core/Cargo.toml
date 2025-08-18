@@ -37,7 +37,7 @@ openidconnect = { version = "4.0", default-features = false, optional = true, fe
 parse_link_header = { workspace = true }
 paste = { workspace = true }
 pgp = { workspace = true }
-prost = { workspace = true }
+prost = "0.14"
 pulldown-cmark = { workspace = true }
 # match version used by sqlx
 rand = { workspace = true }
@@ -66,6 +66,7 @@ tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tonic = { workspace = true }
 tonic-health = { workspace = true }
+tonic-prost = "0.14"
 totp-lite = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
@@ -105,8 +106,7 @@ serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
-prost-build = "0.13"
-tonic-build = "0.12"
+tonic-prost-build = "0.14"
 vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]
