@@ -8,7 +8,7 @@ use defguard_core::{
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{make_client_with_state, setup_pool};
+use super::common::{make_client_with_state, setup_pool};
 
 #[sqlx::test]
 async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions) {
