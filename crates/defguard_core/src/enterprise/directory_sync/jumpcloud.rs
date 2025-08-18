@@ -86,11 +86,16 @@ struct UserGroup {
 
 impl From<UserGroup> for DirectoryGroup {
     fn from(group: UserGroup) -> Self {
-        let name = group
-            .compiled_attributes
-            .ldap_groups
-            .first()
-            .map_or(group.id.clone(), |g| g.name.clone());
+        let name = group.compiled_attributes.ldap_groups.first().map_or_else(
+            || {
+                debug!(
+                    "Group {} has no LDAP groups, using ID as name fallback",
+                    group.id
+                );
+                group.id.clone()
+            },
+            |g| g.name.clone(),
+        );
         DirectoryGroup { id: group.id, name }
     }
 }
@@ -114,7 +119,10 @@ pub(crate) struct JumpCloudDirectorySync {
 impl JumpCloudDirectorySync {
     #[must_use]
     pub fn new(api_key: String) -> Self {
-        debug!("Initializing JumpCloud directory sync with API key length: {}", api_key.len());
+        debug!(
+            "Initializing JumpCloud directory sync with API key length: {}",
+            api_key.len()
+        );
         Self { api_key }
     }
 
@@ -122,7 +130,10 @@ impl JumpCloudDirectorySync {
         &self,
         group: &DirectoryGroup,
     ) -> Result<Vec<GroupMemberThing>, DirectorySyncError> {
-        debug!("Starting to query members for group: {} (ID: {})", group.name, group.id);
+        debug!(
+            "Starting to query members for group: {} (ID: {})",
+            group.name, group.id
+        );
         let client = reqwest::Client::new();
         let url = USER_GROUP_MEMBERS_URL.replace("<GROUP_ID>", &group.id);
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
@@ -136,22 +147,35 @@ impl JumpCloudDirectorySync {
             .query(&query)
             .send()
             .await?;
-            
-        debug!("Initial response status for group {}: {}", group.id, response.status());
+
+        debug!(
+            "Initial response status for group {}: {}",
+            group.id,
+            response.status()
+        );
         let mut all_members_response: Vec<GroupMemberThing> = parse_response(
             response,
             "Failed to query group members from JumpCloud API.",
         )
         .await?;
 
-        debug!("Initial batch fetched {} members for group {}", all_members_response.len(), group.id);
+        debug!(
+            "Initial batch fetched {} members for group {}",
+            all_members_response.len(),
+            group.id
+        );
 
         for i in 1..MAX_REQUESTS {
             let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
             query.insert("skip", skip_value.to_string());
-            
-            debug!("Requesting page {} (skip: {}) for group {} members", i + 1, skip_value, group.id);
-            
+
+            debug!(
+                "Requesting page {} (skip: {}) for group {} members",
+                i + 1,
+                skip_value,
+                group.id
+            );
+
             let response = client
                 .get(&url)
                 .header("x-api-key", &self.api_key)
@@ -159,21 +183,38 @@ impl JumpCloudDirectorySync {
                 .send()
                 .await?;
 
-            debug!("Page {} response status for group {}: {}", i + 1, group.id, response.status());
+            debug!(
+                "Page {} response status for group {}: {}",
+                i + 1,
+                group.id,
+                response.status()
+            );
             let members_response: Vec<GroupMemberThing> = parse_response(
                 response,
                 "Failed to query group members from JumpCloud API.",
             )
             .await?;
-            
-            debug!("Page {} returned {} members for group {}", i + 1, members_response.len(), group.id);
-            
+
+            debug!(
+                "Page {} returned {} members for group {}",
+                i + 1,
+                members_response.len(),
+                group.id
+            );
+
             if members_response.is_empty() {
-                debug!("No more members found for group {}, stopping pagination", group.id);
+                debug!(
+                    "No more members found for group {}, stopping pagination",
+                    group.id
+                );
                 break;
             } else {
                 all_members_response.extend(members_response);
-                debug!("Total members accumulated so far for group {}: {}", group.id, all_members_response.len());
+                debug!(
+                    "Total members accumulated so far for group {}: {}",
+                    group.id,
+                    all_members_response.len()
+                );
             }
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
@@ -256,7 +297,7 @@ impl JumpCloudDirectorySync {
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Initial query parameters for users: {:?}", query);
         debug!("Sending initial request to: {}", ALL_USERS_URL);
-        
+
         let response = client
             .get(ALL_USERS_URL)
             .header("x-api-key", &self.api_key)
@@ -268,16 +309,18 @@ impl JumpCloudDirectorySync {
         let mut all_users_response: UsersResponse =
             parse_response(response, "Failed to query users from JumpCloud API.").await?;
 
-        debug!("Initial batch fetched {} users (total_count: {})", 
-               all_users_response.results.len(), 
-               all_users_response.total_count);
+        debug!(
+            "Initial batch fetched {} users (total_count: {})",
+            all_users_response.results.len(),
+            all_users_response.total_count
+        );
 
         for i in 1..MAX_REQUESTS {
             let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
             query.insert("skip", skip_value.to_string());
-            
+
             debug!("Requesting page {} (skip: {}) for users", i + 1, skip_value);
-            
+
             let response = client
                 .get(ALL_USERS_URL)
                 .header("x-api-key", &self.api_key)
@@ -285,26 +328,39 @@ impl JumpCloudDirectorySync {
                 .send()
                 .await?;
 
-            debug!("Page {} response status for users: {}", i + 1, response.status());
+            debug!(
+                "Page {} response status for users: {}",
+                i + 1,
+                response.status()
+            );
             let users_response: UsersResponse =
                 parse_response(response, "Failed to query users from JumpCloud API.").await?;
 
-            debug!("Page {} returned {} users", i + 1, users_response.results.len());
+            debug!(
+                "Page {} returned {} users",
+                i + 1,
+                users_response.results.len()
+            );
 
             if users_response.results.is_empty() {
                 debug!("No more users found, stopping pagination");
                 break;
             } else {
                 all_users_response.results.extend(users_response.results);
-                debug!("Total users accumulated so far: {}", all_users_response.results.len());
+                debug!(
+                    "Total users accumulated so far: {}",
+                    all_users_response.results.len()
+                );
             }
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
-        debug!("Total users fetched: {} (final total_count: {})", 
-               all_users_response.results.len(), 
-               all_users_response.total_count);
+        debug!(
+            "Total users fetched: {} (final total_count: {})",
+            all_users_response.results.len(),
+            all_users_response.total_count
+        );
         Ok(all_users_response)
     }
 
@@ -316,7 +372,7 @@ impl JumpCloudDirectorySync {
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
         debug!("Requesting user groups from URL: {}", url);
         debug!("Initial query parameters for user groups: {:?}", query);
-        
+
         let response = client
             .get(&url)
             .header("x-api-key", &self.api_key)
@@ -324,18 +380,31 @@ impl JumpCloudDirectorySync {
             .send()
             .await?;
 
-        debug!("Initial response status for user {} groups: {}", user_id, response.status());
+        debug!(
+            "Initial response status for user {} groups: {}",
+            user_id,
+            response.status()
+        );
         let mut all_groups_response: Vec<UserGroup> =
             parse_response(response, "Failed to query user groups from JumpCloud API.").await?;
 
-        debug!("Initial batch fetched {} groups for user {}", all_groups_response.len(), user_id);
+        debug!(
+            "Initial batch fetched {} groups for user {}",
+            all_groups_response.len(),
+            user_id
+        );
 
         for i in 1..MAX_REQUESTS {
             let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
             query.insert("skip", skip_value.to_string());
-            
-            debug!("Requesting page {} (skip: {}) for user {} groups", i + 1, skip_value, user_id);
-            
+
+            debug!(
+                "Requesting page {} (skip: {}) for user {} groups",
+                i + 1,
+                skip_value,
+                user_id
+            );
+
             let response = client
                 .get(&url)
                 .header("x-api-key", &self.api_key)
@@ -343,18 +412,35 @@ impl JumpCloudDirectorySync {
                 .send()
                 .await?;
 
-            debug!("Page {} response status for user {} groups: {}", i + 1, user_id, response.status());
+            debug!(
+                "Page {} response status for user {} groups: {}",
+                i + 1,
+                user_id,
+                response.status()
+            );
             let groups_response: Vec<UserGroup> =
                 parse_response(response, "Failed to query user groups from JumpCloud API.").await?;
-                
-            debug!("Page {} returned {} groups for user {}", i + 1, groups_response.len(), user_id);
-            
+
+            debug!(
+                "Page {} returned {} groups for user {}",
+                i + 1,
+                groups_response.len(),
+                user_id
+            );
+
             if groups_response.is_empty() {
-                debug!("No more groups found for user {}, stopping pagination", user_id);
+                debug!(
+                    "No more groups found for user {}, stopping pagination",
+                    user_id
+                );
                 break;
             } else {
                 all_groups_response.extend(groups_response);
-                debug!("Total groups accumulated so far for user {}: {}", user_id, all_groups_response.len());
+                debug!(
+                    "Total groups accumulated so far for user {}: {}",
+                    user_id,
+                    all_groups_response.len()
+                );
             }
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
@@ -372,7 +458,7 @@ impl JumpCloudDirectorySync {
         debug!("Testing connection to JumpCloud API");
         let client = reqwest::Client::new();
         debug!("Sending test request to: {}", ALL_USERS_URL);
-        
+
         let response = client
             .get(ALL_USERS_URL)
             .header("x-api-key", &self.api_key)
@@ -412,25 +498,38 @@ impl JumpCloudDirectorySync {
             let mut users: UsersResponse =
                 parse_response(response, "Failed to query user by email.").await?;
 
-            debug!("User search returned {} users (total_count: {})", users.results.len(), users.total_count);
+            debug!(
+                "User search returned {} users (total_count: {})",
+                users.results.len(),
+                users.total_count
+            );
 
             if users.total_count > 1 {
-                warn!("Multiple users found with email: {} (count: {})", email, users.total_count);
+                warn!(
+                    "Multiple users found with email: {} (count: {})",
+                    email, users.total_count
+                );
                 return Err(DirectorySyncError::MultipleUsersFound(format!(
                     "Multiple users found with email: {email}."
                 )));
             }
 
             if let Some(user) = users.results.pop() {
-                debug!("Found user: {} (ID: {}, activated: {}, locked: {}, state: {:?})", 
-                       user.email, user.id, user.activated, user.account_locked, user.state);
+                debug!(
+                    "Found user: {} (ID: {}, activated: {}, locked: {}, state: {:?})",
+                    user.email, user.id, user.activated, user.account_locked, user.state
+                );
                 Ok(Some(user.into()))
             } else {
                 debug!("No user found with email: {}", email);
                 Ok(None)
             }
         } else {
-            error!("Failed to query user by email: {}. Status: {}", email, response.status());
+            error!(
+                "Failed to query user by email: {}. Status: {}",
+                email,
+                response.status()
+            );
             Err(DirectorySyncError::RequestError(format!(
                 "Failed to query user by email: {}. Status: {}. Details: {}",
                 email,

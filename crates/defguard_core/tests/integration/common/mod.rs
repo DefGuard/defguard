@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+pub use defguard_core::db::setup_pool;
 use defguard_core::{
     SERVER_CONFIG,
     auth::failed_login::FailedLoginMap,
@@ -32,8 +33,6 @@ use tokio::{
         mpsc::{UnboundedReceiver, unbounded_channel},
     },
 };
-
-pub use defguard_core::db::setup_pool;
 
 use self::client::TestClient;
 
