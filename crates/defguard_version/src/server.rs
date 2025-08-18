@@ -62,20 +62,16 @@ where
 
         Box::pin(async move {
             let mut response = inner.call(request).await?;
-            
+
             response.headers_mut().insert(
                 VERSION_HEADER,
                 component_info.version.to_string().parse().unwrap(),
             );
             response.headers_mut().insert(
                 SYSTEM_INFO_HEADER,
-                component_info
-                    .system
-                    .as_header_value()
-                    .parse()
-                    .unwrap(),
+                component_info.system.as_header_value().parse().unwrap(),
             );
-            
+
             Ok(response)
         })
     }

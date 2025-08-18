@@ -1,7 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::version_interceptor, server::DefguardVersionLayer,
-    version_info_from_metadata,
+    client::version_interceptor, server::DefguardVersionLayer, version_info_from_metadata,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -971,7 +970,7 @@ pub async fn run_grpc_server(
     let router = router.add_service(
         ServiceBuilder::new()
             .layer(DefguardVersionLayer::new(VERSION)?)
-            .service(gateway_service)
+            .service(gateway_service),
     );
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
