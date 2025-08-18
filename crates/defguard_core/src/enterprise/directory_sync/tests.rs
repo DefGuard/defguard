@@ -156,7 +156,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 
@@ -196,7 +196,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 
@@ -243,7 +243,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 
@@ -298,7 +298,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 

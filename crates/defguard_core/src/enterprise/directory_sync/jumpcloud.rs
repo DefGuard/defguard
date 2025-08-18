@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
+use tokio::time::sleep;
+
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, parse_response};
+use crate::enterprise::directory_sync::REQUEST_PAGINATION_SLOWDOWN;
 
 const GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/usergroups";
 const ALL_USERS_URL: &str = "https://console.jumpcloud.com/api/systemusers";
@@ -156,6 +159,8 @@ impl JumpCloudDirectorySync {
             } else {
                 all_members_response.extend(members_response);
             }
+
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         debug!(
@@ -220,6 +225,8 @@ impl JumpCloudDirectorySync {
                     all_groups_response.len()
                 );
             }
+
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         debug!("Total groups fetched: {}", all_groups_response.len());
@@ -260,6 +267,8 @@ impl JumpCloudDirectorySync {
             } else {
                 all_users_response.results.extend(users_response.results);
             }
+
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(all_users_response)
@@ -299,6 +308,8 @@ impl JumpCloudDirectorySync {
             } else {
                 all_groups_response.extend(groups_response);
             }
+
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         debug!(
@@ -555,36 +566,26 @@ mod tests {
             id: "group123".to_string(),
             group_type: "user_group".to_string(),
             compiled_attributes: CompiledAttributes {
-                ldap_groups: Some(vec![
+                ldap_groups: vec![
                     LdapGroup {
                         name: "LDAP Group Name".to_string(),
                     },
                     LdapGroup {
                         name: "Second LDAP Group".to_string(),
                     },
-                ]),
+                ],
             },
         };
         let directory_group_with_ldap: DirectoryGroup = group_with_ldap.into();
         assert_eq!(directory_group_with_ldap.id, "group123");
         assert_eq!(directory_group_with_ldap.name, "LDAP Group Name");
 
-        // Test group without LDAP groups (falls back to group ID)
-        let group_without_ldap = UserGroup {
-            id: "group456".to_string(),
-            group_type: "user_group".to_string(),
-            compiled_attributes: CompiledAttributes { ldap_groups: None },
-        };
-        let directory_group_without_ldap: DirectoryGroup = group_without_ldap.into();
-        assert_eq!(directory_group_without_ldap.id, "group456");
-        assert_eq!(directory_group_without_ldap.name, "group456");
-
         // Test group with empty LDAP groups (falls back to group ID)
         let group_empty_ldap = UserGroup {
             id: "group789".to_string(),
             group_type: "user_group".to_string(),
             compiled_attributes: CompiledAttributes {
-                ldap_groups: Some(vec![]),
+                ldap_groups: vec![],
             },
         };
         let directory_group_empty_ldap: DirectoryGroup = group_empty_ldap.into();
