@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, parse_response};
 
 const GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/usergroups";
-// TODO: systemusers vs users?
 const ALL_USERS_URL: &str = "https://console.jumpcloud.com/api/systemusers";
 const USER_GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/users/<USER_ID>/memberof";
 const USER_GROUP_MEMBERS_URL: &str =
@@ -457,9 +456,9 @@ impl DirectorySync for JumpCloudDirectorySync {
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
-        debug!("Testing connection to Google API.");
+        debug!("Testing connection to JumpCloud API.");
         self.query_test_connection().await?;
-        info!("Successfully tested connection to Google API, connection is working.");
+        info!("Successfully tested connection to JumpCloud API, connection is working.");
         Ok(())
     }
 }
