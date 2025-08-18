@@ -1,3 +1,59 @@
+//! Defguard version information handling for gRPC communications.
+//!
+//! This crate provides utilities for embedding and extracting version and system information
+//! in gRPC communications between Defguard components. It supports both client-side and
+//! server-side middleware for automatic version header management.
+//!
+//! # Headers
+//!
+//! The crate defines two standard headers used across all Defguard gRPC communications:
+//!
+//! - `dfg-version`: Semantic version string (e.g., "1.2.3")
+//! - `dfg-system-info`: Semicolon-separated system information (OS;version;bitness;arch)
+//!
+//! # Usage
+//!
+//! ## Server-side middleware
+//!
+//! ```rust,no_run
+//! use tower::ServiceBuilder;
+//! use defguard_version::server::DefguardVersionLayer;
+//!
+//! let layer = DefguardVersionLayer::new("1.0.0")?;
+//! let service = ServiceBuilder::new()
+//!     .layer(layer)
+//!     .service(my_grpc_service);
+//! ```
+//!
+//! ## Client-side interceptor
+//!
+//! ```rust,no_run
+//! use defguard_version::client::version_interceptor;
+//! use tonic::transport::Channel;
+//!
+//! let channel = Channel::from_static("http://localhost:50051").connect().await?;
+//! let client = MyServiceClient::with_interceptor(
+//!     channel,
+//!     version_interceptor("1.0.0")?
+//! );
+//! ```
+//!
+//! ## Parsing version information
+//!
+//! ```rust,no_run
+//! use defguard_version::{parse_metadata, version_info_from_metadata};
+//! use tonic::metadata::MetadataMap;
+//!
+//! // Extract parsed version and system info
+//! if let Some((version, system_info)) = parse_metadata(&metadata) {
+//!     println!("Client version: {}", version);
+//!     println!("Client system: {}", system_info);
+//! }
+//!
+//! // Get version info as strings (with fallback)
+//! let (version_str, system_str) = version_info_from_metadata(&metadata);
+//! ```
+
 use ::tracing::{error, warn};
 use semver::Version;
 use std::{fmt::Display, str::FromStr};
@@ -8,7 +64,10 @@ pub mod client;
 pub mod server;
 pub mod tracing;
 
+/// HTTP header name for the Defguard component version.
 pub static VERSION_HEADER: &str = "dfg-version";
+
+/// HTTP header name for the Defguard system information.
 pub static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
 
 #[derive(Debug, Error)]
@@ -20,6 +79,26 @@ pub enum DefguardVersionError {
     SystemInfoParseError(String),
 }
 
+/// System information about the host running a Defguard component.
+///
+/// This struct captures key system characteristics that are useful for
+/// debugging, compatibility checking, and system analytics. The information
+/// is automatically detected from the host system and can be serialized
+/// into HTTP headers for transmission over gRPC.
+///
+/// # Examples
+///
+/// ```rust
+/// use defguard_version::SystemInfo;
+///
+/// // Get current system information
+/// let info = SystemInfo::get();
+/// println!("Running on: {}", info);
+///
+/// // Access individual fields
+/// println!("OS: {} {}", info.os_type, info.os_version);
+/// println!("Architecture: {} ({})", info.architecture, info.bitness);
+/// ```
 #[derive(Debug, Clone)]
 pub struct SystemInfo {
     /// The operating system type (e.g., "Linux", "Windows", "macOS")
@@ -43,6 +122,12 @@ impl Display for SystemInfo {
 }
 
 impl SystemInfo {
+    /// Automatically detects the operating system type, version, architecture
+    /// and bitness using the `os_info` crate.
+    ///
+    /// # Returns
+    ///
+    /// A `SystemInfo` struct populated with the current system's characteristics.
     pub fn get() -> Self {
         os_info::get().into()
     }
@@ -82,13 +167,40 @@ impl From<os_info::Info> for SystemInfo {
     }
 }
 
+/// Combined version and system information for a Defguard component.
+///
+/// This struct bundles together both the semantic version of a component
+/// and the system information of the host it's running on. It's used by
+/// middleware to generate the appropriate headers for gRPC communication.
 #[derive(Debug, Clone)]
 pub struct ComponentInfo {
+    /// The semantic version of the component
     pub version: Version,
+    /// System information about the host
     pub system: SystemInfo,
 }
 
 impl ComponentInfo {
+    /// This method parses the provided version string and automatically detects
+    /// the current system information.
+    ///
+    /// # Arguments
+    ///
+    /// * `version` - A semantic version string (e.g., "1.2.3")
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(ComponentInfo)` - Successfully created component info
+    /// * `Err(DefguardVersionError)` - If version parsing fails
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use defguard_version::ComponentInfo;
+    ///
+    /// let info = ComponentInfo::new("1.0.0")?;
+    /// assert_eq!(info.version.major, 1);
+    /// ```
     pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
         let version = Version::from_str(version)?;
         let info = os_info::get();
@@ -99,6 +211,32 @@ impl ComponentInfo {
     }
 }
 
+/// Parses version and system information from gRPC metadata headers.
+///
+/// This function extracts and parses the Defguard version headers from
+/// gRPC metadata, returning structured version and system information.
+/// If any parsing step fails, warnings are logged and `None` is returned.
+///
+/// # Arguments
+///
+/// * `metadata` - The gRPC metadata map containing headers
+///
+/// # Returns
+///
+/// * `Some((Version, SystemInfo))` - Successfully parsed version information
+/// * `None` - If headers are missing or parsing fails
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use defguard_version::parse_metadata;
+/// use tonic::metadata::MetadataMap;
+///
+/// if let Some((version, system)) = parse_metadata(&metadata) {
+///     println!("Peer version: {}", version);
+///     println!("Peer system: {}", system);
+/// }
+/// ```
 pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
     let Some(version) = metadata.get(VERSION_HEADER) else {
         warn!("Missing version header");
@@ -124,6 +262,33 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
     Some((version, info))
 }
 
+/// Extracts version information from metadata as formatted strings with fallback.
+///
+/// This is a convenience function that calls `parse_metadata` internally and
+/// returns the version and system information as strings. If parsing fails,
+/// it returns "?" for both values instead of `None`.
+///
+/// # Arguments
+///
+/// * `metadata` - The gRPC metadata map containing headers
+///
+/// # Returns
+///
+/// A tuple containing:
+/// * Version string (or "?" if parsing failed)
+/// * System info string (or "?" if parsing failed)
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use defguard_version::version_info_from_metadata;
+/// use tonic::metadata::MetadataMap;
+///
+/// let (version, system) = version_info_from_metadata(&metadata);
+/// println!("Client: {} running on {}", version, system);
+/// // Output might be: "Client: 1.2.3 running on Linux 22.04 64-bit x86_64"
+/// // Or if headers missing: "Client: ? running on ?"
+/// ```
 pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
     parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |(version, info)| {
         (version.to_string(), info.to_string())
