@@ -223,7 +223,7 @@ pub async fn delete_openid_provider(
         let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
         if locations.is_empty() {
             debug!("No locations are using OIDC provider for external MFA");
-        };
+        }
         // fall back to internal MFA in all relevant locations
         for mut location in locations {
             debug!(

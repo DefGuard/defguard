@@ -48,7 +48,6 @@ md4 = "0.10"
 parse_link_header = "0.4"
 paste = "1.0.15"
 pgp = "0.15"
-prost = "0.13"
 pulldown-cmark = "0.13"
 # match version used by sqlx
 rand = "0.8"
@@ -90,8 +89,8 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tokio-util = "0.7"
-tonic = { version = "0.12", features = ["gzip", "tls-native-roots"] }
-tonic-health = "0.12"
+tonic = { version = "0.14", features = ["gzip", "tls-native-roots"] }
+tonic-health = "0.14"
 totp-lite = { version = "2.0" }
 tower-http = { version = "0.6", features = ["fs", "trace"] }
 tracing = "0.1"

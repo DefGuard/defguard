@@ -299,6 +299,7 @@ impl GatewayMap {
     ///
     /// # Returns
     /// Returns `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
+    #[must_use]
     pub fn into_flattened(self) -> HashMap<Id, Vec<GatewayState>> {
         self.0
             .into_iter()
@@ -941,7 +942,7 @@ pub async fn run_grpc_server(
         JwtInterceptor::new(ClaimsType::Gateway),
     );
 
-    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    let (health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<AuthServiceServer<AuthServer>>()
         .await;

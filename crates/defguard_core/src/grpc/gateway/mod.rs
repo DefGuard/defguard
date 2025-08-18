@@ -854,7 +854,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 })?;
                             }
                         }
-                    };
+                    }
 
                     // disconnect inactive clients
                     client_map.disconnect_inactive_vpn_clients_for_location(&location)?

@@ -266,7 +266,7 @@ pub(crate) async fn check_ip_availability(
         })
     };
     return match network.can_assign_ips(&mut transaction, &ips, None).await {
-        Ok(_) => mkresponse(true, true),
+        Ok(()) => mkresponse(true, true),
         Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
             warn!(
                 "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
@@ -333,16 +333,7 @@ pub(crate) async fn find_available_ips(
     }
 
     transaction.commit().await?;
-    if split_ips.len() != network.address.len() {
-        warn!(
-            "Failed to find available IPs for new device in network {} ({:?})",
-            network.name, network.address
-        );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
-    } else {
+    if split_ips.len() == network.address.len() {
         debug!(
             "Found addresses {:?} for new device i network {} ({:?})",
             split_ips, network.name, network.address
@@ -350,6 +341,15 @@ pub(crate) async fn find_available_ips(
         Ok(ApiResponse {
             json: json!(split_ips),
             status: StatusCode::OK,
+        })
+    } else {
+        warn!(
+            "Failed to find available IPs for new device in network {} ({:?})",
+            network.name, network.address
+        );
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
         })
     }
 }
