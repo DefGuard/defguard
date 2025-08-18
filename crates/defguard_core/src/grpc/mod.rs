@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::version_interceptor, server::DefguardVersionServerMiddleware,
+    client::version_interceptor, server::DefguardVersionLayer,
     version_info_from_metadata,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
@@ -32,7 +32,7 @@ use tonic::{
     Code, Status, Streaming,
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
 };
-use tonic_middleware::MiddlewareFor;
+use tower::ServiceBuilder;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -968,10 +968,11 @@ pub async fn run_grpc_server(
         .add_service(health_service)
         .add_service(auth_service);
     #[cfg(feature = "wireguard")]
-    let router = router.add_service(MiddlewareFor::new(
-        gateway_service,
-        DefguardVersionServerMiddleware::new(VERSION)?,
-    ));
+    let router = router.add_service(
+        ServiceBuilder::new()
+            .layer(DefguardVersionLayer::new(VERSION)?)
+            .service(gateway_service)
+    );
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
