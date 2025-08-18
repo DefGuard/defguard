@@ -78,8 +78,6 @@ struct CompiledAttributes {
 #[derive(Debug, Deserialize)]
 struct UserGroup {
     id: String,
-    #[serde(rename = "type")]
-    group_type: String,
     #[serde(rename = "compiledAttributes")]
     compiled_attributes: CompiledAttributes,
 }
@@ -725,7 +723,6 @@ mod tests {
         // Test group with LDAP groups (uses first LDAP group name)
         let group_with_ldap = UserGroup {
             id: "group123".to_string(),
-            group_type: "user_group".to_string(),
             compiled_attributes: CompiledAttributes {
                 ldap_groups: vec![
                     LdapGroup {
@@ -744,7 +741,6 @@ mod tests {
         // Test group with empty LDAP groups (falls back to group ID)
         let group_empty_ldap = UserGroup {
             id: "group789".to_string(),
-            group_type: "user_group".to_string(),
             compiled_attributes: CompiledAttributes {
                 ldap_groups: vec![],
             },

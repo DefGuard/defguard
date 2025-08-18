@@ -383,7 +383,7 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 
@@ -455,7 +455,7 @@ mod test {
         assert!(testuserdisabled.is_active);
 
         let all_users = client.get_all_users().await.unwrap();
-        sync_all_users_state(&client, &pool, &wg_tx, &all_users)
+        sync_all_users_state(&pool, &wg_tx, &all_users)
             .await
             .unwrap();
 
