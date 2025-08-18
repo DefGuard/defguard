@@ -185,6 +185,7 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
                     </Helper>
                   }
                   required={dirsyncEnabled}
+                  type="password"
                 />
               </>
             ) : null}

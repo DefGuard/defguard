@@ -138,7 +138,7 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
         controller={{ control, name: 'base_url' }}
         label={localLL.form.labels.base_url.label()}
         labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
-        disabled={providerName === 'Google' || isLoading}
+        disabled={providerName === 'Google' || providerName === 'JumpCloud' || isLoading}
         required
       />
       <FormInput
