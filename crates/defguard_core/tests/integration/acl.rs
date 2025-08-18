@@ -426,7 +426,6 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();
@@ -767,7 +766,6 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
         false,
         LocationMfaMode::Disabled,
     )
-    .unwrap()
     .save(&pool)
     .await
     .unwrap();

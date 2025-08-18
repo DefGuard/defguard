@@ -167,10 +167,10 @@ impl ClientMfaServer {
                 LocationMfaMode::Internal,
                 MfaMethod::Totp | MfaMethod::Email | MfaMethod::Biometric,
             ) => {
-                debug!("Location uses internal MFA. Selected method: {selected_method}")
+                debug!("Location uses internal MFA. Selected method: {selected_method}");
             }
             (LocationMfaMode::External, MfaMethod::Oidc) => {
-                debug!("Location uses external MFA. Selected method: {selected_method}")
+                debug!("Location uses external MFA. Selected method: {selected_method}");
             }
             _ => {
                 error!(
@@ -247,7 +247,7 @@ impl ClientMfaServer {
                     ));
                 }
             }
-        };
+        }
 
         // generate auth token
         let token = Self::generate_token(&request.pubkey)?;

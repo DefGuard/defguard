@@ -21,6 +21,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdProviderSettings } from './OpenIdProviderSettings';
@@ -58,9 +59,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -72,9 +74,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate: deleteProvider } = useMutation({
     mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
