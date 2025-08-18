@@ -59,7 +59,6 @@ mod test {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(pool)
         .await
         .unwrap();
