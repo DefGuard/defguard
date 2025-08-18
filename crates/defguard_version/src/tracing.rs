@@ -10,7 +10,6 @@ use tracing_subscriber::{
 
 use crate::SystemInfo;
 
-/// Extracted version information from span context
 #[derive(Debug, Default, Clone)]
 pub struct ExtractedVersionInfo {
     pub core_version: Option<String>,
@@ -22,7 +21,6 @@ pub struct ExtractedVersionInfo {
 }
 
 impl ExtractedVersionInfo {
-    /// Check if any version information is present
     pub fn has_version_info(&self) -> bool {
         self.core_version.is_some()
             || self.proxy_version.is_some()
@@ -146,13 +144,12 @@ pub fn build_version_suffix(
 ///
 /// This formatter wraps the default tracing formatter and adds version suffix to log messages:
 /// - For ERROR level logs: includes own_version, own_info and components version and info
-/// - For other levels: includes only own_version and proxy_version (if available)
+/// - For other levels: includes only own_version and component version if available
 ///
 /// The version information is extracted from tracing span fields.
 pub struct VersionSuffixFormat {
     /// The underlying tracing formatter
     pub inner: tracing_subscriber::fmt::format::Format,
-    /// The core application version to display as fallback
     pub own_version: String,
     pub own_info: SystemInfo,
 }
@@ -362,7 +359,7 @@ pub fn init(own_version: &str, log_level: &str) {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
         )
-        .with(VersionFieldLayer) // Add custom layer to capture span fields
+        .with(VersionFieldLayer)
         .with(
             tracing_subscriber::fmt::layer()
                 .with_ansi(true)
