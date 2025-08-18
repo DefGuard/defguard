@@ -1,6 +1,5 @@
 use tonic::{
-    async_trait,
-    body::BoxBody,
+    async_trait, body::Body,
     codegen::http::{Request, Response},
 };
 use tonic_middleware::{Middleware, ServiceBound};
@@ -28,9 +27,9 @@ where
 {
     async fn call(
         &self,
-        request: Request<BoxBody>,
+        request: Request<Body>,
         mut service: S,
-    ) -> Result<Response<BoxBody>, S::Error> {
+    ) -> Result<Response<Body>, S::Error> {
         let mut response = service.call(request).await?;
         response.headers_mut().insert(
             VERSION_HEADER,

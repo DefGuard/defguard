@@ -85,7 +85,7 @@ x25519-dalek = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 bytes = { workspace = true }
-tonic-middleware = "0.2"
+tonic-middleware = { workspace = true }
 ed25519-dalek = { version = "2.2.0", features = ["rand_core"] }
 
 # https://github.com/juhaku/utoipa/issues/1345
