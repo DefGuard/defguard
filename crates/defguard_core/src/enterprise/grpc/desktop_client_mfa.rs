@@ -137,7 +137,7 @@ impl ClientMfaServer {
                 })?;
                 return Err(Status::unauthenticated("unauthorized"));
             }
-        };
+        }
 
         self.sessions.insert(
             pubkey.clone(),

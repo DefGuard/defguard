@@ -15,6 +15,7 @@ pub struct ApiToken<I = NoId> {
 }
 
 impl ApiToken {
+    #[must_use]
     pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_string: &str) -> Self {
         let token_hash = Self::hash_token(token_string);
         Self {
