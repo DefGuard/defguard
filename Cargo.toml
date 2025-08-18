@@ -91,7 +91,6 @@ tokio-stream = "0.1"
 tokio-util = "0.7"
 tonic = { version = "0.14", features = ["gzip", "tls-native-roots"] }
 tonic-health = "0.14"
-tonic-middleware = "0.4"
 totp-lite = { version = "2.0" }
 tower-http = { version = "0.6", features = ["fs", "trace"] }
 tracing = "0.1"

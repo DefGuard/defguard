@@ -1089,7 +1089,6 @@ dependencies = [
  "tokio-util",
  "tonic",
  "tonic-health",
- "tonic-middleware",
  "tonic-prost",
  "tonic-prost-build",
  "totp-lite",
@@ -1144,7 +1143,6 @@ dependencies = [
  "semver",
  "thiserror 2.0.15",
  "tonic",
- "tonic-middleware",
  "tower",
  "tracing",
  "tracing-subscriber",
@@ -5238,18 +5236,6 @@ dependencies = [
  "tokio-stream",
  "tonic",
  "tonic-prost",
-]
-
-[[package]]
-name = "tonic-middleware"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd592855b0a0f96103af076c7523c5c51b75090ee31ff178cc7c024c06ac3566"
-dependencies = [
- "async-trait",
- "futures-util",
- "tonic",
- "tower",
 ]
 
 [[package]]
