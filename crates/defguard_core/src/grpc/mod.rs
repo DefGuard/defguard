@@ -486,11 +486,7 @@ struct ProxyMessageLoopContext<'a> {
 
 #[instrument(
     name = "proxy_message_loop",
-    skip_all,
-    fields(
-        proxy_version = proxy_version,
-        proxy_info = proxy_info,
-    )
+    skip(context),
 )]
 async fn handle_proxy_message_loop(
     proxy_version: &str,
