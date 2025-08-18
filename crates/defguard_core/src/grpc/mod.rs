@@ -27,7 +27,9 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
     Code, Status,
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    transport::{
+        Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig, server::Router,
+    },
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -863,6 +865,49 @@ pub async fn run_grpc_server(
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
+    let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
+        let identity = Identity::from_pem(cert, key);
+        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
+    } else {
+        Server::builder()
+    };
+
+    let router = build_grpc_service_router(
+        server,
+        pool,
+        worker_state,
+        gateway_state,
+        wireguard_tx,
+        mail_tx,
+        failed_logins,
+        grpc_event_tx,
+    )
+    .await;
+
+    // Run gRPC server
+    let addr = SocketAddr::new(
+        server_config()
+            .grpc_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().grpc_port,
+    );
+    debug!("Starting gRPC services");
+    router.serve(addr).await?;
+    info!("gRPC server started on {addr}");
+    Ok(())
+}
+
+#[must_use]
+pub async fn build_grpc_service_router(
+    server: Server,
+    pool: PgPool,
+    worker_state: Arc<Mutex<WorkerState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
+    wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
+) -> Router {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
@@ -880,21 +925,7 @@ pub async fn run_grpc_server(
         .set_serving::<AuthServiceServer<AuthServer>>()
         .await;
 
-    // Run gRPC server
-    let addr = SocketAddr::new(
-        server_config()
-            .grpc_bind_address
-            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config().grpc_port,
-    );
-    debug!("Starting gRPC services");
-    let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(cert, key);
-        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
-    } else {
-        Server::builder()
-    };
-    let router = builder
+    let router = server
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
@@ -903,9 +934,8 @@ pub async fn run_grpc_server(
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
-    router.serve(addr).await?;
-    info!("gRPC server started on {addr}");
-    Ok(())
+
+    router
 }
 
 #[cfg(feature = "worker")]

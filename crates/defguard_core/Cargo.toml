@@ -93,6 +93,7 @@ version = "=2.4.2"
 [dev-dependencies]
 bytes = "1.6"
 claims = "0.8"
+hyper-util = "0.1"
 matches = "0.1"
 regex = "1.10"
 reqwest = { version = "0.12", features = [
@@ -103,6 +104,7 @@ reqwest = { version = "0.12", features = [
     "stream",
 ], default-features = false }
 serde_qs = "0.13"
+tower = "0.5"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
