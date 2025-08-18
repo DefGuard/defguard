@@ -137,8 +137,7 @@ where
             // Process the request with the inner service first
             let mut response = inner.call(request).await?;
 
-            // Add version headers only if both parsed successfully
-            // Prevents partial header injection in case of parsing errors
+            // Add version headers
             if let (Some(version), Some(system)) = parsed_info {
                 response.headers_mut().insert(VERSION_HEADER, version);
                 response.headers_mut().insert(SYSTEM_INFO_HEADER, system);
