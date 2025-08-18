@@ -69,7 +69,8 @@ struct LdapGroup {
 
 #[derive(Debug, Deserialize)]
 struct CompiledAttributes {
-    ldap_groups: Option<Vec<LdapGroup>>,
+    #[serde(rename = "ldapGroups")]
+    ldap_groups: Vec<LdapGroup>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,6 +78,7 @@ struct UserGroup {
     id: String,
     #[serde(rename = "type")]
     group_type: String,
+    #[serde(rename = "compiledAttributes")]
     compiled_attributes: CompiledAttributes,
 }
 
@@ -85,8 +87,8 @@ impl From<UserGroup> for DirectoryGroup {
         let name = group
             .compiled_attributes
             .ldap_groups
-            .and_then(|groups| groups.into_iter().next())
-            .map_or(group.id.clone(), |g| g.name);
+            .first()
+            .map_or(group.id.clone(), |g| g.name.clone());
         DirectoryGroup { id: group.id, name }
     }
 }

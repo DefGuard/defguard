@@ -578,8 +578,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
     )
 }
 
-async fn sync_all_users_state<T: DirectorySync>(
-    directory_sync: &T,
+async fn sync_all_users_state(
     pool: &PgPool,
     wg_tx: &Sender<GatewayEvent>,
     all_users: &[DirectoryUser],
@@ -848,7 +847,7 @@ pub(crate) async fn do_directory_sync(
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
                 let users = dir_sync.get_all_users().await?;
-                sync_all_users_state(&dir_sync, pool, wireguard_tx, &users).await?;
+                sync_all_users_state(pool, wireguard_tx, &users).await?;
                 all_users = Some(users);
             }
             if matches!(
