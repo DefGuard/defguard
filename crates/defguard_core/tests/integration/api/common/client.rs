@@ -9,7 +9,7 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
 };
-use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver};
+use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver, task::JoinHandle};
 
 pub struct TestClient {
     client: Client,
@@ -18,6 +18,7 @@ pub struct TestClient {
     // Has to live during whole test
     #[allow(dead_code)]
     api_event_rx: UnboundedReceiver<ApiEvent>,
+    api_task_handle: JoinHandle<()>,
 }
 
 impl TestClient {
@@ -29,7 +30,7 @@ impl TestClient {
     ) -> Self {
         let port = listener.local_addr().unwrap().port();
 
-        tokio::spawn(async move {
+        let api_task_handle = tokio::spawn(async move {
             let server = serve(
                 listener,
                 app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -54,6 +55,7 @@ impl TestClient {
             jar,
             port,
             api_event_rx,
+            api_task_handle,
         }
     }
 
@@ -119,6 +121,13 @@ impl TestClient {
         RequestBuilder {
             builder: self.client.delete(full_url),
         }
+    }
+}
+
+impl Drop for TestClient {
+    fn drop(&mut self) {
+        // explicitly stop spawned API server task
+        self.api_task_handle.abort();
     }
 }
 
