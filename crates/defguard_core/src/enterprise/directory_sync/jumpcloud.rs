@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use tokio::time::sleep;
 
-use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, parse_response};
-use crate::enterprise::directory_sync::REQUEST_PAGINATION_SLOWDOWN;
+use super::{
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    parse_response,
+};
 
 const GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/usergroups";
 const ALL_USERS_URL: &str = "https://console.jumpcloud.com/api/systemusers";
