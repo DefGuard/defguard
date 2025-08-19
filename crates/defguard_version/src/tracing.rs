@@ -175,48 +175,52 @@ pub fn build_version_suffix(
 
     if is_versioned_span || is_error {
         // Own version
-        let mut own_version_str = format!(" [{own_version}");
+        version_suffix.push_str(" [");
+        version_suffix.push_str(&own_version.to_string());
         if is_error {
-            own_version_str = format!("{own_version_str} {own_info}");
+            version_suffix.push(' ');
+            version_suffix.push_str(&own_info.to_string());
         }
-        own_version_str = format!("{own_version_str}]");
-        version_suffix.push_str(&own_version_str);
+        version_suffix.push(']');
     }
 
     // Core
     if let Some(ref core_version) = extracted.core_version {
-        let mut core_version_str = format!("[C:{core_version}");
+        version_suffix.push_str("[C:");
+        version_suffix.push_str(core_version);
         if is_error {
             if let Some(ref core_info) = extracted.core_info {
-                core_version_str = format!("{core_version_str} {core_info}");
+                version_suffix.push(' ');
+                version_suffix.push_str(core_info);
             }
         }
-        core_version_str = format!("{core_version_str}]");
-        version_suffix.push_str(&core_version_str);
+        version_suffix.push(']');
     }
 
     // Proxy
     if let Some(ref proxy_version) = extracted.proxy_version {
-        let mut proxy_version_str = format!("[PX:{proxy_version}");
+        version_suffix.push_str("[PX:");
+        version_suffix.push_str(proxy_version);
         if is_error {
             if let Some(ref proxy_info) = extracted.proxy_info {
-                proxy_version_str = format!("{proxy_version_str} {proxy_info}");
+                version_suffix.push(' ');
+                version_suffix.push_str(proxy_info);
             }
         }
-        proxy_version_str = format!("{proxy_version_str}]");
-        version_suffix.push_str(&proxy_version_str);
+        version_suffix.push(']');
     }
 
     // Gateway
     if let Some(ref gateway_version) = extracted.gateway_version {
-        let mut gateway_version_str = format!("[GW:{gateway_version}");
+        version_suffix.push_str("[GW:");
+        version_suffix.push_str(gateway_version);
         if is_error {
             if let Some(ref gateway_info) = extracted.gateway_info {
-                gateway_version_str = format!("{gateway_version_str} {gateway_info}");
+                version_suffix.push(' ');
+                version_suffix.push_str(gateway_info);
             }
         }
-        gateway_version_str = format!("{gateway_version_str}]");
-        version_suffix.push_str(&gateway_version_str);
+        version_suffix.push(']');
     }
 
     version_suffix
