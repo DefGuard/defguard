@@ -46,8 +46,8 @@
 //!
 //! // Extract parsed version and system info
 //! if let Some((version, system_info)) = parse_metadata(&metadata) {
-//!     println!("Client version: {}", version);
-//!     println!("Client system: {}", system_info);
+//!     println!("Client version: {version}");
+//!     println!("Client system: {system_info}");
 //! }
 //!
 //! // Get version info as strings (with fallback)
