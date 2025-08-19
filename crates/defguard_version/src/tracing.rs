@@ -112,14 +112,14 @@ impl ExtractedVersionInfo {
 
 /// Extract version information from current span context
 ///
-/// This function walks up the span hierarchy and extracts version information
-/// from span extensions that were stored by VersionFieldLayer.
+/// This function extracts version information from the current span's extensions
+/// that were stored by VersionFieldLayer.
 ///
 /// # Arguments
 /// * `ctx` - The format context from the tracing formatter
 ///
 /// # Returns
-/// An `ExtractedVersionInfo` struct containing all version information found in the span hierarchy
+/// An `ExtractedVersionInfo` struct containing all version information found in the current span
 pub fn extract_version_info_from_context<S, N>(ctx: &FmtContext<'_, S, N>) -> ExtractedVersionInfo
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -128,26 +128,14 @@ where
     let mut extracted = ExtractedVersionInfo::default();
 
     if let Some(span_ref) = ctx.lookup_current() {
-        let mut current_span = Some(span_ref);
-        while let Some(span) = current_span {
-            let extensions = span.extensions();
-
-            if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
-                if extracted.core_version.is_none() && stored_visitor.core_version.is_some() {
-                    extracted.core_version = stored_visitor.core_version.clone();
-                    extracted.core_info = stored_visitor.core_info.clone();
-                }
-                if extracted.proxy_version.is_none() && stored_visitor.proxy_version.is_some() {
-                    extracted.proxy_version = stored_visitor.proxy_version.clone();
-                    extracted.proxy_info = stored_visitor.proxy_info.clone();
-                }
-                if extracted.gateway_version.is_none() && stored_visitor.gateway_version.is_some() {
-                    extracted.gateway_version = stored_visitor.gateway_version.clone();
-                    extracted.gateway_info = stored_visitor.gateway_info.clone();
-                }
-            }
-
-            current_span = span.parent();
+        let extensions = span_ref.extensions();
+        if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
+            extracted.core_version = stored_visitor.core_version.clone();
+            extracted.core_info = stored_visitor.core_info.clone();
+            extracted.proxy_version = stored_visitor.proxy_version.clone();
+            extracted.proxy_info = stored_visitor.proxy_info.clone();
+            extracted.gateway_version = stored_visitor.gateway_version.clone();
+            extracted.gateway_info = stored_visitor.gateway_info.clone();
         }
     }
 
