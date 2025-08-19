@@ -11,9 +11,12 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 /// - `defguard-system`: System information including OS type, version, and architecture
 ///
 /// # Examples
-/// ```rust
+/// ```ignore
+/// use tonic::transport::Channel;
+///
 /// use defguard_version::client::version_interceptor;
 /// let interceptor = version_interceptor("1.0.0");
+/// let channel = Channel::from_static("http://localhost:50051").connect().await.unwrap();
 /// let client = MyClient::with_interceptor(channel, interceptor);
 /// ```
 pub fn version_interceptor(

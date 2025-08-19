@@ -12,11 +12,12 @@
 //!
 //! # Usage
 //!
-//! ```rust,no_run
+//! ```
 //! use tower::ServiceBuilder;
 //! use defguard_version::server::DefguardVersionLayer;
 //!
-//! let version_layer = DefguardVersionLayer::new("1.0.0")?;
+//! let my_grpc_service = ServiceBuilder::new();
+//! let version_layer = DefguardVersionLayer::new("1.0.0").unwrap();
 //! let service = ServiceBuilder::new()
 //!     .layer(version_layer)
 //!     .service(my_grpc_service);

@@ -15,11 +15,12 @@
 //!
 //! ## Server-side middleware
 //!
-//! ```rust,no_run
+//! ```
 //! use tower::ServiceBuilder;
 //! use defguard_version::server::DefguardVersionLayer;
 //!
-//! let layer = DefguardVersionLayer::new("1.0.0")?;
+//! let my_grpc_service = ServiceBuilder::new();
+//! let layer = DefguardVersionLayer::new("1.0.0").unwrap();
 //! let service = ServiceBuilder::new()
 //!     .layer(layer)
 //!     .service(my_grpc_service);
@@ -27,22 +28,24 @@
 //!
 //! ## Client-side interceptor
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use defguard_version::client::version_interceptor;
 //! use tonic::transport::Channel;
 //!
-//! let channel = Channel::from_static("http://localhost:50051").connect().await?;
+//! let channel = Channel::from_static("http://localhost:50051").connect().await.unwrap();
 //! let client = MyServiceClient::with_interceptor(
 //!     channel,
-//!     version_interceptor("1.0.0")?
+//!     version_interceptor("1.0.0").unwrap()
 //! );
 //! ```
 //!
 //! ## Parsing version information
 //!
-//! ```rust,no_run
+//! ```
 //! use defguard_version::{parse_metadata, version_info_from_metadata};
 //! use tonic::metadata::MetadataMap;
+//!
+//! let metadata = MetadataMap::new();
 //!
 //! // Extract parsed version and system info
 //! if let Some((version, system_info)) = parse_metadata(&metadata) {
@@ -88,7 +91,7 @@ pub enum DefguardVersionError {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use defguard_version::SystemInfo;
 ///
 /// // Get current system information
@@ -188,10 +191,10 @@ impl ComponentInfo {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use defguard_version::ComponentInfo;
     ///
-    /// let info = ComponentInfo::new("1.0.0")?;
+    /// let info = ComponentInfo::new("1.0.0").unwrap();
     /// assert_eq!(info.version.major, 1);
     /// ```
     pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
@@ -221,10 +224,11 @@ impl ComponentInfo {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```
 /// use defguard_version::parse_metadata;
 /// use tonic::metadata::MetadataMap;
 ///
+/// let metadata = MetadataMap::new();
 /// if let Some((version, system)) = parse_metadata(&metadata) {
 ///     println!("Peer version: {}", version);
 ///     println!("Peer system: {}", system);
@@ -273,10 +277,11 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```
 /// use defguard_version::version_info_from_metadata;
 /// use tonic::metadata::MetadataMap;
 ///
+/// let metadata = MetadataMap::new();
 /// let (version, system) = version_info_from_metadata(&metadata);
 /// println!("Client: {} running on {}", version, system);
 /// // Output might be: "Client: 1.2.3 running on Linux 22.04 64-bit x86_64"
