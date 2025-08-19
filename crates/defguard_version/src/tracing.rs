@@ -474,3 +474,181 @@ pub fn init(own_version: &str, log_level: &str) -> Result<(), DefguardVersionErr
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use semver::Version;
+
+    fn create_version() -> Version {
+        Version::parse("1.2.3").unwrap()
+    }
+
+    fn create_system_info() -> SystemInfo {
+        SystemInfo {
+            os_type: "Linux".to_string(),
+            os_version: "22.04".to_string(),
+            architecture: "x86_64".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_build_version_suffix_empty_extracted_no_error() {
+        let extracted = ExtractedVersionInfo::default();
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_build_version_suffix_empty_extracted_with_error() {
+        let extracted = ExtractedVersionInfo::default();
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, true);
+
+        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_core_version_only_no_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.core_version = Some("2.0.0".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, " [1.2.3][C:2.0.0]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_core_version_with_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.core_version = Some("2.0.0".to_string());
+        extracted.core_info = Some("Windows 11 64-bit arm64".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, true);
+
+        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][C:2.0.0 Windows 11 64-bit arm64]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_proxy_version_only_no_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.proxy_version = Some("1.4.2".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, " [1.2.3][PX:1.4.2]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_proxy_version_with_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.proxy_version = Some("1.4.2".to_string());
+        extracted.proxy_info = Some("macOS 13.0 arm64".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, true);
+
+        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][PX:1.4.2 macOS 13.0 arm64]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_gateway_version_only_no_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.gateway_version = Some("1.1.0".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, " [1.2.3][GW:1.1.0]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_gateway_version_with_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.gateway_version = Some("1.1.0".to_string());
+        extracted.gateway_info = Some("FreeBSD 13.2 amd64".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, true);
+
+        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][GW:1.1.0 FreeBSD 13.2 amd64]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_all_components_no_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.core_version = Some("2.0.0".to_string());
+        extracted.proxy_version = Some("1.4.2".to_string());
+        extracted.gateway_version = Some("1.1.0".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, " [1.2.3][C:2.0.0][PX:1.4.2][GW:1.1.0]");
+    }
+
+    #[test]
+    fn test_build_version_suffix_all_components_with_error() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.core_version = Some("2.0.0".to_string());
+        extracted.core_info = Some("Windows 11 x86_64".to_string());
+        extracted.proxy_version = Some("1.4.2".to_string());
+        extracted.proxy_info = Some("macOS 13.0 arm64".to_string());
+        extracted.gateway_version = Some("1.1.0".to_string());
+        extracted.gateway_info = Some("FreeBSD 13.2 amd64".to_string());
+        let version = create_version();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, true);
+
+        assert_eq!(
+            result,
+            " [1.2.3 Linux 22.04 x86_64][C:2.0.0 Windows 11 x86_64][PX:1.4.2 macOS 13.0 arm64][GW:1.1.0 FreeBSD 13.2 amd64]"
+        );
+    }
+
+    #[test]
+    fn test_build_version_suffix_version_with_pre_release() {
+        let mut extracted = ExtractedVersionInfo::default();
+        extracted.core_version = Some("2.0.0-alpha.1".to_string());
+        let version = Version::parse("1.2.3-beta.2").unwrap();
+        let system_info = create_system_info();
+
+        let result = build_version_suffix(&extracted, &version, &system_info, false);
+
+        assert_eq!(result, " [1.2.3-beta.2][C:2.0.0-alpha.1]");
+    }
+
+    #[test]
+    fn test_extracted_version_info_has_version_info() {
+        let mut extracted = ExtractedVersionInfo::default();
+        assert!(!extracted.has_version_info());
+
+        extracted.core_version = Some("2.0.0".to_string());
+        assert!(extracted.has_version_info());
+
+        extracted.core_version = None;
+        extracted.proxy_version = Some("1.4.2".to_string());
+        assert!(extracted.has_version_info());
+
+        extracted.proxy_version = None;
+        extracted.gateway_version = Some("1.1.0".to_string());
+        assert!(extracted.has_version_info());
+    }
+}
