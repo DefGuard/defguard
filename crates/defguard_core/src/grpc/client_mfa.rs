@@ -25,7 +25,10 @@ use crate::{
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::utils::parse_client_info,
+    grpc::{
+        proto::proxy::{ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse},
+        utils::parse_client_info,
+    },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -104,6 +107,19 @@ impl ClientMfaServer {
 
     pub(crate) fn emit_event(&self, event: BidiStreamEvent) -> Result<(), ClientMfaServerError> {
         Ok(self.bidi_event_tx.send(event)?)
+    }
+
+    /// Allows proxy to verify if token is valid and active
+    #[instrument(skip_all)]
+    pub(crate) async fn validate_mfa_token(
+        &mut self,
+        request: ClientMfaTokenValidationRequest,
+    ) -> Result<ClientMfaTokenValidationResponse, Status> {
+        let pubkey = Self::parse_token(&request.token)?;
+        let session_active = self.sessions.get(&pubkey).is_some();
+        Ok(ClientMfaTokenValidationResponse {
+            token_valid: session_active,
+        })
     }
 
     #[instrument(skip_all)]

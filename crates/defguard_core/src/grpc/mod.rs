@@ -528,6 +528,20 @@ pub async fn run_grpc_bidi_stream(
                     info!("Received message from proxy.");
                     debug!("Received the following message from proxy: {received:?}");
                     let payload = match received.payload {
+                        // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
+                        Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
+                            match client_mfa_server.validate_mfa_token(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::ClientMfaTokenValidation(
+                                        response_payload,
+                                    ))
+                                }
+                                Err(err) => {
+                                    error!("Client MFA validate token error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                         Some(core_request::Payload::RegisterMobileAuth(request)) => {
                             match enrollment_server.register_mobile_auth(request).await {
