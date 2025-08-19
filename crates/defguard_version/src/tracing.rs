@@ -1,3 +1,76 @@
+//! Tracing integration with version-aware log formatting.
+//!
+//! This module provides a custom tracing formatter and layer system that automatically
+//! includes version and system information in log messages. It's designed to make
+//! debugging and monitoring easier in distributed Defguard deployments by providing
+//! component version context in logs.
+//!
+//! # Features
+//!
+//! - **Version-aware formatting**: Automatically extracts and displays version information
+//! - **Component differentiation**: Distinguishes between Core (C:), Proxy (PX:), and Gateway (GW:) components
+//! - **Error-level enhancement**: Includes detailed system information for ERROR-level logs
+//!
+//! # Log Format
+//!
+//! The formatter adds version suffixes to log messages:
+//!
+//! - **Regular logs**: `[own_version][C:core_version][PX:proxy_version][GW:gateway_version]`
+//! - **Error logs**: `[own_version own_system_info][C:core_version core_info][PX:proxy_version proxy_info][GW:gateway_version gateway_info]`
+//!
+//! # Span Fields
+//!
+//! The following span fields are automatically captured and used for version display:
+//!
+//! - `core_version`, `core_info` - Core component version and system information
+//! - `proxy_version`, `proxy_info` - Proxy component version and system information
+//! - `gateway_version`, `gateway_info` - Gateway component version and system information
+//!
+//! # Usage
+//!
+//! ## Basic Setup
+//!
+//! ```rust
+//! // Initialize tracing with version-aware formatting
+//! defguard_version::tracing::init("1.5.0", "info");
+//! ```
+//!
+//! ## Creating Version-Aware Spans
+//!
+//! ```rust
+//! use tracing::info_span;
+//!
+//! // Create a span with proxy version information
+//! let _span = info_span!(
+//!     "proxy_communication",
+//!     proxy_version = "1.4.2",
+//!     proxy_info = "Linux 22.04 64-bit x86_64"
+//! ).entered();
+//!
+//! // This log will include the proxy version information
+//! tracing::info!("Processing proxy request");
+//! // Output: 2024-01-01T12:00:00Z INFO proxy_communication: Processing proxy request [1.5.0][PX:1.4.2]
+//! ```
+//!
+//! ## Error Logs with Full Context
+//!
+//! ```rust
+//! use tracing::error;
+//!
+//! // Error logs automatically include system information
+//! tracing::error!("Failed to connect to gateway");
+//! // Output: 2024-01-01T12:00:00Z ERROR: Failed to connect to gateway [1.5.0 Linux 22.04 64-bit x86_64][GW:1.3.1 Windows 11 64-bit x86_64]
+//! ```
+//!
+//! # Architecture
+//!
+//! The module implements a layered architecture:
+//!
+//! 1. **`VersionFieldLayer`** - Captures version fields from spans and stores them in extensions
+//! 2. **`VersionSuffixFormat`** - Custom formatter that adds version suffixes to log messages
+//! 3. **`VersionFilteredFields`** - Field formatter that excludes version fields from normal output
+//! 4. **Utility functions** - Extract and format version information from span hierarchy
+
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
     Layer,
@@ -10,6 +83,10 @@ use tracing_subscriber::{
 
 use crate::SystemInfo;
 
+/// Container for version information extracted from tracing span hierarchy.
+///
+/// Aggregates version and system information for different Defguard components
+/// (core, proxy, gateway) found while traversing up the span tree.
 #[derive(Debug, Default, Clone)]
 pub struct ExtractedVersionInfo {
     pub core_version: Option<String>,
@@ -101,7 +178,7 @@ pub fn build_version_suffix(
         version_suffix.push_str(&own_version_str);
     }
 
-    // Core version
+    // Core
     if let Some(ref core_version) = extracted.core_version {
         let mut core_version_str = format!("[C:{core_version}");
         if is_error {
@@ -113,7 +190,7 @@ pub fn build_version_suffix(
         version_suffix.push_str(&core_version_str);
     }
 
-    // Proxy version
+    // Proxy
     if let Some(ref proxy_version) = extracted.proxy_version {
         let mut proxy_version_str = format!("[PX:{proxy_version}");
         if is_error {
@@ -125,7 +202,7 @@ pub fn build_version_suffix(
         version_suffix.push_str(&proxy_version_str);
     }
 
-    // Gateway version
+    // Gateway
     if let Some(ref gateway_version) = extracted.gateway_version {
         let mut gateway_version_str = format!("[GW:{gateway_version}");
         if is_error {
@@ -285,7 +362,7 @@ impl<'writer> FormatFields<'writer> for VersionFilteredFields {
     }
 }
 
-/// Field visitor that skips version-related fields
+/// Field visitor that skips version-related fields to avoid duplication
 pub struct FieldFilterVisitor<'writer> {
     writer: Writer<'writer>,
     first: bool,
