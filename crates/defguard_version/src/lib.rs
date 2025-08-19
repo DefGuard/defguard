@@ -131,10 +131,7 @@ impl SystemInfo {
     }
 
     fn as_header_value(&self) -> String {
-        format!(
-            "{};{};{}",
-            self.os_type, self.os_version, self.architecture
-        )
+        format!("{};{};{}", self.os_type, self.os_version, self.architecture)
     }
 
     fn try_from_header_value(header_value: &str) -> Result<Self, DefguardVersionError> {
