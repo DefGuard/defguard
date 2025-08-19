@@ -71,17 +71,22 @@
 //! 3. **`VersionFilteredFields`** - Field formatter that excludes version fields from normal output
 //! 4. **Utility functions** - Extract and format version information from span hierarchy
 
+use semver::Version;
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
     Layer,
     field::RecordFields,
-    fmt::{FmtContext, FormatEvent, FormatFields, format::Writer},
+    fmt::{
+        FmtContext, FormatEvent, FormatFields,
+        format::{Format, Full, Writer},
+        time::SystemTime,
+    },
     layer::{Context, SubscriberExt},
     registry::LookupSpan,
     util::SubscriberInitExt,
 };
 
-use crate::SystemInfo;
+use crate::{ComponentInfo, DefguardVersionError, SystemInfo};
 
 /// Container for version information extracted from tracing span hierarchy.
 ///
@@ -161,7 +166,7 @@ where
 /// A formatted string containing version information suitable for appending to log lines
 pub fn build_version_suffix(
     extracted: &ExtractedVersionInfo,
-    own_version: &str,
+    own_version: &Version,
     own_info: &SystemInfo,
     is_error: bool,
 ) -> String {
@@ -227,8 +232,19 @@ pub fn build_version_suffix(
 pub struct VersionSuffixFormat {
     /// The underlying tracing formatter
     pub inner: tracing_subscriber::fmt::format::Format,
-    pub own_version: String,
-    pub own_info: SystemInfo,
+    pub component_info: ComponentInfo,
+}
+
+impl VersionSuffixFormat {
+    pub fn new(
+        own_version: &str,
+        inner: Format<Full, SystemTime>,
+    ) -> Result<Self, DefguardVersionError> {
+        Ok(Self {
+            inner,
+            component_info: ComponentInfo::new(own_version)?,
+        })
+    }
 }
 
 /// A layer that captures version fields from spans and stores them for use by the formatter
@@ -273,8 +289,12 @@ where
 
         // Build version suffix using utility function
         let is_error = *event.metadata().level() == Level::ERROR;
-        let version_suffix =
-            build_version_suffix(&extracted, &self.own_version, &self.own_info, is_error);
+        let version_suffix = build_version_suffix(
+            &extracted,
+            &self.component_info.version,
+            &self.component_info.system,
+            is_error,
+        );
 
         // Create a wrapper writer that will append version info before newlines
         let mut wrapper = VersionSuffixWriter::new(writer, version_suffix);
@@ -430,7 +450,7 @@ impl<'writer> tracing::field::Visit for FieldFilterVisitor<'writer> {
 /// ```
 /// defguard_version::tracing::init("1.5.0", "info");
 /// ```
-pub fn init(own_version: &str, log_level: &str) {
+pub fn init(own_version: &str, log_level: &str) -> Result<(), DefguardVersionError> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -440,12 +460,13 @@ pub fn init(own_version: &str, log_level: &str) {
         .with(
             tracing_subscriber::fmt::layer()
                 .with_ansi(true)
-                .event_format(VersionSuffixFormat {
-                    inner: tracing_subscriber::fmt::format::Format::default().with_ansi(true),
-                    own_version: own_version.to_string(),
-                    own_info: SystemInfo::get(),
-                })
+                .event_format(VersionSuffixFormat::new(
+                    own_version,
+                    tracing_subscriber::fmt::format::Format::default().with_ansi(true),
+                )?)
                 .fmt_fields(VersionFilteredFields),
         )
         .init();
+
+    Ok(())
 }
