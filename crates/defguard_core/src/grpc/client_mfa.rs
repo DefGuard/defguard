@@ -226,7 +226,9 @@ impl ClientMfaServer {
                     .await
                     .map_err(|_| Status::internal("unexpected error"))?;
                 if result.is_empty() {
-                    return Err(Status::invalid_argument("No devices available"));
+                    return Err(Status::invalid_argument(
+                        "selected MFA method not available",
+                    ));
                 }
             }
             MfaMethod::Totp => {
