@@ -136,7 +136,7 @@ impl SystemInfo {
 
     fn try_from_header_value(header_value: &str) -> Result<Self, DefguardVersionError> {
         let parts: Vec<&str> = header_value.split(';').collect();
-        if parts.len() != 4 {
+        if parts.len() != 3 {
             return Err(DefguardVersionError::SystemInfoParseError(
                 header_value.to_string(),
             ));
@@ -145,7 +145,7 @@ impl SystemInfo {
         Ok(Self {
             os_type: parts[0].to_string(),
             os_version: parts[1].to_string(),
-            architecture: parts[3].to_string(),
+            architecture: parts[2].to_string(),
         })
     }
 }
