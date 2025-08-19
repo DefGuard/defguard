@@ -11,7 +11,8 @@ const USER_GROUPS_URL: &str = "https://console.jumpcloud.com/api/v2/users/<USER_
 const USER_GROUP_MEMBERS_URL: &str =
     "https://console.jumpcloud.com/api/v2/usergroups/<GROUP_ID>/members";
 const MAX_REQUESTS: usize = 50;
-const MAX_RESULTS: &str = "100";
+const MAX_RESULTS: usize = 100;
+const API_KEY_HEADER: &str = "x-api-key";
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "UPPERCASE")]
@@ -136,12 +137,12 @@ impl JumpCloudDirectorySync {
         let url = USER_GROUP_MEMBERS_URL.replace("<GROUP_ID>", &group.id);
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
 
-        debug!("Requesting group members from URL: {}", url);
-        debug!("Initial query parameters: {:?}", query);
+        debug!("Requesting group members from URL: {url}");
+        debug!("Initial query parameters: {query:?}");
 
         let response = client
             .get(&url)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
             .await?;
@@ -164,19 +165,18 @@ impl JumpCloudDirectorySync {
         );
 
         for i in 1..MAX_REQUESTS {
-            let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
+            let skip_value = i * MAX_RESULTS;
             query.insert("skip", skip_value.to_string());
 
             debug!(
-                "Requesting page {} (skip: {}) for group {} members",
+                "Requesting page {} (skip: {skip_value}) for group {} members",
                 i + 1,
-                skip_value,
                 group.id
             );
 
             let response = client
                 .get(&url)
-                .header("x-api-key", &self.api_key)
+                .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
                 .await?;
@@ -231,12 +231,12 @@ impl JumpCloudDirectorySync {
         let client = reqwest::Client::new();
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
-        debug!("Initial query parameters: {:?}", query);
+        debug!("Initial query parameters: {query:?}");
 
-        debug!("Sending initial request to: {}", GROUPS_URL);
+        debug!("Sending initial request to: {GROUPS_URL}");
         let response = client
             .get(GROUPS_URL)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
             .await?;
@@ -248,18 +248,17 @@ impl JumpCloudDirectorySync {
         debug!("Initial batch fetched {} groups", all_groups_response.len());
 
         for i in 1..MAX_REQUESTS {
-            let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
+            let skip_value = i * MAX_RESULTS;
             query.insert("skip", skip_value.to_string());
 
             debug!(
-                "Requesting page {} (skip: {}) from JumpCloud API",
-                i + 1,
-                skip_value
+                "Requesting page {} (skip: {skip_value}) from JumpCloud API",
+                i + 1
             );
 
             let response = client
                 .get(GROUPS_URL)
-                .header("x-api-key", &self.api_key)
+                .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
                 .await?;
@@ -293,12 +292,12 @@ impl JumpCloudDirectorySync {
         let client = reqwest::Client::new();
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
-        debug!("Initial query parameters for users: {:?}", query);
-        debug!("Sending initial request to: {}", ALL_USERS_URL);
+        debug!("Initial query parameters for users: {query:?}");
+        debug!("Sending initial request to: {ALL_USERS_URL}");
 
         let response = client
             .get(ALL_USERS_URL)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
             .await?;
@@ -314,14 +313,14 @@ impl JumpCloudDirectorySync {
         );
 
         for i in 1..MAX_REQUESTS {
-            let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
+            let skip_value = i * MAX_RESULTS;
             query.insert("skip", skip_value.to_string());
 
-            debug!("Requesting page {} (skip: {}) for users", i + 1, skip_value);
+            debug!("Requesting page {} (skip: {skip_value}) for users", i + 1);
 
             let response = client
                 .get(ALL_USERS_URL)
-                .header("x-api-key", &self.api_key)
+                .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
                 .await?;
@@ -363,80 +362,71 @@ impl JumpCloudDirectorySync {
     }
 
     async fn query_user_groups(&self, user_id: &str) -> Result<Vec<UserGroup>, DirectorySyncError> {
-        debug!("Starting to query groups for user: {}", user_id);
+        debug!("Starting to query groups for user: {user_id}");
         let client = reqwest::Client::new();
         let url = USER_GROUPS_URL.replace("<USER_ID>", user_id);
 
         let mut query = HashMap::from([("limit", MAX_RESULTS.to_string())]);
-        debug!("Requesting user groups from URL: {}", url);
-        debug!("Initial query parameters for user groups: {:?}", query);
+        debug!("Requesting user groups from URL: {url}");
+        debug!("Initial query parameters for user groups: {query:?}");
 
         let response = client
             .get(&url)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .query(&query)
             .send()
             .await?;
 
         debug!(
-            "Initial response status for user {} groups: {}",
-            user_id,
+            "Initial response status for user {user_id} groups: {}",
             response.status()
         );
         let mut all_groups_response: Vec<UserGroup> =
             parse_response(response, "Failed to query user groups from JumpCloud API.").await?;
 
         debug!(
-            "Initial batch fetched {} groups for user {}",
-            all_groups_response.len(),
-            user_id
+            "Initial batch fetched {} groups for user {user_id}",
+            all_groups_response.len()
         );
 
         for i in 1..MAX_REQUESTS {
-            let skip_value = i * MAX_RESULTS.parse::<usize>().unwrap();
+            let skip_value = i * MAX_RESULTS;
             query.insert("skip", skip_value.to_string());
 
             debug!(
-                "Requesting page {} (skip: {}) for user {} groups",
+                "Requesting page {} (skip: {}) for user {user_id} groups",
                 i + 1,
                 skip_value,
-                user_id
             );
 
             let response = client
                 .get(&url)
-                .header("x-api-key", &self.api_key)
+                .header(API_KEY_HEADER, &self.api_key)
                 .query(&query)
                 .send()
                 .await?;
 
             debug!(
-                "Page {} response status for user {} groups: {}",
+                "Page {} response status for user {user_id} groups: {}",
                 i + 1,
-                user_id,
                 response.status()
             );
             let groups_response: Vec<UserGroup> =
                 parse_response(response, "Failed to query user groups from JumpCloud API.").await?;
 
             debug!(
-                "Page {} returned {} groups for user {}",
+                "Page {} returned {} groups for user {user_id}",
                 i + 1,
                 groups_response.len(),
-                user_id
             );
 
             if groups_response.is_empty() {
-                debug!(
-                    "No more groups found for user {}, stopping pagination",
-                    user_id
-                );
+                debug!("No more groups found for user {user_id}, stopping pagination");
                 break;
             } else {
                 all_groups_response.extend(groups_response);
                 debug!(
-                    "Total groups accumulated so far for user {}: {}",
-                    user_id,
+                    "Total groups accumulated so far for user {user_id}: {}",
                     all_groups_response.len()
                 );
             }
@@ -445,8 +435,7 @@ impl JumpCloudDirectorySync {
         }
 
         debug!(
-            "Total groups fetched for user {}: {}",
-            user_id,
+            "Total groups fetched for user {user_id}: {}",
             all_groups_response.len()
         );
         Ok(all_groups_response)
@@ -455,11 +444,11 @@ impl JumpCloudDirectorySync {
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
         debug!("Testing connection to JumpCloud API");
         let client = reqwest::Client::new();
-        debug!("Sending test request to: {}", ALL_USERS_URL);
+        debug!("Sending test request to: {ALL_USERS_URL}");
 
         let response = client
             .get(ALL_USERS_URL)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .send()
             .await?;
 
@@ -474,18 +463,18 @@ impl JumpCloudDirectorySync {
         &self,
         email: &str,
     ) -> Result<Option<DirectoryUser>, DirectorySyncError> {
-        debug!("Starting search for user by email: {}", email);
+        debug!("Starting search for user by email: {email}");
         let client = reqwest::Client::new();
 
         let filter = format!("email:$eq:{email}");
 
-        debug!("Querying JumpCloud for user with email: {}", email);
-        debug!("Using filter: {}", filter);
-        debug!("Sending request to: {}", ALL_USERS_URL);
+        debug!("Querying JumpCloud for user with email: {email}");
+        debug!("Using filter: {filter}");
+        debug!("Sending request to: {ALL_USERS_URL}");
 
         let response = client
             .get(ALL_USERS_URL)
-            .header("x-api-key", &self.api_key)
+            .header(API_KEY_HEADER, &self.api_key)
             .query(&[("filter", &filter)])
             .send()
             .await?;
