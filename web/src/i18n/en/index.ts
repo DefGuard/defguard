@@ -1404,6 +1404,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             helper:
               "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
           },
+          jumpcloud_api_key: {
+            label: 'JumpCloud API Key',
+            helper:
+              'API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.',
+          },
           group_match: {
             label: 'Sync only matching groups',
             helper:
@@ -1986,7 +1991,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
-        endpoint: 'Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.',
+        endpoint:
+          'Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:

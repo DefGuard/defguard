@@ -902,6 +902,7 @@ impl User<Id> {
             Ok(Self::find_by_email(&mut *conn, username_or_email).await?)
         }
     }
+
     pub(crate) async fn find_many_by_emails<'e, E>(
         executor: E,
         emails: &[&str],

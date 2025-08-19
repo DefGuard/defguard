@@ -190,7 +190,6 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
-    use crate::enterprise::snat::handlers as snat;
     use db::{
         AddDevice, UserDetails, UserInfo,
         models::device::{ModifyDevice, UserDevice},
@@ -208,6 +207,7 @@ mod openapi {
     };
 
     use super::*;
+    use crate::enterprise::snat::handlers as snat;
 
     #[derive(OpenApi)]
     #[openapi(

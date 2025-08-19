@@ -1222,6 +1222,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             helper:
               'Klucz prywatny dla aplikacji synchronizacji Okta w formacie JWK. Klucz nie jest wyświetlany ponownie po wgraniu.',
           },
+          jumpcloud_api_key: {
+            label: 'Klucz API JumpCloud',
+            helper:
+              'Klucz API JumpCloud używany do synchronizacji stanu użytkowników i grup.',
+          },
           group_match: {
             label: 'Synchronizuj tylko pasujące grupy',
             helper:
@@ -1771,7 +1776,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       helpers: {
         address:
           'Na podstawie tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN: 10.10.10.0/24). Opcjonalnie możesz podać wiele adresów, oddzielając je przecinkiem. Pierwszy adres będzie adresem głównym i zostanie użyty do przypisywania adresów IP urządzeniom. Pozostałe adresy są dodatkowe i nie będą zarządzane przez Defguarda.',
-        endpoint: 'Publiczny adres IP lub domena internetowa, do której będą łączyć się użytkownicy/urządzenia. Ten adres zostanie użyty w konfiguracji klientów, ale Gatewaye Defguard nie wiążą się z tym adresem.',
+        endpoint:
+          'Publiczny adres IP lub domena internetowa, do której będą łączyć się użytkownicy/urządzenia. Ten adres zostanie użyty w konfiguracji klientów, ale Gatewaye Defguard nie wiążą się z tym adresem.',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs WireGuard jest aktywny.',
