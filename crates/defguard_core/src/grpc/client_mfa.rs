@@ -116,7 +116,7 @@ impl ClientMfaServer {
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
         let pubkey = Self::parse_token(&request.token)?;
-        let session_active = self.sessions.get(&pubkey).is_some();
+        let session_active = self.sessions.contains_key(&pubkey);
         Ok(ClientMfaTokenValidationResponse {
             token_valid: session_active,
         })
