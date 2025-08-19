@@ -536,7 +536,10 @@ mod tests {
 
         let result = build_version_suffix(&extracted, &version, &system_info, true);
 
-        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][C:2.0.0 Windows 11 64-bit arm64]");
+        assert_eq!(
+            result,
+            " [1.2.3 Linux 22.04 x86_64][C:2.0.0 Windows 11 64-bit arm64]"
+        );
     }
 
     #[test]
@@ -561,7 +564,10 @@ mod tests {
 
         let result = build_version_suffix(&extracted, &version, &system_info, true);
 
-        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][PX:1.4.2 macOS 13.0 arm64]");
+        assert_eq!(
+            result,
+            " [1.2.3 Linux 22.04 x86_64][PX:1.4.2 macOS 13.0 arm64]"
+        );
     }
 
     #[test]
@@ -586,7 +592,10 @@ mod tests {
 
         let result = build_version_suffix(&extracted, &version, &system_info, true);
 
-        assert_eq!(result, " [1.2.3 Linux 22.04 x86_64][GW:1.1.0 FreeBSD 13.2 amd64]");
+        assert_eq!(
+            result,
+            " [1.2.3 Linux 22.04 x86_64][GW:1.1.0 FreeBSD 13.2 amd64]"
+        );
     }
 
     #[test]
