@@ -7,8 +7,8 @@
 //!
 //! # Headers Added
 //!
-//! - `dfg-version`: The semantic version of the Defguard component
-//! - `dfg-system-info`: System information including OS type, version, bitness, and architecture
+//! - `defguard-version`: The semantic version of the Defguard component
+//! - `defguard-system`: System information including OS type, version, and architecture
 //!
 //! # Usage
 //!

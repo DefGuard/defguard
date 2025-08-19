@@ -8,8 +8,8 @@
 //!
 //! The crate defines two standard headers used across all Defguard gRPC communications:
 //!
-//! - `dfg-version`: Semantic version string (e.g., "1.2.3")
-//! - `dfg-system-info`: Semicolon-separated system information (OS;version;bitness;arch)
+//! - `defguard-version`: Semantic version string (e.g., "1.2.3")
+//! - `defguard-system`: Semicolon-separated system information (OS;version;arch)
 //!
 //! # Usage
 //!
@@ -65,10 +65,10 @@ pub mod server;
 pub mod tracing;
 
 /// HTTP header name for the Defguard component version.
-pub static VERSION_HEADER: &str = "dfg-version";
+pub static VERSION_HEADER: &str = "defguard-version";
 
 /// HTTP header name for the Defguard system information.
-pub static SYSTEM_INFO_HEADER: &str = "dfg-system-info";
+pub static SYSTEM_INFO_HEADER: &str = "defguard-system";
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
@@ -97,7 +97,7 @@ pub enum DefguardVersionError {
 ///
 /// // Access individual fields
 /// println!("OS: {} {}", info.os_type, info.os_version);
-/// println!("Architecture: {} ({})", info.architecture, info.bitness);
+/// println!("Architecture: {}", info.architecture);
 /// ```
 #[derive(Debug, Clone)]
 pub struct SystemInfo {
@@ -105,8 +105,6 @@ pub struct SystemInfo {
     pub os_type: String,
     /// The operating system version (e.g., "22.04", "11", "13.0")
     pub os_version: String,
-    /// The system bitness (e.g., "64-bit", "32-bit")
-    pub bitness: String,
     /// The system architecture (e.g., "x86_64", "aarch64", "arm")
     pub architecture: String,
 }
@@ -115,15 +113,15 @@ impl Display for SystemInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} {} {} {}",
-            self.os_type, self.os_version, self.bitness, self.architecture
+            "{} {} {}",
+            self.os_type, self.os_version, self.architecture
         )
     }
 }
 
 impl SystemInfo {
-    /// Automatically detects the operating system type, version, architecture
-    /// and bitness using the `os_info` crate.
+    /// Automatically detects the operating system type, version and architecture
+    /// using the `os_info` crate.
     ///
     /// # Returns
     ///
@@ -134,8 +132,8 @@ impl SystemInfo {
 
     fn as_header_value(&self) -> String {
         format!(
-            "{};{};{};{}",
-            self.os_type, self.os_version, self.bitness, self.architecture
+            "{};{};{}",
+            self.os_type, self.os_version, self.architecture
         )
     }
 
@@ -150,7 +148,6 @@ impl SystemInfo {
         Ok(Self {
             os_type: parts[0].to_string(),
             os_version: parts[1].to_string(),
-            bitness: parts[2].to_string(),
             architecture: parts[3].to_string(),
         })
     }
@@ -161,7 +158,6 @@ impl From<os_info::Info> for SystemInfo {
         Self {
             os_type: info.os_type().to_string(),
             os_version: info.version().to_string(),
-            bitness: info.bitness().to_string(),
             architecture: info.architecture().unwrap_or("?").to_string(),
         }
     }
