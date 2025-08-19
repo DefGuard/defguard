@@ -56,7 +56,7 @@
 
 use ::tracing::{error, warn};
 use semver::Version;
-use std::{fmt::Display, str::FromStr};
+use std::{fmt, str::FromStr};
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
 
@@ -109,8 +109,8 @@ pub struct SystemInfo {
     pub architecture: String,
 }
 
-impl Display for SystemInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for SystemInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{} {} {}",
