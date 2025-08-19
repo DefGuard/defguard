@@ -484,10 +484,7 @@ struct ProxyMessageLoopContext<'a> {
     polling_server: &'a mut PollingServer,
 }
 
-#[instrument(
-    name = "proxy_message_loop",
-    skip(context),
-)]
+#[instrument(name = "proxy_message_loop", skip(context))]
 async fn handle_proxy_message_loop(
     proxy_version: &str,
     proxy_info: &str,
