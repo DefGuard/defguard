@@ -1,7 +1,7 @@
 use base64::{Engine, engine::general_purpose, prelude::BASE64_STANDARD};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use model_derive::Model;
-use sqlx::{PgExecutor, query_as};
+use sqlx::{PgExecutor, query, query_as};
 use thiserror::Error;
 
 use crate::{
