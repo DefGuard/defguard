@@ -125,11 +125,22 @@ where
     let mut extracted = ExtractedVersionInfo::default();
 
     if let Some(span_ref) = ctx.lookup_current() {
-        let extensions = span_ref.extensions();
-        if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
-            extracted.component.clone_from(&stored_visitor.component);
-            extracted.version.clone_from(&stored_visitor.version);
-            extracted.info.clone_from(&stored_visitor.info);
+        let mut current_span = Some(span_ref);
+        while let Some(span) = current_span {
+            let extensions = span.extensions();
+
+            if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
+                if extracted.component.is_none() && stored_visitor.component.is_some() {
+                    extracted.component.clone_from(&stored_visitor.component);
+                }
+                if extracted.version.is_none() && stored_visitor.version.is_some() {
+                    extracted.version.clone_from(&stored_visitor.version);
+                }
+                if extracted.info.is_none() && stored_visitor.info.is_some() {
+                    extracted.info.clone_from(&stored_visitor.info);
+                }
+            }
+            current_span = span.parent();
         }
     }
 
