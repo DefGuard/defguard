@@ -450,7 +450,7 @@ impl ClientMfaServer {
                         return Err(Status::invalid_argument("Signature not found in request"));
                     }
                 } else {
-                    error!("Challenge not found in MFA session !");
+                    error!("Challenge not found in MFA session.");
                     return Err(Status::invalid_argument("Challenge not found in session"));
                 }
             }
