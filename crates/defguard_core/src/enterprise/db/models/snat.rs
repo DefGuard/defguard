@@ -1,13 +1,14 @@
 use std::net::IpAddr;
 
-use crate::{
-    db::{Id, NoId},
-    enterprise::snat::error::UserSnatBindingError,
-};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query_as};
 use utoipa::ToSchema;
+
+use crate::{
+    db::{Id, NoId},
+    enterprise::snat::error::UserSnatBindingError,
+};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
 #[table(user_snat_binding)]

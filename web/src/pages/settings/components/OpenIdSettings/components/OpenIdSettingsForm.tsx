@@ -111,6 +111,7 @@ export const OpenIdSettingsForm = () => {
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
           directory_sync_group_match: z.string(),
+          jumpcloud_api_key: z.string(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -148,6 +149,15 @@ export const OpenIdSettingsForm = () => {
               });
             }
           }
+
+          if (val.directory_sync_enabled && val.name === 'JumpCloud') {
+            if (val.jumpcloud_api_key.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+              });
+            }
+          }
         }),
     [LL.form.error],
   );
@@ -174,6 +184,7 @@ export const OpenIdSettingsForm = () => {
       okta_dirsync_client_id: '',
       directory_sync_group_match: '',
       username_handling: 'RemoveForbidden',
+      jumpcloud_api_key: '',
     };
 
     if (openidData) {
