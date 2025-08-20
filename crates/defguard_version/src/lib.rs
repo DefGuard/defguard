@@ -129,6 +129,7 @@ impl SystemInfo {
     /// # Returns
     ///
     /// A `SystemInfo` struct populated with the current system's characteristics.
+    #[must_use]
     pub fn get() -> Self {
         os_info::get().into()
     }
@@ -287,6 +288,7 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
 /// // Output might be: "Client: 1.2.3 running on Linux 22.04 64-bit x86_64"
 /// // Or if headers missing: "Client: ? running on ?"
 /// ```
+#[must_use]
 pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
     parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |(version, info)| {
         (version.to_string(), info.to_string())

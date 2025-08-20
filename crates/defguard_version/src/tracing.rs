@@ -103,6 +103,7 @@ pub struct ExtractedVersionInfo {
 }
 
 impl ExtractedVersionInfo {
+    #[must_use]
     pub fn has_version_info(&self) -> bool {
         self.core_version.is_some()
             || self.proxy_version.is_some()
@@ -120,6 +121,7 @@ impl ExtractedVersionInfo {
 ///
 /// # Returns
 /// An `ExtractedVersionInfo` struct containing all version information found in the current span
+#[must_use]
 pub fn extract_version_info_from_context<S, N>(ctx: &FmtContext<'_, S, N>) -> ExtractedVersionInfo
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -152,6 +154,7 @@ where
 ///
 /// # Returns
 /// A formatted string containing version information suitable for appending to log lines
+#[must_use]
 pub fn build_version_suffix(
     extracted: &ExtractedVersionInfo,
     own_version: &Version,
@@ -302,6 +305,7 @@ pub struct VersionSuffixWriter<'a> {
 }
 
 impl<'a> VersionSuffixWriter<'a> {
+    #[must_use]
     pub fn new(inner: Writer<'a>, version_suffix: String) -> Self {
         Self {
             inner,
@@ -310,7 +314,7 @@ impl<'a> VersionSuffixWriter<'a> {
     }
 }
 
-impl<'a> std::fmt::Write for VersionSuffixWriter<'a> {
+impl std::fmt::Write for VersionSuffixWriter<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         if let Some(content) = s.strip_suffix('\n') {
             // Remove the newline, add version suffix, then add newline back
@@ -381,6 +385,7 @@ pub struct FieldFilterVisitor<'writer> {
 }
 
 impl<'writer> FieldFilterVisitor<'writer> {
+    #[must_use]
     pub fn new(writer: Writer<'writer>) -> Self {
         Self {
             writer,
@@ -389,7 +394,7 @@ impl<'writer> FieldFilterVisitor<'writer> {
     }
 }
 
-impl<'writer> tracing::field::Visit for FieldFilterVisitor<'writer> {
+impl tracing::field::Visit for FieldFilterVisitor<'_> {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
             "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version"
