@@ -1,14 +1,13 @@
+use base64::{Engine, engine::general_purpose, prelude::BASE64_STANDARD};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use model_derive::Model;
+use sqlx::{PgExecutor, query_as};
+use thiserror::Error;
+
 use crate::{
     db::{Id, NoId},
     random::gen_alphanumeric,
 };
-use base64::engine::general_purpose;
-use base64::{Engine, prelude::BASE64_STANDARD};
-use ed25519_dalek::Verifier;
-use ed25519_dalek::{Signature, VerifyingKey};
-use model_derive::Model;
-use sqlx::{PgExecutor, query, query_as};
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BiometricAuthError {
@@ -47,6 +46,7 @@ impl BiometricAuth {
             pub_key,
         }
     }
+
     pub fn validate_pubkey(pub_key: &str) -> Result<(), BiometricAuthError> {
         let decoded = BASE64_STANDARD.decode(pub_key)?;
         if decoded.len() != ed25519_dalek::PUBLIC_KEY_LENGTH {
@@ -170,10 +170,11 @@ fn verify(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use base64::engine::general_purpose;
     use ed25519_dalek::Signer;
     use matches::assert_matches;
+
+    use super::*;
 
     #[test]
     fn test_verify_valid_sig() {

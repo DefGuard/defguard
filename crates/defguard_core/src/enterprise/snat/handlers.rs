@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use axum::{
     Json,
     extract::{Path, State},
@@ -5,7 +7,6 @@ use axum::{
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::net::IpAddr;
 use utoipa::ToSchema;
 
 use crate::{

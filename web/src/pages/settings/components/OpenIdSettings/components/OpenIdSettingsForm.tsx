@@ -21,6 +21,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdProviderSettings } from './OpenIdProviderSettings';
@@ -58,9 +59,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -72,9 +74,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate: deleteProvider } = useMutation({
     mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -108,6 +111,7 @@ export const OpenIdSettingsForm = () => {
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
           directory_sync_group_match: z.string(),
+          jumpcloud_api_key: z.string(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -145,6 +149,15 @@ export const OpenIdSettingsForm = () => {
               });
             }
           }
+
+          if (val.directory_sync_enabled && val.name === 'JumpCloud') {
+            if (val.jumpcloud_api_key.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+              });
+            }
+          }
         }),
     [LL.form.error],
   );
@@ -171,6 +184,7 @@ export const OpenIdSettingsForm = () => {
       okta_dirsync_client_id: '',
       directory_sync_group_match: '',
       username_handling: 'RemoveForbidden',
+      jumpcloud_api_key: '',
     };
 
     if (openidData) {

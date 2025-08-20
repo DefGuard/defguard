@@ -41,10 +41,7 @@ pub fn nthash(password: &str) -> String {
 #[must_use]
 pub fn unicode_pwd(password: &str) -> Vec<u8> {
     let quoted = format!("\"{password}\"");
-    let utf16_bytes: Vec<u8> = quoted
-        .encode_utf16()
-        .flat_map(|c| c.to_le_bytes())
-        .collect();
+    let utf16_bytes: Vec<u8> = quoted.encode_utf16().flat_map(u16::to_le_bytes).collect();
 
     utf16_bytes
 }

@@ -95,6 +95,7 @@ impl From<User> for DirectoryUser {
         Self {
             email: val.profile.email,
             active: ACTIVE_STATUS.contains(&val.status.as_str()),
+            id: None,
         }
     }
 }
@@ -412,17 +413,18 @@ impl DirectorySync for OktaDirectorySync {
 
     async fn get_user_groups(
         &self,
-        user_id: &str,
+        user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Getting groups of user {user_id}");
-        let response = self.query_user_groups(user_id).await?;
-        debug!("Got groups response for user {user_id}");
+        debug!("Getting groups of user {user_email}");
+        let response = self.query_user_groups(user_email).await?;
+        debug!("Got groups response for user {user_email}");
         Ok(response.into_iter().map(Into::into).collect())
     }
 
     async fn get_group_members(
         &self,
         group: &DirectoryGroup,
+        _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
         debug!("Getting group members of group {}", group.name);
         let response = self.query_group_members(group).await?;

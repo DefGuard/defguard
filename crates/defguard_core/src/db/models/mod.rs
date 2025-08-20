@@ -29,13 +29,12 @@ use std::collections::HashSet;
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
-use crate::db::models::biometric_auth::BiometricAuth;
-
 use self::{
     device::UserDevice,
     user::{MFAMethod, User},
 };
 use super::{Group, Id};
+use crate::db::models::biometric_auth::BiometricAuth;
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
