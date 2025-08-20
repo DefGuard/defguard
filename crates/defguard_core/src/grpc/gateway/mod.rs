@@ -750,11 +750,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        let span = tracing::info_span!(
-            "gateway_stats",
-            gateway_version = version,
-            gateway_info = info,
-        );
+        let span = tracing::info_span!("gateway_stats", component = "gateway", version, info);
         let _guard = span.enter();
         loop {
             // wait for a message or update client map at least once a mninute if no messages are received
@@ -920,11 +916,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!(
-            "gateway_config",
-            gateway_version = version,
-            gateway_info = info,
-        );
+        let span = tracing::info_span!("gateway_config", component = "gateway", version, info);
         let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
@@ -1002,11 +994,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!(
-            "gateway_updates",
-            gateway_version = version,
-            gateway_info = info,
-        );
+        let span = tracing::info_span!("gateway_updates", component = "gateway", version, info);
         let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)

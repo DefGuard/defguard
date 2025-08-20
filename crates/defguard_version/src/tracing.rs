@@ -127,13 +127,9 @@ where
     if let Some(span_ref) = ctx.lookup_current() {
         let extensions = span_ref.extensions();
         if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
-            extracted
-                .component
-                .clone_from(&stored_visitor.component);
+            extracted.component.clone_from(&stored_visitor.component);
             extracted.version.clone_from(&stored_visitor.version);
-            extracted
-                .info
-                .clone_from(&stored_visitor.info);
+            extracted.info.clone_from(&stored_visitor.info);
         }
     }
 
@@ -171,7 +167,7 @@ pub fn build_version_suffix(
         version_suffix.push(']');
     }
 
-    if let Some(ref component) = extracted.component {
+    if let (Some(component), Some(version)) = (&extracted.component, &extracted.version) {
         // TODO enum & match
         let component = component.to_lowercase();
         if component == "core" {
@@ -181,6 +177,7 @@ pub fn build_version_suffix(
         } else if component == "gateway" {
             version_suffix.push_str("[GW:");
         }
+        version_suffix.push_str(version);
         if is_error {
             if let Some(ref info) = extracted.info {
                 version_suffix.push(' ');
