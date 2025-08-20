@@ -423,7 +423,7 @@ impl ClientMfaServer {
                                 }
                                 Err(err) => {
                                     error!(
-                                        "Verification of challenge for device {0} failed ! Reason {err}",
+                                        "Verification of challenge for device {} failed; reason {err}",
                                         &device.name
                                     );
                                     self.emit_event(BidiStreamEvent {
