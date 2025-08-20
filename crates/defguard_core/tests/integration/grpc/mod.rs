@@ -1,2 +1,2 @@
 mod common;
-mod gateway_status;
+mod gateway;

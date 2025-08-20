@@ -1,12 +1,20 @@
 use axum::http::Uri;
-use defguard_core::grpc::proto::gateway::gateway_service_client::GatewayServiceClient;
+use defguard_core::grpc::proto::gateway::{
+    ConfigurationRequest, gateway_service_client::GatewayServiceClient,
+};
 use hyper_util::rt::TokioIo;
 use tokio::io::DuplexStream;
-use tonic::transport::{Channel, Endpoint};
+use tonic::{
+    Request, Status,
+    metadata::MetadataValue,
+    transport::{Channel, Endpoint},
+};
 use tower::service_fn;
 
 pub(crate) struct MockGateway {
     client: GatewayServiceClient<Channel>,
+    auth_token: Option<String>,
+    hostname: Option<String>,
 }
 
 impl MockGateway {
@@ -34,6 +42,25 @@ impl MockGateway {
 
         let client = GatewayServiceClient::new(channel);
 
-        Self { client }
+        Self {
+            client,
+            auth_token: None,
+            hostname: None,
+        }
     }
+
+    // pub(crate) async fn get_gateway_config(
+    //     &self,
+    // ) -> Result<defguard_core::grpc::proto::gateway::Configuration, Status> {
+    //     let request = Request::new(ConfigurationRequest {
+    //         name: self.hostname,
+    //     });
+    //     if let Some(token) = self.auth_token {
+    //         request
+    //             .metadata_mut()
+    //             .insert("authorization", MetadataValue::try_from(token));
+    //     };
+
+    //     self.client.config(request).await
+    // }
 }

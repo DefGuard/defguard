@@ -10,6 +10,7 @@ use defguard_core::{
 };
 use sqlx::PgPool;
 use tokio::{
+    io::DuplexStream,
     sync::{
         broadcast::{self, Receiver},
         mpsc::{UnboundedReceiver, unbounded_channel},
@@ -18,12 +19,9 @@ use tokio::{
 };
 use tonic::transport::{Server, server::Router};
 
-use crate::grpc::common::mock_gateway::MockGateway;
+pub mod mock_gateway;
 
-mod mock_gateway;
-
-pub struct TestGrpcClient {
-    gateway: MockGateway,
+pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     app_event_rx: UnboundedReceiver<AppEvent>,
@@ -34,8 +32,9 @@ pub struct TestGrpcClient {
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
-impl TestGrpcClient {
+impl TestGrpcServer {
     pub async fn new(
+        server_stream: DuplexStream,
         grpc_router: Router,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
         app_event_rx: UnboundedReceiver<AppEvent>,
@@ -45,9 +44,6 @@ impl TestGrpcClient {
         gateway_state: Arc<Mutex<GatewayMap>>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
-        // create communication channel
-        let (client_stream, server_stream) = tokio::io::duplex(1024);
-
         // spawn test gRPC server
         let grpc_server_task_handle = tokio::spawn(async move {
             grpc_router
@@ -57,11 +53,7 @@ impl TestGrpcClient {
                 .unwrap()
         });
 
-        // setup mock gateway
-        let gateway = MockGateway::new(client_stream).await;
-
         Self {
-            gateway,
             grpc_server_task_handle,
             grpc_event_rx,
             app_event_rx,
@@ -74,14 +66,17 @@ impl TestGrpcClient {
     }
 }
 
-impl Drop for TestGrpcClient {
+impl Drop for TestGrpcServer {
     fn drop(&mut self) {
         // explicitly stop spawned gRPC server task
         self.grpc_server_task_handle.abort();
     }
 }
 
-pub(crate) async fn make_grpc_test_client(pool: PgPool) -> TestGrpcClient {
+pub(crate) async fn make_grpc_test_server(pool: PgPool) -> (TestGrpcServer, DuplexStream) {
+    // create communication channel for clients
+    let (client_stream, server_stream) = tokio::io::duplex(1024);
+
     // setup helper structs
     let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
     let (app_event_tx, app_event_rx) = unbounded_channel::<AppEvent>();
@@ -116,15 +111,19 @@ pub(crate) async fn make_grpc_test_client(pool: PgPool) -> TestGrpcClient {
     )
     .await;
 
-    TestGrpcClient::new(
-        grpc_router,
-        grpc_event_rx,
-        app_event_rx,
-        wg_rx,
-        mail_rx,
-        worker_state,
-        gateway_state,
-        failed_logins,
+    (
+        TestGrpcServer::new(
+            server_stream,
+            grpc_router,
+            grpc_event_rx,
+            app_event_rx,
+            wg_rx,
+            mail_rx,
+            worker_state,
+            gateway_state,
+            failed_logins,
+        )
+        .await,
+        client_stream,
     )
-    .await
 }
