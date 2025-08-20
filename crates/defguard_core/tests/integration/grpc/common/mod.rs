@@ -73,7 +73,7 @@ impl Drop for TestGrpcServer {
     }
 }
 
-pub(crate) async fn make_grpc_test_server(pool: PgPool) -> (TestGrpcServer, DuplexStream) {
+pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, DuplexStream) {
     // create communication channel for clients
     let (client_stream, server_stream) = tokio::io::duplex(1024);
 
@@ -101,7 +101,7 @@ pub(crate) async fn make_grpc_test_server(pool: PgPool) -> (TestGrpcServer, Dupl
 
     let grpc_router = build_grpc_service_router(
         server,
-        pool,
+        pool.clone(),
         worker_state.clone(),
         gateway_state.clone(),
         wg_tx,

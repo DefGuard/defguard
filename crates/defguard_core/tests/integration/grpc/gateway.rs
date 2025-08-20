@@ -1,30 +1,96 @@
-use defguard_core::{db::setup_pool, grpc::proto::gateway::ConfigurationRequest};
+use defguard_core::db::{Id, WireguardNetwork, models::wireguard::LocationMfaMode, setup_pool};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tonic::Request;
+use tonic::Code;
 
 use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
 
-async fn setup_test_server(pool: PgPool) -> (TestGrpcServer, MockGateway) {
-    let (test_server, client_stream) = make_grpc_test_server(pool).await;
+async fn setup_test_server(pool: PgPool) -> (TestGrpcServer, MockGateway, WireguardNetwork<Id>) {
+    let (test_server, client_stream) = make_grpc_test_server(&pool).await;
 
     // setup mock gateway
-    let gateway = MockGateway::new(client_stream).await;
-    (test_server, gateway)
+    let mut gateway = MockGateway::new(client_stream).await;
+
+    // create a test location
+    let location = WireguardNetwork::new(
+        "test location".to_string(),
+        Vec::new(),
+        1000,
+        "endpoint1".to_string(),
+        None,
+        Vec::new(),
+        100,
+        100,
+        false,
+        false,
+        LocationMfaMode::Disabled,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // set auth token for gateway
+    let token = location
+        .generate_gateway_token()
+        .expect("failed to generate gateway token");
+    gateway.set_token(&token);
+
+    // set hostname for gateway
+    gateway.set_hostname("test_gateway");
+
+    (test_server, gateway, location)
 }
 
 #[sqlx::test]
 async fn test_gateway_authorization(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (test_server, gateway) = setup_test_server(pool).await;
+    let (_test_server, mut gateway, test_location) = setup_test_server(pool).await;
+
+    // remove auth token
+    gateway.clear_token();
 
     // make a request without auth token
-    let request = Request::new(ConfigurationRequest {
-        name: Some("test_gw".into()),
-    });
+    let response = gateway.get_gateway_config().await;
 
-    // check that response is Status::Unauthorized
-    let response = todo!();
+    // check that response code is Status::Unauthenticated
+    assert!(response.is_err());
+    let status = response.err().unwrap();
+    assert_eq!(status.code(), Code::Unauthenticated);
+
+    // set invalid token and check again
+    gateway.set_token("invalid_token");
+    let response = gateway.get_gateway_config().await;
+    assert!(response.is_err());
+    let status = response.err().unwrap();
+    assert_eq!(status.code(), Code::Unauthenticated);
+
+    // set valid token and retry
+    let token = test_location.generate_gateway_token().unwrap();
+    gateway.set_token(&token);
+    let response = gateway.get_gateway_config().await;
+    assert!(response.is_ok());
+}
+
+#[sqlx::test]
+async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (_test_server, mut gateway, _test_location) = setup_test_server(pool).await;
+
+    // remove hostname
+    gateway.clear_hostname();
+
+    // make a request without hostname
+    let response = gateway.get_gateway_config().await;
+
+    // check that response code is Status::Unauthenticated
+    assert!(response.is_err());
+    let status = response.err().unwrap();
+    assert_eq!(status.code(), Code::Internal);
+
+    // set hostname and retry
+    gateway.set_hostname("hostname");
+    let response = gateway.get_gateway_config().await;
+    assert!(response.is_ok());
 }

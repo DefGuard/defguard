@@ -1244,14 +1244,7 @@ pub(crate) async fn create_network_token(
 ) -> ApiResult {
     debug!("Generating a new token for network ID {network_id}");
     let network = find_network(network_id, &appstate.pool).await?;
-    let token = Claims::new(
-        ClaimsType::Gateway,
-        format!("DEFGUARD-NETWORK-{network_id}"),
-        network_id.to_string(),
-        u32::MAX.into(),
-    )
-    .to_jwt()
-    .map_err(|_| {
+    let token = network.generate_gateway_token().map_err(|_| {
         error!("Failed to create token for gateway {}", network.name);
         WebError::Authorization(format!(
             "Failed to create token for gateway {}",
