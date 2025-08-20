@@ -361,8 +361,7 @@ impl<'writer> FieldFilterVisitor<'writer> {
 impl tracing::field::Visit for FieldFilterVisitor<'_> {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
-            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version"
-            | "gateway_info" => {
+            "component" | "info" | "version" => {
                 // Skip version fields to prevent duplication
             }
             _ => {
@@ -377,8 +376,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
         match field.name() {
-            "core_version" | "core_info" | "proxy_version" | "proxy_info" | "gateway_version"
-            | "gateway_info" => {
+            "component" | "info" | "version" => {
                 // Skip version fields to prevent duplication
             }
             _ => {
