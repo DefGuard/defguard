@@ -1,3 +1,4 @@
+use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
     client::version_interceptor, server::DefguardVersionLayer, version_info_from_metadata,
@@ -482,6 +483,7 @@ struct ProxyMessageLoopContext<'a> {
     password_reset_server: &'a mut PasswordResetServer,
     client_mfa_server: &'a mut ClientMfaServer,
     polling_server: &'a mut PollingServer,
+    endpoint_uri: &'a Uri,
 }
 
 #[instrument(name = "proxy_message_loop", skip(context))]
@@ -826,8 +828,7 @@ async fn handle_proxy_message_loop(
                 context.tx.send(req).unwrap();
             }
             Err(err) => {
-                // error!("Disconnected from proxy at {}", endpoint.uri());
-                error!("stream error: {err}");
+                error!("Disconnected from proxy at {}: {err}", context.endpoint_uri);
                 debug!("waiting 10s to re-establish the connection");
                 sleep(TEN_SECS).await;
                 break 'message;
@@ -902,6 +903,7 @@ pub async fn run_grpc_bidi_stream(
                 password_reset_server: &mut password_reset_server,
                 client_mfa_server: &mut client_mfa_server,
                 polling_server: &mut polling_server,
+				endpoint_uri: endpoint.uri(),
             },
         )
         .await?;
