@@ -486,7 +486,11 @@ struct ProxyMessageLoopContext<'a> {
     endpoint_uri: &'a Uri,
 }
 
-#[instrument(name = "proxy_message_loop", skip(context), fields(component="proxy"))]
+#[instrument(
+    name = "proxy_message_loop",
+    skip(context),
+    fields(component = "proxy")
+)]
 async fn handle_proxy_message_loop(
     version: &str,
     info: &str,
