@@ -132,12 +132,12 @@ where
     if let Some(span_ref) = ctx.lookup_current() {
         let extensions = span_ref.extensions();
         if let Some(stored_visitor) = extensions.get::<SpanFieldVisitor>() {
-            extracted.core_version = stored_visitor.core_version.clone();
-            extracted.core_info = stored_visitor.core_info.clone();
-            extracted.proxy_version = stored_visitor.proxy_version.clone();
-            extracted.proxy_info = stored_visitor.proxy_info.clone();
-            extracted.gateway_version = stored_visitor.gateway_version.clone();
-            extracted.gateway_info = stored_visitor.gateway_info.clone();
+            extracted.core_version.clone_from(&stored_visitor.core_version);
+            extracted.core_info.clone_from(&stored_visitor.core_info);
+            extracted.proxy_version.clone_from(&stored_visitor.proxy_version);
+            extracted.proxy_info.clone_from(&stored_visitor.proxy_info);
+            extracted.gateway_version.clone_from(&stored_visitor.gateway_version);
+            extracted.gateway_info.clone_from(&stored_visitor.gateway_info);
         }
     }
 
