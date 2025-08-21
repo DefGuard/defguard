@@ -270,16 +270,16 @@ impl ComponentInfo {
 ///     println!("Peer system: {}", system);
 /// }
 /// ```
-pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
+pub fn parse_metadata(metadata: &MetadataMap) -> Option<ComponentInfo> {
     let Some(version) = metadata.get(VERSION_HEADER) else {
         warn!("Missing version header");
         return None;
     };
-    let Some(info) = metadata.get(SYSTEM_INFO_HEADER) else {
+    let Some(system) = metadata.get(SYSTEM_INFO_HEADER) else {
         warn!("Missing system info header");
         return None;
     };
-    let (Ok(version), Ok(info)) = (version.to_str(), info.to_str()) else {
+    let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) else {
         warn!("Failed to stringify version or system info header value");
         return None;
     };
@@ -287,12 +287,12 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
         warn!("Failed to parse version: {version}");
         return None;
     };
-    let Ok(info) = SystemInfo::try_from_header_value(info) else {
-        warn!("Failed to parse system info: {info}");
+    let Ok(system) = SystemInfo::try_from_header_value(system) else {
+        warn!("Failed to parse system info: {system}");
         return None;
     };
 
-    Some((version, info))
+    Some(ComponentInfo { version, system })
 }
 
 /// Extracts version information from metadata as formatted strings with fallback.
@@ -325,7 +325,7 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<(Version, SystemInfo)> {
 /// ```
 #[must_use]
 pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
-    parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |(version, info)| {
-        (version.to_string(), info.to_string())
+    parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |info| {
+        (info.version.to_string(), info.system.to_string())
     })
 }
