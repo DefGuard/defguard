@@ -36,7 +36,7 @@ export const AclCreateDataProvider = ({ children }: Props) => {
 
   const editRuleId = useMemo(() => {
     if (isRuleEdit) {
-      return parseInt(searchParams.get('rule') as string);
+      return parseInt(searchParams.get('rule') as string, 10);
     }
   }, [isRuleEdit, searchParams]);
 

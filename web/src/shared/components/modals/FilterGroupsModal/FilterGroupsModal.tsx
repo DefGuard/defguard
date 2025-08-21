@@ -159,6 +159,7 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
           if (itemSelected) {
             return itemId;
           }
+          return null;
         })
         .filter((id) => isPresent(id));
       res[filterGroup] = selectedFilters;
