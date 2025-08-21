@@ -194,7 +194,7 @@ pub fn build_version_suffix(
         if is_error {
             if let Some(ref info) = extracted.info {
                 version_suffix.push(' ');
-                version_suffix.push_str(&info);
+                version_suffix.push_str(info);
             }
         }
         version_suffix.push(']');
