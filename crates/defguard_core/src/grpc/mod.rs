@@ -497,8 +497,8 @@ async fn handle_proxy_message_loop(
     info: &str,
     context: ProxyMessageLoopContext<'_>,
 ) -> Result<(), anyhow::Error> {
+    let pool = context.pool.clone();
     'message: loop {
-        let pool = context.pool.clone();
         match context.resp_stream.message().await {
             Ok(None) => {
                 info!("stream was closed by the sender");
@@ -508,6 +508,18 @@ async fn handle_proxy_message_loop(
                 info!("Received message from proxy.");
                 debug!("Received the following message from proxy: {received:?}");
                 let payload = match received.payload {
+                    // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
+                    Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
+                        match context.client_mfa_server.validate_mfa_token(request).await {
+                            Ok(response_payload) => Some(
+                                core_response::Payload::ClientMfaTokenValidation(response_payload),
+                            ),
+                            Err(err) => {
+                                error!("Client MFA validate token error {err}");
+                                Some(core_response::Payload::CoreError(err.into()))
+                            }
+                        }
+                    }
                     // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                     Some(core_request::Payload::RegisterMobileAuth(request)) => {
                         match context
@@ -840,6 +852,7 @@ async fn handle_proxy_message_loop(
             }
         }
     }
+
     Ok(())
 }
 

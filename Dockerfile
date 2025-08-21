@@ -8,7 +8,7 @@ COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1.85.1 AS chef
+FROM rust:1 AS chef
 
 WORKDIR /build
 
