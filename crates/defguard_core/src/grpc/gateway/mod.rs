@@ -8,7 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_version::version_info_from_metadata;
+use defguard_version::{DefguardComponent, version_info_from_metadata};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
@@ -750,7 +750,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        let span = tracing::info_span!("gateway_stats", component = "gateway", version, info);
+        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway, version, info);
         let _guard = span.enter();
         loop {
             // wait for a message or update client map at least once a mninute if no messages are received
@@ -916,7 +916,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_config", component = "gateway", version, info);
+        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway, version, info);
         let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
@@ -994,7 +994,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_updates", component = "gateway", version, info);
+        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway, version, info);
         let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)

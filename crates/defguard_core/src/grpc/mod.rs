@@ -1,7 +1,8 @@
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    client::version_interceptor, server::DefguardVersionLayer, version_info_from_metadata,
+    DefguardComponent, client::version_interceptor, server::DefguardVersionLayer,
+    version_info_from_metadata,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -489,7 +490,7 @@ struct ProxyMessageLoopContext<'a> {
 #[instrument(
     name = "proxy_message_loop",
     skip(context),
-    fields(component = "proxy")
+    fields(component = %DefguardComponent::Proxy)
 )]
 async fn handle_proxy_message_loop(
     version: &str,

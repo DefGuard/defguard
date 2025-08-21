@@ -93,7 +93,9 @@ impl FromStr for DefguardComponent {
             "core" => Ok(DefguardComponent::Core),
             "proxy" => Ok(DefguardComponent::Proxy),
             "gateway" => Ok(DefguardComponent::Gateway),
-            _ => Err(DefguardVersionError::InvalidDefguardComponent(s.to_string())),
+            _ => Err(DefguardVersionError::InvalidDefguardComponent(
+                s.to_string(),
+            )),
         }
     }
 }

@@ -182,9 +182,9 @@ pub fn build_version_suffix(
 
     if let (Some(component), Some(version)) = (&extracted.component, &extracted.version) {
         match component {
-            DefguardComponent::Core =>version_suffix.push_str("[C:"),
-            DefguardComponent::Proxy =>version_suffix.push_str("[PX:"),
-            DefguardComponent::Gateway =>version_suffix.push_str("[GW:"),
+            DefguardComponent::Core => version_suffix.push_str("[C:"),
+            DefguardComponent::Proxy => version_suffix.push_str("[PX:"),
+            DefguardComponent::Gateway => version_suffix.push_str("[GW:"),
         }
         version_suffix.push_str(version);
         if is_error {
