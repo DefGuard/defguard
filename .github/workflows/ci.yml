@@ -23,7 +23,7 @@ jobs:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
 
-    container: rust:1
+    container: public.ecr.aws/docker/library/rust:1
 
     services:
       postgres:
