@@ -289,21 +289,20 @@ impl ClientMfaServer {
 
         let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
-                Some(mobile_auth) => match BiometricChallenge::new(Some(mobile_auth.pub_key)) {
-                    Ok(challenge) => Some(challenge),
-                    Err(e) => {
+                Some(mobile_auth) => {
+                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key).map_err(|e| {
                         error!(
                             "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
                         );
-                        return Err(Status::invalid_argument("Invalid public key"));
-                    }
-                },
+                        Status::invalid_argument("Invalid public key")
+                    })?;
+                    Some(challenge)
+                }
                 None => {
                     return Err(Status::internal("unexpected error"));
                 }
             },
-            // this cannot fail
-            MfaMethod::MobileApprove => Some(BiometricChallenge::new(None).unwrap()),
+            MfaMethod::MobileApprove => Some(BiometricChallenge::new()),
             _ => None,
         };
 
@@ -404,91 +403,80 @@ impl ClientMfaServer {
         // validate code
         match method {
             MfaMethod::MobileApprove => {
-                if let Some(challenge) = biometric_challenge {
-                    if let Some(signature) = request.code {
-                        if let Some(auth_device_pub_key) = request.auth_pub_key {
-                            if !BiometricAuth::verify_owner(
-                                &self.pool,
-                                user.id,
-                                &auth_device_pub_key,
-                            )
-                            .await
-                            .map_err(|_| Status::internal("unexpected error"))?
-                            {
-                                return Err(Status::invalid_argument("Arguments invalid"));
-                            }
-                            match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
-                                Ok(()) => {
-                                    debug!("Signature verified successfully.");
-                                }
-                                Err(err) => {
-                                    error!(
-                                        "Verification of challenge for device {} failed; reason {err}",
-                                        &device.name
-                                    );
-                                    self.emit_event(BidiStreamEvent {
-                                        context,
-                                        event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                            DesktopClientMfaEvent::Failed {
-                                                location: location.clone(),
-                                                device: device.clone(),
-                                                method: *method,
-                                                message: "Signed challenge rejected".to_string(),
-                                            },
-                                        )),
-                                    })?;
-                                    return Err(Status::unauthenticated("unauthorized"));
-                                }
-                            }
-                        } else {
-                            return Err(Status::invalid_argument(
-                                "Authorization device key missing in request",
-                            ));
-                        }
-                    } else {
-                        error!("Signed challenge not found in request");
-                        return Err(Status::invalid_argument("Signature not found in request"));
-                    }
-                } else {
+                let challenge = biometric_challenge.as_ref().ok_or_else(|| {
                     error!("Challenge not found in MFA session.");
-                    return Err(Status::invalid_argument("Challenge not found in session"));
+                    Status::invalid_argument("Challenge not found in session")
+                })?;
+                let signature = request.code.ok_or_else(|| {
+                    error!("Signed challenge not found in request");
+                    Status::invalid_argument("Signature not found in request")
+                })?;
+                let auth_device_pub_key = request.auth_pub_key.ok_or_else(|| {
+                    Status::invalid_argument("Authorization device key missing in request")
+                })?;
+                if !BiometricAuth::verify_owner(&self.pool, user.id, &auth_device_pub_key)
+                    .await
+                    .map_err(|_| Status::internal("unexpected error"))?
+                {
+                    return Err(Status::invalid_argument("Arguments invalid"));
+                }
+                match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
+                    Ok(()) => {
+                        debug!("Signature verified successfully.");
+                    }
+                    Err(err) => {
+                        error!(
+                            "Verification of challenge for device {} failed; reason {err}",
+                            &device.name
+                        );
+                        self.emit_event(BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                    method: *method,
+                                    message: "Signed challenge rejected".to_string(),
+                                },
+                            )),
+                        })?;
+                        return Err(Status::unauthenticated("unauthorized"));
+                    }
                 }
             }
             MfaMethod::Biometric => {
-                if let Some(challenge) = biometric_challenge {
-                    if let Some(signed_challenge) = request.code {
-                        match challenge.verify(signed_challenge.as_str(), None) {
-                            // verification passed
-                            Ok(()) => {
-                                debug!("Signature verified successfully.");
-                            }
-                            // challenge rejected
-                            Err(e) => {
-                                error!(
-                                    "Verification of challenge for device {0} failed ! Reason {e}",
-                                    &device.name
-                                );
-                                self.emit_event(BidiStreamEvent {
-                                    context,
-                                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                        DesktopClientMfaEvent::Failed {
-                                            location: location.clone(),
-                                            device: device.clone(),
-                                            method: *method,
-                                            message: "Signed challenge rejected".to_string(),
-                                        },
-                                    )),
-                                })?;
-                                return Err(Status::unauthenticated("unauthorized"));
-                            }
-                        }
-                    } else {
-                        error!("Signed challenge not found in request");
-                        return Err(Status::invalid_argument("Challenge not found in request"));
-                    }
-                } else {
+                let challenge = biometric_challenge.as_ref().ok_or_else(|| {
                     error!("Challenge not found in MFA session !");
-                    return Err(Status::internal("Challenge not found in MFA session"));
+                    Status::internal("Challenge not found in MFA session")
+                })?;
+                let signed_challenge = request.code.ok_or_else(|| {
+                    error!("Signed challenge not found in request");
+                    Status::invalid_argument("Challenge not found in request")
+                })?;
+                match challenge.verify(signed_challenge.as_str(), None) {
+                    // verification passed
+                    Ok(()) => {
+                        debug!("Signature verified successfully.");
+                    }
+                    // challenge rejected
+                    Err(e) => {
+                        error!(
+                            "Verification of challenge for device {0} failed ! Reason {e}",
+                            &device.name
+                        );
+                        self.emit_event(BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                    method: *method,
+                                    message: "Signed challenge rejected".to_string(),
+                                },
+                            )),
+                        })?;
+                        return Err(Status::unauthenticated("unauthorized"));
+                    }
                 }
             }
             MfaMethod::Totp => {

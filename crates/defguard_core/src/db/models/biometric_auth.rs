@@ -125,15 +125,19 @@ fn decode_pub_key(public_key: &str) -> Result<VerifyingKey, BiometricAuthError> 
 }
 
 impl BiometricChallenge {
-    pub fn new(auth_pub_key: Option<String>) -> Result<Self, BiometricAuthError> {
-        if let Some(pub_key) = &auth_pub_key {
-            let _ = decode_pub_key(pub_key.as_str())?;
-        }
+    pub fn new_with_owner(pub_key: &str) -> Result<Self, BiometricAuthError> {
+        let _ = decode_pub_key(pub_key)?;
+        let mut res = Self::new();
+        res.auth_pub_key = Some(pub_key.to_string());
+        Ok(res)
+    }
+
+    pub fn new() -> Self {
         let challenge = gen_alphanumeric(44);
-        Ok(Self {
-            auth_pub_key,
+        Self {
             challenge,
-        })
+            auth_pub_key: None,
+        }
     }
 
     pub fn verify(
