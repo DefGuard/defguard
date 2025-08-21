@@ -295,12 +295,15 @@ impl<'a> VersionSuffixWriter<'a> {
 
 impl std::fmt::Write for VersionSuffixWriter<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        if let Some(content) = s.strip_suffix('\n') {
-            // Remove the newline, add version suffix, then add newline back
+        // Replace internal newlines with escaped version to prevent log line splitting
+        let escaped = s.replace('\n', "\\n");
+        
+        if let Some(content) = escaped.strip_suffix("\\n") {
+            // If the original string ended with a newline, add version suffix and restore newline
             writeln!(self.inner, "{}{}", content, self.version_suffix)
         } else {
-            // No newline at end, just pass through
-            write!(self.inner, "{s}")
+            // No trailing newline, just write the escaped content
+            write!(self.inner, "{}", escaped)
         }
     }
 }
