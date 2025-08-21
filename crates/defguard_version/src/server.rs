@@ -36,7 +36,7 @@ use tonic::{
 };
 use tower::{Layer, Service};
 
-use crate::{ComponentInfo, DefguardVersionError, SYSTEM_INFO_HEADER, VERSION_HEADER};
+use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 
 /// A tower `Layer` that adds Defguard version and system information headers to gRPC responses.
 ///
@@ -64,10 +64,10 @@ impl DefguardVersionLayer {
     ///
     /// * `Ok(DefguardVersionLayer)` - A new layer instance
     /// * `Err(DefguardVersionError)` - If the version string cannot be parsed
-    pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
-        Ok(Self {
-            component_info: ComponentInfo::new(version)?,
-        })
+    pub fn new(version: crate::Version) -> Self {
+        Self {
+            component_info: ComponentInfo::new(version),
+        }
     }
 }
 

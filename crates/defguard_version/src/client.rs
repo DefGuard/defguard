@@ -20,17 +20,11 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 /// let client = MyClient::with_interceptor(channel, interceptor);
 /// ```
 pub fn version_interceptor(
-    version: &str,
+    version: crate::Version,
 ) -> impl Fn(Request<()>) -> Result<Request<()>, Status> + Clone {
-    let component_info = ComponentInfo::new(version)
-        .inspect_err(|err| warn!("Failed to get component info: {err}"))
-        .ok();
+    let component_info = ComponentInfo::new(version);
 
     move |mut request: Request<()>| -> Result<Request<()>, Status> {
-        let Some(component_info) = &component_info else {
-            return Ok(request);
-        };
-
         let metadata = request.metadata_mut();
 
         // Add version header

@@ -58,7 +58,7 @@
 //! ```
 
 use ::tracing::{error, warn};
-use semver::Version;
+pub use semver::Version;
 use std::{fmt, str::FromStr};
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
@@ -233,13 +233,13 @@ impl ComponentInfo {
     /// let info = ComponentInfo::new("1.0.0").unwrap();
     /// assert_eq!(info.version.major, 1);
     /// ```
-    pub fn new(version: &str) -> Result<Self, DefguardVersionError> {
-        let version = Version::from_str(version)?;
+    #[must_use]
+    pub fn new(version: Version) -> Self {
         let info = os_info::get();
-        Ok(Self {
+        Self {
             version,
             system: info.into(),
-        })
+        }
     }
 }
 

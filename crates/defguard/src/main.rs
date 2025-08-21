@@ -42,7 +42,10 @@ async fn main() -> Result<(), anyhow::Error> {
     SERVER_CONFIG.set(config.clone())?;
 
     // initialize tracing with version formatter
-    defguard_version::tracing::init(VERSION, &config.log_level)?;
+    defguard_version::tracing::init(
+        defguard_version::Version::parse(VERSION)?,
+        &config.log_level,
+    )?;
 
     info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");

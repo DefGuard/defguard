@@ -1,7 +1,7 @@
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardComponent, client::version_interceptor, server::DefguardVersionLayer,
+    DefguardComponent, Version, client::version_interceptor, server::DefguardVersionLayer,
     version_info_from_metadata,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
@@ -881,7 +881,7 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let interceptor = version_interceptor(VERSION);
+        let interceptor = version_interceptor(Version::parse(VERSION)?);
         let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
@@ -969,7 +969,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(
         ServiceBuilder::new()
-            .layer(DefguardVersionLayer::new(VERSION)?)
+            .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
             .service(gateway_service),
     );
     #[cfg(feature = "worker")]

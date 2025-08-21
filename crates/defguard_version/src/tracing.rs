@@ -213,14 +213,11 @@ pub struct VersionSuffixFormat {
 }
 
 impl VersionSuffixFormat {
-    pub fn new(
-        own_version: &str,
-        inner: Format<Full, SystemTime>,
-    ) -> Result<Self, DefguardVersionError> {
-        Ok(Self {
+    pub fn new(own_version: crate::Version, inner: Format<Full, SystemTime>) -> Self {
+        Self {
             inner,
-            component_info: ComponentInfo::new(own_version)?,
-        })
+            component_info: ComponentInfo::new(own_version),
+        }
     }
 }
 
@@ -419,7 +416,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 /// ```
 /// defguard_version::tracing::init("1.5.0", "info");
 /// ```
-pub fn init(own_version: &str, log_level: &str) -> Result<(), DefguardVersionError> {
+pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), DefguardVersionError> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -432,7 +429,7 @@ pub fn init(own_version: &str, log_level: &str) -> Result<(), DefguardVersionErr
                 .event_format(VersionSuffixFormat::new(
                     own_version,
                     tracing_subscriber::fmt::format::Format::default().with_ansi(true),
-                )?)
+                ))
                 .fmt_fields(VersionFilteredFields),
         )
         .init();
