@@ -72,7 +72,9 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run cargo deny
-        uses: EmbarkStudios/cargo-deny-action@v2
+        run: |
+          cargo install cargo-deny
+          cargo deny check
 
       - name: Install nextest
         uses: taiki-e/install-action@nextest
