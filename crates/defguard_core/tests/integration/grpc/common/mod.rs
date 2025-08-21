@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent},
+    db::{AppEvent, GatewayEvent, models::settings::initialize_current_settings},
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
     grpc::{GatewayMap, WorkerState, build_grpc_service_router},
@@ -12,21 +12,23 @@ use sqlx::PgPool;
 use tokio::{
     io::DuplexStream,
     sync::{
-        broadcast::{self, Receiver},
+        broadcast::{self, Sender},
         mpsc::{UnboundedReceiver, unbounded_channel},
     },
     task::JoinHandle,
 };
 use tonic::transport::{Server, server::Router};
 
+use crate::common::{init_config, initialize_users};
+
 pub mod mock_gateway;
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-    app_event_rx: UnboundedReceiver<AppEvent>,
-    wireguard_rx: Receiver<GatewayEvent>,
-    mail_rx: UnboundedReceiver<Mail>,
+    // app_event_rx: UnboundedReceiver<AppEvent>,
+    wireguard_tx: Sender<GatewayEvent>,
+    // mail_rx: UnboundedReceiver<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -37,9 +39,7 @@ impl TestGrpcServer {
         server_stream: DuplexStream,
         grpc_router: Router,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-        app_event_rx: UnboundedReceiver<AppEvent>,
-        wireguard_rx: Receiver<GatewayEvent>,
-        mail_rx: UnboundedReceiver<Mail>,
+        wireguard_tx: Sender<GatewayEvent>,
         worker_state: Arc<Mutex<WorkerState>>,
         gateway_state: Arc<Mutex<GatewayMap>>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -56,13 +56,17 @@ impl TestGrpcServer {
         Self {
             grpc_server_task_handle,
             grpc_event_rx,
-            app_event_rx,
-            wireguard_rx,
-            mail_rx,
+            wireguard_tx,
             worker_state,
             gateway_state,
             failed_logins,
         }
+    }
+
+    pub fn get_gateway_map(&self) -> std::sync::MutexGuard<'_, GatewayMap> {
+        self.gateway_state
+            .lock()
+            .expect("failed to acquire lock on gateway state")
     }
 }
 
@@ -88,6 +92,12 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    let config = init_config(None);
+    initialize_users(&pool, &config).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Could not initialize settings");
+
     let license = License::new(
         "test_customer".to_string(),
         false,
@@ -104,7 +114,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
         pool.clone(),
         worker_state.clone(),
         gateway_state.clone(),
-        wg_tx,
+        wg_tx.clone(),
         mail_tx,
         failed_logins.clone(),
         grpc_event_tx,
@@ -116,9 +126,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
             server_stream,
             grpc_router,
             grpc_event_rx,
-            app_event_rx,
-            wg_rx,
-            mail_rx,
+            wg_tx,
             worker_state,
             gateway_state,
             failed_logins,

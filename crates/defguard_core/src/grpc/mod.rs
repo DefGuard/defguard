@@ -138,6 +138,10 @@ impl GatewayMap {
         Self(HashMap::new())
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     // add a new gateway to map
     // this method is meant to be called when a gateway requests a config
     // as a sort of "registration"

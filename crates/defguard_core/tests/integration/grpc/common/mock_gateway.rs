@@ -1,11 +1,13 @@
+use std::collections::VecDeque;
+
 use axum::http::Uri;
 use defguard_core::grpc::proto::gateway::{
-    Configuration, ConfigurationRequest, gateway_service_client::GatewayServiceClient,
+    Configuration, ConfigurationRequest, Update, gateway_service_client::GatewayServiceClient,
 };
 use hyper_util::rt::TokioIo;
 use tokio::io::DuplexStream;
 use tonic::{
-    Request, Response, Status,
+    Request, Response, Status, Streaming,
     metadata::MetadataValue,
     transport::{Channel, Endpoint},
 };
@@ -78,6 +80,15 @@ impl MockGateway {
         self.client.config(request).await
     }
 
+    #[must_use]
+    pub(crate) async fn connect_to_updates_stream(&mut self) -> Streaming<Update> {
+        let mut request = Request::new(());
+
+        self.add_request_metadata(&mut request);
+
+        self.client.updates(request).await.unwrap().into_inner()
+    }
+
     pub(crate) fn set_token(&mut self, token: &str) {
         self.auth_token = Some(token.into())
     }
@@ -92,5 +103,9 @@ impl MockGateway {
 
     pub(crate) fn clear_hostname(&mut self) {
         self.hostname = None;
+    }
+
+    pub(crate) fn hostname(&self) -> String {
+        self.hostname.clone().unwrap_or_default()
     }
 }

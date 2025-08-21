@@ -1,8 +1,11 @@
+use std::time::Duration;
+
 use defguard_core::db::{Id, WireguardNetwork, models::wireguard::LocationMfaMode, setup_pool};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use tokio::time::sleep;
 use tonic::Code;
 
 use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
@@ -94,3 +97,72 @@ async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectO
     let response = gateway.get_gateway_config().await;
     assert!(response.is_ok());
 }
+
+#[sqlx::test]
+async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (test_server, mut gateway, test_location) = setup_test_server(pool).await;
+
+    // initial gateway map is empty
+    {
+        let gateway_map = test_server.get_gateway_map();
+        assert!(gateway_map.is_empty())
+    }
+
+    // gateway request initial config
+    // it should be added to status map as disconnected
+    let response = gateway.get_gateway_config().await;
+    assert!(response.is_ok());
+    {
+        let gateway_map = test_server.get_gateway_map();
+        let location_gateways = gateway_map.get_network_gateway_status(test_location.id);
+        assert_eq!(location_gateways.len(), 1);
+        let gateway_state = location_gateways.first().unwrap();
+        assert!(!gateway_state.connected);
+        assert!(gateway_state.connected_at.is_none());
+        assert!(gateway_state.disconnected_at.is_none());
+        assert_eq!(gateway_state.hostname, gateway.hostname());
+    }
+
+    // gateway connects to updates stream
+    // it should be marked as connected
+    let updates_stream = gateway.connect_to_updates_stream().await;
+    {
+        let gateway_map = test_server.get_gateway_map();
+        let location_gateways = gateway_map.get_network_gateway_status(test_location.id);
+        assert_eq!(location_gateways.len(), 1);
+        let gateway_state = location_gateways.first().unwrap();
+        assert!(gateway_state.connected);
+        assert!(gateway_state.connected_at.is_some());
+        assert!(gateway_state.disconnected_at.is_none());
+        assert_eq!(gateway_state.hostname, gateway.hostname());
+    }
+
+    // gateway disconnect from updates stream
+    // it should be marked as disconnected
+    drop(updates_stream);
+    // wait for the background thread to handle the disconnect
+    sleep(Duration::from_secs(1)).await;
+
+    {
+        let gateway_map = test_server.get_gateway_map();
+        let location_gateways = gateway_map.get_network_gateway_status(test_location.id);
+        assert_eq!(location_gateways.len(), 1);
+        let gateway_state = location_gateways.first().unwrap();
+        assert!(!gateway_state.connected);
+        assert!(gateway_state.connected_at.is_some());
+        assert!(gateway_state.disconnected_at.is_some());
+        assert_eq!(gateway_state.hostname, gateway.hostname());
+    }
+}
+
+// test correct config is sent to gw
+// firewall rules are included
+
+// test updates stream
+// filtering by id
+// sent to multiple gateways
+
+// test client status
+// connected
+// disconnected
