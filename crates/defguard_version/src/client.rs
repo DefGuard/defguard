@@ -7,15 +7,17 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 ///
 /// # Headers Added
 ///
-/// - `defguard-version`: The semantic version of the Defguard component
-/// - `defguard-system`: System information including OS type, version, and architecture
+/// - `defguard-version`: Semantic version of the component
+/// - `defguard-system`: System information including OS type, version and architecture
 ///
 /// # Examples
 /// ```ignore
+/// use semver::Version;
 /// use tonic::transport::Channel;
 ///
 /// use defguard_version::client::version_interceptor;
-/// let interceptor = version_interceptor("1.0.0");
+/// let version = Version::parse("1.0.0").unwrap();
+/// let interceptor = version_interceptor(version);
 /// let channel = Channel::from_static("http://localhost:50051").connect().await.unwrap();
 /// let client = MyClient::with_interceptor(channel, interceptor);
 /// ```

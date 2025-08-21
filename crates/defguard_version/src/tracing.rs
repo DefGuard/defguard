@@ -22,9 +22,9 @@
 //!
 //! The following span fields are automatically captured and used for version display:
 //!
-//! - `core_version`, `core_info` - Core component version and system information
-//! - `proxy_version`, `proxy_info` - Proxy component version and system information
-//! - `gateway_version`, `gateway_info` - Gateway component version and system information
+//! - `component` - component name to use, one of `DefguardComponent` variants
+//! - `version` - component version, usually retrieved from the headers
+//! - `info` - system information, usually retrieved from the headers
 //!
 //! # Usage
 //!
@@ -32,19 +32,24 @@
 //!
 //! ```rust
 //! // Initialize tracing with version-aware formatting
-//! defguard_version::tracing::init("1.5.0", "info");
+//! use semver::Version;
+//!
+//! let version = Version::parse("1.5.0").unwrap();
+//! defguard_version::tracing::init(version, "info");
 //! ```
 //!
 //! ## Creating Version-Aware Spans
 //!
 //! ```rust
+//! use crate::DefguardComponent;
 //! use tracing::info_span;
 //!
 //! // Create a span with proxy version information
 //! let _span = info_span!(
 //!     "proxy_communication",
-//!     proxy_version = "1.4.2",
-//!     proxy_info = "Linux 22.04 64-bit x86_64"
+//!     component = %DefguardComponent::Proxy,
+//!     version = "1.4.2",
+//!     info = "Linux 22.04 64-bit x86_64"
 //! ).entered();
 //!
 //! // This log will include the proxy version information
@@ -92,8 +97,7 @@ use crate::{ComponentInfo, DefguardComponent, DefguardVersionError, SystemInfo};
 
 /// Container for version information extracted from tracing span hierarchy.
 ///
-/// Aggregates version and system information for different Defguard components
-/// (core, proxy, gateway) found while traversing up the span tree.
+/// Aggregates version and system information found while traversing up the span tree.
 #[derive(Debug, Default, Clone)]
 pub struct ExtractedVersionInfo {
     pub component: Option<DefguardComponent>,
@@ -250,18 +254,18 @@ where
     /// Formats a tracing event, conditionally adding version information as a prefix.
     ///
     /// This method includes version information based on:
-    /// - For ERROR level logs: includes core_version, proxy_version, and proxy_info (if available in span)
-    /// - For other levels: includes only core_version and proxy_version (if available in span)
+    /// - For ERROR level logs: includes own and remote component version and system-info
+    /// - For other levels: includes only own and remote component version
     fn format_event(
         &self,
         ctx: &tracing_subscriber::fmt::FmtContext<'_, S, N>,
         writer: Writer<'_>,
         event: &tracing::Event<'_>,
     ) -> std::fmt::Result {
-        // Extract version information from current span context using utility function
+        // Extract version information from current span context
         let extracted = extract_version_info_from_context(ctx);
 
-        // Build version suffix using utility function
+        // Build version suffix
         let is_error = *event.metadata().level() == Level::ERROR;
         let version_suffix = build_version_suffix(
             &extracted,
@@ -295,9 +299,9 @@ impl<'a> VersionSuffixWriter<'a> {
 
 impl std::fmt::Write for VersionSuffixWriter<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        // Replace internal newlines with escaped version to prevent log line splitting
+        // Replace newline characters with escaped version to prevent log line splitting
         let escaped = s.replace('\n', "\\n");
-        
+
         if let Some(content) = escaped.strip_suffix("\\n") {
             // If the original string ended with a newline, add version suffix and restore newline
             writeln!(self.inner, "{}{}", content, self.version_suffix)
@@ -403,16 +407,16 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 /// Initializes tracing with custom formatter that conditionally displays version information.
 ///
 /// The formatter will:
-/// - For ERROR level logs: display core_version, proxy_version, and proxy_info (if available)
-/// - For other log levels: display only core_version and proxy_version (if available)
+/// - For ERROR level logs: display own and remote component version and system-info
+/// - For other log levels: display only own and remote component version
 ///
 /// Version information is extracted from tracing span fields with names:
-/// - `core_version`: The core application version
-/// - `proxy_version`: The connected proxy version
-/// - `proxy_info`: Additional proxy system information
+/// - `component` - component name to use, one of `DefguardComponent` variants
+/// - `version` - component version, usually retrieved from the headers
+/// - `info` - system information, usually retrieved from the headers
 ///
 /// # Arguments
-/// * `core_version` - The core application version to use as fallback when not found in spans
+/// * `own_version` - The application semantic version
 /// * `log_level` - The log level filter to use
 ///
 /// # Examples

@@ -15,9 +15,11 @@
 //! ```
 //! use tower::ServiceBuilder;
 //! use defguard_version::server::DefguardVersionLayer;
+//! use semver::Version;
 //!
 //! let my_grpc_service = ServiceBuilder::new();
-//! let version_layer = DefguardVersionLayer::new("1.0.0").unwrap();
+//! let version = Version::parse("1.0.0").unwrap();
+//! let version_layer = DefguardVersionLayer::new(version).unwrap();
 //! let service = ServiceBuilder::new()
 //!     .layer(version_layer)
 //!     .service(my_grpc_service);
@@ -58,7 +60,7 @@ impl DefguardVersionLayer {
     ///
     /// # Arguments
     ///
-    /// * `version` - A semantic version string (e.g., "1.0.0")
+    /// * `version` - Semantic version of the component
     ///
     /// # Returns
     ///
