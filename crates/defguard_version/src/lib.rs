@@ -58,7 +58,7 @@
 //! ```
 
 use ::tracing::{error, warn};
-pub use semver::Version;
+pub use semver::{Version, Error as SemverError};
 use std::{fmt, str::FromStr};
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
