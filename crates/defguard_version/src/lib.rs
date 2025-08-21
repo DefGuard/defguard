@@ -16,11 +16,12 @@
 //! ## Server-side middleware
 //!
 //! ```
+//! use semver::Version;
 //! use tower::ServiceBuilder;
 //! use defguard_version::server::DefguardVersionLayer;
 //!
-//! let my_grpc_service = ServiceBuilder::new();
-//! let layer = DefguardVersionLayer::new("1.0.0").unwrap();
+//! let version = Version::parse("1.0.0").unwrap();
+//! let layer = DefguardVersionLayer::new(version);
 //! let service = ServiceBuilder::new()
 //!     .layer(layer)
 //!     .service(my_grpc_service);
@@ -29,13 +30,15 @@
 //! ## Client-side interceptor
 //!
 //! ```ignore
+//! use semver::Version;
 //! use defguard_version::client::version_interceptor;
 //! use tonic::transport::Channel;
 //!
+//! let version = Version::parse("1.0.0").unwrap();
 //! let channel = Channel::from_static("http://localhost:50051").connect().await.unwrap();
 //! let client = MyServiceClient::with_interceptor(
 //!     channel,
-//!     version_interceptor("1.0.0").unwrap()
+//!     version_interceptor(version)
 //! );
 //! ```
 //!
@@ -48,9 +51,9 @@
 //! let metadata = MetadataMap::new();
 //!
 //! // Extract parsed version and system info
-//! if let Some((version, system_info)) = parse_metadata(&metadata) {
-//!     println!("Client version: {version}");
-//!     println!("Client system: {system_info}");
+//! if let Some(component_info) = parse_metadata(&metadata) {
+//!     println!("Client version: {}", component_info.version);
+//!     println!("Client system: {}", component_info.system);
 //! }
 //!
 //! // Get version info as strings (with fallback)
@@ -85,6 +88,14 @@ pub enum DefguardVersionError {
     InvalidDefguardComponent(String),
 }
 
+/// Represents the different types of Defguard components that can communicate via gRPC.
+#[derive(Debug, Clone)]
+pub enum DefguardComponent {
+    Core,
+    Proxy,
+    Gateway,
+}
+
 impl FromStr for DefguardComponent {
     type Err = DefguardVersionError;
 
@@ -98,13 +109,6 @@ impl FromStr for DefguardComponent {
             )),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum DefguardComponent {
-    Core,
-    Proxy,
-    Gateway,
 }
 
 impl fmt::Display for DefguardComponent {
@@ -213,24 +217,21 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    /// This method parses the provided version string and automatically detects
+    /// Creates a new ComponentInfo with the provided version and automatically detects
     /// the current system information.
     ///
     /// # Arguments
     ///
-    /// * `version` - A semantic version string (e.g., "1.2.3")
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ComponentInfo)` - Successfully created component info
-    /// * `Err(DefguardVersionError)` - If version parsing fails
+    /// * `version` - A parsed semantic version
     ///
     /// # Examples
     ///
     /// ```
     /// use defguard_version::ComponentInfo;
+    /// use semver::Version;
     ///
-    /// let info = ComponentInfo::new("1.0.0").unwrap();
+    /// let version = Version::parse("1.0.0").unwrap();
+    /// let info = ComponentInfo::new(version);
     /// assert_eq!(info.version.major, 1);
     /// ```
     #[must_use]
