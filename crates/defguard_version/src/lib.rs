@@ -80,6 +80,39 @@ pub enum DefguardVersionError {
 
     #[error("Failed to parse SystemInfo header: {0}")]
     SystemInfoParseError(String),
+
+    #[error("Invalid DefguardComponent: {0}")]
+    InvalidDefguardComponent(String),
+}
+
+impl FromStr for DefguardComponent {
+    type Err = DefguardVersionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "core" => Ok(DefguardComponent::Core),
+            "proxy" => Ok(DefguardComponent::Proxy),
+            "gateway" => Ok(DefguardComponent::Gateway),
+            _ => Err(DefguardVersionError::InvalidDefguardComponent(s.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DefguardComponent {
+    Core,
+    Proxy,
+    Gateway,
+}
+
+impl fmt::Display for DefguardComponent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DefguardComponent::Core => write!(f, "core"),
+            DefguardComponent::Proxy => write!(f, "proxy"),
+            DefguardComponent::Gateway => write!(f, "gateway"),
+        }
+    }
 }
 
 /// System information about the host running a Defguard component.

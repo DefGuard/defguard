@@ -71,6 +71,8 @@
 //! 3. **`VersionFilteredFields`** - Field formatter that excludes version fields from normal output
 //! 4. **Utility functions** - Extract and format version information from span hierarchy
 
+use std::str::FromStr;
+
 use semver::Version;
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
@@ -86,7 +88,7 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
-use crate::{ComponentInfo, DefguardVersionError, SystemInfo};
+use crate::{ComponentInfo, DefguardComponent, DefguardVersionError, SystemInfo};
 
 /// Container for version information extracted from tracing span hierarchy.
 ///
@@ -94,7 +96,7 @@ use crate::{ComponentInfo, DefguardVersionError, SystemInfo};
 /// (core, proxy, gateway) found while traversing up the span tree.
 #[derive(Debug, Default, Clone)]
 pub struct ExtractedVersionInfo {
-    pub component: Option<String>,
+    pub component: Option<DefguardComponent>,
     pub info: Option<String>,
     pub version: Option<String>,
 }
@@ -179,14 +181,10 @@ pub fn build_version_suffix(
     }
 
     if let (Some(component), Some(version)) = (&extracted.component, &extracted.version) {
-        // TODO enum & match
-        let component = component.to_lowercase();
-        if component == "core" {
-            version_suffix.push_str("[C:");
-        } else if component == "proxy" {
-            version_suffix.push_str("[PX:");
-        } else if component == "gateway" {
-            version_suffix.push_str("[GW:");
+        match component {
+            DefguardComponent::Core =>version_suffix.push_str("[C:"),
+            DefguardComponent::Proxy =>version_suffix.push_str("[PX:"),
+            DefguardComponent::Gateway =>version_suffix.push_str("[GW:"),
         }
         version_suffix.push_str(version);
         if is_error {
@@ -313,7 +311,7 @@ impl std::fmt::Write for VersionSuffixWriter<'_> {
 /// A visitor that extracts version fields from spans
 #[derive(Default, Clone)]
 pub struct SpanFieldVisitor {
-    pub component: Option<String>,
+    pub component: Option<DefguardComponent>,
     pub info: Option<String>,
     pub version: Option<String>,
 }
@@ -321,7 +319,7 @@ pub struct SpanFieldVisitor {
 impl tracing::field::Visit for SpanFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
-            "component" => self.component = Some(value.to_string()),
+            "component" => self.component = DefguardComponent::from_str(value).ok(),
             "version" => self.version = Some(value.to_string()),
             "info" => self.info = Some(value.to_string()),
             _ => {}
@@ -329,10 +327,11 @@ impl tracing::field::Visit for SpanFieldVisitor {
     }
 
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        let value = format!("{value:?}");
         match field.name() {
-            "component" => self.component = Some(format!("{value:?}")),
-            "version" => self.version = Some(format!("{value:?}")),
-            "info" => self.info = Some(format!("{value:?}")),
+            "component" => self.component = DefguardComponent::from_str(&value).ok(),
+            "version" => self.version = Some(value),
+            "info" => self.info = Some(value),
             _ => {}
         }
     }
