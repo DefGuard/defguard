@@ -488,7 +488,7 @@ struct ProxyMessageLoopContext<'a> {
 }
 
 #[instrument(
-    name = "proxy_message_loop",
+    name = "proxy_bidi",
     skip(context),
     fields(component = %DefguardComponent::Proxy)
 )]
