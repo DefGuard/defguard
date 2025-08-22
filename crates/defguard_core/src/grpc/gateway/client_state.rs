@@ -195,4 +195,8 @@ impl ClientMap {
 
         Ok(disconnected_clients)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }

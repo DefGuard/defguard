@@ -1,11 +1,17 @@
-use std::time::Duration;
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    time::Duration,
+};
 
-use chrono::Utc;
+use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
 use defguard_core::{
     db::{
-        Device, Id, User, WireguardNetwork,
-        models::{device::DeviceType, wireguard::LocationMfaMode},
+        Device, Id, NoId, User, WireguardNetwork,
+        models::{
+            device::DeviceType, wireguard::LocationMfaMode,
+            wireguard_peer_stats::WireguardPeerStats,
+        },
         setup_pool,
     },
     events::GrpcEvent,
@@ -188,11 +194,17 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 // connected
 // disconnected
 
-#[sqlx::test()]
+#[sqlx::test]
 async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut test_server, mut gateway, test_location, test_user) =
         setup_test_server(pool.clone()).await;
+
+    // initial client map is empty
+    {
+        let client_map = test_server.get_client_map();
+        assert!(client_map.is_empty())
+    }
 
     // connect stats stream
     let stats_tx = gateway.setup_stats_update_stream().await;
@@ -259,4 +271,85 @@ async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) 
     );
 }
 
-// TODO: figure out how to mock time to test disconnect events
+#[sqlx::test]
+async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut test_server, mut gateway, test_location, test_user) =
+        setup_test_server(pool.clone()).await;
+
+    // add user device
+    let device_pubkey = "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=";
+    let test_device = Device::new(
+        "test device".into(),
+        device_pubkey.into(),
+        test_user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // insert device into client map with an old handshake
+    {
+        let mut client_map = test_server.get_client_map();
+        let now = Utc::now().naive_utc();
+        let stats = WireguardPeerStats {
+            id: NoId,
+            device_id: test_device.id,
+            collected_at: now,
+            network: test_location.id,
+            endpoint: None,
+            upload: 0,
+            download: 0,
+            latest_handshake: now.checked_sub_days(Days::new(1)).unwrap(),
+            allowed_ips: None,
+        };
+        client_map
+            .connect_vpn_client(
+                test_location.id,
+                &gateway.hostname(),
+                device_pubkey,
+                &test_device,
+                &test_user,
+                SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+                &stats,
+            )
+            .expect("failed to insert connected client");
+    }
+
+    // connect stats stream
+    let stats_tx = gateway.setup_stats_update_stream().await;
+    let mut update_id = 1;
+
+    // send stats update with old handshake
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: 0,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // wait for event to be emitted
+    sleep(Duration::from_secs(1)).await;
+    let grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+
+    assert_matches!(
+        grpc_event,
+        GrpcEvent::ClientDisconnected {
+            context: _,
+            location,
+            device
+        } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
+}

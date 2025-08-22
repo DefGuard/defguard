@@ -65,6 +65,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
+    grpc::gateway::client_state::ClientMap,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
@@ -74,7 +75,7 @@ mod auth;
 pub(crate) mod client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
-pub(crate) mod gateway;
+pub mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
@@ -861,6 +862,7 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
@@ -881,6 +883,7 @@ pub async fn run_grpc_server(
         pool,
         worker_state,
         gateway_state,
+        client_state,
         wireguard_tx,
         mail_tx,
         failed_logins,
@@ -907,6 +910,7 @@ pub async fn build_grpc_service_router(
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -920,7 +924,14 @@ pub async fn build_grpc_service_router(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
+        GatewayServer::new(
+            pool,
+            gateway_state,
+            client_state,
+            wireguard_tx,
+            mail_tx,
+            grpc_event_tx,
+        ),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
 

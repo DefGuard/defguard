@@ -5,7 +5,7 @@ use defguard_core::{
     db::{AppEvent, GatewayEvent, models::settings::initialize_current_settings},
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
-    grpc::{GatewayMap, WorkerState, build_grpc_service_router},
+    grpc::{GatewayMap, WorkerState, build_grpc_service_router, gateway::client_state::ClientMap},
     mail::Mail,
 };
 use sqlx::PgPool;
@@ -31,10 +31,12 @@ pub struct TestGrpcServer {
     // mail_rx: UnboundedReceiver<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
 impl TestGrpcServer {
+    #[must_use]
     pub async fn new(
         server_stream: DuplexStream,
         grpc_router: Router,
@@ -42,6 +44,7 @@ impl TestGrpcServer {
         wireguard_tx: Sender<GatewayEvent>,
         worker_state: Arc<Mutex<WorkerState>>,
         gateway_state: Arc<Mutex<GatewayMap>>,
+        client_state: Arc<Mutex<ClientMap>>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
         // spawn test gRPC server
@@ -59,14 +62,23 @@ impl TestGrpcServer {
             wireguard_tx,
             worker_state,
             gateway_state,
+            client_state,
             failed_logins,
         }
     }
 
+    #[must_use]
     pub fn get_gateway_map(&self) -> std::sync::MutexGuard<'_, GatewayMap> {
         self.gateway_state
             .lock()
             .expect("failed to acquire lock on gateway state")
+    }
+
+    #[must_use]
+    pub fn get_client_map(&self) -> std::sync::MutexGuard<'_, ClientMap> {
+        self.client_state
+            .lock()
+            .expect("failed to acquire lock on client state")
     }
 }
 
@@ -88,6 +100,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
+    let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -114,6 +127,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
         pool.clone(),
         worker_state.clone(),
         gateway_state.clone(),
+        client_state.clone(),
         wg_tx.clone(),
         mail_tx,
         failed_logins.clone(),
@@ -129,6 +143,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
             wg_tx,
             worker_state,
             gateway_state,
+            client_state,
             failed_logins,
         )
         .await,

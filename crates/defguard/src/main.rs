@@ -18,7 +18,10 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
-    grpc::{GatewayMap, WorkerState, run_grpc_bidi_stream, run_grpc_server},
+    grpc::{
+        GatewayMap, WorkerState, gateway::client_state::ClientMap, run_grpc_bidi_stream,
+        run_grpc_server,
+    },
     init_dev_env, init_vpn_location,
     mail::{Mail, run_mail_handler},
     run_web_server,
@@ -103,6 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
+    let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
@@ -145,7 +149,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx) => error!("gRPC server returned early: {res:?}"),
+        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), client_state, wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, api_event_tx) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),
