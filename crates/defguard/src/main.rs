@@ -40,7 +40,9 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
-    SERVER_CONFIG.set(config.clone())?;
+    SERVER_CONFIG
+        .set(config.clone())
+        .expect("Failed to initialize server config.");
 
     // initialize tracing with version formatter
     defguard_version::tracing::init(
@@ -48,7 +50,7 @@ async fn main() -> Result<(), anyhow::Error> {
         &config.log_level,
     )?;
 
-    info!("Starting ... version v{}", VERSION);
+    info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");
 
     let pool = init_db(

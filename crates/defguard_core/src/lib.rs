@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use anyhow::anyhow;
@@ -63,7 +63,6 @@ use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
-        OnceCell,
         broadcast::Sender,
         mpsc::{UnboundedReceiver, UnboundedSender},
     },
@@ -178,7 +177,7 @@ extern crate serde;
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
 
 pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
-pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
+pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {
     SERVER_CONFIG
