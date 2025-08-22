@@ -7,8 +7,10 @@ const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
 
 // Startups defguard stack with docker compose
 export const dockerUp = () => {
-  const command = `docker compose -f ${dockerFilePath.toString()} up -d`;
+  const command = `docker compose -f ${dockerFilePath.toString()} up -d --wait`;
   execSync(command);
+  execSync('docker exec -i defguard-db-1 sh -c "until pg_isready -h localhost -p 5432; do sleep 2; done"')
+  execSync('docker exec -i defguard-db-1 pg_dump -U defguard -d defguard -Fc -f /tmp/defguard_backup.dump');
 };
 
 export const dockerDown = () => {
@@ -25,8 +27,12 @@ export const dockerCheckContainers = (): boolean => {
 };
 
 export const dockerRestart = () => {
-  dockerDown();
-  dockerUp();
+  if (!dockerCheckContainers()) {
+    dockerUp();
+  } else {
+    execSync('docker exec -i defguard-db-1 psql -U defguard -d defguard -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"');
+    execSync('docker exec -i defguard-db-1 pg_restore -U defguard -d defguard /tmp/defguard_backup.dump',{ stdio: 'inherit' })
+  }
 };
 
 export const dockerStartup = () => {

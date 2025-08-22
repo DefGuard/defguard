@@ -48,9 +48,9 @@ test.describe('External OIDC.', () => {
     await context.close();
   });
 
-  test.afterAll(() => {
-    dockerDown();
-  });
+  // test.afterAll(() => {
+  //   dockerDown();
+  // });
 
   test('Complete client MFA through external OpenID', async ({ page, browser }) => {
     await waitForBase(page);

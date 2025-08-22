@@ -50,9 +50,9 @@ test.describe('External OIDC.', () => {
     await context.close();
   });
 
-  test.afterAll(() => {
-    dockerDown();
-  });
+  // test.afterAll(() => {
+  //   dockerDown();
+  // });
 
   test('Login through external oidc.', async ({ page }) => {
     expect(client.clientID).toBeDefined();

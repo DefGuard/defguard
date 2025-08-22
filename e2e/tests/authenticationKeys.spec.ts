@@ -55,9 +55,9 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await waitForRoute(page, url);
   });
 
-  test.afterAll(() => {
-    dockerDown();
-  });
+  // test.afterAll(() => {
+  //   dockerDown();
+  // });
 
   test('Add authentication key (SSH)', async ({ page }) => {
     await page.getByTestId('add-authentication-key-button').click();

@@ -38,7 +38,7 @@ test.describe('Add user device', () => {
     await context.close();
   });
 
-  test.afterAll(() => dockerDown());
+  // test.afterAll(() => dockerDown());
 
   test('Add test user device with generate', async ({ page, browser }) => {
     await waitForBase(page);

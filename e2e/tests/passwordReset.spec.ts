@@ -26,9 +26,9 @@ test.describe('Reset password', () => {
     await createUser(browser, user);
   });
 
-  test.afterAll(() => {
-    dockerDown();
-  });
+  // test.afterAll(() => {
+  //   dockerDown();
+  // });
 
   test('Reset user password', async ({ page }) => {
     await waitForBase(page);

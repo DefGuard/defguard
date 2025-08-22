@@ -36,9 +36,9 @@ test.describe('Authorize OpenID client.', () => {
     context.close();
   });
 
-  test.afterAll(() => {
-    dockerDown();
-  });
+  // test.afterAll(() => {
+  //   dockerDown();
+  // });
 
   test('Authorize when session is active.', async ({ page }) => {
     expect(client.clientID).toBeDefined();

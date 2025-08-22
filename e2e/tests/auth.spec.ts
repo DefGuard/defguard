@@ -23,7 +23,7 @@ test.describe('Test user authentication', () => {
     testUser = { ...testUserTemplate, username: 'test' };
   });
 
-  test.afterAll(() => dockerDown());
+  // test.afterAll(() => dockerDown());
 
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
@@ -122,7 +122,7 @@ test.describe('Test password change', () => {
     testUser = { ...testUserTemplate, username: 'test' };
   });
 
-  test.afterAll(() => dockerDown());
+  // test.afterAll(() => dockerDown());
 
   test('Change user password', async ({ page, browser }) => {
     await waitForBase(page);

@@ -10,7 +10,7 @@ import { waitForRoute } from '../utils/waitForRoute';
 test.describe('Test groups', () => {
   test.beforeEach(() => dockerRestart());
 
-  test.afterAll(() => dockerDown());
+  // test.afterAll(() => dockerDown());
 
   test('Add user to admin group', async ({ page, browser }) => {
     const testUser = { ...testUserTemplate, username: 'test' };
