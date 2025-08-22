@@ -25,7 +25,10 @@ use crate::{
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::utils::parse_client_info,
+    grpc::{
+        proto::proxy::{ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse},
+        utils::parse_client_info,
+    },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
@@ -106,6 +109,19 @@ impl ClientMfaServer {
         Ok(self.bidi_event_tx.send(event)?)
     }
 
+    /// Allows proxy to verify if token is valid and active
+    #[instrument(skip_all)]
+    pub(crate) async fn validate_mfa_token(
+        &mut self,
+        request: ClientMfaTokenValidationRequest,
+    ) -> Result<ClientMfaTokenValidationResponse, Status> {
+        let pubkey = Self::parse_token(&request.token)?;
+        let session_active = self.sessions.contains_key(&pubkey);
+        Ok(ClientMfaTokenValidationResponse {
+            token_valid: session_active,
+        })
+    }
+
     #[instrument(skip_all)]
     pub async fn start_client_mfa_login(
         &mut self,
@@ -163,17 +179,22 @@ impl ClientMfaServer {
         match (&location.location_mfa_mode, selected_method) {
             // MFA enabled status is already verified
             (LocationMfaMode::Disabled, _) => unreachable!(),
-            (LocationMfaMode::Internal, MfaMethod::Totp)
-            | (LocationMfaMode::Internal, MfaMethod::Email)
-            | (LocationMfaMode::Internal, MfaMethod::Biometric) => {
-                debug!("Location uses internal MFA. Selected method: {selected_method}")
+            (
+                LocationMfaMode::Internal,
+                MfaMethod::Totp
+                | MfaMethod::Email
+                | MfaMethod::Biometric
+                | MfaMethod::MobileApprove,
+            ) => {
+                debug!("Location uses internal MFA. Selected method: {selected_method}");
             }
             (LocationMfaMode::External, MfaMethod::Oidc) => {
-                debug!("Location uses external MFA. Selected method: {selected_method}")
+                debug!("Location uses external MFA. Selected method: {selected_method}");
             }
             _ => {
                 error!(
-                    "Selected MFA method ({selected_method}) is not supported by location {location} which uses {}",
+                    "Selected MFA method ({selected_method}) is not supported by location \
+                    {location} which uses {}",
                     location.location_mfa_mode
                 );
 
@@ -196,6 +217,17 @@ impl ClientMfaServer {
                 } else {
                     return Err(Status::invalid_argument(
                         "Select MFA method not available for the device.",
+                    ));
+                }
+            }
+            // just check if the account has any devices with biometric auth present
+            MfaMethod::MobileApprove => {
+                let result = BiometricAuth::find_by_user_id(&self.pool, user.id)
+                    .await
+                    .map_err(|_| Status::internal("unexpected error"))?;
+                if result.is_empty() {
+                    return Err(Status::invalid_argument(
+                        "selected MFA method not available",
                     ));
                 }
             }
@@ -245,7 +277,7 @@ impl ClientMfaServer {
                     ));
                 }
             }
-        };
+        }
 
         // generate auth token
         let token = Self::generate_token(&request.pubkey)?;
@@ -257,19 +289,20 @@ impl ClientMfaServer {
 
         let biometric_challenge: Option<BiometricChallenge> = match selected_method {
             MfaMethod::Biometric => match selected_mobile_auth {
-                Some(mobile_auth) => match BiometricChallenge::new(Some(mobile_auth.pub_key)) {
-                    Ok(challenge) => Some(challenge),
-                    Err(e) => {
+                Some(mobile_auth) => {
+                    let challenge = BiometricChallenge::new_with_owner(&mobile_auth.pub_key).map_err(|e| {
                         error!(
                             "Start biometric mfa failed ! Challenge creation failed ! Reason: {e}"
                         );
-                        return Err(Status::invalid_argument("Invalid public key"));
-                    }
-                },
+                        Status::invalid_argument("Invalid public key")
+                    })?;
+                    Some(challenge)
+                }
                 None => {
                     return Err(Status::internal("unexpected error"));
                 }
             },
+            MfaMethod::MobileApprove => Some(BiometricChallenge::new()),
             _ => None,
         };
 
@@ -369,37 +402,81 @@ impl ClientMfaServer {
 
         // validate code
         match method {
-            MfaMethod::Biometric => {
-                if let Some(challenge) = biometric_challenge {
-                    if let Some(signed_challenge) = request.code {
-                        match challenge.verify(signed_challenge.as_str()) {
-                            // verification passed
-                            true => {
-                                debug!("Signed challenge verified successfully.");
-                            }
-                            // challenge rejected
-                            false => {
-                                self.emit_event(BidiStreamEvent {
-                                    context,
-                                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                                        DesktopClientMfaEvent::Failed {
-                                            location: location.clone(),
-                                            device: device.clone(),
-                                            method: *method,
-                                            message: "Signed challenge rejected".to_string(),
-                                        },
-                                    )),
-                                })?;
-                                return Err(Status::unauthenticated("unauthorized"));
-                            }
-                        }
-                    } else {
-                        error!("Signed challenge not found in request");
-                        return Err(Status::invalid_argument("Challenge not found in request"));
+            MfaMethod::MobileApprove => {
+                let challenge = biometric_challenge.as_ref().ok_or_else(|| {
+                    error!("Challenge not found in MFA session.");
+                    Status::invalid_argument("Challenge not found in session")
+                })?;
+                let signature = request.code.ok_or_else(|| {
+                    error!("Signed challenge not found in request");
+                    Status::invalid_argument("Signature not found in request")
+                })?;
+                let auth_device_pub_key = request.auth_pub_key.ok_or_else(|| {
+                    Status::invalid_argument("Authorization device key missing in request")
+                })?;
+                if !BiometricAuth::verify_owner(&self.pool, user.id, &auth_device_pub_key)
+                    .await
+                    .map_err(|_| Status::internal("unexpected error"))?
+                {
+                    return Err(Status::invalid_argument("Arguments invalid"));
+                }
+                match challenge.verify(signature.as_str(), Some(auth_device_pub_key)) {
+                    Ok(()) => {
+                        debug!("Signature verified successfully.");
                     }
-                } else {
+                    Err(err) => {
+                        error!(
+                            "Verification of challenge for device {} failed; reason {err}",
+                            &device.name
+                        );
+                        self.emit_event(BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                    method: *method,
+                                    message: "Signed challenge rejected".to_string(),
+                                },
+                            )),
+                        })?;
+                        return Err(Status::unauthenticated("unauthorized"));
+                    }
+                }
+            }
+            MfaMethod::Biometric => {
+                let challenge = biometric_challenge.as_ref().ok_or_else(|| {
                     error!("Challenge not found in MFA session !");
-                    return Err(Status::internal("Challenge not found in MFA session"));
+                    Status::internal("Challenge not found in MFA session")
+                })?;
+                let signed_challenge = request.code.ok_or_else(|| {
+                    error!("Signed challenge not found in request");
+                    Status::invalid_argument("Challenge not found in request")
+                })?;
+                match challenge.verify(signed_challenge.as_str(), None) {
+                    // verification passed
+                    Ok(()) => {
+                        debug!("Signature verified successfully.");
+                    }
+                    // challenge rejected
+                    Err(e) => {
+                        error!(
+                            "Verification of challenge for device {0} failed ! Reason {e}",
+                            &device.name
+                        );
+                        self.emit_event(BidiStreamEvent {
+                            context,
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: location.clone(),
+                                    device: device.clone(),
+                                    method: *method,
+                                    message: "Signed challenge rejected".to_string(),
+                                },
+                            )),
+                        })?;
+                        return Err(Status::unauthenticated("unauthorized"));
+                    }
                 }
             }
             MfaMethod::Totp => {
@@ -473,7 +550,8 @@ impl ClientMfaServer {
             MfaMethod::Oidc => {
                 if !*openid_auth_completed {
                     debug!(
-                        "User {user} tried to finish OIDC MFA login but they haven't completed the OIDC authentication yet."
+                        "User {user} tried to finish OIDC MFA login but they haven't completed \
+                        the OIDC authentication yet."
                     );
                     self.emit_event(BidiStreamEvent {
                         context,
@@ -482,18 +560,20 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method: *method,
-                                message: "tried to finish OIDC MFA login but they haven't completed OIDC authentication yet".to_string()
+                                message: "tried to finish OIDC MFA login but they haven't \
+                                    completed OIDC authentication yet"
+                                    .to_string(),
                             },
                         )),
                     })?;
                     return Err(Status::failed_precondition(
                         "OIDC authentication not completed yet",
                     ));
-                } else {
-                    debug!(
-                        "User {user} is trying to finish OIDC MFA login and the OIDC authentication has already been completed; proceeding."
-                    );
                 }
+                debug!(
+                    "User {user} is trying to finish OIDC MFA login and the OIDC authentication \
+                    has already been completed; proceeding."
+                );
             }
         }
 
@@ -562,6 +642,14 @@ impl ClientMfaServer {
             )),
         })?;
 
+        let response = ClientMfaFinishResponse {
+            preshared_key: key.public,
+            token: match method {
+                MfaMethod::MobileApprove => Some(request.token.clone()),
+                _ => None,
+            },
+        };
+
         // remove login session from map
         self.sessions.remove(&pubkey);
 
@@ -571,8 +659,6 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        Ok(ClientMfaFinishResponse {
-            preshared_key: key.public,
-        })
+        Ok(response)
     }
 }

@@ -61,6 +61,7 @@ export type UserProfile = {
   user: User;
   devices: Device[];
   security_keys: SecurityKey[];
+  biometric_enabled_devices: number[];
 };
 
 export interface OAuth2AuthorizedApps {
@@ -359,6 +360,7 @@ export interface AppInfo {
   smtp_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
+  external_openid_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -1234,7 +1236,6 @@ export enum OverviewLayoutType {
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
-  statsFilter: number;
   networks?: Network[];
   selectedNetworkId?: number;
   setState: (override: Partial<OverviewStore>) => void;

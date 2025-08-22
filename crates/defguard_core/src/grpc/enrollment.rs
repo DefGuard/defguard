@@ -313,6 +313,7 @@ impl EnrollmentServer {
                 ));
             }
         };
+        BiometricAuth::validate_pubkey(&request.device_pub_key)?;
         let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
             error!("Failed to save mobile auth into db : {err}");

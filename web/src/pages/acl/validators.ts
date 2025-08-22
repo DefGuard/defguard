@@ -23,7 +23,7 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
         .filter((v) => v !== '');
       const found: number[] = [];
       for (const entry of trimmed) {
-        const num = parseInt(entry);
+        const num = parseInt(entry, 10);
         if (Number.isNaN(num)) {
           return false;
         }
@@ -86,7 +86,7 @@ function parseSubnet(input: string): [ipaddr.IPv4 | ipaddr.IPv6, number] | null 
   const kind = ip.kind();
 
   if (kind === 'ipv6') {
-    const prefix = parseInt(maskPart);
+    const prefix = parseInt(maskPart, 10);
     if (typeof prefix !== 'number' || Number.isNaN(prefix)) {
       return null;
     }

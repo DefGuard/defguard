@@ -1,9 +1,9 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
   "vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "!src/i18n/**", "!**/svg/**"]
+    "includes": ["src/**", "!src/i18n", "!**/svg"]
   },
   "formatter": {
     "enabled": true,
@@ -34,7 +34,8 @@
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "error",
         "useHookAtTopLevel": "error",
-        "useJsxKeyInIterable": "error"
+        "useJsxKeyInIterable": "error",
+        "useUniqueElementIds": "off"
       },
       "security": { "noDangerouslySetInnerHtmlWithChildren": "error" },
       "style": {

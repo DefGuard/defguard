@@ -172,7 +172,7 @@ pub async fn run_periodic_peer_disconnect(
                         .and_then(|(ip, _)| IpAddr::from_str(ip).ok())
                         // endpoint is a `text` column in the db so we have to
                         // handle potential parsing issues here
-                        .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+                        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
                     let event = InternalEvent::DesktopClientMfaDisconnected {
                         context: InternalEventContext::new(user.id, user.username, ip, device),
                         location: location.clone(),

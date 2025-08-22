@@ -1,7 +1,7 @@
 FROM node:24-alpine AS web
 
 WORKDIR /app
-COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .

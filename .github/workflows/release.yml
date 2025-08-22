@@ -53,10 +53,12 @@ jobs:
 
   build-binaries:
     needs: [create-release]
+
     runs-on:
       - self-hosted
       - Linux
       - X64
+
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +73,10 @@ jobs:
           - build: freebsd
             arch: amd64
             target: x86_64-unknown-freebsd
+
+    permissions:
+      contents: write # needed to upload release assets
+
     steps:
       # Store the version, stripping any v-prefix
       - name: Write release version
@@ -165,7 +171,7 @@ jobs:
       - name: Build AMI images for multiple regions
         if: matrix.build == 'linux' && matrix.arch == 'amd64'
         run: |
-          regions=(us-east-1 eu-west-1 ap-northeast-1)
+          regions=(us-east-1 eu-west-1 ap-northeast-1 eu-central-1)
           for region in "${regions[@]}"; do
             echo "Building AMI for region: $region"
             echo "Running packer validate for $region..."

@@ -33,7 +33,7 @@ export const OverviewNetworkSelection = () => {
 
   const selectionValue = useMemo(() => {
     if (networkId) {
-      const value = parseInt(networkId);
+      const value = parseInt(networkId, 10);
       if (!Number.isNaN(value) && typeof value === 'number') {
         return value;
       }

@@ -20,8 +20,10 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64]
-    container: rust:1
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+
+    container: public.ecr.aws/docker/library/rust:1
 
     services:
       postgres:
@@ -52,21 +54,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
+
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
+
       - name: Check format
         run: |
           rustup component add rustfmt
           cargo fmt -- --check
+
       - name: Run clippy linter
         run: |
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
+
       - name: Run cargo deny
-        uses: EmbarkStudios/cargo-deny-action@v2
+        run: |
+          cargo install cargo-deny
+          cargo deny check
+
       - name: Install nextest
         uses: taiki-e/install-action@nextest
+
       - name: Run tests
         run: cargo nextest run --locked --no-fail-fast

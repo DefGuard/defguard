@@ -1,8 +1,8 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { isUndefined } from 'lodash-es';
-import { Fragment } from 'react';
+import { isUndefined, sortBy } from 'lodash-es';
+import { Fragment, useMemo } from 'react';
 
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -23,11 +23,18 @@ export const ApiTokenList = () => {
     enabled: !isUndefined(user),
   });
 
+  const sortedTokens = useMemo(() => {
+    if (apiTokens) {
+      return sortBy(apiTokens, (token) => token.name.toLowerCase());
+    }
+    return [];
+  }, [apiTokens]);
+
   if (apiTokens?.length === 0 || !apiTokens) return null;
 
   return (
     <div className="api-token-list">
-      {apiTokens.map((token, index) => (
+      {sortedTokens.map((token, index) => (
         <Fragment key={token?.id ?? index}>
           {token && <ApiTokenItem tokenData={token} />}
         </Fragment>

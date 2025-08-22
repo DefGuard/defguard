@@ -1,22 +1,34 @@
 import './style.scss';
 
-import classNames from 'classnames';
-import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react';
-
+import clsx from 'clsx';
+import { type ComponentProps, useEffect } from 'react';
 import { useNavigationStore } from '../../../../components/Navigation/hooks/useNavigationStore';
 
-export const PageContainer = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'>>(
-  ({ children, className, ...rest }, ref) => {
-    const isNavOpen = useNavigationStore((state) => state.isOpen);
-    const cn = useMemo(() => classNames('page-container', className), [className]);
-    const contentCn = useMemo(
-      () => classNames('page-content', { 'nav-open': isNavOpen }),
-      [isNavOpen],
-    );
-    return (
-      <div {...rest} className={cn} ref={ref}>
-        <div className={contentCn}>{children}</div>
+type Props = {
+  withDefaultPadding?: boolean;
+} & ComponentProps<'div'>;
+
+export const PageContainer = ({
+  children,
+  className,
+  ref,
+  withDefaultPadding = false,
+  ...rest
+}: Props) => {
+  const isNavOpen = useNavigationStore((state) => state.isOpen);
+  useEffect(() => {
+    console.log({ withDefaultPadding });
+  }, [withDefaultPadding]);
+  return (
+    <div {...rest} className={clsx('page-container', className)}>
+      <div
+        className={clsx('page-content', {
+          'nav-open': isNavOpen,
+          'default-padding': withDefaultPadding,
+        })}
+      >
+        {children}
       </div>
-    );
-  },
-);
+    </div>
+  );
+};

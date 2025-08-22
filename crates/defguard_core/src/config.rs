@@ -233,7 +233,7 @@ impl DefGuardConfig {
     }
 
     // Check if cookie domain value was provided.
-    // If not generate it based on URL.
+    // If not, generate it based on URL.
     fn validate_cookie_domain(&mut self) {
         if self.cookie_domain.is_none() {
             self.cookie_domain = Some(

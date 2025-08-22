@@ -9,7 +9,6 @@ import Skeleton from 'react-loading-skeleton';
 import { useI18nContext } from '../../i18n/i18n-react';
 import { FilterButton } from '../../shared/components/Layout/buttons/FilterButton/FilterButton';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
-import { PageLimiter } from '../../shared/components/Layout/PageLimiter/PageLimiter';
 import { FilterGroupsModal } from '../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
 import type { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
@@ -34,10 +33,8 @@ import {
 
 export const ActivityLogPage = () => {
   return (
-    <PageContainer id="activity-log-page">
-      <PageLimiter>
-        <PageContent />
-      </PageLimiter>
+    <PageContainer id="activity-log-page" withDefaultPadding>
+      <PageContent />
     </PageContainer>
   );
 };

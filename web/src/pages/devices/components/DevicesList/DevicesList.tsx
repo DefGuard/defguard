@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -22,6 +21,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import type { StandaloneDevice } from '../../../../shared/types';
+import { dateToLocal } from '../../../../shared/utils/displayDate';
 import type { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
@@ -96,9 +96,10 @@ const DeviceRow = (props: StandaloneDevice) => {
     [assigned_ips],
   );
   const formatDate = useMemo(() => {
-    const day = dayjs(added_date);
+    const day = dateToLocal(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
   }, [added_date]);
+
   const { writeToClipboard } = useClipboard();
   return (
     <div className="device-row">

@@ -234,6 +234,7 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    #[must_use]
     pub fn new(
         name: String,
         address: Vec<IpNetwork>,
@@ -246,10 +247,10 @@ impl WireguardNetwork {
         acl_enabled: bool,
         acl_default_allow: bool,
         location_mfa_mode: LocationMfaMode,
-    ) -> Result<Self, WireguardNetworkError> {
+    ) -> Self {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
-        Ok(Self {
+        Self {
             id: NoId,
             name,
             address,
@@ -266,7 +267,7 @@ impl WireguardNetwork {
             acl_enabled,
             acl_default_allow,
             location_mfa_mode,
-        })
+        }
     }
 
     /// Try to set `address` from `&str`.
@@ -509,6 +510,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Checks if all device addresses are contained in at least one of the network addresses
+    #[must_use]
     pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
         addresses
             .iter()
@@ -516,6 +518,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Finds [`IpNetwork`] containing given [`IpAddr`]
+    #[must_use]
     pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
         self.address.iter().find(|net| net.contains(addr)).copied()
     }
@@ -1273,6 +1276,7 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
+    #[must_use]
     pub fn mfa_enabled(&self) -> bool {
         match self.location_mfa_mode {
             LocationMfaMode::Internal | LocationMfaMode::External => true,
@@ -2033,7 +2037,6 @@ mod test {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();
@@ -2165,7 +2168,6 @@ mod test {
             false,
             LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();

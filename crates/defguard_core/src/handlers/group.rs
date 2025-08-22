@@ -338,7 +338,7 @@ pub(crate) async fn create_group(
         }
     }
 
-    for user in members.iter() {
+    for user in &members {
         user.add_to_group(&mut *transaction, &group).await?;
         ldap_user_groups
             .entry(user)
@@ -458,7 +458,7 @@ pub(crate) async fn modify_group(
         }
     }
 
-    for user in members.iter() {
+    for user in &members {
         user.add_to_group(&mut *transaction, &group).await?;
         add_to_ldap_groups
             .entry(user)
@@ -467,7 +467,7 @@ pub(crate) async fn modify_group(
     }
 
     // Remove outstanding members.
-    for user in current_members.iter() {
+    for user in &current_members {
         user.remove_from_group(&mut *transaction, &group).await?;
         remove_from_ldap_groups
             .entry(user)

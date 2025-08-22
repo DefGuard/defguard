@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use anyhow::anyhow;
@@ -63,7 +63,6 @@ use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
-        OnceCell,
         broadcast::Sender,
         mpsc::{UnboundedReceiver, UnboundedSender},
     },
@@ -178,7 +177,7 @@ extern crate serde;
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
 
 pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
-pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
+pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {
     SERVER_CONFIG
@@ -190,7 +189,6 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
-    use crate::enterprise::snat::handlers as snat;
     use db::{
         AddDevice, UserDetails, UserInfo,
         models::device::{ModifyDevice, UserDevice},
@@ -208,6 +206,7 @@ mod openapi {
     };
 
     use super::*;
+    use crate::enterprise::snat::handlers as snat;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -739,8 +738,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             false,
             LocationMfaMode::Disabled,
-        )
-        .expect("Could not create network");
+        );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -838,7 +836,7 @@ pub async fn init_vpn_location(
                 false,
                 false,
                 LocationMfaMode::Disabled,
-            )?
+            )
             .save(&mut *transaction)
             .await?;
             if network.id != location_id {
@@ -862,7 +860,7 @@ pub async fn init_vpn_location(
             return Err(anyhow!(
                 "Failed to initialize first VPN location. Location already exists."
             ));
-        };
+        }
 
         // create a new network
         WireguardNetwork::new(
@@ -877,7 +875,7 @@ pub async fn init_vpn_location(
             false,
             false,
             LocationMfaMode::Disabled,
-        )?
+        )
         .save(pool)
         .await?
     };

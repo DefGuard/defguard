@@ -36,7 +36,7 @@ export const OverviewPage = () => {
   const { LL } = useI18nContext();
   const { from: statsFilter } = useOverviewTimeSelection();
   const { networkId } = useParams();
-  const selectedNetworkId = parseInt(networkId ?? '');
+  const selectedNetworkId = parseInt(networkId ?? '', 10);
   const location = useLocation();
 
   const {

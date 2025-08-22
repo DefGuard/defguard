@@ -30,6 +30,7 @@ pub struct ApiRequestContext {
 }
 
 impl ApiRequestContext {
+    #[must_use]
     pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -57,6 +58,7 @@ pub struct GrpcRequestContext {
 }
 
 impl GrpcRequestContext {
+    #[must_use]
     pub fn new(
         user_id: Id,
         username: String,
@@ -335,6 +337,7 @@ pub struct BidiRequestContext {
 }
 
 impl BidiRequestContext {
+    #[must_use]
     pub fn new(user_id: Id, username: String, ip: IpAddr, device_name: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -390,6 +393,9 @@ impl Serialize for ClientMFAMethod {
             MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
             MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
             MfaMethod::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
+            MfaMethod::MobileApprove => {
+                serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
+            }
         }
     }
 }
@@ -422,6 +428,7 @@ pub struct InternalEventContext {
 }
 
 impl InternalEventContext {
+    #[must_use]
     pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
