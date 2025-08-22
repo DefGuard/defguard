@@ -1,16 +1,31 @@
 use std::time::Duration;
 
-use defguard_core::db::{Id, WireguardNetwork, models::wireguard::LocationMfaMode, setup_pool};
+use chrono::Utc;
+use claims::{assert_err_eq, assert_matches};
+use defguard_core::{
+    db::{
+        Device, Id, User, WireguardNetwork,
+        models::{device::DeviceType, wireguard::LocationMfaMode},
+        setup_pool,
+    },
+    events::GrpcEvent,
+    grpc::proto::gateway::{PeerStats, StatsUpdate, stats_update::Payload},
+};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::time::sleep;
+use tokio::{
+    sync::mpsc::error::TryRecvError,
+    time::{advance, pause, sleep},
+};
 use tonic::Code;
 
 use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
 
-async fn setup_test_server(pool: PgPool) -> (TestGrpcServer, MockGateway, WireguardNetwork<Id>) {
+async fn setup_test_server(
+    pool: PgPool,
+) -> (TestGrpcServer, MockGateway, WireguardNetwork<Id>, User<Id>) {
     let (test_server, client_stream) = make_grpc_test_server(&pool).await;
 
     // setup mock gateway
@@ -43,13 +58,19 @@ async fn setup_test_server(pool: PgPool) -> (TestGrpcServer, MockGateway, Wiregu
     // set hostname for gateway
     gateway.set_hostname("test_gateway");
 
-    (test_server, gateway, location)
+    // get test user
+    let test_user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+
+    (test_server, gateway, location, test_user)
 }
 
 #[sqlx::test]
 async fn test_gateway_authorization(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (_test_server, mut gateway, test_location) = setup_test_server(pool).await;
+    let (_test_server, mut gateway, test_location, _test_user) = setup_test_server(pool).await;
 
     // remove auth token
     gateway.clear_token();
@@ -79,7 +100,7 @@ async fn test_gateway_authorization(_: PgPoolOptions, options: PgConnectOptions)
 #[sqlx::test]
 async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (_test_server, mut gateway, _test_location) = setup_test_server(pool).await;
+    let (_test_server, mut gateway, _test_location, _test_user) = setup_test_server(pool).await;
 
     // remove hostname
     gateway.clear_hostname();
@@ -101,7 +122,7 @@ async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectO
 #[sqlx::test]
 async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (test_server, mut gateway, test_location) = setup_test_server(pool).await;
+    let (test_server, mut gateway, test_location, _test_user) = setup_test_server(pool).await;
 
     // initial gateway map is empty
     {
@@ -167,19 +188,75 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 // connected
 // disconnected
 
-#[sqlx::test]
+#[sqlx::test()]
 async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (test_server, mut gateway, test_location) = setup_test_server(pool).await;
+    let (mut test_server, mut gateway, test_location, test_user) =
+        setup_test_server(pool.clone()).await;
 
     // connect stats stream
     let stats_tx = gateway.setup_stats_update_stream().await;
-
-    // send stats update for unknown device
-
-    // verify no gRPC event is emitted
+    let mut update_id = 1;
 
     // add user device
+    let device_pubkey = "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=";
+    let test_device = Device::new(
+        "test device".into(),
+        device_pubkey.into(),
+        test_user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
 
-    // send stats update for existing device and verify gRPC event is emitted
+    // send stats update for existing device with old handshake
+    // and verify no gRPC event is emitted
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: 0,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    assert_err_eq!(test_server.grpc_event_rx.try_recv(), TryRecvError::Empty);
+
+    // send stats update with current handshake
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // wait for event to be emitted
+    sleep(Duration::from_secs(1)).await;
+    let grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+
+    assert_matches!(
+        grpc_event,
+        GrpcEvent::ClientConnected {
+            context: _,
+            location,
+            device
+        } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
 }
+
+// TODO: figure out how to mock time to test disconnect events

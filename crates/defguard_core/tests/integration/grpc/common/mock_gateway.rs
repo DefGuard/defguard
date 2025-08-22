@@ -9,6 +9,7 @@ use hyper_util::rt::TokioIo;
 use tokio::{
     io::DuplexStream,
     sync::mpsc::{UnboundedSender, unbounded_channel},
+    task::JoinHandle,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
@@ -22,6 +23,15 @@ pub(crate) struct MockGateway {
     client: GatewayServiceClient<Channel>,
     auth_token: Option<String>,
     hostname: Option<String>,
+    stats_update_thread_handle: Option<JoinHandle<()>>,
+}
+
+impl Drop for MockGateway {
+    fn drop(&mut self) {
+        if let Some(handle) = &self.stats_update_thread_handle {
+            handle.abort();
+        }
+    }
 }
 
 impl MockGateway {
@@ -53,9 +63,11 @@ impl MockGateway {
             client,
             auth_token: None,
             hostname: None,
+            stats_update_thread_handle: None,
         }
     }
 
+    // Add required authorization and hostname headers to gRPC requests
     fn add_request_metadata<T>(&self, request: &mut Request<T>) {
         // add authorization token
         if let Some(token) = &self.auth_token {
@@ -75,6 +87,7 @@ impl MockGateway {
         };
     }
 
+    // Fetch gateway config from core
     pub(crate) async fn get_gateway_config(&mut self) -> Result<Response<Configuration>, Status> {
         let mut request = Request::new(ConfigurationRequest {
             name: self.hostname.clone(),
@@ -94,14 +107,22 @@ impl MockGateway {
         self.client.updates(request).await.unwrap().into_inner()
     }
 
+    // Connect to interface stats update endpoint
+    // and return a tx which can be used to send stats updates to test gRPC server
     #[must_use]
     pub(crate) async fn setup_stats_update_stream(&mut self) -> UnboundedSender<StatsUpdate> {
         let (tx, rx) = unbounded_channel();
 
-        self.client
-            .stats(UnboundedReceiverStream::new(rx))
-            .await
-            .unwrap();
+        let mut request = Request::new(UnboundedReceiverStream::new(rx));
+
+        self.add_request_metadata(&mut request);
+
+        let mut client = self.client.clone();
+        let task_handle = tokio::spawn(async move {
+            client.stats(request).await.expect("stats stream closed");
+        });
+
+        self.stats_update_thread_handle = Some(task_handle);
 
         tx
     }

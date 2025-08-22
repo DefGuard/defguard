@@ -25,7 +25,7 @@ pub mod mock_gateway;
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
-    grpc_event_rx: UnboundedReceiver<GrpcEvent>,
+    pub grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     // app_event_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
     // mail_rx: UnboundedReceiver<Mail>,
