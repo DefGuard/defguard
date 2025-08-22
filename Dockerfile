@@ -43,7 +43,7 @@ COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
-FROM debian:bookworm-slim
+FROM debian:13-slim
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
