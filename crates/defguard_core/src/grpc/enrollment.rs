@@ -34,7 +34,11 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        proto::proxy::{LocationMfaMode as ProtoLocationMfaMode, RegisterMobileAuthRequest},
+        proto::proxy::{
+            CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest,
+            CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
+            RegisterMobileAuthRequest,
+        },
         utils::{build_device_config_response, new_polling_token, parse_client_info},
     },
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
@@ -858,6 +862,78 @@ impl EnrollmentServer {
 
         let token = new_polling_token(&self.pool, &device).await?;
         build_device_config_response(&self.pool, device, Some(token)).await
+    }
+
+    // TODO: Add email code's support
+    #[instrument(skip_all)]
+    pub(crate) async fn register_code_mfa_start(
+        &self,
+        request: CodeMfaSetupStartRequest,
+    ) -> Result<CodeMfaSetupStartResponse, Status> {
+        debug!("Begin enrollment code mfa setup start");
+        if request.method != MfaMethod::Email as i32 && request.method != MfaMethod::Totp as i32 {
+            return Err(Status::invalid_argument("Method not supported".to_string()));
+        }
+        let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
+        let mut user = enrollment.fetch_user(&self.pool).await?;
+        if !user.is_active {
+            warn!("Can't setup MFA for disabled user {}.", user.username);
+            return Err(Status::permission_denied("user is disabled"));
+        }
+        if request.method == MfaMethod::Totp as i32 {
+            if user.totp_enabled {
+                return Err(Status::invalid_argument(
+                    "Method already enabled".to_string(),
+                ));
+            }
+            let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
+                error!("Failed to make new totp secret");
+                Status::internal(String::new())
+            })?;
+            return Ok(CodeMfaSetupStartResponse {
+                totp_secret: Some(secret),
+            });
+        }
+        Err(Status::invalid_argument("Method not supported".to_string()))
+    }
+
+    // TODO: Add emails code support
+    // TODO: Add events and email notifications
+    #[instrument(skip_all)]
+    pub(crate) async fn register_code_mfa_finish(
+        &self,
+        request: CodeMfaSetupFinishRequest,
+    ) -> Result<CodeMfaSetupFinishResponse, Status> {
+        debug!("Begin enrollment code mfa setup finish");
+        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let method = request.method();
+        if method != MfaMethod::Totp {
+            return Err(Status::invalid_argument("Method not supported"));
+        }
+        let mut user = enrollment.fetch_user(&self.pool).await?;
+        if user.mfa_enabled {
+            return Err(Status::invalid_argument(
+                "Mfa already enabled on the account".to_string(),
+            ));
+        }
+        if !user.is_active {
+            return Err(Status::unauthenticated(String::new()));
+        }
+        if !user.verify_totp_code(&request.code) {
+            return Err(Status::unauthenticated(String::new()));
+        }
+        user.enable_totp(&self.pool)
+            .await
+            .map_err(|_| Status::internal(String::new()))?;
+        user.enable_mfa(&self.pool)
+            .await
+            .map_err(|_| Status::internal(String::new()))?;
+        let recovery_codes = user
+            .get_recovery_codes(&self.pool)
+            .await
+            .map_err(|_| Status::internal(String::new()))?
+            .ok_or_else(|| Status::internal(String::new()))?;
+        Ok(CodeMfaSetupFinishResponse { recovery_codes })
     }
 }
 
