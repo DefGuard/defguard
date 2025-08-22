@@ -1,4 +1,11 @@
 use bytes::Bytes;
+use secrecy::ExposeSecret;
+use std::{
+    fs::read_to_string,
+    sync::{Arc, Mutex},
+};
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
+
 use defguard_core::{
     SERVER_CONFIG, VERSION,
     auth::failed_login::FailedLoginMap,
@@ -23,12 +30,6 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use secrecy::ExposeSecret;
-use std::{
-    fs::read_to_string,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
 #[macro_use]
 extern crate tracing;
