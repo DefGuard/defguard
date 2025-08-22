@@ -176,7 +176,7 @@ extern crate serde;
 // reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
 
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA"));
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {
