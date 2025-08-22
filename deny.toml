@@ -125,6 +125,9 @@ exceptions = [
     ], crate = "defguard_event_logger" },
     { allow = [
         "AGPL-3.0-only",
+    ], crate = "defguard_version" },
+    { allow = [
+        "AGPL-3.0-only",
     ], crate = "model_derive" },
 ]
 
