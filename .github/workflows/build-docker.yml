@@ -40,7 +40,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,6 +72,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
   docker-manifest:
     runs-on: [self-hosted, Linux]
 
@@ -81,7 +91,7 @@ jobs:
       id-token: write # needed for signing the images with GitHub OIDC Token
 
     needs: [build-docker]
-   
+
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.9.2
@@ -111,7 +121,7 @@ jobs:
             docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
             docker manifest push ${tag}
           done
-        
+
       - name: Sign the images with GitHub OIDC Token
         run: |
           images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
@@ -121,4 +131,3 @@ jobs:
         run: |
           images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
           cosign verify ${images} --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp="https://github.com/DefGuard/defguard" -o text
-        

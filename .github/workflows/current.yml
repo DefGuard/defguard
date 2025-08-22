@@ -9,6 +9,7 @@ on:
       - main
       - dev
       - "release/**"
+      - image_scan
     paths-ignore:
       - "*.md"
       - "LICENSE"
