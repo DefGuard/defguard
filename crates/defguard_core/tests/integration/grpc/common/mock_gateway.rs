@@ -2,10 +2,15 @@ use std::collections::VecDeque;
 
 use axum::http::Uri;
 use defguard_core::grpc::proto::gateway::{
-    Configuration, ConfigurationRequest, Update, gateway_service_client::GatewayServiceClient,
+    Configuration, ConfigurationRequest, StatsUpdate, Update,
+    gateway_service_client::GatewayServiceClient,
 };
 use hyper_util::rt::TokioIo;
-use tokio::io::DuplexStream;
+use tokio::{
+    io::DuplexStream,
+    sync::mpsc::{UnboundedSender, unbounded_channel},
+};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Request, Response, Status, Streaming,
     metadata::MetadataValue,
@@ -87,6 +92,18 @@ impl MockGateway {
         self.add_request_metadata(&mut request);
 
         self.client.updates(request).await.unwrap().into_inner()
+    }
+
+    #[must_use]
+    pub(crate) async fn setup_stats_update_stream(&mut self) -> UnboundedSender<StatsUpdate> {
+        let (tx, rx) = unbounded_channel();
+
+        self.client
+            .stats(UnboundedReceiverStream::new(rx))
+            .await
+            .unwrap();
+
+        tx
     }
 
     pub(crate) fn set_token(&mut self, token: &str) {

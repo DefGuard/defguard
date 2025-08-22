@@ -166,3 +166,20 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 // test client status
 // connected
 // disconnected
+
+#[sqlx::test]
+async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (test_server, mut gateway, test_location) = setup_test_server(pool).await;
+
+    // connect stats stream
+    let stats_tx = gateway.setup_stats_update_stream().await;
+
+    // send stats update for unknown device
+
+    // verify no gRPC event is emitted
+
+    // add user device
+
+    // send stats update for existing device and verify gRPC event is emitted
+}
