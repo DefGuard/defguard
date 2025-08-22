@@ -763,7 +763,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 }
             };
 
-            println!("Received stats message: {stats_update:?}");
+            debug!("Received stats message: {stats_update:?}");
             let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
                 debug!("Received stats message is empty, skipping.");
                 continue;
@@ -783,7 +783,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
             // convert stats to DB storage format
             let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
-            println!("received stats: {stats:?}");
 
             // only perform client state update if stats include an endpoint IP
             // otherwise a peer was added to the gateway interface
@@ -802,7 +801,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 let disconnected_clients = {
                     // acquire lock on client state map
                     let mut client_map = self.get_client_state_guard()?;
-                    println!("client map: {client_map:?}");
 
                     // update connected clients map
                     match client_map.get_vpn_client(network_id, &public_key) {
