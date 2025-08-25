@@ -3,14 +3,13 @@ import { expect, test } from '@playwright/test';
 import { routes, testUserTemplate } from '../config';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic } from '../utils/controllers/login';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test groups', () => {
   test.beforeEach(() => dockerRestart());
 
-  // test.afterAll(() => dockerDown());
 
   test('Add user to admin group', async ({ page, browser }) => {
     const testUser = { ...testUserTemplate, username: 'test' };

@@ -6,7 +6,7 @@ import { apiCreateUser, apiGetUserProfile } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createDevice } from '../../utils/controllers/vpn/createDevice';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 
 const testKeys = {

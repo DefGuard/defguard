@@ -12,7 +12,7 @@ import {
   getDeviceRow,
   startNetworkDeviceEnrollment,
 } from '../../utils/controllers/vpn/createNetworkDevice';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForRoute } from '../../utils/waitForRoute';
 

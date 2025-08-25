@@ -11,7 +11,7 @@ import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { disableUser } from '../utils/controllers/toggleUserState';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
 
@@ -23,7 +23,6 @@ test.describe('Test user authentication', () => {
     testUser = { ...testUserTemplate, username: 'test' };
   });
 
-  // test.afterAll(() => dockerDown());
 
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
@@ -121,8 +120,6 @@ test.describe('Test password change', () => {
     dockerRestart();
     testUser = { ...testUserTemplate, username: 'test' };
   });
-
-  // test.afterAll(() => dockerDown());
 
   test('Change user password', async ({ page, browser }) => {
     await waitForBase(page);

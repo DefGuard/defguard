@@ -4,7 +4,7 @@ import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { AuthenticationKeyType, User } from '../types';
 import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -55,9 +55,6 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await waitForRoute(page, url);
   });
 
-  // test.afterAll(() => {
-  //   dockerDown();
-  // });
 
   test('Add authentication key (SSH)', async ({ page }) => {
     await page.getByTestId('add-authentication-key-button').click();

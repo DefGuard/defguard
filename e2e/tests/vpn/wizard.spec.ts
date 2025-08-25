@@ -12,7 +12,7 @@ import {
 } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
