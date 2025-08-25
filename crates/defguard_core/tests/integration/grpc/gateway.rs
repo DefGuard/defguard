@@ -15,7 +15,10 @@ use defguard_core::{
         setup_pool,
     },
     events::GrpcEvent,
-    grpc::proto::gateway::{PeerStats, StatsUpdate, stats_update::Payload},
+    grpc::{
+        gateway::{Configuration, Update, update},
+        proto::gateway::{PeerStats, StatsUpdate, stats_update::Payload},
+    },
 };
 use sqlx::{
     PgPool,
@@ -25,17 +28,20 @@ use tokio::{
     sync::mpsc::error::TryRecvError,
     time::{advance, pause, sleep},
 };
+use tokio_stream::StreamExt;
 use tonic::Code;
 
-use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
+use crate::grpc::common::{
+    TestGrpcServer, create_client_channel, make_grpc_test_server, mock_gateway::MockGateway,
+};
 
 async fn setup_test_server(
     pool: PgPool,
 ) -> (TestGrpcServer, MockGateway, WireguardNetwork<Id>, User<Id>) {
-    let (test_server, client_stream) = make_grpc_test_server(&pool).await;
+    let test_server = make_grpc_test_server(&pool).await;
 
     // setup mock gateway
-    let mut gateway = MockGateway::new(client_stream).await;
+    let mut gateway = MockGateway::new(test_server.client_channel.clone()).await;
 
     // create a test location
     let location = WireguardNetwork::new(
@@ -153,7 +159,7 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 
     // gateway connects to updates stream
     // it should be marked as connected
-    let updates_stream = gateway.connect_to_updates_stream().await;
+    gateway.connect_to_updates_stream().await;
     {
         let gateway_map = test_server.get_gateway_map();
         let location_gateways = gateway_map.get_network_gateway_status(test_location.id);
@@ -167,9 +173,9 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 
     // gateway disconnect from updates stream
     // it should be marked as disconnected
-    drop(updates_stream);
+    gateway.disconnect_from_updates_stream();
     // wait for the background thread to handle the disconnect
-    sleep(Duration::from_secs(1)).await;
+    sleep(Duration::from_millis(100)).await;
 
     {
         let gateway_map = test_server.get_gateway_map();
@@ -189,10 +195,6 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
 // test updates stream
 // filtering by id
 // sent to multiple gateways
-
-// test client status
-// connected
-// disconnected
 
 #[sqlx::test]
 async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) {
@@ -255,7 +257,7 @@ async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) 
         .expect("failed to send stats update");
 
     // wait for event to be emitted
-    sleep(Duration::from_secs(1)).await;
+    sleep(Duration::from_millis(100)).await;
     let grpc_event = test_server
         .grpc_event_rx
         .try_recv()
@@ -338,7 +340,7 @@ async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOption
         .expect("failed to send stats update");
 
     // wait for event to be emitted
-    sleep(Duration::from_secs(1)).await;
+    sleep(Duration::from_millis(100)).await;
     let grpc_event = test_server
         .grpc_event_rx
         .try_recv()
@@ -352,4 +354,101 @@ async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOption
             device
         } if ((location.id == test_location.id) & (device.id == test_device.id))
     );
+}
+
+#[sqlx::test]
+async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut test_server, mut gateway_1, test_location, test_user) =
+        setup_test_server(pool.clone()).await;
+
+    // setup another test location & gateway
+    let test_location_2 = WireguardNetwork::new(
+        "test location 2".to_string(),
+        Vec::new(),
+        1000,
+        "endpoint2".to_string(),
+        None,
+        Vec::new(),
+        100,
+        100,
+        false,
+        false,
+        LocationMfaMode::Disabled,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let mut gateway_2 = MockGateway::new(test_server.client_channel.clone()).await;
+
+    // set auth token for gateway
+    let token = test_location_2
+        .generate_gateway_token()
+        .expect("failed to generate gateway token");
+    gateway_2.set_token(&token);
+
+    // set hostname for gateway
+    gateway_2.set_hostname("test_gateway_2");
+
+    // register gateways with core
+    let _config_1 = gateway_1.get_gateway_config().await;
+    let _config_2 = gateway_2.get_gateway_config().await;
+
+    // connect gateways to the updates stream
+    gateway_1.connect_to_updates_stream().await;
+    gateway_2.connect_to_updates_stream().await;
+
+    // send update for location 1
+    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+        test_location.id,
+        "network name".into(),
+    ));
+
+    // only one gateway should receive this update
+    assert!(gateway_2.receive_next_update().await.is_none());
+    let update = gateway_1.receive_next_update().await.unwrap();
+    let expected_update = Update {
+        update_type: 2,
+        update: Some(update::Update::Network(Configuration {
+            name: "network name".into(),
+            prvkey: String::new(),
+            addresses: Vec::new(),
+            port: 0,
+            peers: Vec::new(),
+            firewall_config: None,
+        })),
+    };
+    assert_eq!(update, expected_update);
+
+    // send update for location 2
+    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+        test_location_2.id,
+        "network name 2".into(),
+    ));
+
+    // only one gateway should receive this update
+    assert!(gateway_1.receive_next_update().await.is_none());
+    let update = gateway_2.receive_next_update().await.unwrap();
+    let expected_update = Update {
+        update_type: 2,
+        update: Some(update::Update::Network(Configuration {
+            name: "network name 2".into(),
+            prvkey: String::new(),
+            addresses: Vec::new(),
+            port: 0,
+            peers: Vec::new(),
+            firewall_config: None,
+        })),
+    };
+    assert_eq!(update, expected_update);
+
+    // send update for location which does not exist
+    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+        1234,
+        "does not exist".into(),
+    ));
+
+    // no gateway should receive this update
+    assert!(gateway_1.receive_next_update().await.is_none());
+    assert!(gateway_2.receive_next_update().await.is_none());
 }

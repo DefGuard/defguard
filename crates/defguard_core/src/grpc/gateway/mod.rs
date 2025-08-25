@@ -987,7 +987,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 error!("Failed to connect gateway on network {gateway_network_id}: {err}");
                 Status::new(
                     Code::Internal,
-                    "Failed to connect gateway on network {gateway_network_id}",
+                    format!("Failed to connect gateway on network {gateway_network_id}"),
                 )
             })?;
 

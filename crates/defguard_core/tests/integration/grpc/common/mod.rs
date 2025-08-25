@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use axum::http::Uri;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, models::settings::initialize_current_settings},
@@ -8,6 +9,7 @@ use defguard_core::{
     grpc::{GatewayMap, WorkerState, build_grpc_service_router, gateway::client_state::ClientMap},
     mail::Mail,
 };
+use hyper_util::rt::TokioIo;
 use sqlx::PgPool;
 use tokio::{
     io::DuplexStream,
@@ -17,7 +19,8 @@ use tokio::{
     },
     task::JoinHandle,
 };
-use tonic::transport::{Server, server::Router};
+use tonic::transport::{Channel, Endpoint, Server, server::Router};
+use tower::service_fn;
 
 use crate::common::{init_config, initialize_users};
 
@@ -33,6 +36,7 @@ pub struct TestGrpcServer {
     gateway_state: Arc<Mutex<GatewayMap>>,
     client_state: Arc<Mutex<ClientMap>>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    pub client_channel: Channel,
 }
 
 impl TestGrpcServer {
@@ -46,6 +50,7 @@ impl TestGrpcServer {
         gateway_state: Arc<Mutex<GatewayMap>>,
         client_state: Arc<Mutex<ClientMap>>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
+        client_channel: Channel,
     ) -> Self {
         // spawn test gRPC server
         let grpc_server_task_handle = tokio::spawn(async move {
@@ -64,6 +69,7 @@ impl TestGrpcServer {
             gateway_state,
             client_state,
             failed_logins,
+            client_channel,
         }
     }
 
@@ -80,6 +86,12 @@ impl TestGrpcServer {
             .lock()
             .expect("failed to acquire lock on client state")
     }
+
+    pub fn send_wireguard_event(&self, event: GatewayEvent) {
+        self.wireguard_tx
+            .send(event)
+            .expect("failed to send gateway event");
+    }
 }
 
 impl Drop for TestGrpcServer {
@@ -89,9 +101,32 @@ impl Drop for TestGrpcServer {
     }
 }
 
-pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, DuplexStream) {
+pub(crate) async fn create_client_channel(client_stream: DuplexStream) -> Channel {
+    // Move client to an option so we can _move_ the inner value
+    // on the first attempt to connect. All other attempts will fail.
+    // reference: https://github.com/hyperium/tonic/blob/master/examples/src/mock/mock.rs#L31
+    let mut client = Some(client_stream);
+    Endpoint::try_from("http://[::]:50051")
+        .expect("Failed to create channel")
+        .connect_with_connector(service_fn(move |_: Uri| {
+            let client = client.take();
+
+            async move {
+                if let Some(client) = client {
+                    Ok(TokioIo::new(client))
+                } else {
+                    Err(std::io::Error::other("Client already taken"))
+                }
+            }
+        }))
+        .await
+        .expect("Failed to create client channel")
+}
+
+pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     // create communication channel for clients
     let (client_stream, server_stream) = tokio::io::duplex(1024);
+    let client_channel = create_client_channel(client_stream).await;
 
     // setup helper structs
     let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
@@ -135,18 +170,16 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> (TestGrpcServer, Dup
     )
     .await;
 
-    (
-        TestGrpcServer::new(
-            server_stream,
-            grpc_router,
-            grpc_event_rx,
-            wg_tx,
-            worker_state,
-            gateway_state,
-            client_state,
-            failed_logins,
-        )
-        .await,
-        client_stream,
+    TestGrpcServer::new(
+        server_stream,
+        grpc_router,
+        grpc_event_rx,
+        wg_tx,
+        worker_state,
+        gateway_state,
+        client_state,
+        failed_logins,
+        client_channel,
     )
+    .await
 }

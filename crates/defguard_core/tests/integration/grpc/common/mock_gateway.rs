@@ -1,29 +1,23 @@
-use std::collections::VecDeque;
+use std::time::Duration;
 
-use axum::http::Uri;
 use defguard_core::grpc::proto::gateway::{
     Configuration, ConfigurationRequest, StatsUpdate, Update,
     gateway_service_client::GatewayServiceClient,
 };
-use hyper_util::rt::TokioIo;
 use tokio::{
-    io::DuplexStream,
     sync::mpsc::{UnboundedSender, unbounded_channel},
     task::JoinHandle,
+    time::timeout,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Request, Response, Status, Streaming,
-    metadata::MetadataValue,
-    transport::{Channel, Endpoint},
-};
-use tower::service_fn;
+use tonic::{Request, Response, Status, Streaming, metadata::MetadataValue, transport::Channel};
 
 pub(crate) struct MockGateway {
     client: GatewayServiceClient<Channel>,
     auth_token: Option<String>,
     hostname: Option<String>,
     stats_update_thread_handle: Option<JoinHandle<()>>,
+    updates_stream: Option<Streaming<Update>>,
 }
 
 impl Drop for MockGateway {
@@ -36,34 +30,15 @@ impl Drop for MockGateway {
 
 impl MockGateway {
     #[must_use]
-    pub(crate) async fn new(client_stream: DuplexStream) -> Self {
-        // Move client to an option so we can _move_ the inner value
-        // on the first attempt to connect. All other attempts will fail.
-        // reference: https://github.com/hyperium/tonic/blob/master/examples/src/mock/mock.rs#L31
-        let mut client = Some(client_stream);
-        let channel = Endpoint::try_from("http://[::]:50051")
-            .expect("Failed to create channel")
-            .connect_with_connector(service_fn(move |_: Uri| {
-                let client = client.take();
-
-                async move {
-                    if let Some(client) = client {
-                        Ok(TokioIo::new(client))
-                    } else {
-                        Err(std::io::Error::other("Client already taken"))
-                    }
-                }
-            }))
-            .await
-            .expect("Failed to create client channel");
-
-        let client = GatewayServiceClient::new(channel);
+    pub(crate) async fn new(client_channel: Channel) -> Self {
+        let client = GatewayServiceClient::new(client_channel);
 
         Self {
             client,
             auth_token: None,
             hostname: None,
             stats_update_thread_handle: None,
+            updates_stream: None,
         }
     }
 
@@ -98,13 +73,29 @@ impl MockGateway {
         self.client.config(request).await
     }
 
-    #[must_use]
-    pub(crate) async fn connect_to_updates_stream(&mut self) -> Streaming<Update> {
+    pub(crate) async fn connect_to_updates_stream(&mut self) {
         let mut request = Request::new(());
 
         self.add_request_metadata(&mut request);
 
-        self.client.updates(request).await.unwrap().into_inner()
+        let updates_stream = self.client.updates(request).await.unwrap().into_inner();
+
+        self.updates_stream = Some(updates_stream);
+    }
+
+    pub(crate) fn disconnect_from_updates_stream(&mut self) {
+        self.updates_stream = None;
+    }
+
+    #[must_use]
+    pub(crate) async fn receive_next_update(&mut self) -> Option<Update> {
+        match &mut self.updates_stream {
+            Some(stream) => match timeout(Duration::from_millis(100), stream.message()).await {
+                Ok(result) => result.expect("failed to reveive update message"),
+                Err(_) => None,
+            },
+            None => None,
+        }
     }
 
     // Connect to interface stats update endpoint
