@@ -2,7 +2,6 @@ import { Browser, expect, Page } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
-import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
