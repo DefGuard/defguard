@@ -1,8 +1,8 @@
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardComponent, Version, client::version_interceptor, server::DefguardVersionLayer,
-    version_info_from_metadata,
+    DefguardComponent, Version, client::version_interceptor, get_tracing_variables, parse_metadata,
+    server::DefguardVersionLayer,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -70,6 +70,7 @@ use crate::{
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
+    version::is_proxy_version_supported,
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -905,9 +906,16 @@ pub async fn run_grpc_bidi_stream(
             sleep(TEN_SECS).await;
             continue;
         };
-        let (version, info) = version_info_from_metadata(response.metadata());
+        let maybe_info = parse_metadata(response.metadata());
+
+        // check proxy version and return if it's not supported
+        let version = maybe_info.as_ref().map(|info| &info.version);
+        if !is_proxy_version_supported(version) {
+            return Ok(());
+        }
 
         info!("Connected to proxy at {}", endpoint.uri());
+        let (version, info) = get_tracing_variables(&maybe_info);
         let mut resp_stream = response.into_inner();
         handle_proxy_message_loop(
             &version,

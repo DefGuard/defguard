@@ -162,6 +162,7 @@ pub mod support;
 pub mod templates;
 pub mod updates;
 pub mod utility_thread;
+mod version;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;

@@ -330,3 +330,15 @@ pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
         (info.version.to_string(), info.system.to_string())
     })
 }
+
+#[must_use]
+pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (String, String) {
+    let version = info
+        .as_ref()
+        .map_or(String::from("?"), |info| info.version.to_string());
+    let info = info
+        .as_ref()
+        .map_or(String::from("?"), |info| info.system.to_string());
+
+    (version, info)
+}
