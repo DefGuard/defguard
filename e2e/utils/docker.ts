@@ -14,6 +14,7 @@ export const dockerUp = () => {
   const create_snapshot = `docker compose exec db pg_dump -U defguard -d defguard -Fc -f /tmp/defguard_backup.dump`
   execSync(create_snapshot); // create snapshot of db
 
+
 };
 export const dockerCheckContainers = (): boolean => {
   const command = `docker ps -q`;
