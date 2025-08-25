@@ -911,7 +911,8 @@ pub async fn run_grpc_bidi_stream(
         let _guard = span.enter();
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !is_proxy_version_supported(version) {
-            return Ok(());
+            sleep(TEN_SECS).await;
+            continue;
         }
 
         info!("Connected to proxy at {}", endpoint.uri());
