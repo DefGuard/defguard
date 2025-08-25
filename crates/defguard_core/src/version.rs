@@ -1,7 +1,7 @@
 use defguard_version::Version;
 
-const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
-const MIN_GATEWAY_VERSION: Version = Version::new(1, 6, 0);
+const MIN_PROXY_VERSION: Version = Version::new(1, 6, 0);
+pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 6, 0);
 
 /// Checks if the proxy version meets minimum version requirements.
 pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
