@@ -30,6 +30,7 @@ use super::{
 };
 use crate::{
     AsCsv,
+    auth::{Claims, ClaimsType},
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
@@ -213,6 +214,8 @@ pub enum WireguardNetworkError {
     DeviceError(#[from] DeviceError),
     #[error("Firewall config error: {0}")]
     FirewallError(#[from] FirewallError),
+    #[error(transparent)]
+    TokenError(#[from] jsonwebtoken::errors::Error),
 }
 
 #[derive(Debug, Error)]
@@ -1302,6 +1305,21 @@ impl WireguardNetwork<Id> {
         .await?;
 
         Ok(locations)
+    }
+
+    /// Generates auth token for a VPN gateway
+    pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
+        let location_id = self.id;
+
+        let token = Claims::new(
+            ClaimsType::Gateway,
+            format!("DEFGUARD-NETWORK-{location_id}"),
+            location_id.to_string(),
+            u32::MAX.into(),
+        )
+        .to_jwt()?;
+
+        Ok(token)
     }
 }
 

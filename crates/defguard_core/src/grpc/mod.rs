@@ -31,7 +31,9 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
     Code, Status, Streaming,
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    transport::{
+        Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig, server::Router,
+    },
 };
 use tower::ServiceBuilder;
 use utoipa::ToSchema;
@@ -67,6 +69,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
+    grpc::gateway::client_state::ClientMap,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
@@ -78,7 +81,7 @@ mod auth;
 pub(crate) mod client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
-pub(crate) mod gateway;
+pub mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
@@ -140,6 +143,10 @@ impl GatewayMap {
     #[must_use]
     pub fn new() -> Self {
         Self(HashMap::new())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     // add a new gateway to map
@@ -934,6 +941,7 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
@@ -942,22 +950,25 @@ pub async fn run_grpc_server(
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
-    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-    #[cfg(feature = "worker")]
-    let worker_service = WorkerServiceServer::with_interceptor(
-        WorkerServer::new(pool.clone(), worker_state),
-        JwtInterceptor::new(ClaimsType::YubiBridge),
-    );
-    #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
-        JwtInterceptor::new(ClaimsType::Gateway),
-    );
+    let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
+        let identity = Identity::from_pem(cert, key);
+        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
+    } else {
+        Server::builder()
+    };
 
-    let (health_reporter, health_service) = tonic_health::server::health_reporter();
-    health_reporter
-        .set_serving::<AuthServiceServer<AuthServer>>()
-        .await;
+    let router = build_grpc_service_router(
+        server,
+        pool,
+        worker_state,
+        gateway_state,
+        client_state,
+        wireguard_tx,
+        mail_tx,
+        failed_logins,
+        grpc_event_tx,
+    )
+    .await?;
 
     // Run gRPC server
     let addr = SocketAddr::new(
@@ -967,29 +978,65 @@ pub async fn run_grpc_server(
         server_config().grpc_port,
     );
     debug!("Starting gRPC services");
-    let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(cert, key);
-        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
-    } else {
-        Server::builder()
-    };
+    router.serve(addr).await?;
+    info!("gRPC server started on {addr}");
+    Ok(())
+}
 
-    let router = builder
+pub async fn build_grpc_service_router(
+    server: Server,
+    pool: PgPool,
+    worker_state: Arc<Mutex<WorkerState>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: Arc<Mutex<ClientMap>>,
+    wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
+) -> Result<Router, anyhow::Error> {
+    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
+
+    #[cfg(feature = "worker")]
+    let worker_service = WorkerServiceServer::with_interceptor(
+        WorkerServer::new(pool.clone(), worker_state),
+        JwtInterceptor::new(ClaimsType::YubiBridge),
+    );
+
+    #[cfg(feature = "wireguard")]
+    let gateway_service = GatewayServiceServer::with_interceptor(
+        GatewayServer::new(
+            pool,
+            gateway_state,
+            client_state,
+            wireguard_tx,
+            mail_tx,
+            grpc_event_tx,
+        ),
+        JwtInterceptor::new(ClaimsType::Gateway),
+    );
+
+    let (health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<AuthServer>>()
+        .await;
+
+    let router = server
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
         .add_service(auth_service);
+
     #[cfg(feature = "wireguard")]
     let router = router.add_service(
         ServiceBuilder::new()
             .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
             .service(gateway_service),
     );
+
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
-    router.serve(addr).await?;
-    info!("gRPC server started on {addr}");
-    Ok(())
+
+    Ok(router)
 }
 
 #[cfg(feature = "worker")]

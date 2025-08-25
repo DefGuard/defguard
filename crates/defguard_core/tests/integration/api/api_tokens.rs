@@ -11,7 +11,7 @@ use reqwest::{StatusCode, header::HeaderName};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{make_client, make_client_with_state, setup_pool};
+use super::common::{make_client, make_client_with_state, setup_pool};
 
 #[sqlx::test]
 async fn test_normal_user_cannot_access_token_endpoints(

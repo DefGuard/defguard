@@ -14,7 +14,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use crate::common::{fetch_user_details, make_test_client, setup_pool};
+use super::common::{fetch_user_details, make_test_client, setup_pool};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {

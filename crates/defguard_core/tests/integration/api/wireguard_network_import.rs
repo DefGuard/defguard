@@ -18,7 +18,7 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::broadcast::error::TryRecvError;
 
-use crate::common::{fetch_user_details, make_test_client, setup_pool};
+use super::common::{fetch_user_details, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {

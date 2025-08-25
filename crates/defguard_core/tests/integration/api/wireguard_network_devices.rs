@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{make_test_client, setup_pool};
+use super::common::{make_test_client, setup_pool};
 
 fn make_network() -> Value {
     json!({

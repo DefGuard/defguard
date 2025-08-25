@@ -12,7 +12,7 @@ use defguard_core::{
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{
+use super::common::{
     authenticate_admin, exceed_enterprise_limits, make_network, make_test_client, setup_pool,
 };
 

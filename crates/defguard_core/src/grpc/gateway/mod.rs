@@ -1,4 +1,4 @@
-mod client_state;
+pub mod client_state;
 use std::{
     net::{IpAddr, SocketAddr},
     pin::Pin,
@@ -141,15 +141,16 @@ impl GatewayServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        state: Arc<Mutex<GatewayMap>>,
+        gateway_state: Arc<Mutex<GatewayMap>>,
+        client_state: Arc<Mutex<ClientMap>>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         grpc_event_tx: UnboundedSender<GrpcEvent>,
     ) -> Self {
         Self {
             pool,
-            gateway_state: state,
-            client_state: Arc::new(Mutex::new(ClientMap::new())),
+            gateway_state,
+            client_state,
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
@@ -1024,7 +1025,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 error!("Failed to connect gateway on network {network_id}: {err}");
                 Status::new(
                     Code::Internal,
-                    "Failed to connect gateway on network {gateway_network_id}",
+                    format!("Failed to connect gateway on network {network_id}"),
                 )
             })?;
 

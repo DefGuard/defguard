@@ -26,7 +26,7 @@ use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{
+use super::common::{
     client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
 };
 
