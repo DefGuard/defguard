@@ -36,8 +36,6 @@ test.describe('Authorize OpenID client.', () => {
     context.close();
   });
 
-
-
   test('Authorize when session is active.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     await waitForBase(page);

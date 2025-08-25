@@ -26,7 +26,6 @@ test.describe('Reset password', () => {
     await createUser(browser, user);
   });
 
-
   test('Reset user password', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);

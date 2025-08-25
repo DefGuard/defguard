@@ -26,15 +26,15 @@ export const createNetwork = async (browser: Browser, network: NetworkForm) => {
   if (network.location_mfa_mode) {
     const mfaModeSelect = page.locator('div.location-mfa-mode-select');
     // const mfaMode = mfaModeSelect.locator(`div.${network.location_mfa_mode}`);
-    var mode: number; //TODO: do it better
-    switch (network.location_mfa_mode){
-      case "none":
+    let mode: number; //TODO: do it better
+    switch (network.location_mfa_mode) {
+      case 'none':
         mode = 0;
         break;
-      case "internal":
+      case 'internal':
         mode = 1;
         break;
-      case "external":
+      case 'external':
         mode = 2;
         break;
       default:

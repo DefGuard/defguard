@@ -37,7 +37,6 @@ test.describe('Create user with enrollment enabled', () => {
     await createNetwork(browser, testNetwork);
   });
 
-
   test('Try to complete enrollment with disabled user', async ({ page, browser }) => {
     expect(token).toBeDefined();
     await waitForBase(page);

@@ -23,7 +23,6 @@ test.describe('Test user authentication', () => {
     testUser = { ...testUserTemplate, username: 'test' };
   });
 
-
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
