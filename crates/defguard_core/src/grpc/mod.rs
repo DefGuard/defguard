@@ -488,14 +488,8 @@ struct ProxyMessageLoopContext<'a> {
     endpoint_uri: &'a Uri,
 }
 
-#[instrument(
-    name = "proxy_bidi",
-    skip(context),
-    fields(component = %DefguardComponent::Proxy)
-)]
+#[instrument(skip_all)]
 async fn handle_proxy_message_loop(
-    version: &str,
-    info: &str,
     context: ProxyMessageLoopContext<'_>,
 ) -> Result<(), anyhow::Error> {
     let pool = context.pool.clone();
@@ -909,29 +903,28 @@ pub async fn run_grpc_bidi_stream(
         let maybe_info = parse_metadata(response.metadata());
 
         // check proxy version and return if it's not supported
+        let (version, info) = get_tracing_variables(&maybe_info);
+        let span =
+            tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy, version, info);
+        let _guard = span.enter();
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !is_proxy_version_supported(version) {
             return Ok(());
         }
 
         info!("Connected to proxy at {}", endpoint.uri());
-        let (version, info) = get_tracing_variables(&maybe_info);
         let mut resp_stream = response.into_inner();
-        handle_proxy_message_loop(
-            &version,
-            &info,
-            ProxyMessageLoopContext {
-                pool: pool.clone(),
-                tx,
-                wireguard_tx: wireguard_tx.clone(),
-                resp_stream: &mut resp_stream,
-                enrollment_server: &mut enrollment_server,
-                password_reset_server: &mut password_reset_server,
-                client_mfa_server: &mut client_mfa_server,
-                polling_server: &mut polling_server,
-                endpoint_uri: endpoint.uri(),
-            },
-        )
+        handle_proxy_message_loop(ProxyMessageLoopContext {
+            pool: pool.clone(),
+            tx,
+            wireguard_tx: wireguard_tx.clone(),
+            resp_stream: &mut resp_stream,
+            enrollment_server: &mut enrollment_server,
+            password_reset_server: &mut password_reset_server,
+            client_mfa_server: &mut client_mfa_server,
+            polling_server: &mut polling_server,
+            endpoint_uri: endpoint.uri(),
+        })
         .await?;
     }
 }
