@@ -12,7 +12,7 @@ import {
   getDeviceRow,
   startNetworkDeviceEnrollment,
 } from '../../utils/controllers/vpn/createNetworkDevice';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForRoute } from '../../utils/waitForRoute';
 
@@ -45,7 +45,7 @@ test.describe('Network devices', () => {
     await context.close();
   });
 
-  test.afterAll(() => dockerDown());
+  // test.afterAll(() => dockerDown());
 
   test('Network devices CRUD and actions', async ({ page, browser }) => {
     const deviceName = 'test';

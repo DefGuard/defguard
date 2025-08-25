@@ -8,7 +8,7 @@ import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { copyOpenIdClientId } from '../utils/controllers/openid/copyClientId';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -34,10 +34,6 @@ test.describe('Authorize OpenID client.', () => {
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
     context.close();
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Authorize when session is active.', async ({ page }) => {

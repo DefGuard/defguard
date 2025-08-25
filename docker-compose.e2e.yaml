@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard:${IMAGE_TAG:-release-1.5-alpha}
     # build:
     #   context: .
     #   dockerfile: Dockerfile
@@ -27,7 +27,7 @@ services:
       - db
 
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
@@ -36,7 +36,7 @@ services:
       - "5432:5432"
 
   proxy:
-    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG:-release-1.5-alpha}
     ports:
       - "8080:8080"
     environment:
