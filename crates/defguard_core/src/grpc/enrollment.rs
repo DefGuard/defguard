@@ -876,7 +876,8 @@ impl EnrollmentServer {
         }
         let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
         let mut user = enrollment.fetch_user(&self.pool).await?;
-        if !user.is_active {
+        // available only for unenrolled users
+        if user.is_active {
             warn!("Can't setup MFA for disabled user {}.", user.username);
             return Err(Status::permission_denied("user is disabled"));
         }
@@ -916,7 +917,8 @@ impl EnrollmentServer {
                 "Mfa already enabled on the account".to_string(),
             ));
         }
-        if !user.is_active {
+        // available only for unenrolled users
+        if user.is_active {
             return Err(Status::unauthenticated(String::new()));
         }
         if !user.verify_totp_code(&request.code) {

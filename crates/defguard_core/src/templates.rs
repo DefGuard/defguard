@@ -270,9 +270,9 @@ pub fn gateway_reconnected_mail(
 pub fn email_mfa_activation_mail(
     user: &User<Id>,
     code: &str,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
+    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));

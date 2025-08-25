@@ -782,7 +782,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
-    send_email_mfa_activation_email(&user, &appstate.mail_tx, &session.session)?;
+    send_email_mfa_activation_email(&user, &appstate.mail_tx, Some(&session.session))?;
 
     Ok(ApiResponse::default())
 }
