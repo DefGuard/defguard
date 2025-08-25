@@ -51,8 +51,6 @@ use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
-#[cfg(feature = "wireguard")]
-use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     VERSION,
     auth::failed_login::FailedLoginMap,
@@ -986,11 +984,7 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(
         ServiceBuilder::new()
-            .layer(DefguardVersionLayer::new(
-                Version::parse(VERSION)?,
-                DefguardComponent::Gateway,
-                MIN_GATEWAY_VERSION,
-            ))
+            .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
             .service(gateway_service),
     );
     #[cfg(feature = "worker")]
