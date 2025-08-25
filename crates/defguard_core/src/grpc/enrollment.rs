@@ -877,9 +877,8 @@ impl EnrollmentServer {
         let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
         let mut user = enrollment.fetch_user(&self.pool).await?;
         // available only for unenrolled users
-        if user.is_active {
-            warn!("Can't setup MFA for disabled user {}.", user.username);
-            return Err(Status::permission_denied("user is disabled"));
+        if user.is_enrolled() {
+            return Err(Status::permission_denied("User is already enrolled"));
         }
         if request.method == MfaMethod::Totp as i32 {
             if user.totp_enabled {
@@ -918,8 +917,8 @@ impl EnrollmentServer {
             ));
         }
         // available only for unenrolled users
-        if user.is_active {
-            return Err(Status::unauthenticated(String::new()));
+        if user.is_enrolled() {
+            return Err(Status::permission_denied("User is already enrolled"));
         }
         if !user.verify_totp_code(&request.code) {
             return Err(Status::unauthenticated(String::new()));
