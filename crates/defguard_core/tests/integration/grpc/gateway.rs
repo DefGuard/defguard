@@ -14,10 +14,14 @@ use defguard_core::{
         },
         setup_pool,
     },
+    enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
     grpc::{
         gateway::{Configuration, Update, update},
-        proto::gateway::{PeerStats, StatsUpdate, stats_update::Payload},
+        proto::{
+            enterprise::firewall::FirewallPolicy,
+            gateway::{PeerStats, StatsUpdate, stats_update::Payload},
+        },
     },
 };
 use sqlx::{
@@ -188,13 +192,6 @@ async fn test_gateway_status(_: PgPoolOptions, options: PgConnectOptions) {
         assert_eq!(gateway_state.hostname, gateway.hostname());
     }
 }
-
-// test correct config is sent to gw
-// firewall rules are included
-
-// test updates stream
-// filtering by id
-// sent to multiple gateways
 
 #[sqlx::test]
 async fn test_vpn_client_connected(_: PgPoolOptions, options: PgConnectOptions) {
@@ -451,4 +448,55 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     // no gateway should receive this update
     assert!(gateway_1.receive_next_update().await.is_none());
     assert!(gateway_2.receive_next_update().await.is_none());
+}
+
+#[sqlx::test]
+async fn test_gateway_config(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (_test_server, mut gateway, mut test_location, _test_user) =
+        setup_test_server(pool.clone()).await;
+
+    // get gateway config
+    let config = gateway.get_gateway_config().await.unwrap().into_inner();
+
+    assert_eq!(config.name, test_location.name);
+    assert!(config.firewall_config.is_none());
+
+    // enable ACL for test location
+    test_location.acl_enabled = true;
+    test_location
+        .save(&pool)
+        .await
+        .expect("failed to update location");
+
+    // get gateway config
+    let config = gateway.get_gateway_config().await.unwrap().into_inner();
+    assert!(config.firewall_config.is_some());
+    assert_eq!(
+        config.firewall_config.unwrap().default_policy == i32::from(FirewallPolicy::Allow),
+        test_location.acl_default_allow
+    );
+
+    // unset the license and create another location to exceed limits and disable enterprise features
+    set_cached_license(None);
+    let _test_location_2 = WireguardNetwork::new(
+        "test location 2".to_string(),
+        Vec::new(),
+        1000,
+        "endpoint2".to_string(),
+        None,
+        Vec::new(),
+        100,
+        100,
+        false,
+        false,
+        LocationMfaMode::Disabled,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    update_counts(&pool).await.unwrap();
+
+    let config = gateway.get_gateway_config().await.unwrap().into_inner();
+    assert!(config.firewall_config.is_none());
 }
