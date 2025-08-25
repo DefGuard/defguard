@@ -29,13 +29,9 @@ pub mod mock_gateway;
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
     pub grpc_event_rx: UnboundedReceiver<GrpcEvent>,
-    // app_event_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
-    // mail_rx: UnboundedReceiver<Mail>,
-    worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     client_state: Arc<Mutex<ClientMap>>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub client_channel: Channel,
 }
 
@@ -46,10 +42,8 @@ impl TestGrpcServer {
         grpc_router: Router,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
         wireguard_tx: Sender<GatewayEvent>,
-        worker_state: Arc<Mutex<WorkerState>>,
         gateway_state: Arc<Mutex<GatewayMap>>,
         client_state: Arc<Mutex<ClientMap>>,
-        failed_logins: Arc<Mutex<FailedLoginMap>>,
         client_channel: Channel,
     ) -> Self {
         // spawn test gRPC server
@@ -65,22 +59,18 @@ impl TestGrpcServer {
             grpc_server_task_handle,
             grpc_event_rx,
             wireguard_tx,
-            worker_state,
             gateway_state,
             client_state,
-            failed_logins,
             client_channel,
         }
     }
 
-    #[must_use]
     pub fn get_gateway_map(&self) -> std::sync::MutexGuard<'_, GatewayMap> {
         self.gateway_state
             .lock()
             .expect("failed to acquire lock on gateway state")
     }
 
-    #[must_use]
     pub fn get_client_map(&self) -> std::sync::MutexGuard<'_, ClientMap> {
         self.client_state
             .lock()
@@ -130,10 +120,10 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 
     // setup helper structs
     let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
-    let (app_event_tx, app_event_rx) = unbounded_channel::<AppEvent>();
+    let (app_event_tx, _app_event_rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(app_event_tx.clone())));
-    let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
+    let (wg_tx, _wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (mail_tx, _mail_rx) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
@@ -141,8 +131,8 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     let config = init_config(None);
-    initialize_users(&pool, &config).await;
-    initialize_current_settings(&pool)
+    initialize_users(pool, &config).await;
+    initialize_current_settings(pool)
         .await
         .expect("Could not initialize settings");
 
@@ -160,12 +150,12 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     let grpc_router = build_grpc_service_router(
         server,
         pool.clone(),
-        worker_state.clone(),
+        worker_state,
         gateway_state.clone(),
         client_state.clone(),
         wg_tx.clone(),
         mail_tx,
-        failed_logins.clone(),
+        failed_logins,
         grpc_event_tx,
     )
     .await;
@@ -175,10 +165,8 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         grpc_router,
         grpc_event_rx,
         wg_tx,
-        worker_state,
         gateway_state,
         client_state,
-        failed_logins,
         client_channel,
     )
     .await

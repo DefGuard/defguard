@@ -21,7 +21,7 @@ use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for
 use crate::{
     AsCsv,
     appstate::AppState,
-    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
+    auth::{AdminRole, SessionInfo},
     db::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
         models::{

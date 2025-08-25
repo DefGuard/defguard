@@ -28,16 +28,10 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::{
-    sync::mpsc::error::TryRecvError,
-    time::{advance, pause, sleep},
-};
-use tokio_stream::StreamExt;
+use tokio::{sync::mpsc::error::TryRecvError, time::sleep};
 use tonic::Code;
 
-use crate::grpc::common::{
-    TestGrpcServer, create_client_channel, make_grpc_test_server, mock_gateway::MockGateway,
-};
+use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
 
 async fn setup_test_server(
     pool: PgPool,
@@ -356,7 +350,7 @@ async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOption
 #[sqlx::test]
 async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (mut test_server, mut gateway_1, test_location, test_user) =
+    let (test_server, mut gateway_1, test_location, _test_user) =
         setup_test_server(pool.clone()).await;
 
     // setup another test location & gateway

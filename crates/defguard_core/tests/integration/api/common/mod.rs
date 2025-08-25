@@ -1,12 +1,8 @@
 pub(crate) mod client;
 
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use defguard_core::{
-    SERVER_CONFIG,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
@@ -20,8 +16,7 @@ use defguard_core::{
     handlers::Auth,
     mail::Mail,
 };
-use reqwest::{StatusCode, Url, header::HeaderName};
-use secrecy::ExposeSecret;
+use reqwest::{StatusCode, header::HeaderName};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use sqlx::PgPool;

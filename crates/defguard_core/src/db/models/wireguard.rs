@@ -1308,7 +1308,6 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generates auth token for a VPN gateway
-    #[must_use]
     pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
         let location_id = self.id;
 

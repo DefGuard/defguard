@@ -84,7 +84,7 @@ impl ClientState {
 /// Helper struct used to handle connected VPN clients state
 /// Clients are grouped by location ID
 type ClientPubKey = String;
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Default, Serialize, Clone)]
 pub struct ClientMap(HashMap<Id, HashMap<ClientPubKey, ClientState>>);
 
 impl ClientMap {
