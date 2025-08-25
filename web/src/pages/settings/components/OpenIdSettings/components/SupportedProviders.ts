@@ -1,1 +1,1 @@
-export const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft', 'Okta'];
+export const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft', 'Okta', 'JumpCloud'];

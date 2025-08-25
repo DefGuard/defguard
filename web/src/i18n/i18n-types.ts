@@ -3448,6 +3448,16 @@ type RootTranslation = {
 						 */
 						helper: string
 					}
+					jumpcloud_api_key: {
+						/**
+						 * J​u​m​p​C​l​o​u​d​ ​A​P​I​ ​K​e​y
+						 */
+						label: string
+						/**
+						 * A​P​I​ ​K​e​y​ ​f​o​r​ ​t​h​e​ ​J​u​m​p​C​l​o​u​d​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​.​ ​I​t​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​t​o​ ​p​e​r​i​o​d​i​c​a​l​l​y​ ​q​u​e​r​y​ ​J​u​m​p​C​l​o​u​d​ ​f​o​r​ ​u​s​e​r​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​ ​c​h​a​n​g​e​s​.
+						 */
+						helper: string
+					}
 					group_match: {
 						/**
 						 * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
@@ -10060,6 +10070,16 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 						/**
 						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
+					}
+					jumpcloud_api_key: {
+						/**
+						 * JumpCloud API Key
+						 */
+						label: () => LocalizedString
+						/**
+						 * API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.
 						 */
 						helper: () => LocalizedString
 					}

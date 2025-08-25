@@ -36,7 +36,7 @@ import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
 const dateFormat = 'DD.MM.YYYY | HH:mm';
 
 const formatDate = (date: string): string => {
-  return dayjs.utc(date).format(dateFormat);
+  return dayjs.utc(date).local().format(dateFormat);
 };
 
 interface Props {
@@ -89,7 +89,11 @@ export const DeviceCard = ({ device, modifiable, biometricEnabled }: Props) => {
       (n) => n.last_connected_at as string,
       true,
     );
-    const neverConnectedSorted = orderBy(neverConnected, ['network_id'], ['desc']);
+    const neverConnectedSorted = orderBy(
+      neverConnected,
+      (network) => network.network_name.toLowerCase(),
+      ['asc'],
+    );
 
     return [...connectedSorted, ...neverConnectedSorted];
   }, [device.networks]);

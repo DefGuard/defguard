@@ -2,6 +2,7 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
+pub use defguard_core::db::setup_pool;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
@@ -27,8 +28,6 @@ use tokio::{
         mpsc::{UnboundedReceiver, unbounded_channel},
     },
 };
-
-pub use defguard_core::db::setup_pool;
 
 use crate::common::{init_config, initialize_users};
 

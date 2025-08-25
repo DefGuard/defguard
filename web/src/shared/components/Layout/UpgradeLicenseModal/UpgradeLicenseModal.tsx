@@ -62,7 +62,7 @@ const ModalContent = () => {
         className="content"
         style={{
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
+          //@ts-expect-error
           '--list-image': `url("${checkboxUrl}")`,
         }}
       >

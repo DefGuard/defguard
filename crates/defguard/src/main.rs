@@ -1,9 +1,11 @@
+use bytes::Bytes;
+use secrecy::ExposeSecret;
 use std::{
     fs::read_to_string,
     sync::{Arc, Mutex},
 };
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
-use bytes::Bytes;
 use defguard_core::{
     SERVER_CONFIG, VERSION,
     auth::failed_login::FailedLoginMap,
@@ -31,9 +33,6 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use secrecy::ExposeSecret;
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -44,17 +43,17 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
-    SERVER_CONFIG.set(config.clone())?;
-    // initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    SERVER_CONFIG
+        .set(config.clone())
+        .expect("Failed to initialize server config.");
 
-    info!("Starting ... version v{}", VERSION);
+    // initialize tracing with version formatter
+    defguard_version::tracing::init(
+        defguard_version::Version::parse(VERSION)?,
+        &config.log_level,
+    )?;
+
+    info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");
 
     let pool = init_db(

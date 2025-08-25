@@ -393,6 +393,9 @@ impl Serialize for ClientMFAMethod {
             MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
             MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
             MfaMethod::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
+            MfaMethod::MobileApprove => {
+                serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
+            }
         }
     }
 }

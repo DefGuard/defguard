@@ -1,7 +1,4 @@
 use bytes::Bytes;
-use defguard_core::db::models::activity_log::metadata::{
-    GroupMembersModifiedMetadata, UserGroupsModifiedMetadata,
-};
 use defguard_core::db::{
     NoId,
     models::activity_log::{
@@ -11,11 +8,12 @@ use defguard_core::db::{
             ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
             ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
             EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
-            GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
-            MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata,
-            NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata,
-            OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata,
-            PasswordChangedByAdminMetadata, PasswordResetMetadata, SettingsUpdateMetadata,
+            GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
+            GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata,
+            MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
+            NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
+            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
+            PasswordResetMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
             UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
             UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
             VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,

@@ -1,8 +1,9 @@
 import './style.scss';
 
+import { sortBy } from 'lodash-es';
+import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
-
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
@@ -26,6 +27,12 @@ export const UserDevices = () => {
     userProfile &&
     (!settings?.admin_device_management || isAdmin)
   );
+  const sortedDevices = useMemo(() => {
+    if (userProfile?.devices) {
+      return sortBy(userProfile.devices, (device) => device.name.toLowerCase());
+    }
+    return [];
+  }, [userProfile?.devices]);
 
   return (
     <section id="user-devices">
@@ -41,9 +48,9 @@ export const UserDevices = () => {
       )}
       {userProfile && (
         <>
-          {userProfile.devices && userProfile.devices.length > 0 && (
+          {sortedDevices.length > 0 && (
             <div className="devices">
-              {userProfile.devices.map((device) => (
+              {sortedDevices.map((device) => (
                 <DeviceCard
                   key={device.id}
                   device={device}

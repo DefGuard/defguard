@@ -8,6 +8,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
+use defguard_version::{DefguardComponent, version_info_from_metadata};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
@@ -127,6 +128,14 @@ impl WireguardNetwork<Id> {
     }
 }
 
+/// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
+struct GatewayMetadata {
+    network_id: Id,
+    hostname: String,
+    version: String,
+    info: String,
+}
+
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
@@ -159,10 +168,10 @@ impl GatewayServer {
     }
 
     // parse network id from gateway request metadata from intercepted information from JWT token
-    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
+    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
         if let Some(ascii_value) = metadata.get("gateway_network_id") {
             if let Ok(slice) = ascii_value.clone().to_str() {
-                if let Ok(id) = slice.parse::<i64>() {
+                if let Ok(id) = slice.parse::<Id>() {
                     return Some(id);
                 }
             }
@@ -276,6 +285,17 @@ impl GatewayServer {
         };
 
         Ok(user)
+    }
+
+    /// Utility function extracting metadata fields during gRPC communication.
+    fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
+        let (version, info) = version_info_from_metadata(metadata);
+        Ok(GatewayMetadata {
+            network_id: Self::get_network_id(metadata)?,
+            hostname: Self::get_gateway_hostname(metadata)?,
+            version,
+            info,
+        })
     }
 }
 
@@ -722,11 +742,17 @@ impl gateway_service_server::GatewayService for GatewayServer {
         &self,
         request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
-        let network_id = Self::get_network_id(request.metadata())?;
-        let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            version,
+            info,
+        } = Self::extract_metadata(request.metadata())?;
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
+        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway, version, info);
+        let _guard = span.enter();
         loop {
             // wait for a message or update client map at least once a mninute if no messages are received
             let stats_update = tokio::select! {
@@ -822,7 +848,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 // mark new VPN client as connected
                                 client_map.connect_vpn_client(
                                     network_id,
-                                    &gateway_hostname,
+                                    &hostname,
                                     &public_key,
                                     &device,
                                     &user,
@@ -885,8 +911,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<ConfigurationRequest>,
     ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
-        let network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            version,
+            info,
+        } = Self::extract_metadata(request.metadata())?;
+        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway, version, info);
+        let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
             error!("Failed to acquire DB connection: {e}");
@@ -957,22 +989,28 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let gateway_network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            version,
+            info,
+        } = Self::extract_metadata(request.metadata())?;
+        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway, version, info);
+        let _guard = span.enter();
 
-        let Some(network) = WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
+        let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)
             .await
             .map_err(|_| {
-                error!("Failed to fetch network {gateway_network_id} from the database");
+                error!("Failed to fetch network {network_id} from the database");
                 Status::new(
                     Code::Internal,
-                    format!("Failed to retrieve network {gateway_network_id} from the database"),
+                    format!("Failed to retrieve network {network_id} from the database"),
                 )
             })?
         else {
             return Err(Status::new(
                 Code::Internal,
-                format!("Network with id {gateway_network_id} not found"),
+                format!("Network with id {network_id} not found"),
             ));
         };
 
@@ -982,32 +1020,27 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.gateway_state.lock().unwrap();
         state
-            .connect_gateway(gateway_network_id, &hostname, &self.pool)
+            .connect_gateway(network_id, &hostname, &self.pool)
             .map_err(|err| {
-                error!("Failed to connect gateway on network {gateway_network_id}: {err}");
+                error!("Failed to connect gateway on network {network_id}: {err}");
                 Status::new(
                     Code::Internal,
-                    format!("Failed to connect gateway on network {gateway_network_id}"),
+                    format!("Failed to connect gateway on network {network_id}"),
                 )
             })?;
 
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
         let handle = tokio::spawn(async move {
-            let mut update_handler = GatewayUpdatesHandler::new(
-                gateway_network_id,
-                network,
-                gateway_hostname,
-                events_rx,
-                tx,
-            );
+            let mut update_handler =
+                GatewayUpdatesHandler::new(network_id, network, gateway_hostname, events_rx, tx);
             update_handler.run().await;
         });
 
         Ok(Response::new(GatewayUpdatesStream::new(
             handle,
             rx,
-            gateway_network_id,
+            network_id,
             hostname,
             Arc::clone(&self.gateway_state),
             self.pool.clone(),

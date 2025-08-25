@@ -158,7 +158,8 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         failed_logins,
         grpc_event_tx,
     )
-    .await;
+    .await
+    .unwrap();
 
     TestGrpcServer::new(
         server_stream,
