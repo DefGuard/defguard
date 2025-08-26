@@ -123,13 +123,6 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
-  function newIps(formIps: string[]): string[] {
-    const initialIpsSet = new Set<string>(
-      initialIpRecommendation.map((ip) => ip.network_part + ip.modifiable_part),
-    );
-    const formIpsSet = new Set<string>(formIps);
-    return Array.from(formIpsSet.difference(initialIpsSet));
-  }
   const submitHandler: SubmitHandler<StandaloneDeviceFormFields> = async (formValues) => {
     const values = formValues;
     const { modifiableIpParts: modifiableIpPart } = values;
@@ -146,16 +139,16 @@ export const StandaloneDeviceModalForm = ({
       await onSubmit(values);
       return;
     }
-    const ips = newIps(values.modifiableIpParts);
+
+    // try to validate explicitly chosen IPs before submission
     let validationErrors = false;
-    let index = 0;
-    for (const newIp of ips) {
-      try {
-        const response = await validateLocationIp({
-          ips: [newIp],
-          location: values.location_id,
-        });
-        const { available, valid } = response;
+    try {
+      const response = await validateLocationIp({
+        ips: values.modifiableIpParts,
+        location: values.location_id,
+      });
+
+      response.forEach(({ available, valid }, index) => {
         if (!available) {
           validationErrors = true;
           setError(`modifiableIpParts.${index}`, {
@@ -168,12 +161,13 @@ export const StandaloneDeviceModalForm = ({
             message: LL.form.error.invalidIp(),
           });
         }
-      } catch (_) {
-        validationErrors = true;
-      } finally {
-        index++;
-      }
+      });
+    } catch (_) {
+      validationErrors = true;
+      toaster.error(LL.messages.error());
     }
+
+    // submit form if no validation errors ocurred
     if (!validationErrors) {
       try {
         await onSubmit(values);
