@@ -185,7 +185,7 @@ impl DefguardVersionInterceptor {
             return false;
         }
 
-        debug!("Proxy version {version} is supported");
+        debug!("{} version {version} is supported", self.component);
         true
     }
 }
@@ -195,7 +195,11 @@ impl Interceptor for DefguardVersionInterceptor {
         let maybe_info = parse_metadata(request.metadata());
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !self.is_component_version_supported(version) {
-            return Err(tonic::Status::internal("Version not supported"));
+            let msg = match version {
+                Some(version) => format!("Version {version:?} not supported"),
+                None => "Missing version headers".to_string(),
+            };
+            return Err(tonic::Status::internal(msg));
         }
 
         Ok(request)
