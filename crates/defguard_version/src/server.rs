@@ -199,7 +199,7 @@ impl Interceptor for DefguardVersionInterceptor {
                 Some(version) => format!("Version {version:?} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            return Err(tonic::Status::internal(msg));
+            return Err(tonic::Status::failed_precondition(msg));
         }
 
         Ok(request)
