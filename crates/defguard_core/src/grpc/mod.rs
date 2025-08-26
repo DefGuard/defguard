@@ -1,8 +1,10 @@
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardComponent, Version, client::version_interceptor, get_tracing_variables, parse_metadata,
-    server::DefguardVersionLayer,
+    DefguardComponent, Version,
+    client::version_interceptor,
+    get_tracing_variables, parse_metadata,
+    server::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -51,6 +53,8 @@ use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
+#[cfg(feature = "wireguard")]
+use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     VERSION,
     auth::failed_login::FailedLoginMap,
@@ -984,6 +988,9 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(
         ServiceBuilder::new()
+            .layer(tonic::service::InterceptorLayer::new(
+                DefguardVersionInterceptor::new(DefguardComponent::Gateway, MIN_GATEWAY_VERSION),
+            ))
             .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
             .service(gateway_service),
     );

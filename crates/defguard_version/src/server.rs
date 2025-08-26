@@ -35,10 +35,14 @@ use tonic::{
     body::Body,
     codegen::http::{Request, Response},
     server::NamedService,
+    service::Interceptor,
 };
 use tower::{Layer, Service};
+use tracing::{debug, error};
 
-use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
+use crate::{
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, parse_metadata,
+};
 
 /// A tower `Layer` that adds Defguard version and system information headers to gRPC responses.
 ///
@@ -148,6 +152,53 @@ where
 
             Ok(response)
         })
+    }
+}
+
+#[derive(Clone)]
+pub struct DefguardVersionInterceptor {
+    component: DefguardComponent,
+    min_version: Version,
+}
+
+impl DefguardVersionInterceptor {
+    pub fn new(component: DefguardComponent, min_version: Version) -> Self {
+        Self {
+            component,
+            min_version,
+        }
+    }
+
+    pub fn is_component_version_supported(&self, version: Option<&Version>) -> bool {
+        let Some(version) = version else {
+            error!(
+                "Missing {} version information. This most likely means that {} component uses older, unsupported version. Minimal supported version is {}.",
+                self.component, self.component, self.min_version,
+            );
+            return false;
+        };
+        if version < &self.min_version {
+            error!(
+                "{} version {version} is not supported. Minimal supported {} version is {}.",
+                self.component, self.component, self.min_version
+            );
+            return false;
+        }
+
+        debug!("Proxy version {version} is supported");
+        true
+    }
+}
+
+impl Interceptor for DefguardVersionInterceptor {
+    fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
+        let maybe_info = parse_metadata(request.metadata());
+        let version = maybe_info.as_ref().map(|info| &info.version);
+        if !self.is_component_version_supported(version) {
+            return Err(tonic::Status::internal("Version not supported"));
+        }
+
+        Ok(request)
     }
 }
 
