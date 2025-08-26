@@ -21,22 +21,3 @@ pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
     info!("Proxy version {version} is supported");
     true
 }
-
-/// Checks if the gateway version meets minimum version requirements.
-pub(crate) fn is_gateway_version_supported(version: Option<&Version>) -> bool {
-    let Some(version) = version else {
-        error!(
-            "Missing gateway component version information. This most likely means that gateway component uses unsupported version. Minimal supported gateway version is {MIN_GATEWAY_VERSION}"
-        );
-        return false;
-    };
-    if version < &MIN_GATEWAY_VERSION {
-        error!(
-            "Gateway version {version} is not supported. Minimal supported gateway version is {MIN_GATEWAY_VERSION}."
-        );
-        return false;
-    }
-
-    info!("Gateway version {version} is supported");
-    true
-}

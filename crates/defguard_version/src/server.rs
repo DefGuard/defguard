@@ -196,7 +196,7 @@ impl Interceptor for DefguardVersionInterceptor {
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !self.is_component_version_supported(version) {
             let msg = match version {
-                Some(version) => format!("Version {version:?} not supported"),
+                Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
             return Err(tonic::Status::failed_precondition(msg));
