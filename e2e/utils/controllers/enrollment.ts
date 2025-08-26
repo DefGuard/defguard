@@ -42,7 +42,6 @@ export const createUserEnrollment = async (
   waitForPromise(2000);
   // Copy to clipboard
   const tokenStep = modalElement.locator('#enrollment-token-step');
-  // await tokenStep.getByTestId('copy-enrollment-token').click();
   const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token
   const tokenP = tokenDiv.locator('p.display-element');
   const token = await tokenP.textContent();
