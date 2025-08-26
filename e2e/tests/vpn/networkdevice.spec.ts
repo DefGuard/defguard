@@ -45,8 +45,6 @@ test.describe('Network devices', () => {
     await context.close();
   });
 
-  // test.afterAll(() => dockerDown());
-
   test('Network devices CRUD and actions', async ({ page, browser }) => {
     const deviceName = 'test';
     const deviceDesc = 'test device description';

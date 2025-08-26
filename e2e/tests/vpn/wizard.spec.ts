@@ -26,9 +26,6 @@ test.describe('Setup VPN (wizard) ', () => {
     dockerRestart();
   });
 
-  // test.afterAll(() => {
-  //   dockerDown();
-  // });
 
   test('Wizard Import', async ({ page }) => {
     await waitForBase(page);
