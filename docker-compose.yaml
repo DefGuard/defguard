@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:release-1.5-alpha
+    image: ghcr.io/defguard/defguard
     build:
       context: .
       dockerfile: Dockerfile
@@ -41,7 +41,7 @@ services:
       - NET_ADMIN
 
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
