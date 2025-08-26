@@ -88,7 +88,7 @@ async fn test_gateway_authorization(_: PgPoolOptions, options: PgConnectOptions)
     // make a request without auth token
     let response = gateway.get_gateway_config().await;
 
-    // check that response code is Status::Unauthenticated
+    // check that response code is `Code::Unauthenticated`
     assert!(response.is_err());
     let status = response.err().unwrap();
     assert_eq!(status.code(), Code::Unauthenticated);
@@ -118,7 +118,7 @@ async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectO
     // make a request without hostname
     let response = gateway.get_gateway_config().await;
 
-    // check that response code is Status::Unauthenticated
+    // check that response code is `Code::Internal`
     assert!(response.is_err());
     let status = response.err().unwrap();
     assert_eq!(status.code(), Code::Internal);
