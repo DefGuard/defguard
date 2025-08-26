@@ -4,7 +4,7 @@ use defguard_version::{
     DefguardComponent, Version,
     client::version_interceptor,
     get_tracing_variables, parse_metadata,
-    server::DefguardVersionLayer,
+    server::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
