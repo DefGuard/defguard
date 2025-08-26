@@ -18,7 +18,7 @@ use super::{
 use crate::{
     AsCsv,
     db::{
-        Device, GatewayEvent, Id, Settings, User, WireguardNetwork,
+        Device, GatewayEvent, Id, MFAMethod, Settings, User, WireguardNetwork,
         models::{
             biometric_auth::BiometricAuth,
             device::{DeviceConfig, DeviceInfo, DeviceType},
@@ -34,10 +34,19 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        proto::proxy::{LocationMfaMode as ProtoLocationMfaMode, RegisterMobileAuthRequest},
+        proto::proxy::{
+            CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest,
+            CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
+            RegisterMobileAuthRequest,
+        },
         utils::{build_device_config_response, new_polling_token, parse_client_info},
     },
-    handlers::{mail::send_new_device_added_email, user::check_password_strength},
+    handlers::{
+        mail::{
+            send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
+        },
+        user::check_password_strength,
+    },
     headers::get_device_info,
     mail::Mail,
     server_config,
@@ -858,6 +867,131 @@ impl EnrollmentServer {
 
         let token = new_polling_token(&self.pool, &device).await?;
         build_device_config_response(&self.pool, device, Some(token)).await
+    }
+
+    // TODO: Add events
+    #[instrument(skip_all)]
+    pub(crate) async fn register_code_mfa_start(
+        &self,
+        request: CodeMfaSetupStartRequest,
+    ) -> Result<CodeMfaSetupStartResponse, Status> {
+        debug!("Begin enrollment code mfa setup start");
+        let method = request.method();
+        if method != MfaMethod::Email && method != MfaMethod::Totp {
+            return Err(Status::invalid_argument("Method not supported".to_string()));
+        }
+        let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
+        let mut user = enrollment.fetch_user(&self.pool).await?;
+        // available only for unenrolled users
+        if user.is_enrolled() {
+            return Err(Status::permission_denied("User is already enrolled"));
+        }
+        match method {
+            MfaMethod::Email => {
+                let settings = Settings::get_current_settings();
+                if !settings.smtp_configured() {
+                    error!("Unable to start Email mfa setup. SMTP is not configured");
+                    return Err(Status::internal("SMTP not configured".to_string()));
+                }
+                if user.email_mfa_enabled {
+                    return Err(Status::invalid_argument(
+                        "Method already enabled".to_string(),
+                    ));
+                }
+                user.new_email_secret(&self.pool).await.map_err(|_| {
+                    error!("Failed to create email secret");
+                    Status::internal("Failed to setup email mfa".to_string())
+                })?;
+                info!("Created email secret for {}", &user.username);
+                send_email_mfa_activation_email(&user, &self.mail_tx, None).map_err(|e| {
+                    error!("Failed to send email mfa activation email.\nReason:{e}");
+                    Status::internal("Failed to send activation email".to_string())
+                })?;
+                Ok(CodeMfaSetupStartResponse { totp_secret: None })
+            }
+            MfaMethod::Totp => {
+                if user.totp_enabled {
+                    return Err(Status::invalid_argument(
+                        "Method already enabled".to_string(),
+                    ));
+                }
+                let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
+                    error!("Failed to make new totp secret");
+                    Status::internal(String::new())
+                })?;
+                info!("New totp secret created for {}", &user.username);
+                Ok(CodeMfaSetupStartResponse {
+                    totp_secret: Some(secret),
+                })
+            }
+            _ => Err(Status::invalid_argument("Method not supported".to_string())),
+        }
+    }
+
+    // TODO: Add events
+    #[instrument(skip_all)]
+    pub(crate) async fn register_code_mfa_finish(
+        &self,
+        request: CodeMfaSetupFinishRequest,
+    ) -> Result<CodeMfaSetupFinishResponse, Status> {
+        debug!("Begin enrollment code mfa setup finish");
+        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let method = request.method();
+        if method != MfaMethod::Totp && method != MfaMethod::Email {
+            return Err(Status::invalid_argument("Method not supported"));
+        }
+        let mut user = enrollment.fetch_user(&self.pool).await?;
+        if user.mfa_enabled {
+            return Err(Status::invalid_argument(
+                "Mfa already enabled on the account".to_string(),
+            ));
+        }
+        // available only for unenrolled users
+        if user.is_enrolled() {
+            return Err(Status::permission_denied("User is already enrolled"));
+        }
+        let mfa_method: MFAMethod;
+        // enable corresponding MFA
+        match method {
+            MfaMethod::Email => {
+                if !user.verify_email_mfa_code(&request.code) {
+                    return Err(Status::invalid_argument("Email code invalid".to_string()));
+                }
+                user.enable_email_mfa(&self.pool)
+                    .await
+                    .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
+                mfa_method = MFAMethod::Email;
+            }
+            MfaMethod::Totp => {
+                if !user.verify_totp_code(&request.code) {
+                    return Err(Status::invalid_argument("Code invalid".to_string()));
+                }
+                user.enable_totp(&self.pool)
+                    .await
+                    .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
+                mfa_method = MFAMethod::OneTimePassword;
+            }
+            _ => {
+                return Err(Status::invalid_argument("Method not supported"));
+            }
+        }
+        user.enable_mfa(&self.pool)
+            .await
+            .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_string()))?;
+        let recovery_codes = user
+            .get_recovery_codes(&self.pool)
+            .await
+            .map_err(|_| Status::internal("Failed to get recovery codes.".to_string()))?
+            .ok_or_else(|| Status::internal("Recovery codes not found".to_string()))?;
+        if let Err(e) = send_mfa_configured_email(None, &user, &mfa_method, &self.mail_tx) {
+            error!("Failed to send mfa configured email\nReason: {e}");
+        }
+        info!(
+            "Successfully enabled MFA method {} for user {}",
+            method.as_str_name(),
+            &user.username
+        );
+        Ok(CodeMfaSetupFinishResponse { recovery_codes })
     }
 }
 

@@ -515,6 +515,38 @@ async fn handle_proxy_message_loop(
                 info!("Received message from proxy.");
                 debug!("Received the following message from proxy: {received:?}");
                 let payload = match received.payload {
+                    // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
+                    Some(core_request::Payload::CodeMfaSetupStart(request)) => {
+                        match context
+                            .enrollment_server
+                            .register_code_mfa_start(request)
+                            .await
+                        {
+                            Ok(response) => {
+                                Some(core_response::Payload::CodeMfaSetupStartResponse(response))
+                            }
+                            Err(err) => {
+                                error!("Register mfa start error {err}");
+                                Some(core_response::Payload::CoreError(err.into()))
+                            }
+                        }
+                    }
+                    // rpc CodeMfaSetupFinish return (CodeMfaSetupFinishResponse)
+                    Some(core_request::Payload::CodeMfaSetupFinish(request)) => {
+                        match context
+                            .enrollment_server
+                            .register_code_mfa_finish(request)
+                            .await
+                        {
+                            Ok(response) => {
+                                Some(core_response::Payload::CodeMfaSetupFinishResponse(response))
+                            }
+                            Err(err) => {
+                                error!("Register mfa finish error {err}");
+                                Some(core_response::Payload::CoreError(err.into()))
+                            }
+                        }
+                    }
                     // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
                     Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
                         match context.client_mfa_server.validate_mfa_token(request).await {
