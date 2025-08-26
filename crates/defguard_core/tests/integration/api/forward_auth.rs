@@ -2,7 +2,7 @@ use defguard_core::{SERVER_CONFIG, handlers::Auth};
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{X_FORWARDED_HOST, X_FORWARDED_URI, make_client, setup_pool};
+use super::common::{X_FORWARDED_HOST, X_FORWARDED_URI, make_client, setup_pool};
 
 #[sqlx::test]
 async fn test_forward_auth(_: PgPoolOptions, options: PgConnectOptions) {

@@ -20,7 +20,7 @@ use totp_lite::{Sha1, totp_custom};
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-use crate::common::{
+use super::common::{
     X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
     make_test_client, setup_pool,
 };
