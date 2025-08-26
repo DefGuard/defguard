@@ -2,7 +2,6 @@ import { Browser, expect, Page } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
-import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
@@ -43,8 +42,9 @@ export const createUserEnrollment = async (
   waitForPromise(2000);
   // Copy to clipboard
   const tokenStep = modalElement.locator('#enrollment-token-step');
-  await tokenStep.getByTestId('copy-enrollment-token').click();
-  const token = await getPageClipboard(page);
+  const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token
+  const tokenP = tokenDiv.locator('p.display-element');
+  const token = await tokenP.textContent();
   expect(token.length).toBeGreaterThan(0);
   // close modal
   await modalElement.locator('.controls button.cancel').click();

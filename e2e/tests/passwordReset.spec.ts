@@ -12,7 +12,7 @@ import {
 } from '../utils/controllers/passwordReset';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 
@@ -24,10 +24,6 @@ test.describe('Reset password', () => {
   test.beforeEach(async ({ browser }) => {
     dockerRestart();
     await createUser(browser, user);
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Reset user password', async ({ page }) => {
