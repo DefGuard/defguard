@@ -25,7 +25,7 @@
 //!     .service(my_grpc_service);
 //! ```
 
-use http::HeaderValue;
+use http::{HeaderMap, HeaderValue};
 use std::{
     future::Future,
     pin::Pin,
@@ -38,10 +38,11 @@ use tonic::{
     service::Interceptor,
 };
 use tower::{Layer, Service};
-use tracing::{debug, error};
+use tracing::{debug, error, info_span, warn};
 
 use crate::{
-    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, parse_metadata,
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, SystemInfo, VERSION_HEADER, Version,
+    parse_metadata,
 };
 
 /// A tower `Layer` that adds Defguard version and system information headers to gRPC responses.
@@ -57,6 +58,8 @@ use crate::{
 #[derive(Clone)]
 pub struct DefguardVersionLayer {
     component_info: ComponentInfo,
+    remote_component: DefguardComponent,
+    min_remote_version: Version,
 }
 
 impl DefguardVersionLayer {
@@ -70,9 +73,15 @@ impl DefguardVersionLayer {
     ///
     /// * `Ok(DefguardVersionLayer)` - A new layer instance
     /// * `Err(DefguardVersionError)` - If the version string cannot be parsed
-    pub fn new(version: crate::Version) -> Self {
+    pub fn new(
+        version: crate::Version,
+        remote_component: DefguardComponent,
+        min_remote_version: Version,
+    ) -> Self {
         Self {
             component_info: ComponentInfo::new(version),
+            remote_component,
+            min_remote_version,
         }
     }
 }
@@ -84,6 +93,8 @@ impl<S> Layer<S> for DefguardVersionLayer {
         DefguardVersionService {
             inner,
             component_info: self.component_info.clone(),
+            remote_component: self.remote_component.clone(),
+            min_remote_version: self.min_remote_version.clone(),
         }
     }
 }
@@ -106,6 +117,35 @@ impl<S> Layer<S> for DefguardVersionLayer {
 pub struct DefguardVersionService<S> {
     inner: S,
     component_info: ComponentInfo,
+    remote_component: DefguardComponent,
+    min_remote_version: Version,
+}
+
+impl<S> DefguardVersionService<S> {
+    pub fn parse_headers(headers: &HeaderMap) -> Option<ComponentInfo> {
+        let Some(version) = headers.get(VERSION_HEADER) else {
+            warn!("Missing version header");
+            return None;
+        };
+        let Some(system) = headers.get(SYSTEM_INFO_HEADER) else {
+            warn!("Missing system info header");
+            return None;
+        };
+        let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) else {
+            warn!("Failed to stringify version or system info header value");
+            return None;
+        };
+        let Ok(version) = Version::parse(version) else {
+            warn!("Failed to parse version: {version}");
+            return None;
+        };
+        let Ok(system) = SystemInfo::try_from_header_value(system) else {
+            warn!("Failed to parse system info: {system}");
+            return None;
+        };
+
+        Some(ComponentInfo { version, system })
+    }
 }
 
 impl<S, B> Service<Request<Body>> for DefguardVersionService<S>
@@ -124,9 +164,37 @@ where
     }
 
     fn call(&mut self, request: Request<Body>) -> Self::Future {
-        let mut inner = self.inner.clone();
+        // Check if version headers are present
+        let Some(info) = Self::parse_headers(request.headers()) else {
+            error!(
+                "Missing {} version information. This most likely means that {} component uses older, unsupported version. Minimal supported version is {}.",
+                self.remote_component, self.remote_component, self.min_remote_version,
+            );
+            return Box::pin(async {
+                todo!();
+            });
+        };
 
-        // Pre-parse header values
+        let span = info_span!(
+            "grpc_server",
+            component = %self.remote_component,
+            version = %info.version,
+            info = %info.system
+        );
+        let _guard = span.enter();
+
+        // Check if remote component version is supported
+        if info.version < self.min_remote_version {
+            error!(
+                "{} version {} is not supported. Minimal supported {} version is {}.",
+                self.remote_component, info.version, self.remote_component, self.min_remote_version
+            );
+            return Box::pin(async {
+                todo!();
+            });
+        }
+
+        // Pre-parse own header values
         let parsed_info = (
             self.component_info
                 .version
@@ -140,11 +208,12 @@ where
                 .ok(),
         );
 
+        let mut inner = self.inner.clone();
         Box::pin(async move {
             // Process the request with the inner service first
             let mut response = inner.call(request).await?;
 
-            // Add version headers
+            // Add own version headers
             if let (Some(version), Some(system)) = parsed_info {
                 response.headers_mut().insert(VERSION_HEADER, version);
                 response.headers_mut().insert(SYSTEM_INFO_HEADER, system);

@@ -988,10 +988,11 @@ pub async fn run_grpc_server(
     #[cfg(feature = "wireguard")]
     let router = router.add_service(
         ServiceBuilder::new()
-            .layer(tonic::service::InterceptorLayer::new(
-                DefguardVersionInterceptor::new(DefguardComponent::Gateway, MIN_GATEWAY_VERSION),
+            .layer(DefguardVersionLayer::new(
+                Version::parse(VERSION)?,
+                DefguardComponent::Gateway,
+                MIN_GATEWAY_VERSION,
             ))
-            .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
             .service(gateway_service),
     );
     #[cfg(feature = "worker")]
