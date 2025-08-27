@@ -157,15 +157,25 @@ where
 
 #[derive(Clone)]
 pub struct DefguardVersionInterceptor {
+    own_version: Version,
     component: DefguardComponent,
     min_version: Version,
+    // Should version check fail if own version is < client version.
+    fail_if_client_version_is_higher: bool,
 }
 
 impl DefguardVersionInterceptor {
-    pub fn new(component: DefguardComponent, min_version: Version) -> Self {
+    pub fn new(
+        own_version: Version,
+        component: DefguardComponent,
+        min_version: Version,
+        fail_if_client_version_is_higher: bool,
+    ) -> Self {
         Self {
+            own_version,
             component,
             min_version,
+            fail_if_client_version_is_higher,
         }
     }
 
@@ -181,6 +191,14 @@ impl DefguardVersionInterceptor {
             error!(
                 "{} version {version} is not supported. Minimal supported {} version is {}.",
                 self.component, self.component, self.min_version
+            );
+            return false;
+        }
+
+        if self.fail_if_client_version_is_higher && version > &self.own_version {
+            error!(
+                "{} version {version} is too high.",
+                self.component
             );
             return false;
         }

@@ -899,10 +899,21 @@ pub async fn run_grpc_bidi_stream(
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
             Ok(response) => response,
             Err(err) => {
-                error!(
-                    "Failed to connect to proxy @ {}, retrying in 10s: {err}",
-                    endpoint.uri()
-                );
+                match err.code() {
+                    Code::FailedPrecondition => {
+                        error!(
+                            "Failed to connect to proxy @ {}, version check failed, retrying in 10s: {err}",
+                            endpoint.uri()
+                        );
+                        // TODO push event
+                    }
+                    err => {
+                        error!(
+                            "Failed to connect to proxy @ {}, retrying in 10s: {err}",
+                            endpoint.uri()
+                        );
+                    }
+                }
                 sleep(TEN_SECS).await;
                 continue;
             }
@@ -989,14 +1000,23 @@ pub async fn run_grpc_server(
         .add_service(health_service)
         .add_service(auth_service);
     #[cfg(feature = "wireguard")]
-    let router = router.add_service(
-        ServiceBuilder::new()
-            .layer(tonic::service::InterceptorLayer::new(
-                DefguardVersionInterceptor::new(DefguardComponent::Gateway, MIN_GATEWAY_VERSION),
-            ))
-            .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
-            .service(gateway_service),
-    );
+    let router = {
+        let own_version = Version::parse(VERSION)?;
+        router.add_service(
+            ServiceBuilder::new()
+                .layer(tonic::service::InterceptorLayer::new(
+                    DefguardVersionInterceptor::new(
+                        own_version.clone(),
+                        DefguardComponent::Gateway,
+                        MIN_GATEWAY_VERSION,
+                        true,
+                    ),
+                ))
+                .layer(DefguardVersionLayer::new(own_version))
+                .service(gateway_service),
+        )
+    };
+
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
