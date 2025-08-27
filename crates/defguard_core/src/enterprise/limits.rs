@@ -118,7 +118,7 @@ impl Counts {
         }
     }
 
-    // New linceses have a network device limit field, this function handles backwards compatibility
+    // New licenses have a network device limit field, this function handles backwards compatibility
     // If no such field is present = old behavior (user devices + network devices <= devices limit)
     // If field is present, check user devices and network devices separately
     fn is_over_device_limit(&self, limits: &LicenseLimits) -> bool {
