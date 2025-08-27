@@ -21,12 +21,11 @@ use sqlx::{
 };
 use tokio::net::TcpListener;
 
-use crate::common::{init_config, initialize_users};
-
 use super::common::{
     authenticate_admin, client::TestClient, exceed_enterprise_limits, make_base_client,
     make_test_client, omit_id, setup_pool,
 };
+use crate::common::{init_config, initialize_users};
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
