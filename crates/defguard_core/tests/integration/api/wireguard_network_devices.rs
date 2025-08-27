@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{make_test_client, setup_pool};
+use super::common::{make_test_client, setup_pool};
 
 fn make_network() -> Value {
     json!({
@@ -47,10 +47,15 @@ fn make_second_network() -> Value {
     })
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 struct IpCheckRes {
     available: bool,
     valid: bool,
+}
+
+#[derive(Deserialize)]
+struct SplitIp {
+    ip: IpAddr,
 }
 
 #[sqlx::test]
@@ -90,10 +95,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     // ip suggestions
     let response = client.get("/api/v1/device/network/ip/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    #[derive(Deserialize)]
-    struct SplitIp {
-        ip: IpAddr,
-    }
+
     let ips: Vec<SplitIp> = response.json().await;
     assert_eq!(ips.len(), 1);
     let network_range = IpNetwork::from_str("10.1.1.1/24").unwrap();
@@ -109,7 +111,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<IpCheckRes>().await;
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    let res = res.first().unwrap();
     assert!(res.available);
     assert!(res.valid);
 
@@ -122,7 +125,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<IpCheckRes>().await;
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    let res = res.first().unwrap();
     assert!(!res.available);
     assert!(res.valid);
 
@@ -135,7 +139,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<IpCheckRes>().await;
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    let res = res.first().unwrap();
     assert!(!res.available);
     assert!(res.valid);
 
@@ -148,7 +153,8 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<IpCheckRes>().await;
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    let res = res.first().unwrap();
     assert!(!res.available);
     assert!(!res.valid);
 
@@ -271,4 +277,109 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
     assert!(device.is_none());
+}
+
+#[sqlx::test]
+async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create location
+    let location = json!({
+        "name": "test location",
+        "address": "10.1.1.1/24, 10.2.2.1/24, 10.3.3.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled"
+    });
+    let response = client.post("/api/v1/network").json(&location).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let location: WireguardNetwork<Id> = response.json().await;
+    let location_id = location.id;
+
+    // IP suggestions
+    let response = client
+        .get(format!("/api/v1/device/network/ip/{location_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let ips: Vec<SplitIp> = response.json().await;
+    assert_eq!(ips.len(), 3);
+    let subnet_1 = IpNetwork::from_str("10.1.1.1/24").unwrap();
+    assert!(subnet_1.contains(ips[0].ip));
+    let subnet_2 = IpNetwork::from_str("10.2.2.1/24").unwrap();
+    assert!(subnet_2.contains(ips[1].ip));
+    let subnet_3 = IpNetwork::from_str("10.3.3.1/24").unwrap();
+    assert!(subnet_3.contains(ips[2].ip));
+
+    // IP availability validation
+    let ip_check = json!({
+        "ips": ["10.1.1.2".to_string(), "10.2.2.2".to_string(), "10.3.3.2".to_string()],
+    });
+    let response = client
+        .post(format!("/api/v1/device/network/ip/{location_id}"))
+        .json(&ip_check)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    assert_eq!(res.len(), 3);
+    assert_eq!(
+        res,
+        [
+            IpCheckRes {
+                available: true,
+                valid: true
+            },
+            IpCheckRes {
+                available: true,
+                valid: true
+            },
+            IpCheckRes {
+                available: true,
+                valid: true
+            }
+        ]
+    );
+
+    let ip_check = json!({
+        "ips": ["10.11.1.2".to_string(), "10.2.2.2".to_string(), "10.3.3.1".to_string()],
+    });
+    let response = client
+        .post(format!("/api/v1/device/network/ip/{location_id}"))
+        .json(&ip_check)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let res = response.json::<Vec<IpCheckRes>>().await;
+    assert_eq!(res.len(), 3);
+    assert_eq!(
+        res,
+        [
+            IpCheckRes {
+                available: false,
+                valid: false
+            },
+            IpCheckRes {
+                available: true,
+                valid: true
+            },
+            IpCheckRes {
+                available: false,
+                valid: true,
+            }
+        ]
+    )
 }

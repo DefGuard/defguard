@@ -716,7 +716,7 @@ export type Api = {
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
       data: ValidateLocationIpsRequest,
-    ) => Promise<ValidateLocationIpsResponse>;
+    ) => Promise<ValidateLocationIpsResult[]>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -1336,7 +1336,7 @@ export type ValidateLocationIpsRequest = {
   location: number | string;
 };
 
-export type ValidateLocationIpsResponse = {
+export type ValidateLocationIpsResult = {
   available: boolean;
   valid: boolean;
 };

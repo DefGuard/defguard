@@ -10,7 +10,7 @@ import { createExternalProvider } from '../utils/controllers/openid/createExtern
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { createDevice } from '../utils/controllers/vpn/createDevice';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 
@@ -46,10 +46,6 @@ test.describe('External OIDC.', () => {
     await logout(page);
     await createNetwork(browser, testNetwork);
     await context.close();
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Complete client MFA through external OpenID', async ({ page, browser }) => {

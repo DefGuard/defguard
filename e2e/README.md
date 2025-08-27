@@ -1,26 +1,51 @@
-# Defguard E2E tests powered by Playwright
+# Defguard end-to-end tests powered by Playwright
 
 ## Prerequisites
 
-- Docker
-- Docker compose
+- Docker with compose plugin
 - Node
 - pnpm
 
 ## How to run
-Pull docker images:
+
+If needed, specifiy image tag by setting `IMAGE_TAG` variable:
+
 ```bash
-docker-compose --file ../docker-compose.e2e.yaml pull
+export IMAGE_TAG=release-1.5-alpha
 ```
+
+Pull Docker images:
+
+```bash
+docker compose --file ../docker-compose.e2e.yaml pull
+```
+
 Install packages:
+
 ```bash
 pnpm install
 ```
-Install playwright chromium driver:
+
+Install Playwright with Chromium driver:
+
 ```bash
 npx playwright install --with-deps chromium
 ```
+
+or
+
+```bash
+pnpm playwright install --with-deps chromium
+```
+
 Run tests:
+
 ```bash
 pnpm test
+```
+
+Run tests with the browser on screen, and stopping on failure:
+
+```bash
+pnpm test --headed --max-failures 1
 ```
