@@ -16,7 +16,7 @@ pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
             "Proxy version {version} is not supported. Minimal supported proxy version is {MIN_PROXY_VERSION}."
         );
 
-		// TODO push event
+        // TODO push event
 
         return false;
     }

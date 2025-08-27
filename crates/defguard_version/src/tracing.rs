@@ -217,6 +217,7 @@ pub struct VersionSuffixFormat {
 }
 
 impl VersionSuffixFormat {
+    #[must_use]
     pub fn new(own_version: crate::Version, inner: Format<Full, SystemTime>) -> Self {
         Self {
             inner,
@@ -307,7 +308,7 @@ impl std::fmt::Write for VersionSuffixWriter<'_> {
             writeln!(self.inner, "{}{}", content, self.version_suffix)
         } else {
             // No trailing newline, just write the escaped content
-            write!(self.inner, "{}", escaped)
+            write!(self.inner, "{escaped}")
         }
     }
 }

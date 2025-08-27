@@ -70,6 +70,7 @@ impl DefguardVersionLayer {
     ///
     /// * `Ok(DefguardVersionLayer)` - A new layer instance
     /// * `Err(DefguardVersionError)` - If the version string cannot be parsed
+    #[must_use]
     pub fn new(version: crate::Version) -> Self {
         Self {
             component_info: ComponentInfo::new(version),
@@ -165,6 +166,7 @@ pub struct DefguardVersionInterceptor {
 }
 
 impl DefguardVersionInterceptor {
+    #[must_use]
     pub fn new(
         own_version: Version,
         component: DefguardComponent,
@@ -196,10 +198,7 @@ impl DefguardVersionInterceptor {
         }
 
         if self.fail_if_client_version_is_higher && version > &self.own_version {
-            error!(
-                "{} version {version} is too high.",
-                self.component
-            );
+            error!("{} version {version} is too high.", self.component);
             return false;
         }
 
