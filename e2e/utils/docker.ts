@@ -4,7 +4,7 @@ import path from 'path';
 const defguardPath = __dirname.split('e2e')[0];
 
 const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
-const dockerCompose = `docker compose -f ${dockerFilePath}`
+const dockerCompose = `docker compose -f ${dockerFilePath}`;
 
 // Start Defguard stack with docker compose.
 export const dockerUp = () => {
