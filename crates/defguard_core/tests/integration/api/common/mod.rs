@@ -29,9 +29,8 @@ use tokio::{
     },
 };
 
-use crate::common::{init_config, initialize_users};
-
 use self::client::TestClient;
+use crate::common::{init_config, initialize_users};
 
 #[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
@@ -88,6 +87,7 @@ pub(crate) async fn make_base_client(
         "test_customer".to_string(),
         false,
         // Permanent license
+        None,
         None,
         None,
     );
