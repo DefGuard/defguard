@@ -26,7 +26,6 @@ test.describe('Setup VPN (wizard) ', () => {
     dockerRestart();
   });
 
-
   test('Wizard Import', async ({ page }) => {
     await waitForBase(page);
     // create users to map devices to;

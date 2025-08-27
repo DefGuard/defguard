@@ -4,18 +4,21 @@ import path from 'path';
 const defguardPath = __dirname.split('e2e')[0];
 
 const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
+const dockerCompose = `docker compose -f ${dockerFilePath}`;
 
-// Startups defguard stack with docker compose
+// Start Defguard stack with docker compose.
 export const dockerUp = () => {
-  const command = `docker compose -f ${dockerFilePath.toString()} up -d --wait`;
+  const command = `${dockerCompose} up --wait`;
   execSync(command);
-  const wait_for_db = `docker compose exec db sh -c "until pg_isready -h localhost -p 5432; do sleep 2; done"`;
-  execSync(wait_for_db); // wait for database
-  const create_snapshot = `docker compose exec db pg_dump -U defguard -d defguard -Fc -f /tmp/defguard_backup.dump`;
-  execSync(create_snapshot); // create snapshot of db
+  // NOTE: After waiting, sleep for 3 seconds to let Defguard Core apply migrations.
+  const wait_for_db = `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done; sleep 3'`;
+  execSync(wait_for_db);
+  const create_snapshot = `${dockerCompose} exec db pg_dump -U defguard -Fc -f /tmp/defguard_backup.dump defguard`;
+  execSync(create_snapshot);
 };
+
 export const dockerCheckContainers = (): boolean => {
-  const command = `docker ps -q`;
+  const command = `${dockerCompose} ps -q`;
   const containers = execSync(command).toString().trim();
   return Boolean(containers.length);
 };
@@ -24,9 +27,11 @@ export const dockerRestart = () => {
   if (!dockerCheckContainers()) {
     dockerUp();
   } else {
-    const restore = `docker compose exec db pg_restore --clean -U defguard -d defguard /tmp/defguard_backup.dump`;
+    const restore = `${dockerCompose} exec db pg_restore --clean -U defguard -d defguard /tmp/defguard_backup.dump`;
     execSync(restore);
-    const restart = `docker compose -f ${dockerFilePath.toString()} restart db`;
+    const restart = `${dockerCompose} restart db`;
     execSync(restart);
+    const wait_for_db = `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done'`;
+    execSync(wait_for_db);
   }
 };
