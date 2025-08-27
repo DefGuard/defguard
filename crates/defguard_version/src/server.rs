@@ -25,12 +25,13 @@
 //!     .service(my_grpc_service);
 //! ```
 
-use http::HeaderValue;
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
+
+use http::HeaderValue;
 use tonic::{
     body::Body,
     codegen::http::{Request, Response},
@@ -110,9 +111,9 @@ where
     S::Future: Send + 'static,
     S::Error: Send + 'static,
 {
-    type Response = Response<B>;
     type Error = S::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Response = Response<B>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // Delegate readiness polling to the inner service
