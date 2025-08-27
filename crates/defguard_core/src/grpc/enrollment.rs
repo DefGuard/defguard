@@ -853,7 +853,7 @@ impl EnrollmentServer {
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let _token = self.validate_session(request.token.as_ref()).await?;
+        let token = self.validate_session(request.token.as_ref()).await?;
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", &request.pubkey);
@@ -862,8 +862,19 @@ impl EnrollmentServer {
         // Find existing device by public key.
         let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
             error!("Failed to fetch device by pubkey: {}", &request.pubkey);
-            return Err(Status::internal("device not found"));
+            return Err(Status::not_found("device not found"));
         };
+
+        // check if device owner matches used enrollment token
+        if device.user_id != token.user_id {
+            error!(
+                "Enrollment token does not match device with pubkey {}",
+                request.pubkey
+            );
+            return Err(Status::unauthenticated(
+                "enrollment token is not valid for specified device",
+            ));
+        }
 
         let token = new_polling_token(&self.pool, &device).await?;
         build_device_config_response(&self.pool, device, Some(token)).await
