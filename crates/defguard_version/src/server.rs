@@ -156,12 +156,35 @@ where
     }
 }
 
+/// A tonic interceptor that validates client version information from request headers.
+///
+/// This interceptor extracts version headers from incoming gRPC requests and validates
+/// them against configured version requirements. It can enforce both minimum version
+/// requirements and optionally reject clients with versions higher than the server's
+/// own version.
+///
+/// # Version Validation Rules
+///
+/// 1. **Missing Version**: If the client doesn't provide version headers, the request is rejected
+/// 2. **Below Minimum**: If the client version is below `min_version`, the request is rejected
+/// 3. **Too High** (optional): If `fail_if_client_version_is_higher` is true and the client
+///    version exceeds `own_version`, the request is rejected
+///
+/// # Fields
+///
+/// * `own_version` - The server's own version, used for upper bound validation
+/// * `component` - The expected client component type (e.g., Gateway, Core)
+/// * `min_version` - Minimum required client version
+/// * `fail_if_client_version_is_higher` - Whether to reject clients with versions higher than the server
 #[derive(Clone)]
 pub struct DefguardVersionInterceptor {
     own_version: Version,
     component: DefguardComponent,
     min_version: Version,
-    // Should version check fail if own version is < client version.
+    /// When true, reject clients with versions higher than the server's own version.
+    /// This is used as a workaround for version compatibility checking in gateway->core
+    /// communication, where the core UI needs to display version compatibility errors
+    /// that would normally only be detectable on the gateway side (core < gateway).
     fail_if_client_version_is_higher: bool,
 }
 

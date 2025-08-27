@@ -920,13 +920,14 @@ pub async fn run_grpc_bidi_stream(
         };
         let maybe_info = parse_metadata(response.metadata());
 
-        // check proxy version and return if it's not supported
+        // check proxy version and continue if it's not supported
         let (version, info) = get_tracing_variables(&maybe_info);
         let span =
             tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy, version, info);
         let _guard = span.enter();
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !is_proxy_version_supported(version) {
+            // TODO push an event to display this in UI
             sleep(TEN_SECS).await;
             continue;
         }
