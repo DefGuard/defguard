@@ -114,6 +114,7 @@ impl Counts {
             self.user > DEFAULT_USERS_LIMIT
                 || self.user_device > DEFAULT_DEVICES_LIMIT
                 || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
+                || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
         }
     }
 
@@ -146,6 +147,7 @@ impl Counts {
         self.user > DEFAULT_USERS_LIMIT
             || self.user_device > DEFAULT_DEVICES_LIMIT
             || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
+            || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
     }
 
     pub(crate) fn get_exceeded_limits(&self, license: Option<&License>) -> LimitsExceeded {
@@ -153,7 +155,11 @@ impl Counts {
             if let Some(limits) = &license.limits {
                 LimitsExceeded {
                     user: self.user > limits.users,
-                    device: self.user_device > limits.devices,
+                    device: if limits.network_devices.is_some() {
+                        self.user_device > limits.devices
+                    } else {
+                        self.user_device + self.network_device > limits.devices
+                    },
                     wireguard_network: self.wireguard_network > limits.locations,
                     network_device: match limits.network_devices {
                         Some(devices) => self.network_device > devices,
