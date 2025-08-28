@@ -25,6 +25,7 @@ use defguard_core::{
         },
     },
 };
+use semver::Version;
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -530,4 +531,29 @@ async fn test_gateway_config(_: PgPoolOptions, options: PgConnectOptions) {
 
     let config = gateway.get_gateway_config().await.unwrap().into_inner();
     assert!(config.firewall_config.is_none());
+}
+
+#[sqlx::test]
+async fn test_gateway_version_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (test_server, _gateway, test_location, _test_user) = setup_test_server(pool.clone()).await;
+
+    // setup gateway with unsupported version
+    let unsupported_version =
+        Version::new(MIN_GATEWAY_VERSION.major, MIN_GATEWAY_VERSION.minor - 1, 0);
+    let token = test_location.generate_gateway_token().unwrap();
+    // setup another test gateway without a token
+    let mut test_gateway = MockGateway::new(
+        test_server.client_channel.clone(),
+        unsupported_version,
+        Some(token),
+        Some("test gateway".into()),
+    )
+    .await;
+    let response = test_gateway.get_gateway_config().await;
+
+    // check that response code is `Code::FailedPrecondition`
+    assert!(response.is_err());
+    let status = response.err().unwrap();
+    assert_eq!(status.code(), Code::FailedPrecondition);
 }
