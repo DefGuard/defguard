@@ -12,7 +12,7 @@ use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{exceed_enterprise_limits, make_client, setup_pool};
+use super::common::{exceed_enterprise_limits, make_client, setup_pool};
 
 // Temporarily disabled because of the issue with test_openid_login
 // async fn make_client_with_real_url() -> TestClient {
@@ -94,6 +94,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         "test".to_string(),
         false,
         Some(Utc::now() - Duration::days(1)),
+        None,
         None,
     );
     set_cached_license(Some(new_license));

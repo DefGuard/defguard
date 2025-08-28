@@ -221,6 +221,19 @@ pub struct IpAvailabilityCheck {
     ips: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct IpAvailabilityCheckResult {
+    available: bool,
+    valid: bool,
+}
+
+impl IpAvailabilityCheckResult {
+    #[must_use]
+    pub fn new(available: bool, valid: bool) -> Self {
+        Self { available, valid }
+    }
+}
+
 pub(crate) async fn check_ip_availability(
     _admin_role: AdminRole,
     Path(network_id): Path<i64>,
@@ -228,71 +241,76 @@ pub(crate) async fn check_ip_availability(
     Json(check): Json<IpAvailabilityCheck>,
 ) -> ApiResult {
     let mut transaction = appstate.pool.begin().await?;
-    let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
+
+    // fetch relevant WireGuard location
+    let location = WireguardNetwork::find_by_id(&appstate.pool, network_id)
         .await?
         .ok_or_else(|| {
             error!(
-                "Failed to check IP availability for network with ID {network_id}, network not found",
+                "Failed to check IP availability for location with ID {network_id}, location not found",
 
             );
-            WebError::BadRequest("Failed to check IP availability, network not found".into())
+            WebError::BadRequest("Failed to check IP availability, location not found".into())
         })?;
-    let ips = check
-        .ips
-        .iter()
-        .map(|ip| IpAddr::from_str(ip))
-        .collect::<Result<Vec<IpAddr>, AddrParseError>>();
-    let Ok(ips) = ips else {
-        warn!(
-            "Failed to check IP availability for network {}, invalid IP address",
-            network.name
-        );
-        return Ok(ApiResponse {
-            json: json!({
-                "available": false,
-                "valid": false,
-            }),
-            status: StatusCode::OK,
-        });
-    };
 
-    let mkresponse = |available: bool, valid: bool| {
-        Ok(ApiResponse {
-            json: json!({
-                "available": available,
-                "valid": valid,
-            }),
-            status: StatusCode::OK,
-        })
-    };
-    return match network.can_assign_ips(&mut transaction, &ips, None).await {
-        Ok(()) => mkresponse(true, true),
-        Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
-            warn!(
-                "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
-            );
-            mkresponse(false, false)
+    // process IPs one by one and preserve order in response
+    let mut validation_results = Vec::new();
+    for ip in &check.ips {
+        match IpAddr::from_str(ip) {
+            Ok(ip) => {
+                debug!(
+                    "Checking if IP address {ip} can be assigned to a device in location {location}",
+                );
+                let result = match location.can_assign_ips(&mut transaction, &[ip], None).await {
+                    Ok(()) => IpAvailabilityCheckResult::new(true, true),
+                    Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
+                        warn!(
+                            "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
+                        );
+                        IpAvailabilityCheckResult::new(false, false)
+                    }
+                    Err(NetworkAddressError::ReservedForGateway(name, ip)) => {
+                        warn!(
+                            "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
+                        );
+                        IpAvailabilityCheckResult::new(false, true)
+                    }
+                    Err(NetworkAddressError::IsBroadcastAddress(name, ip)) => {
+                        warn!(
+                            "Provided device IP address {ip} is broadcast address of network {name}"
+                        );
+                        IpAvailabilityCheckResult::new(false, true)
+                    }
+                    Err(NetworkAddressError::IsNetworkAddress(name, ip)) => {
+                        warn!(
+                            "Provided device IP address {ip} is network address of network {name}"
+                        );
+                        IpAvailabilityCheckResult::new(false, true)
+                    }
+                    Err(NetworkAddressError::AddressAlreadyAssigned(name, ip)) => {
+                        warn!("Provided device IP {ip} is already assigned in network {name}");
+                        IpAvailabilityCheckResult::new(false, true)
+                    }
+                    Err(NetworkAddressError::DbError(err)) => Err(err)?,
+                };
+                validation_results.push(result);
+            }
+            Err(_err) => {
+                warn!(
+                    "Failed to check IP availability for location {location}, invalid IP address {ip}",
+                );
+                validation_results.push(IpAvailabilityCheckResult {
+                    available: false,
+                    valid: false,
+                });
+            }
         }
-        Err(NetworkAddressError::ReservedForGateway(name, ip)) => {
-            warn!(
-                "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
-            );
-            mkresponse(false, true)
-        }
-        Err(NetworkAddressError::IsBroadcastAddress(name, ip)) => {
-            warn!("Provided device IP address {ip} is broadcast address of network {name}");
-            mkresponse(false, true)
-        }
-        Err(NetworkAddressError::IsNetworkAddress(name, ip)) => {
-            warn!("Provided device IP address {ip} is network address of network {name}");
-            mkresponse(false, true)
-        }
-        Err(NetworkAddressError::AddressAlreadyAssigned(name, ip)) => {
-            warn!("Provided device IP {ip} is already assigned in network {name}");
-            mkresponse(false, true)
-        }
-        Err(NetworkAddressError::DbError(err)) => Err(err)?,
-    };
+    }
+
+    Ok(ApiResponse {
+        json: json!(validation_results),
+        status: StatusCode::OK,
+    })
 }
 
 pub(crate) async fn find_available_ips(

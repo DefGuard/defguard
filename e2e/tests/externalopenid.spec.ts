@@ -9,7 +9,7 @@ import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyCli
 import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -48,10 +48,6 @@ test.describe('External OIDC.', () => {
     await logout(page);
     await createNetwork(browser, testNetwork);
     await context.close();
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Login through external oidc.', async ({ page }) => {

@@ -1,13 +1,9 @@
 pub(crate) mod client;
 
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 pub use defguard_core::db::setup_pool;
 use defguard_core::{
-    SERVER_CONFIG,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
@@ -21,8 +17,7 @@ use defguard_core::{
     handlers::Auth,
     mail::Mail,
 };
-use reqwest::{StatusCode, Url, header::HeaderName};
-use secrecy::ExposeSecret;
+use reqwest::{StatusCode, header::HeaderName};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -35,6 +30,7 @@ use tokio::{
 };
 
 use self::client::TestClient;
+use crate::common::{init_config, initialize_users};
 
 #[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
@@ -42,34 +38,6 @@ pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-ho
 pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
 #[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
-
-/// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
-// TODO: Allow customizing the whole config, not just the URL
-pub(crate) fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
-    let url = custom_defguard_url.unwrap_or("http://localhost:8000");
-    let mut config = DefGuardConfig::new_test_config();
-    config.url = Url::from_str(url).unwrap();
-    let _ = SERVER_CONFIG.set(config.clone());
-    config
-}
-
-pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
-    User::init_admin_user(pool, config.default_admin_password.expose_secret())
-        .await
-        .unwrap();
-
-    User::new(
-        "hpotter",
-        Some("pass123"),
-        "Potter",
-        "Harry",
-        "h.potter@hogwart.edu.uk",
-        None,
-    )
-    .save(pool)
-    .await
-    .unwrap();
-}
 
 pub(crate) struct ClientState {
     pub pool: PgPool,
@@ -119,6 +87,7 @@ pub(crate) async fn make_base_client(
         "test_customer".to_string(),
         false,
         // Permanent license
+        None,
         None,
         None,
     );

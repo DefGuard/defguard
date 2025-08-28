@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{fetch_user_details, make_client_with_db, setup_pool};
+use super::common::{fetch_user_details, make_client_with_db, setup_pool};
 
 #[sqlx::test]
 async fn test_initialize_enrollment(_: PgPoolOptions, options: PgConnectOptions) {

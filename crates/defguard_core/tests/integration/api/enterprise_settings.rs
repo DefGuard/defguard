@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
+use super::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {
