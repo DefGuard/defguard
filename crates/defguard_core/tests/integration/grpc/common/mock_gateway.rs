@@ -1,19 +1,25 @@
 use std::time::Duration;
 
-use defguard_core::grpc::proto::gateway::{
-    Configuration, ConfigurationRequest, StatsUpdate, Update,
-    gateway_service_client::GatewayServiceClient,
-};
+use defguard_core::{grpc::proto::gateway::{
+    gateway_service_client::GatewayServiceClient, Configuration, ConfigurationRequest, StatsUpdate, Update
+}, VERSION};
+use defguard_version::{client::version_interceptor, Version};
 use tokio::{
     sync::mpsc::{UnboundedSender, unbounded_channel},
     task::JoinHandle,
     time::timeout,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{Request, Response, Status, Streaming, metadata::MetadataValue, transport::Channel};
+use tonic::{
+    Request, Response, Status, Streaming, metadata::MetadataValue,
+    service::interceptor::InterceptedService, transport::Channel,
+};
+
+// TODO what magic spell goes here?
+type InterceptorFn = todo!();
 
 pub(crate) struct MockGateway {
-    client: GatewayServiceClient<Channel>,
+    client: GatewayServiceClient<InterceptedService<Channel, InterceptorFn>>,
     auth_token: Option<String>,
     hostname: Option<String>,
     stats_update_thread_handle: Option<JoinHandle<()>>,
@@ -31,7 +37,11 @@ impl Drop for MockGateway {
 impl MockGateway {
     #[must_use]
     pub(crate) async fn new(client_channel: Channel) -> Self {
-        let client = GatewayServiceClient::new(client_channel);
+        // Initialize client with version interceptor
+        let client = GatewayServiceClient::with_interceptor(
+            client_channel,
+            Box::new(version_interceptor(Version::parse(VERSION).unwrap())),
+        );
 
         Self {
             client,
