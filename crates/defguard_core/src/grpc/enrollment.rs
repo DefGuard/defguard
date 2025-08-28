@@ -875,8 +875,11 @@ impl EnrollmentServer {
         &self,
         request: CodeMfaSetupStartRequest,
     ) -> Result<CodeMfaSetupStartResponse, Status> {
-        debug!("Begin enrollment code mfa setup start");
         let method = request.method();
+        debug!(
+            "Begin enrollment mfa setup with method: {}",
+            &method.as_str_name()
+        );
         if method != MfaMethod::Email && method != MfaMethod::Totp {
             return Err(Status::invalid_argument("Method not supported".to_string()));
         }
@@ -934,9 +937,12 @@ impl EnrollmentServer {
         &self,
         request: CodeMfaSetupFinishRequest,
     ) -> Result<CodeMfaSetupFinishResponse, Status> {
-        debug!("Begin enrollment code mfa setup finish");
         let enrollment = self.validate_session(Some(&request.token)).await?;
         let method = request.method();
+        debug!(
+            "Begin enrollment mfa setup finish for method {}",
+            &method.as_str_name()
+        );
         if method != MfaMethod::Totp && method != MfaMethod::Email {
             return Err(Status::invalid_argument("Method not supported"));
         }
