@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use sqlx::{PgPool, Transaction};
+use sqlx::{PgPool, Transaction, query, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
@@ -216,7 +216,7 @@ impl EnrollmentServer {
                     error!("Failed to get OpenID provider: {err}");
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
-
+            let smtp_configured = settings.smtp_configured();
             let instance_info = InstanceInfo::new(
                 settings,
                 &user.username,
@@ -256,10 +256,24 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
+            // check if any locations enforce internal MFA
+            let instance_has_internal_mfa = query_scalar!(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1 FROM wireguard_network
+                    WHERE location_mfa_mode = 'internal'::location_mfa_mode
+                ) AS "exists!"
+                "#
+            )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|_| Status::internal("Failed to read data".to_string()))?;
             let enrollment_settings = super::proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
+                smtp_configured,
                 only_client_activation: enterprise_settings.only_client_activation,
                 admin_device_management: enterprise_settings.admin_device_management,
+                mfa_required: instance_has_internal_mfa,
             };
             let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
