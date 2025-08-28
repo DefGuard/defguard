@@ -378,8 +378,10 @@ mod tests {
         assert!(!User::<()>::in_attrs(&attrs, ""));
 
         // Test with attributes that have empty values (should still match on key)
-        let attrs_with_empty_values =
-            vec![("cn", HashSet::new())("mail", hashset!["test@example.com"])];
+        let attrs_with_empty_values = vec![
+            ("cn", HashSet::new()),
+            ("mail", hashset!["test@example.com"]),
+        ];
         assert!(User::<()>::in_attrs(&attrs_with_empty_values, "cn"));
         assert!(User::<()>::in_attrs(&attrs_with_empty_values, "CN"));
         assert!(User::<()>::in_attrs(&attrs_with_empty_values, "mail"));
