@@ -471,6 +471,7 @@ pub(crate) async fn get_auth_info(
         )
         .add_scope(Scope::new("email".into()))
         .add_scope(Scope::new("profile".into()))
+        .add_prompt(openidconnect::core::CoreAuthPrompt::SelectAccount)
         .url();
 
     let cookie_domain = config

@@ -142,6 +142,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         // Permanent license
         None,
         None,
+        None,
     );
 
     set_cached_license(Some(license));

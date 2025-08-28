@@ -60,9 +60,10 @@
 //! let (version_str, system_str) = version_info_from_metadata(&metadata);
 //! ```
 
+use std::{fmt, str::FromStr};
+
 use ::tracing::{error, warn};
 pub use semver::{Error as SemverError, Version};
-use std::{fmt, str::FromStr};
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
 

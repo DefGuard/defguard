@@ -1,3 +1,14 @@
+use std::{
+    collections::hash_map::HashMap,
+    fs::read_to_string,
+    time::{Duration, Instant},
+};
+#[cfg(any(feature = "wireguard", feature = "worker"))]
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+};
+
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
@@ -9,16 +20,6 @@ use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
 use sqlx::PgPool;
-use std::{
-    collections::hash_map::HashMap,
-    fs::read_to_string,
-    time::{Duration, Instant},
-};
-#[cfg(any(feature = "wireguard", feature = "worker"))]
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
-};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -771,6 +772,9 @@ async fn handle_proxy_message_loop(
                                         )
                                         .add_scope(Scope::new("email".to_string()))
                                         .add_scope(Scope::new("profile".to_string()))
+                                        .add_prompt(
+                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                        )
                                         .url();
                                     Some(core_response::Payload::AuthInfo(AuthInfoResponse {
                                         url: url.into(),
