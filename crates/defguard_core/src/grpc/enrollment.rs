@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use sqlx::{PgPool, Transaction, query, query_scalar};
+use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
