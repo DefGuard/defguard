@@ -65,7 +65,9 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
-        handlers::openid_login::{build_state, make_oidc_client, user_from_claims},
+        handlers::openid_login::{
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+        },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
     },
@@ -764,18 +766,25 @@ async fn handle_proxy_message_loop(
                                 if let Ok((_client_id, client)) =
                                     make_oidc_client(redirect_url, &provider).await
                                 {
-                                    let (url, csrf_token, nonce) = client
+                                    let mut authorize_url_builder = client
                                         .authorize_url(
                                             CoreAuthenticationFlow::AuthorizationCode,
                                             || build_state(request.state),
                                             Nonce::new_random,
                                         )
                                         .add_scope(Scope::new("email".to_string()))
-                                        .add_scope(Scope::new("profile".to_string()))
-                                        .add_prompt(
+                                        .add_scope(Scope::new("profile".to_string()));
+
+                                    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                        .iter()
+                                        .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                    {
+                                        authorize_url_builder = authorize_url_builder.add_prompt(
                                             openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                        )
-                                        .url();
+                                        );
+                                    }
+                                    let (url, csrf_token, nonce) = authorize_url_builder.url();
+
                                     Some(core_response::Payload::AuthInfo(AuthInfoResponse {
                                         url: url.into(),
                                         csrf_token: csrf_token.secret().to_owned(),

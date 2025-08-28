@@ -22,6 +22,9 @@ use time::Duration;
 const COOKIE_MAX_AGE: Duration = Duration::days(1);
 static CSRF_COOKIE_NAME: &str = "csrf";
 static NONCE_COOKIE_NAME: &str = "nonce";
+// The select_account prompt is not supported by all providers, most notably not by JumpCloud.
+// Currently it's only enabled for Google, as it was tested to work there.
+pub(crate) const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 
 use super::LicenseInfo;
 use crate::{
@@ -463,16 +466,24 @@ pub(crate) async fn get_auth_info(
     let (_client_id, client) = make_oidc_client(config.callback_url(), &provider).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
-    let (authorize_url, csrf_state, nonce) = client
+    let mut authorize_url_builder = client
         .authorize_url(
             CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
             Nonce::new_random,
         )
         .add_scope(Scope::new("email".into()))
-        .add_scope(Scope::new("profile".into()))
-        .add_prompt(openidconnect::core::CoreAuthPrompt::SelectAccount)
-        .url();
+        .add_scope(Scope::new("profile".into()));
+
+    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+        .iter()
+        .any(|&p| provider.name.eq_ignore_ascii_case(p))
+    {
+        authorize_url_builder =
+            authorize_url_builder.add_prompt(openidconnect::core::CoreAuthPrompt::SelectAccount);
+    }
+
+    let (authorize_url, csrf_state, nonce) = authorize_url_builder.url();
 
     let cookie_domain = config
         .cookie_domain
