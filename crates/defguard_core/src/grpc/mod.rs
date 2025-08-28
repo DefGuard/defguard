@@ -2,7 +2,7 @@ use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
     DefguardComponent, Version,
-    client::version_interceptor,
+    client::ClientVersionInterceptor,
     get_tracing_variables, parse_metadata,
     server::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
@@ -56,7 +56,7 @@ use self::{
     worker::WorkerServer,
 };
 #[cfg(feature = "wireguard")]
-use crate::version::MIN_GATEWAY_VERSION;
+pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     VERSION,
     auth::failed_login::FailedLoginMap,
@@ -121,6 +121,12 @@ use proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
     proxy_client::ProxyClient,
 };
+
+// gRPC header for passing auth token from clients
+pub static AUTHORIZATION_HEADER: &str = "authorization";
+
+// gRPC header for passing hostname from clients
+pub static HOSTNAME_HEADER: &str = "hostname";
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -932,7 +938,7 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let interceptor = version_interceptor(Version::parse(VERSION)?);
+        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
         let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let (tx, rx) = mpsc::unbounded_channel();
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {

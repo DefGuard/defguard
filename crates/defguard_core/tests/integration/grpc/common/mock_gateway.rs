@@ -1,9 +1,13 @@
 use std::time::Duration;
 
-use defguard_core::{grpc::proto::gateway::{
-    gateway_service_client::GatewayServiceClient, Configuration, ConfigurationRequest, StatsUpdate, Update
-}, VERSION};
-use defguard_version::{client::version_interceptor, Version};
+use defguard_core::grpc::{
+    AUTHORIZATION_HEADER, HOSTNAME_HEADER,
+    proto::gateway::{
+        Configuration, ConfigurationRequest, StatsUpdate, Update,
+        gateway_service_client::GatewayServiceClient,
+    },
+};
+use defguard_version::{Version, client::ClientVersionInterceptor};
 use tokio::{
     sync::mpsc::{UnboundedSender, unbounded_channel},
     task::JoinHandle,
@@ -11,16 +15,17 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    Request, Response, Status, Streaming, metadata::MetadataValue,
-    service::interceptor::InterceptedService, transport::Channel,
+    Request, Response, Status, Streaming,
+    metadata::MetadataValue,
+    service::{Interceptor, InterceptorLayer, interceptor::InterceptedService},
+    transport::Channel,
 };
-
-// TODO what magic spell goes here?
-type InterceptorFn = todo!();
+use tower::ServiceBuilder;
 
 pub(crate) struct MockGateway {
-    client: GatewayServiceClient<InterceptedService<Channel, InterceptorFn>>,
-    auth_token: Option<String>,
+    client: GatewayServiceClient<
+        InterceptedService<InterceptedService<Channel, AuthInterceptor>, ClientVersionInterceptor>,
+    >,
     hostname: Option<String>,
     stats_update_thread_handle: Option<JoinHandle<()>>,
     updates_stream: Option<Streaming<Update>>,
@@ -34,30 +39,27 @@ impl Drop for MockGateway {
     }
 }
 
-impl MockGateway {
-    #[must_use]
-    pub(crate) async fn new(client_channel: Channel) -> Self {
-        // Initialize client with version interceptor
-        let client = GatewayServiceClient::with_interceptor(
-            client_channel,
-            Box::new(version_interceptor(Version::parse(VERSION).unwrap())),
-        );
+#[derive(Clone)]
+struct AuthInterceptor {
+    auth_token: Option<String>,
+    hostname: Option<String>,
+}
 
+impl AuthInterceptor {
+    pub(crate) fn new(auth_token: Option<String>, hostname: Option<String>) -> Self {
         Self {
-            client,
-            auth_token: None,
-            hostname: None,
-            stats_update_thread_handle: None,
-            updates_stream: None,
+            auth_token,
+            hostname,
         }
     }
+}
 
-    // Add required authorization and hostname headers to gRPC requests
-    fn add_request_metadata<T>(&self, request: &mut Request<T>) {
+impl Interceptor for AuthInterceptor {
+    fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
         // add authorization token
         if let Some(token) = &self.auth_token {
             request.metadata_mut().insert(
-                "authorization",
+                AUTHORIZATION_HEADER,
                 MetadataValue::try_from(token).expect("failed to convert token into metadata"),
             );
         };
@@ -65,28 +67,55 @@ impl MockGateway {
         // add gateway hostname
         if let Some(hostname) = &self.hostname {
             request.metadata_mut().insert(
-                "hostname",
+                HOSTNAME_HEADER,
                 MetadataValue::try_from(hostname)
                     .expect("failed to convert hostname into metadata"),
             );
         };
+
+        Ok(request)
+    }
+}
+
+impl MockGateway {
+    #[must_use]
+    pub(crate) async fn new(
+        client_channel: Channel,
+        version: Version,
+        auth_token: Option<String>,
+        hostname: Option<String>,
+    ) -> Self {
+        let intercepted_channel = ServiceBuilder::new()
+            .layer(InterceptorLayer::new(ClientVersionInterceptor::new(
+                version,
+            )))
+            .layer(InterceptorLayer::new(AuthInterceptor::new(
+                auth_token,
+                hostname.clone(),
+            )))
+            .service(client_channel);
+
+        let client = GatewayServiceClient::new(intercepted_channel);
+
+        Self {
+            client,
+            hostname,
+            stats_update_thread_handle: None,
+            updates_stream: None,
+        }
     }
 
     // Fetch gateway config from core
     pub(crate) async fn get_gateway_config(&mut self) -> Result<Response<Configuration>, Status> {
-        let mut request = Request::new(ConfigurationRequest {
+        let request = Request::new(ConfigurationRequest {
             name: self.hostname.clone(),
         });
-
-        self.add_request_metadata(&mut request);
 
         self.client.config(request).await
     }
 
     pub(crate) async fn connect_to_updates_stream(&mut self) {
-        let mut request = Request::new(());
-
-        self.add_request_metadata(&mut request);
+        let request = Request::new(());
 
         let updates_stream = self.client.updates(request).await.unwrap().into_inner();
 
@@ -114,9 +143,7 @@ impl MockGateway {
     pub(crate) async fn setup_stats_update_stream(&mut self) -> UnboundedSender<StatsUpdate> {
         let (tx, rx) = unbounded_channel();
 
-        let mut request = Request::new(UnboundedReceiverStream::new(rx));
-
-        self.add_request_metadata(&mut request);
+        let request = Request::new(UnboundedReceiverStream::new(rx));
 
         let mut client = self.client.clone();
         let task_handle = tokio::spawn(async move {
@@ -126,22 +153,6 @@ impl MockGateway {
         self.stats_update_thread_handle = Some(task_handle);
 
         tx
-    }
-
-    pub(crate) fn set_token(&mut self, token: &str) {
-        self.auth_token = Some(token.into())
-    }
-
-    pub(crate) fn clear_token(&mut self) {
-        self.auth_token = None;
-    }
-
-    pub(crate) fn set_hostname(&mut self, hostname: &str) {
-        self.hostname = Some(hostname.into())
-    }
-
-    pub(crate) fn clear_hostname(&mut self) {
-        self.hostname = None;
     }
 
     pub(crate) fn hostname(&self) -> String {

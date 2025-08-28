@@ -1,6 +1,9 @@
 use tonic::{Status, service::Interceptor};
 
-use crate::auth::{Claims, ClaimsType};
+use crate::{
+    auth::{Claims, ClaimsType},
+    grpc::{AUTHORIZATION_HEADER, HOSTNAME_HEADER},
+};
 
 /// Auth interceptor used by gRPC services. Verifies JWT token sent
 /// in gRPC metadata under "authorization" key.
@@ -21,10 +24,10 @@ impl Interceptor for JwtInterceptor {
         // This is only used for logging purposes, so no proper error handling
         let hostname = req
             .metadata()
-            .get("hostname")
+            .get(HOSTNAME_HEADER)
             .map_or("UNKNOWN", |h| h.to_str().unwrap_or("UNKNOWN"));
 
-        let token = match req.metadata().get("authorization") {
+        let token = match req.metadata().get(AUTHORIZATION_HEADER) {
             Some(token) => token.to_str().map_err(|err| {
                 warn!(
                     "Failed to parse authorization header during handling gRPC request from \
