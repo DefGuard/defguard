@@ -1,4 +1,4 @@
-use defguard_version::Version;
+use defguard_version::{Version, is_version_lower};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
@@ -11,7 +11,8 @@ pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
         );
         return false;
     };
-    if version < &MIN_PROXY_VERSION {
+
+    if is_version_lower(&version, &MIN_PROXY_VERSION) {
         error!(
             "Proxy version {version} is not supported. Minimal supported proxy version is {MIN_PROXY_VERSION}."
         );
