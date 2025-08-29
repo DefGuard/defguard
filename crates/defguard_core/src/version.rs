@@ -12,7 +12,7 @@ pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
         return false;
     };
 
-    if is_version_lower(&version, &MIN_PROXY_VERSION) {
+    if is_version_lower(version, &MIN_PROXY_VERSION) {
         error!(
             "Proxy version {version} is not supported. Minimal supported proxy version is {MIN_PROXY_VERSION}."
         );
