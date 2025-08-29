@@ -345,6 +345,7 @@ pub fn build_webapp(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    version: Version,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -608,7 +609,8 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 delete(delete_snat_binding),
             )
-            .layer(Extension(gateway_state)),
+            .layer(Extension(gateway_state))
+            .layer(DefguardVersionLayer::new(version)),
     );
 
     #[cfg(feature = "worker")]
@@ -673,6 +675,7 @@ pub async fn run_web_server(
         pool,
         failed_logins,
         event_tx,
+        Version::parse(VERSION)?,
     );
     info!("Started web services");
     let addr = SocketAddr::new(

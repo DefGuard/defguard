@@ -1140,6 +1140,7 @@ dependencies = [
 name = "defguard_version"
 version = "0.0.0"
 dependencies = [
+ "axum",
  "http",
  "os_info",
  "semver",
