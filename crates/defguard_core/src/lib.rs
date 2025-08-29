@@ -611,8 +611,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 delete(delete_snat_binding),
             )
-            .layer(Extension(gateway_state))
-            .layer(DefguardVersionLayer::new(version)),
+            .layer(Extension(gateway_state)),
     );
 
     #[cfg(feature = "worker")]
@@ -626,6 +625,8 @@ pub fn build_webapp(
             .route("/{id}", get(job_status))
             .layer(Extension(worker_state)),
     );
+
+    let webapp = webapp.layer(DefguardVersionLayer::new(version));
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());

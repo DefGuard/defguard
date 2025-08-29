@@ -72,10 +72,10 @@ pub mod server;
 pub mod tracing;
 
 /// HTTP header name for the Defguard component version.
-pub static VERSION_HEADER: &str = "defguard-version";
+pub static VERSION_HEADER: &str = "defguard-component-version";
 
 /// HTTP header name for the Defguard system information.
-pub static SYSTEM_INFO_HEADER: &str = "defguard-system";
+pub static SYSTEM_INFO_HEADER: &str = "defguard-component-system";
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
