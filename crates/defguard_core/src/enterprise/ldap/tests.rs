@@ -2846,7 +2846,11 @@ fn test_as_ldap_attrs() {
         "cn",
     );
 
-    assert!(!attrs.iter().any(|(key, _)| *key == "mobile"));
+    assert!(
+        !attrs
+            .iter()
+            .any(|(key, _)| key.eq_ignore_ascii_case("mobile"))
+    );
 }
 
 #[test]
