@@ -32,7 +32,7 @@ use tower::Layer;
 use crate::ComponentInfo;
 
 pub mod grpc;
-mod http;
+pub mod http;
 
 /// A tower `Layer` that adds Defguard version and system information headers to HTTP responses.
 ///
