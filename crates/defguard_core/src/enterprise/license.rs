@@ -4,7 +4,10 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{Deserializable, SignedPublicKey, StandaloneSignature, types::PublicKeyTrait};
+use pgp::{
+    composed::{Deserializable, SignedPublicKey, StandaloneSignature},
+    types::{KeyDetails, PublicKeyTrait},
+};
 use prost::Message;
 use sqlx::{PgPool, error::Error as SqlxError};
 use thiserror::Error;
