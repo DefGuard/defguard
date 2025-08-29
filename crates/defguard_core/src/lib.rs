@@ -14,6 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -59,6 +60,7 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
+use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
