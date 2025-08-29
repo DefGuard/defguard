@@ -55,5 +55,5 @@ Following environment variables can be set to configure orion core service:
 ### User agents YAML update
 
 ```
-curl -Lf https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml | yq -y '.' > user_agent_header_regexes.yaml
+curl -Lf https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml | yq -y '.' > crates/defguard_core/user_agent_header_regexes.yaml
 ```
