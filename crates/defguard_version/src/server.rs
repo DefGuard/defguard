@@ -42,7 +42,8 @@ use tower::{Layer, Service};
 use tracing::{debug, error};
 
 use crate::{
-    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, parse_metadata,
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version,
+    is_version_lower, parse_metadata,
 };
 
 /// A tower `Layer` that adds Defguard version and system information headers to gRPC responses.
@@ -213,7 +214,8 @@ impl DefguardVersionInterceptor {
             );
             return false;
         };
-        if version < &self.min_version {
+
+        if is_version_lower(version, &self.min_version) {
             error!(
                 "{} version {version} is not supported. Minimal supported {} version is {}.",
                 self.component, self.component, self.min_version
@@ -221,8 +223,11 @@ impl DefguardVersionInterceptor {
             return false;
         }
 
-        if self.fail_if_client_version_is_higher && version > &self.own_version {
-            error!("{} version {version} is too high.", self.component);
+        if self.fail_if_client_version_is_higher && is_version_lower(&self.own_version, version) {
+            error!(
+                "{} client version {version} is higher than server version {}.",
+                self.component, self.own_version
+            );
             return false;
         }
 
