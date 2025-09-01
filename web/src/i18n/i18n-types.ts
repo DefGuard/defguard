@@ -2693,6 +2693,10 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t
+		 */
+		openClientDeepLink: string
 		aclDefaultPolicySelect: {
 			/**
 			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
@@ -9323,6 +9327,10 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		/**
+		 * Configure your desktop client
+		 */
+		openClientDeepLink: () => LocalizedString
 		aclDefaultPolicySelect: {
 			/**
 			 * Default ACL Policy
