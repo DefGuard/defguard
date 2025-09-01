@@ -95,6 +95,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         Some(Utc::now() - Duration::days(1)),
         None,
+        None,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;

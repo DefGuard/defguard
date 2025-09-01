@@ -1093,6 +1093,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    openClientDeepLink: 'Configure your desktop client',
     aclDefaultPolicySelect: {
       label: 'Default ACL Policy',
       options: {

@@ -78,7 +78,7 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
       case 'Okta':
         return `<YOUR_OKTA_URL>`;
       case 'JumpCloud':
-        return 'https://oauth.id.jumpcloud.com';
+        return 'https://oauth.id.jumpcloud.com/';
       default:
         return null;
     }

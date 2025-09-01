@@ -247,7 +247,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .is_none_or(|rdn| rdn == self.ldap_username_attr || rdn.is_empty())
+            .is_none_or(|rdn| rdn.eq_ignore_ascii_case(&self.ldap_username_attr) || rdn.is_empty())
     }
 }
 
