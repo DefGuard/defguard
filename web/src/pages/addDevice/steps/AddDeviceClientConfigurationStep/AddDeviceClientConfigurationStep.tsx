@@ -5,6 +5,7 @@ import QRCode from 'react-qr-code';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { OpenDesktopClientButton } from '../../../../shared/components/Layout/buttons/OpenDesktopClientButton/OpenDesktopClientButton';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -24,6 +25,7 @@ export const AddDeviceClientConfigurationStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.client;
   const clientData = useAddDevicePageStore((s) => s.clientSetup);
+  const clientSetup = useAddDevicePageStore((s) => s.clientSetup);
   const tokenValue = useAddDevicePageStore((s) =>
     s.clientSetup
       ? enrollmentToImportToken(s.clientSetup.url, s.clientSetup.token)
@@ -65,6 +67,11 @@ export const AddDeviceClientConfigurationStep = () => {
           void writeToClipboard(value, localLL.tokenCopy());
         }}
       />
+      {isPresent(clientSetup) && (
+        <div className="row desktop-button">
+          <OpenDesktopClientButton token={clientSetup.token} url={clientSetup.url} />
+        </div>
+      )}
       <div className="qr">
         <QRCode value={tokenValue} />
       </div>
