@@ -23,7 +23,6 @@ base32 = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
-dotenvy = { workspace = true }
 humantime = { workspace = true }
 # match version used by sqlx
 ipnetwork = { workspace = true }
@@ -71,7 +70,6 @@ tonic-prost = "0.14"
 totp-lite = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 trait-variant = { workspace = true }
 uaparser = { workspace = true }
 # openapi
@@ -85,12 +83,8 @@ x25519-dalek = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 bytes = { workspace = true }
-ed25519-dalek = { version = "2.2.0", features = ["rand_core"] }
-tower = "0.5.2"
-
-# https://github.com/juhaku/utoipa/issues/1345
-[dependencies.zip]
-version = "=2.4.2"
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+tower = "0.5"
 
 [dev-dependencies]
 bytes = "1.6"
@@ -105,7 +99,7 @@ reqwest = { version = "0.12", features = [
     "rustls-tls",
     "stream",
 ], default-features = false }
-serde_qs = "0.13"
+serde_qs = "0.15"
 tower = "0.5"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 

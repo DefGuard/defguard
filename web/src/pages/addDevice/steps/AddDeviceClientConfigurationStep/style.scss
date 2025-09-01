@@ -44,7 +44,11 @@
     flex-flow: row;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-l) var(--spacing-s);
+    padding: var(--spacing-m) var(--spacing-s) var(--spacing-l);
     box-sizing: border-box;
+  }
+
+  .desktop-button {
+    padding-top: var(--spacing-m);
   }
 }

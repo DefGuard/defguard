@@ -12,8 +12,10 @@ use std::{
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardComponent, Version, client::version_interceptor, server::DefguardVersionLayer,
-    version_info_from_metadata,
+    DefguardComponent, Version,
+    client::ClientVersionInterceptor,
+    get_tracing_variables, parse_metadata,
+    server::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -54,6 +56,8 @@ use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
+#[cfg(feature = "wireguard")]
+pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     VERSION,
     auth::failed_login::FailedLoginMap,
@@ -65,7 +69,9 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
-        handlers::openid_login::{build_state, make_oidc_client, user_from_claims},
+        handlers::openid_login::{
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+        },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
     },
@@ -74,6 +80,7 @@ use crate::{
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
+    version::is_proxy_version_supported,
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -117,6 +124,12 @@ use proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
     proxy_client::ProxyClient,
 };
+
+// gRPC header for passing auth token from clients
+pub static AUTHORIZATION_HEADER: &str = "authorization";
+
+// gRPC header for passing hostname from clients
+pub static HOSTNAME_HEADER: &str = "hostname";
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -495,14 +508,8 @@ struct ProxyMessageLoopContext<'a> {
     endpoint_uri: &'a Uri,
 }
 
-#[instrument(
-    name = "proxy_bidi",
-    skip(context),
-    fields(component = %DefguardComponent::Proxy)
-)]
+#[instrument(skip_all)]
 async fn handle_proxy_message_loop(
-    version: &str,
-    info: &str,
     context: ProxyMessageLoopContext<'_>,
 ) -> Result<(), anyhow::Error> {
     let pool = context.pool.clone();
@@ -764,18 +771,25 @@ async fn handle_proxy_message_loop(
                                 if let Ok((_client_id, client)) =
                                     make_oidc_client(redirect_url, &provider).await
                                 {
-                                    let (url, csrf_token, nonce) = client
+                                    let mut authorize_url_builder = client
                                         .authorize_url(
                                             CoreAuthenticationFlow::AuthorizationCode,
                                             || build_state(request.state),
                                             Nonce::new_random,
                                         )
                                         .add_scope(Scope::new("email".to_string()))
-                                        .add_scope(Scope::new("profile".to_string()))
-                                        .add_prompt(
+                                        .add_scope(Scope::new("profile".to_string()));
+
+                                    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                        .iter()
+                                        .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                    {
+                                        authorize_url_builder = authorize_url_builder.add_prompt(
                                             openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                        )
-                                        .url();
+                                        );
+                                    }
+                                    let (url, csrf_token, nonce) = authorize_url_builder.url();
+
                                     Some(core_response::Payload::AuthInfo(AuthInfoResponse {
                                         url: url.into(),
                                         csrf_token: csrf_token.secret().to_owned(),
@@ -937,36 +951,58 @@ pub async fn run_grpc_bidi_stream(
 
     loop {
         debug!("Connecting to proxy at {}", endpoint.uri());
-        let interceptor = version_interceptor(Version::parse(VERSION)?);
+        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
         let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let (tx, rx) = mpsc::unbounded_channel();
-        let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!(
-                "Failed to connect to proxy @ {}, retrying in 10s",
-                endpoint.uri()
-            );
+        let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+            Ok(response) => response,
+            Err(err) => {
+                match err.code() {
+                    Code::FailedPrecondition => {
+                        error!(
+                            "Failed to connect to proxy @ {}, version check failed, retrying in 10s: {err}",
+                            endpoint.uri()
+                        );
+                        // TODO push event
+                    }
+                    err => {
+                        error!(
+                            "Failed to connect to proxy @ {}, retrying in 10s: {err}",
+                            endpoint.uri()
+                        );
+                    }
+                }
+                sleep(TEN_SECS).await;
+                continue;
+            }
+        };
+        let maybe_info = parse_metadata(response.metadata());
+
+        // check proxy version and continue if it's not supported
+        let (version, info) = get_tracing_variables(&maybe_info);
+        let span =
+            tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy, version, info);
+        let _guard = span.enter();
+        let version = maybe_info.as_ref().map(|info| &info.version);
+        if !is_proxy_version_supported(version) {
+            // TODO push an event to display this in UI
             sleep(TEN_SECS).await;
             continue;
-        };
-        let (version, info) = version_info_from_metadata(response.metadata());
+        }
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
-        handle_proxy_message_loop(
-            &version,
-            &info,
-            ProxyMessageLoopContext {
-                pool: pool.clone(),
-                tx,
-                wireguard_tx: wireguard_tx.clone(),
-                resp_stream: &mut resp_stream,
-                enrollment_server: &mut enrollment_server,
-                password_reset_server: &mut password_reset_server,
-                client_mfa_server: &mut client_mfa_server,
-                polling_server: &mut polling_server,
-                endpoint_uri: endpoint.uri(),
-            },
-        )
+        handle_proxy_message_loop(ProxyMessageLoopContext {
+            pool: pool.clone(),
+            tx,
+            wireguard_tx: wireguard_tx.clone(),
+            resp_stream: &mut resp_stream,
+            enrollment_server: &mut enrollment_server,
+            password_reset_server: &mut password_reset_server,
+            client_mfa_server: &mut client_mfa_server,
+            polling_server: &mut polling_server,
+            endpoint_uri: endpoint.uri(),
+        })
         .await?;
     }
 }
@@ -1063,11 +1099,22 @@ pub async fn build_grpc_service_router(
         .add_service(auth_service);
 
     #[cfg(feature = "wireguard")]
-    let router = router.add_service(
-        ServiceBuilder::new()
-            .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
-            .service(gateway_service),
-    );
+    let router = {
+        let own_version = Version::parse(VERSION)?;
+        router.add_service(
+            ServiceBuilder::new()
+                .layer(tonic::service::InterceptorLayer::new(
+                    DefguardVersionInterceptor::new(
+                        own_version.clone(),
+                        DefguardComponent::Gateway,
+                        MIN_GATEWAY_VERSION,
+                        true,
+                    ),
+                ))
+                .layer(DefguardVersionLayer::new(own_version))
+                .service(gateway_service),
+        )
+    };
 
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
