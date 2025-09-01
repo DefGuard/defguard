@@ -15,7 +15,7 @@ export const ApplicationVersion = ({ isOpen }: Props) => {
     <div className="app-version">
       <p>
         {isOpen ? LL.navigation.copyright() : '©'}&nbsp;
-        <a href="https://www.defguard.net" target="_blank" rel="noreferrer">
+        <a href="https://defguard.net" target="_blank" rel="noreferrer">
           defguard
         </a>
       </p>
