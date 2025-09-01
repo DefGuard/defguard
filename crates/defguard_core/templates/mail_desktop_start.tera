@@ -5,6 +5,11 @@
 macros::paragraph(content="You're receiving this email to configure a new desktop client."),
 macros::paragraph(content="Please paste this URL and token in your desktop client:"),
 macros::paragraph(content="<b>URL:</b> " ~ url),
-macros::paragraph(content="<b>Token:</b> " ~ token)] %}
+macros::paragraph(content="<b>Token:</b> " ~ token),
+macros::spacer(height="20px"),
+macros::paragraph(content="Or use link below"),
+macros::spacer(height="20px"),
+macros::button_link(href="defguard://addinstance?token=" ~ token ~ "&url=" ~ url, text="Configure your desktop client")
+] %}
 {{ macros::text_section(content_array=section_content)}}
 {% endblock %}
