@@ -14,6 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -59,6 +60,7 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
+use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
@@ -345,6 +347,7 @@ pub fn build_webapp(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    version: Version,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -623,6 +626,8 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let webapp = webapp.layer(DefguardVersionLayer::new(version));
+
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
 
@@ -673,6 +678,7 @@ pub async fn run_web_server(
         pool,
         failed_logins,
         event_tx,
+        Version::parse(VERSION)?,
     );
     info!("Started web services");
     let addr = SocketAddr::new(
