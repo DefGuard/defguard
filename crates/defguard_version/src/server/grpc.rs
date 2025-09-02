@@ -1,3 +1,30 @@
+//! Server-side middleware for adding Defguard version information to gRPC responses.
+//!
+//! This module provides a tower-based middleware layer that automatically adds version
+//! and system information headers to all gRPC responses. The middleware is designed to
+//! work with tonic's interceptor system and maintains compatibility with both regular
+//! and intercepted services.
+//!
+//! # Headers Added
+//!
+//! - `defguard-version`: The semantic version of the Defguard component
+//! - `defguard-system`: System information including OS type, version, and architecture
+//!
+//! # Usage
+//!
+//! ```
+//! use tower::ServiceBuilder;
+//! use defguard_version::server::DefguardVersionLayer;
+//! use semver::Version;
+//!
+//! let my_grpc_service = ServiceBuilder::new();
+//! let version = Version::parse("1.0.0").unwrap();
+//! let version_layer = DefguardVersionLayer::new(version);
+//! let service = ServiceBuilder::new()
+//!     .layer(version_layer)
+//!     .service(my_grpc_service);
+//! ```
+
 use std::{
     future::Future,
     pin::Pin,
@@ -11,13 +38,77 @@ use tonic::{
     server::NamedService,
     service::Interceptor,
 };
-use tower::Service;
+use tower::{Layer, Service};
 use tracing::{debug, error};
 
 use crate::{
-    DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, is_version_lower,
-    parse_metadata, server::DefguardVersionService,
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, is_version_lower,
 };
+
+/// A tower `Layer` that adds Defguard version and system information headers to gRPC responses.
+///
+/// This layer wraps any service and ensures that all responses include version metadata
+/// in HTTP headers. The layer is designed to be composable with other tower layers and
+/// maintains the original service's `NamedService` implementation for tonic compatibility.
+///
+/// # Fields
+///
+/// * `component_info` – Contains version and system information that will be added to response
+///   headers.
+#[derive(Clone)]
+pub struct DefguardVersionLayer {
+    component_info: ComponentInfo,
+}
+
+impl DefguardVersionLayer {
+    /// Creates a new version layer with the specified version string.
+    ///
+    /// # Arguments
+    ///
+    /// * `version` - Semantic version of the component
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(DefguardVersionLayer)` - A new layer instance
+    /// * `Err(DefguardVersionError)` - If the version string cannot be parsed
+    #[must_use]
+    pub fn new(version: Version) -> Self {
+        Self {
+            component_info: ComponentInfo::new(version),
+        }
+    }
+}
+
+impl<S> Layer<S> for DefguardVersionLayer {
+    type Service = DefguardVersionService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        DefguardVersionService {
+            inner,
+            component_info: self.component_info.clone(),
+        }
+    }
+}
+
+/// A tower `Service` that wraps another service and adds version headers to responses.
+///
+/// This service is created by the `DefguardVersionLayer` and implements the actual
+/// header injection logic. It maintains full compatibility with the wrapped service's
+/// interface while adding the version metadata functionality.
+///
+/// # Type Parameters
+///
+/// * `S` – The inner service type being wrapped
+///
+/// # Fields
+///
+/// * `inner` – The wrapped service that handles the actual request processing
+/// * `component_info` – Version and system information to be added to response headers
+#[derive(Clone)]
+pub struct DefguardVersionService<S> {
+    inner: S,
+    component_info: ComponentInfo,
+}
 
 impl<S, B> Service<Request<Body>> for DefguardVersionService<S>
 where
@@ -66,12 +157,11 @@ where
     }
 }
 
-/// A tonic interceptor that validates client version information from request headers.
+/// Interceptor for `tonic` that validates client version information from request headers.
 ///
-/// This interceptor extracts version headers from incoming gRPC requests and validates
-/// them against configured version requirements. It can enforce both minimum version
-/// requirements and optionally reject clients with versions higher than the server's
-/// own version.
+/// This interceptor extracts version headers from incoming gRPC requests and validates them
+/// against configured version requirements. It can enforce both minimum version requirements and
+/// optionally reject clients with versions higher than the server's own version.
 ///
 /// # Version Validation Rules
 ///
@@ -82,10 +172,11 @@ where
 ///
 /// # Fields
 ///
-/// * `own_version` - The server's own version, used for upper bound validation
-/// * `component` - The expected client component type (e.g., Gateway, Core)
-/// * `min_version` - Minimum required client version
-/// * `fail_if_client_version_is_higher` - Whether to reject clients with versions higher than the server
+/// * `own_version` – The server's own version, used for upper bound validation
+/// * `component` – The expected client component type (e.g., Gateway, Core)
+/// * `min_version` – Minimum required client version
+/// * `fail_if_client_version_is_higher` – Whether to reject clients with versions higher than the
+///   server
 #[derive(Clone)]
 pub struct DefguardVersionInterceptor {
     own_version: Version,
@@ -114,19 +205,21 @@ impl DefguardVersionInterceptor {
         }
     }
 
+    #[must_use]
     pub fn is_component_version_supported(&self, version: Option<&Version>) -> bool {
         let Some(version) = version else {
             error!(
-                "Missing {} version information. This most likely means that {} component uses older, unsupported version. Minimal supported version is {}.",
-                self.component, self.component, self.min_version,
+                "Missing {0} version information. This most likely means that {0} component uses \
+                older, unsupported version. Minimal supported version is {1}.",
+                self.component, self.min_version,
             );
             return false;
         };
 
         if is_version_lower(version, &self.min_version) {
             error!(
-                "{} version {version} is not supported. Minimal supported {} version is {}.",
-                self.component, self.component, self.min_version
+                "{0} version {version} is not supported. Minimal supported {0} version is {1}.",
+                self.component, self.min_version
             );
             return false;
         }
@@ -146,7 +239,7 @@ impl DefguardVersionInterceptor {
 
 impl Interceptor for DefguardVersionInterceptor {
     fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
-        let maybe_info = parse_metadata(request.metadata());
+        let maybe_info = ComponentInfo::from_metadata(request.metadata());
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !self.is_component_version_supported(version) {
             let msg = match version {

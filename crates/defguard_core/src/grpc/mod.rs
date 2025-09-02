@@ -12,10 +12,10 @@ use std::{
 use axum::http::Uri;
 use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
-    DefguardComponent, Version,
+    ComponentInfo, DefguardComponent, Version,
     client::ClientVersionInterceptor,
-    get_tracing_variables, parse_metadata,
-    server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor},
+    get_tracing_variables,
+    server::grpc::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -163,9 +163,8 @@ impl GatewayMap {
         self.0.is_empty()
     }
 
-    // add a new gateway to map
-    // this method is meant to be called when a gateway requests a config
-    // as a sort of "registration"
+    // Add a new gateway to the map.
+    // This method is meant to be called when Gateway requests a config as a sort of "registration".
     pub fn add_gateway(
         &mut self,
         network_id: Id,
@@ -173,9 +172,11 @@ impl GatewayMap {
         hostname: String,
         name: Option<String>,
         mail_tx: UnboundedSender<Mail>,
+        version: String,
     ) {
         info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
-        let gateway_state = GatewayState::new(network_id, network_name, &hostname, name, mail_tx);
+        let gateway_state =
+            GatewayState::new(network_id, network_name, &hostname, name, mail_tx, version);
 
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             network_gateway_map.entry(hostname).or_insert(gateway_state);
@@ -187,7 +188,7 @@ impl GatewayMap {
         }
     }
 
-    // remove gateway from map
+    // Remove gateway from the map.
     pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
@@ -353,6 +354,7 @@ pub struct GatewayState {
     pub mail_tx: UnboundedSender<Mail>,
     #[serde(skip)]
     pub pending_notification_cancel_token: Option<CancellationToken>,
+    pub version: String,
 }
 
 impl GatewayState {
@@ -363,6 +365,7 @@ impl GatewayState {
         hostname: S,
         name: Option<String>,
         mail_tx: UnboundedSender<Mail>,
+        version: String,
     ) -> Self {
         Self {
             uid: Uuid::new_v4(),
@@ -375,6 +378,7 @@ impl GatewayState {
             disconnected_at: None,
             mail_tx,
             pending_notification_cancel_token: None,
+            version,
         }
     }
 
@@ -483,6 +487,10 @@ impl GatewayState {
             self.pending_notification_cancel_token = None;
         }
     }
+
+    // fn has_supported_version(&self) -> bool {
+    //     is_component_version_supported
+    // }
 }
 
 const TEN_SECS: Duration = Duration::from_secs(10);
@@ -712,7 +720,8 @@ async fn handle_proxy_message_loop(
                             Err(err) => {
                                 match err.code() {
                                     Code::FailedPrecondition => {
-                                        // User not yet done with OIDC authentication. Don't log it as an error.
+                                        // User not yet done with OIDC authentication. Don't log it
+                                        // as an error.
                                         debug!("Client MFA finish error: {err}");
                                     }
                                     _ => {
@@ -745,11 +754,13 @@ async fn handle_proxy_message_loop(
                             }
                             Err(err) => {
                                 if Code::FailedPrecondition == err.code() {
-                                    // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
+                                    // Ignore the case when we are not enterprise but the client is
+                                    // trying to fetch the instance config,
                                     // to avoid spamming the logs with misleading errors.
 
                                     debug!(
-                                        "A client tried to fetch the instance config, but we are not enterprise."
+                                        "A client tried to fetch the instance config, but we are \
+                                        not enterprise."
                                     );
                                     Some(core_response::Payload::CoreError(err.into()))
                                 } else {
@@ -838,7 +849,9 @@ async fn handle_proxy_message_loop(
                                         .await
                                         {
                                             error!(
-                                                "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
+                                                "Failed to sync user groups for user {} with the \
+                                                directory while the user was logging in through an \
+                                                external provider: {err:?}",
                                                 user.username,
                                             );
                                         } else {
@@ -846,7 +859,8 @@ async fn handle_proxy_message_loop(
                                         }
                                         debug!("Cleared unused tokens for {}.", user.username);
                                         debug!(
-                                            "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
+                                            "Creating a new desktop activation token for user {} \
+                                            as a result of proxy OpenID auth callback.",
                                             user.username
                                         );
                                         let config = server_config();
@@ -860,7 +874,8 @@ async fn handle_proxy_message_loop(
                                         debug!("Saving a new desktop configuration token...");
                                         desktop_configuration.save(&pool).await?;
                                         debug!(
-                                            "Saved desktop configuration token. Responding to proxy with the token."
+                                            "Saved desktop configuration token. Responding to \
+                                            proxy with the token."
                                         );
 
                                         Some(core_response::Payload::AuthCallback(
@@ -882,7 +897,8 @@ async fn handle_proxy_message_loop(
                             }
                             Err(err) => {
                                 error!(
-                                    "Proxy requested an OpenID authentication info for a callback URL ({}) that couldn't be parsed. Details: {err}",
+                                    "Proxy requested an OpenID authentication info for a callback \
+                                    URL ({}) that couldn't be parsed. Details: {err}",
                                     request.callback_url
                                 );
                                 Some(core_response::Payload::CoreError(CoreError {
@@ -960,7 +976,8 @@ pub async fn run_grpc_bidi_stream(
                 match err.code() {
                     Code::FailedPrecondition => {
                         error!(
-                            "Failed to connect to proxy @ {}, version check failed, retrying in 10s: {err}",
+                            "Failed to connect to proxy @ {}, version check failed, retrying in \
+                            10s: {err}",
                             endpoint.uri()
                         );
                         // TODO push event
@@ -976,7 +993,7 @@ pub async fn run_grpc_bidi_stream(
                 continue;
             }
         };
-        let maybe_info = parse_metadata(response.metadata());
+        let maybe_info = ComponentInfo::from_metadata(response.metadata());
 
         // check proxy version and continue if it's not supported
         let (version, info) = get_tracing_variables(&maybe_info);

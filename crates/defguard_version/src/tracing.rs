@@ -41,7 +41,7 @@
 //! ## Creating Version-Aware Spans
 //!
 //! ```rust
-//! use crate::DefguardComponent;
+//! use defguard_version::DefguardComponent;
 //! use tracing::info_span;
 //!
 //! // Create a span with proxy version information
@@ -305,7 +305,7 @@ impl std::fmt::Write for VersionSuffixWriter<'_> {
 
         if let Some(content) = escaped.strip_suffix("\\n") {
             // If the original string ended with a newline, add version suffix and restore newline
-            writeln!(self.inner, "{}{}", content, self.version_suffix)
+            writeln!(self.inner, "{content}{}", self.version_suffix)
         } else {
             // No trailing newline, just write the escaped content
             write!(self.inner, "{escaped}")
@@ -324,7 +324,7 @@ pub struct SpanFieldVisitor {
 impl tracing::field::Visit for SpanFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
-            "component" => self.component = DefguardComponent::from_str(value).ok(),
+            // "component" => self.component = DefguardComponent::from_str(value).ok(),
             "version" => self.version = Some(value.to_string()),
             "info" => self.info = Some(value.to_string()),
             _ => {}
@@ -383,7 +383,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
                 if !self.first {
                     let _ = write!(self.writer, " ");
                 }
-                let _ = write!(self.writer, "{}={}", field.name(), value);
+                let _ = write!(self.writer, "{}={value}", field.name());
                 self.first = false;
             }
         }
@@ -398,7 +398,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
                 if !self.first {
                     let _ = write!(self.writer, " ");
                 }
-                let _ = write!(self.writer, "{}={:?}", field.name(), value);
+                let _ = write!(self.writer, "{}={value:?}", field.name());
                 self.first = false;
             }
         }
@@ -422,7 +422,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 ///
 /// # Examples
 /// ```
-/// defguard_version::tracing::init("1.5.0", "info");
+/// defguard_version::tracing::init(defguard_version::Version::new(1, 5, 0), "info");
 /// ```
 pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), DefguardVersionError> {
     tracing_subscriber::registry()

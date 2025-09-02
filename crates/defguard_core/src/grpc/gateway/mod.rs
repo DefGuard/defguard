@@ -751,10 +751,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway,
+            version, info);
         let _guard = span.enter();
         loop {
-            // wait for a message or update client map at least once a mninute if no messages are received
+            // Wait for a message or update client map at least once a mninute, if no messages are
+            // received.
             let stats_update = tokio::select! {
                 message = stream.message() => {
                     match message? {
@@ -763,7 +765,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 }
                 _ = disconnect_timer.tick() => {
-                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. Updating disconnected VPN clients");
+                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. \
+                        Updating disconnected VPN clients");
                     // fetch location to get current peer disconnect threshold
                     let location = self.fetch_location_from_db(network_id).await?;
 
@@ -917,7 +920,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway,
+            version, info);
         let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
@@ -952,6 +956,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 hostname,
                 request.into_inner().name,
                 self.mail_tx.clone(),
+                version,
             );
         }
 
@@ -995,7 +1000,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
+            version, info);
         let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)
