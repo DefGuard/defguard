@@ -9,7 +9,7 @@ use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
-use rand_core::OsRng;
+use rand::rngs::OsRng;
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
     postgres::types::PgInterval, query_as, query_scalar,
@@ -1297,8 +1297,8 @@ impl WireguardNetwork<Id> {
         let locations = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
         )
         .fetch_all(executor)
@@ -1346,7 +1346,7 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Serialize, Clone, Debug, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
@@ -1355,7 +1355,7 @@ pub struct WireguardNetworkInfo {
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,

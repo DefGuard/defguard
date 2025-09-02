@@ -245,10 +245,7 @@ impl EnrollmentServer {
             let admin_info = admin.map(AdminInfo::from);
             debug!("Admin info {admin_info:?}");
 
-            debug!(
-                "Creating enrollment start response for user {}({:?}).",
-                username, user_id,
-            );
+            debug!("Creating enrollment start response for user {username}({user_id:?}).");
             let enterprise_settings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
@@ -258,12 +255,10 @@ impl EnrollmentServer {
                     })?;
             // check if any locations enforce internal MFA
             let instance_has_internal_mfa = query_scalar!(
-                r#"
-                SELECT EXISTS(
-                    SELECT 1 FROM wireguard_network
-                    WHERE location_mfa_mode = 'internal'::location_mfa_mode
-                ) AS "exists!"
-                "#
+                "SELECT EXISTS( \
+                    SELECT 1 FROM wireguard_network \
+                    WHERE location_mfa_mode = 'internal'::location_mfa_mode \
+                ) \"exists!\""
             )
             .fetch_one(&self.pool)
             .await

@@ -25,6 +25,8 @@ use crate::{
     server_config,
 };
 
+const X_DEFGUARD_EVENT: &str = "x-defguard-event";
+
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
@@ -66,7 +68,7 @@ impl AppState {
                     match reqwest_client
                         .post(&webhook.url)
                         .bearer_auth(&webhook.token)
-                        .header("x-defguard-event", event)
+                        .header(X_DEFGUARD_EVENT, event)
                         .json(&payload)
                         .send()
                         .await

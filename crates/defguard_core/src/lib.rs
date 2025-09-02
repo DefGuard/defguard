@@ -77,6 +77,8 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::handlers::updates::outdated_components;
+
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
@@ -365,6 +367,7 @@ pub fn build_webapp(
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
+            .route("/outdated", get(outdated_components))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))

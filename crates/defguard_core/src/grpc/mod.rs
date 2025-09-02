@@ -76,7 +76,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::client_state::ClientMap,
+    grpc::{gateway::client_state::ClientMap, state::PROXY_STATE},
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
@@ -93,6 +93,7 @@ pub mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
+pub(crate) mod state;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
@@ -134,7 +135,7 @@ pub static HOSTNAME_HEADER: &str = "hostname";
 // Helper struct used to handle gateway state
 // gateways are grouped by network
 type GatewayHostname = String;
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize)]
 pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
@@ -163,9 +164,9 @@ impl GatewayMap {
         self.0.is_empty()
     }
 
-    // Add a new gateway to the map.
-    // This method is meant to be called when Gateway requests a config as a sort of "registration".
-    pub fn add_gateway(
+    /// Add a new gateway to the map.
+    /// This is meant to be called when Gateway requests a config as a sort of "registration".
+    pub(crate) fn add_gateway(
         &mut self,
         network_id: Id,
         network_name: &str,
@@ -188,8 +189,12 @@ impl GatewayMap {
         }
     }
 
-    // Remove gateway from the map.
-    pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
+    /// Remove gateway from the map.
+    pub(crate) fn remove_gateway(
+        &mut self,
+        network_id: Id,
+        uid: Uuid,
+    ) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
@@ -220,9 +225,9 @@ impl GatewayMap {
         Ok(())
     }
 
-    // change gateway status to connected
-    // we assume that the gateway is already present in hashmap
-    pub fn connect_gateway(
+    /// Change gateway status to connected.
+    /// Assume that the gateway is already present in the map.
+    pub(crate) fn connect_gateway(
         &mut self,
         network_id: Id,
         hostname: &str,
@@ -258,8 +263,8 @@ impl GatewayMap {
         Ok(())
     }
 
-    // change gateway status to disconnected
-    pub fn disconnect_gateway(
+    /// Change gateway status to disconnected.
+    pub(crate) fn disconnect_gateway(
         &mut self,
         network_id: Id,
         hostname: String,
@@ -281,9 +286,9 @@ impl GatewayMap {
         Err(err)
     }
 
-    // return `true` if at least one gateway in a given network is connected
+    /// Return `true` if at least one gateway in a given network is connected.
     #[must_use]
-    pub fn connected(&self, network_id: Id) -> bool {
+    pub(crate) fn connected(&self, network_id: Id) -> bool {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map
                 .values()
@@ -292,44 +297,39 @@ impl GatewayMap {
         }
     }
 
-    // return a list af aff statuses af all gateways in a given network
+    /// Return a list of all statuses of all gateways for a given network.
     #[must_use]
     pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
-            None => Vec::new(),
+        if let Some(network_gateway_map) = self.0.get(&network_id) {
+            network_gateway_map.values().cloned().collect()
+        } else {
+            Vec::new()
         }
     }
 
-    // return gateway name
-    #[must_use]
-    pub fn get_network_gateway_name(&self, network_id: Id, hostname: &str) -> Option<String> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => {
-                if let Some(state) = network_gateway_map.get(hostname) {
-                    state.name.clone()
-                } else {
-                    None
-                }
-            }
-            None => None,
-        }
-    }
-
-    /// Flattens the inner hashmap into an `Vec`
+    /// Flattens the inner `HashMap` into `Vec`.
     ///
-    /// Since key information in inner hashmap is within `GatewayState` it's simpler to consume it as Vec on web.
+    /// Since key information in inner HashMap is within `GatewayState` it's simpler to consume it
+    /// as `Vec` on web.
     ///
     /// # Returns
-    /// Returns `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
+    /// `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
     #[must_use]
-    pub fn into_flattened(self) -> HashMap<Id, Vec<GatewayState>> {
+    pub(crate) fn into_flattened(&self) -> HashMap<Id, Vec<GatewayState>> {
         self.0
-            .into_iter()
+            .iter()
             .map(|(id, inner_map)| {
-                let states: Vec<GatewayState> = inner_map.into_values().collect();
-                (id, states)
+                let states: Vec<GatewayState> = inner_map.values().cloned().collect();
+                (*id, states)
             })
+            .collect()
+    }
+
+    #[must_use]
+    pub(crate) fn all_states(&self) -> Vec<GatewayState> {
+        self.0
+            .values()
+            .flat_map(|inner_map| inner_map.values().cloned())
             .collect()
     }
 }
@@ -355,6 +355,8 @@ pub struct GatewayState {
     #[serde(skip)]
     pub pending_notification_cancel_token: Option<CancellationToken>,
     pub version: String,
+    // #[serde(serialize_with = "is_version_supported"]
+    // pub is_version_supported: PhantomData,
 }
 
 impl GatewayState {
@@ -929,7 +931,7 @@ async fn handle_proxy_message_loop(
     Ok(())
 }
 
-/// Bi-directional gRPC stream for communication with Defguard proxy.
+/// Bi-directional gRPC stream for communication with Defguard Proxy.
 #[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
@@ -995,7 +997,7 @@ pub async fn run_grpc_bidi_stream(
         };
         let maybe_info = ComponentInfo::from_metadata(response.metadata());
 
-        // check proxy version and continue if it's not supported
+        // Check proxy version and continue if it's not supported.
         let (version, info) = get_tracing_variables(&maybe_info);
         let span =
             tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy, version, info);
@@ -1003,6 +1005,9 @@ pub async fn run_grpc_bidi_stream(
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !is_proxy_version_supported(version) {
             // TODO push an event to display this in UI
+            // if let Some(mut state) = PROXY_STATE.get_mut() {
+            //     *state = true;
+            // }
             sleep(TEN_SECS).await;
             continue;
         }

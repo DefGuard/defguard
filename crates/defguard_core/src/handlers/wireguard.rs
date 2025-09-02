@@ -487,13 +487,10 @@ pub(crate) async fn all_gateways_status(
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying gateways status for all networks.");
-    let gateway_state = {
-        let lock = gateway_state
-            .lock()
-            .expect("Failed to acquire gateway state lock");
-        lock.clone()
-    };
-    let flattened = gateway_state.into_flattened();
+    let gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+    let flattened = (*gateway_state).into_flattened();
     Ok(ApiResponse {
         json: json!(flattened),
         status: StatusCode::OK,

@@ -41,7 +41,6 @@ prost = "0.14"
 pulldown-cmark = { workspace = true }
 # match version used by sqlx
 rand = { workspace = true }
-rand_core = { workspace = true }
 reqwest = { workspace = true }
 rsa = { workspace = true }
 rust-ini = { workspace = true }
