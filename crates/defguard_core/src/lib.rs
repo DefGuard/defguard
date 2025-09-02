@@ -292,14 +292,20 @@ Available actions:
 - CRUD mechanism for handling devices.
             "),
             (name = "network", description = "
-Endpoints that allow to control your networks.
+### Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
             "),
             (name = "SNAT", description = "
-Endpoints that allow you to control user SNAT bindings for your locations.
+### Endpoints that allow you to control user SNAT bindings for your locations.
+
+Available actions:
+- list all SNAT bindings
+- create new SNAT binding
+- modify SNAT binding
+- delete SNAT binding
             "),
         )
     )]
