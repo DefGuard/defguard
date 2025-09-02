@@ -103,10 +103,12 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
 
 /// List of all users
 ///
-/// Retrives list of users.
+/// Retrieves list of users.
 ///
 /// # Returns
-/// Returns list of `UserInfo` objects or `WebError` if error occurs.
+/// - List of `UserInfo` objects.
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/user",
@@ -114,22 +116,24 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 200, description = "List of all users.", body = [UserInfo], example = json!(
         [
             {
-                "authorized_apps": [],
-                "email": "name@email.com",
+              "authorized_apps": [],
+                "email": "mail@mail",
                 "email_mfa_enabled": false,
                 "enrolled": true,
                 "first_name": "first_name",
                 "groups": [
-                    "group"
+                  "admin"
                 ],
                 "id": 1,
                 "is_active": true,
+                "is_admin": true,
                 "last_name": "last_name",
+                "ldap_pass_requires_change": false,
                 "mfa_enabled": false,
                 "mfa_method": "None",
                 "phone": null,
                 "totp_enabled": false,
-                "username": "username"
+                "username": "admin"
             }
         ])),
         (status = 401, description = "Unauthorized to list all users.", body = ApiResponse, example = json!({"msg": "Session is required"})),
@@ -158,57 +162,39 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
 /// Return a user based on provided username parameter.
 ///
 /// # Returns
-/// Returns `UserDetails` object or `WebError` if error occurs.
+/// - `UserDetails` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/user/{username}",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
     ),
     responses(
         (status = 200, description = "Return details about user.", body = UserDetails, example = json!(
             {
-                "devices": [
-                    {
-                        "created": "date",
-                        "id": 1,
-                        "name": "name",
-                        "networks": [
-                            {
-                                "device_wireguard_ip": "1.1.1.1",
-                                "is_active": false,
-                                "last_connected_at": null,
-                                "last_connected_ip": null,
-                                "last_connected_location": null,
-                                "network_gateway_ip": "0.0.0.0",
-                                "network_id": 1,
-                                "network_name": "TestNet"
-                            }
-                        ],
-                        "user_id": 1,
-                        "wireguard_pubkey": "wireguard_pubkey"
-                    }
-                ],
-                "security_keys": [],
-                "user": {
-                    "authorized_apps": [],
-                    "email": "name@email.com",
-                    "email_mfa_enabled": false,
-                    "enrolled": true,
-                    "first_name": "first_name",
-                    "groups": [
-                        "group"
-                    ],
-                    "id": 1,
-                    "is_active": true,
-                    "last_name": "last_name",
-                    "mfa_enabled": false,
-                    "mfa_method": "None",
-                    "phone": null,
-                    "totp_enabled": false,
-                    "username": "username"
-                },
-                "wallets": []
+              "biometric_enabled_devices": [],
+              "devices": [],
+              "security_keys": [],
+              "user": {
+                "authorized_apps": [],
+                "email": "mail@defguard.net",
+                "email_mfa_enabled": false,
+                "enrolled": true,
+                "first_name": "first_name",
+                "groups": [],
+                "id": 2,
+                "is_active": true,
+                "is_admin": false,
+                "last_name": "last_name",
+                "ldap_pass_requires_change": false,
+                "mfa_enabled": false,
+                "mfa_method": "None",
+                "phone": "000000000",
+                "totp_enabled": false,
+                "username": "username"
+              }
             }
         )),
         (status = 401, description = "Unauthorized to return details about user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
@@ -238,30 +224,32 @@ pub async fn get_user(
 /// Add a new user based on `AddUserData` object.
 ///
 /// # Returns
-/// Returns `UserInfo` object or `WebError` if error occurs.
+/// - `UserInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/user",
     request_body = AddUserData,
     responses(
         (status = 201, description = "Add a new user.", body = UserInfo, example = json!(
-            {
-                "authorized_apps": [],
-                "email": "name@email.com",
-                "email_mfa_enabled": false,
-                "enrolled": true,
-                "first_name": "first_name",
-                "groups": [
-                    "admin"
-                ],
-                "id": 1,
-                "is_active": true,
-                "last_name": "last_name",
-                "mfa_enabled": false,
-                "mfa_method": "None",
-                "phone": null,
-                "totp_enabled": false,
-                "username": "username"
+           {
+              "authorized_apps": [],
+              "email": "mail@mail",
+              "email_mfa_enabled": false,
+              "enrolled": true,
+              "first_name": "first_name",
+              "groups": [],
+              "id": 3,
+              "is_active": true,
+              "is_admin": false,
+              "last_name": "last_name",
+              "ldap_pass_requires_change": false,
+              "mfa_enabled": false,
+              "mfa_method": "None",
+              "phone": "000000000",
+              "totp_enabled": false,
+              "username": "new_user"
             }
         )),
         (status = 400, description = "Bad request, invalid user data.", body = ApiResponse, example = json!({})),
@@ -357,11 +345,16 @@ pub async fn add_user(
 ///
 /// Thanks to this endpoint you are able to trigger manually enrollment process, where after finishing you receive an enrollment token.
 ///
-/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
+/// `Enrollment token` allows to start the process of gaining access to the company infrastructure **(The enrollment token is valid for 24 hours)**.
+///
+/// On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
 ///
 /// Optionally this endpoint can send an email notification to the user about the enrollment.
+///
 /// # Returns
-/// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
+/// - JSON with `enrollment_token` and `enrollment_url`
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/start_enrollment",
@@ -460,11 +453,16 @@ pub async fn start_enrollment(
 ///
 /// Thanks to this endpoint you are able to receive a new desktop client configuration or update an existing one. Users need the configuration to connect to the company infrastrcture.
 ///
-/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
+/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`.
 ///
-/// Optionally this endpoint can send an email notification to the user about the enrollment.```
+/// On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
+///
+/// Optionally this endpoint can send an email notification to the user about the enrollment.
+///
 /// # Returns
-/// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
+/// - JSON with `enrollment_token` and `enrollment_url`
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/start_desktop",
@@ -565,7 +563,9 @@ pub async fn start_remote_desktop_configuration(
 /// Username is unique so database returns only single user or nothing.
 ///
 /// # Returns
-/// Returns only status code 200 if user is available or `WebError` if error occurs.
+/// - `200` if the user is available
+///
+/// - `WebError` if error occurs
 ///
 /// `Please take notice that if user exists in database, endpoint will return status code 400.`
 #[utoipa::path(
@@ -611,16 +611,22 @@ pub async fn username_available(
 
 /// Modify user
 ///
-/// Update users data, it can remove authorized apps and active/deactivate ldap status if needed.
+/// Update users data basing on `UserInfo` object, it can remove authorized apps and active/deactivate LDAP status if needed.
+///
 /// Endpoint is able to disable a user, but `admin cannot disable himself`.
 ///
+/// Disabling a user can be done by setting `is_active` to `false`.
+///
+///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
     ),
     request_body = UserInfo,
     responses(
@@ -777,15 +783,15 @@ pub async fn modify_user(
 
 /// Delete user
 ///
-/// Endpoint helps you delete a user, but `you can't delete yourself as an administrator`.
+/// Deletes user, however, `you can't delete yourself as an administrator`.
 ///
 /// # Returns
-/// If error occurs, endpoint will return `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
     ),
     responses(
         (status = 200, description = "User has been deleted."),
@@ -854,10 +860,12 @@ pub async fn delete_user(
 
 /// Change your own password
 ///
-/// Change your own password, it could return error if password is not strong enough.
+/// Changes your own password basing on `PasswordChangeSelf` object.
+///
+/// It can return error if password is not strong enough.
 ///
 /// # Returns
-/// If error occurs, endpoint will return `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
@@ -915,21 +923,23 @@ pub async fn change_self_password(
 
 /// Change user password
 ///
-/// Change user password, it could return error if password is not strong enough.
+/// Change user password basing on `PasswordChange` object, it can return error if password is not strong enough.
 ///
-/// `This endpoint doesn't allow you to change your own password. Go to: /api/v1/user/change_password.`
+/// This endpoint doesn't allow you to **change your own** password.
+///
+/// If you want to change your own password please go to: `/api/v1/user/change_password`.
 ///
 /// # Returns
-/// If error occurs, endpoint will return `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/user/{username}/password",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
     ),
     request_body = PasswordChange,
     responses(
-        (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
+        (status = 200, description = "Password has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
@@ -1003,17 +1013,17 @@ pub async fn change_password(
 
 /// Reset user password
 ///
-/// Reset user password, it will send a new enrollment to the user's email.
+/// Reset user password, it will send a new enrollment token to the user's email.
 ///
-/// `This endpoint doesn't allow you to reset your own password.`
+/// **This endpoint doesn't allow you to reset your own password.**
 ///
 /// # Returns
-/// If error occurs, endpoint will return `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/user/{username}/reset_password",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
     ),
     responses(
         (status = 200, description = "Successfully reset user password."),
@@ -1117,16 +1127,16 @@ pub async fn reset_password(
 
 /// Delete security key
 ///
-/// Delete Webauthn security key that allows users to authenticate.
+/// Delete WebAuthn security key that allows users to authenticate.
 ///
 /// # Returns
-/// Returns `WebError` object if error occurs.
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/security_key/{id}",
     params(
-        ("username" = String, description = "name of a user"),
-        ("id" = i64, description = "id of security key that could point to passkey")
+        ("username" = String, description = "Name of a user"),
+        ("id" = i64, description = "ID of security key that could point to passkey")
     ),
     responses(
         (status = 200, description = "Successfully deleted security key."),
@@ -1182,36 +1192,40 @@ pub async fn delete_security_key(
 
 /// Returns your data
 ///
-/// Endpoint returns the data associated with the current session user```
+/// Endpoint returns the data associated with the current session user
 ///
 /// # Returns
-/// Returns `UserInfo` object or `WebError` object if error occurs.
+/// - `UserInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/me",
     responses(
         (status = 200, description = "Returns your own data.", body = UserInfo, example = json!(
             {
-                "authorized_apps": [],
-                "email": "name@email.com",
-                "email_mfa_enabled": false,
-                "enrolled": true,
-                "first_name": "first_name",
-                "groups": [
-                    "group"
-                ],
-                "id": 1,
-                "is_active": true,
-                "last_name": "last_name",
-                "mfa_enabled": false,
-                "mfa_method": "None",
-                "phone": null,
-                "totp_enabled": false,
-                "username": "username"
-            }
+                  "authorized_apps": [],
+                  "email": "mail@mail",
+                  "email_mfa_enabled": false,
+                  "enrolled": true,
+                  "first_name": "first_name",
+                  "groups": [
+                    "admin"
+                  ],
+                  "id": 1,
+                  "is_active": true,
+                  "is_admin": true,
+                  "last_name": "last_name",
+                  "ldap_pass_requires_change": false,
+                  "mfa_enabled": false,
+                  "mfa_method": "None",
+                  "phone": 000000000,
+                  "totp_enabled": false,
+                  "username": "username"
+                }
         )),
         (status = 401, description = "Unauthorized return own user data.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 500, description = "Cannot retrieve own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -1226,17 +1240,17 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
     })
 }
 
-/// Delete Oauth token.
+/// Delete OAuth token.
 ///
-/// Endpoint helps your to delete authorized application by `OAuth2` id.
+/// Deletes an authorized application by `OAuth2` ID.
 ///
 /// # Returns
-/// Returns `WebError` object if error occurs.
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}/oauth_app/{oauth2client_id}",
     params(
-        ("username" = String, description = "name of a user"),
+        ("username" = String, description = "Name of a user"),
         ("oauth2client_id" = i64, description = "id of OAuth2 client")
     ),
     responses(

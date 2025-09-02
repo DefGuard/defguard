@@ -118,7 +118,7 @@ pub struct ApiActivityLogEvent {
 // TODO: add utoipa API schema
 /// Filtered list of activity log events
 ///
-/// Retrives a paginated list of activity log events filtered by following query parameters:
+/// Retrieves a paginated list of activity log events filtered by following query parameters:
 /// TODO: add explanations
 /// - from
 /// - until

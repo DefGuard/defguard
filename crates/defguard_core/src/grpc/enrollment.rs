@@ -418,7 +418,7 @@ impl EnrollmentServer {
 
         debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_current_settings();
-        debug!("Successfully retrived settings.");
+        debug!("Successfully retrieve settings.");
 
         // send welcome email
         debug!("Try to send welcome email...");
