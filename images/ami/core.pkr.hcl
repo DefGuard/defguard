@@ -53,7 +53,7 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["rm /home/ubuntu/.ssh/authorized_keys"]
+    inline = ["rm /home/admin/.ssh/authorized_keys"]
   }
 
   provisioner "shell" {
