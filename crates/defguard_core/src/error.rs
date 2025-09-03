@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -19,7 +20,7 @@ use crate::{
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -52,26 +53,34 @@ pub enum WebError {
     #[error("Public key already exists {0}")]
     PubkeyExists(String),
     #[error("HTTP error: {0}")]
+    #[schema(value_type=Object)]
     Http(StatusCode),
     #[error(transparent)]
+    #[schema(value_type=Object)]
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error(transparent)]
+    #[schema(value_type=Object)]
     TemplateError(#[from] TemplateError),
     #[error("Server config missing")]
     ServerConfigMissing,
     #[error("License error: {0}")]
+    #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
     #[error("ACL error: {0}")]
+    #[schema(value_type=Object)]
     AclError(#[from] AclError),
     #[error("Firewall config error: {0}")]
+    #[schema(value_type=Object)]
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
+    #[schema(value_type=Object)]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
     #[error("Activity log stream error: {0}")]
+    #[schema(value_type=Object)]
     ActivityLogStreamError(#[from] ActivityLogStreamError),
 }
 

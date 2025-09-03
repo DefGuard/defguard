@@ -22,6 +22,11 @@ use crate::{
 };
 
 /// List all SNAT bindings for a WireGuard location
+///
+/// # Returns
+/// - `Vec<UserSnatBinding<i64>>` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network/{location_id}/snat",
@@ -75,6 +80,13 @@ pub struct NewUserSnatBinding {
 }
 
 /// Create a new SNAT binding for a user in a WireGuard location
+///
+/// Create snat binding basing on `NewUserSnatBinding` object.
+///
+/// # Returns
+/// - `UserSnatBinding<i64>` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/network/{location_id}/snat",
@@ -165,6 +177,13 @@ pub struct EditUserSnatBinding {
 }
 
 /// Modify an existing SNAT binding for a user in a WireGuard location
+///
+/// Modify an **existing** SNAT binding basing on `EditUserSnatBinding` object.
+///
+/// # Returns
+/// - `UserSnatBinding` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
@@ -253,6 +272,13 @@ pub async fn modify_snat_binding(
 }
 
 /// Delete an existing SNAT binding for a user in a WireGuard location
+///
+/// Delete an existing SNAT binding basing on `location_id` and `user_id`.
+///
+/// # Returns
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{location_id}/snat/{user_id}",
