@@ -39,7 +39,9 @@ pub(crate) async fn outdated_components(
         .expect("Failed to acquire gateway state lock");
     let mut version_info = gateway_state.all_states_as_version_info();
     if let Ok(state) = PROXY_STATE.read() {
-        version_info.push((*state).clone());
+        if state.version.is_some() {
+            version_info.push((*state).clone());
+        }
     }
     Ok(ApiResponse::new(json!(version_info), StatusCode::OK))
 }

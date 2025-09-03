@@ -366,7 +366,6 @@ pub fn build_webapp(
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
-            .route("/outdated", get(outdated_components))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -613,6 +612,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 delete(delete_snat_binding),
             )
+            .route("/outdated", get(outdated_components))
             .layer(Extension(gateway_state)),
     );
 
