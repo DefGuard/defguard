@@ -14,7 +14,7 @@ use defguard_core::{
     },
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayMap, WorkerState},
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::Auth,
     mail::Mail,
 };

@@ -429,7 +429,7 @@ pub(crate) async fn modify_group(
     // Rename only when needed.
     //
     if group.name != group_info.name {
-        group.name = group_info.name.clone();
+        group.name.clone_from(&group_info.name);
         group.save(&mut *transaction).await?;
     }
 

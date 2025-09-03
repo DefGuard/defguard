@@ -720,7 +720,7 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
-    user.maybe_update_rdn().await;
+    user.maybe_update_rdn();
     user.save(&appstate.pool).await?;
 
     ldap_update_user_state(&mut user, &appstate.pool).await;
@@ -1219,7 +1219,7 @@ pub async fn delete_security_key(
                   "ldap_pass_requires_change": false,
                   "mfa_enabled": false,
                   "mfa_method": "None",
-                  "phone": 000000000,
+                  "phone": 000_000_000,
                   "totp_enabled": false,
                   "username": "username"
                 }

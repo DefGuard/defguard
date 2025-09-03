@@ -161,15 +161,16 @@ impl OpenIdProvider {
         }
     }
 
-    pub async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
+    pub(crate) async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
         if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
             query!(
-                "UPDATE openidprovider SET name = $1, \
-                base_url = $2, client_id = $3, client_secret = $4, \
-                display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, \
-                directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, \
+                "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, \
+                client_secret = $4, display_name = $5, google_service_account_key = $6, \
+                google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, \
+                directory_sync_interval = $10, directory_sync_user_behavior = $11, \
                 directory_sync_admin_behavior = $12, directory_sync_target = $13, \
-                okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16, jumpcloud_api_key = $17 \
+                okta_private_jwk = $14, okta_dirsync_client_id = $15, \
+                directory_sync_group_match = $16, jumpcloud_api_key = $17 \
                 WHERE id = $18",
                 self.name,
                 self.base_url,
@@ -201,7 +202,10 @@ impl OpenIdProvider {
 }
 
 impl OpenIdProvider<Id> {
-    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_name<'e, E>(
+        executor: E,
+        name: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -220,7 +224,7 @@ impl OpenIdProvider<Id> {
         .await
     }
 
-    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {

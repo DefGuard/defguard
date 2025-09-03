@@ -41,7 +41,7 @@
 //! ## Creating Version-Aware Spans
 //!
 //! ```rust
-//! use crate::DefguardComponent;
+//! use defguard_version::DefguardComponent;
 //! use tracing::info_span;
 //!
 //! // Create a span with proxy version information
@@ -76,12 +76,13 @@
 //! 3. **`VersionFilteredFields`** - Field formatter that excludes version fields from normal output
 //! 4. **Utility functions** - Extract and format version information from span hierarchy
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use semver::Version;
+use serde::Serialize;
 use tracing::{Level, Subscriber};
 use tracing_subscriber::{
-    Layer,
+    EnvFilter, Layer,
     field::RecordFields,
     fmt::{
         FmtContext, FormatEvent, FormatFields,
@@ -98,14 +99,16 @@ use crate::{ComponentInfo, DefguardComponent, DefguardVersionError, SystemInfo};
 /// Container for version information extracted from tracing span hierarchy.
 ///
 /// Aggregates version and system information found while traversing up the span tree.
-#[derive(Debug, Default, Clone)]
-pub struct ExtractedVersionInfo {
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct VersionInfo {
     pub component: Option<DefguardComponent>,
     pub info: Option<String>,
     pub version: Option<String>,
+    // FIXME: currently used only in `outdated_components()`.
+    pub is_supported: bool,
 }
 
-impl ExtractedVersionInfo {
+impl VersionInfo {
     #[must_use]
     pub fn has_version_info(&self) -> bool {
         self.component.is_some() || self.info.is_some() || self.version.is_some()
@@ -123,12 +126,12 @@ impl ExtractedVersionInfo {
 /// # Returns
 /// An `ExtractedVersionInfo` struct containing all version information found in the current span
 #[must_use]
-pub fn extract_version_info_from_context<S, N>(ctx: &FmtContext<'_, S, N>) -> ExtractedVersionInfo
+pub fn extract_version_info_from_context<S, N>(ctx: &FmtContext<'_, S, N>) -> VersionInfo
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
 {
-    let mut extracted = ExtractedVersionInfo::default();
+    let mut extracted = VersionInfo::default();
 
     if let Some(span_ref) = ctx.lookup_current() {
         let mut current_span = Some(span_ref);
@@ -165,7 +168,7 @@ where
 /// A formatted string containing version information suitable for appending to log lines
 #[must_use]
 pub fn build_version_suffix(
-    extracted: &ExtractedVersionInfo,
+    extracted: &VersionInfo,
     own_version: &Version,
     own_info: &SystemInfo,
     is_error: bool,
@@ -212,7 +215,7 @@ pub fn build_version_suffix(
 /// The version information is extracted from tracing span fields.
 pub struct VersionSuffixFormat {
     /// The underlying tracing formatter
-    pub inner: tracing_subscriber::fmt::format::Format,
+    pub inner: Format,
     pub component_info: ComponentInfo,
 }
 
@@ -231,7 +234,7 @@ pub struct VersionFieldLayer;
 
 impl<S> Layer<S> for VersionFieldLayer
 where
-    S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    S: Subscriber + for<'a> LookupSpan<'a>,
 {
     fn on_new_span(
         &self,
@@ -249,7 +252,7 @@ where
 
 impl<S, N> FormatEvent<S, N> for VersionSuffixFormat
 where
-    S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    S: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
 {
     /// Formats a tracing event, conditionally adding version information as a prefix.
@@ -259,10 +262,10 @@ where
     /// - For other levels: includes only own and remote component version
     fn format_event(
         &self,
-        ctx: &tracing_subscriber::fmt::FmtContext<'_, S, N>,
+        ctx: &FmtContext<'_, S, N>,
         writer: Writer<'_>,
         event: &tracing::Event<'_>,
-    ) -> std::fmt::Result {
+    ) -> fmt::Result {
         // Extract version information from current span context
         let extracted = extract_version_info_from_context(ctx);
 
@@ -298,14 +301,14 @@ impl<'a> VersionSuffixWriter<'a> {
     }
 }
 
-impl std::fmt::Write for VersionSuffixWriter<'_> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+impl fmt::Write for VersionSuffixWriter<'_> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
         // Replace newline characters with escaped version to prevent log line splitting
         let escaped = s.replace('\n', "\\n");
 
         if let Some(content) = escaped.strip_suffix("\\n") {
             // If the original string ended with a newline, add version suffix and restore newline
-            writeln!(self.inner, "{}{}", content, self.version_suffix)
+            writeln!(self.inner, "{content}{}", self.version_suffix)
         } else {
             // No trailing newline, just write the escaped content
             write!(self.inner, "{escaped}")
@@ -324,14 +327,14 @@ pub struct SpanFieldVisitor {
 impl tracing::field::Visit for SpanFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
-            "component" => self.component = DefguardComponent::from_str(value).ok(),
+            // "component" => self.component = DefguardComponent::from_str(value).ok(),
             "version" => self.version = Some(value.to_string()),
             "info" => self.info = Some(value.to_string()),
             _ => {}
         }
     }
 
-    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn fmt::Debug) {
         let value = format!("{value:?}");
         match field.name() {
             "component" => self.component = DefguardComponent::from_str(&value).ok(),
@@ -346,11 +349,7 @@ impl tracing::field::Visit for SpanFieldVisitor {
 pub struct VersionFilteredFields;
 
 impl<'writer> FormatFields<'writer> for VersionFilteredFields {
-    fn format_fields<R: RecordFields>(
-        &self,
-        writer: Writer<'writer>,
-        fields: R,
-    ) -> std::fmt::Result {
+    fn format_fields<R: RecordFields>(&self, writer: Writer<'writer>, fields: R) -> fmt::Result {
         let mut visitor = FieldFilterVisitor::new(writer);
         fields.record(&mut visitor);
         Ok(())
@@ -383,13 +382,13 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
                 if !self.first {
                     let _ = write!(self.writer, " ");
                 }
-                let _ = write!(self.writer, "{}={}", field.name(), value);
+                let _ = write!(self.writer, "{}={value}", field.name());
                 self.first = false;
             }
         }
     }
 
-    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn fmt::Debug) {
         match field.name() {
             "component" | "info" | "version" => {
                 // Skip version fields to prevent duplication
@@ -398,7 +397,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
                 if !self.first {
                     let _ = write!(self.writer, " ");
                 }
-                let _ = write!(self.writer, "{}={:?}", field.name(), value);
+                let _ = write!(self.writer, "{}={value:?}", field.name());
                 self.first = false;
             }
         }
@@ -422,12 +421,12 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 ///
 /// # Examples
 /// ```
-/// defguard_version::tracing::init("1.5.0", "info");
+/// defguard_version::tracing::init(defguard_version::Version::new(1, 5, 0), "info");
 /// ```
 pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), DefguardVersionError> {
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
+            EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
         )
         .with(VersionFieldLayer)
@@ -436,7 +435,7 @@ pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), Defguard
                 .with_ansi(true)
                 .event_format(VersionSuffixFormat::new(
                     own_version,
-                    tracing_subscriber::fmt::format::Format::default().with_ansi(true),
+                    Format::default().with_ansi(true),
                 ))
                 .fmt_fields(VersionFilteredFields),
         )

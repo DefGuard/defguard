@@ -208,14 +208,13 @@ impl JumpCloudDirectorySync {
                     group.id
                 );
                 break;
-            } else {
-                all_members_response.extend(members_response);
-                debug!(
-                    "Total members accumulated so far for group {}: {}",
-                    group.id,
-                    all_members_response.len()
-                );
             }
+            all_members_response.extend(members_response);
+            debug!(
+                "Total members accumulated so far for group {}: {}",
+                group.id,
+                all_members_response.len()
+            );
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
@@ -274,13 +273,12 @@ impl JumpCloudDirectorySync {
             if groups_response.is_empty() {
                 debug!("No more groups found, stopping pagination");
                 break;
-            } else {
-                all_groups_response.extend(groups_response);
-                debug!(
-                    "Total groups accumulated so far: {}",
-                    all_groups_response.len()
-                );
             }
+            all_groups_response.extend(groups_response);
+            debug!(
+                "Total groups accumulated so far: {}",
+                all_groups_response.len()
+            );
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
@@ -344,13 +342,12 @@ impl JumpCloudDirectorySync {
             if users_response.results.is_empty() {
                 debug!("No more users found, stopping pagination");
                 break;
-            } else {
-                all_users_response.results.extend(users_response.results);
-                debug!(
-                    "Total users accumulated so far: {}",
-                    all_users_response.results.len()
-                );
             }
+            all_users_response.results.extend(users_response.results);
+            debug!(
+                "Total users accumulated so far: {}",
+                all_users_response.results.len()
+            );
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
@@ -425,13 +422,12 @@ impl JumpCloudDirectorySync {
             if groups_response.is_empty() {
                 debug!("No more groups found for user {user_id}, stopping pagination");
                 break;
-            } else {
-                all_groups_response.extend(groups_response);
-                debug!(
-                    "Total groups accumulated so far for user {user_id}: {}",
-                    all_groups_response.len()
-                );
             }
+            all_groups_response.extend(groups_response);
+            debug!(
+                "Total groups accumulated so far for user {user_id}: {}",
+                all_groups_response.len()
+            );
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }

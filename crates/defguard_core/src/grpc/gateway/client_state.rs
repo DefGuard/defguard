@@ -43,6 +43,7 @@ pub struct ClientState {
 }
 
 impl ClientState {
+    #[must_use]
     pub fn new(
         device: Device<Id>,
         user: &User<Id>,
@@ -88,6 +89,7 @@ type ClientPubKey = String;
 pub struct ClientMap(HashMap<Id, HashMap<ClientPubKey, ClientState>>);
 
 impl ClientMap {
+    #[must_use]
     pub fn new() -> Self {
         Self(HashMap::new())
     }
@@ -196,6 +198,7 @@ impl ClientMap {
         Ok(disconnected_clients)
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

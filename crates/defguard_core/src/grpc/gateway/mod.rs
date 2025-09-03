@@ -1,4 +1,3 @@
-pub mod client_state;
 use std::{
     net::{IpAddr, SocketAddr},
     pin::Pin,
@@ -9,6 +8,7 @@ use std::{
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
 use defguard_version::{DefguardComponent, version_info_from_metadata};
+use semver::Version;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
@@ -22,7 +22,8 @@ use tokio::{
 use tokio_stream::Stream;
 use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
-use super::{GatewayMap, proto::enterprise::firewall::FirewallConfig};
+use self::map::GatewayMap;
+use super::proto::enterprise::firewall::FirewallConfig;
 pub use crate::grpc::proto::gateway::{
     Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
     gateway_service_server, stats_update, update,
@@ -35,6 +36,10 @@ use crate::{
     events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
+
+pub mod client_state;
+pub mod map;
+pub(crate) mod state;
 
 const PEER_DISCONNECT_INTERVAL: u64 = 60;
 
@@ -132,7 +137,7 @@ impl WireguardNetwork<Id> {
 struct GatewayMetadata {
     network_id: Id,
     hostname: String,
-    version: String,
+    version: Version,
     info: String,
 }
 
@@ -751,10 +756,12 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
 
-        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway,
+            version = version.to_string(), info);
         let _guard = span.enter();
         loop {
-            // wait for a message or update client map at least once a mninute if no messages are received
+            // Wait for a message or update client map at least once a mninute, if no messages are
+            // received.
             let stats_update = tokio::select! {
                 message = stream.message() => {
                     match message? {
@@ -763,7 +770,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 }
                 _ = disconnect_timer.tick() => {
-                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. Updating disconnected VPN clients");
+                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. \
+                        Updating disconnected VPN clients");
                     // fetch location to get current peer disconnect threshold
                     let location = self.fetch_location_from_db(network_id).await?;
 
@@ -917,7 +925,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway,
+            version = version.to_string(), info);
         let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
@@ -952,6 +961,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 hostname,
                 request.into_inner().name,
                 self.mail_tx.clone(),
+                version,
             );
         }
 
@@ -995,7 +1005,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
             version,
             info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway, version, info);
+        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
+            version = version.to_string(), info);
         let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)

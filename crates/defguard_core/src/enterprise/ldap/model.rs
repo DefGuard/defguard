@@ -82,9 +82,8 @@ impl User {
         // Print the warning only if everything else checks out
         if check_username(username).is_err() {
             warn!(
-                "LDAP User \"{}\" has username that cannot be used in Defguard, \
+                "LDAP User \"{username}\" has username that cannot be used in Defguard, \
                 change the LDAP username attribute or change the username in LDAP to a valid one",
-                username
             );
             return Err(LdapError::InvalidUsername(username.to_string()));
         }
@@ -94,10 +93,10 @@ impl User {
 
 impl<I> User<I> {
     pub(crate) fn update_from_ldap_user(&mut self, ldap_user: &User, config: &LDAPConfig) {
-        self.last_name = ldap_user.last_name.clone();
-        self.first_name = ldap_user.first_name.clone();
-        self.email = ldap_user.email.clone();
-        self.phone = ldap_user.phone.clone();
+        self.last_name.clone_from(&ldap_user.last_name);
+        self.first_name.clone_from(&ldap_user.first_name);
+        self.email.clone_from(&ldap_user.email);
+        self.phone.clone_from(&ldap_user.phone);
         // It should be ok to update the username if we are not using it in the DN (not as RDN)
         if config.using_username_as_rdn() {
             debug!(
@@ -105,7 +104,7 @@ impl<I> User<I> {
                 self.username
             );
         } else {
-            self.username = ldap_user.username.clone();
+            self.username.clone_from(&ldap_user.username);
         }
     }
 
@@ -158,7 +157,8 @@ impl<I> User<I> {
         }
 
         let username_attr = config.ldap_username_attr.as_str();
-        // add anything the user provided, if we haven't already added it AND it's not the same as the RDN
+        // Add anything the user provided, if we haven't already added it AND it's not the same as
+        // the RDN.
         if !username_attr.eq_ignore_ascii_case("sAMAccountName")
             && !username_attr.eq_ignore_ascii_case("cn")
             && !config
@@ -241,13 +241,13 @@ impl<I> User<I> {
 
         attrs.push(("objectClass", object_classes));
 
-        debug!("Generated LDAP attributes: {:?}", attrs);
+        debug!("Generated LDAP attributes: {attrs:?}");
 
         attrs
     }
 
     /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
-    pub(crate) async fn maybe_update_rdn(&mut self) {
+    pub(crate) fn maybe_update_rdn(&mut self) {
         debug!("Updating RDN for user {} in Defguard", self.username);
         let settings = Settings::get_current_settings();
         if settings.ldap_using_username_as_rdn() {

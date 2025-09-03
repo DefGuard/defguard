@@ -5,7 +5,7 @@
 Requires `.sqlx` directory to be present in the root directory of the project. Create the file using:
 
 ```
-cargo sqlx prepare -- --lib
+cargo sqlx prepare --workspace -- --all-targets --tests
 ```
 
 1. Build docker image

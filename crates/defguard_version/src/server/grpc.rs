@@ -15,8 +15,8 @@ use tower::Service;
 use tracing::{debug, error};
 
 use crate::{
-    DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version, is_version_lower,
-    parse_metadata, server::DefguardVersionService,
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version,
+    is_version_lower, server::DefguardVersionService,
 };
 
 impl<S, B> Service<Request<Body>> for DefguardVersionService<S>
@@ -66,12 +66,11 @@ where
     }
 }
 
-/// A tonic interceptor that validates client version information from request headers.
+/// Interceptor for `tonic` that validates client version information from request headers.
 ///
-/// This interceptor extracts version headers from incoming gRPC requests and validates
-/// them against configured version requirements. It can enforce both minimum version
-/// requirements and optionally reject clients with versions higher than the server's
-/// own version.
+/// This interceptor extracts version headers from incoming gRPC requests and validates them
+/// against configured version requirements. It can enforce both minimum version requirements and
+/// optionally reject clients with versions higher than the server's own version.
 ///
 /// # Version Validation Rules
 ///
@@ -82,10 +81,11 @@ where
 ///
 /// # Fields
 ///
-/// * `own_version` - The server's own version, used for upper bound validation
-/// * `component` - The expected client component type (e.g., Gateway, Core)
-/// * `min_version` - Minimum required client version
-/// * `fail_if_client_version_is_higher` - Whether to reject clients with versions higher than the server
+/// * `own_version` – The server's own version, used for upper bound validation
+/// * `component` – The expected client component type (e.g., Gateway, Core)
+/// * `min_version` – Minimum required client version
+/// * `fail_if_client_version_is_higher` – Whether to reject clients with versions higher than the
+///   server
 #[derive(Clone)]
 pub struct DefguardVersionInterceptor {
     own_version: Version,
@@ -114,19 +114,21 @@ impl DefguardVersionInterceptor {
         }
     }
 
+    #[must_use]
     pub fn is_component_version_supported(&self, version: Option<&Version>) -> bool {
         let Some(version) = version else {
             error!(
-                "Missing {} version information. This most likely means that {} component uses older, unsupported version. Minimal supported version is {}.",
-                self.component, self.component, self.min_version,
+                "Missing {0} version information. This most likely means that {0} component uses \
+                older, unsupported version. Minimal supported version is {1}.",
+                self.component, self.min_version,
             );
             return false;
         };
 
         if is_version_lower(version, &self.min_version) {
             error!(
-                "{} version {version} is not supported. Minimal supported {} version is {}.",
-                self.component, self.component, self.min_version
+                "{0} version {version} is not supported. Minimal supported {0} version is {1}.",
+                self.component, self.min_version
             );
             return false;
         }
@@ -146,7 +148,7 @@ impl DefguardVersionInterceptor {
 
 impl Interceptor for DefguardVersionInterceptor {
     fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
-        let maybe_info = parse_metadata(request.metadata());
+        let maybe_info = ComponentInfo::from_metadata(request.metadata());
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !self.is_component_version_supported(version) {
             let msg = match version {

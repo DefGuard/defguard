@@ -1,6 +1,6 @@
 use base64::Engine;
 use md4::Md4;
-use rand_core::{OsRng, RngCore};
+use rand::{RngCore, rngs::OsRng};
 use sha1::{
     Digest, Sha1,
     digest::generic_array::{GenericArray, sequence::Concat},

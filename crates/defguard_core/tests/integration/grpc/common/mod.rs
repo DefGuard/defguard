@@ -6,7 +6,10 @@ use defguard_core::{
     db::{AppEvent, GatewayEvent, models::settings::initialize_current_settings},
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
-    grpc::{GatewayMap, WorkerState, build_grpc_service_router, gateway::client_state::ClientMap},
+    grpc::{
+        WorkerState, build_grpc_service_router, gateway::client_state::ClientMap,
+        gateway::map::GatewayMap,
+    },
     mail::Mail,
 };
 use hyper_util::rt::TokioIo;

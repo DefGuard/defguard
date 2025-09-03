@@ -7,8 +7,8 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 ///
 /// # Headers Added
 ///
-/// - `defguard-version`: Semantic version of the component
-/// - `defguard-system`: System information including OS type, version and architecture
+/// - `defguard-version`: Semantic version of the component.
+/// - `defguard-system`: System information including OS type, version and architecture.
 #[derive(Clone)]
 pub struct ClientVersionInterceptor {
     component_info: ComponentInfo,
@@ -17,8 +17,9 @@ pub struct ClientVersionInterceptor {
 impl ClientVersionInterceptor {
     #[must_use]
     pub fn new(version: crate::Version) -> Self {
-        let component_info = ComponentInfo::new(version);
-        Self { component_info }
+        Self {
+            component_info: ComponentInfo::new(version),
+        }
     }
 }
 
