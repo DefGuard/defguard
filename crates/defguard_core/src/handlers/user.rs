@@ -1219,7 +1219,7 @@ pub async fn delete_security_key(
                   "ldap_pass_requires_change": false,
                   "mfa_enabled": false,
                   "mfa_method": "None",
-                  "phone": 000000000,
+                  "phone": 000_000_000,
                   "totp_enabled": false,
                   "username": "username"
                 }

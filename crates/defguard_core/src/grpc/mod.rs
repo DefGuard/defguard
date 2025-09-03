@@ -10,11 +10,11 @@ use std::{
 };
 
 use axum::http::Uri;
+#[cfg(feature = "wireguard")]
+use defguard_version::server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor};
 use defguard_version::{
-    ComponentInfo, DefguardComponent, Version,
-    client::ClientVersionInterceptor,
+    ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
     get_tracing_variables,
-    server::grpc::{DefguardVersionInterceptor, DefguardVersionLayer},
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
