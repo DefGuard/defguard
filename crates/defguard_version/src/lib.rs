@@ -60,7 +60,7 @@
 //! let (version_str, system_str) = version_info_from_metadata(&metadata);
 //! ```
 
-use std::{fmt, str::FromStr};
+use std::{cmp::Ordering, fmt, str::FromStr};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
@@ -348,7 +348,7 @@ pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (Version, String) 
 /// Returns true if v1 < v2.
 #[must_use]
 pub fn is_version_lower(v1: &Version, v2: &Version) -> bool {
-    v1 < v2
+    v1.cmp_precedence(v2) == Ordering::Less
 }
 
 #[cfg(test)]

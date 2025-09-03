@@ -21,7 +21,7 @@
 //!
 //! let my_grpc_service = ServiceBuilder::new();
 //! let version = Version::parse("1.0.0").unwrap();
-//! let version_layer = DefguardVersionLayer::new(version).unwrap();
+//! let version_layer = DefguardVersionLayer::new(version);
 //! let service = ServiceBuilder::new()
 //!     .layer(version_layer)
 //!     .service(my_grpc_service);
