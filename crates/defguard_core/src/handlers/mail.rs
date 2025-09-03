@@ -203,7 +203,7 @@ pub fn send_new_device_added_email(
             Ok(())
         }
         Err(err) => {
-            error!("Sending new device notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device notification to {to} failed with error:\n{err}");
             Ok(())
         }
     }
@@ -308,7 +308,7 @@ pub async fn send_new_device_login_email(
             info!("Sent new device login notification to {to}");
         }
         Err(err) => {
-            error!("Sending new device login notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device login notification to {to} failed with error:\n{err}");
         }
     }
 
@@ -340,7 +340,7 @@ pub async fn send_new_device_ocid_login_email(
             info!("Sent new device OCID login notification to {to}");
         }
         Err(err) => {
-            error!("Sending new device OCID login notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device OCID login notification to {to} failed with error:\n{err}");
         }
     }
 

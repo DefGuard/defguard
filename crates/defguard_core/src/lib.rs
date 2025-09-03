@@ -209,7 +209,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::enterprise::snat::handlers as snat;
+    use crate::{enterprise::snat::handlers as snat, error::WebError};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -258,47 +258,55 @@ mod openapi {
 			snat::create_snat_binding,
 			snat::modify_snat_binding,
 			snat::delete_snat_binding,
-
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
             ),
         ),
         tags(
             (name = "user", description = "
-Endpoints that allow to control user data.
-
+### Endpoints for managing users
 Available actions:
 - list all users
+- disable/enable user
 - CRUD mechanism for handling users
 - operations on security key and authorized app
 - change user password.
+- start remote desktop configuratiion
+- trigger enrollment process
             "),
             (name = "group", description = "
-Endpoints that allow to control groups in your network.
-
+### Endpoints for managing groups
 Available actions:
 - list all groups
 - CRUD mechanism for handling groups
-- add or delete a group member.
+- add or delete a group member
+- remove group
+- bulk assign users to groups
             "),
             (name = "device", description = "
-Endpoints that allow to control devices in your network.
+### Endpoints for managing devices
 
 Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
             (name = "network", description = "
-Endpoints that allow to control your networks.
+### Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
             "),
             (name = "SNAT", description = "
-Endpoints that allow you to control user SNAT bindings for your locations.
+### Endpoints that allow you to control user SNAT bindings for your locations.
+
+Available actions:
+- list all SNAT bindings
+- create new SNAT binding
+- modify SNAT binding
+- delete SNAT binding
             "),
         )
     )]

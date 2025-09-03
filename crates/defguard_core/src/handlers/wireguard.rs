@@ -143,6 +143,14 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
+/// Create new network
+///
+/// Create new network based on `WireguardNetworkData` object.
+///
+/// # Returns
+/// - `WireguardNetwork` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/network",
@@ -227,6 +235,14 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
+/// Modify network
+///
+/// Modify existing network basing on `WireguardNetworkData` object.
+///
+/// # Returns
+/// - `WireguardNetwork` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/network/{network_id}",
@@ -311,6 +327,12 @@ pub(crate) async fn modify_network(
     })
 }
 
+/// Delete network
+///
+/// # Returns
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{network_id}",
@@ -362,6 +384,14 @@ pub(crate) async fn delete_network(
     Ok(ApiResponse::default())
 }
 
+/// List of all networks
+///
+/// Retrieve list of all networks
+///
+/// # Returns
+/// - List of `WireguardNetworkInfo` objects
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network",
@@ -408,6 +438,14 @@ pub(crate) async fn list_networks(
     })
 }
 
+/// Details of network
+///
+/// Retrieve details about network with `network_id`.
+///
+/// # Returns
+/// - `WireguardNetworkInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}",
@@ -481,7 +519,7 @@ pub(crate) async fn gateway_status(
 
 /// Returns state of gateways for all networks
 ///
-/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork<i64>`
+/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork`
 pub(crate) async fn all_gateways_status(
     _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -645,7 +683,9 @@ pub struct AddDeviceResult {
 /// Add device
 ///
 /// Add a new device for a user by sending `AddDevice` object.
+///
 /// Notice that `wireguard_pubkey` must be unique to successfully add the device.
+///
 /// You can't add devices for `disabled` users, unless you are an admin.
 ///
 /// Device will be added to all networks in your company infrastructure.
@@ -653,12 +693,14 @@ pub struct AddDeviceResult {
 /// User will receive all new device details on email.
 ///
 /// # Returns
-/// Returns `AddDeviceResult` object or `WebError` object if error occurs.
+/// - `AddDeviceResult` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = String, description = "Name of a user.")
+        ("device_id" = String, description = "ID of device.")
     ),
     request_body = AddDevice,
     responses(
@@ -855,17 +897,20 @@ pub(crate) async fn add_device(
 /// Modify device
 ///
 /// Update a device for a user by sending `ModifyDevice` object.
-/// Notice that `wireguard_pubkey` must be diffrent from server's pubkey.
+///
+/// Notice that `wireguard_pubkey` must be different from server's pubkey.
 ///
 /// Endpoint will trigger new update in gateway server.
 ///
 /// # Returns
-/// Returns `Device` object or `WebError` object if error occurs.
+/// - `Device` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device.")
     ),
     request_body = ModifyDevice,
     responses(
@@ -970,13 +1015,17 @@ pub(crate) async fn modify_device(
 
 /// Get device
 ///
+/// Retrieve information about device based on their `device_id`
+///
 /// # Returns
-/// Returns `Device` object or `WebError` object if error occurs.
+/// - `Device` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device to update details.")
     ),
     responses(
         (status = 200, description = "Successfully updated a device.", body = Device, example = json!(
@@ -1016,12 +1065,14 @@ pub(crate) async fn get_device(
 /// Delete user device and trigger new update in gateway server.
 ///
 /// # Returns
-/// If error occurs it returns `WebError` object.
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device to update details.")
     ),
     responses(
         (status = 200, description = "Successfully deleted device."),
@@ -1125,8 +1176,12 @@ pub(crate) async fn delete_device(
 
 /// List all devices
 ///
+/// Retrieves all devices
+///
 /// # Returns
-/// Returns a list `Device` objects or `WebError` object if error occurs.
+/// - List of `Device` objects
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/device",
@@ -1161,10 +1216,14 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
 
 /// List user devices
 ///
+/// Retrieve all devices that belong to specific `username`.
+///
 /// This endpoint requires `admin` role.
 ///
 /// # Returns
-/// Returns a list of `Device` object or `WebError` object if error occurs.
+/// - List of `Device` objects
+///
+/// - `WebError` object if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}",
