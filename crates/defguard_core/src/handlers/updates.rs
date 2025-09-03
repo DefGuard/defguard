@@ -34,10 +34,12 @@ pub(crate) async fn outdated_components(
     _admin: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    let gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
-    let mut version_info = gateway_state.all_states_as_version_info();
+    let mut version_info = {
+        gateway_state
+            .lock()
+            .expect("Failed to acquire gateway state lock")
+            .all_states_as_version_info()
+    };
     if let Ok(state) = PROXY_STATE.read() {
         if state.version.is_some() {
             version_info.push((*state).clone());
