@@ -24,7 +24,6 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
-
 pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
     if let Some(mut settings) = Settings::get(&appstate.pool).await? {
