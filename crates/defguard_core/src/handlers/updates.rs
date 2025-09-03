@@ -36,6 +36,7 @@ pub(crate) struct OutdatedComponents {
     gateways: Vec<VersionInfo>,
 }
 
+// FIXME: Switch to SSE and generally make it better.
 pub(crate) async fn outdated_components(
     _admin: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,

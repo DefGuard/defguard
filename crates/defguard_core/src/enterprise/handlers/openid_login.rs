@@ -90,7 +90,7 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
 }
 
 /// Create HTTP client and prevent following redirects
-async fn get_async_http_client() -> Result<reqwest::Client, WebError> {
+fn get_async_http_client() -> Result<reqwest::Client, WebError> {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()
@@ -106,7 +106,7 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
             "Failed to create issuer URL from the provided URL: {url}. Error details: {err:?}",
         ))
     })?;
-    let async_http_client = get_async_http_client().await?;
+    let async_http_client = get_async_http_client()?;
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
@@ -191,7 +191,7 @@ pub(crate) async fn user_from_claims(
         ));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
-    let async_http_client = get_async_http_client().await?;
+    let async_http_client = get_async_http_client()?;
     // Exchange code for ID token.
     let token_response = match core_client
         .exchange_code(code)
@@ -376,7 +376,7 @@ pub(crate) async fn user_from_claims(
                         from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
                     );
 
-                    let async_http_client = get_async_http_client().await?;
+                    let async_http_client = get_async_http_client()?;
 
                     let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
                         Make sure you have configured your provider correctly and that you have granted the \

@@ -821,12 +821,12 @@ pub async fn init_vpn_location(
         let network = if let Some(mut network) =
             WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
         {
-            network.name = args.name.clone();
+            network.name.clone_from(&args.name);
             network.address = vec![args.address];
             network.port = args.port;
-            network.endpoint = args.endpoint.clone();
-            network.dns = args.dns.clone();
-            network.allowed_ips = args.allowed_ips.clone();
+            network.endpoint.clone_from(&args.endpoint);
+            network.dns.clone_from(&args.dns);
+            network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
             network.sync_allowed_devices(&mut transaction, None).await?;
             network

@@ -241,13 +241,13 @@ impl<I> User<I> {
 
         attrs.push(("objectClass", object_classes));
 
-        debug!("Generated LDAP attributes: {:?}", attrs);
+        debug!("Generated LDAP attributes: {attrs:?}");
 
         attrs
     }
 
     /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
-    pub(crate) async fn maybe_update_rdn(&mut self) {
+    pub(crate) fn maybe_update_rdn(&mut self) {
         debug!("Updating RDN for user {} in Defguard", self.username);
         let settings = Settings::get_current_settings();
         if settings.ldap_using_username_as_rdn() {

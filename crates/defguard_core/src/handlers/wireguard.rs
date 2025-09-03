@@ -490,7 +490,7 @@ pub(crate) async fn all_gateways_status(
     let gateway_state = gateway_state
         .lock()
         .expect("Failed to acquire gateway state lock");
-    let flattened = (*gateway_state).into_flattened();
+    let flattened = (*gateway_state).as_flattened();
     Ok(ApiResponse {
         json: json!(flattened),
         status: StatusCode::OK,

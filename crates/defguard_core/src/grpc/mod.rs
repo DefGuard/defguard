@@ -71,10 +71,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::{
-        gateway::{client_state::ClientMap, map::GatewayMap},
-        state::PROXY_STATE,
-    },
+    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
     mail::Mail,
     server_config,
     version::is_proxy_version_supported,

@@ -132,6 +132,7 @@ impl BiometricChallenge {
         Ok(res)
     }
 
+    #[must_use]
     pub fn new() -> Self {
         let challenge = gen_alphanumeric(44);
         Self {

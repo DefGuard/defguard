@@ -38,6 +38,7 @@ impl GatewayMap {
         Self(HashMap::new())
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -193,7 +194,7 @@ impl GatewayMap {
     /// # Returns
     /// `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
     #[must_use]
-    pub(crate) fn into_flattened(&self) -> HashMap<Id, Vec<GatewayState>> {
+    pub(crate) fn as_flattened(&self) -> HashMap<Id, Vec<GatewayState>> {
         self.0
             .iter()
             .map(|(id, inner_map)| {
