@@ -8,11 +8,13 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+axum.workspace = true
+http = "1.3"
+os_info = "3.12"
 semver.workspace = true
+serde.workspace = true
 thiserror.workspace = true
 tonic.workspace = true
+tower = "0.5"
 tracing.workspace = true
 tracing-subscriber.workspace = true
-http = "1.3.1"
-os_info = "3.12.0"
-tower = "0.5.2"

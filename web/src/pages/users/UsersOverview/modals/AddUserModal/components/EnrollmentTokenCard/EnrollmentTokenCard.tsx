@@ -19,6 +19,7 @@ export const EnrollmentTokenCard = () => {
   const tokenResponse = useAddUserModal((state) => state.tokenResponse);
   const { writeToClipboard } = useClipboard();
   const closeModal = useAddUserModal((state) => state.close);
+  const isDesktop = useAddUserModal((s) => s.desktop);
 
   const qrData = useMemo(() => {
     if (tokenResponse) {
@@ -43,7 +44,7 @@ export const EnrollmentTokenCard = () => {
         onCopy={writeToClipboard}
         value={tokenResponse.enrollment_token}
       />
-      {isPresent(qrData) && (
+      {isPresent(qrData) && isDesktop && (
         <div className="qr">
           <QRCode value={qrData} />
         </div>

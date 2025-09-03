@@ -15,10 +15,10 @@
 //!
 //! ## Server-side middleware
 //!
-//! ```
+//! ```rust,ignore
+//! use defguard_version::server::DefguardVersionLayer;
 //! use semver::Version;
 //! use tower::ServiceBuilder;
-//! use defguard_version::server::DefguardVersionLayer;
 //!
 //! let version = Version::parse("1.0.0").unwrap();
 //! let layer = DefguardVersionLayer::new(version);
@@ -29,9 +29,9 @@
 //!
 //! ## Client-side interceptor
 //!
-//! ```ignore
-//! use semver::Version;
+//! ```rust,ignore
 //! use defguard_version::client::version_interceptor;
+//! use semver::Version;
 //! use tonic::transport::Channel;
 //!
 //! let version = Version::parse("1.0.0").unwrap();
@@ -44,14 +44,14 @@
 //!
 //! ## Parsing version information
 //!
-//! ```
-//! use defguard_version::{parse_metadata, version_info_from_metadata};
+//! ```rust
+//! use defguard_version::{ComponentInfo, version_info_from_metadata};
 //! use tonic::metadata::MetadataMap;
 //!
 //! let metadata = MetadataMap::new();
 //!
 //! // Extract parsed version and system info
-//! if let Some(component_info) = parse_metadata(&metadata) {
+//! if let Some(component_info) = ComponentInfo::from_metadata(&metadata) {
 //!     println!("Client version: {}", component_info.version);
 //!     println!("Client system: {}", component_info.system);
 //! }
@@ -64,6 +64,7 @@ use std::{cmp::Ordering, fmt, str::FromStr};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
+use serde::Serialize;
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
 
@@ -72,10 +73,10 @@ pub mod server;
 pub mod tracing;
 
 /// HTTP header name for the Defguard component version.
-pub static VERSION_HEADER: &str = "defguard-version";
+pub static VERSION_HEADER: &str = "defguard-component-version";
 
 /// HTTP header name for the Defguard system information.
-pub static SYSTEM_INFO_HEADER: &str = "defguard-system";
+pub static SYSTEM_INFO_HEADER: &str = "defguard-component-system";
 
 #[derive(Debug, Error)]
 pub enum DefguardVersionError {
@@ -90,7 +91,7 @@ pub enum DefguardVersionError {
 }
 
 /// Represents the different types of Defguard components that can communicate via gRPC.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum DefguardComponent {
     Core,
     Proxy,
@@ -105,9 +106,7 @@ impl FromStr for DefguardComponent {
             "core" => Ok(DefguardComponent::Core),
             "proxy" => Ok(DefguardComponent::Proxy),
             "gateway" => Ok(DefguardComponent::Gateway),
-            _ => Err(DefguardVersionError::InvalidDefguardComponent(
-                s.to_string(),
-            )),
+            _ => Err(Self::Err::InvalidDefguardComponent(s.to_string())),
         }
     }
 }
@@ -115,9 +114,9 @@ impl FromStr for DefguardComponent {
 impl fmt::Display for DefguardComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DefguardComponent::Core => write!(f, "core"),
-            DefguardComponent::Proxy => write!(f, "proxy"),
-            DefguardComponent::Gateway => write!(f, "gateway"),
+            Self::Core => write!(f, "core"),
+            Self::Proxy => write!(f, "proxy"),
+            Self::Gateway => write!(f, "gateway"),
         }
     }
 }
@@ -131,12 +130,12 @@ impl fmt::Display for DefguardComponent {
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use defguard_version::SystemInfo;
 ///
 /// // Get current system information
 /// let info = SystemInfo::get();
-/// println!("Running on: {}", info);
+/// println!("Running on: {info}");
 ///
 /// // Access individual fields
 /// println!("OS: {} {}", info.os_type, info.os_version);
@@ -243,58 +242,58 @@ impl ComponentInfo {
             system: info.into(),
         }
     }
-}
 
-/// Parses version and system information from gRPC metadata headers.
-///
-/// This function extracts and parses the Defguard version headers from
-/// gRPC metadata, returning structured version and system information.
-/// If any parsing step fails, warnings are logged and `None` is returned.
-///
-/// # Arguments
-///
-/// * `metadata` - The gRPC metadata map containing headers
-///
-/// # Returns
-///
-/// * `Some((Version, SystemInfo))` - Successfully parsed version information
-/// * `None` - If headers are missing or parsing fails
-///
-/// # Examples
-///
-/// ```
-/// use defguard_version::parse_metadata;
-/// use tonic::metadata::MetadataMap;
-///
-/// let metadata = MetadataMap::new();
-/// if let Some((version, system)) = parse_metadata(&metadata) {
-///     println!("Peer version: {}", version);
-///     println!("Peer system: {}", system);
-/// }
-/// ```
-pub fn parse_metadata(metadata: &MetadataMap) -> Option<ComponentInfo> {
-    let Some(version) = metadata.get(VERSION_HEADER) else {
-        warn!("Missing version header");
-        return None;
-    };
-    let Some(system) = metadata.get(SYSTEM_INFO_HEADER) else {
-        warn!("Missing system info header");
-        return None;
-    };
-    let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) else {
-        warn!("Failed to stringify version or system info header value");
-        return None;
-    };
-    let Ok(version) = Version::from_str(version) else {
-        warn!("Failed to parse version: {version}");
-        return None;
-    };
-    let Ok(system) = SystemInfo::try_from_header_value(system) else {
-        warn!("Failed to parse system info: {system}");
-        return None;
-    };
+    /// Parses version and system information from gRPC metadata headers.
+    ///
+    /// This function extracts and parses the Defguard version headers from
+    /// gRPC metadata, returning structured version and system information.
+    /// If any parsing step fails, warnings are logged and `None` is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `metadata` - The gRPC metadata map containing headers
+    ///
+    /// # Returns
+    ///
+    /// * `Some(ComponentInfo)` - Successfully parsed version information.
+    /// * `None` - If headers are missing or parsing fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use defguard_version::ComponentInfo;
+    /// use tonic::metadata::MetadataMap;
+    ///
+    /// let metadata = MetadataMap::new();
+    /// if let Some(component_info) = ComponentInfo::from_metadata(&metadata) {
+    ///     println!("Peer version: {}", component_info.version);
+    ///     println!("Peer system: {}", component_info.system);
+    /// }
+    /// ```
+    pub fn from_metadata(metadata: &MetadataMap) -> Option<Self> {
+        let Some(version) = metadata.get(VERSION_HEADER) else {
+            warn!("Missing version header");
+            return None;
+        };
+        let Some(system) = metadata.get(SYSTEM_INFO_HEADER) else {
+            warn!("Missing system info header");
+            return None;
+        };
+        let (Ok(version), Ok(system)) = (version.to_str(), system.to_str()) else {
+            warn!("Failed to stringify version or system info header value");
+            return None;
+        };
+        let Ok(version) = Version::from_str(version) else {
+            warn!("Failed to parse version: {version}");
+            return None;
+        };
+        let Ok(system) = SystemInfo::try_from_header_value(system) else {
+            warn!("Failed to parse system info: {system}");
+            return None;
+        };
 
-    Some(ComponentInfo { version, system })
+        Some(Self { version, system })
+    }
 }
 
 /// Extracts version information from metadata as formatted strings with fallback.
@@ -321,22 +320,23 @@ pub fn parse_metadata(metadata: &MetadataMap) -> Option<ComponentInfo> {
 ///
 /// let metadata = MetadataMap::new();
 /// let (version, system) = version_info_from_metadata(&metadata);
-/// println!("Client: {} running on {}", version, system);
+/// println!("Client: {version} running on {system}");
 /// // Output might be: "Client: 1.2.3 running on Linux 22.04 64-bit x86_64"
 /// // Or if headers missing: "Client: ? running on ?"
 /// ```
 #[must_use]
-pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
-    parse_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |info| {
-        (info.version.to_string(), info.system.to_string())
-    })
+pub fn version_info_from_metadata(metadata: &MetadataMap) -> (Version, String) {
+    ComponentInfo::from_metadata(metadata)
+        .map_or((Version::new(0, 0, 0), String::from("?")), |info| {
+            (info.version, info.system.to_string())
+        })
 }
 
 #[must_use]
-pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (String, String) {
+pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (Version, String) {
     let version = info
         .as_ref()
-        .map_or(String::from("?"), |info| info.version.to_string());
+        .map_or(Version::new(0, 0, 0), |info| info.version.clone());
     let info = info
         .as_ref()
         .map_or(String::from("?"), |info| info.system.to_string());
@@ -346,13 +346,13 @@ pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (String, String) {
 
 /// Compares two versions while omitting build metadata (we use it for git commit hash).
 /// Returns true if v1 < v2.
+#[must_use]
 pub fn is_version_lower(v1: &Version, v2: &Version) -> bool {
     v1.cmp_precedence(v2) == Ordering::Less
 }
 
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     #[test]

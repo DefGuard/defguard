@@ -239,3 +239,34 @@ size="12px", line_height="120%", weight="400") %}
     </table>
 </div>
 {% endmacro title %}
+
+{% macro button_link(href="", text="") %}
+<p style="text-align: center;"><a href="{{ href }}" target="_blank" aria-label="{{ text }}" style="
+  background-color: #0C8CE0;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+  color: #FFFFFF;
+  padding: 12px 48px;
+  text-align: center;
+  display: inline-block;
+  margin: 0px auto;
+  cursor: pointer;
+">
+        <span style="
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+  color: #FFFFFF;
+        ">{{ text }}</span>
+    </a>
+</p>
+{% endmacro button_link %}

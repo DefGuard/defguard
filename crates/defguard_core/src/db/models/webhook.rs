@@ -12,6 +12,7 @@ pub enum AppEvent {
     UserDeleted(String),
     HWKeyProvision(HWKeyUserData),
 }
+
 /// User data send on HWKeyProvision AppEvent
 #[derive(Debug, Serialize)]
 pub struct HWKeyUserData {

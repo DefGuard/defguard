@@ -19,8 +19,8 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
-        GatewayMap, WorkerState, gateway::client_state::ClientMap, run_grpc_bidi_stream,
-        run_grpc_server,
+        WorkerState, gateway::client_state::ClientMap, gateway::map::GatewayMap,
+        run_grpc_bidi_stream, run_grpc_server,
     },
     init_dev_env, init_vpn_location,
     mail::{Mail, run_mail_handler},

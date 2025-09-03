@@ -9,7 +9,7 @@ use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
-use rand_core::OsRng;
+use rand::rngs::OsRng;
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
     postgres::types::PgInterval, query_as, query_scalar,
@@ -34,8 +34,7 @@ use crate::{
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
-        GatewayState,
-        gateway::{Peer, send_multiple_wireguard_events},
+        gateway::{Peer, send_multiple_wireguard_events, state::GatewayState},
         proto::{
             enterprise::firewall::FirewallConfig, proxy::LocationMfaMode as ProtoLocationMfaMode,
         },
@@ -897,65 +896,6 @@ impl WireguardNetwork<Id> {
         Ok(connected_at)
     }
 
-    /*
-    /// Retrieves stats for all devices matching given `device_type`.
-    pub(crate) async fn device_stats_for_type(
-        &self,
-        conn: &PgPool,
-        device_type: DeviceType,
-        from: &NaiveDateTime,
-        aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
-        let stats = query!(
-            "SELECT device_id \"device_id!\", device.name, device.user_id, \
-            date_trunc($1, collected_at) \"collected_at!\", \
-            CAST(sum(download) AS bigint) \"download!\", \
-            CAST(sum(upload) AS bigint) \"upload!\" \
-            FROM wireguard_peer_stats_view wpsv \
-            JOIN device ON wpsv.device_id = device.id \
-            WHERE device.device_type = $2 \
-            AND collected_at >= $3 \
-            AND network = $4 \
-            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4",
-            aggregation.fstring(),
-            &device_type as &DeviceType,
-            from,
-            self.id,
-        )
-        .fetch_all(conn)
-        .await?;
-        let mut result = Vec::new();
-        for stat in &stats {
-            let latest_stats =
-                WireguardPeerStats::fetch_latest(conn, stat.device_id, self.id).await?;
-            result.push(WireguardDeviceStatsRow {
-                id: stat.device_id,
-                user_id: stat.user_id,
-                name: stat.name.clone(),
-                wireguard_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::trim_allowed_ips),
-                public_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::endpoint_without_port),
-                connected_at: self.connected_at(conn, stat.device_id).await?,
-                // Filter stats for this device
-                stats: stats
-                    .iter()
-                    .filter(|s| s.device_id == stat.device_id)
-                    .map(|s| WireguardDeviceTransferRow {
-                        device_id: s.device_id,
-                        collected_at: s.collected_at,
-                        upload: s.upload,
-                        download: s.download,
-                    })
-                    .collect(),
-            });
-        }
-        Ok(result)
-    }
-    */
-
     /// Retrieves stats for specified devices
     pub(crate) async fn device_stats(
         &self,
@@ -1297,8 +1237,8 @@ impl WireguardNetwork<Id> {
         let locations = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
         )
         .fetch_all(executor)
@@ -1346,7 +1286,7 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Serialize, Clone, Debug, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
@@ -1355,7 +1295,7 @@ pub struct WireguardNetworkInfo {
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,

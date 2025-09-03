@@ -132,6 +132,7 @@ impl BiometricChallenge {
         Ok(res)
     }
 
+    #[must_use]
     pub fn new() -> Self {
         let challenge = gen_alphanumeric(44);
         Self {
@@ -182,7 +183,7 @@ mod test {
 
     #[test]
     fn test_verify_valid_sig() {
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = rand::rngs::OsRng;
         let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
         let challenge = "test-challenge";
         let signed = signing_key.sign(challenge.as_bytes());
@@ -197,7 +198,7 @@ mod test {
 
     #[test]
     fn test_verify_invalid_signature() {
-        let mut csprng = rand_core::OsRng;
+        let mut csprng = rand::rngs::OsRng;
         let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
         let challenge = "test-challenge";
 

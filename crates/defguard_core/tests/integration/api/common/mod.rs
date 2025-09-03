@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 
 pub use defguard_core::db::setup_pool;
 use defguard_core::{
+    VERSION,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
@@ -13,11 +14,12 @@ use defguard_core::{
     },
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayMap, WorkerState},
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::Auth,
     mail::Mail,
 };
 use reqwest::{StatusCode, header::HeaderName};
+use semver::Version;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -127,6 +129,7 @@ pub(crate) async fn make_base_client(
         pool,
         failed_logins,
         api_event_tx,
+        Version::parse(VERSION).unwrap(),
     );
 
     (

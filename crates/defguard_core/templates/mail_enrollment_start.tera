@@ -37,24 +37,10 @@ Desktop client can still be activated later, by accessing your profile in defgua
 macros::paragraph(content= "If you wish to do enrollment via Web, please copy & paste the following URL in your browser: "),
 macros::link(content=link_url, href=link_url),
 macros::paragraph(content="<b>Please note that: this option is only valid for 24 hours after receiving this email. When the enrollment process starts user will have 10 minutes to complete the process.</b>"),
-macros::paragraph(content="You can also click the button below to start the enrollment:"),
+macros::paragraph(content="You can also click the buttons below to start the enrollment on website or within desktop client:"),
+macros::button_link(href=link_url, text="Start enrollment"),
+macros::spacer(height="20px"),
+macros::button_link(href="defguard://addinstance?token=" ~ token ~ "&url=" ~ enrollment_url, text="Enroll with desktop client"),
 ] %}
 {{ macros::text_section(content_array=section_content)}}
-<p style="text-align: center;"><a href={{ link_url }} target="_blank" aria-label="Start enrollment" style="
-  background-color: #0C8CE0;
-  border: none;
-  border-radius: 10px;
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 600;
-  font-size: 15px;
-  line-height: 22px;
-  text-decoration: none;
-  color: #FFFFFF;
-  padding: 12px 48px;
-  text-align: center;
-  display: inline-block;
-  margin: 0px auto;
-  cursor: pointer;
-"><span>Start enrollment</span></a></p>
 {% endblock %}

@@ -14,6 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -59,6 +60,7 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
+use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
@@ -123,6 +125,7 @@ use self::{
         },
         ssh_authorized_keys::get_authorized_keys,
         support::{configuration, logs},
+        updates::outdated_components,
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, get_user, list_users, me, modify_user,
@@ -139,7 +142,7 @@ use self::{
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::app_info::get_app_info,
 };
 
@@ -207,7 +210,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::enterprise::snat::handlers as snat;
+    use crate::{enterprise::snat::handlers as snat, error::WebError};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -256,47 +259,55 @@ mod openapi {
 			snat::create_snat_binding,
 			snat::modify_snat_binding,
 			snat::delete_snat_binding,
-
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
             ),
         ),
         tags(
             (name = "user", description = "
-Endpoints that allow to control user data.
-
+### Endpoints for managing users
 Available actions:
 - list all users
+- disable/enable user
 - CRUD mechanism for handling users
 - operations on security key and authorized app
 - change user password.
+- start remote desktop configuratiion
+- trigger enrollment process
             "),
             (name = "group", description = "
-Endpoints that allow to control groups in your network.
-
+### Endpoints for managing groups
 Available actions:
 - list all groups
 - CRUD mechanism for handling groups
-- add or delete a group member.
+- add or delete a group member
+- remove group
+- bulk assign users to groups
             "),
             (name = "device", description = "
-Endpoints that allow to control devices in your network.
+### Endpoints for managing devices
 
 Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
             (name = "network", description = "
-Endpoints that allow to control your networks.
+### Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
             "),
             (name = "SNAT", description = "
-Endpoints that allow you to control user SNAT bindings for your locations.
+### Endpoints that allow you to control user SNAT bindings for your locations.
+
+Available actions:
+- list all SNAT bindings
+- create new SNAT binding
+- modify SNAT binding
+- delete SNAT binding
             "),
         )
     )]
@@ -345,6 +356,7 @@ pub fn build_webapp(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    version: Version,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -608,6 +620,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 delete(delete_snat_binding),
             )
+            .route("/outdated", get(outdated_components))
             .layer(Extension(gateway_state)),
     );
 
@@ -622,6 +635,8 @@ pub fn build_webapp(
             .route("/{id}", get(job_status))
             .layer(Extension(worker_state)),
     );
+
+    let webapp = webapp.layer(DefguardVersionLayer::new(version));
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
@@ -673,6 +688,7 @@ pub async fn run_web_server(
         pool,
         failed_logins,
         event_tx,
+        Version::parse(VERSION)?,
     );
     info!("Started web services");
     let addr = SocketAddr::new(
@@ -813,12 +829,12 @@ pub async fn init_vpn_location(
         let network = if let Some(mut network) =
             WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
         {
-            network.name = args.name.clone();
+            network.name.clone_from(&args.name);
             network.address = vec![args.address];
             network.port = args.port;
-            network.endpoint = args.endpoint.clone();
-            network.dns = args.dns.clone();
-            network.allowed_ips = args.allowed_ips.clone();
+            network.endpoint.clone_from(&args.endpoint);
+            network.dns.clone_from(&args.dns);
+            network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
             network.sync_allowed_devices(&mut transaction, None).await?;
             network

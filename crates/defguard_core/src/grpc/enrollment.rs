@@ -245,10 +245,7 @@ impl EnrollmentServer {
             let admin_info = admin.map(AdminInfo::from);
             debug!("Admin info {admin_info:?}");
 
-            debug!(
-                "Creating enrollment start response for user {}({:?}).",
-                username, user_id,
-            );
+            debug!("Creating enrollment start response for user {username}({user_id:?}).");
             let enterprise_settings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
@@ -258,12 +255,10 @@ impl EnrollmentServer {
                     })?;
             // check if any locations enforce internal MFA
             let instance_has_internal_mfa = query_scalar!(
-                r#"
-                SELECT EXISTS(
-                    SELECT 1 FROM wireguard_network
-                    WHERE location_mfa_mode = 'internal'::location_mfa_mode
-                ) AS "exists!"
-                "#
+                "SELECT EXISTS( \
+                    SELECT 1 FROM wireguard_network \
+                    WHERE location_mfa_mode = 'internal'::location_mfa_mode \
+                ) \"exists!\""
             )
             .fetch_one(&self.pool)
             .await
@@ -318,28 +313,27 @@ impl EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
-                "Invalid pubkey {}, device won't be registered as mobile mfa auth for user {}({:?}): {err}",
+                "Invalid public key {}, device won't be registered as mobile MFA auth for user {}\
+                ({:?}): {err}",
                 request.device_pub_key, user.username, user.id
             );
             Status::invalid_argument("invalid pubkey")
         })?;
-        let device = match Device::find_by_pubkey(&self.pool, &request.device_pub_key)
+        let Some(device) = Device::find_by_pubkey(&self.pool, &request.device_pub_key)
             .await
             .map_err(|err| {
-                error!("Failed to read devices from db : {err}");
+                error!("Failed to read devices from db: {err}");
                 Status::internal("Something went wrong")
-            })? {
-            Some(d) => d,
-            None => {
-                return Err(Status::invalid_argument(
-                    "Device with given public key doesn't exist",
-                ));
-            }
+            })?
+        else {
+            return Err(Status::invalid_argument(
+                "Device with given public key doesn't exist",
+            ));
         };
         BiometricAuth::validate_pubkey(&request.device_pub_key)?;
         let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
-            error!("Failed to save mobile auth into db : {err}");
+            error!("Failed to save mobile auth into db: {err}");
             Status::internal("Failed to save results")
         })?;
         info!(
@@ -418,7 +412,7 @@ impl EnrollmentServer {
 
         debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_current_settings();
-        debug!("Successfully retrived settings.");
+        debug!("Settings successfully retrieved.");
 
         // send welcome email
         debug!("Try to send welcome email...");
