@@ -207,7 +207,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::enterprise::snat::handlers as snat;
+    use crate::{enterprise::snat::handlers as snat, error::WebError};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -256,11 +256,10 @@ mod openapi {
 			snat::create_snat_binding,
 			snat::modify_snat_binding,
 			snat::delete_snat_binding,
-
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
             ),
         ),
         tags(

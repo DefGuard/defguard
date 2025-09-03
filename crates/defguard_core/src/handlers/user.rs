@@ -345,7 +345,7 @@ pub async fn add_user(
 ///
 /// Thanks to this endpoint you are able to trigger manually enrollment process, where after finishing you receive an enrollment token.
 ///
-/// `Enrollment token` allows to start the process of gaining access to the company infrastructure **(The enrollment token is valid for 24 hours)**.
+/// **Enrollment token** allows to start the process of gaining access to the company infrastructure **(The enrollment token is valid for 24 hours)**.
 ///
 /// On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
 ///
@@ -453,7 +453,7 @@ pub async fn start_enrollment(
 ///
 /// Thanks to this endpoint you are able to receive a new desktop client configuration or update an existing one. Users need the configuration to connect to the company infrastrcture.
 ///
-/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`.
+/// `Enrollment token` allows to start the process of gaining access to the company infrastructure **(The enrollment token is valid for 24 hours)**.
 ///
 /// On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
 ///
@@ -567,7 +567,7 @@ pub async fn start_remote_desktop_configuration(
 ///
 /// - `WebError` if error occurs
 ///
-/// `Please take notice that if user exists in database, endpoint will return status code 400.`
+/// **Please take notice that if user exists in database, endpoint will return status code 400.**
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
@@ -611,9 +611,9 @@ pub async fn username_available(
 
 /// Modify user
 ///
-/// Update users data basing on `UserInfo` object, it can remove authorized apps and active/deactivate LDAP status if needed.
+/// Update user's data basing on `UserInfo` object, it can also remove/add authorized apps and groups assigned to user.
 ///
-/// Endpoint is able to disable a user, but `admin cannot disable himself`.
+/// Endpoint is able to disable a user, but **admin cannot disable himself**.
 ///
 /// Disabling a user can be done by setting `is_active` to `false`.
 ///
@@ -783,7 +783,7 @@ pub async fn modify_user(
 
 /// Delete user
 ///
-/// Deletes user, however, `you can't delete yourself as an administrator`.
+/// Deletes user, however, **you can't delete yourself as an administrator**.
 ///
 /// # Returns
 /// - `WebError` if error occurs
