@@ -14,7 +14,7 @@ use crate::{
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
-    grpc::GatewayMapError,
+    grpc::gateway::map::GatewayMapError,
     templates::TemplateError,
 };
 

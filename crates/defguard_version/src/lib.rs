@@ -64,6 +64,7 @@ use std::{cmp::Ordering, fmt, str::FromStr};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
+use serde::Serialize;
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
 
@@ -90,7 +91,7 @@ pub enum DefguardVersionError {
 }
 
 /// Represents the different types of Defguard components that can communicate via gRPC.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum DefguardComponent {
     Core,
     Proxy,
@@ -324,10 +325,11 @@ impl ComponentInfo {
 /// // Or if headers missing: "Client: ? running on ?"
 /// ```
 #[must_use]
-pub fn version_info_from_metadata(metadata: &MetadataMap) -> (String, String) {
-    ComponentInfo::from_metadata(metadata).map_or(("?".to_string(), "?".to_string()), |info| {
-        (info.version.to_string(), info.system.to_string())
-    })
+pub fn version_info_from_metadata(metadata: &MetadataMap) -> (Version, String) {
+    ComponentInfo::from_metadata(metadata)
+        .map_or((Version::new(0, 0, 0), "?".to_string()), |info| {
+            (info.version, info.system.to_string())
+        })
 }
 
 #[must_use]

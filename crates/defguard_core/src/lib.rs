@@ -77,8 +77,6 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::handlers::updates::outdated_components;
-
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
@@ -127,6 +125,7 @@ use self::{
         },
         ssh_authorized_keys::get_authorized_keys,
         support::{configuration, logs},
+        updates::outdated_components,
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, get_user, list_users, me, modify_user,
@@ -143,7 +142,7 @@ use self::{
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::app_info::get_app_info,
 };
 

@@ -1,13 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{Extension, http::StatusCode};
+use defguard_version::tracing::VersionInfo;
 use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
-    grpc::{GatewayMap, GatewayState},
+    grpc::gateway::map::GatewayMap,
     updates::get_update,
 };
 
@@ -30,9 +31,9 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
     })
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Serialize)]
 pub(crate) struct OutdatedComponents {
-    gateways: Vec<GatewayState>,
+    gateways: Vec<VersionInfo>,
 }
 
 pub(crate) async fn outdated_components(
@@ -44,7 +45,7 @@ pub(crate) async fn outdated_components(
         .expect("Failed to acquire gateway state lock");
     Ok(ApiResponse::new(
         json!(OutdatedComponents {
-            gateways: gateway_state.all_states()
+            gateways: gateway_state.all_states_as_version_info()
         }),
         StatusCode::OK,
     ))

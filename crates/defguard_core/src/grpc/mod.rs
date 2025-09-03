@@ -10,7 +10,6 @@ use std::{
 };
 
 use axum::http::Uri;
-use chrono::{NaiveDateTime, Utc};
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version,
     client::ClientVersionInterceptor,
@@ -22,7 +21,6 @@ use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
 use sqlx::PgPool;
-use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::Sender,
@@ -31,7 +29,6 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tokio_util::sync::CancellationToken;
 use tonic::{
     Code, Status, Streaming,
     transport::{
@@ -39,8 +36,6 @@ use tonic::{
     },
 };
 use tower::ServiceBuilder;
-use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
 use self::gateway::{GatewayServer, gateway_service_server::GatewayServiceServer};
@@ -76,8 +71,10 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::{gateway::client_state::ClientMap, state::PROXY_STATE},
-    handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
+    grpc::{
+        gateway::{client_state::ClientMap, map::GatewayMap},
+        state::PROXY_STATE,
+    },
     mail::Mail,
     server_config,
     version::is_proxy_version_supported,
@@ -131,369 +128,6 @@ pub static AUTHORIZATION_HEADER: &str = "authorization";
 
 // gRPC header for passing hostname from clients
 pub static HOSTNAME_HEADER: &str = "hostname";
-
-// Helper struct used to handle gateway state
-// gateways are grouped by network
-type GatewayHostname = String;
-#[derive(Debug, Serialize)]
-pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
-
-#[derive(Error, Debug)]
-pub enum GatewayMapError {
-    #[error("Gateway {1} for network {0} not found")]
-    NotFound(i64, GatewayHostname),
-    #[error("Network {0} not found")]
-    NetworkNotFound(i64),
-    #[error("Gateway with UID {0} not found")]
-    UidNotFound(Uuid),
-    #[error("Cannot remove. Gateway with UID {0} is still active")]
-    RemoveActive(Uuid),
-    #[error("Config missing")]
-    ConfigError,
-    #[error("Failed to get current settings")]
-    SettingsError,
-}
-
-impl GatewayMap {
-    #[must_use]
-    pub fn new() -> Self {
-        Self(HashMap::new())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Add a new gateway to the map.
-    /// This is meant to be called when Gateway requests a config as a sort of "registration".
-    pub(crate) fn add_gateway(
-        &mut self,
-        network_id: Id,
-        network_name: &str,
-        hostname: String,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-        version: String,
-    ) {
-        info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
-        let gateway_state =
-            GatewayState::new(network_id, network_name, &hostname, name, mail_tx, version);
-
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            network_gateway_map.entry(hostname).or_insert(gateway_state);
-        } else {
-            // no map for a given network exists yet
-            let mut network_gateway_map = HashMap::new();
-            network_gateway_map.insert(hostname, gateway_state);
-            self.0.insert(network_id, network_gateway_map);
-        }
-    }
-
-    /// Remove gateway from the map.
-    pub(crate) fn remove_gateway(
-        &mut self,
-        network_id: Id,
-        uid: Uuid,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Removing gateway from network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            // find gateway by uuid
-            let hostname = match network_gateway_map
-                .iter()
-                .find(|(_address, state)| state.uid == uid)
-            {
-                None => {
-                    error!("Failed to find gateway with UID {uid}");
-                    return Err(GatewayMapError::UidNotFound(uid));
-                }
-                Some((hostname, state)) => {
-                    if state.connected {
-                        error!("Cannot remove. Gateway with UID {uid} is still active");
-                        return Err(GatewayMapError::RemoveActive(uid));
-                    }
-                    hostname.clone()
-                }
-            };
-            // remove matching gateway
-            network_gateway_map.remove(&hostname)
-        } else {
-            // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
-            return Err(GatewayMapError::NetworkNotFound(network_id));
-        };
-        info!("Gateway with UID {uid} removed from network {network_id}");
-        Ok(())
-    }
-
-    /// Change gateway status to connected.
-    /// Assume that the gateway is already present in the map.
-    pub(crate) fn connect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: &str,
-        pool: &PgPool,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Connecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(hostname) {
-                // check if a gateway is reconnecting to avoid sending notifications on initial
-                // connection
-                let is_reconnecting = state.disconnected_at.is_some();
-                state.connected = true;
-                state.disconnected_at = None;
-                state.connected_at = Some(Utc::now().naive_utc());
-                state.cancel_pending_disconnect_notification();
-                if is_reconnecting {
-                    state.handle_reconnect_notification(pool);
-                }
-                debug!(
-                    "Gateway {hostname} found in gateway map, current state: {:?}",
-                    state
-                );
-            } else {
-                error!("Gateway {hostname} not found in gateway map for network {network_id}");
-                return Err(GatewayMapError::NotFound(network_id, hostname.into()));
-            }
-        } else {
-            // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
-            return Err(GatewayMapError::NetworkNotFound(network_id));
-        }
-        info!("Gateway {hostname} connected in network {network_id}");
-        Ok(())
-    }
-
-    /// Change gateway status to disconnected.
-    pub(crate) fn disconnect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: String,
-        pool: &PgPool,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Disconnecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(&hostname) {
-                state.connected = false;
-                state.disconnected_at = Some(Utc::now().naive_utc());
-                state.handle_disconnect_notification(pool);
-                debug!("Gateway {hostname} found in gateway map, current state: {state:?}");
-                info!("Gateway {hostname} disconnected in network {network_id}");
-                return Ok(());
-            }
-        }
-        let err = GatewayMapError::NotFound(network_id, hostname);
-        error!("Gateway disconnect failed: {err}");
-        Err(err)
-    }
-
-    /// Return `true` if at least one gateway in a given network is connected.
-    #[must_use]
-    pub(crate) fn connected(&self, network_id: Id) -> bool {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map
-                .values()
-                .any(|gateway| gateway.connected),
-            None => false,
-        }
-    }
-
-    /// Return a list of all statuses of all gateways for a given network.
-    #[must_use]
-    pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
-        if let Some(network_gateway_map) = self.0.get(&network_id) {
-            network_gateway_map.values().cloned().collect()
-        } else {
-            Vec::new()
-        }
-    }
-
-    /// Flattens the inner `HashMap` into `Vec`.
-    ///
-    /// Since key information in inner HashMap is within `GatewayState` it's simpler to consume it
-    /// as `Vec` on web.
-    ///
-    /// # Returns
-    /// `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
-    #[must_use]
-    pub(crate) fn into_flattened(&self) -> HashMap<Id, Vec<GatewayState>> {
-        self.0
-            .iter()
-            .map(|(id, inner_map)| {
-                let states: Vec<GatewayState> = inner_map.values().cloned().collect();
-                (*id, states)
-            })
-            .collect()
-    }
-
-    #[must_use]
-    pub(crate) fn all_states(&self) -> Vec<GatewayState> {
-        self.0
-            .values()
-            .flat_map(|inner_map| inner_map.values().cloned())
-            .collect()
-    }
-}
-
-impl Default for GatewayMap {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Serialize, Clone, Debug, ToSchema)]
-pub struct GatewayState {
-    pub uid: Uuid,
-    pub connected: bool,
-    pub network_id: Id,
-    pub network_name: String,
-    pub name: Option<String>,
-    pub hostname: String,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
-    #[serde(skip)]
-    pub mail_tx: UnboundedSender<Mail>,
-    #[serde(skip)]
-    pub pending_notification_cancel_token: Option<CancellationToken>,
-    pub version: String,
-    // #[serde(serialize_with = "is_version_supported"]
-    // pub is_version_supported: PhantomData,
-}
-
-impl GatewayState {
-    #[must_use]
-    pub fn new<S: Into<String>>(
-        network_id: Id,
-        network_name: S,
-        hostname: S,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-        version: String,
-    ) -> Self {
-        Self {
-            uid: Uuid::new_v4(),
-            connected: false,
-            network_id,
-            network_name: network_name.into(),
-            name,
-            hostname: hostname.into(),
-            connected_at: None,
-            disconnected_at: None,
-            mail_tx,
-            pending_notification_cancel_token: None,
-            version,
-        }
-    }
-
-    /// Checks if gateway disconnect notification should be sent.
-    fn handle_disconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Checking if gateway disconnect notification needs to be sent");
-        let settings = Settings::get_current_settings();
-        if settings.gateway_disconnect_notifications_enabled {
-            let delay = Duration::from_secs(
-                60 * settings.gateway_disconnect_notifications_inactivity_threshold as u64,
-            );
-            self.send_disconnect_notification(pool, delay);
-        }
-    }
-
-    /// Send gateway disconnected notification
-    /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &PgPool, delay: Duration) {
-        // Clone here because self doesn't live long enough
-        let name = self.name.clone();
-        let mail_tx = self.mail_tx.clone();
-        let pool = pool.clone();
-        let hostname = self.hostname.clone();
-        let network_name = self.network_name.clone();
-
-        debug!(
-            "Scheduling gateway disconnect email notification for {hostname} to be sent in \
-            {delay:?}"
-        );
-        // use cancellation token to abort sending if gateway reconnects during the delay
-        // we should never need to cancel a previous token since that would've been done on reconnect
-        assert!(self.pending_notification_cancel_token.is_none());
-        let cancellation_token = CancellationToken::new();
-        self.pending_notification_cancel_token = Some(cancellation_token.clone());
-
-        // notification is not supposed to be sent immediately, so we instead schedule a
-        // background task with a configured delay
-        tokio::spawn(async move {
-            tokio::select! {
-                () = async {
-                    sleep(delay).await;
-                    debug!("Gateway disconnect notification delay has passed. \
-                        Trying to send email...");
-                    if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname,
-                        &mail_tx, &pool)
-                    .await
-                    {
-                        error!("Failed to send gateway disconnect notification: {e}");
-                    } else {
-                        info!("Gateway {hostname} disconnected. Email notification sent",);
-                    }
-                } => {
-                    debug!("Scheduled gateway disconnect notification for {hostname} has been \
-                        sent");
-                },
-                () = cancellation_token.cancelled() => {
-                    info!("Scheduled gateway disconnect notification for {hostname} cancelled");
-                }
-            }
-        });
-    }
-
-    /// Checks if gateway disconnect notification should be sent.
-    fn handle_reconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Checking if gateway reconnect notification needs to be sent");
-        let settings = Settings::get_current_settings();
-        if settings.gateway_disconnect_notifications_reconnect_notification_enabled {
-            self.send_reconnect_notification(pool);
-        }
-    }
-
-    /// Send gateway disconnected notification
-    /// Sends notification only if last notification time is bigger than specified in config
-    fn send_reconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Sending gateway reconnect email notification");
-        // Clone here because self doesn't live long enough
-        let name = self.name.clone();
-        let mail_tx = self.mail_tx.clone();
-        let pool = pool.clone();
-        let hostname = self.hostname.clone();
-        let network_name = self.network_name.clone();
-        tokio::spawn(async move {
-            if let Err(e) =
-                send_gateway_reconnected_email(name, network_name, &hostname, &mail_tx, &pool).await
-            {
-                error!("Failed to send gateway reconnect notification: {e}");
-            } else {
-                info!("Gateway {hostname} reconnected. Email notification sent",);
-            }
-        });
-    }
-
-    /// Cancels disconnect notification if one is scheduled to be sent
-    fn cancel_pending_disconnect_notification(&mut self) {
-        debug!(
-            "Checking if there's a gateway disconnect notification for {} pending which needs \
-            to be cancelled",
-            self.hostname
-        );
-        if let Some(token) = &self.pending_notification_cancel_token {
-            debug!(
-                "Cancelling pending gateway disconnect notification for {}",
-                self.hostname
-            );
-            token.cancel();
-            self.pending_notification_cancel_token = None;
-        }
-    }
-
-    // fn has_supported_version(&self) -> bool {
-    //     is_component_version_supported
-    // }
-}
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 

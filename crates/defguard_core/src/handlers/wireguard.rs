@@ -40,7 +40,7 @@ use crate::{
         is_enterprise_enabled, limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayMap,
+    grpc::gateway::map::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
