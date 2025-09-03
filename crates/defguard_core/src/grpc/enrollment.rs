@@ -313,28 +313,27 @@ impl EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
-                "Invalid pubkey {}, device won't be registered as mobile mfa auth for user {}({:?}): {err}",
+                "Invalid public key {}, device won't be registered as mobile MFA auth for user {}\
+                ({:?}): {err}",
                 request.device_pub_key, user.username, user.id
             );
             Status::invalid_argument("invalid pubkey")
         })?;
-        let device = match Device::find_by_pubkey(&self.pool, &request.device_pub_key)
+        let Some(device) = Device::find_by_pubkey(&self.pool, &request.device_pub_key)
             .await
             .map_err(|err| {
-                error!("Failed to read devices from db : {err}");
+                error!("Failed to read devices from db: {err}");
                 Status::internal("Something went wrong")
-            })? {
-            Some(d) => d,
-            None => {
-                return Err(Status::invalid_argument(
-                    "Device with given public key doesn't exist",
-                ));
-            }
+            })?
+        else {
+            return Err(Status::invalid_argument(
+                "Device with given public key doesn't exist",
+            ));
         };
         BiometricAuth::validate_pubkey(&request.device_pub_key)?;
         let mobile_auth = BiometricAuth::new(device.id, request.auth_pub_key);
         let _ = mobile_auth.save(&self.pool).await.map_err(|err| {
-            error!("Failed to save mobile auth into db : {err}");
+            error!("Failed to save mobile auth into db: {err}");
             Status::internal("Failed to save results")
         })?;
         info!(

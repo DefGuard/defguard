@@ -99,7 +99,7 @@ use crate::{ComponentInfo, DefguardComponent, DefguardVersionError, SystemInfo};
 /// Container for version information extracted from tracing span hierarchy.
 ///
 /// Aggregates version and system information found while traversing up the span tree.
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct VersionInfo {
     pub component: Option<DefguardComponent>,
     pub info: Option<String>,

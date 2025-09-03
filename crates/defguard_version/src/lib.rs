@@ -60,7 +60,7 @@
 //! let (version_str, system_str) = version_info_from_metadata(&metadata);
 //! ```
 
-use std::{cmp::Ordering, fmt, str::FromStr};
+use std::{fmt, str::FromStr};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
@@ -320,23 +320,23 @@ impl ComponentInfo {
 ///
 /// let metadata = MetadataMap::new();
 /// let (version, system) = version_info_from_metadata(&metadata);
-/// println!("Client: {} running on {}", version, system);
+/// println!("Client: {version} running on {system}");
 /// // Output might be: "Client: 1.2.3 running on Linux 22.04 64-bit x86_64"
 /// // Or if headers missing: "Client: ? running on ?"
 /// ```
 #[must_use]
 pub fn version_info_from_metadata(metadata: &MetadataMap) -> (Version, String) {
     ComponentInfo::from_metadata(metadata)
-        .map_or((Version::new(0, 0, 0), "?".to_string()), |info| {
+        .map_or((Version::new(0, 0, 0), String::from("?")), |info| {
             (info.version, info.system.to_string())
         })
 }
 
 #[must_use]
-pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (String, String) {
+pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (Version, String) {
     let version = info
         .as_ref()
-        .map_or(String::from("?"), |info| info.version.to_string());
+        .map_or(Version::new(0, 0, 0), |info| info.version.clone());
     let info = info
         .as_ref()
         .map_or(String::from("?"), |info| info.system.to_string());
@@ -348,7 +348,7 @@ pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (String, String) {
 /// Returns true if v1 < v2.
 #[must_use]
 pub fn is_version_lower(v1: &Version, v2: &Version) -> bool {
-    v1.cmp_precedence(v2) == Ordering::Less
+    v1 < v2
 }
 
 #[cfg(test)]

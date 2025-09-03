@@ -71,7 +71,10 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
+    grpc::{
+        gateway::{client_state::ClientMap, map::GatewayMap},
+        state::PROXY_STATE,
+    },
     mail::Mail,
     server_config,
     version::is_proxy_version_supported,
@@ -630,15 +633,19 @@ pub async fn run_grpc_bidi_stream(
 
         // Check proxy version and continue if it's not supported.
         let (version, info) = get_tracing_variables(&maybe_info);
-        let span =
-            tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy, version, info);
+
+        // Save Proxy version information.
+        if let Ok(mut state) = (*PROXY_STATE).write() {
+            state.version = Some(version.to_string());
+            state.is_supported = true;
+        }
+
+        let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
+            version = version.to_string(), info);
         let _guard = span.enter();
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !is_proxy_version_supported(version) {
             // TODO push an event to display this in UI
-            // if let Some(mut state) = PROXY_STATE.get_mut() {
-            //     *state = true;
-            // }
             sleep(TEN_SECS).await;
             continue;
         }
