@@ -723,7 +723,7 @@ pub async fn modify_user(
     user.maybe_update_rdn();
     user.save(&appstate.pool).await?;
 
-    ldap_update_user_state(&mut user, &appstate.pool).await;
+    Box::pin(ldap_update_user_state(&mut user, &appstate.pool)).await;
 
     if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {

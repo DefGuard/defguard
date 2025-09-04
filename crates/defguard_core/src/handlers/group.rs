@@ -122,7 +122,11 @@ pub(crate) async fn bulk_assign_to_groups(
     ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
 
     let users_to_maybe_update = users.iter_mut().collect::<Vec<_>>();
-    ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+    Box::pin(ldap_update_users_state(
+        users_to_maybe_update,
+        &appstate.pool,
+    ))
+    .await;
 
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
     appstate.emit_event(ApiEvent {
@@ -365,7 +369,11 @@ pub(crate) async fn create_group(
     if !ldap_user_groups.is_empty() {
         ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
         let users_to_maybe_update = members.iter_mut().collect::<Vec<_>>();
-        ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+        Box::pin(ldap_update_users_state(
+            users_to_maybe_update,
+            &appstate.pool,
+        ))
+        .await;
     }
 
     info!("Created group {}", group_info.name);

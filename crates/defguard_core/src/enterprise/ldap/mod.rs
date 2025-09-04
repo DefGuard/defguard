@@ -115,7 +115,7 @@ where
         Err(e) => {
             warn!("Encountered an error while performing LDAP operation: {e:?}");
             if let Err(status_err) = set_ldap_sync_status(SyncStatus::OutOfSync, pool).await {
-                warn!("Failed to update LDAP sync status: {:?}", status_err);
+                warn!("Failed to update LDAP sync status: {status_err:?}");
             }
 
             Err(e)

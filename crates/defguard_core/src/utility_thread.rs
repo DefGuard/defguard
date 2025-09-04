@@ -42,9 +42,10 @@ pub async fn run_utility_thread(
     let mut enterprise_enabled = is_enterprise_enabled();
 
     let directory_sync_task = || async {
-        if let Err(e) = do_directory_sync(pool, &wireguard_tx)
-            .instrument(info_span!("directory_sync_task"))
-            .await
+        if let Err(e) = Box::pin(
+            do_directory_sync(pool, &wireguard_tx).instrument(info_span!("directory_sync_task")),
+        )
+        .await
         {
             error!("There was an error while performing directory sync job: {e:?}",);
         }

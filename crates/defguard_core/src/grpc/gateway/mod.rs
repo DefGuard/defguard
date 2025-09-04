@@ -7,7 +7,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_version::{DefguardComponent, version_info_from_metadata};
+use defguard_version::version_info_from_metadata;
 use semver::Version;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
@@ -145,7 +145,7 @@ struct GatewayMetadata {
     network_id: Id,
     hostname: String,
     version: Version,
-    info: String,
+    // info: String,
 }
 
 impl GatewayServer {
@@ -301,12 +301,11 @@ impl GatewayServer {
 
     /// Utility function extracting metadata fields during gRPC communication.
     fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
-        let (version, info) = version_info_from_metadata(metadata);
+        let (version, _info) = version_info_from_metadata(metadata);
         Ok(GatewayMetadata {
             network_id: Self::get_network_id(metadata)?,
             hostname: Self::get_gateway_hostname(metadata)?,
             version,
-            info,
         })
     }
 }
@@ -757,15 +756,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let GatewayMetadata {
             network_id,
             hostname,
-            version,
-            info,
+            ..
         } = Self::extract_metadata(request.metadata())?;
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
-
-        let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway,
-            version = version.to_string(), info);
-        let _guard = span.enter();
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
         loop {
             // Wait for a message or update client map at least once a mninute, if no messages are
             // received.
@@ -930,11 +928,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
             network_id,
             hostname,
             version,
-            info,
+            ..
+            // info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway,
-            version = version.to_string(), info);
-        let _guard = span.enter();
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
             error!("Failed to acquire DB connection: {e}");
@@ -1009,12 +1009,13 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let GatewayMetadata {
             network_id,
             hostname,
-            version,
-            info,
+            ..
+            // info,
         } = Self::extract_metadata(request.metadata())?;
-        let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
-            version = version.to_string(), info);
-        let _guard = span.enter();
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
 
         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)
             .await
