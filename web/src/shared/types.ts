@@ -13,6 +13,18 @@ import type {
 } from '../pages/activity-log/types';
 import type { UpdateInfo } from './hooks/store/useUpdatesStore';
 
+export enum OutdatedComponent {
+  PROXY = 'Proxy',
+  GATEWAY = 'Gateway',
+}
+
+export type OutdatedComponentInfo = {
+  component: OutdatedComponent;
+  is_supported: boolean;
+  // e.g 1.3.0+392d85
+  version: string;
+};
+
 export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
@@ -611,6 +623,7 @@ export type ActivityLogStreamConfig =
 export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
 
 export type Api = {
+  getOutdatedInfo: () => Promise<Array<OutdatedComponentInfo>>;
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;

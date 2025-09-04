@@ -222,6 +222,22 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * V​e​r​s​i​o​n​ ​m​i​s​m​a​t​c​h
+			 */
+			title: string
+			/**
+			 * D​e​f​g​u​a​r​d​ ​d​e​t​e​c​t​e​d​ ​u​n​s​u​p​p​o​r​t​e​d​ ​v​e​r​s​i​o​n​ ​i​n​ ​s​o​m​e​ ​c​o​m​p​o​n​e​n​t​s​.
+			 */
+			subtitle: string
+			content: {
+				/**
+				 * I​n​c​o​m​p​a​t​i​b​l​e​ ​c​o​m​p​o​n​e​n​t​s​:
+				 */
+				title: string
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
@@ -6887,6 +6903,22 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * Version mismatch
+			 */
+			title: () => LocalizedString
+			/**
+			 * Defguard detected unsupported version in some components.
+			 */
+			subtitle: () => LocalizedString
+			content: {
+				/**
+				 * Incompatible components:
+				 */
+				title: () => LocalizedString
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
