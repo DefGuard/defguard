@@ -9,7 +9,6 @@ import { defineConfig } from 'vite';
 export default ({}) => {
   let proxyTarget = 'http://127.0.0.1:8000';
   const envProxyTarget = process.env.PROXY_TARGET;
-  console.log(envProxyTarget);
 
   if (envProxyTarget && envProxyTarget.length > 0) {
     proxyTarget = envProxyTarget;

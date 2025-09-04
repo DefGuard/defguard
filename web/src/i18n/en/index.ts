@@ -291,6 +291,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
       },
+      messageBox: {
+        clientForm:
+          'You can share the following URL and token with the user to configure their Defguard desktop or mobile client.',
+        clientQr:
+          'You can share this QR code for easy Defguard mobile client configuration.',
+      },
       form: {
         email: {
           label: 'Email',

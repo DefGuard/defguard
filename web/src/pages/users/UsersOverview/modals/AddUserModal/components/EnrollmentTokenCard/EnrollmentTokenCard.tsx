@@ -9,6 +9,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { CopyField } from '../../../../../../../shared/defguard-ui/components/Layout/CopyField/CopyField';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { useClipboard } from '../../../../../../../shared/hooks/useClipboard';
 import { enrollmentToImportToken } from '../../../../../../addDevice/utils/enrollmentToToken';
@@ -34,6 +35,9 @@ export const EnrollmentTokenCard = () => {
 
   return (
     <div id="enrollment-token-step">
+      {isDesktop && (
+        <MessageBox message={LL.modals.startEnrollment.messageBox.clientForm()} />
+      )}
       <CopyField
         label={LL.modals.startEnrollment.urlCard.title()}
         onCopy={writeToClipboard}
@@ -46,6 +50,7 @@ export const EnrollmentTokenCard = () => {
       />
       {isPresent(qrData) && isDesktop && (
         <div className="qr">
+          <MessageBox message={LL.modals.startEnrollment.messageBox.clientQr()} />
           <QRCode value={qrData} />
         </div>
       )}

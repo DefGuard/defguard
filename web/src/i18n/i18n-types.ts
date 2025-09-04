@@ -748,6 +748,16 @@ type RootTranslation = {
 				 */
 				errorDesktop: string
 			}
+			messageBox: {
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​t​o​k​e​n​ ​w​i​t​h​ ​t​h​e​ ​u​s​e​r​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​i​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​o​r​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​.
+				 */
+				clientForm: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​f​o​r​ ​e​a​s​y​ ​D​e​f​g​u​a​r​d​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+				 */
+				clientQr: string
+			}
 			form: {
 				email: {
 					/**
@@ -7429,6 +7439,16 @@ export type TranslationFunctions = {
 				 * Failed to start desktop activation
 				 */
 				errorDesktop: () => LocalizedString
+			}
+			messageBox: {
+				/**
+				 * You can share the following URL and token with the user to configure their Defguard desktop or mobile client.
+				 */
+				clientForm: () => LocalizedString
+				/**
+				 * You can share this QR code for easy Defguard mobile client configuration.
+				 */
+				clientQr: () => LocalizedString
 			}
 			form: {
 				email: {
