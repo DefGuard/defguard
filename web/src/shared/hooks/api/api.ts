@@ -44,6 +44,8 @@ import type { UpdateInfo } from '../store/useUpdatesStore';
 const unpackRequest = <T>(res: AxiosResponse<T>): T => res.data;
 
 export const buildApi = (client: Axios): Api => {
+  const getOutdatedInfo = () => client.get(`/outdated`).then(unpackRequest);
+
   const addUser = (data: AddUserRequest) =>
     client.post<User>(`/user`, data).then(unpackRequest);
 
@@ -544,6 +546,7 @@ export const buildApi = (client: Axios): Api => {
   ) => client.delete(`/activity_log_stream/${id}`).then(unpackRequest);
 
   return {
+    getOutdatedInfo,
     getAppInfo,
     getNewVersion,
     changePasswordSelf,

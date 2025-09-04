@@ -5,7 +5,9 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../i18n/i18n-react';
 import { LoaderPage } from '../pages/loader/LoaderPage';
+import { useOutdatedComponentsModal } from '../shared/components/modals/OutdatedComponentsModal/useOutdatedComponentsModal';
 import { useToaster } from '../shared/defguard-ui/hooks/toasts/useToaster';
+import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
 import { useUpdatesStore } from '../shared/hooks/store/useUpdatesStore';
@@ -25,12 +27,22 @@ export const AppLoader = () => {
   const {
     getAppInfo,
     getNewVersion,
+    getOutdatedInfo,
     user: { getMe },
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
   const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
+  const openOutdatedComponentsModal = useOutdatedComponentsModal((s) => s.open);
+
+  const { data: outdatedInfo } = useQuery({
+    queryFn: getOutdatedInfo,
+    queryKey: ['outdated'],
+    enabled: isPresent(currentUser) && currentUser.is_admin,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
 
   const {
     data: meData,
@@ -135,6 +147,17 @@ export const AppLoader = () => {
       setUpdateStore(newVersionData);
     }
   }, [newVersionData, setUpdateStore]);
+
+  useEffect(() => {
+    if (outdatedInfo && outdatedInfo.length > 0) {
+      const containsUnsupported = outdatedInfo.find(
+        (component) => !component.is_supported,
+      );
+      if (containsUnsupported !== undefined) {
+        openOutdatedComponentsModal(outdatedInfo);
+      }
+    }
+  }, [outdatedInfo, openOutdatedComponentsModal]);
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;
