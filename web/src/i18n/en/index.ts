@@ -698,7 +698,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         title: 'Create VPN device',
         infoMessage: `
         <p>
-          You need to configure WireGuardVPN on your device, please visit&nbsp;
+          You need to configure WireGuard® VPN on your device, please visit&nbsp;
           <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,

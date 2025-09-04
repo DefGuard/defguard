@@ -6,11 +6,11 @@ export const externalLink = {
     base: 'https://docs.defguard.net/',
     setup: {
       gateway:
-        'https://docs.defguard.net/admin-and-features/setting-up-your-instance/gateway',
+        'https://docs.defguard.net/deployment-strategies/gateway',
     },
     wireguard: {
       addDevices:
-        'https://docs.defguard.net/help/configuring-vpn/adding-wireguard-devices',
+        'https://docs.defguard.net/using-defguard-for-end-users/adding-wireguard-devices',
     },
   },
   defguardSite: 'https://defguard.net',
@@ -18,7 +18,7 @@ export const externalLink = {
   wireguard: {
     download: 'https://www.wireguard.com/install/',
   },
-  defguardCliDocs: 'https://docs.defguard.net/help/cli-client',
+  defguardCliDocs: 'https://docs.defguard.net/using-defguard-for-end-users/cli-client',
   clientApp: {
     download: {
       android: 'https://play.google.com/store/apps/details?id=net.defguard.mobile',
