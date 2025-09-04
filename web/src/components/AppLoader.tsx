@@ -150,8 +150,6 @@ export const AppLoader = () => {
 
   useEffect(() => {
     if (outdatedInfo && outdatedInfo.length > 0) {
-      //todo remote this
-      openOutdatedComponentsModal(outdatedInfo);
       const containsUnsupported = outdatedInfo.find(
         (component) => !component.is_supported,
       );
