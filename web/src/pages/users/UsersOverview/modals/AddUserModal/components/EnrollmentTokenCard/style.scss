@@ -25,10 +25,11 @@
 
   .qr {
     display: flex;
-    flex-flow: row;
+    flex-flow: column;
     align-items: center;
     justify-content: center;
     padding: var(--spacing-m) 0;
+    row-gap: var(--spacing-m);
   }
 
   & > .controls {

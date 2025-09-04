@@ -6,6 +6,7 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { OpenDesktopClientButton } from '../../../../shared/components/Layout/buttons/OpenDesktopClientButton/OpenDesktopClientButton';
+import { RenderMarkdown } from '../../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -45,7 +46,17 @@ export const AddDeviceClientConfigurationStep = () => {
   return (
     <Card id="add-device-client-configuration" shaded>
       <h2>{localLL.title()}</h2>
-      <MessageBox message={localLL.message()} />
+      {isPresent(clientSetup) && (
+        <>
+          <MessageBox message={localLL.desktopDeepLinkHelp()} />
+          <div className="row desktop-button">
+            <OpenDesktopClientButton token={clientSetup.token} url={clientSetup.url} />
+          </div>
+        </>
+      )}
+      <MessageBox>
+        <RenderMarkdown content={localLL.message()} />
+      </MessageBox>
       {/* <CopyField
         label={localLL.labels.mergedToken()}
         value={tokenValue}
@@ -67,11 +78,7 @@ export const AddDeviceClientConfigurationStep = () => {
           void writeToClipboard(value, localLL.tokenCopy());
         }}
       />
-      {isPresent(clientSetup) && (
-        <div className="row desktop-button">
-          <OpenDesktopClientButton token={clientSetup.token} url={clientSetup.url} />
-        </div>
-      )}
+      <MessageBox message={localLL.qrHelp()} />
       <div className="qr">
         <QRCode value={tokenValue} />
       </div>

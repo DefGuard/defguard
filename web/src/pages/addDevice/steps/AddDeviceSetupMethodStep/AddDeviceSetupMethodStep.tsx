@@ -53,6 +53,7 @@ export const AddDeviceSetupMethodStep = () => {
 
   useEffect(() => {
     const sub = navSubject.subscribe((event) => {
+      console.log(event);
       if (event === AddDeviceNavigationEvent.NEXT) {
         switch (setupMethod) {
           case AddDeviceStep.NATIVE_CHOOSE_METHOD:
@@ -75,9 +76,8 @@ export const AddDeviceSetupMethodStep = () => {
       setupMethod === AddDeviceStep.NATIVE_CHOOSE_METHOD
     ) {
       setSetupMethod(AddDeviceStep.CLIENT_CONFIGURATION);
-      startActivation();
     }
-  }, [enterpriseSettings?.only_client_activation, setupMethod, startActivation]);
+  }, [enterpriseSettings?.only_client_activation, setupMethod]);
 
   return (
     <>
@@ -94,6 +94,7 @@ export const AddDeviceSetupMethodStep = () => {
               }}
             />
             <DeviceSetupMethodCard
+              disabled={enterpriseSettings?.only_client_activation ?? false}
               methodType={DeviceSetupMethod.NATIVE_WG}
               active={setupMethod === AddDeviceStep.NATIVE_CHOOSE_METHOD}
               onClick={() => {

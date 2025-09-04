@@ -291,6 +291,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
       },
+      messageBox: {
+        clientForm:
+          'You can share the following URL and token with the user to configure their Defguard desktop or mobile client.',
+        clientQr:
+          'You can share this QR code for easy Defguard mobile client configuration.',
+      },
       form: {
         email: {
           label: 'Email',
@@ -651,10 +657,15 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
       client: {
         title: 'Client Activation',
+        desktopDeepLinkHelp:
+          'If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button',
+        //md
         message:
-          'Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
+          'If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:',
         qrDescription:
           "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
+        qrHelp:
+          'If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:',
         desktopDownload: 'Download for Desktop',
         tokenCopy: 'Token copied to clipboard',
         tokenFailure: 'Failed to prepare client setup',
@@ -1100,7 +1111,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
-    openClientDeepLink: 'Configure your desktop client',
+    openClientDeepLink: 'One-Click Desktop Configuration',
     aclDefaultPolicySelect: {
       label: 'Default ACL Policy',
       options: {
