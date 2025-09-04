@@ -124,7 +124,14 @@ impl WireguardNetwork<Id> {
             .map(|row| Peer {
                 pubkey: row.pubkey,
                 allowed_ips: row.allowed_ips,
-                preshared_key: row.preshared_key,
+                // Don't send preshared key if MFA is not enabled, it can't be used and may
+                // cause issues with clients connecting if they expect no preshared key
+                // e.g. when you disable MFA on a location
+                preshared_key: if self.mfa_enabled() {
+                    row.preshared_key
+                } else {
+                    None
+                },
                 keepalive_interval: Some(self.keepalive_interval as u32),
             })
             .collect();
