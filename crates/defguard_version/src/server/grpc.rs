@@ -6,6 +6,7 @@ use std::{
 
 use http::HeaderValue;
 use tonic::{
+    Status,
     body::Body,
     codegen::http::{Request, Response},
     server::NamedService,
@@ -115,7 +116,7 @@ impl DefguardVersionInterceptor {
     }
 
     #[must_use]
-    pub fn is_component_version_supported(&self, version: Option<&Version>) -> bool {
+    fn is_component_version_supported(&self, version: Option<&Version>) -> bool {
         let Some(version) = version else {
             error!(
                 "Missing {0} version information. This most likely means that {0} component uses \
@@ -147,7 +148,7 @@ impl DefguardVersionInterceptor {
 }
 
 impl Interceptor for DefguardVersionInterceptor {
-    fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
+    fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
         let maybe_info = ComponentInfo::from_metadata(request.metadata());
         let version = maybe_info.as_ref().map(|info| &info.version);
         if !self.is_component_version_supported(version) {
@@ -155,7 +156,7 @@ impl Interceptor for DefguardVersionInterceptor {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            return Err(tonic::Status::failed_precondition(msg));
+            return Err(Status::failed_precondition(msg));
         }
 
         Ok(request)

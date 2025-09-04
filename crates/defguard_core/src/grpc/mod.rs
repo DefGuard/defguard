@@ -633,18 +633,18 @@ pub async fn run_grpc_bidi_stream(
 
         // Check proxy version and continue if it's not supported.
         let (version, info) = get_tracing_variables(&maybe_info);
+        let proxy_is_supported = is_proxy_version_supported(Some(&version));
 
         // Save Proxy version information.
         if let Ok(mut state) = (*PROXY_STATE).write() {
             state.version = Some(version.to_string());
-            state.is_supported = true;
+            state.is_supported = proxy_is_supported;
         }
 
         let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
         let _guard = span.enter();
-        let version = maybe_info.as_ref().map(|info| &info.version);
-        if !is_proxy_version_supported(version) {
+        if !proxy_is_supported {
             // TODO push an event to display this in UI
             sleep(TEN_SECS).await;
             continue;

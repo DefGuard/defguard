@@ -556,7 +556,11 @@ async fn sync_all_users_groups<T: DirectorySync>(
     }
     transaction.commit().await?;
 
-    ldap_update_users_state(affected_users.iter_mut().collect::<Vec<_>>(), pool).await;
+    Box::pin(ldap_update_users_state(
+        affected_users.iter_mut().collect::<Vec<_>>(),
+        pool,
+    ))
+    .await;
     info!("Syncing all users' groups done.");
     Ok(())
 }
@@ -786,7 +790,11 @@ async fn sync_all_users_state(
     transaction.commit().await?;
 
     ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
-    ldap_update_users_state(modified_users.iter_mut().collect::<Vec<_>>(), pool).await;
+    Box::pin(ldap_update_users_state(
+        modified_users.iter_mut().collect::<Vec<_>>(),
+        pool,
+    ))
+    .await;
 
     info!("Syncing all users' state with the directory done");
 
