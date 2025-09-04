@@ -33,12 +33,9 @@ jobs:
         run: |
           npm i -g npm pnpm
           pnpm i --frozen-lockfile
-      - name: Biome rage
-        working-directory: ./web
-        run: pnpm run biome rage
       - name: Lint
         working-directory: ./web
-        run: pnpm run lint biome
+        run: pnpm run lint
       - name: Audit
         working-directory: ./web
         run: pnpm audit --prod
