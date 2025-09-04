@@ -72,5 +72,13 @@
   "assist": {
     "enabled": true,
     "actions": { "source": { "organizeImports": "on" } }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/shared/links.ts"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }
