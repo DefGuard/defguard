@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { type ComponentProps, useEffect } from 'react';
+import type { ComponentProps } from 'react';
 import { useNavigationStore } from '../../../../components/Navigation/hooks/useNavigationStore';
 
 type Props = {
@@ -16,9 +16,6 @@ export const PageContainer = ({
   ...rest
 }: Props) => {
   const isNavOpen = useNavigationStore((state) => state.isOpen);
-  useEffect(() => {
-    console.log({ withDefaultPadding });
-  }, [withDefaultPadding]);
   return (
     <div {...rest} className={clsx('page-container', className)}>
       <div
