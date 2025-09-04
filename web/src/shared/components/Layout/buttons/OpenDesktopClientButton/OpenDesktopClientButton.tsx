@@ -8,9 +8,10 @@ import {
 type Props = {
   url: string;
   token: string;
+  customMessage?: string;
 };
 
-export const OpenDesktopClientButton = ({ token, url }: Props) => {
+export const OpenDesktopClientButton = ({ token, url, customMessage }: Props) => {
   const { LL } = useI18nContext();
   const makeUrl = () => {
     return `defguard://addinstance?token=${token}&url=${url}`;
@@ -22,7 +23,7 @@ export const OpenDesktopClientButton = ({ token, url }: Props) => {
         type="button"
         size={ButtonSize.LARGE}
         styleVariant={ButtonStyleVariant.PRIMARY}
-        text={LL.components.openClientDeepLink()}
+        text={customMessage ?? LL.components.openClientDeepLink()}
       />
     </a>
   );

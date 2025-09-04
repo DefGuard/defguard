@@ -1519,13 +1519,21 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​c​l​i​e​n​t​ ​(​l​i​n​k​s​ ​b​e​l​o​w​)​,​ ​o​p​e​n​ ​i​t​ ​a​n​d​ ​j​u​s​t​ ​p​r​e​s​s​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n​ ​b​u​t​t​o​n
+				 */
+				desktopDeepLinkHelp: string
+				/**
+				 * I​f​ ​y​o​u​ ​a​r​e​ ​h​a​v​i​n​g​ ​t​r​o​u​b​l​e​ ​w​i​t​h​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​y​o​u​ ​c​a​n​ ​d​o​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​b​y​ ​c​l​i​c​k​i​n​g​ ​*​A​d​d​ ​I​n​s​t​a​n​c​e​*​ ​i​n​ ​t​h​e​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​a​n​d​ ​e​n​t​e​r​i​n​g​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​:
 				 */
 				message: string
 				/**
 				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
 				 */
 				qrDescription: string
+				/**
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​M​o​b​i​l​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​j​u​s​t​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​a​p​p​:
+				 */
+				qrHelp: string
 				/**
 				 * D​o​w​n​l​o​a​d​ ​f​o​r​ ​D​e​s​k​t​o​p
 				 */
@@ -2710,7 +2718,7 @@ type RootTranslation = {
 	}
 	components: {
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t
+		 * O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		openClientDeepLink: string
 		aclDefaultPolicySelect: {
@@ -8181,13 +8189,21 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
+				 * If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button
+				 */
+				desktopDeepLinkHelp: () => LocalizedString
+				/**
+				 * If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:
 				 */
 				message: () => LocalizedString
 				/**
 				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
 				 */
 				qrDescription: () => LocalizedString
+				/**
+				 * If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:
+				 */
+				qrHelp: () => LocalizedString
 				/**
 				 * Download for Desktop
 				 */
@@ -9360,7 +9376,7 @@ export type TranslationFunctions = {
 	}
 	components: {
 		/**
-		 * Configure your desktop client
+		 * One-Click Desktop Configuration
 		 */
 		openClientDeepLink: () => LocalizedString
 		aclDefaultPolicySelect: {
