@@ -35,7 +35,7 @@ jobs:
           pnpm i --frozen-lockfile
       - name: Lint
         working-directory: ./web
-        run: pnpm run lint
+        run: npx biome check ./src --error-on-warnings --formatter-enabled=true --enforce-assist=true --linter-enabled=true
       - name: Audit
         working-directory: ./web
         run: pnpm audit --prod
