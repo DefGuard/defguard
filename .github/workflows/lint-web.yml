@@ -3,7 +3,7 @@ on:
     branches:
       - main
       - dev
-      - 'release/**'
+      - "release/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -11,7 +11,7 @@ on:
     branches:
       - main
       - dev
-      - 'release/**'
+      - "release/**"
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -31,11 +31,11 @@ jobs:
       - name: install deps
         working-directory: ./web
         run: |
-          npm i -g pnpm
+          npm i -g npm pnpm
           pnpm i --frozen-lockfile
       - name: Lint
         working-directory: ./web
-        run: pnpm run lint-ci
+        run: pnpm run lint
       - name: Audit
         working-directory: ./web
         run: pnpm audit --prod
