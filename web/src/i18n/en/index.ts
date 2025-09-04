@@ -61,6 +61,13 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    outdatedComponentsModal: {
+      title: 'Version mismatch',
+      subtitle: 'Defguard detected unsupported version in some components.',
+      content: {
+        title: 'Incompatible components:',
+      },
+    },
     upgradeLicenseModal: {
       enterprise: {
         title: 'Upgrade to Enterprise',
