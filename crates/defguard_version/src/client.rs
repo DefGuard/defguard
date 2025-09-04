@@ -8,7 +8,7 @@ use crate::{ComponentInfo, SYSTEM_INFO_HEADER, VERSION_HEADER};
 /// # Headers Added
 ///
 /// - `defguard-version`: Semantic version of the component.
-/// - `defguard-system`: System information including OS type, version and architecture.
+/// - `defguard-system`: System information including OS type, version and architecture. (only for gRPC, don't expose it in HTTP)
 #[derive(Clone)]
 pub struct ClientVersionInterceptor {
     component_info: ComponentInfo,

@@ -7,7 +7,7 @@ use axum::{extract::Request, http, response::Response};
 use http::HeaderValue;
 use tower::Service;
 
-use crate::{SYSTEM_INFO_HEADER, VERSION_HEADER, server::DefguardVersionService};
+use crate::{VERSION_HEADER, server::DefguardVersionService};
 
 impl<S, B> Service<Request> for DefguardVersionService<S>
 where
@@ -28,27 +28,22 @@ where
         let mut inner = self.inner.clone();
 
         // Pre-parse header values
-        let parsed_info = (
-            self.component_info
-                .version
-                .to_string()
-                .parse::<HeaderValue>()
-                .ok(),
-            self.component_info
-                .system
-                .as_header_value()
-                .parse::<HeaderValue>()
-                .ok(),
-        );
+        //
+        // We avoid adding a system header here deliberately.
+        let parsed_info = self
+            .component_info
+            .version
+            .to_string()
+            .parse::<HeaderValue>()
+            .ok();
 
         Box::pin(async move {
             // Process the request with the inner service first
             let mut response = inner.call(request).await?;
 
             // Add version headers
-            if let (Some(version), Some(system)) = parsed_info {
+            if let Some(version) = parsed_info {
                 response.headers_mut().insert(VERSION_HEADER, version);
-                response.headers_mut().insert(SYSTEM_INFO_HEADER, system);
             }
 
             Ok(response)
