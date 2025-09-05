@@ -36,6 +36,7 @@ static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
+static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -78,7 +79,7 @@ fn get_base_tera(
     let now = Utc::now();
     let current_year = format!("{:04}", now.year());
     context.insert("current_year", &current_year);
-    context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
+    context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
 
     if let Some(current_session) = session {
         let device_info = &current_session.device_info;
@@ -239,7 +240,7 @@ pub fn new_device_login_mail(
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     context.insert(
         "date_now",
-        &created.format("%A, %B %d, %Y at %r").to_string(),
+        &created.format(MAIL_DATETIME_FORMAT).to_string(),
     );
 
     tera.add_raw_template("mail_new_device_login", MAIL_NEW_DEVICE_LOGIN)?;

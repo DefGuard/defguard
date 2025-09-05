@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::{enterprise::ldap::sync::SyncStatus, global_value, secret::SecretStringWrapper};
 
@@ -89,7 +90,7 @@ pub struct Settings {
     pub enrollment_use_welcome_message_as_email: bool,
     // Instance UUID needed for desktop client
     #[serde(skip)]
-    pub uuid: uuid::Uuid,
+    pub uuid: Uuid,
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
@@ -145,8 +146,8 @@ impl Settings {
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
-            license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, \
-            gateway_disconnect_notifications_inactivity_threshold, \
+            license, gateway_disconnect_notifications_enabled, ldap_use_starttls, \
+            ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
@@ -160,9 +161,14 @@ impl Settings {
     }
 
     /// Checks if given settings are correct
-    pub fn validate(&self) -> Result<(), SettingsValidationError> {
+    pub fn validate(&mut self) -> Result<(), SettingsValidationError> {
         debug!("Validating settings: {self:?}");
-        // check if gateway disconnect notifications can be enabled, since it requires SMTP to be configured
+        if self.uuid.is_nil() {
+            warn!("Detected empty UUID in settings. Generating a new one.");
+            self.uuid = Uuid::new_v4();
+        }
+        // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
+        // configured.
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
