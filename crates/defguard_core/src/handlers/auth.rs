@@ -137,8 +137,10 @@ pub(crate) async fn authenticate(
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let username_or_email = data.username;
     debug!("Authenticating user {username_or_email}");
+
     // check if user can proceed with login
     check_failed_logins(&appstate.failed_logins, &username_or_email)?;
+
     let settings = Settings::get_current_settings();
 
     // attempt to find user first by username and then by email
@@ -161,7 +163,7 @@ pub(crate) async fn authenticate(
                                 "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
                             );
 
-                            log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            log_failed_login_attempt(&appstate.failed_logins, &user.username);
                             appstate.emit_event(ApiEvent {
                             context: ApiRequestContext::new(
                                 user.id,
@@ -180,7 +182,7 @@ pub(crate) async fn authenticate(
                     }
                 } else {
                     warn!("Failed to authenticate user {username_or_email}: {err}");
-                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    log_failed_login_attempt(&appstate.failed_logins, &user.username);
                     appstate.emit_event(ApiEvent {
                         context: ApiRequestContext::new(
                             user.id,
@@ -690,6 +692,9 @@ pub async fn totp_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying TOTP for user {}", username);
         if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
@@ -743,6 +748,8 @@ pub async fn totp_code(
             } else {
                 format!("TOTP authentication is disabled for {username}")
             };
+
+            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
@@ -872,6 +879,10 @@ pub async fn email_mfa_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying email MFA code for user {}", username);
         if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
@@ -894,7 +905,7 @@ pub async fn email_mfa_code(
                 }),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-                debug!("Found openid session cookie.");
+                debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
@@ -925,6 +936,8 @@ pub async fn email_mfa_code(
             } else {
                 format!("Email code authentication is disabled for {username}")
             };
+
+            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
