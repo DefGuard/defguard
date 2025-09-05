@@ -284,6 +284,51 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[sqlx::test]
+async fn dg25_15_test_totp_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    // login
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // new TOTP secret
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
+
+    // enable TOTP
+    let code = totp_code(&auth_totp);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // provide wrong TOTP code more than 5 times in a row
+    let code = AuthCode::new("0");
+    for i in 0..10 {
+        let response = client
+            .post("/api/v1/auth/totp/verify")
+            .json(&code)
+            .send()
+            .await;
+        if i >= 5 {
+            assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        } else {
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        }
+    }
+}
+
 static EMAIL_CODE_REGEX: &str = r"<b>(?<code>\d{6})</b>";
 fn extract_email_code(content: &str) -> &str {
     let re = regex::Regex::new(EMAIL_CODE_REGEX).unwrap();
@@ -434,6 +479,69 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
+    let pool = state.pool;
+    let mut mail_rx = state.mail_rx;
+
+    // try to initialize email MFA setup before logging in
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // login
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    // remove login confirmation email from queue
+    let _mail = mail_rx.try_recv().unwrap();
+
+    // add dummy SMTP settings
+    let mut settings = Settings::get_current_settings();
+    settings.smtp_server = Some("smtp_server".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_sender = Some("smtp@sender.pl".into());
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // initialize email MFA setup
+    let response = client.post("/api/v1/auth/email/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mail = mail_rx.try_recv().unwrap();
+    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+    let code = extract_email_code(&mail.content);
+
+    // finish setup
+    let code = AuthCode::new(code);
+    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // enable MFA
+    let response = client.put("/api/v1/auth/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // login again, this time a different status code is returned
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // provide wrong code more than 5 times in a row
+    let code = AuthCode::new("0");
+    for i in 0..10 {
+        let response = client
+            .post("/api/v1/auth/email/verify")
+            .json(&code)
+            .send()
+            .await;
+        if i >= 5 {
+            assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        } else {
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        }
+    }
 }
 
 #[sqlx::test]
