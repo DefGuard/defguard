@@ -621,7 +621,7 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     let mut user_details = fetch_user_details(&client, "admin").await;
     user_details.user.is_active = false;
 
-    // disable yourself
+    // cannot disable yourself
     let response = client
         .put("/api/v1/user/admin")
         .json(&user_details.user)
@@ -645,6 +645,7 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     // get user
     let mut user_details = fetch_user_details(&client, "adumbledore").await;
     assert_eq!(user_details.user.first_name, "Albus");
+    assert!(user_details.user.is_active);
 
     // disable user
     user_details.user.is_active = false;
@@ -654,6 +655,10 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    let user_details = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_details.user.first_name, "Albus");
+    assert!(!user_details.user.is_active);
 }
 
 #[sqlx::test]
