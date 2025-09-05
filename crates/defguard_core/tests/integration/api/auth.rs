@@ -33,6 +33,22 @@ pub struct RecoveryCodes {
 }
 
 #[sqlx::test]
+async fn dg25_19_clickjacking_vulnerability(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let response = client.get("/").send().await;
+    let headers = response.headers();
+    let csp_header = headers.get("content-security-policy").unwrap();
+    let csp_value = csp_header.to_str().unwrap();
+    assert!(
+        csp_value.contains("frame-ancestors 'none'"),
+        "CSP header should block all iframes with 'none' directive"
+    );
+}
+
+#[sqlx::test]
 async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
