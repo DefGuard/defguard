@@ -1,7 +1,7 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use reqwest::Url;
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
-use tera::{Context, Tera};
+use tera::Context;
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
@@ -13,7 +13,7 @@ use crate::{
     mail::Mail,
     random::gen_alphanumeric,
     server_config,
-    templates::{self, TemplateError},
+    templates::{self, TemplateError, safe_tera},
 };
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -317,7 +317,7 @@ impl Token {
     /// - admin_last_name
     /// - admin_email
     /// - admin_phone
-    pub async fn get_welcome_message_context(
+    async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Context, TokenError> {
@@ -355,7 +355,7 @@ impl Token {
         let settings = Settings::get_current_settings();
 
         // load configured content as template
-        let mut tera = Tera::default();
+        let mut tera = safe_tera();
         tera.add_raw_template("welcome_page", &settings.enrollment_welcome_message()?)?;
 
         let context = self.get_welcome_message_context(&mut *transaction).await?;
@@ -373,7 +373,7 @@ impl Token {
         let settings = Settings::get_current_settings();
 
         // load configured content as template
-        let mut tera = Tera::default();
+        let mut tera = safe_tera();
         tera.add_raw_template("welcome_email", &settings.enrollment_welcome_email()?)?;
 
         let context = self.get_welcome_message_context(&mut *transaction).await?;

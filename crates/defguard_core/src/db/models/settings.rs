@@ -10,7 +10,7 @@ global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
 /// Initializes global `SETTINGS` struct at program startup
 pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
-    debug!("Initializing global settings strut");
+    debug!("Initializing global settings struct");
     if let Some(settings) = Settings::get(pool).await? {
         set_settings(Some(settings));
     } else {
