@@ -22,7 +22,7 @@ use crate::{
         },
     },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
+        db::models::{api_tokens::ApiToken, enterprise_settings::EnterpriseSettings},
         ldap::utils::{
             ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
             ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
@@ -708,6 +708,15 @@ pub async fn modify_user(
             user.sync_allowed_devices(&mut transaction, &appstate.wireguard_tx)
                 .await?;
         }
+
+        // remove API tokens when deactivating a user
+        if before.is_active && !user.is_active {
+            let api_tokens = ApiToken::find_by_user_id(&mut *transaction, user.id).await?;
+            for token in api_tokens {
+                token.delete(&mut *transaction).await?;
+            }
+        }
+
         user_info.into_user_all_fields(&mut user)?;
     } else {
         user_info.into_user_safe_fields(&mut user)?;
