@@ -12,9 +12,8 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::api::common::fetch_user_details;
-
 use super::common::{make_client, make_client_with_state, setup_pool};
+use crate::api::common::fetch_user_details;
 
 #[sqlx::test]
 async fn test_normal_user_cannot_access_token_endpoints(

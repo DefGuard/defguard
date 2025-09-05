@@ -69,7 +69,10 @@ use tokio::{
         mpsc::{UnboundedReceiver, UnboundedSender},
     },
 };
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
+use tower_http::{
+    set_header::SetResponseHeaderLayer,
+    trace::{DefaultOnResponse, TraceLayer},
+};
 use tracing::Level;
 use utoipa::{
     Modify, OpenApi,
@@ -636,7 +639,12 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
-    let webapp = webapp.layer(DefguardVersionLayer::new(version));
+    let webapp = webapp.layer(DefguardVersionLayer::new(version)).layer(
+        SetResponseHeaderLayer::if_not_present(
+            headers::CONTENT_SECURITY_POLICY_HEADER_NAME,
+            headers::CONTENT_SECURITY_POLICY_HEADER_VALUE,
+        ),
+    );
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());

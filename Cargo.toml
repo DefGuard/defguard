@@ -94,7 +94,7 @@ tonic = { version = "0.14", features = [
 ] }
 tonic-health = "0.14"
 totp-lite = { version = "2.0" }
-tower-http = { version = "0.6", features = ["fs", "trace"] }
+tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
