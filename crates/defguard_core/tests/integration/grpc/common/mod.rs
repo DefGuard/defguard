@@ -7,8 +7,8 @@ use defguard_core::{
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
     grpc::{
-        WorkerState, build_grpc_service_router, gateway::client_state::ClientMap,
-        gateway::map::GatewayMap,
+        WorkerState, build_grpc_service_router,
+        gateway::{client_state::ClientMap, map::GatewayMap},
     },
     mail::Mail,
 };
