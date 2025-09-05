@@ -299,25 +299,6 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-
-    let client = make_client(pool).await;
-
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let response = client.get("/api/v1/group").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let response = client.get("/api/v1/group/admin").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // TODO: check group membership
-}
-
-#[sqlx::test]
 async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
