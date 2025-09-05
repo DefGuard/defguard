@@ -137,8 +137,10 @@ pub(crate) async fn authenticate(
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let username_or_email = data.username;
     debug!("Authenticating user {username_or_email}");
+
     // check if user can proceed with login
     check_failed_logins(&appstate.failed_logins, &username_or_email)?;
+
     let settings = Settings::get_current_settings();
 
     // attempt to find user first by username and then by email
@@ -690,6 +692,9 @@ pub async fn totp_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying TOTP for user {}", username);
         if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
@@ -872,6 +877,10 @@ pub async fn email_mfa_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying email MFA code for user {}", username);
         if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
