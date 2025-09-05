@@ -749,6 +749,8 @@ pub async fn totp_code(
                 format!("TOTP authentication is disabled for {username}")
             };
 
+            log_failed_login_attempt(&appstate.failed_logins, &username);
+
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
                 // context extractor in this handler since it requires
@@ -903,7 +905,7 @@ pub async fn email_mfa_code(
                 }),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-                debug!("Found openid session cookie.");
+                debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
@@ -934,6 +936,8 @@ pub async fn email_mfa_code(
             } else {
                 format!("Email code authentication is disabled for {username}")
             };
+
+            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
