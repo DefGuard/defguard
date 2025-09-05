@@ -219,16 +219,17 @@ pub(crate) async fn list_groups_info(
     )
 )]
 pub(crate) async fn list_groups(
-    _session: SessionInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    debug!("Listing groups");
+    debug!("User {} lists groups", &session.user.username);
     let groups = Group::all(&appstate.pool)
         .await?
         .into_iter()
         .map(|group| group.name)
         .collect();
-    info!("Listed groups");
+    info!("User {} listed groups", &session.user.username);
     Ok(ApiResponse {
         json: json!(Groups::new(groups)),
         status: StatusCode::OK,
@@ -266,6 +267,7 @@ pub(crate) async fn list_groups(
     )
 )]
 pub(crate) async fn get_group(
+    _admin: AdminRole,
     _session: SessionInfo,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
@@ -573,12 +575,13 @@ pub(crate) async fn modify_group(
     )
 )]
 pub(crate) async fn delete_group(
-    _session: SessionInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
     Path(name): Path<String>,
 ) -> ApiResult {
-    debug!("Deleting group {name}");
+    debug!("User {} deletes group {name}", &session.user.username);
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         // Prevent removing the last admin group
         if group.is_admin {
@@ -600,7 +603,7 @@ pub(crate) async fn delete_group(
         let mut conn = appstate.pool.acquire().await?;
         WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
 
-        info!("Deleted group {name}");
+        info!("User {} deleted group {name}", &session.user.username);
         appstate.emit_event(ApiEvent {
             context,
             event: Box::new(ApiEventType::GroupRemoved { group }),

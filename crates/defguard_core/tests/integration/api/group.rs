@@ -206,3 +206,32 @@ async fn test_modify_last_admin_group(_: PgPoolOptions, options: PgConnectOption
     let response = client.put("/api/v1/group/admin").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+#[sqlx::test]
+async fn test_group_endpoints_access(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // Auth client as normal user without admin access
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/group").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let response = client.delete("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let data = EditGroupInfo::new("hogwards", vec!["hpotter".into(), "admin".into()], true);
+    let response = client.post("/api/v1/group").json(&data).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let data = EditGroupInfo::new("admin", vec!["hpotter".into()], true);
+    let response = client.put("/api/v1/group/admin").json(&data).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}

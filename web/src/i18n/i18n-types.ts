@@ -1635,7 +1635,7 @@ type RootTranslation = {
 				/**
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​®​ ​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		
@@ -8315,7 +8315,7 @@ export type TranslationFunctions = {
 				/**
 				 * 
 			        <p>
-			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          You need to configure WireGuard® VPN on your device, please visit&nbsp;
 			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 			        </p>
 		
