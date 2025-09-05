@@ -163,7 +163,7 @@ pub(crate) async fn authenticate(
                                 "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
                             );
 
-                            log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            log_failed_login_attempt(&appstate.failed_logins, &user.username);
                             appstate.emit_event(ApiEvent {
                             context: ApiRequestContext::new(
                                 user.id,
@@ -182,7 +182,7 @@ pub(crate) async fn authenticate(
                     }
                 } else {
                     warn!("Failed to authenticate user {username_or_email}: {err}");
-                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                    log_failed_login_attempt(&appstate.failed_logins, &user.username);
                     appstate.emit_event(ApiEvent {
                         context: ApiRequestContext::new(
                             user.id,
