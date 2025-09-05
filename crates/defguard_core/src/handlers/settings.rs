@@ -39,10 +39,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         });
     }
     debug!("Retrieved settings");
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::default())
 }
 
 pub async fn update_settings(
@@ -50,7 +47,7 @@ pub async fn update_settings(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Json(data): Json<Settings>,
+    Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
 
@@ -58,6 +55,7 @@ pub async fn update_settings(
     let before = Settings::get_current_settings();
 
     update_cached_license(data.license.as_deref())?;
+    data.uuid = before.uuid;
     data.validate()?;
     // clone for event
     let after = data.clone();
