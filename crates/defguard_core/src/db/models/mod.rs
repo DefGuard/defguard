@@ -241,11 +241,14 @@ impl MFAInfo {
     pub async fn for_user(pool: &PgPool, user: &User<Id>) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
+            "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \
+            email_mfa_enabled email_available, \
             (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
             FROM \"user\" WHERE \"user\".id = $1",
             user.id
-        ).fetch_optional(pool).await
+        )
+        .fetch_optional(pool)
+        .await
     }
 
     #[must_use]

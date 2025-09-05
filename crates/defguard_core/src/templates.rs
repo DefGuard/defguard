@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use chrono::{Datelike, NaiveDateTime, Utc};
 use reqwest::Url;
-use tera::{Context, Tera};
+use serde_json::Value;
+use tera::{Context, Function, Tera};
 use thiserror::Error;
 
 use crate::{
@@ -42,13 +45,31 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
 }
 
-pub fn get_base_tera(
+struct NoOp(&'static str);
+
+impl Function for NoOp {
+    fn call(&self, _args: &HashMap<String, Value>) -> tera::Result<Value> {
+        Err(tera::Error::function_not_found(self.0))
+    }
+}
+
+/// Return a safe instance of Tera, as Tera is vulnerable to `get_env()` function exploit.
+/// See: https://github.com/Keats/tera/issues/677
+pub(crate) fn safe_tera() -> Tera {
+    let mut tera = Tera::default();
+    let noop = NoOp("get_env");
+    tera.register_function(noop.0, noop);
+
+    tera
+}
+
+fn get_base_tera(
     external_context: Option<Context>,
     session: Option<&Session>,
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<(Tera, Context), TemplateError> {
-    let mut tera = Tera::default();
+    let mut tera = safe_tera();
     let mut context = external_context.unwrap_or_default();
     tera.add_raw_template("base.tera", MAIL_BASE)?;
     tera.add_raw_template("macros.tera", MAIL_MACROS)?;
@@ -449,5 +470,13 @@ mod test {
             "11.11.11.11",
             None
         ));
+    }
+
+    #[test]
+    fn dg25_8_server_side_template_injection() {
+        let mut tera = safe_tera();
+        tera.add_raw_template("text", "PATH={{ get_env(name=\"PATH\") }}")
+            .unwrap();
+        assert!(tera.render("text", &Context::new()).is_err());
     }
 }
