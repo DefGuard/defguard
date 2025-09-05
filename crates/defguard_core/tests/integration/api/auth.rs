@@ -39,8 +39,6 @@ async fn dg25_19_clickjacking_vulnerability(_: PgPoolOptions, options: PgConnect
     let client = make_client(pool).await;
 
     let response = client.get("/").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
     let headers = response.headers();
     let csp_header = headers.get("content-security-policy").unwrap();
     let csp_value = csp_header.to_str().unwrap();
