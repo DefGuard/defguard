@@ -69,13 +69,6 @@ where
     }
 }
 
-// #[derive(Default, Clone)]
-// pub struct IncompatibleComponents {
-//     core: Option<Version>,
-//     proxy: Option<Version>,
-//     gateways: HashSet<Version>,
-// }
-
 /// Interceptor for `tonic` that validates client version information from request headers.
 ///
 /// This interceptor extracts version headers from incoming gRPC requests and validates them
@@ -106,7 +99,6 @@ pub struct DefguardVersionInterceptor {
     /// communication, where the core UI needs to display version compatibility errors
     /// that would normally only be detectable on the gateway side (core < gateway).
     fail_if_client_version_is_higher: bool,
-    // callback: Option<Arc<dyn Fn() + Send + Sync>>,
     incompatible_components: Arc<Mutex<HashMap<DefguardComponent, HashSet<Option<Version>>>>>,
 }
 
@@ -117,15 +109,13 @@ impl DefguardVersionInterceptor {
         component: DefguardComponent,
         min_version: Version,
         fail_if_client_version_is_higher: bool,
-        // callback: Option<Arc<dyn Fn() + Send + Sync>>,
-        incompatible_components: Arc<Mutex<HashMap<DefguardComponent, HashSet<Option<Version>>>>>,
     ) -> Self {
         Self {
             own_version,
             component,
             min_version,
             fail_if_client_version_is_higher,
-            incompatible_components,
+            incompatible_components: Default::default(),
         }
     }
 
@@ -170,9 +160,6 @@ impl Interceptor for DefguardVersionInterceptor {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            // if let Some(callback) = &self.callback {
-            //     callback();
-            // }
             self.incompatible_components
                 .lock()
                 .expect("Failed to lock incompatible_components")
