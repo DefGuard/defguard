@@ -1299,6 +1299,18 @@ pub(crate) async fn download_config(
     Path((network_id, device_id)): Path<(i64, i64)>,
 ) -> Result<String, WebError> {
     debug!("Creating config for device {device_id} in network {network_id}");
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to download device config, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let wireguard_network_device =
