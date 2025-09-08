@@ -761,6 +761,9 @@ pub async fn build_grpc_service_router(
     #[cfg(feature = "wireguard")]
     let router = {
         let own_version = Version::parse(VERSION)?;
+        let callback = move || {
+			let x = gateway_state.lock().expect("Failed to lock gateway_state").
+		};
         router.add_service(
             ServiceBuilder::new()
                 .layer(tonic::service::InterceptorLayer::new(
@@ -769,6 +772,7 @@ pub async fn build_grpc_service_router(
                         DefguardComponent::Gateway,
                         MIN_GATEWAY_VERSION,
                         true,
+                        Some(Arc::new(callback)),
                     ),
                 ))
                 .layer(DefguardVersionLayer::new(own_version))
