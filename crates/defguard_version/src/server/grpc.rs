@@ -69,6 +69,8 @@ where
     }
 }
 
+pub type IncompatibleComponents = Arc<Mutex<HashMap<DefguardComponent, HashSet<Option<Version>>>>>;
+
 /// Interceptor for `tonic` that validates client version information from request headers.
 ///
 /// This interceptor extracts version headers from incoming gRPC requests and validates them
@@ -99,7 +101,7 @@ pub struct DefguardVersionInterceptor {
     /// communication, where the core UI needs to display version compatibility errors
     /// that would normally only be detectable on the gateway side (core < gateway).
     fail_if_client_version_is_higher: bool,
-    incompatible_components: Arc<Mutex<HashMap<DefguardComponent, HashSet<Option<Version>>>>>,
+    incompatible_components: IncompatibleComponents,
 }
 
 impl DefguardVersionInterceptor {
@@ -109,13 +111,14 @@ impl DefguardVersionInterceptor {
         component: DefguardComponent,
         min_version: Version,
         fail_if_client_version_is_higher: bool,
+        incompatible_components: IncompatibleComponents,
     ) -> Self {
         Self {
             own_version,
             component,
             min_version,
             fail_if_client_version_is_higher,
-            incompatible_components: Default::default(),
+            incompatible_components,
         }
     }
 

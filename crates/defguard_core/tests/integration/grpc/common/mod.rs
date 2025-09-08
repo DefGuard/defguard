@@ -161,6 +161,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         mail_tx,
         failed_logins,
         grpc_event_tx,
+        Default::default(),
     )
     .await
     .unwrap();

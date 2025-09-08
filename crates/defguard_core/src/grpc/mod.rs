@@ -1,5 +1,5 @@
 use std::{
-    collections::hash_map::HashMap,
+    collections::{HashSet, hash_map::HashMap},
     fs::read_to_string,
     time::{Duration, Instant},
 };
@@ -14,7 +14,7 @@ use axum::http::Uri;
 use defguard_version::server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor};
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables,
+    get_tracing_variables, server::grpc::IncompatibleComponents,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -645,7 +645,6 @@ pub async fn run_grpc_bidi_stream(
             version = version.to_string(), info);
         let _guard = span.enter();
         if !proxy_is_supported {
-            // TODO push an event to display this in UI
             sleep(TEN_SECS).await;
             continue;
         }
@@ -680,6 +679,7 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    incompatible_components: IncompatibleComponents,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -699,6 +699,7 @@ pub async fn run_grpc_server(
         mail_tx,
         failed_logins,
         grpc_event_tx,
+        incompatible_components,
     )
     .await?;
 
@@ -725,6 +726,7 @@ pub async fn build_grpc_service_router(
     mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    incompatible_components: IncompatibleComponents,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
@@ -769,6 +771,7 @@ pub async fn build_grpc_service_router(
                         DefguardComponent::Gateway,
                         MIN_GATEWAY_VERSION,
                         true,
+                        incompatible_components,
                     ),
                 ))
                 .layer(DefguardVersionLayer::new(own_version))

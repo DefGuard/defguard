@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
+use defguard_version::server::grpc::IncompatibleComponents;
 use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde_json::json;
@@ -37,6 +38,7 @@ pub struct AppState {
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
+    pub incompatible_components: IncompatibleComponents,
 }
 
 impl AppState {
@@ -113,6 +115,7 @@ impl AppState {
         mail_tx: UnboundedSender<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
+        incompatible_components: IncompatibleComponents,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -142,6 +145,7 @@ impl AppState {
             failed_logins,
             key,
             event_tx,
+            incompatible_components,
         }
     }
 }

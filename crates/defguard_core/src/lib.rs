@@ -14,7 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
-use defguard_version::server::DefguardVersionLayer;
+use defguard_version::server::{DefguardVersionLayer, grpc::IncompatibleComponents};
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -360,6 +360,7 @@ pub fn build_webapp(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
+    incompatible_components: IncompatibleComponents,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -658,6 +659,7 @@ pub fn build_webapp(
             mail_tx,
             failed_logins,
             event_tx,
+            incompatible_components,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -685,6 +687,7 @@ pub async fn run_web_server(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    incompatible_components: IncompatibleComponents,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -697,6 +700,7 @@ pub async fn run_web_server(
         failed_logins,
         event_tx,
         Version::parse(VERSION)?,
+        incompatible_components,
     );
     info!("Started web services");
     let addr = SocketAddr::new(
