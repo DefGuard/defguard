@@ -237,7 +237,7 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    // setup admin devices management
+    // disable manual device management
     let settings = EnterpriseSettings {
         admin_device_management: false,
         disable_all_traffic: false,
@@ -295,5 +295,63 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
     });
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // admin login
+    let (client, _) = make_test_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // disable manual device management
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        disable_all_traffic: false,
+        only_client_activation: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // add device for normal user
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // admin can view device config
+    let response = client.get("/api/v1/network/1/device/1/config").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // ensure normal users can't access device config
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.get("/api/v1/network/1/device/1/config").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
