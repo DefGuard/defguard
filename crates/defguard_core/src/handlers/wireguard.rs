@@ -36,8 +36,10 @@ use crate::{
         },
     },
     enterprise::{
-        db::models::openid_provider::OpenIdProvider, handlers::CanManageDevices,
-        is_enterprise_enabled, limits::update_counts,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        handlers::CanManageDevices,
+        is_enterprise_enabled,
+        limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::map::GatewayMap,
@@ -753,9 +755,20 @@ pub(crate) async fn add_device(
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
 
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to add a device, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     // Let admins manage devices for disabled users
     if !user.is_active && !session.is_admin {
-        info!(
+        warn!(
             "User {} tried to add a device for a disabled user {username}",
             session.user.username
         );
@@ -939,6 +952,18 @@ pub(crate) async fn modify_device(
     Json(data): Json<ModifyDevice>,
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to add a device, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     // store device before mods
     let before = device.clone();
