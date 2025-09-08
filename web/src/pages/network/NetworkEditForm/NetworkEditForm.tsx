@@ -117,12 +117,14 @@ export const NetworkEditForm = () => {
         name: z.string().min(1, LL.form.error.required()),
         address: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine(
             (val) => validateIpOrDomain(val, false, true),
@@ -136,6 +138,7 @@ export const NetworkEditForm = () => {
         allowed_ips: z.string(),
         dns: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val === '' || !val) {

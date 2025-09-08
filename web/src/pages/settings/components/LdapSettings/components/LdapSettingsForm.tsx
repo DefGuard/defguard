@@ -72,19 +72,20 @@ export const LdapSettingsForm = () => {
       z.object({
         ldap_url: z
           .string()
+          .trim()
           .url(LL.form.error.invalid())
           .min(1, LL.form.error.required()),
-        ldap_bind_username: z.string().min(1, LL.form.error.required()),
-        ldap_bind_password: z.string(),
-        ldap_group_member_attr: z.string().min(1, LL.form.error.required()),
-        ldap_group_obj_class: z.string().min(1, LL.form.error.required()),
-        ldap_group_search_base: z.string().min(1, LL.form.error.required()),
-        ldap_groupname_attr: z.string().min(1, LL.form.error.required()),
-        ldap_member_attr: z.string().min(1, LL.form.error.required()),
-        ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
-        ldap_user_auxiliary_obj_classes: z.string(),
-        ldap_user_search_base: z.string().min(1, LL.form.error.required()),
-        ldap_username_attr: z.string().min(1, LL.form.error.required()),
+        ldap_bind_username: z.string().trim().min(1, LL.form.error.required()),
+        ldap_bind_password: z.string().trim(),
+        ldap_group_member_attr: z.string().trim().min(1, LL.form.error.required()),
+        ldap_group_obj_class: z.string().trim().min(1, LL.form.error.required()),
+        ldap_group_search_base: z.string().trim().min(1, LL.form.error.required()),
+        ldap_groupname_attr: z.string().trim().min(1, LL.form.error.required()),
+        ldap_member_attr: z.string().trim().min(1, LL.form.error.required()),
+        ldap_user_obj_class: z.string().trim().min(1, LL.form.error.required()),
+        ldap_user_auxiliary_obj_classes: z.string().trim(),
+        ldap_user_search_base: z.string().trim().min(1, LL.form.error.required()),
+        ldap_username_attr: z.string().trim().min(1, LL.form.error.required()),
         ldap_enabled: z.boolean(),
         ldap_sync_enabled: z.boolean(),
         ldap_is_authoritative: z.boolean(),
@@ -92,8 +93,8 @@ export const LdapSettingsForm = () => {
         ldap_tls_verify_cert: z.boolean(),
         ldap_sync_interval: z.number().default(300),
         ldap_uses_ad: z.boolean(),
-        ldap_user_rdn_attr: z.string().optional(),
-        ldap_sync_groups: z.string(),
+        ldap_user_rdn_attr: z.string().trim().optional(),
+        ldap_sync_groups: z.string().trim(),
       }),
     [LL.form.error],
   );

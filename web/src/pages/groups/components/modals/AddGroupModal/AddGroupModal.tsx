@@ -114,6 +114,7 @@ const ModalContent = () => {
           .string({
             required_error: LL.form.error.required(),
           })
+          .trim()
           .min(4, LL.form.error.minimumLength())
           .refine((name) => {
             // if in edit mode ignore self name

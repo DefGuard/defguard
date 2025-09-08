@@ -21,6 +21,7 @@ export const standaloneDeviceFormSchema = (
     .object({
       name: z
         .string()
+        .trim()
         .min(1, LL.form.error.required())
         .refine((value) => {
           if (mode === StandaloneDeviceModalFormMode.EDIT && isPresent(originalName)) {
@@ -30,10 +31,10 @@ export const standaloneDeviceFormSchema = (
           return !reservedNames.includes(value.trim());
         }, LL.form.error.reservedName()),
       location_id: z.number(),
-      description: z.string().optional(),
-      modifiableIpParts: z.array(z.string().min(1, LL.form.error.required())),
+      description: z.string().trim().optional(),
+      modifiableIpParts: z.array(z.string().trim().min(1, LL.form.error.required())),
       generationChoice: z.nativeEnum(WGConfigGenChoice),
-      wireguard_pubkey: z.string().optional(),
+      wireguard_pubkey: z.string().trim().optional(),
     })
     .superRefine((vals, ctx) => {
       if (mode === StandaloneDeviceModalFormMode.CREATE_MANUAL) {

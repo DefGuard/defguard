@@ -65,11 +65,12 @@ export const AddDeviceSetupStep = () => {
           choice: z.nativeEnum(AddNativeWgDeviceMode),
           name: z
             .string()
+            .trim()
             .min(4, LL.form.error.minimumLength())
             .refine((val) => !userData?.reservedDevices?.includes(val), {
               message: localLL.form.errors.name.duplicatedName(),
             }),
-          publicKey: z.string(),
+          publicKey: z.string().trim(),
         })
         .superRefine((val, ctx) => {
           const { publicKey, choice } = val;

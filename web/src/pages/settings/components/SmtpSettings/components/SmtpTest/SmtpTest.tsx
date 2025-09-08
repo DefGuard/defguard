@@ -46,7 +46,7 @@ export const SmtpTest = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        to: z.string().regex(patternValidEmail, LL.form.error.invalid()),
+        to: z.string().trim().regex(patternValidEmail, LL.form.error.invalid()),
       }),
     [LL.form.error],
   );

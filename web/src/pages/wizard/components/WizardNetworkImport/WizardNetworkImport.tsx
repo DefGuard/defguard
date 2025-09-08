@@ -65,13 +65,14 @@ export const WizardNetworkImport = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, LL.form.error.required()),
+        name: z.string().trim().min(1, LL.form.error.required()),
         endpoint: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
-        fileName: z.string().min(1, LL.form.error.required()),
-        config: z.string().min(1, LL.form.error.required()),
+        fileName: z.string().trim().min(1, LL.form.error.required()),
+        config: z.string().trim().min(1, LL.form.error.required()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
       }),
     [LL.form.error],
