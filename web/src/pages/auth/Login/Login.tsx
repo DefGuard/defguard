@@ -56,11 +56,13 @@ export const Login = () => {
       z.object({
         username: z
           .string()
+          .trim()
           .min(1, LL.form.error.minimumLength())
           .max(64)
           .regex(patternLoginCharacters, LL.form.error.forbiddenCharacter()),
         password: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .max(128, LL.form.error.maximumLength()),
       }),

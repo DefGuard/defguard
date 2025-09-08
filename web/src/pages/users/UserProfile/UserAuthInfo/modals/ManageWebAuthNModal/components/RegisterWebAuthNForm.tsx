@@ -68,6 +68,7 @@ export const RegisterWebAuthNForm = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .min(4, LL.form.error.minimumLength()),
       }),

@@ -41,10 +41,12 @@ export const EditUserDeviceForm = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(4, LL.form.error.minimumLength())
           .regex(patternNoSpecialChars, LL.form.error.noSpecialChars()),
         wireguard_pubkey: z
           .string()
+          .trim()
           .min(44, LL.form.error.invalidKey())
           .max(44, LL.form.error.invalidKey())
           .regex(patternValidWireguardKey, LL.form.error.invalidKey()),

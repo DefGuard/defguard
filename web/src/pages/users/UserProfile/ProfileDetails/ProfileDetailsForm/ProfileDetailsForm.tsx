@@ -84,13 +84,15 @@ export const ProfileDetailsForm = () => {
       z.object({
         username: z
           .string()
+          .trim()
           .min(1, LL.form.error.minimumLength())
           .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
           .max(64, LL.form.error.maximumLength()),
-        first_name: z.string().min(1, LL.form.error.required()),
-        last_name: z.string().min(1, LL.form.error.required()),
+        first_name: z.string().trim().min(1, LL.form.error.required()),
+        last_name: z.string().trim().min(1, LL.form.error.required()),
         phone: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val && values.length > 0) {
@@ -100,13 +102,14 @@ export const ProfileDetailsForm = () => {
           }, LL.form.error.invalid()),
         email: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .regex(patternValidEmail, LL.form.error.invalid()),
-        groups: z.array(z.string().min(1, LL.form.error.required())),
+        groups: z.array(z.string().trim().min(1, LL.form.error.required())),
         authorized_apps: z.array(
           z.object({
             oauth2client_id: z.number().min(1, LL.form.error.required()),
-            oauth2client_name: z.string().min(1, LL.form.error.required()),
+            oauth2client_name: z.string().trim().min(1, LL.form.error.required()),
             user_id: z.number().min(1, LL.form.error.required()),
           }),
         ),

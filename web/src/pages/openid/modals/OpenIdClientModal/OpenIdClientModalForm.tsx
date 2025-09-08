@@ -95,6 +95,7 @@ export const OpenIdClientModalForm = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(4, LL.form.error.minimumLength())
           .max(16, LL.form.error.maximumLength())
           .min(1, LL.form.error.required()),
@@ -102,6 +103,7 @@ export const OpenIdClientModalForm = () => {
           z.object({
             url: z
               .string()
+              .trim()
               .min(
                 1,
                 LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),

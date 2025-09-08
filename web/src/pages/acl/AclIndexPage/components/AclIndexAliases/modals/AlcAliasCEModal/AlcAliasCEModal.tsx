@@ -84,6 +84,7 @@ const ModalContent = () => {
           .string({
             required_error: formErrors.required(),
           })
+          .trim()
           .min(1, formErrors.required()),
         kind: z.nativeEnum(AclAliasKind),
         ports: aclPortsValidator(LL),
