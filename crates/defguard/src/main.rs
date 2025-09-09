@@ -32,7 +32,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_version::server::grpc::IncompatibleComponents;
+use defguard_version::IncompatibleComponents;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 

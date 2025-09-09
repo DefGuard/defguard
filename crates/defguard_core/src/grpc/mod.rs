@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashSet, hash_map::HashMap},
+    collections::hash_map::HashMap,
     fs::read_to_string,
     time::{Duration, Instant},
 };
@@ -13,8 +13,8 @@ use axum::http::Uri;
 #[cfg(feature = "wireguard")]
 use defguard_version::server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor};
 use defguard_version::{
-    ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables, server::grpc::IncompatibleComponents,
+    ComponentInfo, DefguardComponent, IncompatibleComponents, Version,
+    client::ClientVersionInterceptor, get_tracing_variables,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;

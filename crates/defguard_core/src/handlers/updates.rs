@@ -37,26 +37,18 @@ pub(crate) async fn outdated_components(
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    let mut components = if let Some(outdated_gateways) = appstate
+    let mut components: Vec<_> = appstate
         .incompatible_components
-        .lock()
+        .read()
         .expect("Failed to lock appstate.incompatible_components")
-        .get(&DefguardComponent::Gateway)
-    {
-        outdated_gateways
-            .iter()
-            .filter_map(|opt| {
-                opt.as_ref().map(|version| VersionInfo {
-                    component: Some(DefguardComponent::Gateway),
-                    info: None,
-                    version: Some(version.to_string()),
-                    is_supported: false,
-                })
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
+        .iter()
+        .map(|metadata| VersionInfo {
+            component: Some(metadata.component.clone()),
+            info: None,
+            version: metadata.version.as_ref().map(|version| version.to_string()),
+            is_supported: false,
+        })
+        .collect();
     if let Ok(state) = PROXY_STATE.read() {
         if state.version.is_some() {
             components.push((*state).clone());

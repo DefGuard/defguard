@@ -60,7 +60,13 @@
 //! let (version_str, system_str) = version_info_from_metadata(&metadata);
 //! ```
 
-use std::{cmp::Ordering, fmt, str::FromStr};
+use std::{
+    cmp::Ordering,
+    collections::HashSet,
+    fmt,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
@@ -349,6 +355,35 @@ pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (Version, String) 
 #[must_use]
 pub fn is_version_lower(v1: &Version, v2: &Version) -> bool {
     v1.cmp_precedence(v2) == Ordering::Less
+}
+
+pub type IncompatibleComponents = Arc<RwLock<HashSet<IncompatibleComponentMetadata>>>;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct IncompatibleComponentMetadata {
+    pub component: DefguardComponent,
+    pub version: Option<Version>,
+}
+
+impl IncompatibleComponentMetadata {
+    pub fn new(component: DefguardComponent, version: Option<Version>) -> Self {
+        Self { component, version }
+    }
+
+    /// Inserts metadata into the HashSet while avoiding write-locking the structure unnecessarily.
+    pub fn insert(&self, components: &mut IncompatibleComponents) -> bool {
+        if components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .contains(self)
+        {
+            return false;
+        }
+        components
+            .write()
+            .expect("Failed to write-lock IncompatibleComponents")
+            .insert(self.clone())
+    }
 }
 
 #[cfg(test)]

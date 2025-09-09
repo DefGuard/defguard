@@ -18,8 +18,8 @@ use tower::Service;
 use tracing::{debug, error};
 
 use crate::{
-    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version,
-    is_version_lower, server::DefguardVersionService,
+    ComponentInfo, DefguardComponent, IncompatibleComponentMetadata, IncompatibleComponents,
+    SYSTEM_INFO_HEADER, VERSION_HEADER, Version, is_version_lower, server::DefguardVersionService,
 };
 
 impl<S, B> Service<Request<Body>> for DefguardVersionService<S>
@@ -68,8 +68,6 @@ where
         })
     }
 }
-
-pub type IncompatibleComponents = Arc<Mutex<HashMap<DefguardComponent, HashSet<Option<Version>>>>>;
 
 /// Interceptor for `tonic` that validates client version information from request headers.
 ///
@@ -163,12 +161,9 @@ impl Interceptor for DefguardVersionInterceptor {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            self.incompatible_components
-                .lock()
-                .expect("Failed to lock incompatible_components")
-                .entry(self.component.clone())
-                .or_insert_with(HashSet::new)
-                .insert(version.cloned());
+            let metadata =
+                IncompatibleComponentMetadata::new(self.component.clone(), version.cloned());
+            metadata.insert(&mut self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
 

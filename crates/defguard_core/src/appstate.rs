@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
-use defguard_version::server::grpc::IncompatibleComponents;
+use defguard_version::IncompatibleComponents;
 use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde_json::json;

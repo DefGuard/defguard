@@ -14,7 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
-use defguard_version::server::{DefguardVersionLayer, grpc::IncompatibleComponents};
+use defguard_version::{IncompatibleComponents, server::DefguardVersionLayer};
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
