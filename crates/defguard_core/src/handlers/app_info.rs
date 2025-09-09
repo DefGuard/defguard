@@ -1,8 +1,9 @@
 use axum::{extract::State, http::StatusCode};
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult, VERSION};
+use super::{ApiResponse, ApiResult};
 use crate::{
+    VERSION,
     appstate::AppState,
     auth::SessionInfo,
     db::{Settings, WireguardNetwork},
