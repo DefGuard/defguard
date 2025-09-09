@@ -6,7 +6,7 @@ import {
   ButtonStyleVariant,
 } from '../../../defguard-ui/components/Layout/Button/types';
 import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
-import { OutdatedComponents, OutdatedGateway, OutdatedProxy } from '../../../types';
+import type { OutdatedGateway, OutdatedProxy } from '../../../types';
 import { useOutdatedComponentsModal } from './useOutdatedComponentsModal';
 import './style.scss';
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -55,7 +55,9 @@ const GatewayListItem = ({ data }: GatewayItemProps) => {
       <div>
         Gateway
         <span>-</span>
-        <span className="version">{data.version || "unknown version"} ({data.hostname || "unknown hostname"})</span>
+        <span className="version">
+          {data.version || 'unknown version'} ({data.hostname || 'unknown hostname'})
+        </span>
       </div>
     </li>
   );
@@ -68,15 +70,11 @@ const ModalContent = () => {
   const componentsInfo = useOutdatedComponentsModal((s) => s);
 
   const gatewaysInfo = useMemo(
-    () =>
-      componentsInfo.componentsInfo.gateways,
+    () => componentsInfo.componentsInfo.gateways,
     [componentsInfo],
   );
 
-  const proxyInfo = useMemo(
-    () => componentsInfo.componentsInfo.proxy,
-    [componentsInfo],
-  );
+  const proxyInfo = useMemo(() => componentsInfo.componentsInfo.proxy, [componentsInfo]);
 
   useEffect(() => {
     if (gatewaysInfo.length === 0 && proxyInfo === undefined) {

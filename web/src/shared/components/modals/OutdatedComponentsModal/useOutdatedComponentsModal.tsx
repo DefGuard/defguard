@@ -2,7 +2,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import type { OutdatedComponents } from '../../../types';
 
 const defaultValues: StoreValues = {
-  componentsInfo: { gateways: []},
+  componentsInfo: { gateways: [] },
   visible: false,
 };
 

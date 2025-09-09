@@ -15,12 +15,12 @@ import type { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type OutdatedProxy = {
   version: string;
-}
+};
 
 export type OutdatedGateway = {
   version?: string;
   hostname?: string;
-}
+};
 
 export type OutdatedComponents = {
   proxy?: OutdatedProxy;
