@@ -179,7 +179,8 @@ async fn main() -> Result<(), anyhow::Error> {
             mail_tx.clone(),
             pool.clone(),
             failed_logins,
-            api_event_tx, incompatible_components
+            api_event_tx,
+			incompatible_components,
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),

@@ -1,14 +1,12 @@
-use std::sync::{Arc, Mutex};
-
-use axum::{Extension, extract::State, http::StatusCode};
-use defguard_version::{DefguardComponent, tracing::VersionInfo};
+use axum::{extract::State, http::StatusCode};
+use defguard_version::tracing::VersionInfo;
 use serde_json::{Value, json};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    grpc::{gateway::map::GatewayMap, state::PROXY_STATE},
+    grpc::state::PROXY_STATE,
     updates::get_update,
 };
 
@@ -35,9 +33,9 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
 pub(crate) async fn outdated_components(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
-    let mut components: Vec<_> = appstate
+    // gateways
+    let mut outdated_components: Vec<_> = appstate
         .incompatible_components
         .read()
         .expect("Failed to lock appstate.incompatible_components")
@@ -49,10 +47,12 @@ pub(crate) async fn outdated_components(
             is_supported: false,
         })
         .collect();
+
+    // proxy
     if let Ok(state) = PROXY_STATE.read() {
-        if state.version.is_some() {
-            components.push((*state).clone());
+        if !state.is_supported {
+            outdated_components.push((*state).clone());
         }
     }
-    Ok(ApiResponse::new(json!(components), StatusCode::OK))
+    Ok(ApiResponse::new(json!(outdated_components), StatusCode::OK))
 }
