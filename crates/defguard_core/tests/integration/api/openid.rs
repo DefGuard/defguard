@@ -611,6 +611,159 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
 }
 
 #[sqlx::test]
+async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_client_with_state(pool).await;
+    let admin = User::find_by_username(&state.pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Authenticate admin
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create OAuth2 client with initial scopes
+    let oauth2client = NewOpenIDClient {
+        name: "Test Client".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into(), "email".into()],
+        enabled: true,
+    };
+
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+
+    // Authorize the client - simulate user authorization
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+
+    // Verify that the authorization was created
+    use defguard_core::db::OAuth2AuthorizedApp;
+    let authorized_app = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+        &state.pool,
+        admin.id,
+        oauth2client.id,
+    )
+    .await
+    .unwrap();
+    assert!(
+        authorized_app.is_some(),
+        "Authorization should exist before scope change"
+    );
+
+    // Update the client with different scopes
+    let updated_client = NewOpenIDClient {
+        name: "Test Client".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into(), "profile".into()], // Changed from email to profile
+        enabled: true,
+    };
+
+    let response = client
+        .put(format!("/api/v1/oauth/{}", oauth2client.client_id))
+        .json(&updated_client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify that the authorization was cleared after scope change
+    let authorized_app_after = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+        &state.pool,
+        admin.id,
+        oauth2client.id,
+    )
+    .await
+    .unwrap();
+    assert!(
+        authorized_app_after.is_none(),
+        "Authorization should be cleared after scope change"
+    );
+
+    // Test that updating without scope changes does NOT clear authorizations
+
+    // Re-authorize the client
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Flocalhost%3A3000&\
+            scope=openid profile&\
+            state=ABCDEF2&\
+            allow=true&\
+            nonce=blabla2",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+
+    // Verify authorization exists again
+    let authorized_app = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+        &state.pool,
+        admin.id,
+        oauth2client.id,
+    )
+    .await
+    .unwrap();
+    assert!(
+        authorized_app.is_some(),
+        "Authorization should exist after re-authorization"
+    );
+
+    // Update the client without changing scopes (only name)
+    let same_scope_update = NewOpenIDClient {
+        name: "Test Client Updated Name".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into(), "profile".into()], // Same scopes
+        enabled: true,
+    };
+
+    let response = client
+        .put(format!("/api/v1/oauth/{}", oauth2client.client_id))
+        .json(&same_scope_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify that the authorization still exists when scopes haven't changed
+    let authorized_app_preserved = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
+        &state.pool,
+        admin.id,
+        oauth2client.id,
+    )
+    .await
+    .unwrap();
+    assert!(
+        authorized_app_preserved.is_some(),
+        "Authorization should be preserved when scopes don't change"
+    );
+}
+
+#[sqlx::test]
 async fn dg25_22_test_respect_openid_scope_in_userinfo(
     _: PgPoolOptions,
     options: PgConnectOptions,

@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgPool, query_as};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
 use crate::{
@@ -55,18 +55,34 @@ impl OAuth2Client {
 
 impl OAuth2Client<Id> {
     /// Find client by 'client_id`.
-    pub(crate) async fn find_by_client_id(
-        pool: &PgPool,
+    pub(crate) async fn find_by_client_id<'e, E>(
+        executor: E,
         client_id: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
             FROM oauth2client WHERE client_id = $1",
             client_id
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
+    }
+
+    pub(crate) async fn clear_authorizations<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        sqlx::query!(
+            "DELETE FROM oauth2authorizedapp WHERE oauth2client_id = $1",
+            self.id
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
     }
 
     /// Find using `client_id` and `client_secret`; must be `enabled`.
