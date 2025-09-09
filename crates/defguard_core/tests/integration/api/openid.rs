@@ -4,7 +4,7 @@ use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard_core::{
     db::{
-        Id,
+        Id, User,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     handlers::Auth,
@@ -608,6 +608,186 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
         .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
+}
+
+#[sqlx::test]
+async fn dg25_22_test_respect_openid_scope_in_userinfo(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
+    let mut config = state.config;
+
+    let mut admin = User::find_by_username(&state.pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+
+    admin.phone = Some("+123456789".into());
+    admin.save(&state.pool).await.unwrap();
+
+    let mut rng = rand::thread_rng();
+    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
+
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
+
+    // discover OpenID service
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
+            .await
+            .unwrap();
+
+    // Create reusable closure for testing different scope configurations
+    let get_user_claims = |client_scopes: Vec<String>, requested_scopes: Vec<String>| {
+        let client = &client;
+        let provider_metadata = provider_metadata.clone();
+        async move {
+            // Authenticate admin
+            let auth = Auth::new("admin", "pass123");
+            let response = client.post("/api/v1/auth").json(&auth).send().await;
+            assert_eq!(response.status(), StatusCode::OK);
+
+            // Create OAuth2 client with specified scopes
+            let oauth2client = NewOpenIDClient {
+                name: "Test client".into(),
+                redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+                scope: client_scopes,
+                enabled: true,
+            };
+            let response = client
+                .post("/api/v1/oauth")
+                .json(&oauth2client)
+                .send()
+                .await;
+            assert_eq!(response.status(), StatusCode::CREATED);
+            let oauth2client: OAuth2Client<Id> = response.json().await;
+
+            // Store client_id for cleanup
+            let client_id_for_cleanup = oauth2client.client_id.clone();
+
+            // Create OpenID client
+            let client_id = ClientId::new(oauth2client.client_id);
+            let client_secret = ClientSecret::new(oauth2client.client_secret);
+            let core_client = CoreClient::from_provider_metadata(
+                provider_metadata,
+                client_id,
+                Some(client_secret),
+            )
+            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
+
+            // Start Authorization Code Flow with PKCE
+            let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+            let mut auth_request = core_client.authorize_url(
+                AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
+                CsrfToken::new_random,
+                Nonce::new_random,
+            );
+
+            // Add requested scopes
+            for scope in requested_scopes {
+                auth_request = auth_request.add_scope(Scope::new(scope));
+            }
+
+            let (authorize_url, _csrf_state, nonce) =
+                auth_request.set_pkce_challenge(pkce_challenge).url();
+
+            // Obtain authorization code
+            let uri = format!(
+                "{}?allow=true&{}",
+                authorize_url.path(),
+                authorize_url.query().unwrap()
+            );
+            let response = client.post(uri).send().await;
+            assert_eq!(response.status(), StatusCode::FOUND);
+            let location = response
+                .headers()
+                .get("Location")
+                .unwrap()
+                .to_str()
+                .unwrap();
+            let (location, query) = location.split_once('?').unwrap();
+            assert_eq!(location, FAKE_REDIRECT_URI);
+            let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+
+            // Exchange authorization code for token
+            let token_response = core_client
+                .exchange_code(AuthorizationCode::new(auth_response.code.into()))
+                .unwrap()
+                .set_pkce_verifier(pkce_verifier)
+                .request_async(&|r| http_client(r, client))
+                .await
+                .unwrap();
+
+            // Verify id token
+            let id_token_verifier = core_client.id_token_verifier();
+            let _id_token_claims = token_response
+                .extra_fields()
+                .id_token()
+                .expect("Server did not return an ID token")
+                .claims(&id_token_verifier, &nonce)
+                .unwrap();
+
+            // Get userinfo claims
+            let userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> =
+                core_client
+                    .user_info(token_response.access_token().clone(), None)
+                    .expect("Missing info endpoint")
+                    .request_async(&|r| http_client(r, client))
+                    .await
+                    .unwrap();
+
+            // Clean up - delete the OAuth client
+            client
+                .delete(format!("/api/v1/oauth/{}", client_id_for_cleanup))
+                .send()
+                .await;
+
+            userinfo_claims
+        }
+    };
+
+    // Client has phone and email scopes, request phone and email
+    let claims = get_user_claims(
+        vec![
+            "openid".to_string(),
+            "phone".to_string(),
+            "email".to_string(),
+        ],
+        vec!["email".to_string(), "phone".to_string()],
+    )
+    .await;
+
+    // Verify claims include both email and phone
+    assert!(claims.email().is_some());
+    assert!(claims.phone_number().is_some());
+
+    // Client has phone and email scopes, but only request email
+    let claims = get_user_claims(
+        vec![
+            "openid".to_string(),
+            "phone".to_string(),
+            "email".to_string(),
+        ],
+        vec!["email".to_string()],
+    )
+    .await;
+
+    // Verify claims include only email, not phone
+    assert!(claims.email().is_some());
+    assert!(claims.phone_number().is_none());
+
+    // Client has only email scope, request phone
+    let claims = get_user_claims(
+        vec!["openid".to_string(), "email".to_string()],
+        vec!["email".to_string(), "phone".to_string()],
+    )
+    .await;
+
+    // Verify claims include only email since client doesn't have phone scope
+    assert!(claims.email().is_some());
+    assert!(claims.phone_number().is_none());
 }
 
 #[sqlx::test]
