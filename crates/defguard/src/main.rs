@@ -156,6 +156,7 @@ async fn main() -> Result<(), anyhow::Error> {
             wireguard_tx.clone(),
             mail_tx.clone(),
             bidi_event_tx,
+            Arc::clone(&incompatible_components),
         ), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),

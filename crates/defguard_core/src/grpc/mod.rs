@@ -54,30 +54,18 @@ use self::{
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
-    VERSION,
-    auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent, Id, Settings,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    },
-    enterprise::{
+    auth::failed_login::FailedLoginMap, db::{
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, Id, Settings
+    }, enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    },
-    events::{BidiStreamEvent, GrpcEvent},
-    grpc::{
-        gateway::{client_state::ClientMap, map::GatewayMap},
-        state::PROXY_STATE,
-    },
-    mail::Mail,
-    server_config,
-    version::{IncompatibleComponents, is_proxy_version_supported},
+    }, events::{BidiStreamEvent, GrpcEvent}, grpc::gateway::{client_state::ClientMap, map::GatewayMap}, mail::Mail, server_config, version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData}, VERSION
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -90,7 +78,6 @@ pub mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
-pub(crate) mod state;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
@@ -572,6 +559,7 @@ pub async fn run_grpc_bidi_stream(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -635,16 +623,22 @@ pub async fn run_grpc_bidi_stream(
         let (version, info) = get_tracing_variables(&maybe_info);
         let proxy_is_supported = is_proxy_version_supported(Some(&version));
 
-        // Save Proxy version information.
-        if let Ok(mut state) = (*PROXY_STATE).write() {
-            state.version = Some(version.to_string());
-            state.is_supported = proxy_is_supported;
-        }
+        // if let Ok(mut state) = (*PROXY_STATE).write() {
+        //     state.version = Some(version.to_string());
+        //     state.is_supported = proxy_is_supported;
+        // }
 
         let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
         let _guard = span.enter();
         if !proxy_is_supported {
+            // Store incompatible proxy
+            incompatible_components
+                .write()
+                .expect("Failed to write-lock incompatible_components")
+				.proxy = Some(IncompatibleProxyData::new(version));
+
+            // Sleep before trying reconnect
             sleep(TEN_SECS).await;
             continue;
         }

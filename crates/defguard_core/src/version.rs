@@ -101,6 +101,7 @@ impl Interceptor for GatewayVersionInterceptor {
 #[derive(Default)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
+    pub proxy: Option<IncompatibleProxyData>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -129,5 +130,16 @@ impl IncompatibleGatewayData {
             .expect("Failed to write-lock IncompatibleComponents")
             .gateways
             .insert(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IncompatibleProxyData {
+    pub version: Version,
+}
+
+impl IncompatibleProxyData {
+    pub fn new(version: Version) -> Self {
+        Self { version }
     }
 }

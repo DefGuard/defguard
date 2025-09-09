@@ -6,7 +6,6 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    grpc::state::PROXY_STATE,
     updates::get_update,
 };
 
@@ -58,11 +57,11 @@ pub(crate) async fn outdated_components(
         })
         .collect();
 
-    // proxy
-    if let Ok(state) = PROXY_STATE.read() {
-        if !state.is_supported {
-            outdated_components.push((*state).clone());
-        }
-    }
+    // // proxy
+    // if let Ok(state) = PROXY_STATE.read() {
+    //     if !state.is_supported {
+    //         outdated_components.push((*state).clone());
+    //     }
+    // }
     Ok(ApiResponse::new(json!(outdated_components), StatusCode::OK))
 }
