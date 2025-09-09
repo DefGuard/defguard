@@ -3,8 +3,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use defguard_version::{ComponentInfo, Version, is_version_lower};
+use serde::Serialize;
 use tonic::{Status, service::Interceptor};
+
+use defguard_version::{ComponentInfo, Version, is_version_lower};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
@@ -98,13 +100,13 @@ impl Interceptor for GatewayVersionInterceptor {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Serialize)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
     pub proxy: Option<IncompatibleProxyData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
@@ -133,7 +135,7 @@ impl IncompatibleGatewayData {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncompatibleProxyData {
     pub version: Version,
 }

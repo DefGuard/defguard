@@ -623,11 +623,6 @@ pub async fn run_grpc_bidi_stream(
         let (version, info) = get_tracing_variables(&maybe_info);
         let proxy_is_supported = is_proxy_version_supported(Some(&version));
 
-        // if let Ok(mut state) = (*PROXY_STATE).write() {
-        //     state.version = Some(version.to_string());
-        //     state.is_supported = proxy_is_supported;
-        // }
-
         let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
         let _guard = span.enter();
@@ -638,7 +633,7 @@ pub async fn run_grpc_bidi_stream(
                 .expect("Failed to write-lock incompatible_components")
 				.proxy = Some(IncompatibleProxyData::new(version));
 
-            // Sleep before trying reconnect
+            // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
         }
