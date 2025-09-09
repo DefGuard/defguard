@@ -204,6 +204,7 @@ impl GatewayMap {
             .collect()
     }
 
+	#[allow(dead_code)]
     #[must_use]
     pub(crate) fn all_states_as_version_info(&self) -> Vec<VersionInfo> {
         self.0

@@ -1,8 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
     future::Future,
     pin::Pin,
-    sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 
