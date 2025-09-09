@@ -50,13 +50,16 @@ type GatewayItemProps = {
 };
 
 const GatewayListItem = ({ data }: GatewayItemProps) => {
+  const { LL } = useI18nContext();
+  const localLL = LL.modals.outdatedComponentsModal.content;
   return (
     <li>
       <div>
         Gateway
         <span>-</span>
         <span className="version">
-          {data.version || 'unknown version'} ({data.hostname || 'unknown hostname'})
+          {data.version || localLL.unknownVersion()} (
+          {data.hostname || localLL.unknownHostname()})
         </span>
       </div>
     </li>
