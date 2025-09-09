@@ -97,10 +97,9 @@ pub async fn change_openid_client(
             client.name = data.name;
             client.redirect_uri = data.redirect_uri;
             client.enabled = data.enabled;
-            let scope_differs = client.scope != data.scope;
             client.scope = data.scope;
             client.save(&mut *transaction).await?;
-            if scope_differs {
+            if before.scope != client.scope {
                 client.clear_authorizations(&mut *transaction).await?;
             }
             transaction.commit().await?;
