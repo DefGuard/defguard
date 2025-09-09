@@ -333,7 +333,6 @@ impl UserClaims {
         oauth_client: &OAuth2Client<Id>,
         oauth_token: &OAuth2Token,
     ) -> Self {
-        println!("USER: {user:?}");
         let token_scopes = oauth_token
             .scope
             .split_whitespace()

@@ -55,7 +55,6 @@ use crate::{
 impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
     fn from(user_claims: &UserClaims) -> StandardClaims<CoreGenderClaim> {
         let mut claims = StandardClaims::new(SubjectIdentifier::new(user_claims.sub.clone()));
-        println!("User claims: {:?}", user_claims);
 
         if let Some(name) = &user_claims.name {
             let mut localized_claim = LocalizedClaim::new();
