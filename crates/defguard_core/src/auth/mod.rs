@@ -24,7 +24,7 @@ use crate::{
     appstate::AppState,
     db::{
         Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
-        models::group::Permission,
+        models::{group::Permission, oauth2client::OAuth2Client},
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,
@@ -303,8 +303,80 @@ macro_rules! role {
 
 role!(AdminRole, Permission::IsAdmin);
 
+#[derive(Debug)]
+pub(crate) struct UserClaims {
+    pub email: Option<String>,
+    pub family_name: Option<String>,
+    pub given_name: Option<String>,
+    pub name: Option<String>,
+    pub phone_number: Option<String>,
+    pub preferred_username: Option<String>,
+    pub sub: String,
+}
+
+fn get_available_scopes<'a>(
+    all_scopes: &'a [String],
+    requested_scopes: &'a [String],
+) -> Vec<&'a str> {
+    let mut scopes = Vec::new();
+    for scope in requested_scopes {
+        if all_scopes.contains(scope) {
+            scopes.push(scope.as_str());
+        }
+    }
+    scopes
+}
+
+impl UserClaims {
+    pub fn from_user(
+        user: &User<Id>,
+        oauth_client: &OAuth2Client<Id>,
+        oauth_token: &OAuth2Token,
+    ) -> Self {
+        let token_scopes = oauth_token
+            .scope
+            .split_whitespace()
+            .map(String::from)
+            .collect::<Vec<String>>();
+        let scopes = get_available_scopes(&oauth_client.scope, &token_scopes);
+        Self {
+            email: if scopes.contains(&"email") {
+                Some(user.email.clone())
+            } else {
+                None
+            },
+            family_name: if scopes.contains(&"profile") {
+                Some(user.last_name.clone())
+            } else {
+                None
+            },
+            given_name: if scopes.contains(&"profile") {
+                Some(user.first_name.clone())
+            } else {
+                None
+            },
+            name: if scopes.contains(&"profile") {
+                Some(user.name())
+            } else {
+                None
+            },
+            phone_number: if scopes.contains(&"phone") {
+                user.phone.clone()
+            } else {
+                None
+            },
+            preferred_username: if scopes.contains(&"profile") {
+                Some(user.username.clone())
+            } else {
+                None
+            },
+            sub: user.username.clone(),
+        }
+    }
+}
+
 // User authenticated by a valid access token
-pub struct AccessUserInfo(pub(crate) User<Id>);
+pub struct AccessUserInfo(pub(crate) UserClaims);
 
 impl<S> FromRequestParts<S> for AccessUserInfo
 where
@@ -339,7 +411,22 @@ where
                             if let Ok(Some(user)) =
                                 User::find_by_id(&appstate.pool, authorized_app.user_id).await
                             {
-                                return Ok(AccessUserInfo(user));
+                                if let Some(client) = OAuth2Client::find_by_id(
+                                    &appstate.pool,
+                                    authorized_app.oauth2client_id,
+                                )
+                                .await?
+                                {
+                                    return Ok(AccessUserInfo(UserClaims::from_user(
+                                        &user,
+                                        &client,
+                                        &oauth2token,
+                                    )));
+                                } else {
+                                    return Err(WebError::Authorization(
+                                        "OAuth2 client not found".into(),
+                                    ));
+                                }
                             }
                         }
                         Ok(None) => {
@@ -361,5 +448,73 @@ where
         }
 
         Err(WebError::Authorization("Invalid session".into()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_available_scopes() {
+        // All requested scopes are available
+        let all_scopes = vec![
+            "email".to_string(),
+            "profile".to_string(),
+            "phone".to_string(),
+        ];
+        let requested_scopes = vec!["email".to_string(), "profile".to_string()];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, vec!["email", "profile"]);
+
+        // Some requested scopes are not available
+        let all_scopes = vec!["email".to_string(), "profile".to_string()];
+        let requested_scopes = vec![
+            "email".to_string(),
+            "phone".to_string(),
+            "profile".to_string(),
+        ];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, vec!["email", "profile"]);
+
+        // No requested scopes
+        let all_scopes = vec!["email".to_string(), "profile".to_string()];
+        let requested_scopes = vec![];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, Vec::<&str>::new());
+
+        // No available scopes
+        let all_scopes = vec![];
+        let requested_scopes = vec!["email".to_string(), "profile".to_string()];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, Vec::<&str>::new());
+
+        // Both empty
+        let all_scopes = vec![];
+        let requested_scopes = vec![];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, Vec::<&str>::new());
+
+        // Duplicate requested scopes
+        let all_scopes = vec!["email".to_string(), "profile".to_string()];
+        let requested_scopes = vec![
+            "email".to_string(),
+            "email".to_string(),
+            "profile".to_string(),
+        ];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, vec!["email", "email", "profile"]);
+
+        // Case sensitivity
+        let all_scopes = vec!["email".to_string(), "profile".to_string()];
+        let requested_scopes = vec!["Email".to_string(), "PROFILE".to_string()];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, Vec::<&str>::new());
+
+        // Single scope match
+        let all_scopes = vec!["email".to_string()];
+        let requested_scopes = vec!["email".to_string()];
+        let result = get_available_scopes(&all_scopes, &requested_scopes);
+        assert_eq!(result, vec!["email"]);
     }
 }
