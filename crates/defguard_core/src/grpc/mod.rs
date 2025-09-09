@@ -54,18 +54,27 @@ use self::{
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
-    auth::failed_login::FailedLoginMap, db::{
-        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, Id, Settings
-    }, enterprise::{
+    VERSION,
+    auth::failed_login::FailedLoginMap,
+    db::{
+        AppEvent, Id, Settings,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    },
+    enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    }, events::{BidiStreamEvent, GrpcEvent}, grpc::gateway::{client_state::ClientMap, map::GatewayMap}, mail::Mail, server_config, version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData}, VERSION
+    },
+    events::{BidiStreamEvent, GrpcEvent},
+    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
+    mail::Mail,
+    server_config,
+    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -631,7 +640,7 @@ pub async fn run_grpc_bidi_stream(
             incompatible_components
                 .write()
                 .expect("Failed to write-lock incompatible_components")
-				.proxy = Some(IncompatibleProxyData::new(version));
+                .proxy = Some(IncompatibleProxyData::new(version));
 
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
