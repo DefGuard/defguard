@@ -151,7 +151,7 @@ export const AppLoader = () => {
   useEffect(() => {
     if (
       outdatedInfo &&
-      (outdatedInfo.proxy !== undefined || outdatedInfo.gateways.length > 0)
+      (outdatedInfo.proxy != null || outdatedInfo.gateways.length > 0)
     ) {
       openOutdatedComponentsModal(outdatedInfo);
     }
