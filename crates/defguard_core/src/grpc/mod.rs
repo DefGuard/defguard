@@ -637,10 +637,8 @@ pub async fn run_grpc_bidi_stream(
         let _guard = span.enter();
         if !proxy_is_supported {
             // Store incompatible proxy
-            incompatible_components
-                .write()
-                .expect("Failed to write-lock incompatible_components")
-                .proxy = Some(IncompatibleProxyData::new(version));
+            let data = IncompatibleProxyData::new(version);
+            data.insert(&incompatible_components);
 
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;

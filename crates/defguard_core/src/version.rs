@@ -92,7 +92,7 @@ impl Interceptor for GatewayVersionInterceptor {
                 .and_then(|v| v.to_str().ok())
                 .map(String::from);
             let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
-            data.insert(&mut self.incompatible_components);
+            data.insert(&self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
 
@@ -118,7 +118,7 @@ impl IncompatibleGatewayData {
     }
 
     /// Inserts metadata into the HashSet while avoiding write-locking the structure unnecessarily.
-    pub fn insert(&self, components: &mut Arc<RwLock<IncompatibleComponents>>) -> bool {
+    pub fn insert(&self, components: &Arc<RwLock<IncompatibleComponents>>) -> bool {
         if components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
@@ -143,5 +143,23 @@ pub struct IncompatibleProxyData {
 impl IncompatibleProxyData {
     pub fn new(version: Version) -> Self {
         Self { version }
+    }
+
+    /// Inserts metadata while avoiding write-locking the structure unnecessarily.
+    pub fn insert(&self, components: &Arc<RwLock<IncompatibleComponents>>) -> bool {
+        if components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .proxy
+            .as_ref()
+            == Some(self)
+        {
+            return false;
+        }
+        components
+            .write()
+            .expect("Failed to write-lock IncompatibleComponents")
+            .proxy = Some(self.clone());
+        true
     }
 }
