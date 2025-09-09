@@ -125,49 +125,54 @@ export const StandaloneDeviceModalForm = ({
 
   const submitHandler: SubmitHandler<StandaloneDeviceFormFields> = async (formValues) => {
     const values = formValues;
-    const { modifiableIpParts: modifiableIpPart } = values;
-    values.description = values.description?.trim();
-    values.name = values.name.trim();
-    const currentIpResp = internalRecommendedIps ?? initialIpRecommendation;
-    values.modifiableIpParts = currentIpResp.map(
-      (resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim(),
-    );
-    if (
-      mode === StandaloneDeviceModalFormMode.EDIT &&
-      modifiableIpPart === defaults.modifiableIpParts
-    ) {
-      await onSubmit(values);
-      return;
-    }
-
+    const recommendationResponse = internalRecommendedIps ?? initialIpRecommendation;
+    let validationList = recommendationResponse.map((recommendation, index) => ({
+      ip: recommendation.network_part + formValues.modifiableIpParts[index],
+      index,
+    }));
+    values.modifiableIpParts = validationList.map((item) => item.ip);
     // try to validate explicitly chosen IPs before submission
     let validationErrors = false;
-    try {
-      const response = await validateLocationIp({
-        ips: values.modifiableIpParts,
-        location: values.location_id,
-      });
 
-      response.forEach(({ available, valid }, index) => {
-        if (!available) {
-          validationErrors = true;
-          setError(`modifiableIpParts.${index}`, {
-            message: LL.form.error.reservedIp(),
-          });
-        }
-        if (!valid) {
-          validationErrors = true;
-          setError(`modifiableIpParts.${index}`, {
-            message: LL.form.error.invalidIp(),
-          });
-        }
-      });
-    } catch (_) {
-      validationErrors = true;
-      toaster.error(LL.messages.error());
+    // if edit exclude initial ip's from validation as they are reserved already by edited device
+    if (mode === StandaloneDeviceModalFormMode.EDIT) {
+      const reservedByDevice = initialIpRecommendation.map(
+        (item) => item.network_part + item.modifiable_part,
+      );
+      validationList = validationList.filter(
+        (item) => !reservedByDevice.includes(item.ip),
+      );
     }
 
-    // submit form if no validation errors ocurred
+    if (validationList.length) {
+      try {
+        const response = await validateLocationIp({
+          ips: validationList.map((item) => item.ip),
+          location: values.location_id,
+        });
+
+        response.forEach(({ available, valid }, index) => {
+          const fieldIndex = validationList[index].index;
+          if (!available) {
+            validationErrors = true;
+            setError(`modifiableIpParts.${fieldIndex}`, {
+              message: LL.form.error.reservedIp(),
+            });
+          }
+          if (!valid) {
+            validationErrors = true;
+            setError(`modifiableIpParts.${fieldIndex}`, {
+              message: LL.form.error.invalidIp(),
+            });
+          }
+        });
+      } catch (_) {
+        validationErrors = true;
+        toaster.error(LL.messages.error());
+      }
+    }
+
+    // submit form if no validation errors occurred
     if (!validationErrors) {
       try {
         await onSubmit(values);

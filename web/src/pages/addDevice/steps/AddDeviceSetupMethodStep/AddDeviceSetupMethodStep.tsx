@@ -53,7 +53,6 @@ export const AddDeviceSetupMethodStep = () => {
 
   useEffect(() => {
     const sub = navSubject.subscribe((event) => {
-      console.log(event);
       if (event === AddDeviceNavigationEvent.NEXT) {
         switch (setupMethod) {
           case AddDeviceStep.NATIVE_CHOOSE_METHOD:
