@@ -1,8 +1,8 @@
 import { createWithEqualityFn } from 'zustand/traditional';
-import type { OutdatedComponentInfo } from '../../../types';
+import type { OutdatedComponents } from '../../../types';
 
 const defaultValues: StoreValues = {
-  componentsInfo: [],
+  componentsInfo: { gateways: []},
   visible: false,
 };
 
@@ -16,12 +16,12 @@ export const useOutdatedComponentsModal = createWithEqualityFn<Store>((set) => (
 type Store = StoreMethods & StoreValues;
 
 type StoreMethods = {
-  open: (initData: OutdatedComponentInfo[]) => void;
+  open: (initData: OutdatedComponents) => void;
   close: () => void;
   reset: () => void;
 };
 
 type StoreValues = {
   visible: boolean;
-  componentsInfo: OutdatedComponentInfo[];
+  componentsInfo: OutdatedComponents;
 };

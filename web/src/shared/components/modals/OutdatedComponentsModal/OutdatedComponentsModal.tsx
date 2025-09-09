@@ -6,7 +6,7 @@ import {
   ButtonStyleVariant,
 } from '../../../defguard-ui/components/Layout/Button/types';
 import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
-import { OutdatedComponent, type OutdatedComponentInfo } from '../../../types';
+import { OutdatedComponents, OutdatedGateway, OutdatedProxy } from '../../../types';
 import { useOutdatedComponentsModal } from './useOutdatedComponentsModal';
 import './style.scss';
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -29,15 +29,15 @@ export const OutdatedComponentsModal = () => {
   );
 };
 
-type ItemProps = {
-  data: OutdatedComponentInfo;
+type ProxyItemProps = {
+  data: OutdatedProxy;
 };
 
-const ListItem = ({ data }: ItemProps) => {
+const ProxyListItem = ({ data }: ProxyItemProps) => {
   return (
     <li>
       <div>
-        {`${data.component}`}
+        Proxy
         <span>-</span>
         <span className="version">{data.version}</span>
       </div>
@@ -45,32 +45,44 @@ const ListItem = ({ data }: ItemProps) => {
   );
 };
 
+type GatewayItemProps = {
+  data: OutdatedGateway;
+};
+
+const GatewayListItem = ({ data }: GatewayItemProps) => {
+  return (
+    <li>
+      <div>
+        Gateway
+        <span>-</span>
+        <span className="version">{data.version || "unknown version"} ({data.hostname || "unknown hostname"})</span>
+      </div>
+    </li>
+  );
+};
+
 const ModalContent = () => {
   const closeModal = useOutdatedComponentsModal((s) => s.close);
-  const componentsInfo = useOutdatedComponentsModal((s) =>
-    s.componentsInfo.filter((c) => !c.is_supported),
-  );
   const { LL } = useI18nContext();
   const localLL = LL.modals.outdatedComponentsModal;
+  const componentsInfo = useOutdatedComponentsModal((s) => s);
 
   const gatewaysInfo = useMemo(
     () =>
-      componentsInfo.filter(
-        (component) => component.component === OutdatedComponent.GATEWAY,
-      ),
+      componentsInfo.componentsInfo.gateways,
     [componentsInfo],
   );
 
   const proxyInfo = useMemo(
-    () => componentsInfo.find((c) => c.component === OutdatedComponent.PROXY),
+    () => componentsInfo.componentsInfo.proxy,
     [componentsInfo],
   );
 
   useEffect(() => {
-    if (componentsInfo.length === 0) {
+    if (gatewaysInfo.length === 0 && proxyInfo === undefined) {
       closeModal();
     }
-  }, [closeModal, componentsInfo.length]);
+  }, [closeModal, gatewaysInfo.length, proxyInfo]);
 
   return (
     <div className="content-wrapper">
@@ -82,9 +94,9 @@ const ModalContent = () => {
         <div className="content">
           <h2>{localLL.content.title()}</h2>
           <ul>
-            {isPresent(proxyInfo) && <ListItem data={proxyInfo} />}
+            {isPresent(proxyInfo) && <ProxyListItem data={proxyInfo} />}
             {gatewaysInfo.map((gateway, index) => (
-              <ListItem key={index} data={gateway} />
+              <GatewayListItem key={index} data={gateway} />
             ))}
           </ul>
         </div>
