@@ -60,13 +60,7 @@
 //! let (version_str, system_str) = version_info_from_metadata(&metadata);
 //! ```
 
-use std::{
-    cmp::Ordering,
-    collections::HashSet,
-    fmt,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{cmp::Ordering, fmt, str::FromStr};
 
 use ::tracing::{error, warn};
 pub use semver::{BuildMetadata, Error as SemverError, Version};
