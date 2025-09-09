@@ -166,7 +166,7 @@ impl GatewayState {
         }
     }
 
-	#[allow(dead_code)]
+    #[allow(dead_code)]
     pub(super) fn as_version_info(&self) -> VersionInfo {
         VersionInfo {
             component: Some(DefguardComponent::Gateway),
