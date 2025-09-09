@@ -6,6 +6,7 @@ use std::{
     sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
+use crate::version::IncompatibleComponents;
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
@@ -79,7 +80,6 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 use utoipa_swagger_ui::SwaggerUi;
-use crate::version::IncompatibleComponents;
 
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{

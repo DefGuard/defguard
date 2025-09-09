@@ -35,7 +35,6 @@ pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
 
 #[derive(Clone)]
 pub struct GatewayVersionInterceptor {
-    own_version: Version,
     min_version: Version,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 }
@@ -43,12 +42,10 @@ pub struct GatewayVersionInterceptor {
 impl GatewayVersionInterceptor {
     #[must_use]
     pub fn new(
-        own_version: Version,
         min_version: Version,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Self {
         Self {
-            own_version,
             min_version,
             incompatible_components,
         }
@@ -122,7 +119,7 @@ impl IncompatibleGatewayData {
         if components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
-			.gateways
+            .gateways
             .contains(self)
         {
             return false;
@@ -130,7 +127,7 @@ impl IncompatibleGatewayData {
         components
             .write()
             .expect("Failed to write-lock IncompatibleComponents")
-			.gateways
+            .gateways
             .insert(self.clone())
     }
 }

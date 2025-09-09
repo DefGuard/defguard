@@ -54,21 +54,30 @@ use self::{
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
-    auth::failed_login::FailedLoginMap, db::{
-        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, Id, Settings
-    }, enterprise::{
+    VERSION,
+    auth::failed_login::FailedLoginMap,
+    db::{
+        AppEvent, Id, Settings,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    },
+    enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    }, events::{BidiStreamEvent, GrpcEvent}, grpc::{
+    },
+    events::{BidiStreamEvent, GrpcEvent},
+    grpc::{
         gateway::{client_state::ClientMap, map::GatewayMap},
         state::PROXY_STATE,
-    }, mail::Mail, server_config, version::{is_proxy_version_supported, IncompatibleComponents}, VERSION
+    },
+    mail::Mail,
+    server_config,
+    version::{IncompatibleComponents, is_proxy_version_supported},
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -759,11 +768,7 @@ pub async fn build_grpc_service_router(
         router.add_service(
             ServiceBuilder::new()
                 .layer(tonic::service::InterceptorLayer::new(
-                    GatewayVersionInterceptor::new(
-                        own_version.clone(),
-                        MIN_GATEWAY_VERSION,
-                        incompatible_components,
-                    ),
+                    GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
                 ))
                 .layer(DefguardVersionLayer::new(own_version))
                 .service(gateway_service),

@@ -27,9 +27,9 @@ use defguard_core::{
     mail::{Mail, run_mail_handler},
     run_web_server,
     utility_thread::run_utility_thread,
+    version::IncompatibleComponents,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
-	version::IncompatibleComponents,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};

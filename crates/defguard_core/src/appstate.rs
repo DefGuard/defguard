@@ -23,7 +23,7 @@ use crate::{
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
-	version::IncompatibleComponents,
+    version::IncompatibleComponents,
 };
 
 const X_DEFGUARD_EVENT: &str = "x-defguard-event";

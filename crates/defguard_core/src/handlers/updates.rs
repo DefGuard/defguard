@@ -50,7 +50,9 @@ pub(crate) async fn outdated_components(
                     .as_ref()
                     .map(|version| version.to_string())
                     .unwrap_or("unknown version".to_string()),
-                data.hostname.clone().unwrap_or("unknown hostname".to_string())
+                data.hostname
+                    .clone()
+                    .unwrap_or("unknown hostname".to_string())
             )),
             is_supported: false,
         })
