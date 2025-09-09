@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
 use anyhow::anyhow;
@@ -14,7 +14,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
-use defguard_version::{IncompatibleComponents, server::DefguardVersionLayer};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
     handlers::{
@@ -79,6 +79,7 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 use utoipa_swagger_ui::SwaggerUi;
+use crate::version::IncompatibleComponents;
 
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
@@ -168,7 +169,7 @@ pub mod support;
 pub mod templates;
 pub mod updates;
 pub mod utility_thread;
-mod version;
+pub mod version;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
@@ -360,7 +361,7 @@ pub fn build_webapp(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
-    incompatible_components: IncompatibleComponents,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -687,7 +688,7 @@ pub async fn run_web_server(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
-    incompatible_components: IncompatibleComponents,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,

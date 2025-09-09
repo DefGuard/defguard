@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode};
-use defguard_version::tracing::VersionInfo;
+use defguard_version::{tracing::VersionInfo, DefguardComponent};
 use serde_json::{Value, json};
 
 use super::{ApiResponse, ApiResult};
@@ -39,9 +39,10 @@ pub(crate) async fn outdated_components(
         .incompatible_components
         .read()
         .expect("Failed to lock appstate.incompatible_components")
+		.gateways
         .iter()
         .map(|metadata| VersionInfo {
-            component: Some(metadata.component.clone()),
+            component: Some(DefguardComponent::Gateway),
             info: None,
             version: metadata.version.as_ref().map(|version| version.to_string()),
             is_supported: false,

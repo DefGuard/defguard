@@ -16,8 +16,8 @@ use tower::Service;
 use tracing::{debug, error};
 
 use crate::{
-    ComponentInfo, DefguardComponent, IncompatibleComponentMetadata, IncompatibleComponents,
-    SYSTEM_INFO_HEADER, VERSION_HEADER, Version, is_version_lower, server::DefguardVersionService,
+    ComponentInfo, DefguardComponent, SYSTEM_INFO_HEADER, VERSION_HEADER, Version,
+    is_version_lower, server::DefguardVersionService,
 };
 
 impl<S, B> Service<Request<Body>> for DefguardVersionService<S>
@@ -97,7 +97,6 @@ pub struct DefguardVersionInterceptor {
     /// communication, where the core UI needs to display version compatibility errors
     /// that would normally only be detectable on the gateway side (core < gateway).
     fail_if_client_version_is_higher: bool,
-    incompatible_components: IncompatibleComponents,
 }
 
 impl DefguardVersionInterceptor {
@@ -107,14 +106,12 @@ impl DefguardVersionInterceptor {
         component: DefguardComponent,
         min_version: Version,
         fail_if_client_version_is_higher: bool,
-        incompatible_components: IncompatibleComponents,
     ) -> Self {
         Self {
             own_version,
             component,
             min_version,
             fail_if_client_version_is_higher,
-            incompatible_components,
         }
     }
 
@@ -159,9 +156,6 @@ impl Interceptor for DefguardVersionInterceptor {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            let metadata =
-                IncompatibleComponentMetadata::new(self.component.clone(), version.cloned());
-            metadata.insert(&mut self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
 

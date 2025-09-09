@@ -1,6 +1,6 @@
 use std::{
     fs::read_to_string,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use bytes::Bytes;
@@ -29,10 +29,10 @@ use defguard_core::{
     utility_thread::run_utility_thread,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
+	version::IncompatibleComponents,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_version::IncompatibleComponents;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -109,7 +109,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
-    let incompatible_components: IncompatibleComponents = Default::default();
+    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Default::default();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;

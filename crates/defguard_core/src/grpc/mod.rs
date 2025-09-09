@@ -6,15 +6,15 @@ use std::{
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use axum::http::Uri;
 #[cfg(feature = "wireguard")]
-use defguard_version::server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
-    ComponentInfo, DefguardComponent, IncompatibleComponents, Version,
-    client::ClientVersionInterceptor, get_tracing_variables,
+    ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
+    get_tracing_variables,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -54,30 +54,21 @@ use self::{
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
-    VERSION,
-    auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent, Id, Settings,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    },
-    enterprise::{
+    auth::failed_login::FailedLoginMap, db::{
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, Id, Settings
+    }, enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    },
-    events::{BidiStreamEvent, GrpcEvent},
-    grpc::{
+    }, events::{BidiStreamEvent, GrpcEvent}, grpc::{
         gateway::{client_state::ClientMap, map::GatewayMap},
         state::PROXY_STATE,
-    },
-    mail::Mail,
-    server_config,
-    version::is_proxy_version_supported,
+    }, mail::Mail, server_config, version::{is_proxy_version_supported, IncompatibleComponents}, VERSION
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -679,7 +670,7 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: IncompatibleComponents,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -726,7 +717,7 @@ pub async fn build_grpc_service_router(
     mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: IncompatibleComponents,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
@@ -762,15 +753,15 @@ pub async fn build_grpc_service_router(
 
     #[cfg(feature = "wireguard")]
     let router = {
+        use crate::version::GatewayVersionInterceptor;
+
         let own_version = Version::parse(VERSION)?;
         router.add_service(
             ServiceBuilder::new()
                 .layer(tonic::service::InterceptorLayer::new(
-                    DefguardVersionInterceptor::new(
+                    GatewayVersionInterceptor::new(
                         own_version.clone(),
-                        DefguardComponent::Gateway,
                         MIN_GATEWAY_VERSION,
-                        true,
                         incompatible_components,
                     ),
                 ))
