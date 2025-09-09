@@ -130,6 +130,7 @@ pub(crate) async fn make_base_client(
         failed_logins,
         api_event_tx,
         Version::parse(VERSION).unwrap(),
+        Default::default(),
     );
 
     (

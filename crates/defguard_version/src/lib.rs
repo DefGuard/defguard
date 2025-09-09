@@ -91,7 +91,7 @@ pub enum DefguardVersionError {
 }
 
 /// Represents the different types of Defguard components that can communicate via gRPC.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, Hash)]
 pub enum DefguardComponent {
     Core,
     Proxy,

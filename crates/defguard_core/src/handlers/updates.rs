@@ -1,12 +1,10 @@
-use std::sync::{Arc, Mutex};
-
-use axum::{Extension, http::StatusCode};
+use axum::{extract::State, http::StatusCode};
 use serde_json::{Value, json};
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    grpc::{gateway::map::GatewayMap, state::PROXY_STATE},
     updates::get_update,
 };
 
@@ -32,18 +30,15 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
 // FIXME: Switch to SSE and generally make it better.
 pub(crate) async fn outdated_components(
     _admin: AdminRole,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
+    State(appstate): State<AppState>,
 ) -> ApiResult {
-    let mut version_info = {
-        gateway_state
-            .lock()
-            .expect("Failed to acquire gateway state lock")
-            .all_states_as_version_info()
-    };
-    if let Ok(state) = PROXY_STATE.read() {
-        if state.version.is_some() {
-            version_info.push((*state).clone());
-        }
-    }
-    Ok(ApiResponse::new(json!(version_info), StatusCode::OK))
+    let incompatible_components = (*appstate
+        .incompatible_components
+        .read()
+        .expect("Failed to lock appstate.incompatible_components"))
+    .clone();
+    Ok(ApiResponse::new(
+        json!(incompatible_components),
+        StatusCode::OK,
+    ))
 }

@@ -149,13 +149,11 @@ export const AppLoader = () => {
   }, [newVersionData, setUpdateStore]);
 
   useEffect(() => {
-    if (outdatedInfo && outdatedInfo.length > 0) {
-      const containsUnsupported = outdatedInfo.find(
-        (component) => !component.is_supported,
-      );
-      if (containsUnsupported !== undefined) {
-        openOutdatedComponentsModal(outdatedInfo);
-      }
+    if (
+      outdatedInfo &&
+      (outdatedInfo.proxy != null || outdatedInfo.gateways.length > 0)
+    ) {
+      openOutdatedComponentsModal(outdatedInfo);
     }
   }, [outdatedInfo, openOutdatedComponentsModal]);
 

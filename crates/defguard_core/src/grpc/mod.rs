@@ -6,12 +6,12 @@ use std::{
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use axum::http::Uri;
 #[cfg(feature = "wireguard")]
-use defguard_version::server::{DefguardVersionLayer, grpc::DefguardVersionInterceptor};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
     get_tracing_variables,
@@ -71,13 +71,10 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::{
-        gateway::{client_state::ClientMap, map::GatewayMap},
-        state::PROXY_STATE,
-    },
+    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
     mail::Mail,
     server_config,
-    version::is_proxy_version_supported,
+    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
@@ -90,7 +87,6 @@ pub mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
-pub(crate) mod state;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
@@ -572,6 +568,7 @@ pub async fn run_grpc_bidi_stream(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -635,17 +632,15 @@ pub async fn run_grpc_bidi_stream(
         let (version, info) = get_tracing_variables(&maybe_info);
         let proxy_is_supported = is_proxy_version_supported(Some(&version));
 
-        // Save Proxy version information.
-        if let Ok(mut state) = (*PROXY_STATE).write() {
-            state.version = Some(version.to_string());
-            state.is_supported = proxy_is_supported;
-        }
-
         let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
         let _guard = span.enter();
         if !proxy_is_supported {
-            // TODO push an event to display this in UI
+            // Store incompatible proxy
+            let data = IncompatibleProxyData::new(version);
+            data.insert(&incompatible_components);
+
+            // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
         }
@@ -680,6 +675,7 @@ pub async fn run_grpc_server(
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -699,6 +695,7 @@ pub async fn run_grpc_server(
         mail_tx,
         failed_logins,
         grpc_event_tx,
+        incompatible_components,
     )
     .await?;
 
@@ -725,6 +722,7 @@ pub async fn build_grpc_service_router(
     mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
@@ -760,16 +758,13 @@ pub async fn build_grpc_service_router(
 
     #[cfg(feature = "wireguard")]
     let router = {
+        use crate::version::GatewayVersionInterceptor;
+
         let own_version = Version::parse(VERSION)?;
         router.add_service(
             ServiceBuilder::new()
                 .layer(tonic::service::InterceptorLayer::new(
-                    DefguardVersionInterceptor::new(
-                        own_version.clone(),
-                        DefguardComponent::Gateway,
-                        MIN_GATEWAY_VERSION,
-                        true,
-                    ),
+                    GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
                 ))
                 .layer(DefguardVersionLayer::new(own_version))
                 .service(gateway_service),

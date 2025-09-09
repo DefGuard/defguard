@@ -236,6 +236,14 @@ type RootTranslation = {
 				 * I​n​c​o​m​p​a​t​i​b​l​e​ ​c​o​m​p​o​n​e​n​t​s​:
 				 */
 				title: string
+				/**
+				 * U​n​k​n​o​w​n​ ​v​e​r​s​i​o​n
+				 */
+				unknownVersion: string
+				/**
+				 * U​n​k​n​o​w​n​ ​h​o​s​t​n​a​m​e
+				 */
+				unknownHostname: string
 			}
 		}
 		upgradeLicenseModal: {
@@ -6935,6 +6943,14 @@ export type TranslationFunctions = {
 				 * Incompatible components:
 				 */
 				title: () => LocalizedString
+				/**
+				 * Unknown version
+				 */
+				unknownVersion: () => LocalizedString
+				/**
+				 * Unknown hostname
+				 */
+				unknownHostname: () => LocalizedString
 			}
 		}
 		upgradeLicenseModal: {

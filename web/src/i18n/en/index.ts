@@ -66,6 +66,8 @@ const en: BaseTranslation = {
       subtitle: 'Defguard detected unsupported version in some components.',
       content: {
         title: 'Incompatible components:',
+        unknownVersion: 'Unknown version',
+        unknownHostname: 'Unknown hostname',
       },
     },
     upgradeLicenseModal: {

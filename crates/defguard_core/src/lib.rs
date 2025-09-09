@@ -3,9 +3,10 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
+use crate::version::IncompatibleComponents;
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
@@ -168,7 +169,7 @@ pub mod support;
 pub mod templates;
 pub mod updates;
 pub mod utility_thread;
-mod version;
+pub mod version;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
@@ -360,6 +361,7 @@ pub fn build_webapp(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -683,6 +685,7 @@ pub fn build_webapp(
             mail_tx,
             failed_logins,
             event_tx,
+            incompatible_components,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -710,6 +713,7 @@ pub async fn run_web_server(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -722,6 +726,7 @@ pub async fn run_web_server(
         failed_logins,
         event_tx,
         Version::parse(VERSION)?,
+        incompatible_components,
     );
     info!("Started web services");
     let addr = SocketAddr::new(
