@@ -87,16 +87,6 @@ impl Interceptor for GatewayVersionInterceptor {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            // let maybe_hostname: Option<String> = request
-            //     .metadata()
-            //     .get("hostname")
-            //     .map(|value| value.to_str().ok())
-            //     .map(|value_str| value_str.to_string());
-            // let maybe_hostname: Option<String> = request
-            //     .metadata()
-            //     .get("hostname")
-            //     .and_then(|value| value.to_str().ok())
-            //     .map(|s| s.to_string());
             let maybe_hostname = request
                 .metadata()
                 .get("hostname")
@@ -111,29 +101,10 @@ impl Interceptor for GatewayVersionInterceptor {
     }
 }
 
-// pub type IncompatibleComponents = Arc<RwLock<HashSet<IncompatibleComponentMetadata>>>;
 #[derive(Default)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
 }
-
-// impl IncompatibleComponents {
-//     // pub fn insert(&self, components: &mut Arc<RwLock<IncompatibleComponents>>) -> bool {
-//     //     if components
-//     //         .read()
-//     //         .expect("Failed to read-lock IncompatibleComponents")
-//     //         .gateways
-//     //         .contains(self)
-//     //     {
-//     //         return false;
-//     //     }
-//     //     components
-//     //         .write()
-//     //         .expect("Failed to write-lock IncompatibleComponents")
-//     //         .gateways
-//     //         .insert(self.clone())
-//     // }
-// }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IncompatibleGatewayData {
@@ -163,30 +134,3 @@ impl IncompatibleGatewayData {
             .insert(self.clone())
     }
 }
-
-// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-// pub struct IncompatibleComponentMetadata {
-//     pub component: DefguardComponent,
-//     pub version: Option<Version>,
-// }
-
-// impl IncompatibleComponentMetadata {
-//     pub fn new(component: DefguardComponent, version: Option<Version>) -> Self {
-//         Self { component, version }
-//     }
-
-//     /// Inserts metadata into the HashSet while avoiding write-locking the structure unnecessarily.
-//     pub fn insert(&self, components: &mut IncompatibleComponents) -> bool {
-//         if components
-//             .read()
-//             .expect("Failed to read-lock IncompatibleComponents")
-//             .contains(self)
-//         {
-//             return false;
-//         }
-//         components
-//             .write()
-//             .expect("Failed to write-lock IncompatibleComponents")
-//             .insert(self.clone())
-//     }
-// }
