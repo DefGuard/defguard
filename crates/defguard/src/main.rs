@@ -183,13 +183,40 @@ async fn main() -> Result<(), anyhow::Error> {
             incompatible_components,
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
-        res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),
-        res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, wireguard_tx.clone()) => error!("Utility thread returned early: {res:?}"),
-        res = run_event_router(RouterReceiverSet::new(api_event_rx, grpc_event_rx, bidi_event_rx, internal_event_rx), event_logger_tx, wireguard_tx, mail_tx, activity_log_stream_reload_notify.clone()) => error!("Event router returned early: {res:?}"),
-        res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) => error!("Activity log event logger returned early: {res:?}"),
-        res = run_activity_log_stream_manager(pool.clone(), activity_log_stream_reload_notify.clone(), activity_log_messages_rx) => error!("Activity log stream manager returned early: {res:?}"),
+        res = run_periodic_peer_disconnect(
+			pool.clone(),
+			wireguard_tx.clone(),
+			internal_event_tx.clone()
+		) => error!("Periodic peer disconnect task returned early: {res:?}"),
+        res = run_periodic_stats_purge(
+			pool.clone(),
+			config.stats_purge_frequency.into(),
+			config.stats_purge_threshold.into()
+		), if !config.disable_stats_purge =>
+			error!("Periodic stats purge task returned early: {res:?}"),
+        res = run_periodic_license_check(&pool) =>
+			error!("Periodic license check task returned early: {res:?}"),
+        res = run_utility_thread(&pool, wireguard_tx.clone()) =>
+			error!("Utility thread returned early: {res:?}"),
+        res = run_event_router(
+			RouterReceiverSet::new(
+				api_event_rx,
+				grpc_event_rx,
+				bidi_event_rx,
+				internal_event_rx
+			),
+			event_logger_tx,
+			wireguard_tx,
+			mail_tx,
+			activity_log_stream_reload_notify.clone()
+		) => error!("Event router returned early: {res:?}"),
+        res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) =>
+			error!("Activity log event logger returned early: {res:?}"),
+        res = run_activity_log_stream_manager(
+			pool.clone(),
+			activity_log_stream_reload_notify.clone(),
+			activity_log_messages_rx
+		) => error!("Activity log stream manager returned early: {res:?}"),
     }
 
     Ok(())
