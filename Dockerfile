@@ -8,11 +8,12 @@ COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1 AS chef
+FROM rust:1-alpine AS chef
 
 WORKDIR /build
 
 # install & cache necessary components
+RUN apk add musl-dev openssl-dev
 RUN cargo install cargo-chef
 RUN rustup component add rustfmt
 
@@ -32,7 +33,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # build project
 COPY --from=web /app/dist ./web/dist
 COPY web/src/shared/images/svg ./web/src/shared/images/svg
-RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
+RUN apk add openssl-libs-static protoc protobuf-dev
 COPY Cargo.toml Cargo.lock ./
 # for vergen
 COPY .git .git
@@ -43,10 +44,8 @@ COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
-FROM debian:13-slim
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
+FROM alpine:3
+RUN apk add ca-certificates
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 ENTRYPOINT ["./defguard"]
