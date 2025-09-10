@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Settings } from '../../../shared/types';
+import type { Settings } from '../../../shared/types';
 
 const defaultValues: StoreValues = {
   settings: undefined,

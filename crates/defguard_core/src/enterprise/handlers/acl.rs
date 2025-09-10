@@ -1,10 +1,10 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use chrono::NaiveDateTime;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::LicenseInfo;
 use crate::{
@@ -247,7 +247,7 @@ pub async fn get_acl_rule(
     };
 
     info!("User {} retrieved ACL rule {id}", session.user.username);
-    Ok(ApiResponse { json: rule, status })
+    Ok(ApiResponse::new(rule, status))
 }
 
 pub async fn create_acl_rule(

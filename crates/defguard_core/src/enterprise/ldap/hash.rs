@@ -1,9 +1,9 @@
 use base64::Engine;
 use md4::Md4;
-use rand_core::{OsRng, RngCore};
+use rand::{RngCore, rngs::OsRng};
 use sha1::{
-    digest::generic_array::{sequence::Concat, GenericArray},
     Digest, Sha1,
+    digest::generic_array::{GenericArray, sequence::Concat},
 };
 
 use crate::hex::to_lower_hex;
@@ -41,10 +41,7 @@ pub fn nthash(password: &str) -> String {
 #[must_use]
 pub fn unicode_pwd(password: &str) -> Vec<u8> {
     let quoted = format!("\"{password}\"");
-    let utf16_bytes: Vec<u8> = quoted
-        .encode_utf16()
-        .flat_map(|c| c.to_le_bytes())
-        .collect();
+    let utf16_bytes: Vec<u8> = quoted.encode_utf16().flat_map(u16::to_le_bytes).collect();
 
     utf16_bytes
 }

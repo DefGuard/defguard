@@ -12,7 +12,7 @@ import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { DialogSelectButtonIcon } from './DialogSelectButtonIcon';
 import { DialogSelectModal } from './DialogSelectModal/DialogSelectModal';
-import { DialogSelectProps } from './types';
+import type { DialogSelectProps } from './types';
 
 export const DialogSelect = <T extends object, I extends number | string>({
   options,

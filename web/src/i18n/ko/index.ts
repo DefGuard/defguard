@@ -1,9 +1,10 @@
 import { deepmerge } from 'deepmerge-ts';
+import { PartialDeep } from 'type-fest';
 
 import en from '../en';
 import { Translation } from '../i18n-types';
 
-const translation: Translation = {
+const translation: PartialDeep<Translation> = {
   common: {
     conditions: {
       or: '또는',
@@ -57,7 +58,7 @@ const translation: Translation = {
       submit: '그룹 업데이트',
     },
     deleteGroup: {
-      title: '{name:string} 그룹 삭제',
+      title: '{name} 그룹 삭제',
       subTitle: '이 작업은 이 그룹을 영구적으로 삭제합니다.',
       locationListHeader: '이 그룹은 현재 다음 VPN 위치에 할당되어 있습니다:',
       locationListFooter: `이것이 주어진 위치에 허용된 유일한 그룹인 경우, 해당 위치는 <b>모든 사용자가 액세스할 수 있게</b> 됩니다.`,
@@ -117,7 +118,7 @@ const translation: Translation = {
       },
     },
     deleteNetwork: {
-      title: '{name:string} 위치 삭제',
+      title: '{name} 위치 삭제',
       subTitle: '이 작업은 이 위치를 영구적으로 삭제합니다.',
       submit: '위치 삭제',
       cancel: '취소',
@@ -197,7 +198,7 @@ const translation: Translation = {
       title: '이메일 MFA 설정',
       infoMessage: `
         <p>
-          MFA를 설정하려면 계정 이메일: <strong>{email: string}</strong>로 전송된 코드를 입력하세요
+          MFA를 설정하려면 계정 이메일: <strong>{email}</strong>로 전송된 코드를 입력하세요
         </p>
 `,
       messages: {
@@ -253,9 +254,9 @@ const translation: Translation = {
       controls: {
         submit: '계정 삭제',
       },
-      message: '{username: string} 계정을 영구적으로 삭제하시겠습니까?',
+      message: '{username} 계정을 영구적으로 삭제하시겠습니까?',
       messages: {
-        success: '{username: string}이(가) 삭제되었습니다.',
+        success: '{username}이(가) 삭제되었습니다.',
       },
     },
     disableUser: {
@@ -263,9 +264,9 @@ const translation: Translation = {
       controls: {
         submit: '계정 비활성화',
       },
-      message: '{username: string} 계정을 비활성화하시겠습니까?',
+      message: '{username} 계정을 비활성화하시겠습니까?',
       messages: {
-        success: '{username: string}이(가) 비활성화되었습니다.',
+        success: '{username}이(가) 비활성화되었습니다.',
       },
     },
     enableUser: {
@@ -273,9 +274,9 @@ const translation: Translation = {
       controls: {
         submit: '계정 활성화',
       },
-      message: '{username: string} 계정을 활성화하시겠습니까?',
+      message: '{username} 계정을 활성화하시겠습니까?',
       messages: {
-        success: '{username: string}이(가) 활성화되었습니다.',
+        success: '{username}이(가) 활성화되었습니다.',
       },
     },
     deleteProvisioner: {
@@ -283,9 +284,9 @@ const translation: Translation = {
       controls: {
         submit: '프로비저너 삭제',
       },
-      message: '{id: string} 프로비저너를 삭제하시겠습니까?',
+      message: '{id} 프로비저너를 삭제하시겠습니까?',
       messages: {
-        success: '{provisioner: string}이(가) 삭제되었습니다.',
+        success: '{provisioner}이(가) 삭제되었습니다.',
       },
     },
     changeUserPassword: {
@@ -415,7 +416,7 @@ const translation: Translation = {
     },
     deleteWebhook: {
       title: '웹훅 삭제',
-      message: '{name: string} 웹훅을 삭제하시겠습니까?',
+      message: '{name} 웹훅을 삭제하시겠습니까?',
       submit: '삭제',
       messages: {
         success: '웹훅이 삭제되었습니다.',
@@ -432,20 +433,6 @@ const translation: Translation = {
       deviceAdded: '장치가 추가되었습니다',
     },
     steps: {
-      setupMethod: {
-        remote: {
-          title: '데스크톱 클라이언트 구성',
-          subTitle:
-            '단일 토큰으로 간편하게 설정할 수 있습니다. 클라이언트를 다운로드하고 간단한 보안을 즐기세요.',
-          link: 'defguard 클라이언트 다운로드',
-        },
-        manual: {
-          title: '수동 WireGuard 클라이언트',
-          subTitle:
-            '고급 사용자의 경우 다운로드 또는 QR 코드를 통해 고유한 구성을 얻으세요. 클라이언트를 다운로드하고 VPN 설정을 제어하세요.',
-          link: 'WireGuard 클라이언트 다운로드',
-        },
-      },
       configDevice: {
         title: '장치 구성',
         messages: {
@@ -481,7 +468,7 @@ const translation: Translation = {
         infoMessage: `
         <p>
           장치에서 WireGuardVPN을 구성해야 합니다. 방법을 모르는 경우&nbsp;
-          <a href="{addDevicesDocs:string}">문서</a>를 참조하세요.
+          <a href="{addDevicesDocs}">문서</a>를 참조하세요.
         </p>
 `,
         options: {
@@ -670,7 +657,7 @@ const translation: Translation = {
       },
       deleteModal: {
         title: '인증 키 삭제',
-        confirmMessage: '{name: string} 키가 영구적으로 삭제됩니다.',
+        confirmMessage: '{name} 키가 영구적으로 삭제됩니다.',
       },
       addModal: {
         header: '새 인증 키 추가',
@@ -687,7 +674,7 @@ const translation: Translation = {
             title: '이름',
             key: '키',
           },
-          submit: '{name: string} 키 추가',
+          submit: '{name} 키 추가',
         },
         yubikeyForm: {
           selectWorker: {
@@ -776,8 +763,8 @@ const translation: Translation = {
     },
     copyright: 'Copyright ©2023-2025',
     version: {
-      open: '애플리케이션 버전: {version: string}',
-      closed: 'v{version: string}',
+      open: '애플리케이션 버전: {version}',
+      closed: 'v{version}',
     },
   },
   form: {
@@ -815,8 +802,8 @@ const translation: Translation = {
       startFromNumber: '숫자로 시작할 수 없습니다.',
       repeat: `필드가 일치하지 않습니다.`,
       number: '유효한 숫자를 입력해야 합니다.',
-      minimumValue: `{value: number}의 최솟값에 도달하지 않았습니다.`,
-      maximumValue: '{value: number}의 최댓값을 초과했습니다.',
+      minimumValue: `{value}의 최솟값에 도달하지 않았습니다.`,
+      maximumValue: '{value}의 최댓값을 초과했습니다.',
       tooManyBadLoginAttempts: `잘못된 로그인 시도가 너무 많습니다. 몇 분 후에 다시 시도하십시오.`,
     },
     floatingErrors: {
@@ -833,11 +820,7 @@ const translation: Translation = {
     gatewaysStatus: {
       label: '게이트웨이',
       states: {
-        connected: '모두 연결됨',
-        partial: '하나 이상 작동하지 않음',
-        disconnected: '연결 끊김',
         error: '연결 정보를 가져오는 데 실패했습니다.',
-        loading: '연결 정보를 가져오는 중',
       },
       messages: {
         error: '게이트웨이 상태를 가져오지 못했습니다',
@@ -940,7 +923,7 @@ const translation: Translation = {
       helper: `<p>
             사용하지 않는 모듈이 있는 경우 해당 모듈의 가시성을 비활성화할 수 있습니다.
           </p>
-          <a href="{documentationLink:string}" target="_blank">
+          <a href="{documentationLink}" target="_blank">
             자세한 내용은 설명서를 참조하십시오.
           </a>`,
       fields: {
@@ -961,7 +944,7 @@ const translation: Translation = {
     defaultNetworkSelect: {
       header: '기본 위치 보기',
       helper: `<p>여기에서 기본 위치 보기를 변경할 수 있습니다.</p>
-          <a href="{documentationLink:string}" target="_blank">
+          <a href="{documentationLink}" target="_blank">
             자세한 내용은 설명서를 참조하십시오.
           </a>`,
       filterLabels: {
@@ -999,7 +982,7 @@ const translation: Translation = {
             여기에서 defguard 인스턴스의 로고 및 이름 url을
             추가할 수 있습니다. defguard 대신 표시됩니다.
           </p>
-          <a href="{documentationLink:string}" target="_blank">
+          <a href="{documentationLink}" target="_blank">
             자세한 내용은 설명서를 참조하십시오.
           </a>
 			`,
@@ -1027,7 +1010,6 @@ const translation: Translation = {
       },
       licenseInfo: {
         title: '라이선스 정보',
-        noLicense: '라이선스 없음',
         types: {
           subscription: {
             label: '구독',
@@ -1213,7 +1195,7 @@ const translation: Translation = {
     },
     deleteApp: {
       title: '앱 삭제',
-      message: '{appName: string} 앱을 삭제하시겠습니까?',
+      message: '{appName} 앱을 삭제하시겠습니까?',
       submit: '앱 삭제',
       messages: {
         success: '앱이 삭제되었습니다.',
@@ -1233,7 +1215,7 @@ const translation: Translation = {
       openidClientModal: {
         title: {
           addApp: '애플리케이션 추가',
-          editApp: '{appName: string} 앱 편집',
+          editApp: '{appName} 앱 편집',
         },
         scopes: '범위:',
         messages: {
@@ -1255,7 +1237,7 @@ const translation: Translation = {
               label: '앱 이름',
             },
             redirectUri: {
-              label: '리디렉션 URL {count: number}',
+              label: '리디렉션 URL {count}',
               placeholder: 'https://example.com/redirect',
             },
             openid: {
@@ -1363,7 +1345,7 @@ const translation: Translation = {
     },
   },
   openidAllow: {
-    header: '{name: string}이(가) 다음을 원합니다:',
+    header: '{name}이(가) 다음을 원합니다:',
     scopes: {
       openid: '향후 로그인을 위해 프로필 데이터를 사용합니다.',
       profile: '이름, 프로필 사진 등 프로필의 기본 정보를 알고 있습니다.',
@@ -1390,11 +1372,9 @@ const translation: Translation = {
     },
     stats: {
       currentlyActiveUsers: '현재 활성 사용자',
-      currentlyActiveDevices: '현재 활성 장치',
-      activeUsersFilter: '{hour: number}시간 내 활성 사용자',
-      activeDevicesFilter: '{hour: number}시간 내 활성 장치',
-      totalTransfer: '총 전송량:',
-      activityIn: '{hour: number}시간 내 활동',
+      activeUsersFilter: '{hour}시간 내 활성 사용자',
+      activeDevicesFilter: '{hour}시간 내 활성 장치',
+      activityIn: '{hour}시간 내 활동',
       in: '들어오는 트래픽:',
       out: '나가는 트래픽:',
       gatewayDisconnected: '게이트웨이 연결 끊김',
@@ -1470,9 +1450,6 @@ const translation: Translation = {
           label: '허용된 그룹',
           placeholder: '모든 그룹',
         },
-        mfa_enabled: {
-          label: '이 위치에 MFA 필요',
-        },
         keepalive_interval: {
           label: 'Keepalive 간격 [초]',
         },
@@ -1512,21 +1489,21 @@ const translation: Translation = {
     },
     messages: {
       runCommand: `Defguard는 vpn 서버에서 wireguard VPN을 제어하기 위해 게이트웨이 노드를 배포해야 합니다.
-            자세한 내용은 [문서]({setupGatewayDocs:string})를 참조하십시오.
+            자세한 내용은 [문서]({setupGatewayDocs})를 참조하십시오.
             게이트웨이 서버를 배포하는 방법에는 여러 가지가 있으며,
-            아래는 Docker 기반 예시입니다. 다른 예시는 [문서]({setupGatewayDocs:string})를 참조하십시오.`,
+            아래는 Docker 기반 예시입니다. 다른 예시는 [문서]({setupGatewayDocs})를 참조하십시오.`,
       createNetwork: `게이트웨이 프로세스를 실행하기 전에 네트워크를 생성하십시오.`,
       noConnection: `연결이 설정되지 않았습니다. 제공된 명령을 실행하십시오.`,
       connected: `게이트웨이가 연결되었습니다.`,
       statusError: '게이트웨이 상태를 가져오지 못했습니다',
       oneLineInstall: `한 줄 설치를 수행하는 경우: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
           아무 것도 할 필요가 없습니다.`,
-      fromPackage: `https://github.com/DefGuard/gateway/releases/latest에서 사용 가능한 패키지를 설치하고 [문서]({setupGatewayDocs:string})에 따라 \`/etc/defguard/gateway.toml\`을 구성하십시오.
+      fromPackage: `https://github.com/DefGuard/gateway/releases/latest에서 사용 가능한 패키지를 설치하고 [문서]({setupGatewayDocs})에 따라 \`/etc/defguard/gateway.toml\`을 구성하십시오.
           `,
       authToken: `아래 토큰은 게이트웨이 노드를 인증하고 구성하는 데 필요합니다. 이 토큰을 안전하게 보관하고
-      [문서]({setupGatewayDocs:string})에 제공된 배포 지침에 따라 게이트웨이 서버를 성공적으로 설정하십시오.
-          자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs:string})를 참조하십시오.`,
-      dockerBasedGatewaySetup: `아래는 Docker 기반 예시입니다. 자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs:string})를 참조하십시오.`,
+      [문서]({setupGatewayDocs})에 제공된 배포 지침에 따라 게이트웨이 서버를 성공적으로 설정하십시오.
+          자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs})를 참조하십시오.`,
+      dockerBasedGatewaySetup: `아래는 Docker 기반 예시입니다. 자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs})를 참조하십시오.`,
     },
   },
   loginPage: {

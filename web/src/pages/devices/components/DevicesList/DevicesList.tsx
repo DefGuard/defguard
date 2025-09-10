@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -14,15 +13,16 @@ import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layo
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { LimitedText } from '../../../../shared/defguard-ui/components/Layout/LimitedText/LimitedText';
 import {
-  ListHeader,
+  type ListHeader,
   ListSortDirection,
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import { StandaloneDevice } from '../../../../shared/types';
-import { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
+import type { StandaloneDevice } from '../../../../shared/types';
+import { dateToLocal } from '../../../../shared/utils/displayDate';
+import type { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
@@ -96,9 +96,10 @@ const DeviceRow = (props: StandaloneDevice) => {
     [assigned_ips],
   );
   const formatDate = useMemo(() => {
-    const day = dayjs(added_date);
+    const day = dateToLocal(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
   }, [added_date]);
+
   const { writeToClipboard } = useClipboard();
   return (
     <div className="device-row">

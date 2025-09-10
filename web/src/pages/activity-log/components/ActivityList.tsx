@@ -4,12 +4,12 @@ import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
-import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
+import type { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
+import { ListCellText } from '../../../shared/defguard-ui/components/Layout/ListCellText/ListCellText';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
-import { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';
+import type { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import type { ActivityLogEvent, ActivityLogSortKey } from '../../../shared/types';
 
 type Props = {
   data: ActivityLogEvent[];
@@ -73,6 +73,10 @@ export const ActivityList = ({
         key: 'ip',
       },
       {
+        label: headersLL.location(),
+        key: 'location',
+      },
+      {
         label: headersLL.event(),
         key: 'event',
       },
@@ -83,6 +87,10 @@ export const ActivityList = ({
       {
         label: headersLL.device(),
         key: 'device',
+      },
+      {
+        label: headersLL.description(),
+        key: 'description',
       },
     ],
     [headersLL],
@@ -135,6 +143,9 @@ export const ActivityList = ({
                 <div className="cell ip">
                   <ListCellText text={activity.ip} />
                 </div>
+                <div className="cell location">
+                  <ListCellText text={activity.location || ''} />
+                </div>
                 <div className="cell event">
                   <ListCellText text={LL.enums.activityLogEventType[activity.event]()} />
                 </div>
@@ -143,6 +154,9 @@ export const ActivityList = ({
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />
+                </div>
+                <div className="cell description">
+                  <ListCellText text={activity.description || ''} />
                 </div>
               </div>
             );

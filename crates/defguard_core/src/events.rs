@@ -1,15 +1,26 @@
 use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
+use serde::Serialize;
 
-use crate::db::{Device, Id, MFAMethod, WireguardNetwork};
+use crate::{
+    db::{
+        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
+        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
+    },
+    enterprise::db::models::{
+        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
+        openid_provider::OpenIdProvider, snat::UserSnatBinding,
+    },
+    grpc::proto::proxy::MfaMethod,
+};
 
 /// Shared context that needs to be added to every API event
 ///
 /// Mainly meant to be stored in the activity log.
 /// By design this is a duplicate of a similar struct in the `event_logger` module.
 /// This is done in order to avoid circular imports once we split the project into multiple crates.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
@@ -19,6 +30,7 @@ pub struct ApiRequestContext {
 }
 
 impl ApiRequestContext {
+    #[must_use]
     pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -42,15 +54,18 @@ pub struct GrpcRequestContext {
     pub ip: IpAddr,
     pub device_id: Id,
     pub device_name: String,
+    pub location: WireguardNetwork<Id>,
 }
 
 impl GrpcRequestContext {
+    #[must_use]
     pub fn new(
         user_id: Id,
         username: String,
         ip: IpAddr,
         device_id: Id,
         device_name: String,
+        location: WireguardNetwork<Id>,
     ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -60,6 +75,7 @@ impl GrpcRequestContext {
             ip,
             device_id,
             device_name,
+            location,
         }
     }
 }
@@ -67,81 +83,216 @@ impl GrpcRequestContext {
 #[derive(Debug)]
 pub enum ApiEventType {
     UserLogin,
-    UserLoginFailed,
+    UserLoginFailed {
+        message: String,
+    },
+    UserLogout,
     UserMfaLogin {
         mfa_method: MFAMethod,
     },
     UserMfaLoginFailed {
         mfa_method: MFAMethod,
+        message: String,
     },
     RecoveryCodeUsed,
-    UserLogout,
+    PasswordChangedByAdmin {
+        user: User<Id>,
+    },
+    PasswordChanged,
+    PasswordReset {
+        user: User<Id>,
+    },
     MfaDisabled,
+    UserMfaDisabled {
+        user: User<Id>,
+    },
     MfaTotpDisabled,
     MfaTotpEnabled,
     MfaEmailDisabled,
     MfaEmailEnabled,
     MfaSecurityKeyAdded {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     MfaSecurityKeyRemoved {
-        key_id: Id,
-        key_name: String,
+        key: WebAuthn<Id>,
     },
     UserAdded {
-        username: String,
+        user: User<Id>,
     },
     UserRemoved {
-        username: String,
+        user: User<Id>,
     },
     UserModified {
-        username: String,
+        before: User<Id>,
+        after: User<Id>,
+    },
+    UserGroupsModified {
+        user: User<Id>,
+        before: Vec<String>,
+        after: Vec<String>,
     },
     UserDeviceAdded {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceRemoved {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        device: Device<Id>,
     },
     UserDeviceModified {
-        device_id: Id,
-        owner: String,
-        device_name: String,
+        owner: User<Id>,
+        before: Device<Id>,
+        after: Device<Id>,
     },
     NetworkDeviceAdded {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceRemoved {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     NetworkDeviceModified {
-        device_id: Id,
-        device_name: String,
-        location_id: Id,
-        location: String,
+        before: Device<Id>,
+        after: Device<Id>,
+        location: WireguardNetwork<Id>,
     },
     ActivityLogStreamCreated {
-        stream_id: Id,
-        stream_name: String,
+        stream: ActivityLogStream<Id>,
     },
     ActivityLogStreamModified {
-        stream_id: Id,
-        stream_name: String,
+        before: ActivityLogStream<Id>,
+        after: ActivityLogStream<Id>,
     },
     ActivityLogStreamRemoved {
-        stream_id: Id,
-        stream_name: String,
+        stream: ActivityLogStream<Id>,
+    },
+    VpnLocationAdded {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationRemoved {
+        location: WireguardNetwork<Id>,
+    },
+    VpnLocationModified {
+        before: WireguardNetwork<Id>,
+        after: WireguardNetwork<Id>,
+    },
+    ApiTokenAdded {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRemoved {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+    },
+    ApiTokenRenamed {
+        owner: User<Id>,
+        token: ApiToken<Id>,
+        old_name: String,
+        new_name: String,
+    },
+    OpenIdAppAdded {
+        app: OAuth2Client<Id>,
+    },
+    OpenIdAppRemoved {
+        app: OAuth2Client<Id>,
+    },
+    OpenIdAppModified {
+        before: OAuth2Client<Id>,
+        after: OAuth2Client<Id>,
+    },
+    OpenIdAppStateChanged {
+        app: OAuth2Client<Id>,
+        enabled: bool,
+    },
+    OpenIdProviderModified {
+        provider: OpenIdProvider<Id>,
+    },
+    OpenIdProviderRemoved {
+        provider: OpenIdProvider<Id>,
+    },
+    SettingsUpdated {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsUpdatedPartial {
+        before: Settings,
+        after: Settings,
+    },
+    SettingsDefaultBrandingRestored,
+    GroupsBulkAssigned {
+        users: Vec<User<Id>>,
+        groups: Vec<Group<Id>>,
+    },
+    GroupAdded {
+        group: Group<Id>,
+    },
+    GroupModified {
+        before: Group<Id>,
+        after: Group<Id>,
+    },
+    GroupRemoved {
+        group: Group<Id>,
+    },
+    GroupMemberAdded {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMemberRemoved {
+        group: Group<Id>,
+        user: User<Id>,
+    },
+    GroupMembersModified {
+        group: Group<Id>,
+        added: Vec<User<Id>>,
+        removed: Vec<User<Id>>,
+    },
+    WebHookAdded {
+        webhook: WebHook<Id>,
+    },
+    WebHookModified {
+        before: WebHook<Id>,
+        after: WebHook<Id>,
+    },
+    WebHookRemoved {
+        webhook: WebHook<Id>,
+    },
+    WebHookStateChanged {
+        webhook: WebHook<Id>,
+        enabled: bool,
+    },
+    AuthenticationKeyAdded {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRemoved {
+        key: AuthenticationKey<Id>,
+    },
+    AuthenticationKeyRenamed {
+        key: AuthenticationKey<Id>,
+        old_name: Option<String>,
+        new_name: Option<String>,
+    },
+    EnrollmentTokenAdded {
+        user: User<Id>,
+    },
+    ClientConfigurationTokenAdded {
+        user: User<Id>,
+    },
+    UserSnatBindingAdded {
+        user: User<Id>,
+        location: WireguardNetwork<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingRemoved {
+        user: User<Id>,
+        location: WireguardNetwork<Id>,
+        binding: UserSnatBinding<Id>,
+    },
+    UserSnatBindingModified {
+        user: User<Id>,
+        location: WireguardNetwork<Id>,
+        before: UserSnatBinding<Id>,
+        after: UserSnatBinding<Id>,
     },
 }
 
@@ -149,14 +300,18 @@ pub enum ApiEventType {
 #[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub event: ApiEventType,
+    pub event: Box<ApiEventType>,
 }
 
 /// Events from gRPC server
 #[derive(Debug)]
 pub enum GrpcEvent {
-    GatewayConnected,
-    GatewayDisconnected,
+    GatewayConnected {
+        location: WireguardNetwork<Id>,
+    },
+    GatewayDisconnected {
+        location: WireguardNetwork<Id>,
+    },
     ClientConnected {
         context: GrpcRequestContext,
         location: WireguardNetwork<Id>,
@@ -178,18 +333,19 @@ pub struct BidiRequestContext {
     pub user_id: Id,
     pub username: String,
     pub ip: IpAddr,
-    pub user_agent: String,
+    pub device_name: String,
 }
 
 impl BidiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpAddr, user_agent: String) -> Self {
+    #[must_use]
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device_name: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
             ip,
-            user_agent,
+            device_name,
         }
     }
 }
@@ -204,12 +360,11 @@ pub struct BidiStreamEvent {
 /// Wrapper enum for different types of events emitted by the bidi stream.
 ///
 /// Each variant represents a separate gRPC service that's part of the bi-directional communications server.
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum BidiStreamEventType {
-    Enrollment(EnrollmentEvent),
-    PasswordReset(PasswordResetEvent),
-    DesktopClientMfa(DesktopClientMfaEvent),
+    Enrollment(Box<EnrollmentEvent>),
+    PasswordReset(Box<PasswordResetEvent>),
+    DesktopClientMfa(Box<DesktopClientMfaEvent>),
 }
 
 #[derive(Debug)]
@@ -226,23 +381,43 @@ pub enum PasswordResetEvent {
     PasswordResetCompleted,
 }
 
+pub type ClientMFAMethod = MfaMethod;
+
+impl Serialize for ClientMFAMethod {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match *self {
+            MfaMethod::Totp => serializer.serialize_unit_variant("MfaMethod", 0, "Totp"),
+            MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
+            MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
+            MfaMethod::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
+            MfaMethod::MobileApprove => {
+                serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
     Connected {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
     },
     Failed {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
-        method: MFAMethod,
+        method: ClientMFAMethod,
+        message: String,
     },
 }
 
 /// Shared context for every internally-triggered event.
 ///
-/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the audit log.
+/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the activity log.
 #[derive(Debug)]
 pub struct InternalEventContext {
     pub timestamp: NaiveDateTime,
@@ -253,6 +428,7 @@ pub struct InternalEventContext {
 }
 
 impl InternalEventContext {
+    #[must_use]
     pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {

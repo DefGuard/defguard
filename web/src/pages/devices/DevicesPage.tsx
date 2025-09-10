@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { PropsWithChildren, useEffect } from 'react';
+import { type PropsWithChildren, useEffect } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { ManagementPageLayout } from '../../shared/components/Layout/ManagementPageLayout/ManagementPageLayout';
@@ -46,15 +46,13 @@ const PageActions = () => {
   const localLL = LL.devicesPage.bar.actions;
   const openStandaloneDeviceModal = useAddStandaloneDeviceModal((s) => s.open);
   return (
-    <>
-      <Button
-        size={ButtonSize.SMALL}
-        styleVariant={ButtonStyleVariant.PRIMARY}
-        text={localLL.addNewDevice()}
-        icon={<AddDeviceIcon />}
-        onClick={() => openStandaloneDeviceModal()}
-      />
-    </>
+    <Button
+      size={ButtonSize.SMALL}
+      styleVariant={ButtonStyleVariant.PRIMARY}
+      text={localLL.addNewDevice()}
+      icon={<AddDeviceIcon />}
+      onClick={() => openStandaloneDeviceModal()}
+    />
   );
 };
 
@@ -76,6 +74,7 @@ const Page = () => {
     refetchOnWindowFocus: true,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (devicesData) {
       setPageState((s) => ({

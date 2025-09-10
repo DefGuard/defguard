@@ -8,7 +8,7 @@ import { CheckBox } from '../../../defguard-ui/components/Layout/Checkbox/CheckB
 import { InteractionBox } from '../../../defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { ListSortDirection } from '../../../defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { ListHeaderColumnConfig } from './types';
+import type { ListHeaderColumnConfig } from './types';
 
 type ListHeaderColumnProps<T> = {
   active: boolean;

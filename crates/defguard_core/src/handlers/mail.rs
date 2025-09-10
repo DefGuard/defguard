@@ -10,20 +10,20 @@ use reqwest::Url;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
-    sync::mpsc::{unbounded_channel, UnboundedSender},
+    sync::mpsc::{UnboundedSender, unbounded_channel},
 };
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::enrollment::TokenError, Id, MFAMethod, Session, User},
+    db::{Id, MFAMethod, Session, User, models::enrollment::TokenError},
     error::WebError,
     mail::{Attachment, Mail},
     server_config,
     support::dump_config,
-    templates::{self, support_data_mail, TemplateError, TemplateLocation},
-    PgPool,
+    templates::{self, TemplateError, TemplateLocation, support_data_mail},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -203,7 +203,7 @@ pub fn send_new_device_added_email(
             Ok(())
         }
         Err(err) => {
-            error!("Sending new device notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device notification to {to} failed with error:\n{err}");
             Ok(())
         }
     }
@@ -308,7 +308,7 @@ pub async fn send_new_device_login_email(
             info!("Sent new device login notification to {to}");
         }
         Err(err) => {
-            error!("Sending new device login notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device login notification to {to} failed with error:\n{err}");
         }
     }
 
@@ -340,7 +340,7 @@ pub async fn send_new_device_ocid_login_email(
             info!("Sent new device OCID login notification to {to}");
         }
         Err(err) => {
-            error!("Sending new device OCID login notification to {to} failed with erorr:\n{err}");
+            error!("Sending new device OCID login notification to {to} failed with error:\n{err}");
         }
     }
 
@@ -382,7 +382,7 @@ pub fn send_mfa_configured_email(
 pub fn send_email_mfa_activation_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA activation mail to {}", user.email);
 

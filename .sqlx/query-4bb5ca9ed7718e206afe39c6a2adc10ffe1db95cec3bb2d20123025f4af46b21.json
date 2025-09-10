@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"activity_log_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"username\" = $4,\"location\" = $5,\"ip\" = $6,\"event\" = $7,\"module\" = $8,\"device\" = $9,\"description\" = $10,\"metadata\" = $11 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamp",
+        "Int8",
+        "Text",
+        "Text",
+        "Inet",
+        "Text",
+        {
+          "Custom": {
+            "name": "activity_log_module",
+            "kind": {
+              "Enum": [
+                "defguard",
+                "client",
+                "vpn",
+                "enrollment"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bb5ca9ed7718e206afe39c6a2adc10ffe1db95cec3bb2d20123025f4af46b21"
+}

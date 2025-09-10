@@ -44,6 +44,7 @@ export const AddStandaloneDeviceModal = () => {
     }
   }, [currentStep, localLL.steps.cli, localLL.steps.manual, localLL.steps.method]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     return () => {
       reset();

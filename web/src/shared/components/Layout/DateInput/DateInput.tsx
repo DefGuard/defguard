@@ -2,14 +2,14 @@ import './style.scss';
 
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { forwardRef, HTMLAttributes } from 'react';
-import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
+import { forwardRef, type HTMLAttributes } from 'react';
+import DatePicker, { type ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
 import { FieldError } from '../../../defguard-ui/components/Layout/FieldError/FieldError';
 import { InteractionBox } from '../../../defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import SvgIconX from '../../../defguard-ui/components/svg/IconX';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { DateInputProps } from './types';
+import type { DateInputProps } from './types';
 
 const pickerToOutput = (value: Date | null): string | null => {
   if (value === null) return null;

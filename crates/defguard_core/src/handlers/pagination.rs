@@ -1,12 +1,11 @@
 use axum::{
     body::Body,
-    http::{HeaderName, HeaderValue},
     response::{IntoResponse, Response},
 };
 use reqwest::StatusCode;
 use serde::Serialize;
 
-use crate::{error::WebError, VERSION};
+use crate::error::WebError;
 
 /// Query params for paginated endpoints
 #[derive(Debug, Deserialize, Default)]
@@ -51,13 +50,6 @@ where
             }
         };
 
-        let mut response = Response::new(Body::from(json));
-
-        response.headers_mut().insert(
-            HeaderName::from_static("x-defguard-version"),
-            HeaderValue::from_static(VERSION),
-        );
-
-        response
+        Response::new(Body::from(json))
     }
 }

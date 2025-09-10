@@ -1,13 +1,13 @@
 import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Network } from '../../../shared/types';
+import type { Network } from '../../../shared/types';
 
 type NetworkPageStore = {
   saveSubject: Subject<void>;
   loading: boolean;
   networks: Network[];
-  selectedNetworkId: number;
+  selectedNetworkId?: number;
   setState: (data: Partial<NetworkPageStore>) => void;
   setNetworks: (data: Network[]) => void;
 };
@@ -17,13 +17,14 @@ export const useNetworkPageStore = createWithEqualityFn<NetworkPageStore>()(
     saveSubject: new Subject(),
     loading: false,
     networks: [],
-    selectedNetworkId: 1,
+    selectedNetworkId: undefined,
     setState: (newState) => set(() => newState),
     setNetworks: (networks) => {
+      const sortedNetworks = networks.sort((a, b) => a.name.localeCompare(b.name));
       if (get().selectedNetworkId === undefined) {
-        set({ selectedNetworkId: networks[0]?.id });
+        set({ selectedNetworkId: sortedNetworks[0]?.id });
       }
-      set({ networks });
+      set({ networks: sortedNetworks });
     },
   }),
   Object.is,

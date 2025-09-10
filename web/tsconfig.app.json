@@ -24,8 +24,8 @@
     "noFallthroughCasesInSwitch": true,
     "plugins": [
       {
-        "name": "typescript-eslint-language-service",
-      },
+        "name": "typescript-eslint-language-service"
+      }
     ],
     "types": [
       "vite/client"
@@ -38,5 +38,5 @@
     "node_modules",
     "dist",
     "build"
-  ],
+  ]
 }

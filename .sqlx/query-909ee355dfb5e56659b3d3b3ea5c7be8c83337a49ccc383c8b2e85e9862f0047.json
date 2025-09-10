@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"activity_log_event\" (\"timestamp\",\"user_id\",\"username\",\"location\",\"ip\",\"event\",\"module\",\"device\",\"description\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Int8",
+        "Text",
+        "Text",
+        "Inet",
+        "Text",
+        {
+          "Custom": {
+            "name": "activity_log_module",
+            "kind": {
+              "Enum": [
+                "defguard",
+                "client",
+                "vpn",
+                "enrollment"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "909ee355dfb5e56659b3d3b3ea5c7be8c83337a49ccc383c8b2e85e9862f0047"
+}

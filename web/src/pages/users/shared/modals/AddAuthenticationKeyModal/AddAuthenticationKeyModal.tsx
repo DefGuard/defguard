@@ -15,7 +15,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { AuthenticationKeyType } from '../../../../../shared/types';
 import { AddAuthenticationKeyForm } from './components/AddAuthenticationKeyForm/AddAuthenticationKeyForm';
 import { AddAuthenticationKeyYubikey } from './components/AddAuthenticationKeyYubikey/AddAuthenticationKeyYubikey';
-import { AuthenticationKeyModalKeyType } from './types';
+import type { AuthenticationKeyModalKeyType } from './types';
 import { useAddAuthorizationKeyModal } from './useAddAuthorizationKeyModal';
 
 export const AddAuthenticationKeyModal = () => {

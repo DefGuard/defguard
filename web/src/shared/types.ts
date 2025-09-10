@@ -1,14 +1,31 @@
-import {
+import type {
   CredentialCreationOptionsJSON,
   CredentialRequestOptionsJSON,
   PublicKeyCredentialWithAssertionJSON,
   PublicKeyCredentialWithAttestationJSON,
 } from '@github/webauthn-json';
-import { AxiosError, AxiosPromise } from 'axios';
+import type { AxiosError, AxiosPromise } from 'axios';
 
-import { AclAlias, AclStatus } from '../pages/acl/types';
-import { ActivityLogEventType, ActivityLogModule } from '../pages/activity-log/types';
-import { UpdateInfo } from './hooks/store/useUpdatesStore';
+import type { AclAlias, AclStatus } from '../pages/acl/types';
+import type {
+  ActivityLogEventType,
+  ActivityLogModule,
+} from '../pages/activity-log/types';
+import type { UpdateInfo } from './hooks/store/useUpdatesStore';
+
+export type OutdatedProxy = {
+  version: string;
+};
+
+export type OutdatedGateway = {
+  version?: string;
+  hostname?: string;
+};
+
+export type OutdatedComponents = {
+  proxy?: OutdatedProxy;
+  gateways: OutdatedGateway[];
+};
 
 export type ApiError = AxiosError<ApiErrorResponse>;
 
@@ -58,12 +75,13 @@ export type UserProfile = {
   user: User;
   devices: Device[];
   security_keys: SecurityKey[];
+  biometric_enabled_devices: number[];
 };
 
 export interface OAuth2AuthorizedApps {
-  oauth2client_id: string;
+  oauth2client_id: number;
   oauth2client_name: string;
-  user_id: string;
+  user_id: number;
 }
 
 export interface SecurityKey {
@@ -115,6 +133,12 @@ export type GatewayStatus = {
   uid: string;
 };
 
+export enum LocationMfaMode {
+  DISABLED = 'disabled',
+  INTERNAL = 'internal',
+  EXTERNAL = 'external',
+}
+
 export interface Network {
   id: number;
   name: string;
@@ -127,11 +151,11 @@ export interface Network {
   allowed_ips?: string[];
   allowed_groups?: string[];
   dns?: string;
-  mfa_enabled: boolean;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;
+  location_mfa_mode: LocationMfaMode;
 }
 
 export type ModifyNetworkRequest = {
@@ -312,7 +336,7 @@ export interface RecoveryLoginRequest {
   code: string;
 }
 
-export type MFARecoveryCodesResponse = Promise<void | RecoveryCodes>;
+export type MFARecoveryCodesResponse = Promise<undefined | RecoveryCodes>;
 
 export interface VersionResponse {
   version: string;
@@ -350,6 +374,7 @@ export interface AppInfo {
   smtp_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
+  external_openid_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -504,11 +529,12 @@ export type ActivityLogEvent = {
   timestamp: string;
   user_id: number;
   username: string;
+  location?: string;
   ip: string;
   event: ActivityLogEventType;
   module: ActivityLogModule;
   device: string;
-  metadata?: unknown;
+  description?: string;
 };
 
 export type PaginationParams = {
@@ -536,6 +562,7 @@ export type ActivityLogFilters = {
   // Naive UTC datetime in string
   until?: string;
   username?: string[];
+  location?: string[];
   event?: ActivityLogEventType[];
   module?: ActivityLogModule[];
   search?: string;
@@ -544,6 +571,7 @@ export type ActivityLogFilters = {
 export type ActivityLogSortKey =
   | 'timestamp'
   | 'username'
+  | 'location'
   | 'ip'
   | 'event'
   | 'module'
@@ -597,6 +625,7 @@ export type ActivityLogStreamConfig =
 export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
 
 export type Api = {
+  getOutdatedInfo: () => Promise<OutdatedComponents>;
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
@@ -685,6 +714,7 @@ export type Api = {
       username: string;
       name: string;
     }) => EmptyApiResponse;
+    disableUserMfa: (username: string) => EmptyApiResponse;
   };
   standaloneDevice: {
     createManualDevice: (
@@ -701,7 +731,7 @@ export type Api = {
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
       data: ValidateLocationIpsRequest,
-    ) => Promise<ValidateLocationIpsResponse>;
+    ) => Promise<ValidateLocationIpsResult[]>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -1156,6 +1186,18 @@ export interface OpenIdProvider {
   directory_sync_group_match?: string;
 }
 
+export enum OpenIdSyncBehavior {
+  KEEP = 'keep',
+  DISABLE = 'disable',
+  DELETE = 'delete',
+}
+
+export enum OpenIdSyncTarget {
+  ALL = 'all',
+  USERS = 'users',
+  GROUPS = 'groups',
+}
+
 export interface EditOpenidClientRequest {
   id: string;
   name: string;
@@ -1209,7 +1251,6 @@ export enum OverviewLayoutType {
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
-  statsFilter: number;
   networks?: Network[];
   selectedNetworkId?: number;
   setState: (override: Partial<OverviewStore>) => void;
@@ -1273,7 +1314,7 @@ export interface WebAuthnRegistrationRequest {
 
 export interface RemoveUserClientRequest {
   username: string;
-  client_id: string;
+  client_id: number;
 }
 
 export interface TestMail {
@@ -1310,7 +1351,7 @@ export type ValidateLocationIpsRequest = {
   location: number | string;
 };
 
-export type ValidateLocationIpsResponse = {
+export type ValidateLocationIpsResult = {
   available: boolean;
   valid: boolean;
 };
@@ -1355,10 +1396,10 @@ export type DeviceConfigurationResponse = {
   config: string;
   endpoint: string;
   keepalive_interval: number;
-  mfa_enabled: boolean;
   network_id: number;
   network_name: string;
   pubkey: string;
+  location_mfa_mode: LocationMfaMode;
 };
 
 export type CreateStandaloneDeviceResponse = {

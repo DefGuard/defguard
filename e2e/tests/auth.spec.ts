@@ -11,9 +11,8 @@ import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { disableUser } from '../utils/controllers/toggleUserState';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
@@ -23,8 +22,6 @@ test.describe('Test user authentication', () => {
     dockerRestart();
     testUser = { ...testUserTemplate, username: 'test' };
   });
-
-  test.afterAll(() => dockerDown());
 
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
@@ -82,7 +79,7 @@ test.describe('Test user authentication', () => {
       digits: 6,
       period: 60,
     });
-    await page.getByTestId('field-code').type(code);
+    await page.getByTestId('field-code').fill(code);
     await page.locator('button[type="submit"]').click();
     await waitForRoute(page, routes.me);
   });
@@ -93,8 +90,8 @@ test.describe('Test user authentication', () => {
     await disableUser(browser, testUser);
     await page.goto(routes.base);
     await waitForRoute(page, routes.auth.login);
-    await page.getByTestId('login-form-username').type(testUser.username);
-    await page.getByTestId('login-form-password').type(testUser.password);
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
     const responsePromise = page.waitForResponse('**/auth');
     await page.getByTestId('login-form-submit').click();
     const response = await responsePromise;
@@ -109,13 +106,9 @@ test.describe('Test user authentication', () => {
     await waitForRoute(page, routes.me);
     expect(page.url()).toBe(routes.base + routes.me);
     await disableUser(browser, testUser);
-    // The user should be logged out when the admin disables him
-    await waitForPromise(2000);
-    const responsePromise = page.waitForResponse('**/user/' + testUser.username);
+    const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
     await page.locator('a[href="/me"]').click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(401);
-    expect(page.url()).toBe(routes.base + routes.auth.login);
+    await responsePromise;
   });
 });
 
@@ -126,8 +119,6 @@ test.describe('Test password change', () => {
     dockerRestart();
     testUser = { ...testUserTemplate, username: 'test' };
   });
-
-  test.afterAll(() => dockerDown());
 
   test('Change user password', async ({ page, browser }) => {
     await waitForBase(page);

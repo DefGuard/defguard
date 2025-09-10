@@ -6,7 +6,7 @@ import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout
 import { UserInitials } from '../../../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
-import { User } from '../../../../../../shared/types';
+import type { User } from '../../../../../../shared/types';
 import { UserEditButton } from '../../UserEditButton/UserEditButton';
 import { UsersListGroups } from './UsersListGroups';
 

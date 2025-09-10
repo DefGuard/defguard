@@ -36,7 +36,7 @@ export const OverviewPage = () => {
   const { LL } = useI18nContext();
   const { from: statsFilter } = useOverviewTimeSelection();
   const { networkId } = useParams();
-  const selectedNetworkId = parseInt(networkId ?? '');
+  const selectedNetworkId = parseInt(networkId ?? '', 10);
   const location = useLocation();
 
   const {
@@ -47,6 +47,8 @@ export const OverviewPage = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const { data: networkStats } = useQuery({
@@ -58,7 +60,7 @@ export const OverviewPage = () => {
       }),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
-    enabled: !isUndefined(selectedNetworkId) && !isNaN(selectedNetworkId),
+    enabled: !isUndefined(selectedNetworkId) && !Number.isNaN(selectedNetworkId),
   });
 
   const { data: overviewStats, isLoading: userStatsLoading } = useQuery({
@@ -71,7 +73,7 @@ export const OverviewPage = () => {
     enabled:
       !isUndefined(statsFilter) &&
       !isUndefined(selectedNetworkId) &&
-      !isNaN(selectedNetworkId),
+      !Number.isNaN(selectedNetworkId),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
   });
@@ -101,8 +103,9 @@ export const OverviewPage = () => {
     }
   }, [setOverViewStore, viewMode]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
-    if (isNaN(selectedNetworkId)) {
+    if (Number.isNaN(selectedNetworkId)) {
       navigate(`/admin/overview/${location.search}`, {
         replace: true,
       });

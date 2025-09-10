@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use base64::prelude::{Engine, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine};
 use bytes::Bytes;
 use reqwest::tls;
 use tokio::sync::broadcast::Receiver;
@@ -38,7 +38,7 @@ pub(super) async fn run_http_stream_task(
     };
     loop {
         tokio::select! {
-            _ = cancel_token.cancelled() => {
+            () = cancel_token.cancelled() => {
                 debug!("Activity log stream ({stream_name}) task received cancellation signal.");
                 break;
             },

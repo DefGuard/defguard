@@ -5,7 +5,7 @@ use thiserror::Error;
 use tonic::{Code, Status};
 
 use crate::{
-    db::{models::wireguard_peer_stats::WireguardPeerStats, Device, Id, User},
+    db::{Device, Id, User, WireguardNetwork, models::wireguard_peer_stats::WireguardPeerStats},
     events::GrpcRequestContext,
 };
 
@@ -43,6 +43,7 @@ pub struct ClientState {
 }
 
 impl ClientState {
+    #[must_use]
     pub fn new(
         device: Device<Id>,
         user: &User<Id>,
@@ -84,10 +85,11 @@ impl ClientState {
 /// Helper struct used to handle connected VPN clients state
 /// Clients are grouped by location ID
 type ClientPubKey = String;
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Default, Serialize, Clone)]
 pub struct ClientMap(HashMap<Id, HashMap<ClientPubKey, ClientState>>);
 
 impl ClientMap {
+    #[must_use]
     pub fn new() -> Self {
         Self(HashMap::new())
     }
@@ -119,13 +121,12 @@ impl ClientMap {
         );
 
         // initialize location map if it doesn't exist yet
-        let location_map = match self.0.get_mut(&location_id) {
-            Some(location_map) => location_map,
-            None => {
-                // initialize new map for location and immediately return a mutable reference
-                self.0.insert(location_id, HashMap::new());
-                self.0.get_mut(&location_id).unwrap()
-            }
+        let location_map = if let Some(location_map) = self.0.get_mut(&location_id) {
+            location_map
+        } else {
+            // initialize new map for location and immediately return a mutable reference
+            self.0.insert(location_id, HashMap::new());
+            self.0.get_mut(&location_id).unwrap()
         };
 
         // check if client is already connected
@@ -134,7 +135,7 @@ impl ClientMap {
                 public_key: public_key.to_string(),
                 location_id,
             });
-        };
+        }
 
         // add client state to location map
         let client_state = ClientState::new(
@@ -157,16 +158,19 @@ impl ClientMap {
     /// Returns a list of devices.
     pub fn disconnect_inactive_vpn_clients_for_location(
         &mut self,
-        location_id: Id,
-        peer_disconnect_threshold_secs: i32,
+        location: &WireguardNetwork<Id>,
     ) -> Result<Vec<(Device<Id>, GrpcRequestContext)>, ClientMapError> {
-        debug!("Disconnecting inactive VPN clients for location {location_id}");
+        debug!(
+            "Disconnecting inactive VPN clients for location {}",
+            location.id
+        );
+        let peer_disconnect_threshold_secs = location.peer_disconnect_threshold;
 
         // initialize result
         let mut disconnected_clients = Vec::new();
 
         // get client state map for given location
-        if let Some(location_map) = self.0.get_mut(&location_id) {
+        if let Some(location_map) = self.0.get_mut(&location.id) {
             let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
 
             // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
@@ -180,16 +184,22 @@ impl ClientMap {
                         client_state.endpoint.ip(),
                         client_state.device.id,
                         client_state.device.name.clone(),
+                        location.clone()
                     );
                     disconnected_clients
                         .push((client_state.device.clone(), disconnect_event_context));
 
                     return false;
-                };
+                }
                 true
             });
-        };
+        }
 
         Ok(disconnected_clients)
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }

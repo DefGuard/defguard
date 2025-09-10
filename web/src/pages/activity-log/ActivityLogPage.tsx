@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { type QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { range } from 'lodash-es';
 import { useMemo, useState } from 'react';
@@ -9,9 +9,8 @@ import Skeleton from 'react-loading-skeleton';
 import { useI18nContext } from '../../i18n/i18n-react';
 import { FilterButton } from '../../shared/components/Layout/buttons/FilterButton/FilterButton';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
-import { PageLimiter } from '../../shared/components/Layout/PageLimiter/PageLimiter';
 import { FilterGroupsModal } from '../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
-import { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
+import type { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonSize } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
@@ -20,23 +19,22 @@ import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData
 import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
-import { ActivityLogSortKey } from '../../shared/types';
+import type { ActivityLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
 import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
-  ActivityLogEventType,
+  type ActivityLogEventType,
+  type ActivityLogModule,
   activityLogEventTypeValues,
-  ActivityLogModule,
   activityLogModuleValues,
 } from './types';
 
 export const ActivityLogPage = () => {
   return (
-    <PageContainer id="activity-log-page">
-      <PageLimiter>
-        <PageContent />
-      </PageLimiter>
+    <PageContainer id="activity-log-page" withDefaultPadding>
+      <PageContent />
     </PageContainer>
   );
 };
@@ -58,7 +56,7 @@ const applySearch = (val: string): string | undefined => {
   return undefined;
 };
 
-type Filters = 'event' | 'username' | 'module';
+type Filters = 'event' | 'username' | 'module' | 'location';
 
 const PageContent = () => {
   const [activeFilters, setActiveFilters] = useState<
@@ -67,6 +65,7 @@ const PageContent = () => {
     event: [],
     module: [],
     username: [],
+    location: [],
   });
   const [searchValue, setSearchValue] = useState<string>('');
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
@@ -77,6 +76,7 @@ const PageContent = () => {
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.DESC,
   );
+  const isAdmin = useAuthStore((s) => s.user?.is_admin ?? false);
 
   const activeFiltersCount = useMemo(
     () => Object.values(activeFilters).flat().length,
@@ -89,11 +89,18 @@ const PageContent = () => {
   const {
     activityLog: { getActivityLog },
     user: { getUsers },
+    network: { getNetworks },
   } = useApi();
 
   const { data: users } = useQuery({
     queryFn: getUsers,
     queryKey: ['user'],
+    enabled: isAdmin,
+  });
+
+  const { data: locations } = useQuery({
+    queryFn: getNetworks,
+    queryKey: ['location'],
   });
 
   const queryKey = useMemo(
@@ -128,6 +135,7 @@ const PageContent = () => {
         event: applyFilterArray(activeFilters.event as ActivityLogEventType[]),
         module: applyFilterArray(activeFilters.module as ActivityLogModule[]),
         username: applyFilterArray(activeFilters.username as string[]),
+        location: applyFilterArray(activeFilters.location as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
         search: applySearch(searchValue),
@@ -146,7 +154,7 @@ const PageContent = () => {
   const filterOptions = useMemo(() => {
     const res: Record<string, FilterGroupsModalFilter> = {};
     if (users) {
-      res['users'] = {
+      res.users = {
         label: 'Users',
         identifier: 'username',
         order: 3,
@@ -157,7 +165,19 @@ const PageContent = () => {
         })),
       };
     }
-    res['module'] = {
+    if (locations) {
+      res.locations = {
+        label: 'Locations',
+        identifier: 'location',
+        order: 4,
+        items: locations.map((location) => ({
+          label: location.name,
+          searchValues: [location.name],
+          value: location.name,
+        })),
+      };
+    }
+    res.module = {
       identifier: 'module',
       label: 'Module',
       order: 2,
@@ -170,7 +190,7 @@ const PageContent = () => {
         };
       }),
     };
-    res['event'] = {
+    res.event = {
       identifier: 'event',
       label: 'Event',
       order: 1,
@@ -184,11 +204,11 @@ const PageContent = () => {
       }),
     };
     return res;
-  }, [LL.enums, users]);
+  }, [LL.enums, users, locations]);
 
   const activityData = useMemo(() => {
     if (data) {
-      return data.pages.map((page) => page.data).flat(1);
+      return data.pages.flatMap((page) => page.data);
     }
     return undefined;
   }, [data]);

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -13,7 +13,7 @@ import { QueryKeys } from '../../../../../../shared/queries';
 import { AclAliasStatus } from '../../../../types';
 import { useAclAliasDeleteBlockModal } from '../modals/AclAliasDeleteBlockModal/store';
 import { useAclAliasCEModal } from '../modals/AlcAliasCEModal/store';
-import { AclAliasListData } from '../types';
+import type { AclAliasListData } from '../types';
 
 type EditProps = {
   alias: AclAliasListData;

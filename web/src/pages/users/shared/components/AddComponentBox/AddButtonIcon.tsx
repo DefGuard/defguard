@@ -1,5 +1,5 @@
-import { motion, Variants } from 'framer-motion';
-import React from 'react';
+import { motion, type Variants } from 'motion/react';
+import type React from 'react';
 
 interface Props {
   rectVariants: Variants;

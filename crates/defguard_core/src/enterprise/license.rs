@@ -4,18 +4,22 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{types::PublicKeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
+use pgp::{
+    composed::{Deserializable, SignedPublicKey, StandaloneSignature},
+    types::{KeyDetails, PublicKeyTrait},
+};
 use prost::Message;
-use sqlx::{error::Error as SqlxError, PgPool};
+use sqlx::{PgPool, error::Error as SqlxError};
 use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
 use crate::{
-    db::{models::settings::update_current_settings, Settings},
+    VERSION,
+    db::{Settings, models::settings::update_current_settings},
     global_value,
     grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
-    server_config, VERSION,
+    server_config,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -179,7 +183,9 @@ pub enum LicenseError {
     DbError(#[from] SqlxError),
     #[error("License decoding error: {0}")]
     DecodeError(String),
-    #[error("License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net")]
+    #[error(
+        "License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net"
+    )]
     LicenseExpired,
     #[error("License not found")]
     LicenseNotFound,
@@ -202,6 +208,7 @@ pub struct License {
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
     pub limits: Option<LicenseLimits>,
+    pub version_date_limit: Option<DateTime<Utc>>,
 }
 
 impl License {
@@ -211,12 +218,14 @@ impl License {
         subscription: bool,
         valid_until: Option<DateTime<Utc>>,
         limits: Option<LicenseLimits>,
+        version_date_limit: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
             customer_id,
             subscription,
             valid_until,
             limits,
+            version_date_limit,
         }
     }
 
@@ -292,23 +301,35 @@ impl License {
                     None => None,
                 };
 
+                let version_date_limit = match metadata.version_date_limit {
+                    Some(date) => DateTime::from_timestamp(date, 0),
+                    None => None,
+                };
+
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
                     metadata.limits,
+                    version_date_limit,
                 );
 
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
-                        warn!("The provided license has expired and reached its maximum overdue time, please contact sales<at>defguard.net");
+                        warn!(
+                            "The provided license has expired and reached its maximum overdue time, please contact sales<at>defguard.net"
+                        );
                     } else {
-                        warn!("The provided license is about to expire and requires a renewal. An automatic renewal process will attempt to renew the license soon. Alternatively, automatic renewal attempt will be also performed at the next defguard start.");
+                        warn!(
+                            "The provided license is about to expire and requires a renewal. An automatic renewal process will attempt to renew the license soon. Alternatively, automatic renewal attempt will be also performed at the next defguard start."
+                        );
                     }
                 }
 
                 if !license.subscription && license.is_expired() {
-                    warn!("The provided license is not a subscription and has expired, please contact sales<at>defguard.net");
+                    warn!(
+                        "The provided license is not a subscription and has expired, please contact sales<at>defguard.net"
+                    );
                 }
 
                 Ok(license)
@@ -348,7 +369,9 @@ impl License {
                             Ok(new_key) => {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
-                                info!("Successfully renewed and loaded the license, new license key saved to the database");
+                                info!(
+                                    "Successfully renewed and loaded the license, new license key saved to the database"
+                                );
                                 Ok(Some(new_license))
                             }
                             Err(err) => {
@@ -575,11 +598,15 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                     // want to try to renew the license anymore
                     if license.is_max_overdue() {
                         check_period = *config.check_period;
-                        warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
+                        warn!(
+                            "Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net"
+                        );
                         debug!("Changing check period to {}", format_duration(check_period));
                         false
                     } else {
-                        debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
+                        debug!(
+                            "License requires renewal, as it is about to expire and is not past the maximum overdue time"
+                        );
                         true
                     }
                 } else {
@@ -610,7 +637,10 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                         info!("Successfully renewed the license");
                     }
                     Err(err) => {
-                        error!("Couldn't save the newly fetched license key to the database, error: {}", err);
+                        error!(
+                            "Couldn't save the newly fetched license key to the database, error: {}",
+                            err
+                        );
                     }
                 },
                 Err(err) => {
@@ -714,6 +744,7 @@ mod test {
             false,
             Some(Utc::now() - TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -723,11 +754,12 @@ mod test {
             false,
             Some(Utc::now() + TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License::new("test".to_string(), false, None, None);
+        let license = License::new("test".to_string(), false, None, None, None);
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
@@ -735,6 +767,7 @@ mod test {
             "test".to_string(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+            None,
             None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
@@ -745,10 +778,11 @@ mod test {
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
-        let counts = Counts::new(5, 5, 5);
+        let counts = Counts::new(5, 5, 5, 5);
 
         // Over object count limits
         let license = License::new(
@@ -759,7 +793,9 @@ mod test {
                 users: 1,
                 devices: 1,
                 locations: 1,
+                network_devices: Some(1),
             }),
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -772,7 +808,9 @@ mod test {
                 users: 10,
                 devices: 10,
                 locations: 10,
+                network_devices: Some(10),
             }),
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
     }

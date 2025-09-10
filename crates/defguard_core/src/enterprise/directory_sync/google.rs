@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, TimeDelta, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use tokio::time::sleep;
 
 use super::{
-    make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN, REQUEST_TIMEOUT,
+    DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
+    REQUEST_TIMEOUT, make_get_request, parse_response,
 };
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
@@ -105,6 +105,7 @@ impl From<User> for DirectoryUser {
         Self {
             email: val.primary_email,
             active: !val.suspended,
+            id: None,
         }
     }
 }
@@ -213,7 +214,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -263,7 +266,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -323,7 +328,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -393,7 +400,9 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
-                debug!("Found next page of results, using the following token to query it: {next_page_token}");
+                debug!(
+                    "Found next page of results, using the following token to query it: {next_page_token}"
+                );
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
@@ -417,17 +426,18 @@ impl DirectorySync for GoogleDirectorySync {
 
     async fn get_user_groups(
         &self,
-        user_id: &str,
+        user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Getting groups of user {user_id}");
-        let response = self.query_user_groups(user_id).await?;
-        debug!("Got groups response for user {user_id}");
+        debug!("Getting groups of user {user_email}");
+        let response = self.query_user_groups(user_email).await?;
+        debug!("Got groups response for user {user_email}");
         Ok(response.groups)
     }
 
     async fn get_group_members(
         &self,
         group: &DirectoryGroup,
+        _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
         debug!("Getting group members of group {}", group.name);
         let response = self.query_group_members(group).await?;

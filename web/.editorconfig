@@ -23,6 +23,7 @@ indent_size = 2
 rulers = 90
 
 [*.{json,yaml}]
+insert_final_newline = true
 indent_style = space
 indent_size = 2
 rulers = 80

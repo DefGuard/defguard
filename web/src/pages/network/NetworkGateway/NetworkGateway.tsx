@@ -31,9 +31,10 @@ export const NetworkGatewaySetup = () => {
 
   const { data: networkToken } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORK_TOKEN, selectedNetworkId],
-    queryFn: () => getNetworkToken(selectedNetworkId),
+    queryFn: () => getNetworkToken(selectedNetworkId as number),
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    enabled: Boolean(selectedNetworkId),
   });
 
   const command = useCallback(() => {
@@ -100,16 +101,14 @@ export const NetworkGatewaySetup = () => {
         </ReactMarkdown>
       </MessageBox>
       {networkToken && (
-        <>
-          <ExpandableCard
-            title={LL.gatewaySetup.card.authToken()}
-            disableExpand={true}
-            expanded={true}
-            actions={getNetworkTokenActions}
-          >
-            <p>{returnNetworkToken()}</p>
-          </ExpandableCard>
-        </>
+        <ExpandableCard
+          title={LL.gatewaySetup.card.authToken()}
+          disableExpand={true}
+          expanded={true}
+          actions={getNetworkTokenActions}
+        >
+          <p>{returnNetworkToken()}</p>
+        </ExpandableCard>
       )}
       <h3>{LL.gatewaySetup.header.dockerBasedGatewaySetup()}</h3>
       <MessageBox>
@@ -122,16 +121,14 @@ export const NetworkGatewaySetup = () => {
         </ReactMarkdown>
       </MessageBox>
       {networkToken && (
-        <>
-          <ExpandableCard
-            title={LL.gatewaySetup.card.title()}
-            disableExpand={true}
-            expanded={true}
-            actions={getActions}
-          >
-            <p>{command()}</p>
-          </ExpandableCard>
-        </>
+        <ExpandableCard
+          title={LL.gatewaySetup.card.title()}
+          disableExpand={true}
+          expanded={true}
+          actions={getActions}
+        >
+          <p>{command()}</p>
+        </ExpandableCard>
       )}
       <h3>{LL.gatewaySetup.header.fromPackage()}</h3>
       <MessageBox>

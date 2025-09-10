@@ -7,17 +7,18 @@ use struct_patch::Patch;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
+    AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::settings::{update_current_settings, SettingsEssentials, SettingsPatch},
         Settings,
+        models::settings::{SettingsEssentials, SettingsPatch, update_current_settings},
     },
     enterprise::{
-        ldap::{sync::SyncStatus, LDAPConnection},
+        ldap::{LDAPConnection, sync::SyncStatus},
         license::update_cached_license,
     },
     error::WebError,
-    AppState,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
@@ -38,25 +39,34 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         });
     }
     debug!("Retrieved settings");
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::default())
 }
 
 pub async fn update_settings(
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Json(data): Json<Settings>,
+    Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
 
+    // fetch current settings for event
+    let before = Settings::get_current_settings();
+
     update_cached_license(data.license.as_deref())?;
+    data.uuid = before.uuid;
     data.validate()?;
+    // clone for event
+    let after = data.clone();
+
     update_current_settings(&appstate.pool, data).await?;
 
     info!("User {} updated settings", session.user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::SettingsUpdated { before, after }),
+    })?;
 
     Ok(ApiResponse::default())
 }
@@ -84,6 +94,7 @@ pub async fn set_default_branding(
     State(appstate): State<AppState>,
     Path(_id): Path<i64>, // TODO: check with front-end and remove.
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} restoring default branding settings",
@@ -100,6 +111,10 @@ pub async fn set_default_branding(
                 "User {} restored default branding settings",
                 session.user.username
             );
+            appstate.emit_event(ApiEvent {
+                context,
+                event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
+            })?;
             Ok(ApiResponse {
                 json: json!(settings),
                 status: StatusCode::OK,
@@ -113,6 +128,7 @@ pub async fn patch_settings(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
     debug!(
@@ -120,6 +136,8 @@ pub async fn patch_settings(
         session.user.username
     );
     let mut settings = Settings::get_current_settings();
+    // prepare clone for emitting an event
+    let before = settings.clone();
 
     // Handle updating the cached license
     if let Some(license_key) = &data.license {
@@ -147,9 +165,15 @@ pub async fn patch_settings(
 
     settings.apply(data);
     settings.validate()?;
+    // clone for event
+    let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
 
     info!("Admin {} patched settings.", session.user.username);
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::SettingsUpdatedPartial { before, after }),
+    })?;
     Ok(ApiResponse::default())
 }
 

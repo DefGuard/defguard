@@ -1,4 +1,3 @@
-mod client_state;
 use std::{
     net::{IpAddr, SocketAddr},
     pin::Pin,
@@ -8,32 +7,39 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use defguard_version::version_info_from_metadata;
+use semver::Version;
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, error::SendError, Receiver, UnboundedSender},
+        mpsc::{self, Receiver, UnboundedSender, error::SendError},
     },
     task::JoinHandle,
-    time::{interval, Duration},
+    time::{Duration, interval},
 };
 use tokio_stream::Stream;
-use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
+use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
-use super::{proto::enterprise::firewall::FirewallConfig, GatewayMap};
+use self::map::GatewayMap;
+use super::proto::enterprise::firewall::FirewallConfig;
 pub use crate::grpc::proto::gateway::{
-    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
-    PeerStats, StatsUpdate, Update,
+    Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
+    gateway_service_server, stats_update, update,
 };
 use crate::{
     db::{
-        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId, User,
+        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
+
+pub mod client_state;
+pub mod map;
+pub(crate) mod state;
 
 const PEER_DISCONNECT_INTERVAL: u64 = 60;
 
@@ -57,8 +63,8 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
-#[derive(Debug, Error)]
 #[allow(clippy::large_enum_variant)]
+#[derive(Debug, Error)]
 pub enum GatewayServerError {
     #[error("Failed to acquire lock on VPN client state map")]
     ClientStateMutexError,
@@ -106,7 +112,7 @@ impl WireguardNetwork<Id> {
             AND u.is_active = true \
             ORDER BY d.id ASC",
             self.id,
-            self.mfa_enabled
+            self.mfa_enabled()
         )
         .fetch_all(executor)
         .await?;
@@ -118,7 +124,14 @@ impl WireguardNetwork<Id> {
             .map(|row| Peer {
                 pubkey: row.pubkey,
                 allowed_ips: row.allowed_ips,
-                preshared_key: row.preshared_key,
+                // Don't send preshared key if MFA is not enabled, it can't be used and may
+                // cause issues with clients connecting if they expect no preshared key
+                // e.g. when you disable MFA on a location
+                preshared_key: if self.mfa_enabled() {
+                    row.preshared_key
+                } else {
+                    None
+                },
                 keepalive_interval: Some(self.keepalive_interval as u32),
             })
             .collect();
@@ -127,20 +140,29 @@ impl WireguardNetwork<Id> {
     }
 }
 
+/// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
+struct GatewayMetadata {
+    network_id: Id,
+    hostname: String,
+    version: Version,
+    // info: String,
+}
+
 impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
     pub fn new(
         pool: PgPool,
-        state: Arc<Mutex<GatewayMap>>,
+        gateway_state: Arc<Mutex<GatewayMap>>,
+        client_state: Arc<Mutex<ClientMap>>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         grpc_event_tx: UnboundedSender<GrpcEvent>,
     ) -> Self {
         Self {
             pool,
-            gateway_state: state,
-            client_state: Arc::new(Mutex::new(ClientMap::new())),
+            gateway_state,
+            client_state,
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
@@ -158,10 +180,10 @@ impl GatewayServer {
     }
 
     // parse network id from gateway request metadata from intercepted information from JWT token
-    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
+    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
         if let Some(ascii_value) = metadata.get("gateway_network_id") {
             if let Ok(slice) = ascii_value.clone().to_str() {
-                if let Ok(id) = slice.parse::<i64>() {
+                if let Ok(id) = slice.parse::<Id>() {
                     return Some(id);
                 }
             }
@@ -275,6 +297,16 @@ impl GatewayServer {
         };
 
         Ok(user)
+    }
+
+    /// Utility function extracting metadata fields during gRPC communication.
+    fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
+        let (version, _info) = version_info_from_metadata(metadata);
+        Ok(GatewayMetadata {
+            network_id: Self::get_network_id(metadata)?,
+            hostname: Self::get_gateway_hostname(metadata)?,
+            version,
+        })
     }
 }
 
@@ -393,10 +425,11 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
-                            if self.network.mfa_enabled && !network_info.is_authorized {
-                                debug!("Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, self.network.name
-                            );
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
+                                debug!(
+                                    "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
                                 continue;
                             }
                             self.send_peer_update(
@@ -427,10 +460,11 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
-                            if self.network.mfa_enabled && !network_info.is_authorized {
-                                debug!("Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, self.network.name
-                            );
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
+                                debug!(
+                                    "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
                                 continue;
                             }
                             self.send_peer_update(
@@ -515,11 +549,7 @@ impl GatewayUpdatesHandler {
         {
             let msg = format!(
                 "Failed to send network update, network {network}, update type: {update_type} ({}), error: {err}",
-                if update_type == 0 {
-                    "CREATE"
-                } else {
-                    "MODIFY"
-                },
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -574,11 +604,7 @@ impl GatewayUpdatesHandler {
             let msg = format!(
                 "Failed to send peer update for network {}, update type: {update_type} ({}), error: {err}",
                 self.network,
-                if update_type == 0 {
-                    "CREATE"
-                } else {
-                    "MODIFY"
-                },
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -727,13 +753,20 @@ impl gateway_service_server::GatewayService for GatewayServer {
         &self,
         request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
-        let network_id = Self::get_network_id(request.metadata())?;
-        let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            ..
+        } = Self::extract_metadata(request.metadata())?;
         let mut stream = request.into_inner();
         let mut disconnect_timer = interval(Duration::from_secs(PEER_DISCONNECT_INTERVAL));
-
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_stats", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
         loop {
-            // wait for a message or update client map at least once a mninute if no messages are received
+            // Wait for a message or update client map at least once a mninute, if no messages are
+            // received.
             let stats_update = tokio::select! {
                 message = stream.message() => {
                     match message? {
@@ -742,7 +775,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     }
                 }
                 _ = disconnect_timer.tick() => {
-                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. Updating disconnected VPN clients");
+                    debug!("No stats updates received in last {PEER_DISCONNECT_INTERVAL} seconds. \
+                        Updating disconnected VPN clients");
                     // fetch location to get current peer disconnect threshold
                     let location = self.fetch_location_from_db(network_id).await?;
 
@@ -752,9 +786,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                         let mut client_map = self.get_client_state_guard()?;
 
                         // disconnect inactive clients
-                        client_map.disconnect_inactive_vpn_clients_for_location(
-                            network_id,
-                            location.peer_disconnect_threshold,
+                        client_map.disconnect_inactive_vpn_clients_for_location(&location
                         )?
                     };
 
@@ -787,7 +819,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // TODO: cache usernames since they don't change
             let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
             let location = self.fetch_location_from_db(network_id).await?;
-            let peer_disconnect_threshold = location.peer_disconnect_threshold;
 
             // convert stats to DB storage format
             let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
@@ -830,7 +861,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 // mark new VPN client as connected
                                 client_map.connect_vpn_client(
                                     network_id,
-                                    &gateway_hostname,
+                                    &hostname,
                                     &public_key,
                                     &device,
                                     &user,
@@ -845,6 +876,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                     socket_addr.ip(),
                                     device.id,
                                     device.name.clone(),
+                                    location.clone(),
                                 );
                                 self.emit_event(GrpcEvent::ClientConnected {
                                     context,
@@ -853,13 +885,10 @@ impl gateway_service_server::GatewayService for GatewayServer {
                                 })?;
                             }
                         }
-                    };
+                    }
 
                     // disconnect inactive clients
-                    client_map.disconnect_inactive_vpn_clients_for_location(
-                        network_id,
-                        peer_disconnect_threshold,
-                    )?
+                    client_map.disconnect_inactive_vpn_clients_for_location(&location)?
                 };
 
                 // emit client disconnect events
@@ -895,8 +924,17 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<ConfigurationRequest>,
     ) -> Result<Response<Configuration>, Status> {
         debug!("Sending configuration to gateway client.");
-        let network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            version,
+            ..
+            // info,
+        } = Self::extract_metadata(request.metadata())?;
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_config", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
 
         let mut conn = self.pool.acquire().await.map_err(|e| {
             error!("Failed to acquire DB connection: {e}");
@@ -930,6 +968,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 hostname,
                 request.into_inner().name,
                 self.mail_tx.clone(),
+                version,
             );
         }
 
@@ -967,22 +1006,30 @@ impl gateway_service_server::GatewayService for GatewayServer {
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-        let gateway_network_id = Self::get_network_id(request.metadata())?;
-        let hostname = Self::get_gateway_hostname(request.metadata())?;
+        let GatewayMetadata {
+            network_id,
+            hostname,
+            ..
+            // info,
+        } = Self::extract_metadata(request.metadata())?;
+        // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
+        // let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
+        //     version = version.to_string(), info);
+        // let _guard = span.enter();
 
-        let Some(network) = WireguardNetwork::find_by_id(&self.pool, gateway_network_id)
+        let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)
             .await
             .map_err(|_| {
-                error!("Failed to fetch network {gateway_network_id} from the database");
+                error!("Failed to fetch network {network_id} from the database");
                 Status::new(
                     Code::Internal,
-                    format!("Failed to retrieve network {gateway_network_id} from the database"),
+                    format!("Failed to retrieve network {network_id} from the database"),
                 )
             })?
         else {
             return Err(Status::new(
                 Code::Internal,
-                format!("Network with id {gateway_network_id} not found"),
+                format!("Network with id {network_id} not found"),
             ));
         };
 
@@ -992,32 +1039,27 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.gateway_state.lock().unwrap();
         state
-            .connect_gateway(gateway_network_id, &hostname, &self.pool)
+            .connect_gateway(network_id, &hostname, &self.pool)
             .map_err(|err| {
-                error!("Failed to connect gateway on network {gateway_network_id}: {err}");
+                error!("Failed to connect gateway on network {network_id}: {err}");
                 Status::new(
                     Code::Internal,
-                    "Failed to connect gateway on network {gateway_network_id}",
+                    format!("Failed to connect gateway on network {network_id}"),
                 )
             })?;
 
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
         let handle = tokio::spawn(async move {
-            let mut update_handler = GatewayUpdatesHandler::new(
-                gateway_network_id,
-                network,
-                gateway_hostname,
-                events_rx,
-                tx,
-            );
+            let mut update_handler =
+                GatewayUpdatesHandler::new(network_id, network, gateway_hostname, events_rx, tx);
             update_handler.run().await;
         });
 
         Ok(Response::new(GatewayUpdatesStream::new(
             handle,
             rx,
-            gateway_network_id,
+            network_id,
             hostname,
             Arc::clone(&self.gateway_state),
             self.pool.clone(),

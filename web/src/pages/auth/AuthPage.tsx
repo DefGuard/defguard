@@ -72,6 +72,7 @@ export const AuthPage = () => {
     }
   }, [mfaMethod, navigate, openIdParams, user]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     const sub = loginSubject.subscribe(async ({ user, url, mfa }): Promise<void> => {
@@ -92,7 +93,7 @@ export const AuthPage = () => {
       }
 
       // application already had consent from user
-      if (url && url.length && user) {
+      if (url?.length && user) {
         setShowRedirect(true);
         resetMFAStore();
         window.location.replace(url);

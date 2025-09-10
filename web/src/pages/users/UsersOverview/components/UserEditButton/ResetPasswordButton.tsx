@@ -6,7 +6,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
-import { User } from '../../../../../shared/types';
+import type { User } from '../../../../../shared/types';
 
 type Props = {
   user: User;

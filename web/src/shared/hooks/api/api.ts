@@ -1,7 +1,7 @@
-import { Axios, AxiosResponse } from 'axios';
+import type { Axios, AxiosResponse } from 'axios';
 
 import { getNetworkStatsFilterValue } from '../../../pages/overview/helpers/stats';
-import {
+import type {
   AddDeviceResponse,
   AddOpenidClientRequest,
   AddUserRequest,
@@ -20,8 +20,8 @@ import {
   MFALoginResponse,
   Network,
   NetworkToken,
-  OpenidClient,
   OpenIdInfo,
+  OpenidClient,
   Provisioner,
   RemoveUserClientRequest,
   ResetPasswordRequest,
@@ -39,60 +39,61 @@ import {
   WorkerJobStatus,
   WorkerToken,
 } from '../../types';
-import { UpdateInfo } from '../store/useUpdatesStore';
+import type { UpdateInfo } from '../store/useUpdatesStore';
 
 const unpackRequest = <T>(res: AxiosResponse<T>): T => res.data;
 
 export const buildApi = (client: Axios): Api => {
-  const addUser = async (data: AddUserRequest) => {
-    return client.post<User>(`/user`, data).then(unpackRequest);
-  };
+  const getOutdatedInfo = () => client.get(`/outdated`).then(unpackRequest);
+
+  const addUser = (data: AddUserRequest) =>
+    client.post<User>(`/user`, data).then(unpackRequest);
 
   const getMe = () => client.get<User>(`/me`).then(unpackRequest);
 
-  const getUser: Api['user']['getUser'] = async (username) =>
+  const getUser: Api['user']['getUser'] = (username) =>
     client.get<UserProfile>(`/user/${username}`).then(unpackRequest);
 
-  const editUser = async ({ username, data }: UserEditRequest) =>
+  const editUser = ({ username, data }: UserEditRequest) =>
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
 
-  const deleteUser = async (user: User) =>
+  const deleteUser = (user: User) =>
     client.delete<EmptyApiResponse>(`/user/${user.username}`).then(unpackRequest);
 
-  const fetchDevices = async () => client.get<Device[]>(`/device`).then(unpackRequest);
+  const fetchDevices = () => client.get<Device[]>(`/device`).then(unpackRequest);
 
-  const fetchDevice = async (id: string) =>
+  const fetchDevice = (id: string) =>
     client.get<Device>(`/device/${id}`).then(unpackRequest);
 
   const getUsers = () => client.get('/user').then(unpackRequest);
 
-  const downloadDeviceConfig: Api['device']['downloadDeviceConfig'] = async (data) =>
+  const downloadDeviceConfig: Api['device']['downloadDeviceConfig'] = (data) =>
     client
       .get<string>(`/network/${data.network_id}/device/${data.device_id}/config`)
       .then(unpackRequest);
 
-  const modifyDevice = async (device: Device) =>
+  const modifyDevice = (device: Device) =>
     client.put<Device>(`/device/${device.id}`, device).then(unpackRequest);
 
-  const deleteDevice = async (device: Device) =>
+  const deleteDevice = (device: Device) =>
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
-  const addDevice: Api['device']['addDevice'] = async ({ username, ...rest }) =>
+  const addDevice: Api['device']['addDevice'] = ({ username, ...rest }) =>
     client.post<AddDeviceResponse>(`/device/${username}`, rest).then(unpackRequest);
 
-  const fetchUserDevices = async (username: string) =>
+  const fetchUserDevices = (username: string) =>
     client.get<Device[]>(`/device/user/${username}`).then(unpackRequest);
 
-  const fetchNetworks = async () => client.get<Network[]>(`/network`).then(unpackRequest);
+  const fetchNetworks = () => client.get<Network[]>(`/network`).then(unpackRequest);
 
-  const fetchNetwork = async (id: number) =>
+  const fetchNetwork = (id: number) =>
     client.get<Network>(`/network/${id}`).then(unpackRequest);
 
   // For now there is only one network
-  const modifyNetwork: Api['network']['editNetwork'] = async (data) =>
+  const modifyNetwork: Api['network']['editNetwork'] = (data) =>
     client.put<Network>(`/network/${data.id}`, data.network).then(unpackRequest);
 
-  const deleteNetwork: Api['network']['deleteNetwork'] = async (id) =>
+  const deleteNetwork: Api['network']['deleteNetwork'] = (id) =>
     client.delete<EmptyApiResponse>(`/network/${id}`);
 
   const addNetwork: Api['network']['addNetwork'] = (network) =>
@@ -172,39 +173,39 @@ export const buildApi = (client: Axios): Api => {
   const changeWebhookState = ({ id, ...rest }: changeWebhookStateRequest) =>
     client.post<EmptyApiResponse>(`/webhook/${id}`, rest);
 
-  const addWebhook: Api['webhook']['addWebhook'] = async (data) => {
+  const addWebhook: Api['webhook']['addWebhook'] = (data) => {
     return client.post<EmptyApiResponse>('/webhook', data);
   };
-  const editWebhook: Api['webhook']['editWebhook'] = async ({ id, ...rest }) => {
+  const editWebhook: Api['webhook']['editWebhook'] = ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
   const getOpenidClients = () => client.get('/oauth').then(unpackRequest);
 
-  const getOpenidClient = async (client_id: string) =>
+  const getOpenidClient = (client_id: string) =>
     client.get<OpenidClient>(`/oauth/${client_id}`).then(unpackRequest);
 
-  const addOpenidClient = async (data: AddOpenidClientRequest) => {
+  const addOpenidClient = (data: AddOpenidClientRequest) => {
     return client.post<EmptyApiResponse>('/oauth', data);
   };
-  const editOpenidClient = async ({ client_id, ...rest }: EditOpenidClientRequest) => {
+  const editOpenidClient = ({ client_id, ...rest }: EditOpenidClientRequest) => {
     return client.put<EmptyApiResponse>(`/oauth/${client_id}`, rest);
   };
-  const changeOpenidClientState = async ({
+  const changeOpenidClientState = ({
     clientId,
     ...rest
   }: ChangeOpenidClientStateRequest) => {
     return client.post<EmptyApiResponse>(`/oauth/${clientId}`, rest);
   };
-  const deleteOpenidClient = async (id: string) =>
+  const deleteOpenidClient = (id: string) =>
     client.delete<EmptyApiResponse>(`/oauth/${id}`).then(unpackRequest);
 
-  const verifyOpenidClient = async (data: VerifyOpenidClientRequest) =>
+  const verifyOpenidClient = (data: VerifyOpenidClientRequest) =>
     client.post('openid/verify', data);
 
-  const getUserClients = async (username: string) =>
+  const getUserClients = (username: string) =>
     client.get<AuthorizedClient[]>(`/oauth/apps/${username}`).then(unpackRequest);
 
-  const removeUserClient = async (data: RemoveUserClientRequest) =>
+  const removeUserClient = (data: RemoveUserClientRequest) =>
     client
       .delete<EmptyApiResponse>(`/user/${data.username}/oauth_app/${data.client_id}`)
       .then(unpackRequest);
@@ -305,10 +306,10 @@ export const buildApi = (client: Axios): Api => {
   const setDefaultBranding: Api['settings']['setDefaultBranding'] = (id: string) =>
     client.put(`/settings/${id}`).then(unpackRequest);
 
-  const downloadSupportData: Api['support']['downloadSupportData'] = async () =>
+  const downloadSupportData: Api['support']['downloadSupportData'] = () =>
     client.get<unknown>(`/support/configuration`).then(unpackRequest);
 
-  const downloadLogs: Api['support']['downloadLogs'] = async () =>
+  const downloadLogs: Api['support']['downloadLogs'] = () =>
     client.get<string>(`/support/logs`).then(unpackRequest);
 
   const getGatewaysStatus: Api['network']['getGatewaysStatus'] = (networkId) =>
@@ -371,6 +372,9 @@ export const buildApi = (client: Axios): Api => {
   const deleteApiToken: Api['user']['deleteApiToken'] = (data) =>
     client.delete(`/user/${data.username}/api_token/${data.id}`).then(unpackRequest);
 
+  const disableUserMfa: Api['user']['disableUserMfa'] = (username) =>
+    client.delete(`/user/${username}/mfa`).then(unpackRequest);
+
   const patchSettings: Api['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -423,7 +427,7 @@ export const buildApi = (client: Axios): Api => {
 
   const getNewVersion: Api['getNewVersion'] = () =>
     client.get('/updates').then((res) => {
-      if (res.status === 204) {
+      if (res.data === null) {
         return null;
       }
       return res.data as UpdateInfo;
@@ -542,6 +546,7 @@ export const buildApi = (client: Axios): Api => {
   ) => client.delete(`/activity_log_stream/${id}`).then(unpackRequest);
 
   return {
+    getOutdatedInfo,
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
@@ -620,6 +625,7 @@ export const buildApi = (client: Axios): Api => {
       addApiToken,
       deleteApiToken,
       renameApiToken,
+      disableUserMfa,
     },
     device: {
       addDevice: addDevice,

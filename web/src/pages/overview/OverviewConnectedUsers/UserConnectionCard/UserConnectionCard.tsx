@@ -3,8 +3,8 @@ import './style.scss';
 
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import { motion } from 'framer-motion';
 import { sumBy } from 'lodash-es';
+import { motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { timer } from 'rxjs';
@@ -20,21 +20,21 @@ import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/D
 import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/NetworkSpeed';
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
-import {
+import type {
   NetworkDeviceStats,
   NetworkUserStats,
   StandaloneDeviceStats,
 } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import {
-  summarizeDevicesStats,
   summarizeDeviceStats,
+  summarizeDevicesStats,
   summarizeUsersNetworkStats,
 } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 import { formatConnectionTime } from './formatConnectionTime';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 
 type DeviceConnectionCardProps = {
   data: StandaloneDeviceStats;
@@ -242,6 +242,7 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
     return LL.common.noData();
   }, [connectedAt, LL.common]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intended
   useEffect(() => {
     const interval = 60 * 1000;
     const sub = timer(0, interval).subscribe(() => {

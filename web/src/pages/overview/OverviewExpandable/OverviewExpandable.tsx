@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 type Props = {
   children?: ReactNode;

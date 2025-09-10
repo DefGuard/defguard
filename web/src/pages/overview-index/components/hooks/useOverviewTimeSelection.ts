@@ -7,8 +7,8 @@ export const useOverviewTimeSelection = () => {
   const fromValue = useMemo((): number => {
     const searchValue = searchParams.get('from');
     if (searchValue) {
-      const parsed = parseInt(searchValue);
-      if (parsed && !isNaN(parsed)) {
+      const parsed = parseInt(searchValue, 10);
+      if (parsed && !Number.isNaN(parsed)) {
         return parsed;
       }
     }

@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { StartEnrollmentResponse, User } from '../../../../../../shared/types';
+import type { StartEnrollmentResponse, User } from '../../../../../../shared/types';
 
 const defaultValues: StoreValues = {
   visible: false,

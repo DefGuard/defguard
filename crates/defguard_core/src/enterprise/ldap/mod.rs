@@ -2,15 +2,15 @@ use std::{collections::HashSet, future::Future};
 
 #[cfg(not(test))]
 use ldap3::Ldap;
-use ldap3::{ldap_escape, Mod, SearchEntry};
+use ldap3::{Mod, SearchEntry, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
-use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncStatus};
+use sync::{SyncStatus, get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
 use crate::{
-    db::{self, models::settings::update_current_settings, Id, Settings, User},
+    db::{self, Id, Settings, User, models::settings::update_current_settings},
     enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
 };
 
@@ -48,7 +48,9 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     }
 
     if !is_enterprise_enabled() {
-        info!("Enterprise features are disabled, not performing LDAP sync and automatically disabling it");
+        info!(
+            "Enterprise features are disabled, not performing LDAP sync and automatically disabling it"
+        );
         settings.ldap_sync_enabled = false;
         update_current_settings(pool, settings).await?;
         return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
@@ -58,7 +60,9 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         info!("LDAP is considered to be desynced, doing a full sync");
     } else {
         info!("Ldap is not considered to be desynced, doing an incremental sync");
-        debug!("Because of incremental sync, LDAP authority will be selected to pull changes from LDAP");
+        debug!(
+            "Because of incremental sync, LDAP authority will be selected to pull changes from LDAP"
+        );
     }
 
     let mut ldap_connection = match LDAPConnection::create().await {
@@ -111,7 +115,7 @@ where
         Err(e) => {
             warn!("Encountered an error while performing LDAP operation: {e:?}");
             if let Err(status_err) = set_ldap_sync_status(SyncStatus::OutOfSync, pool).await {
-                warn!("Failed to update LDAP sync status: {:?}", status_err);
+                warn!("Failed to update LDAP sync status: {status_err:?}");
             }
 
             Err(e)
@@ -232,7 +236,7 @@ impl LDAPConfig {
     #[must_use]
     pub(crate) fn get_all_user_obj_classes(&self) -> Vec<String> {
         let mut obj_classes = vec![self.ldap_user_obj_class.clone()];
-        obj_classes.extend(self.ldap_user_auxiliary_obj_classes.to_vec());
+        obj_classes.extend(self.ldap_user_auxiliary_obj_classes.clone());
         obj_classes
     }
 
@@ -243,7 +247,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .is_none_or(|rdn| rdn == self.ldap_username_attr || rdn.is_empty())
+            .is_none_or(|rdn| rdn.eq_ignore_ascii_case(&self.ldap_username_attr) || rdn.is_empty())
     }
 }
 
@@ -385,7 +389,6 @@ impl LDAPConnection {
                 );
                 self.sync_user_data(user, pool).await?;
                 debug!("User {user} data synchronized");
-                continue;
             }
         }
 
@@ -626,7 +629,7 @@ impl LDAPConnection {
             user.as_ldap_attrs(
                 &ssha_password,
                 &nt_password,
-                user_obj_classes.iter().map(|s| s.as_str()).collect(),
+                user_obj_classes.iter().map(String::as_str).collect(),
                 self.config.ldap_uses_ad,
                 &username_attr,
                 &rdn_attr,
@@ -692,7 +695,7 @@ impl LDAPConnection {
             .attrs
             .get(&self.config.ldap_groupname_attr)
             .and_then(|v| v.first())
-            .map(|name| name.to_string())
+            .map(ToString::to_string)
             .ok_or_else(|| {
                 LdapError::ObjectNotFound(format!(
                     "Couldn't extract a group name from searchentry {entry:?}."
@@ -793,9 +796,9 @@ impl LDAPConnection {
             }
 
             if mods.is_empty() {
-                return Err(LdapError::MissingSettings(
-                    format!("Can't set password as no password object class has been defined for the user {user}."),
-                ));
+                return Err(LdapError::MissingSettings(format!(
+                    "Can't set password as no password object class has been defined for the user {user}."
+                )));
             }
 
             self.modify(&user_dn, &user_dn, mods).await?;
@@ -826,7 +829,7 @@ impl LDAPConnection {
             .map(|member| self.config.user_dn_from_user(member))
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();
-        let member_refs: HashSet<&str> = member_dns.iter().map(|s| s.as_str()).collect();
+        let member_refs: HashSet<&str> = member_dns.iter().map(String::as_str).collect();
 
         for member_ref in member_refs {
             group_attrs.push((member_group_attr.as_str(), hashset![member_ref]));
@@ -838,7 +841,7 @@ impl LDAPConnection {
             group_name,
             member_dns
                 .iter()
-                .map(|dn| dn.as_str())
+                .map(String::as_str)
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -899,11 +902,7 @@ impl LDAPConnection {
             debug!("User {user} is already a member of group {groupname}, skipping");
             return Ok(());
         }
-        if !self.group_exists(groupname).await? {
-            debug!("Group {groupname} doesn't exist in LDAP, creating it");
-            self.add_group_with_members(groupname, vec![user]).await?;
-            debug!("Group {groupname} created and member added in LDAP");
-        } else {
+        if self.group_exists(groupname).await? {
             debug!("Group {groupname} exists in LDAP, adding user {user} to it");
             let group_dn = self.config.group_dn(groupname);
             self.modify(
@@ -916,6 +915,10 @@ impl LDAPConnection {
             )
             .await?;
             debug!("Added user {user} to group {groupname} in LDAP");
+        } else {
+            debug!("Group {groupname} doesn't exist in LDAP, creating it");
+            self.add_group_with_members(groupname, vec![user]).await?;
+            debug!("Group {groupname} created and member added in LDAP");
         }
         info!("Added user {user} to group {groupname} in LDAP");
         Ok(())

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -19,12 +19,12 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
-import { ImportNetworkRequest } from '../../../../shared/types';
+import type { ImportNetworkRequest } from '../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { validateIpOrDomain } from '../../../../shared/validators';
@@ -65,13 +65,14 @@ export const WizardNetworkImport = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, LL.form.error.required()),
+        name: z.string().trim().min(1, LL.form.error.required()),
         endpoint: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
-        fileName: z.string().min(1, LL.form.error.required()),
-        config: z.string().min(1, LL.form.error.required()),
+        fileName: z.string().trim().min(1, LL.form.error.required()),
+        config: z.string().trim().min(1, LL.form.error.required()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
       }),
     [LL.form.error],
@@ -173,6 +174,7 @@ export const WizardNetworkImport = () => {
     queryFn: getGroups,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (fetchGroupsError) {
       toaster.error(LL.messages.error());

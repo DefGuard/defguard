@@ -4,7 +4,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
 import { useCallback, useRef, useState } from 'react';
 
-import { ListCellTag } from '../../../../pages/acl/AclIndexPage/components/shared/types';
+import type { ListCellTag } from '../../../../pages/acl/AclIndexPage/components/shared/types';
 import { FloatingMenu } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
 import { FloatingMenuProvider } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenuProvider';
 import { FloatingMenuTrigger } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenuTrigger';

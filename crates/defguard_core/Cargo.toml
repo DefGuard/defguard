@@ -1,6 +1,6 @@
 [package]
 name = "defguard_core"
-version = "1.4.1"
+version = "1.5.0"
 edition.workspace = true
 license-file.workspace = true
 homepage.workspace = true
@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 # internal crates
 defguard_web_ui = { workspace = true }
+defguard_version = { workspace = true }
 model_derive = { workspace = true }
 
 # external dependencies
@@ -22,7 +23,6 @@ base32 = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
-dotenvy = { workspace = true }
 humantime = { workspace = true }
 # match version used by sqlx
 ipnetwork = { workspace = true }
@@ -37,11 +37,10 @@ openidconnect = { version = "4.0", default-features = false, optional = true, fe
 parse_link_header = { workspace = true }
 paste = { workspace = true }
 pgp = { workspace = true }
-prost = { workspace = true }
+prost = "0.14"
 pulldown-cmark = { workspace = true }
 # match version used by sqlx
 rand = { workspace = true }
-rand_core = { workspace = true }
 reqwest = { workspace = true }
 rsa = { workspace = true }
 rust-ini = { workspace = true }
@@ -66,10 +65,10 @@ tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tonic = { workspace = true }
 tonic-health = { workspace = true }
+tonic-prost = "0.14"
 totp-lite = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 trait-variant = { workspace = true }
 uaparser = { workspace = true }
 # openapi
@@ -83,14 +82,13 @@ x25519-dalek = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 bytes = { workspace = true }
-
-# https://github.com/juhaku/utoipa/issues/1345
-[dependencies.zip]
-version = "=2.4.2"
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+tower = "0.5"
 
 [dev-dependencies]
 bytes = "1.6"
 claims = "0.8"
+hyper-util = "0.1"
 matches = "0.1"
 regex = "1.10"
 reqwest = { version = "0.12", features = [
@@ -100,12 +98,12 @@ reqwest = { version = "0.12", features = [
     "rustls-tls",
     "stream",
 ], default-features = false }
-serde_qs = "0.13"
+serde_qs = "0.15"
+tower = "0.5"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
-prost-build = "0.13"
-tonic-build = "0.12"
+tonic-prost-build = "0.14"
 vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]

@@ -19,7 +19,7 @@ import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/N
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
-import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
+import type { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { summarizeDevicesStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 

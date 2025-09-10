@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -58,6 +58,7 @@ const ModalContent = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .min(4, LL.form.error.minimumLength()),
       }),

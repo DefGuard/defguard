@@ -141,17 +141,15 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               disabled={isLoading}
             />
             {providerName === 'Microsoft' ? (
-              <>
-                <FormInput
-                  controller={{ control, name: 'directory_sync_group_match' }}
-                  label={localLL.form.labels.group_match.label()}
-                  disabled={isLoading}
-                  labelExtras={
-                    <Helper>{parse(localLL.form.labels.group_match.helper())}</Helper>
-                  }
-                  required={false}
-                ></FormInput>
-              </>
+              <FormInput
+                controller={{ control, name: 'directory_sync_group_match' }}
+                label={localLL.form.labels.group_match.label()}
+                disabled={isLoading}
+                labelExtras={
+                  <Helper>{parse(localLL.form.labels.group_match.helper())}</Helper>
+                }
+                required={false}
+              ></FormInput>
             ) : null}
             {providerName === 'Okta' ? (
               <>
@@ -174,6 +172,18 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
                   required={dirsyncEnabled}
                 />
               </>
+            ) : null}
+            {providerName === 'JumpCloud' ? (
+              <FormInput
+                controller={{ control, name: 'jumpcloud_api_key' }}
+                label={localLL.form.labels.jumpcloud_api_key.label()}
+                disabled={isLoading}
+                labelExtras={
+                  <Helper>{parse(localLL.form.labels.jumpcloud_api_key.helper())}</Helper>
+                }
+                required={dirsyncEnabled}
+                type="password"
+              />
             ) : null}
             {providerName === 'Google' ? (
               <>

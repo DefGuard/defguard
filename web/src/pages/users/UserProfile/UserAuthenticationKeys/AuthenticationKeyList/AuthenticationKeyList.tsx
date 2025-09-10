@@ -1,13 +1,13 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { groupBy, isUndefined } from 'lodash-es';
+import { groupBy, isUndefined, sortBy } from 'lodash-es';
 import { Fragment, useMemo } from 'react';
 
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../shared/queries';
-import { AuthenticationKey } from '../../../../../shared/types';
+import type { AuthenticationKey } from '../../../../../shared/types';
 import { AuthenticationKeyItem } from './AuthenticationKeyItem/AuthenticationKeyItem';
 import { AuthenticationKeyItemYubikey } from './AuthenticationKeyItemYubiKey/AuthenticationKeyItemYubiKey';
 
@@ -70,20 +70,11 @@ export const AuthenticationKeyList = () => {
           },
         });
       });
-
-      // sort out by names desc
-      const res = [...yubikeys, ...standAlone].sort((a, b) => {
-        const nameA = a.yubikey?.yubikey_name || a.key?.name || '';
-        const nameB = b.yubikey?.yubikey_name || b.key?.name || '';
-        if (nameA > nameB) {
-          return -1;
-        }
-        if (nameA < nameB) {
-          return 1;
-        }
-        return 0;
-      });
-
+      const res = sortBy(
+        [...yubikeys, ...standAlone],
+        (k) =>
+          k.key?.name?.toLowerCase?.() ?? k.yubikey?.yubikey_name?.toLowerCase?.() ?? '',
+      );
       return res;
     }
     return [];

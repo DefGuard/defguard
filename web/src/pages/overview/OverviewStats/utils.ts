@@ -1,6 +1,6 @@
 import { groupBy, map, sortBy } from 'lodash-es';
 
-import { NetworkSpeedStats } from '../../../shared/types';
+import type { NetworkSpeedStats } from '../../../shared/types';
 
 type AggregatedTick = {
   collected_at: string;

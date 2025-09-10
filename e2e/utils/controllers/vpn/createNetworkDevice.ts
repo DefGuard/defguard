@@ -12,7 +12,7 @@ export const getDeviceRow = async ({
   page: Page;
   deviceName: string;
 }) => {
-  const deviceList = await page.locator('#devices-page-devices-list').first();
+  const deviceList = page.locator('#devices-page-devices-list').first();
   const deviceRows = await deviceList.locator('.device-row').all();
   const row = deviceRows.find(async (val) => {
     if ((await val.innerText()) === deviceName) {
@@ -35,7 +35,7 @@ export const doAction = async ({
   action: string;
 }) => {
   await deviceRow.locator('.edit-button').click();
-  const editMenu = await page.locator('.edit-button-floating-ui').first();
+  const editMenu = page.locator('.edit-button-floating-ui').first();
   await editMenu.getByRole('button', { name: action }).click();
 };
 
@@ -47,20 +47,24 @@ export const createNetworkDevice = async (
   const context = await browser.newContext();
   const page = await context.newPage();
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.admin.devices);
+  await page.goto(routes.base + routes.admin.devices, {
+    waitUntil: 'networkidle',
+  });
   await page.getByRole('button', { name: 'Add new' }).click();
   const configCard = page.locator('#add-standalone-device-modal');
-  await configCard.getByRole('button', { name: 'Select' }).click();
+  await configCard.waitFor({ state: 'visible' });
+  // select native-wg method
+  await page.getByTestId('standalone-device-choice-card-manual').click();
   await configCard.getByRole('button', { name: 'Next' }).click();
-  const deviceNameInput = await configCard.getByTestId('field-name');
+  const deviceNameInput = configCard.getByTestId('field-name');
   await deviceNameInput.fill(device.name);
   if (device.description && device.description.length > 0) {
-    const deviceDescriptionInput = await page.getByTestId('field-description');
+    const deviceDescriptionInput = page.getByTestId('field-description');
     await deviceDescriptionInput.fill(device.description);
   }
   if (device.pubKey && device.pubKey.length) {
     await configCard.locator('.toggle-option').nth(1).click();
-    const devicePublicKeyInput = await configCard.getByTestId('field-wireguard_pubkey');
+    const devicePublicKeyInput = configCard.getByTestId('field-wireguard_pubkey');
     await devicePublicKeyInput.fill(device.pubKey);
   }
   const responsePromise = page.waitForResponse('**/device/network');
@@ -82,10 +86,10 @@ export const startNetworkDeviceEnrollment = async (
   await page.getByRole('button', { name: 'Add new' }).click();
   const configCard = page.locator('#add-standalone-device-modal');
   await configCard.getByRole('button', { name: 'Next' }).click();
-  const deviceNameInput = await configCard.getByTestId('field-name');
+  const deviceNameInput = configCard.getByTestId('field-name');
   await deviceNameInput.fill(device.name);
   if (device.description && device.description.length > 0) {
-    const deviceDescriptionInput = await page.getByTestId('field-description');
+    const deviceDescriptionInput = page.getByTestId('field-description');
     await deviceDescriptionInput.fill(device.description);
   }
   const responsePromise = page.waitForResponse('**/device/network');

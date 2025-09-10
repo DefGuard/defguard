@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -72,6 +72,7 @@ export const OpenidAllowPage = () => {
     setRedirectUri(params.get('redirect_uri'));
   }, [params]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (paramsValid && clientId) {
       getOpenidClient(clientId)
@@ -110,7 +111,7 @@ export const OpenidAllowPage = () => {
       <div className="consent">
         <h1>{LL.openidAllow.header({ name: name || '' })}</h1>
         <ul className="scopes-list">
-          {scope && scope.length
+          {scope?.length
             ? scope.split(' ').map((s) => (
                 <li className="scope" key={s}>
                   {scopes[s]}

@@ -13,11 +13,11 @@ export const EditLocationsSettingsButton = () => {
   const { LL } = useI18nContext();
   const { networkId } = useParams();
   const navigate = useNavigate();
-  const selectedNetwork = parseInt(networkId ?? '');
+  const selectedNetwork = parseInt(networkId ?? '', 10);
   const setNetworkPageStore = useNetworkPageStore((s) => s.setState);
 
   const handleClick = () => {
-    if (!isNaN(selectedNetwork)) {
+    if (!Number.isNaN(selectedNetwork)) {
       setNetworkPageStore({
         selectedNetworkId: selectedNetwork,
       });

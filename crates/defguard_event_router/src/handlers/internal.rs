@@ -1,8 +1,8 @@
 use defguard_core::events::InternalEvent;
-use defguard_event_logger::message::{LoggerEvent, VpnEvent};
+use defguard_event_logger::message::{EventContext, LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{error::EventRouterError, EventRouter};
+use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_internal_event(
@@ -15,8 +15,11 @@ impl EventRouter {
             InternalEvent::DesktopClientMfaDisconnected { context, location } => {
                 let device = context.device.clone();
                 self.log_event(
-                    context.into(),
-                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromMfaLocation { device, location }),
+                    EventContext::from_internal_context(context, Some(location.clone())),
+                    LoggerEvent::Vpn(Box::new(VpnEvent::DisconnectedFromMfaLocation {
+                        device,
+                        location,
+                    })),
                 )
             }
         }

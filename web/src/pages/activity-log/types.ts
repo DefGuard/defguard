@@ -17,7 +17,9 @@ export type ActivityLogEventType =
   | 'user_added'
   | 'user_modified'
   | 'user_removed'
+  | 'user_groups_modified'
   | 'mfa_disabled'
+  | 'user_mfa_disabled'
   | 'mfa_totp_enabled'
   | 'mfa_totp_disabled'
   | 'mfa_email_enabled'
@@ -38,24 +40,63 @@ export type ActivityLogEventType =
   | 'vpn_client_connected_mfa'
   | 'vpn_client_disconnected_mfa'
   | 'vpn_client_mfa_failed'
+  | 'enrollment_token_added'
   | 'enrollment_started'
   | 'enrollment_device_added'
   | 'enrollment_completed'
   | 'password_reset_requested'
   | 'password_reset_started'
-  | 'password_reset_completed';
+  | 'password_reset_completed'
+  | 'vpn_location_added'
+  | 'vpn_location_removed'
+  | 'vpn_location_modified'
+  | 'api_token_added'
+  | 'api_token_removed'
+  | 'api_token_renamed'
+  | 'open_id_app_added'
+  | 'open_id_app_removed'
+  | 'open_id_app_modified'
+  | 'open_id_app_state_changed'
+  | 'open_id_provider_removed'
+  | 'open_id_provider_modified'
+  | 'settings_updated'
+  | 'settings_updated_partial'
+  | 'settings_default_branding_restored'
+  | 'groups_bulk_assigned'
+  | 'group_added'
+  | 'group_modified'
+  | 'group_removed'
+  | 'group_member_added'
+  | 'group_member_removed'
+  | 'group_members_modified'
+  | 'web_hook_added'
+  | 'web_hook_modified'
+  | 'web_hook_removed'
+  | 'web_hook_state_changed'
+  | 'authentication_key_added'
+  | 'authentication_key_removed'
+  | 'authentication_key_renamed'
+  | 'password_changed'
+  | 'password_changed_by_admin'
+  | 'password_reset'
+  | 'client_configuration_token_added'
+  | 'user_snat_binding_added'
+  | 'user_snat_binding_modified'
+  | 'user_snat_binding_removed';
 
 export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'user_login',
   'user_login_failed',
   'user_mfa_login',
   'user_mfa_login_failed',
+  'user_groups_modified',
   'recovery_code_used',
   'user_logout',
   'user_added',
   'user_modified',
   'user_removed',
   'mfa_disabled',
+  'user_mfa_disabled',
   'mfa_totp_enabled',
   'mfa_totp_disabled',
   'mfa_email_enabled',
@@ -76,10 +117,47 @@ export const activityLogEventTypeValues: ActivityLogEventType[] = [
   'vpn_client_connected_mfa',
   'vpn_client_disconnected_mfa',
   'vpn_client_mfa_failed',
+  'enrollment_token_added',
   'enrollment_started',
   'enrollment_device_added',
   'enrollment_completed',
   'password_reset_requested',
   'password_reset_started',
   'password_reset_completed',
+  'vpn_location_added',
+  'vpn_location_removed',
+  'vpn_location_modified',
+  'api_token_added',
+  'api_token_removed',
+  'api_token_renamed',
+  'open_id_app_added',
+  'open_id_app_removed',
+  'open_id_app_modified',
+  'open_id_app_state_changed',
+  'open_id_provider_removed',
+  'open_id_provider_modified',
+  'settings_updated',
+  'settings_updated_partial',
+  'settings_default_branding_restored',
+  'groups_bulk_assigned',
+  'group_added',
+  'group_modified',
+  'group_removed',
+  'group_member_added',
+  'group_member_removed',
+  'group_members_modified',
+  'web_hook_added',
+  'web_hook_modified',
+  'web_hook_removed',
+  'web_hook_state_changed',
+  'authentication_key_added',
+  'authentication_key_removed',
+  'authentication_key_renamed',
+  'password_changed',
+  'password_changed_by_admin',
+  'password_reset',
+  'client_configuration_token_added',
+  'user_snat_binding_added',
+  'user_snat_binding_modified',
+  'user_snat_binding_removed',
 ];

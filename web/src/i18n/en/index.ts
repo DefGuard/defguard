@@ -61,6 +61,15 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    outdatedComponentsModal: {
+      title: 'Version mismatch',
+      subtitle: 'Defguard detected unsupported version in some components.',
+      content: {
+        title: 'Incompatible components:',
+        unknownVersion: 'Unknown version',
+        unknownHostname: 'Unknown hostname',
+      },
+    },
     upgradeLicenseModal: {
       enterprise: {
         title: 'Upgrade to Enterprise',
@@ -263,6 +272,18 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         cancel: 'Cancel',
       },
     },
+    disableMfa: {
+      title: 'Disable MFA',
+      message: 'Do you want to disable MFA for user {username: string}?',
+      messages: {
+        success: 'MFA for user {username: string} has been disabled',
+        error: 'Failed to disable MFA for user {username: string}',
+      },
+      controls: {
+        submit: 'Disable MFA',
+        cancel: 'Cancel',
+      },
+    },
     startEnrollment: {
       title: 'Start enrollment',
       desktopTitle: 'Desktop activation',
@@ -271,6 +292,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         successDesktop: 'Desktop configuration started',
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
+      },
+      messageBox: {
+        clientForm:
+          'You can share the following URL and token with the user to configure their Defguard desktop or mobile client.',
+        clientQr:
+          'You can share this QR code for easy Defguard mobile client configuration.',
       },
       form: {
         email: {
@@ -430,7 +457,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       controls: {
         submit: 'Delete account',
       },
-      message: 'Do you want to delete {username: string} account permanently ?',
+      message: 'Do you want to delete {username: string} account permanently?',
       messages: {
         success: '{username: string} deleted.',
       },
@@ -510,6 +537,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
       form: {
         submit: 'Add user',
+        error: {
+          emailReserved: 'Email already taken',
+        },
         fields: {
           username: {
             placeholder: 'login',
@@ -611,17 +641,40 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     steps: {
       setupMethod: {
-        remote: {
-          title: 'Configure Desktop Client',
-          subTitle:
-            'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
-          link: 'Download defguard Client',
+        title: 'Choose Your Connection Method',
+        message:
+          "You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.",
+        methods: {
+          client: {
+            title: 'Remote Device Activation',
+            description:
+              'Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.',
+          },
+          wg: {
+            title: 'Manual WireGuard Client',
+            description:
+              'For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.',
+          },
         },
-        manual: {
-          title: 'Manual WireGuard Client',
-          subTitle:
-            'For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.',
-          link: 'Download WireGuard Client',
+      },
+      client: {
+        title: 'Client Activation',
+        desktopDeepLinkHelp:
+          'If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button',
+        //md
+        message:
+          'If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:',
+        qrDescription:
+          "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
+        qrHelp:
+          'If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:',
+        desktopDownload: 'Download for Desktop',
+        tokenCopy: 'Token copied to clipboard',
+        tokenFailure: 'Failed to prepare client setup',
+        labels: {
+          mergedToken: 'Defguard Instance Token (new)',
+          token: 'Authentication Token',
+          url: 'URL',
         },
       },
       configDevice: {
@@ -658,7 +711,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         title: 'Create VPN device',
         infoMessage: `
         <p>
-          You need to configure WireGuardVPN on your device, please visit&nbsp;
+          You need to configure WireGuard® VPN on your device, please visit&nbsp;
           <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,
@@ -965,6 +1018,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         startEnrollment: 'Start enrollment',
         activateDesktop: 'Configure Desktop Client',
         resetPassword: 'Reset password',
+        disableMfa: 'Disable MFA',
       },
     },
   },
@@ -1059,6 +1113,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    openClientDeepLink: 'One-Click Desktop Configuration',
     aclDefaultPolicySelect: {
       label: 'Default ACL Policy',
       options: {
@@ -1097,6 +1152,14 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       footer: {
         get: 'Get an enterprise license',
         contact: 'by contacting:',
+      },
+    },
+    locationMfaModeSelect: {
+      label: 'MFA Requirement',
+      options: {
+        disabled: 'Do not enforce MFA',
+        internal: 'Internal MFA',
+        external: 'External MFA',
       },
     },
   },
@@ -1362,6 +1425,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             helper:
               "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
           },
+          jumpcloud_api_key: {
+            label: 'JumpCloud API Key',
+            helper:
+              'API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.',
+          },
           group_match: {
             label: 'Sync only matching groups',
             helper:
@@ -1373,7 +1441,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     modulesVisibility: {
       header: 'Modules Visibility',
       helper: `<p>
-            If your not using some modules you can disable their visibility.
+            Hide unused modules.
           </p>
           <a href="{documentationLink:string}" target="_blank">
             Read more in documentation.
@@ -1944,6 +2012,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
+        endpoint:
+          'Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
@@ -1952,6 +2022,23 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
         aclFeatureDisabled:
           "ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.",
+        peerDisconnectThreshold:
+          'Clients authorized with MFA will be disconnected from the location once there has been no network activity detected between them and the VPN gateway for a length of time configured below.',
+        locationMfaMode: {
+          description: 'Choose how MFA is enforced when connecting to this location:',
+          internal:
+            "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
+          external:
+            'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
+        },
+      },
+      sections: {
+        accessControl: {
+          header: 'Access Control & Firewall',
+        },
+        mfa: {
+          header: 'Multi-Factor Authentication',
+        },
       },
       messages: {
         networkModified: 'Location modified.',
@@ -1965,7 +2052,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Gateway VPN IP address and netmask',
         },
         endpoint: {
-          label: 'Gateway address',
+          label: 'Gateway IP address or domain name',
         },
         allowedIps: {
           label: 'Allowed Ips',
@@ -1980,20 +2067,20 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Allowed groups',
           placeholder: 'All groups',
         },
-        mfa_enabled: {
-          label: 'Require MFA for this Location',
-        },
         keepalive_interval: {
           label: 'Keepalive interval [seconds]',
         },
         peer_disconnect_threshold: {
-          label: 'Peer disconnect threshold [seconds]',
+          label: 'Client disconnect threshold [seconds]',
         },
         acl_enabled: {
           label: 'Enable ACL for this location',
         },
         acl_default_allow: {
           label: 'Default ACL policy',
+        },
+        location_mfa_mode: {
+          label: 'MFA requirement',
         },
       },
       controls: {
@@ -2569,9 +2656,11 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         date: 'Date',
         user: 'User',
         ip: 'IP',
+        location: 'Location',
         event: 'Event',
         module: 'Module',
         device: 'Device',
+        description: 'Description',
       },
       noData: {
         data: 'No activities present',
@@ -2590,8 +2679,10 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_added: 'User added',
       user_removed: 'User removed',
       user_modified: 'User modified',
+      user_groups_modified: 'User groups modified',
       mfa_enabled: 'MFA enabled',
       mfa_disabled: 'MFA disabled',
+      user_mfa_disabled: 'User MFA disabled',
       mfa_totp_enabled: 'MFA TOTP enabled',
       mfa_totp_disabled: 'MFA TOTP disabled',
       mfa_email_enabled: 'MFA email enabled',
@@ -2612,12 +2703,49 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       vpn_client_connected_mfa: 'VPN client connected to MFA location',
       vpn_client_disconnected_mfa: 'VPN client disconnected from MFA location',
       vpn_client_mfa_failed: 'VPN client failed MFA authentication',
+      enrollment_token_added: 'Enrollment token added',
       enrollment_started: 'Enrollment started',
       enrollment_device_added: 'Device added',
       enrollment_completed: 'Enrollment completed',
       password_reset_requested: 'Password reset requested',
       password_reset_started: 'Password reset started',
       password_reset_completed: 'Password reset completed',
+      vpn_location_added: 'VPN location added',
+      vpn_location_removed: 'VPN location removed',
+      vpn_location_modified: 'VPN location modified',
+      api_token_added: 'API token added',
+      api_token_removed: 'API token removed',
+      api_token_renamed: 'API token renamed',
+      open_id_app_added: 'OpenID app added',
+      open_id_app_removed: 'OpenID app removed',
+      open_id_app_modified: 'OpenID app modified',
+      open_id_app_state_changed: 'OpenID app state changed',
+      open_id_provider_removed: 'OpenID provider removed',
+      open_id_provider_modified: 'OpenID provider modified',
+      settings_updated: 'Settings updated',
+      settings_updated_partial: 'Settings partially updated',
+      settings_default_branding_restored: 'Default branding restored',
+      groups_bulk_assigned: 'Groups bulk assigned',
+      group_added: 'Group added',
+      group_modified: 'Group modified',
+      group_removed: 'Group removed',
+      group_member_added: 'Group member added',
+      group_member_removed: 'Group member removed',
+      group_members_modified: 'Group members modified',
+      web_hook_added: 'Webhook added',
+      web_hook_modified: 'Webhook modified',
+      web_hook_removed: 'Webhook removed',
+      web_hook_state_changed: 'Webhook state changed',
+      authentication_key_added: 'Authentication key added',
+      authentication_key_removed: 'Authentication key removed',
+      authentication_key_renamed: 'Authentication key renamed',
+      password_changed: 'Password changed',
+      password_changed_by_admin: 'Password changed by admin',
+      password_reset: 'Password reset',
+      client_configuration_token_added: 'Client configuration token added',
+      user_snat_binding_added: 'User SNAT binding added',
+      user_snat_binding_modified: 'User SNAT binding modified',
+      user_snat_binding_removed: 'User SNAT binding removed',
     },
     activityLogModule: {
       defguard: 'Defguard',

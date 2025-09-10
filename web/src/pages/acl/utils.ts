@@ -1,6 +1,6 @@
-import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
-import { AclRuleInfo, Network } from '../../shared/types';
-import { ListCellTag } from './AclIndexPage/components/shared/types';
+import type { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
+import type { AclRuleInfo, Network } from '../../shared/types';
+import type { ListCellTag } from './AclIndexPage/components/shared/types';
 import { AclAliasStatus, AclProtocol, AclStatus, NetworkAccessType } from './types';
 
 // used by acl rules index page, bcs we don't show Applied in UI but instead enabled / disabled when state is "applied"

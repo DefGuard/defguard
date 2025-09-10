@@ -2,11 +2,10 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
-
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -15,6 +14,7 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
@@ -41,6 +41,7 @@ export const Login = () => {
   const toaster = useToaster();
 
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
@@ -55,11 +56,13 @@ export const Login = () => {
       z.object({
         username: z
           .string()
+          .trim()
           .min(1, LL.form.error.minimumLength())
           .max(64)
           .regex(patternLoginCharacters, LL.form.error.forbiddenCharacter()),
         password: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .max(128, LL.form.error.maximumLength()),
       }),
@@ -82,8 +85,9 @@ export const Login = () => {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
-      if (error.response) {
-        switch (error.response.status) {
+      const status = error.response?.status;
+      if (isPresent(status)) {
+        switch (status) {
           case 401: {
             setError(
               'password',
@@ -99,12 +103,10 @@ export const Login = () => {
             break;
           }
           default: {
-            console.error(error);
             toaster.error(LL.messages.error());
           }
         }
       } else {
-        console.error(error);
         toaster.error(LL.messages.error());
       }
     },

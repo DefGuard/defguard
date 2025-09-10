@@ -1,7 +1,7 @@
 import { enUS as datePickerLocaleEnUS } from 'date-fns/locale/en-US';
 import { ko as datePickerLocaleKO } from 'date-fns/locale/ko';
 import { pl as datePickerLocalePL } from 'date-fns/locale/pl';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { type PropsWithChildren, useEffect, useState } from 'react';
 import { registerLocale, setDefaultLocale } from 'react-datepicker';
 import { navigatorDetector } from 'typesafe-i18n/detectors';
 import { shallow } from 'zustand/shallow';
@@ -18,6 +18,7 @@ export const I18nProvider = ({ children }: PropsWithChildren) => {
   const detectedLocale = detectLocale(navigatorDetector);
   const [localeLoaded, setLocaleLoaded] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration
   useEffect(() => {
     const lang = detectedLocale ?? baseLocale;
     loadLocale(lang);

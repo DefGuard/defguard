@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 
 import SvgIconKey from '../../../../../../../shared/components/svg/IconKey';
@@ -6,7 +6,7 @@ import { ColorsRGB } from '../../../../../../../shared/constants';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { RowBox } from '../../../../../../../shared/defguard-ui/components/Layout/RowBox/RowBox';
-import { SecurityKey } from '../../../../../../../shared/types';
+import type { SecurityKey } from '../../../../../../../shared/types';
 
 interface KeyRowProps {
   data: SecurityKey;

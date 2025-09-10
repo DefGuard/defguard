@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
@@ -57,6 +57,7 @@ export const MFAEmail = () => {
       z.object({
         code: z
           .string()
+          .trim()
           .min(6, LL.form.error.minimumLength())
           .max(6, LL.form.error.maximumLength())
           .regex(patternNumbersOnly, LL.form.error.invalid()),

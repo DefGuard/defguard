@@ -12,7 +12,7 @@ import {
   getDeviceRow,
   startNetworkDeviceEnrollment,
 } from '../../utils/controllers/vpn/createNetworkDevice';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForRoute } from '../../utils/waitForRoute';
 
@@ -45,8 +45,6 @@ test.describe('Network devices', () => {
     await context.close();
   });
 
-  test.afterAll(() => dockerDown());
-
   test('Network devices CRUD and actions', async ({ page, browser }) => {
     const deviceName = 'test';
     const deviceDesc = 'test device description';
@@ -60,7 +58,7 @@ test.describe('Network devices', () => {
 
     // Check if the device is really there
     await page.goto(routes.base + routes.admin.devices);
-    const deviceList = await page.locator('#devices-page-devices-list').first();
+    const deviceList = page.locator('#devices-page-devices-list').first();
     const deviceRows = deviceList.locator('.device-row');
     await expect(deviceRows).toHaveCount(1);
     const deviceRow = await getDeviceRow({ page, deviceName });

@@ -1,14 +1,14 @@
-FROM node:23-alpine AS web
+FROM node:24-alpine AS web
 
 WORKDIR /app
-COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
 RUN npm i -g pnpm
 RUN pnpm install --ignore-scripts --frozen-lockfile
 COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1.85.1 AS chef
+FROM rust:1 AS chef
 
 WORKDIR /build
 
@@ -21,6 +21,7 @@ FROM chef AS planner
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
 COPY proto proto
+COPY migrations migrations
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
@@ -38,13 +39,14 @@ COPY .git .git
 COPY .sqlx .sqlx
 COPY crates crates
 COPY proto proto
+COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
-FROM debian:bookworm-slim
+FROM debian:13-slim
 RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
-  rm -rf /var/lib/apt/lists/*
+    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 ENTRYPOINT ["./defguard"]

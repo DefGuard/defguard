@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { range } from 'lodash-es';
+import { orderBy, range } from 'lodash-es';
 import { useEffect } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useLocation, useNavigate } from 'react-router';
@@ -18,7 +18,7 @@ import {
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
-import { Network } from '../../shared/types';
+import type { Network } from '../../shared/types';
 import { OverviewStats } from '../overview/OverviewStats/OverviewStats';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { EditLocationsSettingsButton } from './components/EditLocationsSettingsButton/EditLocationsSettingsButton';
@@ -35,11 +35,14 @@ export const OverviewIndexPage = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const resetWizard = useWizardStore((state) => state.resetState);
   const navigate = useNavigate();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (isPresent(data) && data.length === 0 && !isLoading && !isStale) {
       resetWizard();

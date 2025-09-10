@@ -2,7 +2,6 @@ import { Browser, expect, Page } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
-import { getPageClipboard } from '../getPageClipboard';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
@@ -28,11 +27,11 @@ export const createUserEnrollment = async (
   await page.getByTestId('add-user').click();
   const formElement = page.getByTestId('add-user-form');
   await formElement.waitFor({ state: 'visible' });
-  await formElement.getByTestId('field-username').type(user.username);
-  await formElement.getByTestId('field-first_name').type(user.firstName);
-  await formElement.getByTestId('field-last_name').type(user.lastName);
-  await formElement.getByTestId('field-email').type(user.mail);
-  await formElement.getByTestId('field-phone').type(user.phone);
+  await formElement.getByTestId('field-username').fill(user.username);
+  await formElement.getByTestId('field-first_name').fill(user.firstName);
+  await formElement.getByTestId('field-last_name').fill(user.lastName);
+  await formElement.getByTestId('field-email').fill(user.mail);
+  await formElement.getByTestId('field-phone').fill(user.phone);
   await formElement.getByTestId('field-enable_enrollment').click();
   await formElement.locator('button[type="submit"]').click();
   waitForPromise(2000);
@@ -43,8 +42,9 @@ export const createUserEnrollment = async (
   waitForPromise(2000);
   // Copy to clipboard
   const tokenStep = modalElement.locator('#enrollment-token-step');
-  await tokenStep.getByTestId('copy-enrollment-token').click();
-  const token = await getPageClipboard(page);
+  const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token
+  const tokenP = tokenDiv.locator('p.display-element');
+  const token = await tokenP.textContent();
   expect(token.length).toBeGreaterThan(0);
   // close modal
   await modalElement.locator('.controls button.cancel').click();
@@ -62,7 +62,7 @@ export const selectEnrollment = async (page: Page) => {
 
 export const setToken = async (token: string, page: Page) => {
   const formElement = page.getByTestId('enrollment-token-form');
-  await formElement.getByTestId('field-token').type(token);
+  await formElement.getByTestId('field-token').fill(token);
   await page.getByTestId('enrollment-token-submit-button').click();
 };
 
@@ -83,12 +83,12 @@ export const validateData = async (user: User, page: Page) => {
 
 export const setPassword = async (page: Page) => {
   const formElement = page.getByTestId('enrollment-password-form');
-  await formElement.getByTestId('field-password').type(password);
-  await formElement.getByTestId('field-repeat').type(password);
+  await formElement.getByTestId('field-password').fill(password);
+  await formElement.getByTestId('field-repeat').fill(password);
 };
 
 export const createDevice = async (page: Page) => {
   const formElement = page.getByTestId('enrollment-device-form');
-  await formElement.getByTestId('field-name').type('test');
+  await formElement.getByTestId('field-name').fill('test');
   await formElement.locator('button[type="submit"]').click();
 };

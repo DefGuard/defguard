@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useState } from 'react';
 import { Subject } from 'rxjs';
@@ -20,7 +20,7 @@ import { NoData } from '../../../../../../../shared/defguard-ui/components/Layou
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../../shared/queries';
-import { Provisioner, WorkerJobStatus } from '../../../../../../../shared/types';
+import type { Provisioner, WorkerJobStatus } from '../../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
 import { useAddAuthorizationKeyModal } from '../../useAddAuthorizationKeyModal';
 import { ProvisionerRow } from './components/ProvisionerRow';
@@ -87,6 +87,7 @@ export const AddAuthenticationKeyYubikey = () => {
     }
   }, [statusSubject, workerJobStatus]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (workerError) {
       const message: string | undefined = (
@@ -99,6 +100,7 @@ export const AddAuthenticationKeyYubikey = () => {
   }, [workerError]);
 
   // handle last known status
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     const sub = statusSubject.subscribe((jobStatus) => {
       if (jobStatus) {

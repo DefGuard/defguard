@@ -1,8 +1,8 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
+import { motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
@@ -19,13 +19,14 @@ import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/Loa
 import { Search } from '../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
-import { User } from '../../../shared/types';
+import type { User } from '../../../shared/types';
+import { DisableMfaModal } from '../shared/modals/DisableMfaModal/DisableMfaModal';
 import { UsersList } from './components/UsersList/UsersList';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { useAddUserModal } from './modals/AddUserModal/hooks/useAddUserModal';
@@ -45,6 +46,7 @@ export const UsersOverview = () => {
   const openGroupsAssign = useAssignGroupsModal((s) => s.open);
   const successSubject = useAssignGroupsModal((s) => s.successSubject, shallow);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const filterSelectOptions = useMemo(() => {
     const res: SelectOption<FilterOptions>[] = [
       {
@@ -148,8 +150,9 @@ export const UsersOverview = () => {
         setSelectedUsers([]);
       }
     }
-  }, [users, selectedUsers, setSelectedUsers]);
+  }, [users, selectedUsers]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (breakpoint !== 'desktop' && selectedFilter !== FilterOptions.ALL) {
       setSelectedFilter(FilterOptions.ALL);
@@ -184,7 +187,7 @@ export const UsersOverview = () => {
         <div className="items-count">
           <span>{LL.usersOverview.usersCount()}</span>
           <div className="count" data-testid="users-count">
-            <span>{users && users.length ? users.length : 0}</span>
+            <span>{users?.length ? users.length : 0}</span>
           </div>
         </div>
         <div className="controls">
@@ -242,6 +245,7 @@ export const UsersOverview = () => {
       )}
       <AddUserModal />
       <AssignGroupsModal />
+      <DisableMfaModal />
     </section>
   );
 };

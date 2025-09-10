@@ -5,7 +5,7 @@ import { OpenIdClient } from '../../../types';
 import { waitForBase } from '../../waitForBase';
 import { loginBasic } from '../login';
 
-export const CreateExternalProvider = async (browser: Browser, client: OpenIdClient) => {
+export const createExternalProvider = async (browser: Browser, client: OpenIdClient) => {
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
@@ -19,4 +19,5 @@ export const CreateExternalProvider = async (browser: Browser, client: OpenIdCli
   await page.getByTestId('field-client_secret').fill(client.clientSecret || '');
   await page.getByTestId('field-display_name').fill(client.name);
   await page.getByRole('button', { name: 'Save changes' }).click();
+  await context.close();
 };

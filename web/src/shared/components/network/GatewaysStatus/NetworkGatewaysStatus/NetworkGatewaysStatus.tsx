@@ -6,7 +6,7 @@ import { GatewaysFloatingStatus } from '../GatewaysFloatingStatus/GatewaysFloati
 import { GatewaysStatusInfo } from '../GatewaysStatusInfo/GatewaysStatusInfo';
 
 type Props = {
-  networkId: number;
+  networkId?: number;
 };
 export const NetworkGatewaysStatus = ({ networkId }: Props) => {
   const {
@@ -15,7 +15,8 @@ export const NetworkGatewaysStatus = ({ networkId }: Props) => {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['network', networkId, 'gateways'],
-    queryFn: () => getGatewaysStatus(networkId),
+    queryFn: () => getGatewaysStatus(networkId as number),
+    enabled: Boolean(networkId),
   });
 
   const [totalConnections, connectedCount] = useMemo(() => {
@@ -35,7 +36,9 @@ export const NetworkGatewaysStatus = ({ networkId }: Props) => {
       isError={isError}
       isLoading={isLoading}
     >
-      {data?.map((status) => <GatewaysFloatingStatus status={status} key={status.uid} />)}
+      {data?.map((status) => (
+        <GatewaysFloatingStatus status={status} key={status.uid} />
+      ))}
     </GatewaysStatusInfo>
   );
 };

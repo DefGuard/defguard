@@ -11,11 +11,12 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
+import SvgIconOutsideLink from '../../../../../../shared/defguard-ui/components/svg/IconOutsideLink';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { Network } from '../../../../../../shared/types';
+import type { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
@@ -84,6 +85,7 @@ export const MethodStep = () => {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (networks) {
       const options: SelectOption<number>[] = networks.map((n) => ({
@@ -99,6 +101,7 @@ export const MethodStep = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networks]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (availableIpResponse) {
       setState({ initLocationIpResponse: availableIpResponse });
@@ -110,20 +113,38 @@ export const MethodStep = () => {
     <div className="method-step">
       <div className="choices">
         <DeviceSetupMethodCard
-          title={localLL.cards.cli.title()}
-          subtitle={localLL.cards.cli.subtitle()}
-          link={externalLink.defguardCliDocs}
-          linkText={localLL.cards.cli.docs()}
-          logo={<DefguardIcon />}
-          selected={choice === AddStandaloneDeviceModalChoice.CLI}
-          onSelect={() => handleChange(AddStandaloneDeviceModalChoice.CLI)}
+          custom={{
+            title: localLL.cards.cli.title(),
+            description: localLL.cards.cli.subtitle(),
+            icon: <DefguardIcon />,
+            testId: 'standalone-device-choice-card-cli',
+            extras: (
+              <div className="link-container">
+                <a
+                  href={externalLink.defguardCliDocs}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link"
+                >
+                  {localLL.cards.cli.docs()}
+                  <div className="spacer"></div>
+                  <SvgIconOutsideLink />
+                </a>
+              </div>
+            ),
+          }}
+          active={choice === AddStandaloneDeviceModalChoice.CLI}
+          onClick={() => handleChange(AddStandaloneDeviceModalChoice.CLI)}
         />
         <DeviceSetupMethodCard
-          title={localLL.cards.manual.title()}
-          subtitle={localLL.cards.manual.subtitle()}
-          logo={<SvgWireguardLogo />}
-          selected={choice === AddStandaloneDeviceModalChoice.MANUAL}
-          onSelect={() => handleChange(AddStandaloneDeviceModalChoice.MANUAL)}
+          custom={{
+            title: localLL.cards.manual.title(),
+            description: localLL.cards.manual.subtitle(),
+            icon: <SvgWireguardLogo />,
+            testId: 'standalone-device-choice-card-manual',
+          }}
+          active={choice === AddStandaloneDeviceModalChoice.MANUAL}
+          onClick={() => handleChange(AddStandaloneDeviceModalChoice.MANUAL)}
         />
       </div>
       <div className="controls">

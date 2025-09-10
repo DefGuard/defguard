@@ -81,6 +81,7 @@ export const UserProfile = () => {
     }
   }, [LL.userPage.messages, fetchProfileError, toaster]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (currentUser?.username === username) {
       setUserProfileState({ isMe: true });
@@ -129,22 +130,18 @@ const ViewModeControls = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const { LL } = useI18nContext();
   return (
-    <>
-      <div className="right">
-        <Button
-          data-testid="edit-user"
-          text={breakpoint === 'desktop' ? LL.userPage.controls.editButton() : undefined}
-          icon={<IconEdit />}
-          size={ButtonSize.SMALL}
-          styleVariant={
-            breakpoint === 'desktop'
-              ? ButtonStyleVariant.STANDARD
-              : ButtonStyleVariant.ICON
-          }
-          onClick={() => setUserProfileState({ editMode: true })}
-        />
-      </div>
-    </>
+    <div className="right">
+      <Button
+        data-testid="edit-user"
+        text={breakpoint === 'desktop' ? LL.userPage.controls.editButton() : undefined}
+        icon={<IconEdit />}
+        size={ButtonSize.SMALL}
+        styleVariant={
+          breakpoint === 'desktop' ? ButtonStyleVariant.STANDARD : ButtonStyleVariant.ICON
+        }
+        onClick={() => setUserProfileState({ editMode: true })}
+      />
+    </div>
   );
 };
 

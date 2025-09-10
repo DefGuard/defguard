@@ -9,7 +9,7 @@ import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/Upg
 import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useNavigationStore } from '../../hooks/useNavigationStore';
-import { NavigationItem } from '../../types';
+import type { NavigationItem } from '../../types';
 
 interface NavigationLinkProps {
   item: NavigationItem;

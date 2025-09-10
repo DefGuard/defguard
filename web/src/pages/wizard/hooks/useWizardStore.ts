@@ -3,11 +3,15 @@ import { Subject } from 'rxjs';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { ImportedDevice, Network } from '../../../shared/types';
+import {
+  type ImportedDevice,
+  LocationMfaMode,
+  type Network,
+} from '../../../shared/types';
 
 export enum WizardSetupType {
-  'IMPORT' = 'IMPORT',
-  'MANUAL' = 'MANUAL',
+  IMPORT = 'IMPORT',
+  MANUAL = 'MANUAL',
 }
 
 const defaultValues: StoreFields = {
@@ -25,11 +29,11 @@ const defaultValues: StoreFields = {
     allowed_ips: '',
     allowed_groups: [],
     dns: '',
-    mfa_enabled: false,
     keepalive_interval: 25,
-    peer_disconnect_threshold: 180,
+    peer_disconnect_threshold: 300,
     acl_enabled: false,
     acl_default_allow: false,
+    location_mfa_mode: LocationMfaMode.DISABLED,
   },
 };
 
@@ -81,11 +85,11 @@ type StoreFields = {
     allowed_ips: string;
     allowed_groups: string[];
     dns?: string;
-    mfa_enabled: boolean;
     keepalive_interval: number;
     peer_disconnect_threshold: number;
     acl_enabled: boolean;
     acl_default_allow: boolean;
+    location_mfa_mode: LocationMfaMode;
   };
 };
 

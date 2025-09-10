@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useCallback, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -64,11 +64,15 @@ const ModalContent = () => {
   const schema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, LL.form.error.required()),
-        url: z.string().min(1, LL.form.error.required()).url(LL.form.error.urlInvalid()),
-        username: z.string(),
-        password: z.string(),
-        cert: z.string(),
+        name: z.string().trim().min(1, LL.form.error.required()),
+        url: z
+          .string()
+          .trim()
+          .min(1, LL.form.error.required())
+          .url(LL.form.error.urlInvalid()),
+        username: z.string().trim(),
+        password: z.string().trim(),
+        cert: z.string().trim(),
       }),
     [LL.form.error],
   );

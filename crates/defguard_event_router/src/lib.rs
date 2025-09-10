@@ -9,24 +9,13 @@
 //!
 //! The event router acts as a central hub for all application events:
 //!
-//! 1. Components (web API, gRPC server etc.) send events to the router via the `event_tx` MPSC channel
+//! 1. Components (web API, gRPC server etc.) send events to the router via the `event_tx`
+//!    MPSC channel.
 //! 2. The router processes these events and forwards them to the appropriate services:
 //!    - Activity log events go to the event logger service
 //!    - WireGuard events go to the gateway service
 //!    - Mail events go to the mail service
 //!    - etc.
-//!
-//! # Usage
-//!
-//! To use the event router, components should send `MainEvent` instances to the
-//! event channel. The router will handle routing these events to the appropriate
-//! services based on their type.
-//!
-//! ```
-//! // Example:
-//! let event = MainEvent::UserLogin { context: user_context };
-//! event_tx.send(event).await.unwrap();
-//! ```
 
 use std::sync::Arc;
 
@@ -39,9 +28,9 @@ use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEve
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
+    Notify,
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
-    Notify,
 };
 use tracing::{debug, error, info};
 
@@ -57,6 +46,7 @@ pub struct RouterReceiverSet {
 }
 
 impl RouterReceiverSet {
+    #[must_use]
     pub fn new(
         api: UnboundedReceiver<ApiEvent>,
         grpc: UnboundedReceiver<GrpcEvent>,
@@ -121,45 +111,33 @@ impl EventRouter {
         loop {
             // Receive an event from  one of the component event channels
             let event = tokio::select! {
-              event = self.receivers.api.recv() => match event {
-                  Some(api_event) => Event::Api(api_event),
-                  None => {
-                        error!("API event channel closed");
-                        return Err(EventRouterError::ApiEventChannelClosed);
-                  }
+              event = self.receivers.api.recv() => if let Some(api_event) = event { Event::Api(api_event) } else {
+                    error!("API event channel closed");
+                    return Err(EventRouterError::ApiEventChannelClosed);
               },
-              event = self.receivers.grpc.recv() => match event {
-                  Some(grpc_event) => Event::Grpc(grpc_event),
-                  None => {
-                        error!("gRPC event channel closed");
-                        return Err(EventRouterError::GrpcEventChannelClosed);
-                  }
+              event = self.receivers.grpc.recv() => if let Some(grpc_event) = event { Event::Grpc(Box::new(grpc_event)) } else {
+                    error!("gRPC event channel closed");
+                    return Err(EventRouterError::GrpcEventChannelClosed);
               },
-              event = self.receivers.bidi.recv() => match event {
-                  Some(bidi_event) => Event::Bidi(bidi_event),
-                  None => {
-                        error!("Bidi gRPC stream event channel closed");
-                        return Err(EventRouterError::BidiEventChannelClosed);
-                  }
+              event = self.receivers.bidi.recv() => if let Some(bidi_event) = event { Event::Bidi(bidi_event) } else {
+                    error!("Bidi gRPC stream event channel closed");
+                    return Err(EventRouterError::BidiEventChannelClosed);
               },
-              event = self.receivers.internal.recv() => match event {
-                  Some(internal_event) => Event::Internal(internal_event),
-                  None => {
-                        error!("Internal event channel closed");
-                        return Err(EventRouterError::InternalEventChannelClosed);
-                  }
+              event = self.receivers.internal.recv() => if let Some(internal_event) = event { Event::Internal(Box::new(internal_event)) } else {
+                    error!("Internal event channel closed");
+                    return Err(EventRouterError::InternalEventChannelClosed);
               },
             };
 
-            debug!("Received event: {event:?}");
+            debug!("Received event");
 
             // Route the event to the appropriate handler
             match event {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
-                Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
+                Event::Grpc(grpc_event) => self.handle_grpc_event(*grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
-                Event::Internal(internal_event) => self.handle_internal_event(internal_event)?,
-            };
+                Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
+            }
         }
     }
 }

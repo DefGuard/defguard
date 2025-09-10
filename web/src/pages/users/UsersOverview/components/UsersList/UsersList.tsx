@@ -7,11 +7,11 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { deviceBreakpoints } from '../../../../../shared/constants';
 import { CheckBox } from '../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import {
-  ListHeader,
+  type ListHeader,
   ListSortDirection,
 } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
-import { User } from '../../../../../shared/types';
+import type { User } from '../../../../../shared/types';
 import { UserListRow } from './components/UserListRow';
 import { UserGroupsListModal } from './modals/UserGroupsListModal/UserGroupsListModal';
 
@@ -33,6 +33,7 @@ export const UsersList = ({
   const { LL, locale } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   const listHeaders = useMemo((): ListHeader[] => {
     if (breakpoint !== 'desktop') {
       return [];

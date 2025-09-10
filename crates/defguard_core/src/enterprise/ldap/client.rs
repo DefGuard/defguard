@@ -5,8 +5,8 @@ use std::{
 };
 
 use ldap3::{
-    adapters::PagedResults, drive, ldap_escape, LdapConnAsync, LdapConnSettings, Mod, Scope,
-    SearchEntry,
+    LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry, adapters::PagedResults, drive,
+    ldap_escape,
 };
 
 use super::error::LdapError;
@@ -218,7 +218,7 @@ impl super::LDAPConnection {
             .map(|u| (self.config.user_dn_from_user(u).to_lowercase(), u))
             .collect::<HashMap<_, _>>();
 
-        for entry in membership_entries.iter_mut() {
+        for entry in &mut membership_entries {
             let groupname = entry
                 .attrs
                 .remove(&self.config.ldap_groupname_attr)
@@ -335,13 +335,16 @@ impl super::LDAPConnection {
     }
 
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        let filter = if !self.config.ldap_sync_groups.is_empty() {
+        let filter = if self.config.ldap_sync_groups.is_empty() {
+            debug!("No LDAP sync groups defined, searching for all users in the base DN");
+            format!("(objectClass={})", self.config.ldap_user_obj_class)
+        } else {
             debug!(
                 "LDAP sync groups are defined, filtering users by those groups: {:?}",
                 self.config.ldap_sync_groups
             );
             let mut group_filters = vec![];
-            for group in self.config.ldap_sync_groups.iter() {
+            for group in &self.config.ldap_sync_groups {
                 let group_dn = self.config.group_dn(group);
                 let group_dn_escaped = ldap_escape(&group_dn);
                 group_filters.push(format!(
@@ -358,9 +361,6 @@ impl super::LDAPConnection {
                 self.config.ldap_user_obj_class,
                 group_filters.join("")
             )
-        } else {
-            debug!("No LDAP sync groups defined, searching for all users in the base DN");
-            format!("(objectClass={})", self.config.ldap_user_obj_class)
         };
 
         debug!(

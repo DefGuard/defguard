@@ -1,7 +1,7 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { HTMLAttributes, PropsWithChildren } from 'react';
+import type { HTMLAttributes, PropsWithChildren } from 'react';
 
 import { Card } from '../../../defguard-ui/components/Layout/Card/Card';
 

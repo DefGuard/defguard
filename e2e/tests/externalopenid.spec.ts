@@ -6,10 +6,10 @@ import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
-import { CreateExternalProvider } from '../utils/controllers/openid/createExternalProvider';
+import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -20,8 +20,8 @@ test.describe('External OIDC.', () => {
   const client: OpenIdClient = {
     name: 'test 01',
     redirectURL: [
-      'http://localhost:8000/auth/callback',
-      'http://localhost:8080/openid/callback',
+      `${testsConfig.BASE_URL}/auth/callback`,
+      `${testsConfig.ENROLLMENT_URL}/openid/callback`,
     ],
     scopes: ['openid', 'profile', 'email'],
   };
@@ -42,16 +42,12 @@ test.describe('External OIDC.', () => {
     );
     const context = await browser.newContext();
     const page = await context.newPage();
-    await CreateExternalProvider(browser, client);
+    await createExternalProvider(browser, client);
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
     await logout(page);
     await createNetwork(browser, testNetwork);
-    context.close();
-  });
-
-  test.afterAll(() => {
-    dockerDown();
+    await context.close();
   });
 
   test('Login through external oidc.', async ({ page }) => {
@@ -84,16 +80,17 @@ test.describe('External OIDC.', () => {
     await page.getByTestId('login-form-password').fill(testUser.password);
     await page.getByTestId('login-form-submit').click();
     await page.getByTestId('openid-allow').click();
-    const instanceUrlBox = page
-      .locator('div')
-      .filter({ hasText: /^Instance URL$/ })
-      .getByRole('textbox');
+    const instanceUrlBoxText = await page
+      .locator('div.copy-field div.list-cell-text ')
+      .first()
+      .textContent();
+    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL + '/');
 
-    expect(await instanceUrlBox.inputValue()).toBe('http://localhost:8080/');
-    const instanceTokenBox = page
-      .locator('div')
-      .filter({ hasText: /^Token$/ })
-      .getByRole('textbox');
-    expect((await instanceTokenBox.inputValue()).length).toBeGreaterThan(1);
+    const instanceTokenBoxText = await page
+      .locator('div.copy-field div.list-cell-text ')
+      .nth(1)
+      .textContent();
+    expect(instanceTokenBoxText).toBeDefined();
+    expect(instanceTokenBoxText?.length).toBeGreaterThan(1);
   });
 });

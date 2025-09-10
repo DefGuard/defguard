@@ -3,39 +3,48 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
+use crate::version::IncompatibleComponents;
 use anyhow::anyhow;
 use axum::{
+    Extension, Json, Router,
     http::{Request, StatusCode},
-    routing::{delete, get, patch, post, put},
-    serve, Extension, Json, Router,
+    routing::{delete, get, post, put},
+    serve,
 };
-use db::models::device::DeviceType;
+use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
-use enterprise::handlers::{
-    acl::{
-        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
-        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
-        update_acl_alias, update_acl_rule,
+use enterprise::{
+    handlers::{
+        acl::{
+            apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
+            delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
+            list_acl_rules, update_acl_alias, update_acl_rule,
+        },
+        activity_log_stream::{
+            create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+            modify_activity_log_stream,
+        },
+        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+        check_enterprise_info,
+        enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+        openid_login::{auth_callback, get_auth_info},
+        openid_providers::{
+            add_openid_provider, delete_openid_provider, get_current_openid_provider,
+            test_dirsync_connection,
+        },
     },
-    activity_log_stream::{
-        create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
-        modify_activity_log_stream,
-    },
-    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-    check_enterprise_info,
-    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
-    openid_login::{auth_callback, get_auth_info},
-    openid_providers::{
-        add_openid_provider, delete_openid_provider, get_current_openid_provider,
-        test_dirsync_connection,
+    snat::handlers::{
+        create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
     },
 };
 use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
+    auth::disable_user_mfa,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -52,20 +61,23 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
+use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
         broadcast::Sender,
         mpsc::{UnboundedReceiver, UnboundedSender},
-        OnceCell,
     },
 };
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
+use tower_http::{
+    set_header::SetResponseHeaderLayer,
+    trace::{DefaultOnResponse, TraceLayer},
+};
 use tracing::Level;
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -95,9 +107,8 @@ use self::{
     auth::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
-        init_db,
+        AppEvent, Device, GatewayEvent, User, WireguardNetwork, init_db,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
     },
     handlers::{
         auth::{
@@ -118,6 +129,7 @@ use self::{
         },
         ssh_authorized_keys::get_authorized_keys,
         support::{configuration, logs},
+        updates::outdated_components,
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, get_user, list_users, me, modify_user,
@@ -134,7 +146,7 @@ use self::{
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::app_info::get_app_info,
 };
 
@@ -157,6 +169,7 @@ pub mod support;
 pub mod templates;
 pub mod updates;
 pub mod utility_thread;
+pub mod version;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
@@ -167,8 +180,12 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
-pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
+// helper for easier migration handling with a custom `migration` folder location
+// reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature
+pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
+
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA"));
+pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {
     SERVER_CONFIG
@@ -181,22 +198,23 @@ pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
     use db::{
-        models::device::{ModifyDevice, UserDevice},
         AddDevice, UserDetails, UserInfo,
+        models::device::{ModifyDevice, UserDevice},
     };
     use handlers::{
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username,
         group::{self, BulkAssignToGroupsRequest, Groups},
         user, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     };
     use utoipa::{
-        openapi::security::{HttpAuthScheme, HttpBuilder},
         OpenApi,
+        openapi::security::{HttpAuthScheme, HttpBuilder},
     };
 
     use super::*;
+    use crate::{enterprise::snat::handlers as snat, error::WebError};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -240,43 +258,60 @@ mod openapi {
             network::delete_network,
             network::list_networks,
             network::network_details,
+            // /network/{location_id}/snat
+			snat::list_snat_bindings,
+			snat::create_snat_binding,
+			snat::modify_snat_binding,
+			snat::delete_snat_binding,
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
             ),
         ),
         tags(
             (name = "user", description = "
-Endpoints that allow to control user data.
-
+### Endpoints for managing users
 Available actions:
 - list all users
+- disable/enable user
 - CRUD mechanism for handling users
 - operations on security key and authorized app
 - change user password.
+- start remote desktop configuratiion
+- trigger enrollment process
             "),
             (name = "group", description = "
-Endpoints that allow to control groups in your network.
-
+### Endpoints for managing groups
 Available actions:
 - list all groups
 - CRUD mechanism for handling groups
-- add or delete a group member.
+- add or delete a group member
+- remove group
+- bulk assign users to groups
             "),
             (name = "device", description = "
-Endpoints that allow to control devices in your network.
+### Endpoints for managing devices
 
 Available actions:
 - list all devices or user devices
 - CRUD mechanism for handling devices.
             "),
-            (name = "nework", description = "
-Endpoints that allow to control your networks.
+            (name = "network", description = "
+### Endpoints that allow to control your networks.
 
 Available actions:
 - list all wireguard networks
 - CRUD mechanism for handling devices.
+            "),
+            (name = "SNAT", description = "
+### Endpoints that allow you to control user SNAT bindings for your locations.
+
+Available actions:
+- list all SNAT bindings
+- create new SNAT binding
+- modify SNAT binding
+- delete SNAT binding
             "),
         )
     )]
@@ -325,6 +360,8 @@ pub fn build_webapp(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    version: Version,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -345,41 +382,42 @@ pub fn build_webapp(
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
-            .route("/auth/mfa", put(mfa_enable))
-            .route("/auth/mfa", delete(mfa_disable))
+            .route("/auth/mfa", put(mfa_enable).delete(mfa_disable))
             .route("/auth/webauthn/init", post(webauthn_init))
             .route("/auth/webauthn/finish", post(webauthn_finish))
             .route("/auth/webauthn/start", post(webauthn_start))
             .route("/auth/webauthn", post(webauthn_end))
             .route("/auth/totp/init", post(totp_secret))
-            .route("/auth/totp", post(totp_enable))
-            .route("/auth/totp", delete(totp_disable))
+            .route("/auth/totp", post(totp_enable).delete(totp_disable))
             .route("/auth/totp/verify", post(totp_code))
             .route("/auth/email/init", post(email_mfa_init))
-            .route("/auth/email", get(request_email_mfa_code))
-            .route("/auth/email", post(email_mfa_enable))
-            .route("/auth/email", delete(email_mfa_disable))
+            .route(
+                "/auth/email",
+                get(request_email_mfa_code)
+                    .post(email_mfa_enable)
+                    .delete(email_mfa_disable),
+            )
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
             // /user
-            .route("/user", get(list_users))
+            .route("/user", get(list_users).post(add_user))
             .route("/user/{username}", get(get_user))
-            .route("/user", post(add_user))
             .route("/user/{username}/start_enrollment", post(start_enrollment))
             .route(
                 "/user/{username}/start_desktop",
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
-            .route("/user/{username}", put(modify_user))
-            .route("/user/{username}", delete(delete_user))
+            .route("/user/{username}", put(modify_user).delete(delete_user))
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
             .route("/user/{username}/password", put(change_password))
             .route("/user/{username}/reset_password", post(reset_password))
             // auth keys
-            .route("/user/{username}/auth_key", get(fetch_authentication_keys))
-            .route("/user/{username}/auth_key", post(add_authentication_key))
+            .route(
+                "/user/{username}/auth_key",
+                get(fetch_authentication_keys).post(add_authentication_key),
+            )
             .route(
                 "/user/{username}/auth_key/{key_id}",
                 delete(delete_authentication_key),
@@ -395,8 +433,10 @@ pub fn build_webapp(
                 post(rename_yubikey),
             )
             // API tokens
-            .route("/user/{username}/api_token", get(fetch_api_tokens))
-            .route("/user/{username}/api_token", post(add_api_token))
+            .route(
+                "/user/{username}/api_token",
+                get(fetch_api_tokens).post(add_api_token),
+            )
             .route(
                 "/user/{username}/api_token/{token_id}",
                 delete(delete_api_token),
@@ -414,15 +454,18 @@ pub fn build_webapp(
                 "/user/{username}/oauth_app/{oauth2client_id}",
                 delete(delete_authorized_app),
             )
+            .route("/user/{username}/mfa", delete(disable_user_mfa))
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group
-            .route("/group", get(list_groups))
-            .route("/group", post(create_group))
-            .route("/group/{name}", get(get_group))
-            .route("/group/{name}", put(modify_group))
-            .route("/group/{name}", delete(delete_group))
-            .route("/group/{name}", post(add_group_member))
+            .route("/group", get(list_groups).post(create_group))
+            .route(
+                "/group/{name}",
+                get(get_group)
+                    .put(modify_group)
+                    .delete(delete_group)
+                    .post(add_group_member),
+            )
             .route("/group/{name}/user/{username}", delete(remove_group_member))
             .route("/group-info", get(list_groups_info))
             .route("/groups-assign", post(bulk_assign_to_groups))
@@ -430,25 +473,30 @@ pub fn build_webapp(
             .route("/mail/test", post(test_mail))
             .route("/mail/support", post(send_support_data))
             // settings
-            .route("/settings", get(get_settings))
-            .route("/settings", put(update_settings))
-            .route("/settings", patch(patch_settings))
+            .route(
+                "/settings",
+                get(get_settings).put(update_settings).patch(patch_settings),
+            )
             .route("/settings/{id}", put(set_default_branding))
             // settings for frontend
             .route("/settings_essentials", get(get_settings_essentials))
             // enterprise settings
-            .route("/settings_enterprise", get(get_enterprise_settings))
-            .route("/settings_enterprise", patch(patch_enterprise_settings))
+            .route(
+                "/settings_enterprise",
+                get(get_enterprise_settings).patch(patch_enterprise_settings),
+            )
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))
             // webhooks
-            .route("/webhook", post(add_webhook))
-            .route("/webhook", get(list_webhooks))
-            .route("/webhook/{id}", get(get_webhook))
-            .route("/webhook/{id}", put(change_webhook))
-            .route("/webhook/{id}", delete(delete_webhook))
-            .route("/webhook/{id}", post(change_enabled))
+            .route("/webhook", post(add_webhook).get(list_webhooks))
+            .route(
+                "/webhook/{id}",
+                get(get_webhook)
+                    .put(change_webhook)
+                    .delete(delete_webhook)
+                    .post(change_enabled),
+            )
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // activity log
@@ -459,8 +507,10 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/openid",
         Router::new()
-            .route("/provider", get(get_current_openid_provider))
-            .route("/provider", post(add_openid_provider))
+            .route(
+                "/provider",
+                get(get_current_openid_provider).post(add_openid_provider),
+            )
             .route("/provider/{name}", delete(delete_openid_provider))
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
@@ -477,10 +527,14 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/activity_log_stream",
         Router::new()
-            .route("/", get(get_activity_log_stream))
-            .route("/", post(create_activity_log_stream))
-            .route("/{id}", delete(delete_activity_log_stream))
-            .route("/{id}", put(modify_activity_log_stream)),
+            .route(
+                "/",
+                get(get_activity_log_stream).post(create_activity_log_stream),
+            )
+            .route(
+                "/{id}",
+                delete(delete_activity_log_stream).put(modify_activity_log_stream),
+            ),
     );
 
     #[cfg(feature = "openid")]
@@ -489,14 +543,15 @@ pub fn build_webapp(
             "/api/v1/oauth",
             Router::new()
                 .route("/discovery/keys", get(discovery_keys))
-                .route("/", post(add_openid_client))
-                .route("/", get(list_openid_clients))
-                .route("/{client_id}", get(get_openid_client))
-                .route("/{client_id}", put(change_openid_client))
-                .route("/{client_id}", post(change_openid_client_state))
-                .route("/{client_id}", delete(delete_openid_client))
-                .route("/authorize", get(authorization))
-                .route("/authorize", post(secure_authorization))
+                .route("/", post(add_openid_client).get(list_openid_clients))
+                .route(
+                    "/{client_id}",
+                    get(get_openid_client)
+                        .put(change_openid_client)
+                        .post(change_openid_client_state)
+                        .delete(delete_openid_client),
+                )
+                .route("/authorize", get(authorization).post(secure_authorization))
                 .route("/token", post(token))
                 .route("/userinfo", get(userinfo)),
         )
@@ -508,17 +563,21 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/acl",
         Router::new()
-            .route("/rule", get(list_acl_rules))
-            .route("/rule", post(create_acl_rule))
+            .route("/rule", get(list_acl_rules).post(create_acl_rule))
             .route("/rule/apply", put(apply_acl_rules))
-            .route("/rule/{id}", get(get_acl_rule))
-            .route("/rule/{id}", put(update_acl_rule))
-            .route("/rule/{id}", delete(delete_acl_rule))
-            .route("/alias", get(list_acl_aliases))
-            .route("/alias", post(create_acl_alias))
-            .route("/alias/{id}", get(get_acl_alias))
-            .route("/alias/{id}", put(update_acl_alias))
-            .route("/alias/{id}", delete(delete_acl_alias))
+            .route(
+                "/rule/{id}",
+                get(get_acl_rule)
+                    .put(update_acl_rule)
+                    .delete(delete_acl_rule),
+            )
+            .route("/alias", get(list_acl_aliases).post(create_acl_alias))
+            .route(
+                "/alias/{id}",
+                get(get_acl_alias)
+                    .put(update_acl_alias)
+                    .delete(delete_acl_alias),
+            )
             .route("/alias/apply", put(apply_acl_aliases)),
     );
 
@@ -528,22 +587,27 @@ pub fn build_webapp(
         Router::new()
             // FIXME: Conflict; change /device/{device_id} to /device/{username}.
             .route("/device/{device_id}", post(add_device))
-            .route("/device/{device_id}", put(modify_device))
-            .route("/device/{device_id}", get(get_device))
-            .route("/device/{device_id}", delete(delete_device))
+            .route(
+                "/device/{device_id}",
+                put(modify_device).get(get_device).delete(delete_device),
+            )
             .route("/device", get(list_devices))
             .route("/device/user/{username}", get(list_user_devices))
             // Network devices, as opposed to user devices
-            .route("/device/network", post(add_network_device))
-            .route("/device/network", get(list_network_devices))
-            .route("/device/network/ip/{network_id}", get(find_available_ips))
+            .route(
+                "/device/network",
+                post(add_network_device).get(list_network_devices),
+            )
             .route(
                 "/device/network/ip/{network_id}",
-                post(check_ip_availability),
+                get(find_available_ips).post(check_ip_availability),
             )
-            .route("/device/network/{device_id}", put(modify_network_device))
-            .route("/device/network/{device_id}", get(get_network_device))
-            .route("/device/network/{device_id}", delete(delete_device))
+            .route(
+                "/device/network/{device_id}",
+                put(modify_network_device)
+                    .get(get_network_device)
+                    .delete(delete_device),
+            )
             .route(
                 "/device/network/{device_id}/config",
                 get(download_network_device_config),
@@ -556,14 +620,16 @@ pub fn build_webapp(
                 "/device/network/start_cli/{device_id}",
                 post(start_network_device_setup_for_device),
             )
-            .route("/network", post(create_network))
-            .route("/network", get(list_networks))
+            .route("/network", post(create_network).get(list_networks))
             .route("/network/import", post(import_network))
             .route("/network/stats", get(networks_overview_stats))
             .route("/network/gateways", get(all_gateways_status))
-            .route("/network/{network_id}", put(modify_network))
-            .route("/network/{network_id}", delete(delete_network))
-            .route("/network/{network_id}", get(network_details))
+            .route(
+                "/network/{network_id}",
+                put(modify_network)
+                    .delete(delete_network)
+                    .get(network_details),
+            )
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
@@ -577,6 +643,15 @@ pub fn build_webapp(
             .route("/network/{network_id}/token", get(create_network_token))
             .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(network_stats))
+            .route(
+                "/network/{location_id}/snat",
+                get(list_snat_bindings).post(create_snat_binding),
+            )
+            .route(
+                "/network/{location_id}/snat/{user_id}",
+                put(modify_snat_binding).delete(delete_snat_binding),
+            )
+            .route("/outdated", get(outdated_components))
             .layer(Extension(gateway_state)),
     );
 
@@ -587,9 +662,15 @@ pub fn build_webapp(
             .route("/job", post(create_job))
             .route("/token", get(create_worker_token))
             .route("/", get(list_workers))
-            .route("/{id}", delete(remove_worker))
-            .route("/{id}", get(job_status))
+            .route("/{id}", delete(remove_worker).get(job_status))
             .layer(Extension(worker_state)),
+    );
+
+    let webapp = webapp.layer(DefguardVersionLayer::new(version)).layer(
+        SetResponseHeaderLayer::if_not_present(
+            headers::CONTENT_SECURITY_POLICY_HEADER_NAME,
+            headers::CONTENT_SECURITY_POLICY_HEADER_VALUE,
+        ),
     );
 
     let swagger =
@@ -604,6 +685,7 @@ pub fn build_webapp(
             mail_tx,
             failed_logins,
             event_tx,
+            incompatible_components,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -631,6 +713,7 @@ pub async fn run_web_server(
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
+    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -642,9 +725,16 @@ pub async fn run_web_server(
         pool,
         failed_logins,
         event_tx,
+        Version::parse(VERSION)?,
+        incompatible_components,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
+    let addr = SocketAddr::new(
+        server_config()
+            .http_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().http_port,
+    );
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,
@@ -698,13 +788,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             "0.0.0.0".to_string(),
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
-            false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
-        )
-        .expect("Could not create network");
+            LocationMfaMode::Disabled,
+        );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -778,12 +867,12 @@ pub async fn init_vpn_location(
         let network = if let Some(mut network) =
             WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
         {
-            network.name = args.name.clone();
+            network.name.clone_from(&args.name);
             network.address = vec![args.address];
             network.port = args.port;
-            network.endpoint = args.endpoint.clone();
-            network.dns = args.dns.clone();
-            network.allowed_ips = args.allowed_ips.clone();
+            network.endpoint.clone_from(&args.endpoint);
+            network.dns.clone_from(&args.dns);
+            network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
             network.sync_allowed_devices(&mut transaction, None).await?;
             network
@@ -797,12 +886,12 @@ pub async fn init_vpn_location(
                 args.endpoint.clone(),
                 args.dns.clone(),
                 args.allowed_ips.clone(),
-                false,
                 DEFAULT_KEEPALIVE_INTERVAL,
                 DEFAULT_DISCONNECT_THRESHOLD,
                 false,
                 false,
-            )?
+                LocationMfaMode::Disabled,
+            )
             .save(&mut *transaction)
             .await?;
             if network.id != location_id {
@@ -826,7 +915,7 @@ pub async fn init_vpn_location(
             return Err(anyhow!(
                 "Failed to initialize first VPN location. Location already exists."
             ));
-        };
+        }
 
         // create a new network
         WireguardNetwork::new(
@@ -836,12 +925,12 @@ pub async fn init_vpn_location(
             args.endpoint.clone(),
             args.dns.clone(),
             args.allowed_ips.clone(),
-            false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
-        )?
+            LocationMfaMode::Disabled,
+        )
         .save(pool)
         .await?
     };

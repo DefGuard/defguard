@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
@@ -51,6 +51,7 @@ export const MFATOTPAuth = () => {
       z.object({
         code: z
           .string()
+          .trim()
           .min(6, LL.form.error.validCode())
           .max(6, LL.form.error.validCode()),
       }),
@@ -70,6 +71,7 @@ export const MFATOTPAuth = () => {
     mutate({ code: String(trimmed.code) });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (!totpAvailable) {
       navigate('../');

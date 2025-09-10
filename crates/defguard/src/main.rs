@@ -1,36 +1,40 @@
 use std::{
     fs::read_to_string,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use bytes::Bytes;
 use defguard_core::{
+    SERVER_CONFIG, VERSION,
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{
-        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Settings,
-        User,
+        AppEvent, GatewayEvent, Settings, User, init_db,
+        models::settings::initialize_current_settings,
     },
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
-        license::{run_periodic_license_check, set_cached_license, License},
+        license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
-    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
+    grpc::{
+        WorkerState,
+        gateway::{client_state::ClientMap, map::GatewayMap},
+        run_grpc_bidi_stream, run_grpc_server,
+    },
     init_dev_env, init_vpn_location,
-    mail::{run_mail_handler, Mail},
+    mail::{Mail, run_mail_handler},
     run_web_server,
     utility_thread::run_utility_thread,
+    version::IncompatibleComponents,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
-    SERVER_CONFIG, VERSION,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
-use defguard_event_router::{run_event_router, RouterReceiverSet};
+use defguard_event_router::{RouterReceiverSet, run_event_router};
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -41,17 +45,17 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let config = DefGuardConfig::new();
-    SERVER_CONFIG.set(config.clone())?;
-    // initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    SERVER_CONFIG
+        .set(config.clone())
+        .expect("Failed to initialize server config.");
 
-    info!("Starting ... version v{}", VERSION);
+    // initialize tracing with version formatter
+    defguard_version::tracing::init(
+        defguard_version::Version::parse(VERSION)?,
+        &config.log_level,
+    )?;
+
+    info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");
 
     let pool = init_db(
@@ -103,6 +107,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
+    let client_state = Arc::new(Mutex::new(ClientMap::new()));
+
+    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Default::default();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
@@ -144,17 +151,73 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone(), grpc_event_tx) => error!("gRPC server returned early: {res:?}"),
-        res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, api_event_tx) => error!("Web server returned early: {res:?}"),
+        res = run_grpc_bidi_stream(
+            pool.clone(),
+            wireguard_tx.clone(),
+            mail_tx.clone(),
+            bidi_event_tx,
+            Arc::clone(&incompatible_components),
+        ), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
+        res = run_grpc_server(
+            Arc::clone(&worker_state),
+            pool.clone(),
+            Arc::clone(&gateway_state),
+            client_state,
+            wireguard_tx.clone(),
+            mail_tx.clone(),
+            grpc_cert,
+            grpc_key,
+            failed_logins.clone(),
+            grpc_event_tx,
+            Arc::clone(&incompatible_components),
+        ) => error!("gRPC server returned early: {res:?}"),
+        res = run_web_server(
+            worker_state,
+            gateway_state,
+            webhook_tx,
+            webhook_rx,
+            wireguard_tx.clone(),
+            mail_tx.clone(),
+            pool.clone(),
+            failed_logins,
+            api_event_tx,
+            incompatible_components,
+        ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
-        res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone(), internal_event_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),
-        res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, wireguard_tx.clone()) => error!("Utility thread returned early: {res:?}"),
-        res = run_event_router(RouterReceiverSet::new(api_event_rx, grpc_event_rx, bidi_event_rx, internal_event_rx), event_logger_tx, wireguard_tx, mail_tx, activity_log_stream_reload_notify.clone()) => error!("Event router returned early: {res:?}"),
-        res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) => error!("Activity log event logger returned early: {res:?}"),
-        res = run_activity_log_stream_manager(pool.clone(), activity_log_stream_reload_notify.clone(), activity_log_messages_rx) => error!("Activity log stream manager returned early: {res:?}"),
+        res = run_periodic_peer_disconnect(
+            pool.clone(),
+            wireguard_tx.clone(),
+            internal_event_tx.clone()
+        ) => error!("Periodic peer disconnect task returned early: {res:?}"),
+        res = run_periodic_stats_purge(
+            pool.clone(),
+            config.stats_purge_frequency.into(),
+            config.stats_purge_threshold.into()
+        ), if !config.disable_stats_purge =>
+            error!("Periodic stats purge task returned early: {res:?}"),
+        res = run_periodic_license_check(&pool) =>
+            error!("Periodic license check task returned early: {res:?}"),
+        res = run_utility_thread(&pool, wireguard_tx.clone()) =>
+            error!("Utility thread returned early: {res:?}"),
+        res = run_event_router(
+            RouterReceiverSet::new(
+                api_event_rx,
+                grpc_event_rx,
+                bidi_event_rx,
+                internal_event_rx
+            ),
+            event_logger_tx,
+            wireguard_tx,
+            mail_tx,
+            activity_log_stream_reload_notify.clone()
+        ) => error!("Event router returned early: {res:?}"),
+        res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) =>
+            error!("Activity log event logger returned early: {res:?}"),
+        res = run_activity_log_stream_manager(
+            pool.clone(),
+            activity_log_stream_reload_notify.clone(),
+            activity_log_messages_rx
+        ) => error!("Activity log stream manager returned early: {res:?}"),
     }
 
     Ok(())

@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -10,7 +10,7 @@ import { useUpgradeLicenseModal } from '../../shared/components/Layout/UpgradeLi
 import { UpgradeLicenseModalVariant } from '../../shared/components/Layout/UpgradeLicenseModal/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
-import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
+import type { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
@@ -140,6 +140,7 @@ export const SettingsPage = () => {
     });
   }, [settingsData, setPageState, enterpriseInfo?.license_info]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on mount
   useEffect(() => {
     void queryClient.invalidateQueries({
       queryKey: [QueryKeys.FETCH_APP_INFO],
@@ -147,7 +148,6 @@ export const SettingsPage = () => {
     return () => {
       resetPageState?.();
     };
-    // eslint-disable-next-line
   }, []);
 
   // if appinfo changes and license is not enterprise anymore then change active tab to global

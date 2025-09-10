@@ -1,13 +1,13 @@
 use chrono::NaiveDateTime;
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgExecutor};
+use sqlx::{Error as SqlxError, PgExecutor, query_as};
 
 use crate::db::{Id, NoId};
 
-#[derive(Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize)]
 #[table(api_token)]
 pub struct ApiToken<I = NoId> {
-    id: I,
+    pub id: I,
     pub user_id: Id,
     pub created_at: NaiveDateTime,
     pub name: String,
@@ -15,6 +15,7 @@ pub struct ApiToken<I = NoId> {
 }
 
 impl ApiToken {
+    #[must_use]
     pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_string: &str) -> Self {
         let token_hash = Self::hash_token(token_string);
         Self {
@@ -57,8 +58,9 @@ impl ApiToken<Id> {
         let token_hash = ApiToken::hash_token(auth_token);
         let maybe_token = query_as!(
             Self,
-            "SELECT id, user_id, created_at, name, token_hash \
-                    FROM api_token WHERE token_hash = $1",
+            "SELECT at.id, user_id, created_at, name, token_hash \
+             FROM api_token at JOIN \"user\" ON \"user\".id = user_id \
+             WHERE token_hash = $1 AND \"user\".is_active = true",
             token_hash
         )
         .fetch_optional(executor)

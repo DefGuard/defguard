@@ -23,7 +23,7 @@ impl DirectorySync for TestProviderDirectorySync {
 
     async fn get_user_groups(
         &self,
-        _user_id: &str,
+        _user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
         Ok(vec![DirectoryGroup {
             id: "1".into(),
@@ -34,6 +34,7 @@ impl DirectorySync for TestProviderDirectorySync {
     async fn get_group_members(
         &self,
         _group: &DirectoryGroup,
+        _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
         Ok(vec![
             "testuser@email.com".into(),
@@ -51,14 +52,17 @@ impl DirectorySync for TestProviderDirectorySync {
             DirectoryUser {
                 email: "testuser@email.com".into(),
                 active: true,
+                id: Some("testuser-id".into()),
             },
             DirectoryUser {
                 email: "testuserdisabled@email.com".into(),
                 active: false,
+                id: Some("testuserdisabled-id".into()),
             },
             DirectoryUser {
                 email: "testuser2@email.com".into(),
                 active: true,
+                id: Some("testuser2-id".into()),
             },
         ])
     }

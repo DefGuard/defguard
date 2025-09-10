@@ -1,6 +1,6 @@
 use model_derive::Model;
 use serde::Serialize;
-use sqlx::{query_as, Error as SqlxError, FromRow, PgExecutor, Type};
+use sqlx::{Error as SqlxError, FromRow, PgExecutor, Type, query_as};
 use strum_macros::{Display, EnumString};
 
 use crate::{
@@ -19,7 +19,7 @@ pub enum ActivityLogStreamType {
     LogstashHttp,
 }
 
-#[derive(Debug, Serialize, Model, FromRow)]
+#[derive(Clone, Debug, Serialize, Model, FromRow)]
 #[table(activity_log_stream)]
 pub struct ActivityLogStream<I = NoId> {
     pub id: I,

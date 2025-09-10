@@ -1,18 +1,19 @@
 use std::{array::TryFromSliceError, net::IpAddr};
 
-use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
+use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::{
-    db::{
-        models::wireguard::{
-            WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
-        },
-        Device, WireguardNetwork,
-    },
     KEY_LENGTH,
+    db::{
+        Device, WireguardNetwork,
+        models::wireguard::{
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+            WireguardNetworkError,
+        },
+    },
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -106,12 +107,12 @@ pub(crate) fn parse_wireguard_config(
         String::new(),
         dns,
         allowed_ips,
-        false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
-    )?;
+        LocationMfaMode::Disabled,
+    );
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 

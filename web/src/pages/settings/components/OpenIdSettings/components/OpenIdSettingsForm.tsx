@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
+import { FormProvider, type SubmitHandler, useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 
@@ -21,7 +21,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { OpenIdProvider } from '../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdProviderSettings } from './OpenIdProviderSettings';
@@ -31,10 +31,6 @@ export type UsernameHandling =
   | 'RemoveForbidden'
   | 'ReplaceForbidden'
   | 'PruneEmailDomain';
-type FormFields = OpenIdProvider & {
-  create_account: boolean;
-  username_handling: UsernameHandling;
-};
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -63,9 +59,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -77,9 +74,10 @@ export const OpenIdSettingsForm = () => {
   const { mutate: deleteProvider } = useMutation({
     mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_OPENID_PROVIDERS],
+        [QueryKeys.FETCH_APP_INFO],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -105,14 +103,15 @@ export const OpenIdSettingsForm = () => {
           google_service_account_key: z.string(),
           directory_sync_enabled: z.boolean(),
           directory_sync_interval: z.number().min(60, LL.form.error.invalid()),
-          directory_sync_user_behavior: z.string(),
-          directory_sync_admin_behavior: z.string(),
-          directory_sync_target: z.string(),
+          directory_sync_user_behavior: z.enum(['keep', 'disable', 'delete']),
+          directory_sync_admin_behavior: z.enum(['keep', 'disable', 'delete']),
+          directory_sync_target: z.enum(['all', 'users', 'groups']),
           create_account: z.boolean(),
           username_handling: z.string(),
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
           directory_sync_group_match: z.string(),
+          jumpcloud_api_key: z.string(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -150,13 +149,23 @@ export const OpenIdSettingsForm = () => {
               });
             }
           }
+
+          if (val.directory_sync_enabled && val.name === 'JumpCloud') {
+            if (val.jumpcloud_api_key.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+              });
+            }
+          }
         }),
     [LL.form.error],
   );
 
+  type FormFields = z.infer<typeof schema>;
+
   const defaultValues = useMemo((): FormFields => {
     let defaults: FormFields = {
-      id: 0,
       name: '',
       base_url: '',
       client_id: '',
@@ -175,6 +184,7 @@ export const OpenIdSettingsForm = () => {
       okta_dirsync_client_id: '',
       directory_sync_group_match: '',
       username_handling: 'RemoveForbidden',
+      jumpcloud_api_key: '',
     };
 
     if (openidData) {
@@ -219,7 +229,7 @@ export const OpenIdSettingsForm = () => {
   }, [defaultValues, reset]);
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    mutate(data);
+    mutate({ id: openidData?.provider?.id ?? 0, ...data, name: data.name ?? '' });
   };
 
   const handleDeleteProvider = useCallback(() => {

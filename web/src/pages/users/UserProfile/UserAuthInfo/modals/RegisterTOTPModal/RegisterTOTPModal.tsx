@@ -5,7 +5,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import { z } from 'zod';
 
@@ -80,6 +80,7 @@ const TOTPRegisterQRCode = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (totpInitError) {
       toaster.error(LL.messages.error());
@@ -94,7 +95,7 @@ const TOTPRegisterQRCode = () => {
   );
 
   const handleCopy = () => {
-    if (data && data.secret) {
+    if (data?.secret) {
       void writeToClipboard(data.secret, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
@@ -137,7 +138,7 @@ const TOTPRegisterForm = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        code: z.string().min(6, LL.form.error.minimumLength()),
+        code: z.string().trim().min(6, LL.form.error.minimumLength()),
       }),
     [LL.form.error],
   );
@@ -149,7 +150,7 @@ const TOTPRegisterForm = () => {
       void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_USER_PROFILE],
       });
-      if (data && data.codes) {
+      if (data?.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: data.codes },
         });

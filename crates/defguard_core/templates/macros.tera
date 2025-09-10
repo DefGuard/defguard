@@ -53,6 +53,59 @@
 </div>
 {% endmacro text_section %}
 
+{% macro inline_image(src, height="100px", width="100px", alt="") %}
+<div style="margin: 0px auto; max-width: 600px">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%">
+        <tbody>
+            <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 0; text-align: center">
+                    <div class="mj-column-per-100 mj-outlook-group-fix" style="
+              font-size: 0px;
+              text-align: left;
+              direction: ltr;
+              display: inline-block;
+              vertical-align: top;
+              width: 100%;
+            ">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                            <tbody>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 0">
+                                        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style=""
+                                            width="100%">
+                                            <tbody>
+                                                <tr>
+                                                    <td align="left" width="{{ width }}" height={{ height }} style="
+                              font-size: 0px;
+                              padding: 5px 25px;
+                              word-break: break-word;
+                            ">
+                                                        <div style="
+                                font-family: Roboto, Arial;
+                                font-size: 12px;
+                                font-weight: 400;
+                                line-height: 120%;
+                                text-align: left;
+                                color: #222222;
+                              ">
+                                                        <img src="{{ src }}" height="{{ height }}" width="{{ width }}" alt="{{ alt }}" style="border:0;display:block;outline:none;text-decoration:none;" />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endmacro inline_image %}
+
 {% macro paragraph(content="", color="#222", font_size="12px", align="left", line_height="120%", font_weight="400") %}
 <p style="
   font-family: Roboto, Arial;
@@ -186,3 +239,34 @@ size="12px", line_height="120%", weight="400") %}
     </table>
 </div>
 {% endmacro title %}
+
+{% macro button_link(href="", text="") %}
+<p style="text-align: center;"><a href="{{ href }}" target="_blank" aria-label="{{ text }}" style="
+  background-color: #0C8CE0;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+  color: #FFFFFF;
+  padding: 12px 48px;
+  text-align: center;
+  display: inline-block;
+  margin: 0px auto;
+  cursor: pointer;
+">
+        <span style="
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+  color: #FFFFFF;
+        ">{{ text }}</span>
+    </a>
+</p>
+{% endmacro button_link %}

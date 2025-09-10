@@ -1,18 +1,18 @@
 use std::{
     collections::HashMap,
-    fmt,
+    fmt::{self, Display},
     iter::zip,
     net::{IpAddr, Ipv4Addr},
 };
 
-use base64::prelude::{Engine, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
-use rand_core::OsRng;
+use rand::rngs::OsRng;
 use sqlx::{
-    postgres::types::PgInterval, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query_as, query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -20,28 +20,30 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
+    UserInfo,
     device::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
     error::ModelError,
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
-    UserInfo,
 };
 use crate::{
+    AsCsv,
+    auth::{Claims, ClaimsType},
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
-        gateway::{send_multiple_wireguard_events, Peer},
-        proto::enterprise::firewall::FirewallConfig,
-        GatewayState,
+        gateway::{Peer, send_multiple_wireguard_events, state::GatewayState},
+        proto::{
+            enterprise::firewall::FirewallConfig, proxy::LocationMfaMode as ProtoLocationMfaMode,
+        },
     },
     wg_config::ImportedDevice,
-    AsCsv,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
-pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
+pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 
 // Used in process of importing network from wireguard config
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -83,6 +85,47 @@ pub enum GatewayEvent {
     FirewallDisabled(Id),
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
+#[sqlx(type_name = "location_mfa_mode", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum LocationMfaMode {
+    #[default]
+    Disabled,
+    Internal,
+    External,
+}
+
+impl Display for LocationMfaMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LocationMfaMode::Disabled => write!(f, "MFA disabled"),
+            LocationMfaMode::Internal => write!(f, "Internal MFA"),
+            LocationMfaMode::External => write!(f, "External MFA"),
+        }
+    }
+}
+
+impl From<ProtoLocationMfaMode> for LocationMfaMode {
+    fn from(value: ProtoLocationMfaMode) -> Self {
+        match value {
+            ProtoLocationMfaMode::Unspecified | ProtoLocationMfaMode::Disabled => {
+                LocationMfaMode::Disabled
+            }
+            ProtoLocationMfaMode::Internal => LocationMfaMode::Internal,
+            ProtoLocationMfaMode::External => LocationMfaMode::External,
+        }
+    }
+}
+impl From<LocationMfaMode> for ProtoLocationMfaMode {
+    fn from(value: LocationMfaMode) -> Self {
+        match value {
+            LocationMfaMode::Disabled => ProtoLocationMfaMode::Disabled,
+            LocationMfaMode::Internal => ProtoLocationMfaMode::Internal,
+            LocationMfaMode::External => ProtoLocationMfaMode::External,
+        }
+    }
+}
+
 /// Stores configuration required to setup a WireGuard network
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
@@ -102,11 +145,12 @@ pub struct WireguardNetwork<I = NoId> {
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
-    pub mfa_enabled: bool,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    #[model(enum)]
+    pub location_mfa_mode: LocationMfaMode,
 }
 
 pub struct WireguardKey {
@@ -140,11 +184,11 @@ impl Default for WireguardNetwork<Id> {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
-            mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_default_allow: false,
             acl_enabled: false,
+            location_mfa_mode: LocationMfaMode::default(),
         }
     }
 }
@@ -169,6 +213,8 @@ pub enum WireguardNetworkError {
     DeviceError(#[from] DeviceError),
     #[error("Firewall config error: {0}")]
     FirewallError(#[from] FirewallError),
+    #[error(transparent)]
+    TokenError(#[from] jsonwebtoken::errors::Error),
 }
 
 #[derive(Debug, Error)]
@@ -190,6 +236,7 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    #[must_use]
     pub fn new(
         name: String,
         address: Vec<IpNetwork>,
@@ -197,15 +244,15 @@ impl WireguardNetwork {
         endpoint: String,
         dns: Option<String>,
         allowed_ips: Vec<IpNetwork>,
-        mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
         acl_enabled: bool,
         acl_default_allow: bool,
-    ) -> Result<Self, WireguardNetworkError> {
+        location_mfa_mode: LocationMfaMode,
+    ) -> Self {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
-        Ok(Self {
+        Self {
             id: NoId,
             name,
             address,
@@ -216,12 +263,13 @@ impl WireguardNetwork {
             dns,
             allowed_ips,
             connected_at: None,
-            mfa_enabled,
+
             keepalive_interval,
             peer_disconnect_threshold,
             acl_enabled,
             acl_default_allow,
-        })
+            location_mfa_mode,
+        }
     }
 
     /// Try to set `address` from `&str`.
@@ -250,8 +298,8 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network WHERE name = $1",
             name
         )
@@ -464,6 +512,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Checks if all device addresses are contained in at least one of the network addresses
+    #[must_use]
     pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
         addresses
             .iter()
@@ -471,6 +520,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Finds [`IpNetwork`] containing given [`IpAddr`]
+    #[must_use]
     pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
         self.address.iter().find(|net| net.contains(addr)).copied()
     }
@@ -671,9 +721,10 @@ impl WireguardNetwork<Id> {
                     match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ips.as_csv()
-                    );
+                                "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
+                                existing_device.wireguard_pubkey,
+                                imported_device.wireguard_ips.as_csv()
+                            );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
@@ -695,9 +746,9 @@ impl WireguardNetwork<Id> {
                         }
                         None => {
                             warn!(
-                        "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
-                        existing_device.wireguard_pubkey
-                    );
+                                "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
+                                existing_device.wireguard_pubkey
+                            );
                         }
                     }
                 }
@@ -844,65 +895,6 @@ impl WireguardNetwork<Id> {
 
         Ok(connected_at)
     }
-
-    /*
-    /// Retrieves stats for all devices matching given `device_type`.
-    pub(crate) async fn device_stats_for_type(
-        &self,
-        conn: &PgPool,
-        device_type: DeviceType,
-        from: &NaiveDateTime,
-        aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
-        let stats = query!(
-            "SELECT device_id \"device_id!\", device.name, device.user_id, \
-            date_trunc($1, collected_at) \"collected_at!\", \
-            CAST(sum(download) AS bigint) \"download!\", \
-            CAST(sum(upload) AS bigint) \"upload!\" \
-            FROM wireguard_peer_stats_view wpsv \
-            JOIN device ON wpsv.device_id = device.id \
-            WHERE device.device_type = $2 \
-            AND collected_at >= $3 \
-            AND network = $4 \
-            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4",
-            aggregation.fstring(),
-            &device_type as &DeviceType,
-            from,
-            self.id,
-        )
-        .fetch_all(conn)
-        .await?;
-        let mut result = Vec::new();
-        for stat in &stats {
-            let latest_stats =
-                WireguardPeerStats::fetch_latest(conn, stat.device_id, self.id).await?;
-            result.push(WireguardDeviceStatsRow {
-                id: stat.device_id,
-                user_id: stat.user_id,
-                name: stat.name.clone(),
-                wireguard_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::trim_allowed_ips),
-                public_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::endpoint_without_port),
-                connected_at: self.connected_at(conn, stat.device_id).await?,
-                // Filter stats for this device
-                stats: stats
-                    .iter()
-                    .filter(|s| s.device_id == stat.device_id)
-                    .map(|s| WireguardDeviceTransferRow {
-                        device_id: s.device_id,
-                        collected_at: s.collected_at,
-                        upload: s.upload,
-                        download: s.download,
-                    })
-                    .collect(),
-            });
-        }
-        Ok(result)
-    }
-    */
 
     /// Retrieves stats for specified devices
     pub(crate) async fn device_stats(
@@ -1226,6 +1218,49 @@ impl WireguardNetwork<Id> {
 
         Ok(())
     }
+
+    #[must_use]
+    pub fn mfa_enabled(&self) -> bool {
+        match self.location_mfa_mode {
+            LocationMfaMode::Internal | LocationMfaMode::External => true,
+            LocationMfaMode::Disabled => false,
+        }
+    }
+
+    // fetch all locations using external MFA
+    pub(crate) async fn all_using_external_mfa<'e, E>(
+        executor: E,
+    ) -> Result<Vec<Self>, WireguardNetworkError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let locations = query_as!(
+            WireguardNetwork,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(locations)
+    }
+
+    /// Generates auth token for a VPN gateway
+    pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
+        let location_id = self.id;
+
+        let token = Claims::new(
+            ClaimsType::Gateway,
+            format!("DEFGUARD-NETWORK-{location_id}"),
+            location_id.to_string(),
+            u32::MAX.into(),
+        )
+        .to_jwt()?;
+
+        Ok(token)
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]
@@ -1242,16 +1277,16 @@ impl Default for WireguardNetwork {
             dns: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
-            mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_enabled: false,
             acl_default_allow: false,
+            location_mfa_mode: LocationMfaMode::default(),
         }
     }
 }
 
-#[derive(Serialize, Clone, Debug, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
@@ -1260,7 +1295,7 @@ pub struct WireguardNetworkInfo {
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,
@@ -1388,7 +1423,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, Group};
+    use crate::db::{Group, setup_pool};
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1954,13 +1989,12 @@ mod test {
             String::new(),
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
             300,
             300,
             false,
             false,
+            LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();
@@ -2086,13 +2120,12 @@ mod test {
             String::new(),
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
             300,
             300,
             false,
             false,
+            LocationMfaMode::Disabled,
         )
-        .unwrap()
         .save(&pool)
         .await
         .unwrap();

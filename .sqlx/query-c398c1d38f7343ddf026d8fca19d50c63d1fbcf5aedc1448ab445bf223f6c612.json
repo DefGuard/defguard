@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"biometric_auth\" SET \"pub_key\" = $2,\"device_id\" = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c398c1d38f7343ddf026d8fca19d50c63d1fbcf5aedc1448ab445bf223f6c612"
+}

@@ -12,7 +12,7 @@ import {
 } from '../../utils/api/users';
 import { loginBasic } from '../../utils/controllers/login';
 import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../../utils/docker';
+import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForPromise } from '../../utils/waitForPromise';
 import { waitForRoute } from '../../utils/waitForRoute';
@@ -24,10 +24,6 @@ test.describe('Setup VPN (wizard) ', () => {
 
   test.afterEach(() => {
     dockerRestart();
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Wizard Import', async ({ page }) => {
@@ -47,8 +43,8 @@ test.describe('Setup VPN (wizard) ', () => {
     const navBack = page.getByTestId('wizard-back');
     await page.getByTestId('setup-option-import').click();
     await navNext.click();
-    await page.getByTestId('field-name').type('test network');
-    await page.getByTestId('field-endpoint').type('127.0.0.1:5051');
+    await page.getByTestId('field-name').fill('test network');
+    await page.getByTestId('field-endpoint').fill('127.0.0.1:5051');
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('upload-config').click();
     const responseImportConfigPromise = page.waitForResponse('**/import');

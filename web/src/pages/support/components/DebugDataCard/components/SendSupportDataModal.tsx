@@ -5,7 +5,7 @@ import { ConfirmModal } from '../../../../../shared/defguard-ui/components/Layou
 import { ConfirmModalType } from '../../../../../shared/defguard-ui/components/Layout/modals/ConfirmModal/types';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { SMTPError } from '../../../../../shared/types';
+import type { SMTPError } from '../../../../../shared/types';
 
 type Props = {
   isOpen: boolean;
@@ -26,10 +26,9 @@ export const SendSupportDataModal = ({ isOpen, onOpenChange }: Props) => {
       onOpenChange(false);
     },
     onError: (err: SMTPError) => {
-      toaster.error(
-        `${LL.supportPage.debugDataCard.mailError()}`,
-        `${err.response?.data.error}`,
-      );
+      toaster.error(`${LL.supportPage.debugDataCard.mailError()}`, {
+        subMessage: `${err.response?.data.error}`,
+      });
       console.error(err);
     },
   });

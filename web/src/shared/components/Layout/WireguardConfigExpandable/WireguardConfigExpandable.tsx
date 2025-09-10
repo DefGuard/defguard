@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { Fragment, ReactNode, useCallback, useMemo, useState } from 'react';
+import { Fragment, type ReactNode, useCallback, useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';

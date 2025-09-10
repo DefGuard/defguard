@@ -22,7 +22,7 @@ import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceM
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
-  AddStandaloneDeviceFormFields,
+  type AddStandaloneDeviceFormFields,
   AddStandaloneDeviceModalStep,
   WGConfigGenChoice,
 } from '../../types';

@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+
 use chrono::{Datelike, NaiveDateTime, Utc};
 use reqwest::Url;
-use tera::{Context, Tera};
+use serde_json::Value;
+use tera::{Context, Function, Tera};
 use thiserror::Error;
 
 use crate::{
+    VERSION,
     db::{Id, MFAMethod, Session, User},
-    server_config, VERSION,
+    server_config,
 };
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
@@ -32,6 +36,7 @@ static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
+static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -41,13 +46,31 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
 }
 
-pub fn get_base_tera(
+struct NoOp(&'static str);
+
+impl Function for NoOp {
+    fn call(&self, _args: &HashMap<String, Value>) -> tera::Result<Value> {
+        Err(tera::Error::function_not_found(self.0))
+    }
+}
+
+/// Return a safe instance of Tera, as Tera is vulnerable to `get_env()` function exploit.
+/// See: https://github.com/Keats/tera/issues/677
+pub(crate) fn safe_tera() -> Tera {
+    let mut tera = Tera::default();
+    let noop = NoOp("get_env");
+    tera.register_function(noop.0, noop);
+
+    tera
+}
+
+fn get_base_tera(
     external_context: Option<Context>,
     session: Option<&Session>,
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<(Tera, Context), TemplateError> {
-    let mut tera = Tera::default();
+    let mut tera = safe_tera();
     let mut context = external_context.unwrap_or_default();
     tera.add_raw_template("base.tera", MAIL_BASE)?;
     tera.add_raw_template("macros.tera", MAIL_MACROS)?;
@@ -56,7 +79,7 @@ pub fn get_base_tera(
     let now = Utc::now();
     let current_year = format!("{:04}", now.year());
     context.insert("current_year", &current_year);
-    context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
+    context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
 
     if let Some(current_session) = session {
         let device_info = &current_session.device_info;
@@ -217,7 +240,7 @@ pub fn new_device_login_mail(
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     context.insert(
         "date_now",
-        &created.format("%A, %B %d, %Y at %r").to_string(),
+        &created.format(MAIL_DATETIME_FORMAT).to_string(),
     );
 
     tera.add_raw_template("mail_new_device_login", MAIL_NEW_DEVICE_LOGIN)?;
@@ -269,9 +292,9 @@ pub fn gateway_reconnected_mail(
 pub fn email_mfa_activation_mail(
     user: &User<Id>,
     code: &str,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
+    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
@@ -338,7 +361,7 @@ mod test {
     use claims::assert_ok;
 
     use super::*;
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+    use crate::{SERVER_CONFIG, config::DefGuardConfig};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();
@@ -448,5 +471,13 @@ mod test {
             "11.11.11.11",
             None
         ));
+    }
+
+    #[test]
+    fn dg25_8_server_side_template_injection() {
+        let mut tera = safe_tera();
+        tera.add_raw_template("text", "PATH={{ get_env(name=\"PATH\") }}")
+            .unwrap();
+        assert!(tera.render("text", &Context::new()).is_err());
     }
 }

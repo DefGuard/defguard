@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -41,10 +41,12 @@ export const EditUserDeviceForm = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(4, LL.form.error.minimumLength())
           .regex(patternNoSpecialChars, LL.form.error.noSpecialChars()),
         wireguard_pubkey: z
           .string()
+          .trim()
           .min(44, LL.form.error.invalidKey())
           .max(44, LL.form.error.invalidKey())
           .regex(patternValidWireguardKey, LL.form.error.invalidKey()),

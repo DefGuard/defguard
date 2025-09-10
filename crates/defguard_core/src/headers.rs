@@ -1,15 +1,21 @@
 use std::{borrow::Borrow, sync::LazyLock};
 
+use axum::http::{HeaderName, HeaderValue};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{models::device_login::DeviceLoginEvent, Id, Session, User},
+    db::{Id, Session, User, models::device_login::DeviceLoginEvent},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,
 };
+
+pub(crate) const CONTENT_SECURITY_POLICY_HEADER_NAME: HeaderName =
+    HeaderName::from_static("content-security-policy");
+pub(crate) const CONTENT_SECURITY_POLICY_HEADER_VALUE: HeaderValue =
+    HeaderValue::from_static("frame-ancestors 'none';");
 
 pub(crate) static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");

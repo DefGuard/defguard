@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { PageLayout } from '../../../shared/components/Layout/PageLayout/PageLayout';
 import { CardTabs } from '../../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
-import { CardTabsData } from '../../../shared/defguard-ui/components/Layout/CardTabs/types';
+import type { CardTabsData } from '../../../shared/defguard-ui/components/Layout/CardTabs/types';
 import { AclIndexAliases } from './components/AclIndexAliases/AclIndexAliases';
 import { AclIndexRules } from './components/AclIndexRules/AclIndexRules';
 

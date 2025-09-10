@@ -1,4 +1,4 @@
-use sqlx::{query, query_as, PgExecutor};
+use sqlx::{PgExecutor, query, query_as};
 use struct_patch::Patch;
 
 use crate::enterprise::is_enterprise_enabled;

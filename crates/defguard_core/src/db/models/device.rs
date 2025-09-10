@@ -1,6 +1,6 @@
 use std::{fmt, net::IpAddr};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
@@ -8,24 +8,24 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
 use rand::{
+    Rng,
     distributions::{Alphanumeric, DistString, Standard},
     prelude::Distribution,
-    Rng,
 };
 use sqlx::{
-    postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
-    PgExecutor, PgPool, Type,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query, query_as,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{NetworkAddressError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
 };
 use crate::{
-    db::{Id, NoId, User},
     AsCsv, KEY_LENGTH,
+    db::{Id, NoId, User},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -40,15 +40,16 @@ pub struct DeviceConfig {
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
-    pub(crate) mfa_enabled: bool,
     pub(crate) keepalive_interval: i32,
+    pub(crate) location_mfa_mode: LocationMfaMode,
 }
 
 // The type of a device:
 // User: A device of a user, which may be in multiple networks, e.g. a laptop
-// Network: A standalone device added by a user permamently bound to one network, e.g. a printer
+// Network: A stand-alone device added by a user permanently bound to one network, e.g. a printer
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "device_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum DeviceType {
     User,
     Network,
@@ -103,10 +104,10 @@ impl fmt::Display for Device<Id> {
 impl Distribution<Device<Id>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
         Device {
-            id: rng.gen(),
+            id: rng.r#gen(),
             name: Alphanumeric.sample_string(rng, 8),
             wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
-            user_id: rng.gen(),
+            user_id: rng.r#gen(),
             created: NaiveDate::from_ymd_opt(
                 rng.gen_range(2000..2026),
                 rng.gen_range(1..13),
@@ -124,9 +125,9 @@ impl Distribution<Device<Id>> for Standard {
                 _ => DeviceType::User,
             },
             description: rng
-                .gen::<bool>()
+                .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 20)),
-            configured: rng.gen(),
+            configured: rng.r#gen(),
         }
     }
 }
@@ -499,8 +500,8 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
         )
@@ -692,8 +693,8 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled,
             keepalive_interval: network.keepalive_interval,
+            location_mfa_mode: network.location_mfa_mode.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -725,8 +726,8 @@ impl Device<Id> {
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
-            mfa_enabled: network.mfa_enabled,
             keepalive_interval: network.keepalive_interval,
+            location_mfa_mode: network.location_mfa_mode.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -787,8 +788,8 @@ impl Device<Id> {
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
-                    mfa_enabled: network.mfa_enabled,
                     keepalive_interval: network.keepalive_interval,
+                    location_mfa_mode: network.location_mfa_mode.clone(),
                 });
             }
         }
@@ -934,8 +935,8 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow \
+            connected_at,  keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
@@ -1012,7 +1013,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

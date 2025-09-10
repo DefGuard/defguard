@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
-import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
+import {
+  type FieldValues,
+  type UseControllerProps,
+  useController,
+} from 'react-hook-form';
 
 import { DialogSelect } from './DialogSelect';
-import { DialogSelectProps } from './types';
+import type { DialogSelectProps } from './types';
 
 type Props<T extends FieldValues, B, I extends number | string> = {
   controller: UseControllerProps<T>;

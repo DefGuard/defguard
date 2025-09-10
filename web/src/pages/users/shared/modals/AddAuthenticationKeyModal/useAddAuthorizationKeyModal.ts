@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { User } from '../../../../../shared/types';
+import type { User } from '../../../../../shared/types';
 
 const defaults: StoreValues = {
   selectedMode: 'yubikey',

@@ -23,7 +23,7 @@ import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../shared/hooks/store/useUserProfileStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { User } from '../../shared/types';
+import type { User } from '../../shared/types';
 import { invalidateMultipleQueries } from '../../shared/utils/invalidateMultipleQueries';
 import { DevicePageNavigationIcon } from './components/DevicesPageNavigationIcon';
 import { NavigationActivityLogPageIcon } from './components/icons/NavigationActivityLogPageIcon';
@@ -31,7 +31,7 @@ import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesk
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
 import { navigationExcludedRoutes } from './config';
 import { useNavigationStore } from './hooks/useNavigationStore';
-import { NavigationItem, NavigationItems } from './types';
+import type { NavigationItem, NavigationItems } from './types';
 
 export const Navigation = () => {
   const { pathname } = useLocation();

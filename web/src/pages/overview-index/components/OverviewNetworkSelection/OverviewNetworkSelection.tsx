@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Select } from '../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
-  SelectOption,
+  type SelectOption,
   SelectSizeVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
@@ -26,12 +27,14 @@ export const OverviewNetworkSelection = () => {
     queryKey: ['network'],
     queryFn: getNetworks,
     placeholderData: (perv) => perv,
+    select: (networks) =>
+      orderBy(networks, (network) => network.name.toLowerCase(), ['asc']),
   });
 
   const selectionValue = useMemo(() => {
     if (networkId) {
-      const value = parseInt(networkId);
-      if (!isNaN(value) && typeof value === 'number') {
+      const value = parseInt(networkId, 10);
+      if (!Number.isNaN(value) && typeof value === 'number') {
         return value;
       }
     }

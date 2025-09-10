@@ -52,6 +52,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
   );
   const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (lastStep) {

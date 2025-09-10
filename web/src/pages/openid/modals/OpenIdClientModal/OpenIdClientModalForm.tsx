@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { isUndefined } from 'lodash-es';
 import { useMemo } from 'react';
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import { type SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -23,7 +23,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { OpenIdClientModalFormScopes } from './components/OpenIdClientModalFormScopes';
-import { OpenIdClientFormFields, OpenIdClientScope } from './types';
+import { type OpenIdClientFormFields, OpenIdClientScope } from './types';
 
 const defaultValuesEmptyForm: OpenIdClientFormFields = {
   name: '',
@@ -95,6 +95,7 @@ export const OpenIdClientModalForm = () => {
       z.object({
         name: z
           .string()
+          .trim()
           .min(4, LL.form.error.minimumLength())
           .max(16, LL.form.error.maximumLength())
           .min(1, LL.form.error.required()),
@@ -102,18 +103,21 @@ export const OpenIdClientModalForm = () => {
           z.object({
             url: z
               .string()
+              .trim()
               .min(
                 1,
                 LL.openidOverview.modals.openidClientModal.form.error.urlRequired(),
               ),
           }),
         ),
-        scope: z.array(z.string()).optional(),
+        scope: z.array(z.nativeEnum(OpenIdClientScope)),
       }),
     [LL.form.error, LL.openidOverview.modals.openidClientModal.form.error],
   );
 
-  const { handleSubmit, control } = useForm<OpenIdClientFormFields>({
+  type FormFields = z.infer<typeof zodSchema>;
+
+  const { handleSubmit, control } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
@@ -124,7 +128,7 @@ export const OpenIdClientModalForm = () => {
     name: 'redirect_uri',
   });
 
-  const onValidSubmit: SubmitHandler<OpenIdClientFormFields> = (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     if (modalState.viewMode) return;
     if (values.scope.length === 0) {
       toaster.error(

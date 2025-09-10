@@ -5,11 +5,13 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../i18n/i18n-react';
 import { LoaderPage } from '../pages/loader/LoaderPage';
+import { useOutdatedComponentsModal } from '../shared/components/modals/OutdatedComponentsModal/useOutdatedComponentsModal';
+import { useToaster } from '../shared/defguard-ui/hooks/toasts/useToaster';
+import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
 import { useUpdatesStore } from '../shared/hooks/store/useUpdatesStore';
 import useApi from '../shared/hooks/useApi';
-import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
 
 /**
@@ -25,12 +27,22 @@ export const AppLoader = () => {
   const {
     getAppInfo,
     getNewVersion,
+    getOutdatedInfo,
     user: { getMe },
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
   const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
+  const openOutdatedComponentsModal = useOutdatedComponentsModal((s) => s.open);
+
+  const { data: outdatedInfo } = useQuery({
+    queryFn: getOutdatedInfo,
+    queryKey: ['outdated'],
+    enabled: isPresent(currentUser) && currentUser.is_admin,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
 
   const {
     data: meData,
@@ -44,13 +56,13 @@ export const AppLoader = () => {
     retry: false,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sideEffect
   useEffect(() => {
     if (meFetchError && currentUser) {
       if (currentUser) {
         resetAuthState();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meFetchError]);
 
   useEffect(() => {
@@ -67,6 +79,7 @@ export const AppLoader = () => {
     enabled: !isUndefined(currentUser),
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sideEffect
   useEffect(() => {
     if (appInfoError) {
       toaster.error(LL.messages.errorVersion());
@@ -134,6 +147,15 @@ export const AppLoader = () => {
       setUpdateStore(newVersionData);
     }
   }, [newVersionData, setUpdateStore]);
+
+  useEffect(() => {
+    if (
+      outdatedInfo &&
+      (outdatedInfo.proxy != null || outdatedInfo.gateways.length > 0)
+    ) {
+      openOutdatedComponentsModal(outdatedInfo);
+    }
+  }, [outdatedInfo, openOutdatedComponentsModal]);
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;

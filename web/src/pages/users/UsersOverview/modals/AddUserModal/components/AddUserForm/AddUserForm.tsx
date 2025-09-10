@@ -1,11 +1,11 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import { type SubmitHandler, useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -17,6 +17,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../../../../../shared/hooks/store/useAppStore';
 import { useEnterpriseUpgradeStore } from '../../../../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
@@ -31,25 +32,23 @@ import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectS
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
-interface Inputs {
-  username: string;
-  email: string;
-  last_name: string;
-  first_name: string;
-  enable_enrollment: boolean;
-  // disabled when enableEnrollment is true
-  password?: string;
-  phone?: string;
-}
-
 export const AddUserForm = () => {
   const { LL } = useI18nContext();
   const {
-    user: { addUser, usernameAvailable },
+    user: { addUser, usernameAvailable, getUsers },
     getAppInfo,
   } = useApi();
 
   const reservedUserNames = useRef<string[]>([]);
+
+  const { data: userEmails, isLoading: emailsLoading } = useQuery({
+    queryKey: ['user'],
+    queryFn: getUsers,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    select: (users) => users.map((user) => user.email),
+    placeholderData: (perv) => perv,
+  });
 
   const [checkingUsername, setCheckingUsername] = useState(false);
 
@@ -66,8 +65,15 @@ export const AddUserForm = () => {
           password: z.string(),
           email: z
             .string()
+            .trim()
             .min(1, LL.form.error.required())
-            .email(LL.form.error.invalid()),
+            .email(LL.form.error.invalid())
+            .refine((value) => {
+              if (isPresent(userEmails)) {
+                return !userEmails.includes(value.toLowerCase());
+              }
+              return true;
+            }, LL.modals.addUser.form.error.emailReserved()),
           last_name: z.string().min(1, LL.form.error.required()),
           first_name: z.string().min(1, LL.form.error.required()),
           phone: z.string(),
@@ -87,7 +93,7 @@ export const AddUserForm = () => {
               });
             }
           }
-          if (val.phone && val.phone.length) {
+          if (val.phone?.length) {
             const phoneRes = z
               .string()
               .regex(patternValidPhoneNumber)
@@ -108,15 +114,17 @@ export const AddUserForm = () => {
             });
           }
         }),
-    [LL],
+    [LL, userEmails],
   );
+
+  type FormFields = z.infer<typeof zodSchema>;
 
   const {
     handleSubmit,
     control,
     formState: { isValid },
     trigger,
-  } = useForm<Inputs>({
+  } = useForm<FormFields>({
     resolver: zodResolver(zodSchema),
     mode: 'all',
     criteriaMode: 'all',
@@ -173,14 +181,12 @@ export const AddUserForm = () => {
         close();
       }
     },
-    onError: (err) => {
-      close();
+    onError: () => {
       toaster.error(LL.messages.error());
-      console.error(err);
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
     const trimmed = trimObjectStrings(data);
     if (reservedUserNames.current.includes(trimmed.username)) {
       void trigger('username', { shouldFocus: true });
@@ -215,7 +221,7 @@ export const AddUserForm = () => {
           label={LL.modals.addUser.form.fields.enableEnrollment.label()}
           controller={{ control, name: 'enable_enrollment' }}
         />
-        <>{parse(LL.modals.addUser.form.fields.enableEnrollment.link())}</>
+        {parse(LL.modals.addUser.form.fields.enableEnrollment.link())}
       </div>
       <div className="row">
         <div className="item">
@@ -286,7 +292,7 @@ export const AddUserForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addUser.form.submit()}
           disabled={!isValid}
-          loading={addUserMutation.isPending || checkingUsername}
+          loading={addUserMutation.isPending || checkingUsername || emailsLoading}
         />
       </div>
     </form>

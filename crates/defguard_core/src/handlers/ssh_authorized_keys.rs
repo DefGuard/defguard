@@ -1,21 +1,22 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde_json::json;
-use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
 
-use super::{user_for_admin_or_self, ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
         Group, Id, User,
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
 #[derive(Deserialize, Serialize)]
@@ -156,6 +157,7 @@ pub struct AddAuthenticationKeyData {
 pub async fn add_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(username): Path<String>,
     Json(data): Json<AddAuthenticationKeyData>,
 ) -> ApiResult {
@@ -195,7 +197,7 @@ pub async fn add_authentication_key(
         return Err(WebError::BadRequest("Key already exists.".into()));
     }
 
-    AuthenticationKey::new(
+    let key = AuthenticationKey::new(
         user.id,
         trimmed_key.to_string(),
         Some(data.name.clone()),
@@ -209,6 +211,10 @@ pub async fn add_authentication_key(
         "Added new key \"{}\" of type {:?} for user {username}",
         data.name, data.key_type
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::AuthenticationKeyAdded { key }),
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -234,6 +240,7 @@ pub async fn fetch_authentication_keys(
 pub async fn delete_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((username, key_id)): Path<(String, i64)>,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
@@ -241,7 +248,15 @@ pub async fn delete_authentication_key(
         if !session.is_admin && user.id != key.user_id {
             return Err(WebError::Forbidden(String::new()));
         }
-        key.delete(&appstate.pool).await?;
+        key.clone().delete(&appstate.pool).await?;
+        info!(
+            "Removed key \"{:?}\"({}) of type {:?} for user {username}",
+            key.name, key.id, key.key_type
+        );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::AuthenticationKeyRemoved { key }),
+        })?;
     } else {
         error!("Key with id {} not found", key_id);
         return Err(WebError::BadRequest("Key not found".into()));
@@ -261,6 +276,7 @@ pub struct RenameRequest {
 pub async fn rename_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path((username, key_id)): Path<(String, i64)>,
     Json(data): Json<RenameRequest>,
 ) -> ApiResult {
@@ -280,8 +296,21 @@ pub async fn rename_authentication_key(
             );
             return Err(WebError::Forbidden(String::new()));
         }
+        let old_name = key.name.clone();
         key.name = Some(data.name);
         key.save(&appstate.pool).await?;
+        info!(
+            "User {} renamed key {:?}({}) of user with id {}",
+            user.username, key.name, key.id, key.user_id
+        );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::AuthenticationKeyRenamed {
+                old_name,
+                new_name: key.name.clone(),
+                key,
+            }),
+        })?;
     } else {
         error!(
             "User {} tried to rename non-existing key with id {}",

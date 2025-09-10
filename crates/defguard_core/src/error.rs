@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -14,12 +15,12 @@ use crate::{
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
-    grpc::GatewayMapError,
+    grpc::gateway::map::GatewayMapError,
     templates::TemplateError,
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -33,6 +34,8 @@ pub enum WebError {
     IncorrectUsername(String),
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
+    #[error("Object already exists: {0}")]
+    ObjectAlreadyExists(String),
     #[error("Serialization error: {0}")]
     Serialization(String),
     #[error("Deserialization error: {0}")]
@@ -50,26 +53,34 @@ pub enum WebError {
     #[error("Public key already exists {0}")]
     PubkeyExists(String),
     #[error("HTTP error: {0}")]
+    #[schema(value_type=Object)]
     Http(StatusCode),
     #[error(transparent)]
+    #[schema(value_type=Object)]
     TooManyLoginAttempts(#[from] FailedLoginError),
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error(transparent)]
+    #[schema(value_type=Object)]
     TemplateError(#[from] TemplateError),
     #[error("Server config missing")]
     ServerConfigMissing,
     #[error("License error: {0}")]
+    #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
     #[error("ACL error: {0}")]
+    #[schema(value_type=Object)]
     AclError(#[from] AclError),
     #[error("Firewall config error: {0}")]
+    #[schema(value_type=Object)]
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
+    #[schema(value_type=Object)]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
     #[error("Activity log stream error: {0}")]
+    #[schema(value_type=Object)]
     ActivityLogStreamError(#[from] ActivityLogStreamError),
 }
 
@@ -138,9 +149,8 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
             | WireguardNetworkError::DeviceNotAllowed(_)
-            | WireguardNetworkError::FirewallError(_) => {
-                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
-            }
+            | WireguardNetworkError::FirewallError(_)
+            | WireguardNetworkError::TokenError(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

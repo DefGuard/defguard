@@ -11,7 +11,7 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use sqlx::{query_as, Error as SqlxError, PgPool};
+use sqlx::{Error as SqlxError, PgPool, query_as};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -23,12 +23,12 @@ use tokio::{
 
 use crate::{
     db::{
+        Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
             error::ModelError,
-            wireguard::WireguardNetworkError,
+            wireguard::{LocationMfaMode, WireguardNetworkError},
         },
-        Device, GatewayEvent, Id, WireguardNetwork,
     },
     events::{InternalEvent, InternalEventContext},
 };
@@ -96,9 +96,9 @@ pub async fn run_periodic_peer_disconnect(
             WireguardNetwork::<Id>,
             "SELECT \
                 id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow \
-            FROM wireguard_network WHERE mfa_enabled = true",
+                connected_at, keepalive_interval, peer_disconnect_threshold, \
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            FROM wireguard_network WHERE location_mfa_mode != 'disabled'::location_mfa_mode",
         )
         .fetch_all(&pool)
         .await?;
@@ -141,7 +141,9 @@ pub async fn run_periodic_peer_disconnect(
                 if let Some(mut device_network_config) =
                     WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
                 {
-                    info!("Marking device {device} as not authorized to connect to location {location}");
+                    info!(
+                        "Marking device {device} as not authorized to connect to location {location}"
+                    );
                     // change `is_authorized` value for device
                     device_network_config.is_authorized = false;
                     // clear `preshared_key` value
@@ -170,7 +172,7 @@ pub async fn run_periodic_peer_disconnect(
                         .and_then(|(ip, _)| IpAddr::from_str(ip).ok())
                         // endpoint is a `text` column in the db so we have to
                         // handle potential parsing issues here
-                        .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+                        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
                     let event = InternalEvent::DesktopClientMfaDisconnected {
                         context: InternalEventContext::new(user.id, user.username, ip, device),
                         location: location.clone(),
@@ -180,7 +182,9 @@ pub async fn run_periodic_peer_disconnect(
                         PeerDisconnectError::InternalEventError(err)
                     })?;
                 } else {
-                    error!("Network config for device {device} in location {location} not found. Skipping device...");
+                    error!(
+                        "Network config for device {device} in location {location} not found. Skipping device..."
+                    );
                     continue;
                 }
 

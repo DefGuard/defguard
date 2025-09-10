@@ -3,35 +3,39 @@ on:
     branches:
       - main
       - dev
-      - 'release/**'
-    paths:
-      - "web/**"
+      - "release/**"
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
   pull_request:
     branches:
       - main
       - dev
-      - 'release/**'
-    paths:
-      - "web/**"
+      - "release/**"
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
 
 jobs:
   lint-web:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: install deps
         working-directory: ./web
         run: |
-          npm i -g pnpm
+          npm i -g npm pnpm
           pnpm i --frozen-lockfile
       - name: Lint
         working-directory: ./web
-        run: pnpm lint
+        run: pnpm run lint
       - name: Audit
         working-directory: ./web
         run: pnpm audit --prod

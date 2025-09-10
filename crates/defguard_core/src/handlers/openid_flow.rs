@@ -4,18 +4,24 @@ use std::{
 };
 
 use axum::{
+    Form,
     extract::{FromRef, OptionalFromRequestParts, Query, State},
     http::{
+        HeaderMap, HeaderValue, StatusCode,
         header::{AUTHORIZATION, LOCATION},
         request::Parts,
-        HeaderMap, HeaderValue, StatusCode,
     },
-    Form,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
 use openidconnect::{
+    AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
+    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
+    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IdToken, IdTokenClaims,
+    IdTokenFields, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge,
+    PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims,
+    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
         CoreGrantType, CoreHmacKey, CoreJsonWebKeySet, CoreJweContentEncryptionAlgorithm,
@@ -23,12 +29,6 @@ use openidconnect::{
         CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
-    AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
-    EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
-    EndUserGivenName, EndUserName, EndUserPhoneNumber, EndUserUsername, IdToken, IdTokenClaims,
-    IdTokenFields, IssuerUrl, JsonWebKeySetUrl, LocalizedClaim, Nonce, PkceCodeChallenge,
-    PkceCodeVerifier, PrivateSigningKey, RefreshToken, ResponseTypes, Scope, StandardClaims,
-    StandardErrorResponse, StandardTokenResponse, SubjectIdentifier, TokenUrl, UserInfoUrl,
 };
 use serde::{
     de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
@@ -41,38 +41,52 @@ use time::Duration;
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
-    auth::{AccessUserInfo, SessionInfo},
+    auth::{AccessUserInfo, SessionInfo, UserClaims},
     db::{
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
         Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
     },
     error::WebError,
-    handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
+    handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
-impl From<&User<Id>> for StandardClaims<CoreGenderClaim> {
-    fn from(user: &User<Id>) -> StandardClaims<CoreGenderClaim> {
-        let mut name = LocalizedClaim::new();
-        name.insert(None, EndUserName::new(user.name()));
-        let mut given_name = LocalizedClaim::new();
-        given_name.insert(None, EndUserGivenName::new(user.first_name.clone()));
-        let mut given_name = LocalizedClaim::new();
-        given_name.insert(None, EndUserGivenName::new(user.first_name.clone()));
-        let mut family_name = LocalizedClaim::new();
-        family_name.insert(None, EndUserFamilyName::new(user.last_name.clone()));
-        let email = EndUserEmail::new(user.email.clone());
-        let phone_number = user.phone.clone().map(EndUserPhoneNumber::new);
-        let preferred_username = EndUserUsername::new(user.username.clone());
+impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
+    fn from(user_claims: &UserClaims) -> StandardClaims<CoreGenderClaim> {
+        let mut claims = StandardClaims::new(SubjectIdentifier::new(user_claims.sub.clone()));
 
-        StandardClaims::new(SubjectIdentifier::new(user.username.clone()))
-            .set_name(Some(name))
-            .set_given_name(Some(given_name))
-            .set_family_name(Some(family_name))
-            .set_email(Some(email))
-            .set_phone_number(phone_number)
-            .set_preferred_username(Some(preferred_username))
+        if let Some(name) = &user_claims.name {
+            let mut localized_claim = LocalizedClaim::new();
+            localized_claim.insert(None, EndUserName::new(name.clone()));
+            claims = claims.set_name(Some(localized_claim));
+        }
+
+        if let Some(given_name) = &user_claims.given_name {
+            let mut localized_claim = LocalizedClaim::new();
+            localized_claim.insert(None, EndUserGivenName::new(given_name.clone()));
+            claims = claims.set_given_name(Some(localized_claim));
+        }
+
+        if let Some(family_name) = &user_claims.family_name {
+            let mut localized_claim = LocalizedClaim::new();
+            localized_claim.insert(None, EndUserFamilyName::new(family_name.clone()));
+            claims = claims.set_family_name(Some(localized_claim));
+        }
+
+        if let Some(email) = &user_claims.email {
+            claims = claims.set_email(Some(EndUserEmail::new(email.clone())));
+        }
+
+        if let Some(phone_number) = &user_claims.phone_number {
+            claims = claims.set_phone_number(Some(EndUserPhoneNumber::new(phone_number.clone())));
+        }
+
+        if let Some(username) = &user_claims.preferred_username {
+            claims = claims.set_preferred_username(Some(EndUserUsername::new(username.clone())));
+        }
+
+        claims
     }
 }
 
@@ -406,7 +420,10 @@ pub async fn authorization(
                             {
                                 // If session expired return login
                                 if session.expired() {
-                                    info!("Session {} for user id {} has expired, redirecting to login", session.id, session.user_id);
+                                    info!(
+                                        "Session {} for user id {} has expired, redirecting to login",
+                                        session.id, session.user_id
+                                    );
                                     let _result = session.delete(&appstate.pool).await;
                                     Ok(login_redirect(&data, private_cookies))
                                 } else {
@@ -827,10 +844,11 @@ pub async fn token(
                                     GroupClaims { groups: None }
                                 };
                                 let config = server_config();
+                                let user_claims = UserClaims::from_user(&user, &client, &token);
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
-                                    (&user).into(),
+                                    (&user_claims).into(),
                                     &config.url,
                                     client.client_secret,
                                     config.openid_key(),
@@ -863,7 +881,10 @@ pub async fn token(
                                     }
                                 }
                             }
-                            error!("Can't issue token - authorized app not found for user {}, client {}", user.username, client.name);
+                            error!(
+                                "Can't issue token - authorized app not found for user {}, client {}",
+                                user.username, client.name
+                            );
                         } else {
                             error!("User id {} not found", auth_code.user_id);
                         }

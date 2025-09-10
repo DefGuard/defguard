@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
-use rsa::{pkcs8::DecodePrivateKey, RsaPrivateKey};
+use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
 
 use super::LicenseInfo;
@@ -11,12 +11,16 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::settings::{update_current_settings, OpenidUsernameHandling},
-        Settings,
+        Settings, WireguardNetwork,
+        models::{
+            settings::{OpenidUsernameHandling, update_current_settings},
+            wireguard::LocationMfaMode,
+        },
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -40,6 +44,7 @@ pub struct AddProviderData {
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
+    pub jumpcloud_api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -51,9 +56,14 @@ pub async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    debug!(
+        "User {} adding OpenID provider {}",
+        session.user.username, provider_data.name
+    );
     let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
 
     // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
@@ -145,17 +155,20 @@ pub async fn add_openid_provider(
         okta_private_jwk,
         provider_data.okta_dirsync_client_id,
         group_match,
+        provider_data.jumpcloud_api_key,
     )
     .upsert(&appstate.pool)
     .await?;
-    debug!(
-        "User {} adding OpenID provider {}",
-        session.user.username, new_provider.name
-    );
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::OpenIdProviderModified {
+            provider: new_provider,
+        }),
+    })?;
 
     Ok(ApiResponse {
         json: json!({}),
@@ -169,7 +182,6 @@ pub async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let settings = Settings::get_current_settings();
-    let create_account = settings.openid_create_account;
     match OpenIdProvider::get_current(&appstate.pool).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
@@ -178,7 +190,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": create_account, "username_handling": settings.openid_username_handling}),
+                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
                 }),
                 status: StatusCode::OK,
             })
@@ -186,7 +198,7 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({ "create_account": create_account }),
+                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
             }),
             status: StatusCode::NO_CONTENT,
         }),
@@ -197,6 +209,7 @@ pub async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(provider_data): Path<DeleteProviderData>,
 ) -> ApiResult {
@@ -204,13 +217,32 @@ pub async fn delete_openid_provider(
         "User {} deleting OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(provider) = provider {
-        provider.delete(&appstate.pool).await?;
+        provider.clone().delete(&mut *transaction).await?;
+        // fetch all locations using external MFA
+        let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
+        if locations.is_empty() {
+            debug!("No locations are using OIDC provider for external MFA");
+        }
+        // fall back to internal MFA in all relevant locations
+        for mut location in locations {
+            debug!(
+                "Falling back to internal MFA for {location} because exteral OIDC provider has been removed"
+            );
+            location.location_mfa_mode = LocationMfaMode::Internal;
+            location.save(&mut *transaction).await?;
+        }
+        transaction.commit().await?;
         info!(
             "User {} deleted OpenID provider {}",
-            session.user.username, provider_data.name
+            session.user.username, provider.name
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::OpenIdProviderRemoved { provider }),
+        })?;
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::OK,
@@ -238,12 +270,13 @@ pub async fn modify_openid_provider(
         "User {} modifying OpenID provider {}",
         session.user.username, provider_data.name
     );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(mut provider) = provider {
         provider.base_url = provider_data.base_url;
         provider.client_id = provider_data.client_id;
         provider.client_secret = provider_data.client_secret;
-        provider.save(&appstate.pool).await?;
+        provider.save(&mut *transaction).await?;
         info!(
             "User {} modified OpenID client {}",
             session.user.username, provider.name

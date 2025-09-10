@@ -22,7 +22,7 @@ import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMu
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
-  AddStandaloneDeviceFormFields,
+  type AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
 } from '../AddStandaloneDeviceModal/types';
 import { StandaloneDeviceModalForm } from '../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
@@ -34,6 +34,7 @@ export const EditStandaloneModal = () => {
   const [close, reset] = useEditStandaloneDeviceModal((s) => [s.close, s.reset], shallow);
   const isOpen = useEditStandaloneDeviceModal((s) => s.visible);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     return () => {
       reset();

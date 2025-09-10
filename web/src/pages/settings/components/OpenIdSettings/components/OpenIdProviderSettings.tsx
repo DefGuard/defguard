@@ -9,8 +9,8 @@ import { FormInput } from '../../../../../shared/defguard-ui/components/Form/For
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import {
-  SelectOption,
-  SelectSelectedValue,
+  type SelectOption,
+  type SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 
@@ -42,9 +42,14 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
         key: 3,
       },
       {
+        value: 'JumpCloud',
+        label: 'JumpCloud',
+        key: 4,
+      },
+      {
         value: 'Custom',
         label: localLL.form.custom(),
-        key: 4,
+        key: 5,
       },
     ],
     [localLL.form],
@@ -72,6 +77,8 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
         return `https://login.microsoftonline.com/<TENANT_ID>/v2.0`;
       case 'Okta':
         return `<YOUR_OKTA_URL>`;
+      case 'JumpCloud':
+        return 'https://oauth.id.jumpcloud.com/';
       default:
         return null;
     }
@@ -86,6 +93,8 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
           return 'Microsoft';
         case 'Okta':
           return 'Okta';
+        case 'JumpCloud':
+          return 'JumpCloud';
         default:
           return null;
       }
@@ -129,7 +138,7 @@ export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) =>
         controller={{ control, name: 'base_url' }}
         label={localLL.form.labels.base_url.label()}
         labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
-        disabled={providerName === 'Google' || isLoading}
+        disabled={providerName === 'Google' || providerName === 'JumpCloud' || isLoading}
         required
       />
       <FormInput

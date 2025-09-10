@@ -8,7 +8,7 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgDefguardNavLogoCollapsed from '../../../../shared/components/svg/DefguardNavLogoCollapsed';
 import SvgIconNavLogout from '../../../../shared/components/svg/IconNavLogout';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { NavigationItems } from '../../types';
+import type { NavigationItems } from '../../types';
 import { ApplicationVersion } from '../ApplicationVersion/ApplicationVersion';
 import { NavigationLink } from '../NavigationLink/NavigationLink';
 

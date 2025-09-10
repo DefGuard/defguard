@@ -2,9 +2,9 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useMemo, useRef } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -18,7 +18,7 @@ import {
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../../../../shared/patterns';
-import { TestMail } from '../../../../../../shared/types';
+import type { TestMail } from '../../../../../../shared/types';
 
 type SMTPError = AxiosError<{ error: string }>;
 
@@ -36,10 +36,9 @@ export const SmtpTest = () => {
       toaster.success(LL.settingsPage.smtp.testForm.controls.success());
     },
     onError: (err: SMTPError) => {
-      toaster.error(
-        `${LL.settingsPage.smtp.testForm.controls.error()}`,
-        `${err.response?.data.error}`,
-      );
+      toaster.error(`${LL.settingsPage.smtp.testForm.controls.error()}`, {
+        subMessage: `${err.response?.data.error}`,
+      });
       console.error(err);
     },
   });
@@ -47,7 +46,7 @@ export const SmtpTest = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        to: z.string().regex(patternValidEmail, LL.form.error.invalid()),
+        to: z.string().trim().regex(patternValidEmail, LL.form.error.invalid()),
       }),
     [LL.form.error],
   );

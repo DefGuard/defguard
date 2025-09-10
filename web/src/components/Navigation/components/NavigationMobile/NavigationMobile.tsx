@@ -7,7 +7,7 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgDefguardNavLogoCollapsed from '../../../../shared/components/svg/DefguardNavLogoCollapsed';
 import SvgIconNavHamburger from '../../../../shared/components/svg/IconNavHamburger';
 import { useNavigationStore } from '../../hooks/useNavigationStore';
-import { NavigationItems } from '../../types';
+import type { NavigationItems } from '../../types';
 import { MobileNavModal } from './MobileNavModal/MobileNavModal';
 
 type Props = {

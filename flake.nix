@@ -28,7 +28,7 @@
       };
       # define shared build inputs
       nativeBuildInputs = with pkgs; [rustToolchain pkg-config];
-      buildInputs = with pkgs; [openssl protobuf curl nodejs_22 pnpm];
+      buildInputs = with pkgs; [openssl protobuf curl nodejs_24 pnpm];
     in {
       devShells.default = pkgs.mkShell {
         inherit nativeBuildInputs buildInputs;
@@ -42,6 +42,8 @@
           buf
           # e2e
           playwright
+          # release assets verification
+          cosign
         ];
 
         # Specify the rust-src path (many editors rely on this)

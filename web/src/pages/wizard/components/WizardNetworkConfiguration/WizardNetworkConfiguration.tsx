@@ -3,25 +3,31 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
+import { FormLocationMfaModeSelect } from '../../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
+import { RenderMarkdown } from '../../../../shared/components/Layout/RenderMarkdown/RenderMarkdown.tsx';
 import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types.ts';
+import type { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
+import { LocationMfaMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import { validateIpList, validateIpOrDomainList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
+import { DividerHeader } from './components/DividerHeader.tsx';
 
 export const WizardNetworkConfiguration = () => {
   const [componentMount, setComponentMount] = useState(false);
@@ -38,6 +44,7 @@ export const WizardNetworkConfiguration = () => {
   );
 
   const wizardNetworkConfiguration = useWizardStore((state) => state.manualNetworkConfig);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const toaster = useToaster();
   const { LL } = useI18nContext();
@@ -70,6 +77,7 @@ export const WizardNetworkConfiguration = () => {
     refetchOnReconnect: 'always',
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (fetchGroupsError) {
       toaster.error(LL.messages.error());
@@ -93,23 +101,25 @@ export const WizardNetworkConfiguration = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, LL.form.error.required()),
+        name: z.string().trim().min(1, LL.form.error.required()),
         address: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
-        endpoint: z.string().min(1, LL.form.error.required()),
+        endpoint: z.string().trim().min(1, LL.form.error.required()),
         port: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
-        allowed_ips: z.string(),
+        allowed_ips: z.string().trim(),
         dns: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val === '' || !val) {
@@ -117,8 +127,7 @@ export const WizardNetworkConfiguration = () => {
             }
             return validateIpOrDomainList(val, ',', true);
           }, LL.form.error.allowedIps()),
-        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
-        mfa_enabled: z.boolean(),
+        allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
@@ -131,6 +140,7 @@ export const WizardNetworkConfiguration = () => {
           .refine((v) => v >= 120, LL.form.error.minimumLength()),
         acl_enabled: z.boolean(),
         acl_default_allow: z.boolean(),
+        location_mfa_mode: z.nativeEnum(LocationMfaMode),
       }),
     [LL.form.error],
   );
@@ -146,6 +156,21 @@ export const WizardNetworkConfiguration = () => {
     defaultValues: getDefaultValues,
     resolver: zodResolver(zodSchema),
   });
+
+  const aclEnabled = useWatch({
+    control,
+    name: 'acl_enabled',
+    defaultValue: getDefaultValues.acl_enabled,
+  });
+  const locationMfaMode = useWatch({
+    control,
+    name: 'location_mfa_mode',
+    defaultValue: getDefaultValues.location_mfa_mode,
+  });
+  const mfaDisabled = useMemo(
+    () => locationMfaMode === LocationMfaMode.DISABLED,
+    [locationMfaMode],
+  );
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     const trimmed = trimObjectStrings(values);
@@ -206,6 +231,14 @@ export const WizardNetworkConfiguration = () => {
           controller={{ control, name: 'dns' }}
           label={LL.networkConfiguration.form.fields.dns.label()}
         />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
+        />
+        <DividerHeader
+          text={LL.networkConfiguration.form.sections.accessControl.header()}
+        />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
         </MessageBox>
@@ -221,26 +254,43 @@ export const WizardNetworkConfiguration = () => {
             displayValue: titleCase(group),
           })}
         />
-        <FormCheckBox
-          controller={{ control, name: 'mfa_enabled' }}
-          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
-          labelPlacement="right"
-        />
+        {!enterpriseEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
+          </MessageBox>
+        )}
         <FormCheckBox
           controller={{ control, name: 'acl_enabled' }}
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
         />
-        <FormAclDefaultPolicy controller={{ control, name: 'acl_default_allow' }} />
-        <FormInput
-          controller={{ control, name: 'keepalive_interval' }}
-          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
-          type="number"
+        <FormAclDefaultPolicy
+          controller={{ control, name: 'acl_default_allow' }}
+          disabled={!aclEnabled}
         />
+        <DividerHeader text={LL.networkConfiguration.form.sections.mfa.header()} />
+        <MessageBox id="location-mfa-mode-explain-message-box">
+          <p>{LL.networkConfiguration.form.helpers.locationMfaMode.description()}</p>
+          <ul>
+            <li>
+              <p>{LL.networkConfiguration.form.helpers.locationMfaMode.internal()}</p>
+            </li>
+            <li>
+              <RenderMarkdown
+                content={LL.networkConfiguration.form.helpers.locationMfaMode.external()}
+              />
+            </li>
+          </ul>
+        </MessageBox>
+        <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
+          disabled={mfaDisabled}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

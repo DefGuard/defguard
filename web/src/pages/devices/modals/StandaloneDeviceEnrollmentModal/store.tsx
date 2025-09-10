@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { StandaloneDevice, StartEnrollmentResponse } from '../../../../shared/types';
+import type { StandaloneDevice, StartEnrollmentResponse } from '../../../../shared/types';
 
 const defaults: StoreValues = {
   visible: false,

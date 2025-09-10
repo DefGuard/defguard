@@ -4,24 +4,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
+import { FormLocationMfaModeSelect } from '../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
+import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown.tsx';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types.ts';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import type { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import { Network } from '../../../shared/types';
+import { LocationMfaMode, type Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
 import {
@@ -30,6 +32,7 @@ import {
   validateIpOrDomainList,
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import { DividerHeader } from './components/DividerHeader.tsx';
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();
@@ -114,12 +117,14 @@ export const NetworkEditForm = () => {
         name: z.string().min(1, LL.form.error.required()),
         address: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine(
             (val) => validateIpOrDomain(val, false, true),
@@ -133,6 +138,7 @@ export const NetworkEditForm = () => {
         allowed_ips: z.string(),
         dns: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val === '' || !val) {
@@ -141,7 +147,6 @@ export const NetworkEditForm = () => {
             return validateIpOrDomainList(val, ',', false, true);
           }, LL.form.error.allowedIps()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
-        mfa_enabled: z.boolean(),
         keepalive_interval: z
           .number({
             invalid_type_error: LL.form.error.required(),
@@ -155,6 +160,7 @@ export const NetworkEditForm = () => {
           .min(120, LL.form.error.invalid()),
         acl_enabled: z.boolean(),
         acl_default_allow: z.boolean(),
+        location_mfa_mode: z.nativeEnum(LocationMfaMode),
       }),
     [LL.form.error],
   );
@@ -170,11 +176,11 @@ export const NetworkEditForm = () => {
       allowed_ips: '',
       allowed_groups: [],
       dns: '',
-      mfa_enabled: false,
       keepalive_interval: 25,
-      peer_disconnect_threshold: 180,
+      peer_disconnect_threshold: 300,
       acl_enabled: false,
       acl_default_allow: false,
+      location_mfa_mode: LocationMfaMode.DISABLED,
     }),
     [],
   );
@@ -203,7 +209,17 @@ export const NetworkEditForm = () => {
         address = data.address.join(',');
       }
 
-      return { ...defaultValues, ...omited, allowed_ips, address };
+      // we changed the default and this field is conditionally disabled
+      const peer_disconnect_threshold =
+        data.peer_disconnect_threshold < 120 ? 120 : data.peer_disconnect_threshold;
+
+      return {
+        ...defaultValues,
+        ...omited,
+        allowed_ips,
+        address,
+        peer_disconnect_threshold,
+      };
     },
     [defaultValues],
   );
@@ -221,23 +237,38 @@ export const NetworkEditForm = () => {
     return defaultValues;
   }, [defaultValues, networkToForm, networks, selectedNetworkId]);
 
-  const { control, handleSubmit, reset, watch } = useForm<FormFields>({
+  const { control, handleSubmit, reset } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: zodResolver(zodSchema),
     mode: 'all',
   });
 
-  const fieldAclEnabled = watch('acl_enabled');
+  const fieldAclEnabled = useWatch({
+    control,
+    name: 'acl_enabled',
+    defaultValue: defaultFormValues.acl_enabled,
+  });
+  const locationMfaMode = useWatch({
+    control,
+    name: 'location_mfa_mode',
+    defaultValue: defaultFormValues.location_mfa_mode,
+  });
+  const mfaDisabled = useMemo(
+    () => locationMfaMode === LocationMfaMode.DISABLED,
+    [locationMfaMode],
+  );
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
-    values = trimObjectStrings(values);
-    setStoreState({ loading: true });
-    mutate({
-      id: selectedNetworkId,
-      network: {
-        ...values,
-      },
-    });
+    if (selectedNetworkId) {
+      values = trimObjectStrings(values);
+      setStoreState({ loading: true });
+      mutate({
+        id: selectedNetworkId,
+        network: {
+          ...values,
+        },
+      });
+    }
   };
 
   // reset form when network is selected
@@ -245,6 +276,7 @@ export const NetworkEditForm = () => {
     reset(defaultFormValues);
   }, [defaultFormValues, reset]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     setTimeout(() => setComponentMount(true), 100);
     const sub = submitSubject.subscribe(() => submitRef.current?.click());
@@ -276,6 +308,9 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'endpoint' }}
           label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.endpoint()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
@@ -294,6 +329,14 @@ export const NetworkEditForm = () => {
         <FormInput
           controller={{ control, name: 'dns' }}
           label={LL.networkConfiguration.form.fields.dns.label()}
+        />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
+        />
+        <DividerHeader
+          text={LL.networkConfiguration.form.sections.accessControl.header()}
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedGroups()}</p>
@@ -315,11 +358,6 @@ export const NetworkEditForm = () => {
             displayValue: titleCase(val),
           })}
         />
-        <FormCheckBox
-          controller={{ control, name: 'mfa_enabled' }}
-          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
-          labelPlacement="right"
-        />
         {!enterpriseEnabled && (
           <MessageBox type={MessageBoxType.WARNING}>
             <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
@@ -335,15 +373,29 @@ export const NetworkEditForm = () => {
           disabled={!fieldAclEnabled}
           controller={{ control, name: 'acl_default_allow' }}
         />
-        <FormInput
-          controller={{ control, name: 'keepalive_interval' }}
-          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
-          type="number"
-        />
+        <DividerHeader text={LL.networkConfiguration.form.sections.mfa.header()} />
+        <MessageBox id="location-mfa-mode-explain-message-box">
+          <p>{LL.networkConfiguration.form.helpers.locationMfaMode.description()}</p>
+          <ul>
+            <li>
+              <p>{LL.networkConfiguration.form.helpers.locationMfaMode.internal()}</p>
+            </li>
+            <li>
+              <RenderMarkdown
+                content={LL.networkConfiguration.form.helpers.locationMfaMode.external()}
+              />
+            </li>
+          </ul>
+        </MessageBox>
+        <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'peer_disconnect_threshold' }}
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
+          disabled={mfaDisabled}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

@@ -1,7 +1,7 @@
-import { Axios } from 'axios';
+import type { Axios } from 'axios';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Api } from '../../types';
+import type { Api } from '../../types';
 import { buildApi } from './api';
 import apiEndpoints from './api-client';
 import axiosClient from './axios-client';

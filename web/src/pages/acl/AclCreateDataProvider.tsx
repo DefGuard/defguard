@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { PropsWithChildren, useEffect, useMemo } from 'react';
+import { type PropsWithChildren, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 
@@ -36,7 +36,7 @@ export const AclCreateDataProvider = ({ children }: Props) => {
 
   const editRuleId = useMemo(() => {
     if (isRuleEdit) {
-      return parseInt(searchParams.get('rule') as string);
+      return parseInt(searchParams.get('rule') as string, 10);
     }
   }, [isRuleEdit, searchParams]);
 

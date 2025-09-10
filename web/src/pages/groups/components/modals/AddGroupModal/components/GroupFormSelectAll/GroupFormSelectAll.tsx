@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { Control, useController, useWatch } from 'react-hook-form';
+import { type Control, useController, useWatch } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { SelectRow } from '../../../../../../../shared/defguard-ui/components/Layout/SelectRow/SelectRow';
-import { User } from '../../../../../../../shared/types';
-import { ModifyGroupFormFields } from '../../AddGroupModal';
+import type { User } from '../../../../../../../shared/types';
+import type { ModifyGroupFormFields } from '../../AddGroupModal';
 
 type Props = {
   // how many users are there

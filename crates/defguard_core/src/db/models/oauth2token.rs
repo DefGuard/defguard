@@ -1,5 +1,5 @@
 use chrono::{TimeDelta, Utc};
-use sqlx::{query, query_as, Error as SqlxError, PgPool};
+use sqlx::{Error as SqlxError, PgPool, query, query_as};
 
 use crate::{db::Id, random::gen_alphanumeric, server_config};
 

@@ -1,17 +1,18 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
+    TypedHeader,
     extract::{
-        cookie::{Cookie, SameSite},
         CookieJar, PrivateCookieJar,
+        cookie::{Cookie, SameSite},
     },
     headers::UserAgent,
-    TypedHeader,
 };
+use base64::{Engine, prelude::BASE64_STANDARD};
 use openidconnect::{
-    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
     EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
+    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
 };
 use reqwest::Url;
 use serde_json::json;
@@ -21,11 +22,14 @@ use time::Duration;
 const COOKIE_MAX_AGE: Duration = Duration::days(1);
 static CSRF_COOKIE_NAME: &str = "csrf";
 static NONCE_COOKIE_NAME: &str = "nonce";
+// The select_account prompt is not supported by all providers, most notably not by JumpCloud.
+// Currently it's only enabled for Google, as it was tested to work there.
+pub(crate) const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{models::settings::OpenidUsernameHandling, Id, Settings, User},
+    db::{Id, Settings, User, models::settings::OpenidUsernameHandling},
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
@@ -33,8 +37,8 @@ use crate::{
     },
     error::WebError,
     handlers::{
-        auth::create_session, user::check_username, ApiResponse, AuthResponse, SESSION_COOKIE_NAME,
-        SIGN_IN_COOKIE_NAME,
+        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME, auth::create_session,
+        user::check_username,
     },
     server_config,
 };
@@ -48,6 +52,7 @@ use crate::{
 /// - starts with non-special character
 /// - only special characters allowed: . - _
 /// - no whitespaces
+#[must_use]
 pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> String {
     let mut result = username.to_string();
 
@@ -85,7 +90,7 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
 }
 
 /// Create HTTP client and prevent following redirects
-async fn get_async_http_client() -> Result<reqwest::Client, WebError> {
+fn get_async_http_client() -> Result<reqwest::Client, WebError> {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()
@@ -101,17 +106,43 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
             "Failed to create issuer URL from the provided URL: {url}. Error details: {err:?}",
         ))
     })?;
-    let async_http_client = get_async_http_client().await?;
+    let async_http_client = get_async_http_client()?;
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
     match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
         Ok(provider_metadata) => Ok(provider_metadata),
-        Err(err) => {
-            Err(WebError::Authorization(format!(
-                "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
-            )))
+        Err(err) => Err(WebError::Authorization(format!(
+            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
+        ))),
+    }
+}
+
+/// Build a state with optional embedded data. Useful for passing additional information around the authentication flow.
+pub(crate) fn build_state(state_data: Option<String>) -> CsrfToken {
+    let csrf_token = CsrfToken::new_random();
+    if let Some(data) = state_data {
+        let combined = format!("{}.{data}", csrf_token.secret());
+        let encoded = BASE64_STANDARD.encode(combined);
+        CsrfToken::new(encoded)
+    } else {
+        csrf_token
+    }
+}
+
+/// Extract the state data from the provided state.
+pub(crate) fn extract_state_data(state: &str) -> Option<String> {
+    let decoded = BASE64_STANDARD.decode(state).ok()?;
+    let decoded_str = String::from_utf8(decoded).ok()?;
+    let result = decoded_str.split_once('.');
+    if let Some((part1, part2)) = result {
+        if part1.is_empty() {
+            None
+        } else {
+            Some(part2.to_string())
         }
+    } else {
+        None
     }
 }
 
@@ -160,7 +191,7 @@ pub(crate) async fn user_from_claims(
         ));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
-    let async_http_client = get_async_http_client().await?;
+    let async_http_client = get_async_http_client()?;
     // Exchange code for ID token.
     let token_response = match core_client
         .exchange_code(code)
@@ -345,7 +376,7 @@ pub(crate) async fn user_from_claims(
                         from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
                     );
 
-                    let async_http_client = get_async_http_client().await?;
+                    let async_http_client = get_async_http_client()?;
 
                     let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
                         Make sure you have configured your provider correctly and that you have granted the \
@@ -435,15 +466,24 @@ pub(crate) async fn get_auth_info(
     let (_client_id, client) = make_oidc_client(config.callback_url(), &provider).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
-    let (authorize_url, csrf_state, nonce) = client
+    let mut authorize_url_builder = client
         .authorize_url(
             CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
             Nonce::new_random,
         )
         .add_scope(Scope::new("email".into()))
-        .add_scope(Scope::new("profile".into()))
-        .url();
+        .add_scope(Scope::new("profile".into()));
+
+    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+        .iter()
+        .any(|&p| provider.name.eq_ignore_ascii_case(p))
+    {
+        authorize_url_builder =
+            authorize_url_builder.add_prompt(openidconnect::core::CoreAuthPrompt::SelectAccount);
+    }
+
+    let (authorize_url, csrf_state, nonce) = authorize_url_builder.url();
 
     let cookie_domain = config
         .cookie_domain
@@ -672,5 +712,55 @@ mod test {
             ),
             "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         );
+    }
+
+    #[test]
+    fn test_state_build_and_extract() {
+        // without data
+        let token = build_state(None);
+        let decoded = BASE64_STANDARD.decode(token.secret());
+        // not base64 encoded
+        assert!(decoded.is_err());
+        assert!(!token.secret().is_empty());
+
+        // with data
+        let data = "somedata".to_string();
+        let token = build_state(Some(data.clone()));
+        let decoded = BASE64_STANDARD.decode(token.secret());
+        assert!(decoded.is_ok());
+        let decoded_str = String::from_utf8(decoded.unwrap()).unwrap();
+        let (csrf, state_data) = decoded_str.split_once('.').unwrap();
+        assert!(!csrf.is_empty());
+        assert_eq!(state_data, data);
+
+        // valid
+        let data = "my_state_data".to_string();
+        let token = build_state(Some(data.clone()));
+        let extracted = extract_state_data(token.secret());
+        assert_eq!(extracted, Some(data));
+
+        // invalid base64
+        let extracted = extract_state_data("not_base64!!");
+        assert_eq!(extracted, None);
+
+        // no dot
+        let encoded = BASE64_STANDARD.encode("no_dot_here");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, None);
+
+        // empty first part
+        let encoded = BASE64_STANDARD.encode(".somedata");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, None);
+
+        // empty second part
+        let encoded = BASE64_STANDARD.encode("csrf.");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, Some("".to_string()));
+
+        // multiple dots
+        let encoded = BASE64_STANDARD.encode("csrf.data.with.dots");
+        let extracted = extract_state_data(&encoded);
+        assert_eq!(extracted, Some("data.with.dots".to_string()));
     }
 }

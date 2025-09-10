@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
@@ -67,11 +67,14 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
           .string({
             required_error: LL.form.error.required(),
           })
+          .trim()
           .min(1, LL.form.error.required())
           .min(4, LL.form.error.minimumLength()),
-        keyValue: z.string({
-          required_error: LL.form.error.required(),
-        }),
+        keyValue: z
+          .string({
+            required_error: LL.form.error.required(),
+          })
+          .trim(),
       }),
     [LL.form.error],
   );

@@ -21,6 +21,7 @@ jobs:
       - self-hosted
       - Linux
       - ${{ matrix.runner }}
+
     strategy:
       matrix:
         # cpu: [arm64, amd64, arm/v7]
@@ -35,23 +36,31 @@ jobs:
           # - cpu: arm/v7
           #   runner: ARM
           #   tag: armv7
+
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Login to GitHub container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
+
       - name: Build container
         uses: docker/build-push-action@v6
         with:
@@ -63,10 +72,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
   docker-manifest:
     runs-on: [self-hosted, Linux]
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
+
     needs: [build-docker]
+
     steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.9.2
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -75,12 +104,14 @@ jobs:
             ${{ env.GHCR_REPO }}
           flavor: ${{ inputs.flavor }}
           tags: ${{ inputs.tags }}
+
       - name: Login to GitHub container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create and push manifests
         run: |
           tags='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
@@ -90,4 +121,13 @@ jobs:
             docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
             docker manifest push ${tag}
           done
-        #  ${{ env.GHCR_REPO }}:${{ github.sha }}-armv7
+
+      - name: Sign the images with GitHub OIDC Token
+        run: |
+          images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+          cosign sign --yes ${images}
+
+      - name: Verify image signatures
+        run: |
+          images='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+          cosign verify ${images} --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp="https://github.com/DefGuard/defguard" -o text

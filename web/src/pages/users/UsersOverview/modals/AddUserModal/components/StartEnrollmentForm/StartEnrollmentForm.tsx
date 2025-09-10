@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import { type SubmitHandler, useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -17,11 +17,11 @@ import {
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import type { ToggleOption } from '../../../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import { useAppStore } from '../../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
-import { StartEnrollmentRequest } from '../../../../../../../shared/types';
+import type { StartEnrollmentRequest } from '../../../../../../../shared/types';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
 enum EnrollmentMode {

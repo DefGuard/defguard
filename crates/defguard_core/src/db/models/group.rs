@@ -1,10 +1,10 @@
 use std::fmt;
 
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use sqlx::{Error as SqlxError, FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
-use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
+use crate::db::{Id, NoId, User, WireguardNetwork, models::error::ModelError};
 
 #[derive(Debug)]
 pub enum Permission {
@@ -19,7 +19,7 @@ impl fmt::Display for Permission {
     }
 }
 
-#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq)]
+#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq, Serialize)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
@@ -110,7 +110,7 @@ impl Group<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_permission<'e, E>(
+    pub async fn find_by_permission<'e, E>(
         executor: E,
         permission: Permission,
     ) -> Result<Vec<Self>, SqlxError>
@@ -184,14 +184,13 @@ impl WireguardNetwork<Id> {
     /// access to networks based on allowed groups.
     pub async fn get_allowed_groups(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_groups =
-            Group::find_by_permission(&mut *transaction, Permission::IsAdmin).await?;
+        let admin_groups = Group::find_by_permission(&mut *conn, Permission::IsAdmin).await?;
 
         // get allowed groups from DB
-        let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
+        let mut groups = self.fetch_allowed_groups(&mut *conn).await?;
 
         // if no allowed groups are set then all groups are allowed
         if groups.is_empty() {
@@ -300,7 +299,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{setup_pool, User};
+    use crate::db::{User, setup_pool};
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {
@@ -367,19 +366,23 @@ mod test {
         .unwrap();
         user.add_to_group(&pool, &group).await.unwrap();
         assert!(!user.is_admin(&pool).await.unwrap());
-        assert!(!group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            !group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         group
             .set_permission(&pool, Permission::IsAdmin, true)
             .await
             .unwrap();
 
-        assert!(group
-            .has_permission(&pool, Permission::IsAdmin)
-            .await
-            .unwrap());
+        assert!(
+            group
+                .has_permission(&pool, Permission::IsAdmin)
+                .await
+                .unwrap()
+        );
         assert!(user.is_admin(&pool).await.unwrap());
         let groups = Group::find_by_permission(&pool, Permission::IsAdmin)
             .await

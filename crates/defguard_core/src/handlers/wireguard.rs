@@ -6,42 +6,47 @@ use std::{
 };
 
 use axum::{
+    Extension,
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
+use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
+    AsCsv,
     appstate::AppState,
-    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
+    auth::{AdminRole, SessionInfo},
     db::{
+        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
                 WireguardNetworkDevice,
             },
             wireguard::{
-                networks_stats, DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow,
-                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow,
+                DateTimeAggregation, LocationMfaMode, MappedDevice, WireguardDeviceStatsRow,
+                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
             },
         },
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
-    enterprise::{handlers::CanManageDevices, limits::update_counts},
+    enterprise::{
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        handlers::CanManageDevices,
+        is_enterprise_enabled,
+        limits::update_counts,
+    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::GatewayMap,
+    grpc::gateway::map::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
-    wg_config::{parse_wireguard_config, ImportedDevice},
-    AsCsv,
+    wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -75,11 +80,11 @@ pub struct WireguardNetworkData {
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
     pub allowed_groups: Vec<String>,
-    pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
+    pub location_mfa_mode: LocationMfaMode,
 }
 
 impl WireguardNetworkData {
@@ -87,6 +92,36 @@ impl WireguardNetworkData {
         self.allowed_ips
             .as_ref()
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
+    }
+
+    pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<(), WebError> {
+        // if external MFA was chosen verify if enterprise features are enabled
+        // and external OpenID provider is configured
+        if self.location_mfa_mode == LocationMfaMode::External {
+            if !is_enterprise_enabled() {
+                error!(
+                    "Unable to create location with external MFA. External OpenID provider is not configured"
+                );
+
+                return Err(WebError::Forbidden(
+                    "Cannot enable external MFA. Enterprise features are disabled".into(),
+                ));
+            }
+
+            if OpenIdProvider::get_current(executor).await?.is_none() {
+                error!(
+                    "Unable to create location with external MFA. External OpenID provider is not configured"
+                );
+                return Err(WebError::BadRequest(
+                    "Cannot enable external MFA. External OpenID provider is not configured".into(),
+                ));
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -110,6 +145,14 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
+/// Create new network
+///
+/// Create new network based on `WireguardNetworkData` object.
+///
+/// # Returns
+/// - `WireguardNetwork` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/network",
@@ -129,6 +172,7 @@ pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     let network_name = data.name.clone();
@@ -136,6 +180,9 @@ pub(crate) async fn create_network(
         "User {} creating WireGuard network {network_name}",
         session.user.username
     );
+
+    data.validate_location_mfa_mode(&appstate.pool).await?;
+
     let allowed_ips = data.parse_allowed_ips();
     let network = WireguardNetwork::new(
         data.name,
@@ -144,13 +191,12 @@ pub(crate) async fn create_network(
         data.endpoint,
         data.dns,
         allowed_ips,
-        data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
-    )
-    .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
+        data.location_mfa_mode,
+    );
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
@@ -170,6 +216,13 @@ pub(crate) async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -184,6 +237,14 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
+/// Modify network
+///
+/// Modify existing network basing on `WireguardNetworkData` object.
+///
+/// # Returns
+/// - `WireguardNetwork` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/network/{network_id}",
@@ -205,13 +266,18 @@ pub(crate) async fn modify_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<WireguardNetworkData>,
 ) -> ApiResult {
     debug!(
         "User {} updating WireGuard network {network_id}",
         session.user.username
     );
+    data.validate_location_mfa_mode(&appstate.pool).await?;
+
     let mut network = find_network(network_id, &appstate.pool).await?;
+    // store network before mods
+    let before = network.clone();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -222,11 +288,11 @@ pub(crate) async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.address = parse_address_list(&data.address);
-    network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;
     network
@@ -250,12 +316,25 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationModified {
+            before,
+            after: network.clone(),
+        }),
+    })?;
     Ok(ApiResponse {
         json: json!(network),
         status: StatusCode::OK,
     })
 }
 
+/// Delete network
+///
+/// # Returns
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/network/{network_id}",
@@ -276,6 +355,7 @@ pub(crate) async fn delete_network(
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!(
         "User {} deleting WireGuard network {network_id}",
@@ -290,18 +370,30 @@ pub(crate) async fn delete_network(
     for device in network_devices {
         device.delete(&mut *transaction).await?;
     }
-    network.delete(&mut *transaction).await?;
+    network.clone().delete(&mut *transaction).await?;
     transaction.commit().await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationRemoved { location: network }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse::default())
 }
 
+/// List of all networks
+///
+/// Retrieve list of all networks
+///
+/// # Returns
+/// - List of `WireguardNetworkInfo` objects
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network",
@@ -348,6 +440,14 @@ pub(crate) async fn list_networks(
     })
 }
 
+/// Details of network
+///
+/// Retrieve details about network with `network_id`.
+///
+/// # Returns
+/// - `WireguardNetworkInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/network/{network_id}",
@@ -421,19 +521,16 @@ pub(crate) async fn gateway_status(
 
 /// Returns state of gateways for all networks
 ///
-/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork<i64>`
+/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork`
 pub(crate) async fn all_gateways_status(
     _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying gateways status for all networks.");
-    let gateway_state = {
-        let lock = gateway_state
-            .lock()
-            .expect("Failed to acquire gateway state lock");
-        lock.clone()
-    };
-    let flattened = gateway_state.into_flattened();
+    let gateway_state = gateway_state
+        .lock()
+        .expect("Failed to acquire gateway state lock");
+    let flattened = (*gateway_state).as_flattened();
     Ok(ApiResponse {
         json: json!(flattened),
         status: StatusCode::OK,
@@ -467,6 +564,7 @@ pub(crate) async fn remove_gateway(
 pub(crate) async fn import_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
+    context: ApiRequestContext,
     Json(data): Json<ImportNetworkData>,
 ) -> ApiResult {
     debug!("Importing network from config file");
@@ -507,7 +605,12 @@ pub(crate) async fn import_network(
     transaction.commit().await?;
 
     info!("Imported network {network} with {} devices", devices.len());
-
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::VpnLocationAdded {
+            location: network.clone(),
+        }),
+    })?;
     update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -579,7 +682,9 @@ pub struct AddDeviceResult {
 /// Add device
 ///
 /// Add a new device for a user by sending `AddDevice` object.
+///
 /// Notice that `wireguard_pubkey` must be unique to successfully add the device.
+///
 /// You can't add devices for `disabled` users, unless you are an admin.
 ///
 /// Device will be added to all networks in your company infrastructure.
@@ -587,12 +692,14 @@ pub struct AddDeviceResult {
 /// User will receive all new device details on email.
 ///
 /// # Returns
-/// Returns `AddDeviceResult` object or `WebError` object if error occurs.
+/// - `AddDeviceResult` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = String, description = "Name of a user.")
+        ("device_id" = String, description = "ID of device.")
     ),
     request_body = AddDevice,
     responses(
@@ -608,8 +715,8 @@ pub struct AddDeviceResult {
                         "allowed_ips": ["0.0.0.0:8000"],
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
-                        "mfa_enabled": false,
-                        "keepalive_interval": 5
+                        "keepalive_interval": 5,
+			            "location_mfa_mode": "disabled"
                     }
                 ],
                 "device": {
@@ -648,9 +755,20 @@ pub(crate) async fn add_device(
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
 
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to add a device, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     // Let admins manage devices for disabled users
     if !user.is_active && !session.is_admin {
-        info!(
+        warn!(
             "User {} tried to add a device for a disabled user {username}",
             session.user.username
         );
@@ -712,7 +830,9 @@ pub(crate) async fn add_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
+                debug!(
+                    "Sending firewall config update for location {location} affected by adding new user {username} devices"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location_id,
                     firewall_config,
@@ -762,21 +882,20 @@ pub(crate) async fn add_device(
         "User {} added device {device_name} for user {username}",
         session.user.username
     );
-    // clone name to be used later
-    let device_name = device.name.clone();
 
-    let device_id = device.id;
-    let result = AddDeviceResult { configs, device };
+    let result = AddDeviceResult {
+        configs,
+        device: device.clone(),
+    };
 
     update_counts(&appstate.pool).await?;
 
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceAdded {
-            device_id,
-            owner: username,
-            device_name,
-        },
+        event: Box::new(ApiEventType::UserDeviceAdded {
+            device,
+            owner: user,
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -788,17 +907,20 @@ pub(crate) async fn add_device(
 /// Modify device
 ///
 /// Update a device for a user by sending `ModifyDevice` object.
-/// Notice that `wireguard_pubkey` must be diffrent from server's pubkey.
+///
+/// Notice that `wireguard_pubkey` must be different from server's pubkey.
 ///
 /// Endpoint will trigger new update in gateway server.
 ///
 /// # Returns
-/// Returns `Device` object or `WebError` object if error occurs.
+/// - `Device` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device.")
     ),
     request_body = ModifyDevice,
     responses(
@@ -830,7 +952,21 @@ pub(crate) async fn modify_device(
     Json(data): Json<ModifyDevice>,
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to add a device, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    // store device before mods
+    let before = device.clone();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {
@@ -844,7 +980,9 @@ pub(crate) async fn modify_device(
     // check pubkeys
     for network in &networks {
         if network.pubkey == data.wireguard_pubkey {
-            error!("Failed to update device {device_id}, device's pubkey must be different from server's pubkey");
+            error!(
+                "Failed to update device {device_id}, device's pubkey must be different from server's pubkey"
+            );
             return Ok(ApiResponse {
                 json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
                 status: StatusCode::BAD_REQUEST,
@@ -856,7 +994,6 @@ pub(crate) async fn modify_device(
     device.update_from(data);
 
     // clone to use later
-    let device_name = device.name.clone();
 
     device.save(&appstate.pool).await?;
 
@@ -882,14 +1019,14 @@ pub(crate) async fn modify_device(
 
     info!("User {} updated device {device_id}", session.user.username);
 
-    let owner = device.get_owner(&appstate.pool).await?.username;
+    let owner = device.get_owner(&appstate.pool).await?;
     appstate.emit_event(ApiEvent {
         context,
-        event: ApiEventType::UserDeviceModified {
+        event: Box::new(ApiEventType::UserDeviceModified {
             owner,
-            device_id: device.id,
-            device_name,
-        },
+            before,
+            after: device.clone(),
+        }),
     })?;
 
     Ok(ApiResponse {
@@ -900,13 +1037,17 @@ pub(crate) async fn modify_device(
 
 /// Get device
 ///
+/// Retrieve information about device based on their `device_id`
+///
 /// # Returns
-/// Returns `Device` object or `WebError` object if error occurs.
+/// - `Device` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device to update details.")
     ),
     responses(
         (status = 200, description = "Successfully updated a device.", body = Device, example = json!(
@@ -946,12 +1087,14 @@ pub(crate) async fn get_device(
 /// Delete user device and trigger new update in gateway server.
 ///
 /// # Returns
-/// If error occurs it returns `WebError` object.
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/device/{device_id}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("device_id" = i64, description = "ID of device to update details.")
     ),
     responses(
         (status = 200, description = "Successfully deleted device."),
@@ -984,12 +1127,8 @@ pub(crate) async fn delete_device(
     // prepare device info
     let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
 
-    // clone to use later
-    let device_name = device.name.clone();
-    let device_type = device.device_type.clone();
-
     // delete device before firewall config is generated
-    device.delete(&mut *transaction).await?;
+    device.clone().delete(&mut *transaction).await?;
 
     update_counts(&mut *transaction).await?;
 
@@ -1001,7 +1140,9 @@ pub(crate) async fn delete_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by deleting user {username} device");
+                debug!(
+                    "Sending firewall config update for location {location} affected by deleting user {username} device"
+                );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location.id,
                     firewall_config,
@@ -1017,21 +1158,13 @@ pub(crate) async fn delete_device(
     appstate.send_multiple_wireguard_events(events);
 
     // Emit event specific to the device type.
-    match device_type {
+    match device.device_type {
         DeviceType::User => {
-            let owner = device_info
-                .device
-                .get_owner(&mut *transaction)
-                .await?
-                .username;
+            let owner = device_info.device.get_owner(&mut *transaction).await?;
             appstate.emit_event(ApiEvent {
                 context,
-                event: ApiEventType::UserDeviceRemoved {
-                    device_name,
-                    owner,
-                    device_id,
-                },
-            })?
+                event: Box::new(ApiEventType::UserDeviceRemoved { device, owner }),
+            })?;
         }
         DeviceType::Network => {
             if let Some(network_info) = device_info.network_info.first() {
@@ -1041,21 +1174,22 @@ pub(crate) async fn delete_device(
                 if let Some(location) = location {
                     appstate.emit_event(ApiEvent {
                         context,
-                        event: ApiEventType::NetworkDeviceRemoved {
-                            device_id,
-                            device_name,
-                            location_id: location.id,
-                            location: location.name,
-                        },
+                        event: Box::new(ApiEventType::NetworkDeviceRemoved { device, location }),
                     })?;
                 } else {
-                    error!("Network device {device_name}({device_id}) is assigned to non-existent location {}", network_info.network_id);
+                    error!(
+                        "Network device {}({}) is assigned to non-existent location {}",
+                        device.name, device.id, network_info.network_id
+                    );
                 }
             } else {
-                error!("Network device {device_name}({device_id}) has no network assigned");
+                error!(
+                    "Network device {}({}) has no network assigned",
+                    device.name, device.id
+                );
             }
         }
-    };
+    }
     transaction.commit().await?;
     info!("User {username} deleted device {device_id}");
 
@@ -1064,8 +1198,12 @@ pub(crate) async fn delete_device(
 
 /// List all devices
 ///
+/// Retrieves all devices
+///
 /// # Returns
-/// Returns a list `Device` objects or `WebError` object if error occurs.
+/// - List of `Device` objects
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/device",
@@ -1100,10 +1238,14 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
 
 /// List user devices
 ///
+/// Retrieve all devices that belong to specific `username`.
+///
 /// This endpoint requires `admin` role.
 ///
 /// # Returns
-/// Returns a list of `Device` object or `WebError` object if error occurs.
+/// - List of `Device` objects
+///
+/// - `WebError` object if error occurs.
 #[utoipa::path(
     get,
     path = "/api/v1/device/user/{username}",
@@ -1157,6 +1299,18 @@ pub(crate) async fn download_config(
     Path((network_id, device_id)): Path<(i64, i64)>,
 ) -> Result<String, WebError> {
     debug!("Creating config for device {device_id} in network {network_id}");
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to download device config, but manual device management is disaled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Manual device management is disabled".into(),
+        ));
+    }
+
     let network = find_network(network_id, &appstate.pool).await?;
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     let wireguard_network_device =
@@ -1183,14 +1337,7 @@ pub(crate) async fn create_network_token(
 ) -> ApiResult {
     debug!("Generating a new token for network ID {network_id}");
     let network = find_network(network_id, &appstate.pool).await?;
-    let token = Claims::new(
-        ClaimsType::Gateway,
-        format!("DEFGUARD-NETWORK-{network_id}"),
-        network_id.to_string(),
-        u32::MAX.into(),
-    )
-    .to_jwt()
-    .map_err(|_| {
+    let token = network.generate_gateway_token().map_err(|_| {
         error!("Failed to create token for gateway {}", network.name);
         WebError::Authorization(format!(
             "Failed to create token for gateway {}",

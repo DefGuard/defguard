@@ -9,7 +9,7 @@ import { Button } from '../../../../../../shared/defguard-ui/components/Layout/B
 import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
-import { ActivityLogStreamType } from '../../../../../../shared/types';
+import type { ActivityLogStreamType } from '../../../../../../shared/types';
 import { activityLogStreamTypeToLabel } from '../../utils/activityLogStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from '../LogStashHttpStreamCEModal/store';
 import { useVectorHttpStreamCEModal } from '../VectorHttpStreamCEModal/store';

@@ -222,6 +222,30 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * V​e​r​s​i​o​n​ ​m​i​s​m​a​t​c​h
+			 */
+			title: string
+			/**
+			 * D​e​f​g​u​a​r​d​ ​d​e​t​e​c​t​e​d​ ​u​n​s​u​p​p​o​r​t​e​d​ ​v​e​r​s​i​o​n​ ​i​n​ ​s​o​m​e​ ​c​o​m​p​o​n​e​n​t​s​.
+			 */
+			subtitle: string
+			content: {
+				/**
+				 * I​n​c​o​m​p​a​t​i​b​l​e​ ​c​o​m​p​o​n​e​n​t​s​:
+				 */
+				title: string
+				/**
+				 * U​n​k​n​o​w​n​ ​v​e​r​s​i​o​n
+				 */
+				unknownVersion: string
+				/**
+				 * U​n​k​n​o​w​n​ ​h​o​s​t​n​a​m​e
+				 */
+				unknownHostname: string
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
@@ -672,6 +696,39 @@ type RootTranslation = {
 				cancel: string
 			}
 		}
+		disableMfa: {
+			/**
+			 * D​i​s​a​b​l​e​ ​M​F​A
+			 */
+			title: string
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}​ ​h​a​s​ ​b​e​e​n​ ​d​i​s​a​b​l​e​d
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​d​i​s​a​b​l​e​ ​M​F​A​ ​f​o​r​ ​u​s​e​r​ ​{​u​s​e​r​n​a​m​e​}
+				 * @param {string} username
+				 */
+				error: RequiredParams<'username'>
+			}
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				submit: string
+				/**
+				 * C​a​n​c​e​l
+				 */
+				cancel: string
+			}
+		}
 		startEnrollment: {
 			/**
 			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
@@ -698,6 +755,16 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				errorDesktop: string
+			}
+			messageBox: {
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​t​o​k​e​n​ ​w​i​t​h​ ​t​h​e​ ​u​s​e​r​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​i​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​o​r​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​.
+				 */
+				clientForm: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​f​o​r​ ​e​a​s​y​ ​D​e​f​g​u​a​r​d​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+				 */
+				clientQr: string
 			}
 			form: {
 				email: {
@@ -1020,7 +1087,7 @@ type RootTranslation = {
 				submit: string
 			}
 			/**
-			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
@@ -1196,6 +1263,12 @@ type RootTranslation = {
 				 * A​d​d​ ​u​s​e​r
 				 */
 				submit: string
+				error: {
+					/**
+					 * E​m​a​i​l​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n
+					 */
+					emailReserved: string
+				}
 				fields: {
 					username: {
 						/**
@@ -1427,33 +1500,83 @@ type RootTranslation = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
-					/**
-					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
-					 */
-					title: string
-					/**
-					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
-					 */
-					subTitle: string
-					/**
-					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
-					 */
-					link: string
+				/**
+				 * C​h​o​o​s​e​ ​Y​o​u​r​ ​C​o​n​n​e​c​t​i​o​n​ ​M​e​t​h​o​d
+				 */
+				title: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​T​o​ ​p​r​o​c​e​e​d​,​ ​y​o​u​'​l​l​ ​n​e​e​d​ ​t​o​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e​ ​y​o​u​'​r​e​ ​a​d​d​i​n​g​.​ ​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​u​s​e​ ​a​n​y​ ​s​t​a​n​d​a​r​d​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​,​ ​b​u​t​ ​f​o​r​ ​t​h​e​ ​b​e​s​t​ ​e​x​p​e​r​i​e​n​c​e​ ​a​n​d​ ​e​a​s​e​ ​o​f​ ​s​e​t​u​p​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​o​u​r​ ​n​a​t​i​v​e​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.
+				 */
+				message: string
+				methods: {
+					client: {
+						/**
+						 * R​e​m​o​t​e​ ​D​e​v​i​c​e​ ​A​c​t​i​v​a​t​i​o​n
+						 */
+						title: string
+						/**
+						 * U​s​e​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​ ​t​o​ ​s​e​t​ ​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​.​ ​E​a​s​i​l​y​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​w​i​t​h​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​ ​o​r​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​a​ ​Q​R​ ​c​o​d​e​.
+						 */
+						description: string
+					}
+					wg: {
+						/**
+						 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+						 */
+						title: string
+						/**
+						 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​a​n​y​ ​W​i​r​e​G​u​a​r​d​®​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+						 */
+						description: string
+					}
 				}
-				manual: {
+			}
+			client: {
+				/**
+				 * C​l​i​e​n​t​ ​A​c​t​i​v​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​c​l​i​e​n​t​ ​(​l​i​n​k​s​ ​b​e​l​o​w​)​,​ ​o​p​e​n​ ​i​t​ ​a​n​d​ ​j​u​s​t​ ​p​r​e​s​s​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n​ ​b​u​t​t​o​n
+				 */
+				desktopDeepLinkHelp: string
+				/**
+				 * I​f​ ​y​o​u​ ​a​r​e​ ​h​a​v​i​n​g​ ​t​r​o​u​b​l​e​ ​w​i​t​h​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​y​o​u​ ​c​a​n​ ​d​o​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​b​y​ ​c​l​i​c​k​i​n​g​ ​*​A​d​d​ ​I​n​s​t​a​n​c​e​*​ ​i​n​ ​t​h​e​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​a​n​d​ ​e​n​t​e​r​i​n​g​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​:
+				 */
+				message: string
+				/**
+				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
+				 */
+				qrDescription: string
+				/**
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​M​o​b​i​l​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​j​u​s​t​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​a​p​p​:
+				 */
+				qrHelp: string
+				/**
+				 * D​o​w​n​l​o​a​d​ ​f​o​r​ ​D​e​s​k​t​o​p
+				 */
+				desktopDownload: string
+				/**
+				 * T​o​k​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+				 */
+				tokenCopy: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​p​a​r​e​ ​c​l​i​e​n​t​ ​s​e​t​u​p
+				 */
+				tokenFailure: string
+				labels: {
 					/**
-					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​T​o​k​e​n​ ​(​n​e​w​)
 					 */
-					title: string
+					mergedToken: string
 					/**
-					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
+					 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
 					 */
-					subTitle: string
+					token: string
 					/**
-					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 * U​R​L
 					 */
-					link: string
+					url: string
 				}
 			}
 			configDevice: {
@@ -1520,7 +1643,7 @@ type RootTranslation = {
 				/**
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​®​ ​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		
@@ -2286,6 +2409,10 @@ type RootTranslation = {
 				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
 				 */
 				resetPassword: string
+				/**
+				 * D​i​s​a​b​l​e​ ​M​F​A
+				 */
+				disableMfa: string
 			}
 		}
 	}
@@ -2608,6 +2735,10 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		/**
+		 * O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		openClientDeepLink: string
 		aclDefaultPolicySelect: {
 			/**
 			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
@@ -2698,6 +2829,26 @@ type RootTranslation = {
 				 * b​y​ ​c​o​n​t​a​c​t​i​n​g​:
 				 */
 				contact: string
+			}
+		}
+		locationMfaModeSelect: {
+			/**
+			 * M​F​A​ ​R​e​q​u​i​r​e​m​e​n​t
+			 */
+			label: string
+			options: {
+				/**
+				 * D​o​ ​n​o​t​ ​e​n​f​o​r​c​e​ ​M​F​A
+				 */
+				disabled: string
+				/**
+				 * I​n​t​e​r​n​a​l​ ​M​F​A
+				 */
+				internal: string
+				/**
+				 * E​x​t​e​r​n​a​l​ ​M​F​A
+				 */
+				external: string
 			}
 		}
 	}
@@ -3343,6 +3494,16 @@ type RootTranslation = {
 						 */
 						helper: string
 					}
+					jumpcloud_api_key: {
+						/**
+						 * J​u​m​p​C​l​o​u​d​ ​A​P​I​ ​K​e​y
+						 */
+						label: string
+						/**
+						 * A​P​I​ ​K​e​y​ ​f​o​r​ ​t​h​e​ ​J​u​m​p​C​l​o​u​d​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​.​ ​I​t​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​t​o​ ​p​e​r​i​o​d​i​c​a​l​l​y​ ​q​u​e​r​y​ ​J​u​m​p​C​l​o​u​d​ ​f​o​r​ ​u​s​e​r​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​ ​c​h​a​n​g​e​s​.
+						 */
+						helper: string
+					}
 					group_match: {
 						/**
 						 * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
@@ -3363,7 +3524,7 @@ type RootTranslation = {
 			header: string
 			/**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​i​d​e​ ​u​n​u​s​e​d​ ​m​o​d​u​l​e​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
@@ -4670,6 +4831,10 @@ type RootTranslation = {
 				 */
 				address: string
 				/**
+				 * P​u​b​l​i​c​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e​ ​t​o​ ​w​h​i​c​h​ ​t​h​e​ ​r​e​m​o​t​e​ ​p​e​e​r​s​/​u​s​e​r​s​ ​w​i​l​l​ ​c​o​n​n​e​c​t​ ​t​o​.​ ​T​h​i​s​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​i​n​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​c​l​i​e​n​t​s​,​ ​b​u​t​ ​D​e​f​g​u​a​r​d​ ​G​a​t​e​w​a​y​s​ ​d​o​ ​n​o​t​ ​b​i​n​d​ ​t​o​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.
+				 */
+				endpoint: string
+				/**
 				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
 				gateway: string
@@ -4689,6 +4854,38 @@ type RootTranslation = {
 				 * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
 				 */
 				aclFeatureDisabled: string
+				/**
+				 * C​l​i​e​n​t​s​ ​a​u​t​h​o​r​i​z​e​d​ ​w​i​t​h​ ​M​F​A​ ​w​i​l​l​ ​b​e​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​f​r​o​m​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​o​n​c​e​ ​t​h​e​r​e​ ​h​a​s​ ​b​e​e​n​ ​n​o​ ​n​e​t​w​o​r​k​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d​ ​b​e​t​w​e​e​n​ ​t​h​e​m​ ​a​n​d​ ​t​h​e​ ​V​P​N​ ​g​a​t​e​w​a​y​ ​f​o​r​ ​a​ ​l​e​n​g​t​h​ ​o​f​ ​t​i​m​e​ ​c​o​n​f​i​g​u​r​e​d​ ​b​e​l​o​w​.
+				 */
+				peerDisconnectThreshold: string
+				locationMfaMode: {
+					/**
+					 * C​h​o​o​s​e​ ​h​o​w​ ​M​F​A​ ​i​s​ ​e​n​f​o​r​c​e​d​ ​w​h​e​n​ ​c​o​n​n​e​c​t​i​n​g​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​:
+					 */
+					description: string
+					/**
+					 * I​n​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​M​F​A​ ​i​s​ ​e​n​f​o​r​c​e​d​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​'​s​ ​b​u​i​l​t​-​i​n​ ​M​F​A​ ​(​e​.​g​.​ ​T​O​T​P​,​ ​W​e​b​A​u​t​h​n​)​ ​w​i​t​h​ ​i​n​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y
+					 */
+					internal: string
+					/**
+					 * E​x​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​ ​(​s​e​e​ ​[​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s​]​(​s​e​t​t​i​n​g​s​)​)​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​u​s​e​s​ ​e​x​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​M​F​A
+					 */
+					external: string
+				}
+			}
+			sections: {
+				accessControl: {
+					/**
+					 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​&​ ​F​i​r​e​w​a​l​l
+					 */
+					header: string
+				}
+				mfa: {
+					/**
+					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
+					 */
+					header: string
+				}
 			}
 			messages: {
 				/**
@@ -4715,7 +4912,7 @@ type RootTranslation = {
 				}
 				endpoint: {
 					/**
-					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
+					 * G​a​t​e​w​a​y​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e
 					 */
 					label: string
 				}
@@ -4747,12 +4944,6 @@ type RootTranslation = {
 					 */
 					placeholder: string
 				}
-				mfa_enabled: {
-					/**
-					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
-					 */
-					label: string
-				}
 				keepalive_interval: {
 					/**
 					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
@@ -4761,7 +4952,7 @@ type RootTranslation = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
+					 * C​l​i​e​n​t​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
@@ -4774,6 +4965,12 @@ type RootTranslation = {
 				acl_default_allow: {
 					/**
 					 * D​e​f​a​u​l​t​ ​A​C​L​ ​p​o​l​i​c​y
+					 */
+					label: string
+				}
+				location_mfa_mode: {
+					/**
+					 * M​F​A​ ​r​e​q​u​i​r​e​m​e​n​t
 					 */
 					label: string
 				}
@@ -6164,6 +6361,10 @@ type RootTranslation = {
 				 */
 				ip: string
 				/**
+				 * L​o​c​a​t​i​o​n
+				 */
+				location: string
+				/**
 				 * E​v​e​n​t
 				 */
 				event: string
@@ -6175,6 +6376,10 @@ type RootTranslation = {
 				 * D​e​v​i​c​e
 				 */
 				device: string
+				/**
+				 * D​e​s​c​r​i​p​t​i​o​n
+				 */
+				description: string
 			}
 			noData: {
 				/**
@@ -6227,6 +6432,10 @@ type RootTranslation = {
 			 */
 			user_modified: string
 			/**
+			 * U​s​e​r​ ​g​r​o​u​p​s​ ​m​o​d​i​f​i​e​d
+			 */
+			user_groups_modified: string
+			/**
 			 * M​F​A​ ​e​n​a​b​l​e​d
 			 */
 			mfa_enabled: string
@@ -6234,6 +6443,10 @@ type RootTranslation = {
 			 * M​F​A​ ​d​i​s​a​b​l​e​d
 			 */
 			mfa_disabled: string
+			/**
+			 * U​s​e​r​ ​M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			user_mfa_disabled: string
 			/**
 			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
 			 */
@@ -6315,6 +6528,10 @@ type RootTranslation = {
 			 */
 			vpn_client_mfa_failed: string
 			/**
+			 * E​n​r​o​l​l​m​e​n​t​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			enrollment_token_added: string
+			/**
 			 * E​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 			 */
 			enrollment_started: string
@@ -6338,6 +6555,150 @@ type RootTranslation = {
 			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​c​o​m​p​l​e​t​e​d
 			 */
 			password_reset_completed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​a​d​d​e​d
+			 */
+			vpn_location_added: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​r​e​m​o​v​e​d
+			 */
+			vpn_location_removed: string
+			/**
+			 * V​P​N​ ​l​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d
+			 */
+			vpn_location_modified: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			api_token_added: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​m​o​v​e​d
+			 */
+			api_token_removed: string
+			/**
+			 * A​P​I​ ​t​o​k​e​n​ ​r​e​n​a​m​e​d
+			 */
+			api_token_renamed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​a​d​d​e​d
+			 */
+			open_id_app_added: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​r​e​m​o​v​e​d
+			 */
+			open_id_app_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_app_modified: string
+			/**
+			 * O​p​e​n​I​D​ ​a​p​p​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			open_id_app_state_changed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​r​e​m​o​v​e​d
+			 */
+			open_id_provider_removed: string
+			/**
+			 * O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			open_id_provider_modified: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated: string
+			/**
+			 * S​e​t​t​i​n​g​s​ ​p​a​r​t​i​a​l​l​y​ ​u​p​d​a​t​e​d
+			 */
+			settings_updated_partial: string
+			/**
+			 * D​e​f​a​u​l​t​ ​b​r​a​n​d​i​n​g​ ​r​e​s​t​o​r​e​d
+			 */
+			settings_default_branding_restored: string
+			/**
+			 * G​r​o​u​p​s​ ​b​u​l​k​ ​a​s​s​i​g​n​e​d
+			 */
+			groups_bulk_assigned: string
+			/**
+			 * G​r​o​u​p​ ​a​d​d​e​d
+			 */
+			group_added: string
+			/**
+			 * G​r​o​u​p​ ​m​o​d​i​f​i​e​d
+			 */
+			group_modified: string
+			/**
+			 * G​r​o​u​p​ ​r​e​m​o​v​e​d
+			 */
+			group_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​a​d​d​e​d
+			 */
+			group_member_added: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​ ​r​e​m​o​v​e​d
+			 */
+			group_member_removed: string
+			/**
+			 * G​r​o​u​p​ ​m​e​m​b​e​r​s​ ​m​o​d​i​f​i​e​d
+			 */
+			group_members_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​a​d​d​e​d
+			 */
+			web_hook_added: string
+			/**
+			 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d
+			 */
+			web_hook_modified: string
+			/**
+			 * W​e​b​h​o​o​k​ ​r​e​m​o​v​e​d
+			 */
+			web_hook_removed: string
+			/**
+			 * W​e​b​h​o​o​k​ ​s​t​a​t​e​ ​c​h​a​n​g​e​d
+			 */
+			web_hook_state_changed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			authentication_key_added: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			authentication_key_removed: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​k​e​y​ ​r​e​n​a​m​e​d
+			 */
+			authentication_key_renamed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d
+			 */
+			password_changed: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​ ​b​y​ ​a​d​m​i​n
+			 */
+			password_changed_by_admin: string
+			/**
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t
+			 */
+			password_reset: string
+			/**
+			 * C​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​k​e​n​ ​a​d​d​e​d
+			 */
+			client_configuration_token_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​a​d​d​e​d
+			 */
+			user_snat_binding_added: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​m​o​d​i​f​i​e​d
+			 */
+			user_snat_binding_modified: string
+			/**
+			 * U​s​e​r​ ​S​N​A​T​ ​b​i​n​d​i​n​g​ ​r​e​m​o​v​e​d
+			 */
+			user_snat_binding_removed: string
 		}
 		activityLogModule: {
 			/**
@@ -6568,6 +6929,30 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * Version mismatch
+			 */
+			title: () => LocalizedString
+			/**
+			 * Defguard detected unsupported version in some components.
+			 */
+			subtitle: () => LocalizedString
+			content: {
+				/**
+				 * Incompatible components:
+				 */
+				title: () => LocalizedString
+				/**
+				 * Unknown version
+				 */
+				unknownVersion: () => LocalizedString
+				/**
+				 * Unknown hostname
+				 */
+				unknownHostname: () => LocalizedString
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
@@ -7014,6 +7399,36 @@ export type TranslationFunctions = {
 				cancel: () => LocalizedString
 			}
 		}
+		disableMfa: {
+			/**
+			 * Disable MFA
+			 */
+			title: () => LocalizedString
+			/**
+			 * Do you want to disable MFA for user {username}?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * MFA for user {username} has been disabled
+				 */
+				success: (arg: { username: string }) => LocalizedString
+				/**
+				 * Failed to disable MFA for user {username}
+				 */
+				error: (arg: { username: string }) => LocalizedString
+			}
+			controls: {
+				/**
+				 * Disable MFA
+				 */
+				submit: () => LocalizedString
+				/**
+				 * Cancel
+				 */
+				cancel: () => LocalizedString
+			}
+		}
 		startEnrollment: {
 			/**
 			 * Start enrollment
@@ -7040,6 +7455,16 @@ export type TranslationFunctions = {
 				 * Failed to start desktop activation
 				 */
 				errorDesktop: () => LocalizedString
+			}
+			messageBox: {
+				/**
+				 * You can share the following URL and token with the user to configure their Defguard desktop or mobile client.
+				 */
+				clientForm: () => LocalizedString
+				/**
+				 * You can share this QR code for easy Defguard mobile client configuration.
+				 */
+				clientQr: () => LocalizedString
 			}
 			form: {
 				email: {
@@ -7359,7 +7784,7 @@ export type TranslationFunctions = {
 				submit: () => LocalizedString
 			}
 			/**
-			 * Do you want to delete {username} account permanently ?
+			 * Do you want to delete {username} account permanently?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
@@ -7527,6 +7952,12 @@ export type TranslationFunctions = {
 				 * Add user
 				 */
 				submit: () => LocalizedString
+				error: {
+					/**
+					 * Email already taken
+					 */
+					emailReserved: () => LocalizedString
+				}
 				fields: {
 					username: {
 						/**
@@ -7757,33 +8188,83 @@ export type TranslationFunctions = {
 		}
 		steps: {
 			setupMethod: {
-				remote: {
-					/**
-					 * Configure Desktop Client
-					 */
-					title: () => LocalizedString
-					/**
-					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
-					 */
-					subTitle: () => LocalizedString
-					/**
-					 * Download defguard Client
-					 */
-					link: () => LocalizedString
+				/**
+				 * Choose Your Connection Method
+				 */
+				title: () => LocalizedString
+				/**
+				 * You can add a device using this wizard. To proceed, you'll need to install the defguard Client on the device you're adding. You can also use any standard WireGuard® client, but for the best experience and ease of setup, we recommend using our native defguard Client.
+				 */
+				message: () => LocalizedString
+				methods: {
+					client: {
+						/**
+						 * Remote Device Activation
+						 */
+						title: () => LocalizedString
+						/**
+						 * Use the Defguard Client to set up your device. Easily configure it with a single token or by scanning a QR code.
+						 */
+						description: () => LocalizedString
+					}
+					wg: {
+						/**
+						 * Manual WireGuard Client
+						 */
+						title: () => LocalizedString
+						/**
+						 * For advanced users, get a unique config via download or QR code. Download any WireGuard® client and take control of your VPN setup.
+						 */
+						description: () => LocalizedString
+					}
 				}
-				manual: {
+			}
+			client: {
+				/**
+				 * Client Activation
+				 */
+				title: () => LocalizedString
+				/**
+				 * If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button
+				 */
+				desktopDeepLinkHelp: () => LocalizedString
+				/**
+				 * If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:
+				 */
+				message: () => LocalizedString
+				/**
+				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
+				 */
+				qrDescription: () => LocalizedString
+				/**
+				 * If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:
+				 */
+				qrHelp: () => LocalizedString
+				/**
+				 * Download for Desktop
+				 */
+				desktopDownload: () => LocalizedString
+				/**
+				 * Token copied to clipboard
+				 */
+				tokenCopy: () => LocalizedString
+				/**
+				 * Failed to prepare client setup
+				 */
+				tokenFailure: () => LocalizedString
+				labels: {
 					/**
-					 * Manual WireGuard Client
+					 * Defguard Instance Token (new)
 					 */
-					title: () => LocalizedString
+					mergedToken: () => LocalizedString
 					/**
-					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
+					 * Authentication Token
 					 */
-					subTitle: () => LocalizedString
+					token: () => LocalizedString
 					/**
-					 * Download WireGuard Client
+					 * URL
 					 */
-					link: () => LocalizedString
+					url: () => LocalizedString
 				}
 			}
 			configDevice: {
@@ -7850,7 +8331,7 @@ export type TranslationFunctions = {
 				/**
 				 * 
 			        <p>
-			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          You need to configure WireGuard® VPN on your device, please visit&nbsp;
 			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 			        </p>
 		
@@ -8610,6 +9091,10 @@ export type TranslationFunctions = {
 				 * Reset password
 				 */
 				resetPassword: () => LocalizedString
+				/**
+				 * Disable MFA
+				 */
+				disableMfa: () => LocalizedString
 			}
 		}
 	}
@@ -8926,6 +9411,10 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		/**
+		 * One-Click Desktop Configuration
+		 */
+		openClientDeepLink: () => LocalizedString
 		aclDefaultPolicySelect: {
 			/**
 			 * Default ACL Policy
@@ -9014,6 +9503,26 @@ export type TranslationFunctions = {
 				 * by contacting:
 				 */
 				contact: () => LocalizedString
+			}
+		}
+		locationMfaModeSelect: {
+			/**
+			 * MFA Requirement
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Do not enforce MFA
+				 */
+				disabled: () => LocalizedString
+				/**
+				 * Internal MFA
+				 */
+				internal: () => LocalizedString
+				/**
+				 * External MFA
+				 */
+				external: () => LocalizedString
 			}
 		}
 	}
@@ -9656,6 +10165,16 @@ export type TranslationFunctions = {
 						 */
 						helper: () => LocalizedString
 					}
+					jumpcloud_api_key: {
+						/**
+						 * JumpCloud API Key
+						 */
+						label: () => LocalizedString
+						/**
+						 * API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.
+						 */
+						helper: () => LocalizedString
+					}
 					group_match: {
 						/**
 						 * Sync only matching groups
@@ -9676,7 +10195,7 @@ export type TranslationFunctions = {
 			header: () => LocalizedString
 			/**
 			 * <p>
-		            If your not using some modules you can disable their visibility.
+		            Hide unused modules.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
@@ -10967,6 +11486,10 @@ export type TranslationFunctions = {
 				 */
 				address: () => LocalizedString
 				/**
+				 * Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.
+				 */
+				endpoint: () => LocalizedString
+				/**
 				 * Gateway public address, used by VPN users to connect
 				 */
 				gateway: () => LocalizedString
@@ -10986,6 +11509,38 @@ export type TranslationFunctions = {
 				 * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
 				 */
 				aclFeatureDisabled: () => LocalizedString
+				/**
+				 * Clients authorized with MFA will be disconnected from the location once there has been no network activity detected between them and the VPN gateway for a length of time configured below.
+				 */
+				peerDisconnectThreshold: () => LocalizedString
+				locationMfaMode: {
+					/**
+					 * Choose how MFA is enforced when connecting to this location:
+					 */
+					description: () => LocalizedString
+					/**
+					 * Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity
+					 */
+					internal: () => LocalizedString
+					/**
+					 * External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA
+					 */
+					external: () => LocalizedString
+				}
+			}
+			sections: {
+				accessControl: {
+					/**
+					 * Access Control & Firewall
+					 */
+					header: () => LocalizedString
+				}
+				mfa: {
+					/**
+					 * Multi-Factor Authentication
+					 */
+					header: () => LocalizedString
+				}
 			}
 			messages: {
 				/**
@@ -11012,7 +11567,7 @@ export type TranslationFunctions = {
 				}
 				endpoint: {
 					/**
-					 * Gateway address
+					 * Gateway IP address or domain name
 					 */
 					label: () => LocalizedString
 				}
@@ -11044,12 +11599,6 @@ export type TranslationFunctions = {
 					 */
 					placeholder: () => LocalizedString
 				}
-				mfa_enabled: {
-					/**
-					 * Require MFA for this Location
-					 */
-					label: () => LocalizedString
-				}
 				keepalive_interval: {
 					/**
 					 * Keepalive interval [seconds]
@@ -11058,7 +11607,7 @@ export type TranslationFunctions = {
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * Peer disconnect threshold [seconds]
+					 * Client disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}
@@ -11071,6 +11620,12 @@ export type TranslationFunctions = {
 				acl_default_allow: {
 					/**
 					 * Default ACL policy
+					 */
+					label: () => LocalizedString
+				}
+				location_mfa_mode: {
+					/**
+					 * MFA requirement
 					 */
 					label: () => LocalizedString
 				}
@@ -12449,6 +13004,10 @@ export type TranslationFunctions = {
 				 */
 				ip: () => LocalizedString
 				/**
+				 * Location
+				 */
+				location: () => LocalizedString
+				/**
 				 * Event
 				 */
 				event: () => LocalizedString
@@ -12460,6 +13019,10 @@ export type TranslationFunctions = {
 				 * Device
 				 */
 				device: () => LocalizedString
+				/**
+				 * Description
+				 */
+				description: () => LocalizedString
 			}
 			noData: {
 				/**
@@ -12512,6 +13075,10 @@ export type TranslationFunctions = {
 			 */
 			user_modified: () => LocalizedString
 			/**
+			 * User groups modified
+			 */
+			user_groups_modified: () => LocalizedString
+			/**
 			 * MFA enabled
 			 */
 			mfa_enabled: () => LocalizedString
@@ -12519,6 +13086,10 @@ export type TranslationFunctions = {
 			 * MFA disabled
 			 */
 			mfa_disabled: () => LocalizedString
+			/**
+			 * User MFA disabled
+			 */
+			user_mfa_disabled: () => LocalizedString
 			/**
 			 * MFA TOTP enabled
 			 */
@@ -12600,6 +13171,10 @@ export type TranslationFunctions = {
 			 */
 			vpn_client_mfa_failed: () => LocalizedString
 			/**
+			 * Enrollment token added
+			 */
+			enrollment_token_added: () => LocalizedString
+			/**
 			 * Enrollment started
 			 */
 			enrollment_started: () => LocalizedString
@@ -12623,6 +13198,150 @@ export type TranslationFunctions = {
 			 * Password reset completed
 			 */
 			password_reset_completed: () => LocalizedString
+			/**
+			 * VPN location added
+			 */
+			vpn_location_added: () => LocalizedString
+			/**
+			 * VPN location removed
+			 */
+			vpn_location_removed: () => LocalizedString
+			/**
+			 * VPN location modified
+			 */
+			vpn_location_modified: () => LocalizedString
+			/**
+			 * API token added
+			 */
+			api_token_added: () => LocalizedString
+			/**
+			 * API token removed
+			 */
+			api_token_removed: () => LocalizedString
+			/**
+			 * API token renamed
+			 */
+			api_token_renamed: () => LocalizedString
+			/**
+			 * OpenID app added
+			 */
+			open_id_app_added: () => LocalizedString
+			/**
+			 * OpenID app removed
+			 */
+			open_id_app_removed: () => LocalizedString
+			/**
+			 * OpenID app modified
+			 */
+			open_id_app_modified: () => LocalizedString
+			/**
+			 * OpenID app state changed
+			 */
+			open_id_app_state_changed: () => LocalizedString
+			/**
+			 * OpenID provider removed
+			 */
+			open_id_provider_removed: () => LocalizedString
+			/**
+			 * OpenID provider modified
+			 */
+			open_id_provider_modified: () => LocalizedString
+			/**
+			 * Settings updated
+			 */
+			settings_updated: () => LocalizedString
+			/**
+			 * Settings partially updated
+			 */
+			settings_updated_partial: () => LocalizedString
+			/**
+			 * Default branding restored
+			 */
+			settings_default_branding_restored: () => LocalizedString
+			/**
+			 * Groups bulk assigned
+			 */
+			groups_bulk_assigned: () => LocalizedString
+			/**
+			 * Group added
+			 */
+			group_added: () => LocalizedString
+			/**
+			 * Group modified
+			 */
+			group_modified: () => LocalizedString
+			/**
+			 * Group removed
+			 */
+			group_removed: () => LocalizedString
+			/**
+			 * Group member added
+			 */
+			group_member_added: () => LocalizedString
+			/**
+			 * Group member removed
+			 */
+			group_member_removed: () => LocalizedString
+			/**
+			 * Group members modified
+			 */
+			group_members_modified: () => LocalizedString
+			/**
+			 * Webhook added
+			 */
+			web_hook_added: () => LocalizedString
+			/**
+			 * Webhook modified
+			 */
+			web_hook_modified: () => LocalizedString
+			/**
+			 * Webhook removed
+			 */
+			web_hook_removed: () => LocalizedString
+			/**
+			 * Webhook state changed
+			 */
+			web_hook_state_changed: () => LocalizedString
+			/**
+			 * Authentication key added
+			 */
+			authentication_key_added: () => LocalizedString
+			/**
+			 * Authentication key removed
+			 */
+			authentication_key_removed: () => LocalizedString
+			/**
+			 * Authentication key renamed
+			 */
+			authentication_key_renamed: () => LocalizedString
+			/**
+			 * Password changed
+			 */
+			password_changed: () => LocalizedString
+			/**
+			 * Password changed by admin
+			 */
+			password_changed_by_admin: () => LocalizedString
+			/**
+			 * Password reset
+			 */
+			password_reset: () => LocalizedString
+			/**
+			 * Client configuration token added
+			 */
+			client_configuration_token_added: () => LocalizedString
+			/**
+			 * User SNAT binding added
+			 */
+			user_snat_binding_added: () => LocalizedString
+			/**
+			 * User SNAT binding modified
+			 */
+			user_snat_binding_modified: () => LocalizedString
+			/**
+			 * User SNAT binding removed
+			 */
+			user_snat_binding_removed: () => LocalizedString
 		}
 		activityLogModule: {
 			/**
