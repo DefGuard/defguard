@@ -8,7 +8,7 @@ use serde_json::json;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
-    StartEnrollmentRequest, Username, mail::EMAIL_PASSOWRD_RESET_START_SUBJECT,
+    StartEnrollmentRequest, Username, mail::EMAIL_PASSWORD_RESET_START_SUBJECT,
     user_for_admin_or_self,
 };
 use crate::{
@@ -1086,7 +1086,7 @@ pub async fn reset_password(
 
         let mail = Mail {
             to: user.email.clone(),
-            subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+            subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
             content: templates::email_password_reset_mail(
                 config.enrollment_url.clone(),
                 enrollment.id.clone().as_str(),

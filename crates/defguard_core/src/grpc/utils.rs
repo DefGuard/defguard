@@ -216,6 +216,7 @@ pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, St
         msg
     })?;
     let user_agent = info.user_agent.clone().unwrap_or_else(String::new);
+    let escaped_agent = tera::escape_html(&user_agent);
 
-    Ok((ip, user_agent))
+    Ok((ip, escaped_agent))
 }
