@@ -28,7 +28,7 @@
 
 See:
 - [full list of features](https://github.com/defguard/defguard#features)
-- [enterprise only features](https://docs.defguard.net/enterprise/all-enteprise-features)
+- [enterprise only features](https://docs.defguard.net/enterprise/enterprise-features)
 
 ### Defguard makes it easy to manage complex VPN networks in a secure way
 
