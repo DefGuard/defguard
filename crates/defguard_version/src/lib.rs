@@ -63,7 +63,7 @@
 use std::{cmp::Ordering, fmt, str::FromStr};
 
 use ::tracing::{error, warn};
-pub use semver::{BuildMetadata, Error as SemverError, Version};
+pub use semver::{BuildMetadata, Error as SemverError, Prerelease, Version};
 use serde::Serialize;
 use thiserror::Error;
 use tonic::metadata::MetadataMap;
@@ -344,11 +344,17 @@ pub fn get_tracing_variables(info: &Option<ComponentInfo>) -> (Version, String) 
     (version, info)
 }
 
-/// Compares two versions while omitting build metadata (we use it for git commit hash).
+/// Compares two versions while omitting pre-release and build metadata, which we use
+/// for git commit hash.
 /// Returns true if v1 < v2.
 #[must_use]
 pub fn is_version_lower(v1: &Version, v2: &Version) -> bool {
-    v1.cmp_precedence(v2) == Ordering::Less
+    let (mut v1, mut v2) = (v1.clone(), v2.clone());
+    // ignore pre-release
+    v1.pre = Prerelease::EMPTY;
+    v2.pre = Prerelease::EMPTY;
+    // ignore build metadata
+    v1.cmp_precedence(&v2) == Ordering::Less
 }
 
 #[cfg(test)]
@@ -363,15 +369,27 @@ mod test {
 
         let v1 = Version::parse("1.5.0-alpha1").unwrap();
         let v2 = Version::parse("1.5.0").unwrap();
-        assert!(is_version_lower(&v1, &v2));
+        assert!(!is_version_lower(&v1, &v2));
 
         let v1 = Version::parse("1.5.0").unwrap();
-        let v2 = Version::parse("1.6.0-alpha1").unwrap();
+        let v2 = Version::parse("1.5.0-alpha1").unwrap();
+        assert!(!is_version_lower(&v1, &v2));
+
+        let v1 = Version::parse("1.5.0").unwrap();
+        let v2 = Version::parse("1.6.0-rc1").unwrap();
+        assert!(is_version_lower(&v1, &v2));
+
+        let v1 = Version::parse("1.5.0-rc1").unwrap();
+        let v2 = Version::parse("1.6.0").unwrap();
         assert!(is_version_lower(&v1, &v2));
 
         let v1 = Version::parse("1.5.0-alpha1").unwrap();
         let v2 = Version::parse("1.5.0-alpha2").unwrap();
-        assert!(is_version_lower(&v1, &v2));
+        assert!(!is_version_lower(&v1, &v2));
+
+        let v1 = Version::parse("1.5.0-alpha2").unwrap();
+        let v2 = Version::parse("1.5.0-alpha1").unwrap();
+        assert!(!is_version_lower(&v1, &v2));
 
         let v1 = Version::parse("1.5.0+1").unwrap();
         let v2 = Version::parse("1.5.0+2").unwrap();
@@ -383,6 +401,6 @@ mod test {
 
         let v1 = Version::parse("1.5.0-alpha1+2").unwrap();
         let v2 = Version::parse("1.5.0-alpha2+1").unwrap();
-        assert!(is_version_lower(&v1, &v2));
+        assert!(!is_version_lower(&v1, &v2));
     }
 }
