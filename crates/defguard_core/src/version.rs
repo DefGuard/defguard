@@ -150,20 +150,21 @@ impl IncompatibleComponents {
         true
     }
 
-    pub fn remove_old(components: &Arc<RwLock<Self>>) -> bool {
+    /// Removes expired (older than `OUTDATED_COMPONENT_LIFETIME`) components.
+    /// Avoids unnecessary write-locks.
+    pub fn remove_expired(components: &Arc<RwLock<Self>>) -> bool {
         let now = Utc::now().naive_utc();
-        if !Self::has_old(components, now) {
+        if !Self::contains_expired(components, now) {
             return false;
         }
+
         let mut components = components
             .write()
             .expect("Failed to write-lock IncompatibleComponents");
-
         components.proxy = components
             .proxy
             .take()
             .filter(|proxy| (now - proxy.created) <= OUTDATED_COMPONENT_LIFETIME);
-
         components
             .gateways
             .retain(|gateway| (now - gateway.created) <= OUTDATED_COMPONENT_LIFETIME);
@@ -171,7 +172,8 @@ impl IncompatibleComponents {
         true
     }
 
-    fn has_old(components: &Arc<RwLock<Self>>, now: NaiveDateTime) -> bool {
+    /// Returns true if expired (older than `OUTDATED_COMPONENT_LIFETIME`) components exist.
+    fn contains_expired(components: &Arc<RwLock<Self>>, now: NaiveDateTime) -> bool {
         if components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")

@@ -33,7 +33,7 @@ pub(crate) async fn outdated_components(
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    IncompatibleComponents::remove_old(&appstate.incompatible_components);
+    IncompatibleComponents::remove_expired(&appstate.incompatible_components);
     let incompatible_components = (*appstate
         .incompatible_components
         .read()
