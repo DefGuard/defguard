@@ -37,7 +37,6 @@ jobs:
             # main/dev branch
             IMAGE_TAG=$BRANCH
           fi
-          IMAGE_TAG=main
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "E2E tests will run on IMAGE_TAG=$IMAGE_TAG"
 

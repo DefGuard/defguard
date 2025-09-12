@@ -9,7 +9,6 @@ on:
       - main
       - dev
       - "release/**"
-      - aws_docker_build
     paths-ignore:
       - "*.md"
       - "LICENSE"
