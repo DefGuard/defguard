@@ -741,19 +741,6 @@ pub async fn build_grpc_service_router(
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
 
-    #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(
-            pool,
-            gateway_state,
-            client_state,
-            wireguard_tx,
-            mail_tx,
-            grpc_event_tx,
-        ),
-        JwtInterceptor::new(ClaimsType::Gateway),
-    );
-
     let (health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<AuthServiceServer<AuthServer>>()
@@ -769,9 +756,21 @@ pub async fn build_grpc_service_router(
     let router = {
         use crate::version::GatewayVersionInterceptor;
 
+        let gateway_service = GatewayServiceServer::new(GatewayServer::new(
+            pool,
+            gateway_state,
+            client_state,
+            wireguard_tx,
+            mail_tx,
+            grpc_event_tx,
+        ));
+
         let own_version = Version::parse(VERSION)?;
         router.add_service(
             ServiceBuilder::new()
+                .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
+                    ClaimsType::Gateway,
+                )))
                 .layer(tonic::service::InterceptorLayer::new(
                     GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
                 ))

@@ -89,10 +89,16 @@ impl Interceptor for GatewayVersionInterceptor {
             .get("hostname")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
+        let maybe_network = request
+            .metadata()
+            .get("gateway_network_id")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
         if self.is_version_supported(version) {
             IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_hostname);
         } else {
-            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
+            let data =
+                IncompatibleGatewayData::new(version.cloned(), maybe_hostname, maybe_network);
             data.insert(&self.incompatible_components);
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
@@ -203,12 +209,13 @@ impl IncompatibleComponents {
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
+    pub network_id: Option<String>,
     created: NaiveDateTime,
 }
 
 impl PartialEq for IncompatibleGatewayData {
     fn eq(&self, other: &Self) -> bool {
-        self.version == other.version && self.hostname == other.hostname
+        self.version == other.version && self.network_id == other.network_id
     }
 }
 
@@ -217,17 +224,22 @@ impl Eq for IncompatibleGatewayData {}
 impl Hash for IncompatibleGatewayData {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.version.hash(state);
-        self.hostname.hash(state);
+        self.network_id.hash(state);
     }
 }
 
 impl IncompatibleGatewayData {
-    pub fn new(version: Option<Version>, hostname: Option<String>) -> Self {
+    pub fn new(
+        version: Option<Version>,
+        hostname: Option<String>,
+        network_id: Option<String>,
+    ) -> Self {
         let created = Utc::now().naive_utc();
         Self {
             version,
             hostname,
             created,
+            network_id,
         }
     }
 
