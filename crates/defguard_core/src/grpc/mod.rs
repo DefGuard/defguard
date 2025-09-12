@@ -644,7 +644,7 @@ pub async fn run_grpc_bidi_stream(
             sleep(TEN_SECS).await;
             continue;
         } else {
-			IncompatibleComponents::remove_proxy(&incompatible_components);
+            IncompatibleComponents::remove_proxy(&incompatible_components);
         }
 
         info!("Connected to proxy at {}", endpoint.uri());

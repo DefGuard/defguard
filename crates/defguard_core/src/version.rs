@@ -10,6 +10,7 @@ use defguard_version::{ComponentInfo, Version, is_version_lower};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
+static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
 pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
@@ -89,12 +90,12 @@ impl Interceptor for GatewayVersionInterceptor {
         if self.is_version_supported(version) {
             IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_hostname);
         } else {
+            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
+            data.insert(&self.incompatible_components);
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
-            data.insert(&self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
 
@@ -180,11 +181,16 @@ impl IncompatibleGatewayData {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncompatibleProxyData {
-    pub version: Version,
+    pub version: Option<Version>,
 }
 
 impl IncompatibleProxyData {
     pub fn new(version: Version) -> Self {
+        let version = if version == VERSION_ZERO {
+            None
+        } else {
+            Some(version)
+        };
         Self { version }
     }
 

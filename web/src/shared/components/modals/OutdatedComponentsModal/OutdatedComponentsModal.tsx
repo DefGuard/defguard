@@ -34,12 +34,14 @@ type ProxyItemProps = {
 };
 
 const ProxyListItem = ({ data }: ProxyItemProps) => {
+  const { LL } = useI18nContext();
+  const localLL = LL.modals.outdatedComponentsModal.content;
   return (
     <li>
       <div>
         Proxy
         <span>-</span>
-        <span className="version">{data.version}</span>
+        <span className="version">{data.version || localLL.unknownVersion()}</span>
       </div>
     </li>
   );
