@@ -134,8 +134,7 @@ impl IncompatibleComponents {
             .expect("Failed to read-lock IncompatibleComponents")
             .gateways
             .iter()
-            .find(|gw| &gw.hostname == maybe_hostname)
-            .is_some()
+            .any(|gw| &gw.hostname == maybe_hostname)
         {
             return false;
         }
