@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    hash::{Hash, Hasher},
     sync::{Arc, RwLock},
 };
 
@@ -157,17 +158,7 @@ impl IncompatibleComponents {
         let mut components = components
             .write()
             .expect("Failed to write-lock IncompatibleComponents");
-        // let is_proxy_old = components
-        //     .proxy
-        //     .as_ref()
-        //     .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
-        //     .is_some();
 
-        // if is_proxy_old {
-        //     components.proxy = None
-        // }
-
-        //(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME);
         components.proxy = components
             .proxy
             .take()
@@ -178,16 +169,6 @@ impl IncompatibleComponents {
             .retain(|gateway| (now - gateway.created) < OUTDATED_COMPONENT_LIFETIME);
 
         true
-        // if components
-        //     .read()
-        //     .expect("Failed to read-lock IncompatibleComponents")
-        //     .proxy
-        //     .as_ref()
-        //     .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
-        //     .is_some()
-        // {
-        //     return true;
-        // }
     }
 
     fn has_old(components: &Arc<RwLock<Self>>, now: NaiveDateTime) -> bool {
@@ -202,26 +183,40 @@ impl IncompatibleComponents {
             return true;
         }
 
-        for gateway in components
+        if components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
             .gateways
             .iter()
+            .any(|gateway| (now - gateway.created) > OUTDATED_COMPONENT_LIFETIME)
         {
-            if (now - gateway.created) > OUTDATED_COMPONENT_LIFETIME {
-                return true;
-            }
+            return true;
         }
 
         false
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
     created: NaiveDateTime,
+}
+
+impl PartialEq for IncompatibleGatewayData {
+    fn eq(&self, other: &Self) -> bool {
+        self.version == other.version && self.hostname == other.hostname
+    }
+}
+
+impl Eq for IncompatibleGatewayData {}
+
+impl Hash for IncompatibleGatewayData {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.version.hash(state);
+        self.hostname.hash(state);
+    }
 }
 
 impl IncompatibleGatewayData {
@@ -252,11 +247,19 @@ impl IncompatibleGatewayData {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct IncompatibleProxyData {
     pub version: Option<Version>,
     created: NaiveDateTime,
 }
+
+impl PartialEq for IncompatibleProxyData {
+    fn eq(&self, other: &Self) -> bool {
+        self.version == other.version
+    }
+}
+
+impl Eq for IncompatibleProxyData {}
 
 impl IncompatibleProxyData {
     pub fn new(version: Option<Version>) -> Self {
