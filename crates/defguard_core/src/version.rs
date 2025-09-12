@@ -86,14 +86,14 @@ impl Interceptor for GatewayVersionInterceptor {
             .get("hostname")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
-        let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
         if self.is_version_supported(version) {
-            IncompatibleComponents::remove_gateway(&self.incompatible_components, &data);
+            IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_hostname);
         } else {
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
+            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
             data.insert(&self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
@@ -109,7 +109,6 @@ pub struct IncompatibleComponents {
 }
 
 impl IncompatibleComponents {
-
     /// Clears proxy metadata while avoiding write-locking the structure unnecessarily.
     pub fn remove_proxy(components: &Arc<RwLock<Self>>) -> bool {
         if components
@@ -124,19 +123,19 @@ impl IncompatibleComponents {
             .write()
             .expect("Failed to write-lock IncompatibleComponents")
             .proxy = None;
+
         true
     }
 
     /// Removes metadata from the HashSet while avoiding write-locking the structure unnecessarily.
-    pub fn remove_gateway(
-        components: &Arc<RwLock<Self>>,
-        gateway: &IncompatibleGatewayData,
-    ) -> bool {
+    pub fn remove_gateway(components: &Arc<RwLock<Self>>, maybe_hostname: &Option<String>) -> bool {
         if !components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
             .gateways
-            .contains(gateway)
+            .iter()
+            .find(|gw| &gw.hostname == maybe_hostname)
+            .is_some()
         {
             return false;
         }
@@ -144,7 +143,9 @@ impl IncompatibleComponents {
             .write()
             .expect("Failed to write-lock IncompatibleComponents")
             .gateways
-            .remove(gateway)
+            .retain(|gw| &gw.hostname != maybe_hostname);
+
+        true
     }
 }
 
