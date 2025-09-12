@@ -6,6 +6,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     updates::get_update,
+    version::IncompatibleComponents,
 };
 
 pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -> ApiResult {
@@ -32,6 +33,7 @@ pub(crate) async fn outdated_components(
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
+    IncompatibleComponents::remove_expired(&appstate.incompatible_components);
     let incompatible_components = (*appstate
         .incompatible_components
         .read()

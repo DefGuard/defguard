@@ -79,6 +79,8 @@ use crate::{
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
 
+static VERSION_ZERO: Version = Version::new(0, 0, 0);
+
 mod auth;
 pub(crate) mod client_mfa;
 pub mod enrollment;
@@ -637,12 +639,19 @@ pub async fn run_grpc_bidi_stream(
         let _guard = span.enter();
         if !proxy_is_supported {
             // Store incompatible proxy
-            let data = IncompatibleProxyData::new(version);
+            let maybe_version = if version == VERSION_ZERO {
+                None
+            } else {
+                Some(version)
+            };
+            let data = IncompatibleProxyData::new(maybe_version);
             data.insert(&incompatible_components);
 
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
+        } else {
+            IncompatibleComponents::remove_proxy(&incompatible_components);
         }
 
         info!("Connected to proxy at {}", endpoint.uri());

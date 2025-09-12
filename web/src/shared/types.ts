@@ -14,7 +14,7 @@ import type {
 import type { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type OutdatedProxy = {
-  version: string;
+  version?: string;
 };
 
 export type OutdatedGateway = {
