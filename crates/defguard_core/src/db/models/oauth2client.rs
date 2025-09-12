@@ -3,7 +3,7 @@ use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
 use crate::{
-    db::{Id, NoId},
+    db::{Id, NoId, OAuth2Token},
     random::gen_alphanumeric,
 };
 
@@ -97,6 +97,24 @@ impl OAuth2Client<Id> {
             FROM oauth2client WHERE client_id = $1 AND client_secret = $2 AND enabled",
             client_id,
             client_secret
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub(crate) async fn find_by_token(
+        pool: &PgPool,
+        token: &OAuth2Token,
+    ) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT c.id, c.client_id, c.client_secret, c.redirect_uri, c.scope, c.name, c.enabled \
+            FROM oauth2client c \
+            JOIN oauth2authorizedapp a ON a.oauth2client_id = c.id \
+            JOIN oauth2token t ON t.oauth2authorizedapp_id = a.id \
+            WHERE t.access_token = $1 OR t.refresh_token = $2",
+            token.access_token,
+            token.refresh_token
         )
         .fetch_optional(pool)
         .await
