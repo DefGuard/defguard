@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use serde::Serialize;
 use tonic::{Status, service::Interceptor};
 
@@ -10,6 +11,7 @@ use defguard_version::{ComponentInfo, Version, is_version_lower};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
+static OUTDATED_COMPONENT_LIFETIME: TimeDelta = TimeDelta::hours(1);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
 pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
@@ -146,17 +148,90 @@ impl IncompatibleComponents {
 
         true
     }
+
+    pub fn remove_old(components: &Arc<RwLock<Self>>) -> bool {
+        let now = Utc::now().naive_utc();
+        if !Self::has_old(components, now) {
+            return false;
+        }
+        let mut components = components
+            .write()
+            .expect("Failed to write-lock IncompatibleComponents");
+        // let is_proxy_old = components
+        //     .proxy
+        //     .as_ref()
+        //     .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
+        //     .is_some();
+
+        // if is_proxy_old {
+        //     components.proxy = None
+        // }
+
+        //(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME);
+        components.proxy = components
+            .proxy
+            .take()
+            .filter(|proxy| (now - proxy.created) < OUTDATED_COMPONENT_LIFETIME);
+
+        components
+            .gateways
+            .retain(|gateway| (now - gateway.created) < OUTDATED_COMPONENT_LIFETIME);
+
+        true
+        // if components
+        //     .read()
+        //     .expect("Failed to read-lock IncompatibleComponents")
+        //     .proxy
+        //     .as_ref()
+        //     .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
+        //     .is_some()
+        // {
+        //     return true;
+        // }
+    }
+
+    fn has_old(components: &Arc<RwLock<Self>>, now: NaiveDateTime) -> bool {
+        if components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .proxy
+            .as_ref()
+            .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
+            .is_some()
+        {
+            return true;
+        }
+
+        for gateway in components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .gateways
+            .iter()
+        {
+            if (now - gateway.created) > OUTDATED_COMPONENT_LIFETIME {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
+    created: NaiveDateTime,
 }
 
 impl IncompatibleGatewayData {
     pub fn new(version: Option<Version>, hostname: Option<String>) -> Self {
-        Self { version, hostname }
+        let created = Utc::now().naive_utc();
+        Self {
+            version,
+            hostname,
+            created,
+        }
     }
 
     /// Inserts metadata into the HashSet while avoiding write-locking the structure unnecessarily.
@@ -180,11 +255,13 @@ impl IncompatibleGatewayData {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct IncompatibleProxyData {
     pub version: Option<Version>,
+    created: NaiveDateTime,
 }
 
 impl IncompatibleProxyData {
     pub fn new(version: Option<Version>) -> Self {
-        Self { version }
+        let created = Utc::now().naive_utc();
+        Self { version, created }
     }
 
     /// Inserts metadata while avoiding write-locking the structure unnecessarily.
