@@ -162,11 +162,11 @@ impl IncompatibleComponents {
         components.proxy = components
             .proxy
             .take()
-            .filter(|proxy| (now - proxy.created) < OUTDATED_COMPONENT_LIFETIME);
+            .filter(|proxy| (now - proxy.created) <= OUTDATED_COMPONENT_LIFETIME);
 
         components
             .gateways
-            .retain(|gateway| (now - gateway.created) < OUTDATED_COMPONENT_LIFETIME);
+            .retain(|gateway| (now - gateway.created) <= OUTDATED_COMPONENT_LIFETIME);
 
         true
     }
