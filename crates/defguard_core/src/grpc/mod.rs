@@ -643,6 +643,11 @@ pub async fn run_grpc_bidi_stream(
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
+        } else {
+            incompatible_components
+                .write()
+                .expect("Failed to write-lock incompatible_components")
+				.clear_proxy();
         }
 
         info!("Connected to proxy at {}", endpoint.uri());

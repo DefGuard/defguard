@@ -106,6 +106,17 @@ pub struct IncompatibleComponents {
     pub proxy: Option<IncompatibleProxyData>,
 }
 
+impl IncompatibleComponents {
+    pub fn clear_proxy(&mut self) {
+        self.proxy = None;
+    }
+
+    pub fn clear_gateway(&mut self, hostname: &str) {
+        self.gateways
+            .retain(|gw| gw.hostname.as_deref() != Some(hostname));
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
