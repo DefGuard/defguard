@@ -10,21 +10,22 @@ permissions:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+        instance-size:2xlarge
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
+
       - name: Login to GitHub container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Export image tag
         run: |
           # strip "refs/heads.” to get just the branch name
@@ -38,16 +39,19 @@ jobs:
           fi
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "E2E tests will run on IMAGE_TAG=$IMAGE_TAG"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: "./e2e/.nvmrc"
+
       - name: Install pnpm
         id: pnpm-install
         uses: pnpm/action-setup@v4
         with:
           version: 10
           run_install: false
+
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -61,20 +65,26 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
       - name: Pull images
         run: docker compose --file './docker-compose.e2e.yaml' pull
+
       - name: Install E2E dependencies
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
+
       - name: Install playwright chromium
         working-directory: ./e2e
         run: npx playwright install chromium
+
       - name: run tests
         working-directory: ./e2e
         run: pnpm test
+
       - name: Stop compose
         if: always()
         run: docker compose --file './docker-compose.e2e.yaml' down
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -82,11 +92,13 @@ jobs:
           path: |
             ./e2e/playwright-report
           retention-days: 7
+
   trigger-dev-deploy:
     needs: test
     if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
+
   trigger-staging-deploy:
     needs: test
     if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
