@@ -81,17 +81,19 @@ impl Interceptor for GatewayVersionInterceptor {
     fn call(&mut self, request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
         let maybe_info = ComponentInfo::from_metadata(request.metadata());
         let version = maybe_info.as_ref().map(|info| &info.version);
-        if !self.is_version_supported(version) {
+        let maybe_hostname = request
+            .metadata()
+            .get("hostname")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+        let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
+        if self.is_version_supported(version) {
+            IncompatibleComponents::remove_gateway(&self.incompatible_components, &data);
+        } else {
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
                 None => "Missing version headers".to_string(),
             };
-            let maybe_hostname = request
-                .metadata()
-                .get("hostname")
-                .and_then(|v| v.to_str().ok())
-                .map(String::from);
-            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
             data.insert(&self.incompatible_components);
             return Err(Status::failed_precondition(msg));
         }
@@ -107,13 +109,42 @@ pub struct IncompatibleComponents {
 }
 
 impl IncompatibleComponents {
-    pub fn clear_proxy(&mut self) {
-        self.proxy = None;
+
+    /// Clears proxy metadata while avoiding write-locking the structure unnecessarily.
+    pub fn remove_proxy(components: &Arc<RwLock<Self>>) -> bool {
+        if components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .proxy
+            .is_none()
+        {
+            return false;
+        }
+        components
+            .write()
+            .expect("Failed to write-lock IncompatibleComponents")
+            .proxy = None;
+        true
     }
 
-    pub fn clear_gateway(&mut self, hostname: &str) {
-        self.gateways
-            .retain(|gw| gw.hostname.as_deref() != Some(hostname));
+    /// Removes metadata from the HashSet while avoiding write-locking the structure unnecessarily.
+    pub fn remove_gateway(
+        components: &Arc<RwLock<Self>>,
+        gateway: &IncompatibleGatewayData,
+    ) -> bool {
+        if !components
+            .read()
+            .expect("Failed to read-lock IncompatibleComponents")
+            .gateways
+            .contains(gateway)
+        {
+            return false;
+        }
+        components
+            .write()
+            .expect("Failed to write-lock IncompatibleComponents")
+            .gateways
+            .remove(gateway)
     }
 }
 

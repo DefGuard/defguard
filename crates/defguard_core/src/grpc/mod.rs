@@ -644,10 +644,7 @@ pub async fn run_grpc_bidi_stream(
             sleep(TEN_SECS).await;
             continue;
         } else {
-            incompatible_components
-                .write()
-                .expect("Failed to write-lock incompatible_components")
-				.clear_proxy();
+			IncompatibleComponents::remove_proxy(&incompatible_components);
         }
 
         info!("Connected to proxy at {}", endpoint.uri());
