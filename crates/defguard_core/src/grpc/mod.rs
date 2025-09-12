@@ -54,30 +54,23 @@ use self::{
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
-    VERSION,
-    auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent, Id, Settings,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    },
-    enterprise::{
+    auth::failed_login::FailedLoginMap, db::{
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, Id, Settings
+    }, enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    },
-    events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
-    mail::Mail,
-    server_config,
-    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
+    }, events::{BidiStreamEvent, GrpcEvent}, grpc::gateway::{client_state::ClientMap, map::GatewayMap}, mail::Mail, server_config, version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData}, VERSION
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
+
+static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 mod auth;
 pub(crate) mod client_mfa;
@@ -637,7 +630,12 @@ pub async fn run_grpc_bidi_stream(
         let _guard = span.enter();
         if !proxy_is_supported {
             // Store incompatible proxy
-            let data = IncompatibleProxyData::new(version);
+            let maybe_version = if version == VERSION_ZERO {
+                None
+            } else {
+                Some(version)
+            };
+            let data = IncompatibleProxyData::new(maybe_version);
             data.insert(&incompatible_components);
 
             // Sleep before trying to reconnect

@@ -10,7 +10,6 @@ use defguard_version::{ComponentInfo, Version, is_version_lower};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
-static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
 pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
@@ -185,12 +184,7 @@ pub struct IncompatibleProxyData {
 }
 
 impl IncompatibleProxyData {
-    pub fn new(version: Version) -> Self {
-        let version = if version == VERSION_ZERO {
-            None
-        } else {
-            Some(version)
-        };
+    pub fn new(version: Option<Version>) -> Self {
         Self { version }
     }
 
