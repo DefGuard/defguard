@@ -95,7 +95,7 @@ impl Interceptor for GatewayVersionInterceptor {
             .and_then(|v| v.to_str().ok())
             .map(String::from);
         if self.is_version_supported(version) {
-            IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_hostname);
+            IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_network);
         } else {
             let data =
                 IncompatibleGatewayData::new(version.cloned(), maybe_hostname, maybe_network);
@@ -111,7 +111,7 @@ impl Interceptor for GatewayVersionInterceptor {
     }
 }
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
     pub proxy: Option<IncompatibleProxyData>,
@@ -137,13 +137,13 @@ impl IncompatibleComponents {
     }
 
     /// Removes metadata from the HashSet while avoiding write-locking the structure unnecessarily.
-    pub fn remove_gateway(components: &Arc<RwLock<Self>>, maybe_hostname: &Option<String>) -> bool {
+    pub fn remove_gateway(components: &Arc<RwLock<Self>>, network_id: &Option<String>) -> bool {
         if !components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
             .gateways
             .iter()
-            .any(|gw| &gw.hostname == maybe_hostname)
+            .any(|gw| &gw.network_id == network_id)
         {
             return false;
         }
@@ -151,7 +151,7 @@ impl IncompatibleComponents {
             .write()
             .expect("Failed to write-lock IncompatibleComponents")
             .gateways
-            .retain(|gw| &gw.hostname != maybe_hostname);
+            .retain(|gw| &gw.network_id != network_id);
 
         true
     }
