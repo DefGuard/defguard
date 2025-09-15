@@ -5,7 +5,7 @@
 Requires `.sqlx` directory to be present in the root directory of the project. Create the file using:
 
 ```
-cargo sqlx prepare -- --lib
+cargo sqlx prepare --workspace -- --all-targets --tests
 ```
 
 1. Build docker image
@@ -55,5 +55,5 @@ Following environment variables can be set to configure orion core service:
 ### User agents YAML update
 
 ```
-curl -Lf https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml | yq -y '.' > user_agent_header_regexes.yaml
+curl -Lf https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml | yq -y '.' > crates/defguard_core/user_agent_header_regexes.yaml
 ```

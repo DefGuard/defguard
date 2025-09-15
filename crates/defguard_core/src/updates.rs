@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, time::Duration};
 
 use chrono::NaiveDate;
 use semver::Version;
@@ -8,6 +8,7 @@ use crate::global_value;
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Deserialize, Debug, Serialize)]
 #[cfg_attr(test, derive(Clone))]
@@ -31,21 +32,22 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
     let response = reqwest::Client::new()
         .post(UPDATES_URL)
         .json(&body)
-        .timeout(std::time::Duration::from_secs(10))
+        .timeout(REQUEST_TIMEOUT)
         .send()
         .await?;
     Ok(response.json::<Update>().await?)
 }
 
 pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
-    debug!("Checking for new version of Defguard ...");
+    debug!("Checking for new version of Defguard.");
     let update = fetch_update().await?;
     let current_version = Version::parse(VERSION)?;
     let new_version = Version::parse(&update.version)?;
     if new_version > current_version {
         if update.critical {
             warn!(
-                "There is a new critical Defguard update available: {} (Released on {}). It's recommended to update as soon as possible.",
+                "There is a new critical Defguard update available: {} (Released on {}). It's \
+                recommended to update as soon as possible.",
                 update.version, update.release_date
             );
         } else {

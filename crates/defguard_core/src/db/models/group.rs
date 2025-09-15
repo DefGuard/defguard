@@ -110,7 +110,7 @@ impl Group<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_permission<'e, E>(
+    pub async fn find_by_permission<'e, E>(
         executor: E,
         permission: Permission,
     ) -> Result<Vec<Self>, SqlxError>

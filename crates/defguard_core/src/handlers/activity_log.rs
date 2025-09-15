@@ -118,7 +118,7 @@ pub struct ApiActivityLogEvent {
 // TODO: add utoipa API schema
 /// Filtered list of activity log events
 ///
-/// Retrives a paginated list of activity log events filtered by following query parameters:
+/// Retrieves a paginated list of activity log events filtered by following query parameters:
 /// TODO: add explanations
 /// - from
 /// - until
@@ -159,9 +159,9 @@ pub async fn get_activity_log_events(
 
     // add limit and offset to fetch a specific page
     let limit = DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" LIMIT ").push_bind(limit as i64);
+    query_builder.push(" LIMIT ").push_bind(i64::from(limit));
     let offset = (pagination.page - 1) * DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" OFFSET ").push_bind(offset as i64);
+    query_builder.push(" OFFSET ").push_bind(i64::from(offset));
 
     // fetch filtered events
     let events = query_builder

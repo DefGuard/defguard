@@ -13,6 +13,20 @@ import type {
 } from '../pages/activity-log/types';
 import type { UpdateInfo } from './hooks/store/useUpdatesStore';
 
+export type OutdatedProxy = {
+  version?: string;
+};
+
+export type OutdatedGateway = {
+  version?: string;
+  hostname?: string;
+};
+
+export type OutdatedComponents = {
+  proxy?: OutdatedProxy;
+  gateways: OutdatedGateway[];
+};
+
 export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
@@ -61,6 +75,7 @@ export type UserProfile = {
   user: User;
   devices: Device[];
   security_keys: SecurityKey[];
+  biometric_enabled_devices: number[];
 };
 
 export interface OAuth2AuthorizedApps {
@@ -359,6 +374,7 @@ export interface AppInfo {
   smtp_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
+  external_openid_enabled: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -609,6 +625,7 @@ export type ActivityLogStreamConfig =
 export type ActivityLogStreamCreateRequest = Omit<ActivityLogStreamModifyRequest, 'id'>;
 
 export type Api = {
+  getOutdatedInfo: () => Promise<OutdatedComponents>;
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
@@ -714,7 +731,7 @@ export type Api = {
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
       data: ValidateLocationIpsRequest,
-    ) => Promise<ValidateLocationIpsResponse>;
+    ) => Promise<ValidateLocationIpsResult[]>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -1234,7 +1251,6 @@ export enum OverviewLayoutType {
 export interface OverviewStore {
   viewMode: OverviewLayoutType;
   defaultViewMode: OverviewLayoutType;
-  statsFilter: number;
   networks?: Network[];
   selectedNetworkId?: number;
   setState: (override: Partial<OverviewStore>) => void;
@@ -1335,7 +1351,7 @@ export type ValidateLocationIpsRequest = {
   location: number | string;
 };
 
-export type ValidateLocationIpsResponse = {
+export type ValidateLocationIpsResult = {
   available: boolean;
   valid: boolean;
 };

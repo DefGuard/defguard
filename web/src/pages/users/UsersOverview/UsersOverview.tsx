@@ -1,8 +1,8 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { orderBy } from 'lodash-es';
+import { motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';

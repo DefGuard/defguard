@@ -8,7 +8,7 @@ use serde_json::json;
 use sqlx::query_as;
 use utoipa::ToSchema;
 
-use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
+use super::{ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -45,10 +45,10 @@ pub(crate) struct BulkAssignToGroupsRequest {
 
 /// Bulk assign users to groups
 ///
-/// Assign many users to many groups at once.
+/// Assign many users to many groups at once basing on `BulkAssignToGroupsRequest` object.
 ///
 /// # Returns
-/// If error occurs, it returns `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/groups-assign",
@@ -122,7 +122,11 @@ pub(crate) async fn bulk_assign_to_groups(
     ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
 
     let users_to_maybe_update = users.iter_mut().collect::<Vec<_>>();
-    ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+    Box::pin(ldap_update_users_state(
+        users_to_maybe_update,
+        &appstate.pool,
+    ))
+    .await;
 
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
     appstate.emit_event(ApiEvent {
@@ -138,12 +142,14 @@ pub(crate) async fn bulk_assign_to_groups(
 
 /// Retrieve all groups info
 ///
-/// For each group, the endpoint retrieves a `GroupInfo` object containing: group name, a list of members' usernames and a list of vpn_location.
+/// For each group, the endpoint retrieves a `GroupInfo` object containing: group name, a list of members usernames and a list of vpn_location.
 ///
-/// `There is another endpoint "/api/v1/group" that retrives only name of each groups if you don't want all information.`
+/// **There is another endpoint "/api/v1/group" that retrieves only name of each groups if you don't want all information.**
 ///
 /// # Returns
-/// Returns a list of `GroupInfo` objects or `WebError` if error occurs.
+/// - `GroupInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/group-info",
@@ -168,7 +174,7 @@ pub(crate) async fn bulk_assign_to_groups(
 pub(crate) async fn list_groups_info(
     _role: AdminRole,
     State(appstate): State<AppState>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
@@ -193,15 +199,19 @@ pub(crate) async fn list_groups_info(
 
 /// Retrieve all groups.
 ///
+/// Retrieves group details by `name`.
+///
 /// # Returns
-/// Returns a `Groups` object or `WebError` if error occurs.
+/// - `Groups` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/group",
     responses(
         (status = 200, description = "Retrieve all groups.", body = Groups, example = json!({"groups": ["admin"]})),
-        (status = 401, description = "Unauthorized to retrive all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 500, description = "Cannot retrive all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 401, description = "Unauthorized to retrieve all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 500, description = "Cannot retrieve all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -209,26 +219,29 @@ pub(crate) async fn list_groups_info(
     )
 )]
 pub(crate) async fn list_groups(
-    _session: SessionInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
     State(appstate): State<AppState>,
-) -> Result<ApiResponse, WebError> {
-    debug!("Listing groups");
+) -> ApiResult {
+    debug!("User {} lists groups", &session.user.username);
     let groups = Group::all(&appstate.pool)
         .await?
         .into_iter()
         .map(|group| group.name)
         .collect();
-    info!("Listed groups");
+    info!("User {} listed groups", &session.user.username);
     Ok(ApiResponse {
         json: json!(Groups::new(groups)),
         status: StatusCode::OK,
     })
 }
 
-/// Retrieve group with `name`.
+/// Retrieve group with name
 ///
 /// # Returns
-/// Returns a `GroupInfo` object or `WebError` if error occurs.
+/// - `GroupInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     get,
     path = "/api/v1/group/{name}",
@@ -244,9 +257,9 @@ pub(crate) async fn list_groups(
                 "is_admin": false
             }
         )),
-        (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to retrieve a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Incorrect name of the group.", body = ApiResponse, example = json!({"msg": "Group <name> not found"})),
-        (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 500, description = "Cannot retrieve a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -254,10 +267,11 @@ pub(crate) async fn list_groups(
     )
 )]
 pub(crate) async fn get_group(
+    _admin: AdminRole,
     _session: SessionInfo,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     debug!("Retrieving group {name}");
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
@@ -285,10 +299,14 @@ pub(crate) async fn get_group(
 
 /// Create group
 ///
-/// Create group with a given name and member list.
+/// Create group based on `EditGroupInfo` object.
+///
+/// You can also choose whether group should grant admin privileges by changing `is_admin` parameter.
 ///
 /// # Returns
-/// Returns a `GroupsInfo` object or `WebError` if error occurs.
+/// - `EditGroupInfo` object
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/group",
@@ -300,10 +318,10 @@ pub(crate) async fn get_group(
                 "members": ["user"]
             }
         )),
-        (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to retrieve a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to list groups info.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Cannot create group: user don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find user <username>"})),
-        (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = 500, description = "Cannot retrieve a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
     security(
         ("cookie" = []),
@@ -315,7 +333,7 @@ pub(crate) async fn create_group(
     State(appstate): State<AppState>,
     context: ApiRequestContext,
     Json(group_info): Json<EditGroupInfo>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     debug!("Creating group {}", group_info.name);
 
     let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
@@ -338,7 +356,7 @@ pub(crate) async fn create_group(
         }
     }
 
-    for user in members.iter() {
+    for user in &members {
         user.add_to_group(&mut *transaction, &group).await?;
         ldap_user_groups
             .entry(user)
@@ -353,7 +371,11 @@ pub(crate) async fn create_group(
     if !ldap_user_groups.is_empty() {
         ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
         let users_to_maybe_update = members.iter_mut().collect::<Vec<_>>();
-        ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+        Box::pin(ldap_update_users_state(
+            users_to_maybe_update,
+            &appstate.pool,
+        ))
+        .await;
     }
 
     info!("Created group {}", group_info.name);
@@ -370,10 +392,14 @@ pub(crate) async fn create_group(
 
 /// Modify group
 ///
-/// Rename group and/or change group members.
+/// Rename group and change members basing on `EditGroupInfo` object.
+///
+///  You can also change `is_admin` parameter if you want to grant admin privileges to group members.
 ///
 /// # Returns
-/// Returns a `GroupsInfo` object or `WebError` if error occurs.
+/// - empty JSON
+///
+/// - `WebError` if error occurs
 #[utoipa::path(
     put,
     path = "/api/v1/group/{name}",
@@ -396,7 +422,7 @@ pub(crate) async fn modify_group(
     context: ApiRequestContext,
     Path(name): Path<String>,
     Json(group_info): Json<EditGroupInfo>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     debug!("Modifying group {}", group_info.name);
     let Some(mut group) = Group::find_by_name(&appstate.pool, &name).await? else {
         let msg = format!("Group {name} not found");
@@ -413,7 +439,7 @@ pub(crate) async fn modify_group(
     // Rename only when needed.
     //
     if group.name != group_info.name {
-        group.name = group_info.name.clone();
+        group.name.clone_from(&group_info.name);
         group.save(&mut *transaction).await?;
     }
 
@@ -458,7 +484,7 @@ pub(crate) async fn modify_group(
         }
     }
 
-    for user in members.iter() {
+    for user in &members {
         user.add_to_group(&mut *transaction, &group).await?;
         add_to_ldap_groups
             .entry(user)
@@ -467,7 +493,7 @@ pub(crate) async fn modify_group(
     }
 
     // Remove outstanding members.
-    for user in current_members.iter() {
+    for user in &current_members {
         user.remove_from_group(&mut *transaction, &group).await?;
         remove_from_ldap_groups
             .entry(user)
@@ -524,12 +550,12 @@ pub(crate) async fn modify_group(
     Ok(ApiResponse::default())
 }
 
-/// Remove group with `name`.
+/// Remove group with name.
 ///
 /// Delete group and group members.
 ///
 /// # Returns
-/// If error occurs it returns `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/group/{name}",
@@ -549,12 +575,13 @@ pub(crate) async fn modify_group(
     )
 )]
 pub(crate) async fn delete_group(
-    _session: SessionInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
     Path(name): Path<String>,
-) -> Result<ApiResponse, WebError> {
-    debug!("Deleting group {name}");
+) -> ApiResult {
+    debug!("User {} deletes group {name}", &session.user.username);
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         // Prevent removing the last admin group
         if group.is_admin {
@@ -576,7 +603,7 @@ pub(crate) async fn delete_group(
         let mut conn = appstate.pool.acquire().await?;
         WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
 
-        info!("Deleted group {name}");
+        info!("User {} deleted group {name}", &session.user.username);
         appstate.emit_event(ApiEvent {
             context,
             event: Box::new(ApiEventType::GroupRemoved { group }),
@@ -594,7 +621,7 @@ pub(crate) async fn delete_group(
 /// Find a group with `name` and add `username` as a member.
 ///
 /// # Returns
-/// If error occurs it returns `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     post,
     path = "/api/v1/group/{name}",
@@ -620,7 +647,7 @@ pub(crate) async fn add_group_member(
     context: ApiRequestContext,
     Path(name): Path<String>,
     Json(data): Json<Username>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(mut user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
@@ -654,7 +681,7 @@ pub(crate) async fn add_group_member(
 /// Find a group with `name` and remove `username` as a member.
 ///
 /// # Returns
-/// If error occurs it returns `WebError` object.
+/// - `WebError` if error occurs
 #[utoipa::path(
     delete,
     path = "/api/v1/group/{name}/user/{username}",
@@ -679,7 +706,7 @@ pub(crate) async fn remove_group_member(
     State(appstate): State<AppState>,
     context: ApiRequestContext,
     Path((name, username)): Path<(String, String)>,
-) -> Result<ApiResponse, WebError> {
+) -> ApiResult {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
             debug!(

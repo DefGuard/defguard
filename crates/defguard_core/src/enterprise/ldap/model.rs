@@ -82,9 +82,8 @@ impl User {
         // Print the warning only if everything else checks out
         if check_username(username).is_err() {
             warn!(
-                "LDAP User \"{}\" has username that cannot be used in Defguard, \
+                "LDAP User \"{username}\" has username that cannot be used in Defguard, \
                 change the LDAP username attribute or change the username in LDAP to a valid one",
-                username
             );
             return Err(LdapError::InvalidUsername(username.to_string()));
         }
@@ -94,18 +93,18 @@ impl User {
 
 impl<I> User<I> {
     pub(crate) fn update_from_ldap_user(&mut self, ldap_user: &User, config: &LDAPConfig) {
-        self.last_name = ldap_user.last_name.clone();
-        self.first_name = ldap_user.first_name.clone();
-        self.email = ldap_user.email.clone();
-        self.phone = ldap_user.phone.clone();
+        self.last_name.clone_from(&ldap_user.last_name);
+        self.first_name.clone_from(&ldap_user.first_name);
+        self.email.clone_from(&ldap_user.email);
+        self.phone.clone_from(&ldap_user.phone);
         // It should be ok to update the username if we are not using it in the DN (not as RDN)
-        if !config.using_username_as_rdn() {
-            self.username = ldap_user.username.clone();
-        } else {
+        if config.using_username_as_rdn() {
             debug!(
                 "Not updating username {} from LDAP because it is used as RDN",
                 self.username
             );
+        } else {
+            self.username.clone_from(&ldap_user.username);
         }
     }
 
@@ -123,11 +122,15 @@ impl<I> User<I> {
             ]);
 
             // Allow renaming the user if the CN is not a part of the RDN
-            if config.get_rdn_attr() != "cn" {
+            if !config.get_rdn_attr().eq_ignore_ascii_case("cn") {
                 changes.push(Mod::Replace("cn", hashset![self.username.as_str()]));
             }
 
-            if config.ldap_username_attr != "uid" && config.ldap_user_rdn_attr != Some("uid".into())
+            if !config.ldap_username_attr.eq_ignore_ascii_case("uid")
+                && !config
+                    .ldap_user_rdn_attr
+                    .as_ref()
+                    .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case("uid"))
             {
                 changes.push(Mod::Replace("uid", hashset![self.username.as_str()]));
             }
@@ -146,7 +149,7 @@ impl<I> User<I> {
             );
         }
 
-        if config.ldap_uses_ad && config.get_rdn_attr() != "sAMAccountName" {
+        if config.ldap_uses_ad && !config.get_rdn_attr().eq_ignore_ascii_case("sAMAccountName") {
             changes.push(Mod::Replace(
                 "sAMAccountName",
                 hashset![self.username.as_str()],
@@ -154,10 +157,14 @@ impl<I> User<I> {
         }
 
         let username_attr = config.ldap_username_attr.as_str();
-        // add anything the user provided, if we haven't already added it AND it's not the same as the RDN
-        if username_attr != "sAMAccountName"
-            && username_attr != "cn"
-            && Some(username_attr.into()) != config.ldap_user_rdn_attr
+        // Add anything the user provided, if we haven't already added it AND it's not the same as
+        // the RDN.
+        if !username_attr.eq_ignore_ascii_case("sAMAccountName")
+            && !username_attr.eq_ignore_ascii_case("cn")
+            && !config
+                .ldap_user_rdn_attr
+                .as_ref()
+                .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case(username_attr))
         {
             changes.push(Mod::Replace(
                 username_attr,
@@ -169,8 +176,14 @@ impl<I> User<I> {
     }
 
     // check if key is already in attrs, if not return false
+    #[cfg(test)]
+    pub(crate) fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
+        attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case(key))
+    }
+
+    #[cfg(not(test))]
     fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool {
-        attrs.iter().any(|(k, _)| *k == key)
+        attrs.iter().any(|(k, _)| k.eq_ignore_ascii_case(key))
     }
 
     #[must_use]
@@ -228,13 +241,13 @@ impl<I> User<I> {
 
         attrs.push(("objectClass", object_classes));
 
-        debug!("Generated LDAP attributes: {:?}", attrs);
+        debug!("Generated LDAP attributes: {attrs:?}");
 
         attrs
     }
 
     /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
-    pub(crate) async fn maybe_update_rdn(&mut self) {
+    pub(crate) fn maybe_update_rdn(&mut self) {
         debug!("Updating RDN for user {} in Defguard", self.username);
         let settings = Settings::get_current_settings();
         if settings.ldap_using_username_as_rdn() {
@@ -318,5 +331,60 @@ pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
     } else {
         warn!("Failed to extract DN path from '{dn}': no comma found");
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_in_attrs() {
+        // Create test attributes with mixed case keys
+        let attrs = vec![
+            ("cn", hashset!["user1"]),
+            ("Mail", hashset!["user@example.com"]),
+            ("PHONE", hashset!["123456789"]),
+            ("givenName", hashset!["John"]),
+        ];
+
+        // Test exact case match
+        assert!(User::<()>::in_attrs(&attrs, "cn"));
+        assert!(User::<()>::in_attrs(&attrs, "Mail"));
+        assert!(User::<()>::in_attrs(&attrs, "PHONE"));
+        assert!(User::<()>::in_attrs(&attrs, "givenName"));
+
+        // Test case-insensitive matching
+        assert!(User::<()>::in_attrs(&attrs, "CN"));
+        assert!(User::<()>::in_attrs(&attrs, "cn"));
+        assert!(User::<()>::in_attrs(&attrs, "mail"));
+        assert!(User::<()>::in_attrs(&attrs, "MAIL"));
+        assert!(User::<()>::in_attrs(&attrs, "phone"));
+        assert!(User::<()>::in_attrs(&attrs, "Phone"));
+        assert!(User::<()>::in_attrs(&attrs, "GIVENNAME"));
+        assert!(User::<()>::in_attrs(&attrs, "givenname"));
+
+        // Test non-existent attributes
+        assert!(!User::<()>::in_attrs(&attrs, "nonexistent"));
+        assert!(!User::<()>::in_attrs(&attrs, "sn"));
+        assert!(!User::<()>::in_attrs(&attrs, "uid"));
+
+        // Test empty attributes vector
+        let empty_attrs = vec![];
+        assert!(!User::<()>::in_attrs(&empty_attrs, "cn"));
+        assert!(!User::<()>::in_attrs(&empty_attrs, "any"));
+
+        // Test with empty string key
+        assert!(!User::<()>::in_attrs(&attrs, ""));
+
+        // Test with attributes that have empty values (should still match on key)
+        let attrs_with_empty_values = vec![
+            ("cn", HashSet::new()),
+            ("mail", hashset!["test@example.com"]),
+        ];
+        assert!(User::<()>::in_attrs(&attrs_with_empty_values, "cn"));
+        assert!(User::<()>::in_attrs(&attrs_with_empty_values, "CN"));
+        assert!(User::<()>::in_attrs(&attrs_with_empty_values, "mail"));
+        assert!(!User::<()>::in_attrs(&attrs_with_empty_values, "phone"));
     }
 }

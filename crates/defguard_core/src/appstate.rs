@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
@@ -23,7 +23,10 @@ use crate::{
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
+    version::IncompatibleComponents,
 };
+
+const X_DEFGUARD_EVENT: &str = "x-defguard-event";
 
 #[derive(Clone)]
 pub struct AppState {
@@ -35,6 +38,7 @@ pub struct AppState {
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
+    pub incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 }
 
 impl AppState {
@@ -66,7 +70,7 @@ impl AppState {
                     match reqwest_client
                         .post(&webhook.url)
                         .bearer_auth(&webhook.token)
-                        .header("x-defguard-event", event)
+                        .header(X_DEFGUARD_EVENT, event)
                         .json(&payload)
                         .send()
                         .await
@@ -111,6 +115,7 @@ impl AppState {
         mail_tx: UnboundedSender<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
+        incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -140,6 +145,7 @@ impl AppState {
             failed_logins,
             key,
             event_tx,
+            incompatible_components,
         }
     }
 }

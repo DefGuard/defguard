@@ -44,6 +44,7 @@ pub struct AddProviderData {
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
+    pub jumpcloud_api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -154,6 +155,7 @@ pub async fn add_openid_provider(
         okta_private_jwk,
         provider_data.okta_dirsync_client_id,
         group_match,
+        provider_data.jumpcloud_api_key,
     )
     .upsert(&appstate.pool)
     .await?;
@@ -223,7 +225,7 @@ pub async fn delete_openid_provider(
         let locations = WireguardNetwork::all_using_external_mfa(&mut *transaction).await?;
         if locations.is_empty() {
             debug!("No locations are using OIDC provider for external MFA");
-        };
+        }
         // fall back to internal MFA in all relevant locations
         for mut location in locations {
             debug!(

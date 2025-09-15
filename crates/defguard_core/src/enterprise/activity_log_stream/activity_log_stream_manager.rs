@@ -66,13 +66,12 @@ pub async fn run_activity_log_stream_manager(
                                 cancel_token.clone(),
                             ));
                         }
-                    };
+                    }
                 } else {
                     error!(
                         "Failed to deserialize config for activity log stream {0}",
                         &activity_log_stream.name
                     );
-                    continue;
                 }
             }
         } else {
@@ -87,7 +86,7 @@ pub async fn run_activity_log_stream_manager(
         // - streaming task terminated early
         loop {
             tokio::select! {
-                _ = notification.notified() => {
+                () = notification.notified() => {
                     info!(
                         "Activity log stream manager configuration refresh notification received, reloading streaming tasks."
                     );

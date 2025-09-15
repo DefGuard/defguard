@@ -115,6 +115,7 @@ pub struct OpenIdProvider<I = NoId> {
     #[model(ref)]
     // The groups to sync from the directory, exact match
     pub directory_sync_group_match: Vec<String>,
+    pub jumpcloud_api_key: Option<String>,
 }
 
 impl OpenIdProvider {
@@ -136,6 +137,7 @@ impl OpenIdProvider {
         okta_private_jwk: Option<String>,
         okta_dirsync_client_id: Option<String>,
         directory_sync_group_match: Vec<String>,
+        jumpcloud_api_key: Option<String>,
     ) -> Self {
         Self {
             id: NoId,
@@ -155,19 +157,21 @@ impl OpenIdProvider {
             okta_private_jwk,
             okta_dirsync_client_id,
             directory_sync_group_match,
+            jumpcloud_api_key,
         }
     }
 
-    pub async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
+    pub(crate) async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
         if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
             query!(
-                "UPDATE openidprovider SET name = $1, \
-                base_url = $2, client_id = $3, client_secret = $4, \
-                display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, \
-                directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, \
+                "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, \
+                client_secret = $4, display_name = $5, google_service_account_key = $6, \
+                google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, \
+                directory_sync_interval = $10, directory_sync_user_behavior = $11, \
                 directory_sync_admin_behavior = $12, directory_sync_target = $13, \
-                okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16 \
-                WHERE id = $17",
+                okta_private_jwk = $14, okta_dirsync_client_id = $15, \
+                directory_sync_group_match = $16, jumpcloud_api_key = $17 \
+                WHERE id = $18",
                 self.name,
                 self.base_url,
                 self.client_id,
@@ -184,6 +188,7 @@ impl OpenIdProvider {
                 self.okta_private_jwk,
                 self.okta_dirsync_client_id,
                 &self.directory_sync_group_match,
+                self.jumpcloud_api_key,
                 provider.id,
             )
             .execute(pool)
@@ -197,7 +202,10 @@ impl OpenIdProvider {
 }
 
 impl OpenIdProvider<Id> {
-    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_name<'e, E>(
+        executor: E,
+        name: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -208,7 +216,7 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -216,7 +224,7 @@ impl OpenIdProvider<Id> {
         .await
     }
 
-    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -227,7 +235,7 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(executor)

@@ -38,7 +38,7 @@ pub(super) async fn run_http_stream_task(
     };
     loop {
         tokio::select! {
-            _ = cancel_token.cancelled() => {
+            () = cancel_token.cancelled() => {
                 debug!("Activity log stream ({stream_name}) task received cancellation signal.");
                 break;
             },

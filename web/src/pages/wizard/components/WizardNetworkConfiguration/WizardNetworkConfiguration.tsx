@@ -101,23 +101,25 @@ export const WizardNetworkConfiguration = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, LL.form.error.required()),
+        name: z.string().trim().min(1, LL.form.error.required()),
         address: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
-        endpoint: z.string().min(1, LL.form.error.required()),
+        endpoint: z.string().trim().min(1, LL.form.error.required()),
         port: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
-        allowed_ips: z.string(),
+        allowed_ips: z.string().trim(),
         dns: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val === '' || !val) {
@@ -125,7 +127,7 @@ export const WizardNetworkConfiguration = () => {
             }
             return validateIpOrDomainList(val, ',', true);
           }, LL.form.error.allowedIps()),
-        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
+        allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
             invalid_type_error: LL.form.error.invalid(),

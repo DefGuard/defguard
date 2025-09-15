@@ -16,20 +16,27 @@ type StandaloneConfig = {
 };
 
 type Props = {
-  methodType?: DeviceSetupMethod;
-  custom?: StandaloneConfig;
   active: boolean;
   onClick: () => void;
+  methodType?: DeviceSetupMethod;
+  custom?: StandaloneConfig;
+  disabled?: boolean;
 };
 
 type ContentConfiguration = {
   title: string;
   description: string;
   testId: string;
-} & Pick<Props, 'onClick' | 'active'> &
+} & Pick<Props, 'onClick' | 'active' | 'disabled'> &
   PropsWithChildren;
 
-export const DeviceSetupMethodCard = ({ methodType, active, onClick, custom }: Props) => {
+export const DeviceSetupMethodCard = ({
+  methodType,
+  active,
+  onClick,
+  custom,
+  disabled = false,
+}: Props) => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.setupMethod.methods;
 
@@ -58,6 +65,7 @@ export const DeviceSetupMethodCard = ({ methodType, active, onClick, custom }: P
       onClick={onClick}
       testId={testId}
       title={title}
+      disabled={disabled}
     >
       {methodType === DeviceSetupMethod.CLIENT && (
         <>
@@ -92,15 +100,21 @@ const Content = ({
   testId,
   title,
   children,
+  disabled = false,
 }: ContentConfiguration) => {
   return (
     <div
       className={clsx('device-method-card', {
         active,
+        disabled,
       })}
       data-testid={testId}
       data-active={active}
-      onClick={onClick}
+      onClick={() => {
+        if (!disabled) {
+          onClick?.();
+        }
+      }}
     >
       <p className="title">{title}</p>
       <p className="description">{description}</p>

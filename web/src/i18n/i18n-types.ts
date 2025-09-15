@@ -222,6 +222,30 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * V​e​r​s​i​o​n​ ​m​i​s​m​a​t​c​h
+			 */
+			title: string
+			/**
+			 * D​e​f​g​u​a​r​d​ ​d​e​t​e​c​t​e​d​ ​u​n​s​u​p​p​o​r​t​e​d​ ​v​e​r​s​i​o​n​ ​i​n​ ​s​o​m​e​ ​c​o​m​p​o​n​e​n​t​s​.
+			 */
+			subtitle: string
+			content: {
+				/**
+				 * I​n​c​o​m​p​a​t​i​b​l​e​ ​c​o​m​p​o​n​e​n​t​s​:
+				 */
+				title: string
+				/**
+				 * U​n​k​n​o​w​n​ ​v​e​r​s​i​o​n
+				 */
+				unknownVersion: string
+				/**
+				 * U​n​k​n​o​w​n​ ​h​o​s​t​n​a​m​e
+				 */
+				unknownHostname: string
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
@@ -731,6 +755,16 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				errorDesktop: string
+			}
+			messageBox: {
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​t​o​k​e​n​ ​w​i​t​h​ ​t​h​e​ ​u​s​e​r​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​i​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​o​r​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​.
+				 */
+				clientForm: string
+				/**
+				 * Y​o​u​ ​c​a​n​ ​s​h​a​r​e​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​f​o​r​ ​e​a​s​y​ ​D​e​f​g​u​a​r​d​ ​m​o​b​i​l​e​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+				 */
+				clientQr: string
 			}
 			form: {
 				email: {
@@ -1503,13 +1537,21 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * P​l​e​a​s​e​ ​e​n​t​e​r​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​ ​i​n​t​o​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​s​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​t​o​k​e​n​ ​m​a​n​u​a​l​l​y​.
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​i​n​s​t​a​l​l​ ​t​h​e​ ​c​l​i​e​n​t​ ​(​l​i​n​k​s​ ​b​e​l​o​w​)​,​ ​o​p​e​n​ ​i​t​ ​a​n​d​ ​j​u​s​t​ ​p​r​e​s​s​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n​ ​b​u​t​t​o​n
+				 */
+				desktopDeepLinkHelp: string
+				/**
+				 * I​f​ ​y​o​u​ ​a​r​e​ ​h​a​v​i​n​g​ ​t​r​o​u​b​l​e​ ​w​i​t​h​ ​t​h​e​ ​O​n​e​-​C​l​i​c​k​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​y​o​u​ ​c​a​n​ ​d​o​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​b​y​ ​c​l​i​c​k​i​n​g​ ​*​A​d​d​ ​I​n​s​t​a​n​c​e​*​ ​i​n​ ​t​h​e​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​,​ ​a​n​d​ ​e​n​t​e​r​i​n​g​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​U​R​L​ ​a​n​d​ ​T​o​k​e​n​:
 				 */
 				message: string
 				/**
 				 * S​c​a​n​ ​t​h​e​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​i​n​s​t​a​l​l​e​d​ ​D​e​f​g​u​a​r​d​ ​a​p​p​.​ ​I​f​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​i​n​s​t​a​l​l​e​d​ ​i​t​ ​y​e​t​,​ ​u​s​e​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​a​p​p​ ​s​t​o​r​e​ ​o​r​ ​t​h​e​ ​l​i​n​k​ ​b​e​l​o​w​.
 				 */
 				qrDescription: string
+				/**
+				 * I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​M​o​b​i​l​e​ ​D​e​f​g​u​a​r​d​ ​C​l​i​e​n​t​,​ ​p​l​e​a​s​e​ ​j​u​s​t​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​a​p​p​:
+				 */
+				qrHelp: string
 				/**
 				 * D​o​w​n​l​o​a​d​ ​f​o​r​ ​D​e​s​k​t​o​p
 				 */
@@ -1601,7 +1643,7 @@ type RootTranslation = {
 				/**
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​®​ ​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		
@@ -2693,6 +2735,10 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		/**
+		 * O​n​e​-​C​l​i​c​k​ ​D​e​s​k​t​o​p​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		openClientDeepLink: string
 		aclDefaultPolicySelect: {
 			/**
 			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
@@ -3445,6 +3491,16 @@ type RootTranslation = {
 						label: string
 						/**
 						 * C​l​i​e​n​t​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​ ​i​n​ ​t​h​e​ ​J​W​K​ ​f​o​r​m​a​t​.​ ​I​t​ ​w​o​n​'​t​ ​b​e​ ​s​h​o​w​n​ ​a​g​a​i​n​ ​h​e​r​e​.
+						 */
+						helper: string
+					}
+					jumpcloud_api_key: {
+						/**
+						 * J​u​m​p​C​l​o​u​d​ ​A​P​I​ ​K​e​y
+						 */
+						label: string
+						/**
+						 * A​P​I​ ​K​e​y​ ​f​o​r​ ​t​h​e​ ​J​u​m​p​C​l​o​u​d​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​.​ ​I​t​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​t​o​ ​p​e​r​i​o​d​i​c​a​l​l​y​ ​q​u​e​r​y​ ​J​u​m​p​C​l​o​u​d​ ​f​o​r​ ​u​s​e​r​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​ ​c​h​a​n​g​e​s​.
 						 */
 						helper: string
 					}
@@ -4775,6 +4831,10 @@ type RootTranslation = {
 				 */
 				address: string
 				/**
+				 * P​u​b​l​i​c​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e​ ​t​o​ ​w​h​i​c​h​ ​t​h​e​ ​r​e​m​o​t​e​ ​p​e​e​r​s​/​u​s​e​r​s​ ​w​i​l​l​ ​c​o​n​n​e​c​t​ ​t​o​.​ ​T​h​i​s​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​i​n​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​c​l​i​e​n​t​s​,​ ​b​u​t​ ​D​e​f​g​u​a​r​d​ ​G​a​t​e​w​a​y​s​ ​d​o​ ​n​o​t​ ​b​i​n​d​ ​t​o​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.
+				 */
+				endpoint: string
+				/**
 				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
 				gateway: string
@@ -4852,7 +4912,7 @@ type RootTranslation = {
 				}
 				endpoint: {
 					/**
-					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
+					 * G​a​t​e​w​a​y​ ​I​P​ ​a​d​d​r​e​s​s​ ​o​r​ ​d​o​m​a​i​n​ ​n​a​m​e
 					 */
 					label: string
 				}
@@ -6869,6 +6929,30 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		outdatedComponentsModal: {
+			/**
+			 * Version mismatch
+			 */
+			title: () => LocalizedString
+			/**
+			 * Defguard detected unsupported version in some components.
+			 */
+			subtitle: () => LocalizedString
+			content: {
+				/**
+				 * Incompatible components:
+				 */
+				title: () => LocalizedString
+				/**
+				 * Unknown version
+				 */
+				unknownVersion: () => LocalizedString
+				/**
+				 * Unknown hostname
+				 */
+				unknownHostname: () => LocalizedString
+			}
+		}
 		upgradeLicenseModal: {
 			enterprise: {
 				/**
@@ -7371,6 +7455,16 @@ export type TranslationFunctions = {
 				 * Failed to start desktop activation
 				 */
 				errorDesktop: () => LocalizedString
+			}
+			messageBox: {
+				/**
+				 * You can share the following URL and token with the user to configure their Defguard desktop or mobile client.
+				 */
+				clientForm: () => LocalizedString
+				/**
+				 * You can share this QR code for easy Defguard mobile client configuration.
+				 */
+				clientQr: () => LocalizedString
 			}
 			form: {
 				email: {
@@ -8131,13 +8225,21 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.
+				 * If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button
+				 */
+				desktopDeepLinkHelp: () => LocalizedString
+				/**
+				 * If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:
 				 */
 				message: () => LocalizedString
 				/**
 				 * Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.
 				 */
 				qrDescription: () => LocalizedString
+				/**
+				 * If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:
+				 */
+				qrHelp: () => LocalizedString
 				/**
 				 * Download for Desktop
 				 */
@@ -8229,7 +8331,7 @@ export type TranslationFunctions = {
 				/**
 				 * 
 			        <p>
-			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          You need to configure WireGuard® VPN on your device, please visit&nbsp;
 			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 			        </p>
 		
@@ -9309,6 +9411,10 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		/**
+		 * One-Click Desktop Configuration
+		 */
+		openClientDeepLink: () => LocalizedString
 		aclDefaultPolicySelect: {
 			/**
 			 * Default ACL Policy
@@ -10056,6 +10162,16 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 						/**
 						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
+					}
+					jumpcloud_api_key: {
+						/**
+						 * JumpCloud API Key
+						 */
+						label: () => LocalizedString
+						/**
+						 * API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.
 						 */
 						helper: () => LocalizedString
 					}
@@ -11370,6 +11486,10 @@ export type TranslationFunctions = {
 				 */
 				address: () => LocalizedString
 				/**
+				 * Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.
+				 */
+				endpoint: () => LocalizedString
+				/**
 				 * Gateway public address, used by VPN users to connect
 				 */
 				gateway: () => LocalizedString
@@ -11447,7 +11567,7 @@ export type TranslationFunctions = {
 				}
 				endpoint: {
 					/**
-					 * Gateway address
+					 * Gateway IP address or domain name
 					 */
 					label: () => LocalizedString
 				}

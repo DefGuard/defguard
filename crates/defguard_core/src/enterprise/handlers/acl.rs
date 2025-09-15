@@ -247,7 +247,7 @@ pub async fn get_acl_rule(
     };
 
     info!("User {} retrieved ACL rule {id}", session.user.username);
-    Ok(ApiResponse { json: rule, status })
+    Ok(ApiResponse::new(rule, status))
 }
 
 pub async fn create_acl_rule(

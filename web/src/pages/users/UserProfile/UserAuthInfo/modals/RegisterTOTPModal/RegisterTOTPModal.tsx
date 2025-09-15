@@ -138,7 +138,7 @@ const TOTPRegisterForm = () => {
   const zodSchema = useMemo(
     () =>
       z.object({
-        code: z.string().min(6, LL.form.error.minimumLength()),
+        code: z.string().trim().min(6, LL.form.error.minimumLength()),
       }),
     [LL.form.error],
   );

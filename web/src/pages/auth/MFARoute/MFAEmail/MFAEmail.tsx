@@ -57,6 +57,7 @@ export const MFAEmail = () => {
       z.object({
         code: z
           .string()
+          .trim()
           .min(6, LL.form.error.minimumLength())
           .max(6, LL.form.error.maximumLength())
           .regex(patternNumbersOnly, LL.form.error.invalid()),
