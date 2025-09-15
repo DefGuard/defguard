@@ -1,4 +1,4 @@
-FROM node:24-alpine AS web
+FROM public.ecr.aws/docker/library/node:24-alpine AS web
 
 WORKDIR /app
 COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
@@ -8,7 +8,7 @@ COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1 AS chef
+FROM public.ecr.aws/docker/library/rust:1 AS chef
 
 WORKDIR /build
 
@@ -43,7 +43,7 @@ COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
-FROM debian:13-slim
+FROM public.ecr.aws/docker/library/debian:13-slim
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
