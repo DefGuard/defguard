@@ -7,7 +7,7 @@ use std::{
 
 use axum::{
     extract::{FromRef, FromRequestParts, OptionalFromRequestParts},
-    http::{header::AUTHORIZATION, request::Parts},
+    http::request::Parts,
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     appstate::AppState,
     db::{
-        Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        Group, Id, OAuth2Token, Session, SessionState, User,
         models::{group::Permission, oauth2client::OAuth2Client},
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
