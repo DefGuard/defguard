@@ -18,24 +18,22 @@ env:
 jobs:
   build-docker:
     runs-on:
-      - self-hosted
-      - Linux
-      - ${{ matrix.runner }}
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+        image:${{ matrix.os }}
+        instance-size:${{ matrix.size }}
 
     strategy:
       matrix:
-        # cpu: [arm64, amd64, arm/v7]
         cpu: [arm64, amd64]
         include:
-          - cpu: arm64
-            runner: ARM64
+          - os: arm-3.0
+            size: xlarge
+            cpu: arm64
             tag: arm64
-          - cpu: amd64
-            runner: X64
+          - os: ubuntu-7.0
+            size: xlarge
+            cpu: amd64
             tag: amd64
-          # - cpu: arm/v7
-          #   runner: ARM
-          #   tag: armv7
 
     permissions:
       contents: read
@@ -56,10 +54,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
 
       - name: Build container
         uses: docker/build-push-action@v6
@@ -69,8 +63,10 @@ jobs:
           provenance: false
           push: true
           tags: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}
+            type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ github.ref_name }}
+          cache-to: type=registry,mode=max,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ github.ref_name }}
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@0.32.0
