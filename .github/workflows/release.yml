@@ -111,14 +111,12 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
-      - name: Use Node.js 20
+      - name: Use Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          node-version: 24
 
       - name: Install frontend dependencies
         run: pnpm install --ignore-scripts --frozen-lockfile
