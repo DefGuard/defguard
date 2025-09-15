@@ -42,6 +42,8 @@
           buf
           # e2e
           playwright
+          # release assets verification
+          cosign
         ];
 
         # Specify the rust-src path (many editors rely on this)

@@ -15,7 +15,6 @@
 
     h3 {
       @include small-header;
-      @include text-overflow-dots;
       user-select: none;
     }
 
@@ -32,10 +31,32 @@
       max-width: 120px;
     }
 
+    .list-cell-text {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+
+      h3 {
+        display: inline-block;
+      }
+    }
+
     .main-info {
       & > header {
         grid-template-rows: 40px;
         grid-template-columns: 40px 1fr 55px;
+        max-width: 100%;
+        overflow: hidden;
+
+        &.biometry {
+          grid-template-columns: 40px 12px 1fr 55px;
+        }
+
+        .biometry-icon {
+          width: 12px;
+          height: 12px;
+        }
 
         & > .avatar-icon {
           grid-row: 1;
@@ -59,6 +80,7 @@
     .location {
       max-width: 100%;
       overflow: hidden;
+
       & > header {
         grid-template-rows: 40px;
         grid-template-columns: 22px 1fr;

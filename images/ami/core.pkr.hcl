@@ -27,14 +27,14 @@ source "amazon-ebs" "defguard-core" {
   region        = var.region
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
+      name                = "debian-13-amd64-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
     most_recent = true
-    owners      = ["099720109477"]
+    owners      = ["136693071363"]
   }
-  ssh_username = "ubuntu"
+  ssh_username = "admin"
 }
 
 build {
@@ -53,7 +53,7 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["rm /home/ubuntu/.ssh/authorized_keys"]
+    inline = ["rm /home/admin/.ssh/authorized_keys"]
   }
 
   provisioner "shell" {

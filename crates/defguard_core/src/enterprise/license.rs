@@ -4,7 +4,10 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{Deserializable, SignedPublicKey, StandaloneSignature, types::PublicKeyTrait};
+use pgp::{
+    composed::{Deserializable, SignedPublicKey, StandaloneSignature},
+    types::{KeyDetails, PublicKeyTrait},
+};
 use prost::Message;
 use sqlx::{PgPool, error::Error as SqlxError};
 use thiserror::Error;
@@ -205,6 +208,7 @@ pub struct License {
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
     pub limits: Option<LicenseLimits>,
+    pub version_date_limit: Option<DateTime<Utc>>,
 }
 
 impl License {
@@ -214,12 +218,14 @@ impl License {
         subscription: bool,
         valid_until: Option<DateTime<Utc>>,
         limits: Option<LicenseLimits>,
+        version_date_limit: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
             customer_id,
             subscription,
             valid_until,
             limits,
+            version_date_limit,
         }
     }
 
@@ -295,11 +301,17 @@ impl License {
                     None => None,
                 };
 
+                let version_date_limit = match metadata.version_date_limit {
+                    Some(date) => DateTime::from_timestamp(date, 0),
+                    None => None,
+                };
+
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
                     metadata.limits,
+                    version_date_limit,
                 );
 
                 if license.requires_renewal() {
@@ -732,6 +744,7 @@ mod test {
             false,
             Some(Utc::now() - TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -741,11 +754,12 @@ mod test {
             false,
             Some(Utc::now() + TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License::new("test".to_string(), false, None, None);
+        let license = License::new("test".to_string(), false, None, None, None);
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
@@ -753,6 +767,7 @@ mod test {
             "test".to_string(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+            None,
             None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
@@ -763,10 +778,11 @@ mod test {
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
-        let counts = Counts::new(5, 5, 5);
+        let counts = Counts::new(5, 5, 5, 5);
 
         // Over object count limits
         let license = License::new(
@@ -777,7 +793,9 @@ mod test {
                 users: 1,
                 devices: 1,
                 locations: 1,
+                network_devices: Some(1),
             }),
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -790,7 +808,9 @@ mod test {
                 users: 10,
                 devices: 10,
                 locations: 10,
+                network_devices: Some(10),
             }),
+            None,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
     }

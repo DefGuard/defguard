@@ -67,11 +67,14 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
           .string({
             required_error: LL.form.error.required(),
           })
+          .trim()
           .min(1, LL.form.error.required())
           .min(4, LL.form.error.minimumLength()),
-        keyValue: z.string({
-          required_error: LL.form.error.required(),
-        }),
+        keyValue: z
+          .string({
+            required_error: LL.form.error.required(),
+          })
+          .trim(),
       }),
     [LL.form.error],
   );

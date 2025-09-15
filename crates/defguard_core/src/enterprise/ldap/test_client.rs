@@ -278,10 +278,10 @@ impl super::LDAPConnection {
         if let Some((attr, value)) = search_value {
             for (dn, object) in &self.test_client.objects {
                 if let Object::User(user) = object {
-                    let matches = if attr == username_attr {
+                    let matches = if attr.eq_ignore_ascii_case(&username_attr) {
                         user.username == value
-                    } else if attr == rdn_attr {
-                        let rdn_value = if rdn_attr == username_attr {
+                    } else if attr.eq_ignore_ascii_case(&rdn_attr) {
+                        let rdn_value = if rdn_attr.eq_ignore_ascii_case(&username_attr) {
                             &user.username
                         } else {
                             dn.split(',')

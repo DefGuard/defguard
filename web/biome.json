@@ -1,9 +1,9 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
   "vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "!src/i18n/**", "!**/svg/**"]
+    "includes": ["src/**", "!src/i18n", "!**/svg"]
   },
   "formatter": {
     "enabled": true,
@@ -16,8 +16,7 @@
     "bracketSameLine": false,
     "bracketSpacing": true,
     "expand": "auto",
-    "useEditorconfig": true,
-    "includes": ["./src/**"]
+    "useEditorconfig": true
   },
   "linter": {
     "enabled": true,
@@ -34,7 +33,8 @@
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "error",
         "useHookAtTopLevel": "error",
-        "useJsxKeyInIterable": "error"
+        "useJsxKeyInIterable": "error",
+        "useUniqueElementIds": "off"
       },
       "security": { "noDangerouslySetInnerHtmlWithChildren": "error" },
       "style": {
@@ -54,8 +54,7 @@
         "noUnsafeDeclarationMerging": "error",
         "noArrayIndexKey": "off"
       }
-    },
-    "includes": ["src/**"]
+    }
   },
   "javascript": {
     "formatter": {
@@ -64,14 +63,22 @@
       "trailingCommas": "all",
       "semicolons": "always",
       "arrowParentheses": "always",
-      "bracketSameLine": false,
       "quoteStyle": "single",
       "attributePosition": "auto",
+      "bracketSameLine": false,
       "bracketSpacing": true
     }
   },
   "assist": {
     "enabled": true,
     "actions": { "source": { "organizeImports": "on" } }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/shared/links.ts"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }

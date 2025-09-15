@@ -89,7 +89,8 @@ pub async fn change_openid_client(
         "User {} updating OpenID client {client_id}...",
         session.user.username
     );
-    let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
+    let mut transaction = appstate.pool.begin().await?;
+    let status = match OAuth2Client::find_by_client_id(&mut *transaction, &client_id).await? {
         Some(mut client) => {
             // store client before mods
             let before = client.clone();
@@ -97,7 +98,11 @@ pub async fn change_openid_client(
             client.redirect_uri = data.redirect_uri;
             client.enabled = data.enabled;
             client.scope = data.scope;
-            client.save(&appstate.pool).await?;
+            client.save(&mut *transaction).await?;
+            if before.scope != client.scope {
+                client.clear_authorizations(&mut *transaction).await?;
+            }
+            transaction.commit().await?;
             info!(
                 "User {} updated OpenID client {client_id} ({})",
                 session.user.username, client.name

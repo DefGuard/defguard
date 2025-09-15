@@ -91,7 +91,7 @@ user_agent_parsers:
       Jeeves|[Bb]ai[Dd]u[Ss]pider(?:-[A-Za-z]{1,30})(?:-[A-Za-z]{1,30}|)|bingbot|BingPreview|blitzbot|BlogBridge|Bloglovin|BoardReader
       Blog Indexer|BoardReader Favicon Fetcher|boitho.com-dc|BotSeer|BUbiNG|\b\w{0,30}favicon\w{0,30}\b|\bYeti(?:-[a-z]{1,30}|)|Catchpoint(?:
       bot|)|[Cc]harlotte|Checklinks|clumboot|Comodo HTTP\(S\) Crawler|Comodo-Webinspector-Crawler|ConveraCrawler|CRAWL-E|CrawlConvera|Daumoa(?:-feedfetcher|)|Feed
-      Seeker Bot|Feedbin|findlinks|Flamingo_SearchEngine|FollowSite Bot|furlbot|Genieo|gigabot|GomezAgent|gonzo1|(?:[a-zA-Z]{1,30}-|)Googlebot(?:-[a-zA-Z]{1,30}|)|Google
+      Seeker Bot|Feedbin|findlinks|Flamingo_SearchEngine|FollowSite Bot|furlbot|Genieo|gigabot|GomezAgent|gonzo1|(?:[a-zA-Z]{1,30}-|)Googlebot(?:-[a-zA-Z]{1,30}|)|GoogleOther|Google
       SketchUp|grub-client|gsa-crawler|heritrix|HiddenMarket|holmes|HooWWWer|htdig|ia_archiver|ICC-Crawler|Icarus6j|ichiro(?:/mobile|)|IconSurf|IlTrovatore(?:-Setaccio|)|InfuzApp|Innovazion
       Crawler|InternetArchive|IP2[a-z]{1,30}Bot|jbot\b|KaloogaBot|Kraken|Kurzor|larbin|LEIA|LesnikBot|Linguee
       Bot|LinkAider|LinkedInBot|Lite Bot|Llaut|lycos|Mail\.RU_Bot|masscan|masidani_bot|Mediapartners-Google|Microsoft
@@ -102,7 +102,7 @@ user_agent_parsers:
       Spider|Squrl Java|Stringer|TheUsefulbot|ThumbShotsBot|Thumbshots\.ru|Tiny Tiny
       RSS|Twitterbot|WhatsApp|URL2PNG|Vagabondo|VoilaBot|^vortex|Votay bot|^voyager|WASALive.Bot|Web-sniffer|WebThumb|WeSEE:[A-z]{1,30}|WhatWeb|WIRE|WordPress|Wotbox|www\.almaden\.ibm\.com|Xenu(?:.s|)
       Link Sleuth|Xerka [A-z]{1,30}Bot|yacy(?:bot|)|YahooSeeker|Yahoo! Slurp|Yandex\w{1,30}|YodaoBot(?:-[A-z]{1,30}|)|YottaaMonitor|Yowedo|^Zao|^Zao-Crawler|ZeBot_www\.ze\.bz|ZooShot|ZyBorg|ArcGIS
-      Hub Indexer)(?:[ /]v?(\d+)(?:\.(\d+)(?:\.(\d+)|)|)|)'
+      Hub Indexer|GPTBot|Google-InspectionTool)(?:[ /]v?(\d+)(?:\.(\d+)(?:\.(\d+)|)|)|)'
   - regex: \b(Boto3?|JetS3t|aws-(?:cli|sdk-(?:cpp|go|go-v\d|java|nodejs|ruby2?|dotnet-(?:\d{1,2}|core)))|s3fs)/(\d+)\.(\d+)(?:\.(\d+)|)
   - regex: (FME)\/(\d+\.\d+)\.(\d+)\.(\d+)
   - regex: (QGIS)\/(\d)\.?0?(\d{1,2})\.?0?(\d{1,2})
@@ -140,6 +140,8 @@ user_agent_parsers:
     family_replacement: TikTok
   - regex: (BytedanceWebview)\/[a-z0-9]+
     family_replacement: TikTok
+  - regex: Mozilla.{1,200}Mobile.{1,100}(KAKAOTALK)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: KakaoTalk
   - regex: Mozilla.{1,200}Mobile.{1,100}(Phantom\/ios|Phantom\/android).(\d+)\.(\d+)\.(\d+)
     family_replacement: Phantom
   - regex: Mozilla.{1,100}Mobile.{1,100}(AspiegelBot|PetalBot)
@@ -249,7 +251,7 @@ user_agent_parsers:
   - regex: (AvastSecureBrowser|Avast)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Avast Secure Browser
   - regex: (Instabridge)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)
-  - regex: (AlohaBrowser)/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)
+  - regex: (AlohaBrowser|ABB)/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)
     family_replacement: Aloha Browser
   - regex: ((?:B|b)rave(?:\sChrome)?)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)
     family_replacement: Brave
@@ -260,7 +262,7 @@ user_agent_parsers:
     family_replacement: Edge Mobile
   - regex: (EdgiOS|EdgA)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)
     family_replacement: Edge Mobile
-  - regex: (OculusBrowser)/(\d+)\.(\d+).0.0(?:\.([0-9\-]+)|)
+  - regex: (OculusBrowser)/(\d+)\.(\d+)(?:\.([0-9\-]+)|)
     family_replacement: Oculus Browser
   - regex: (SamsungBrowser)/(\d+)\.(\d+)
     family_replacement: Samsung Internet
@@ -268,10 +270,6 @@ user_agent_parsers:
     family_replacement: Seznam prohlížeč
   - regex: (coc_coc_browser)/(\d+)\.(\d+)(?:\.(\d+)|)
     family_replacement: Coc Coc
-  - regex: (baidubrowser)[/\s](\d+)(?:\.(\d+)|)(?:\.(\d+)|)
-    family_replacement: Baidu Browser
-  - regex: (FlyFlow)/(\d+)\.(\d+)
-    family_replacement: Baidu Explorer
   - regex: (MxBrowser)/(\d+)\.(\d+)(?:\.(\d+)|)
     family_replacement: Maxthon
   - regex: (Crosswalk)/(\d+)\.(\d+)\.(\d+)\.(\d+)
@@ -285,6 +283,10 @@ user_agent_parsers:
     family_replacement: TopBuzz
   - regex: Mozilla.{1,200}Android.{1,200}(GSA)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Google
+  - regex: (baidubrowser)[/\s](\d+)(?:\.(\d+)|)(?:\.(\d+)|)
+    family_replacement: Baidu Browser
+  - regex: (FlyFlow|flyflow|baiduboxapp)/(\d+)\.(\d+)(?:\.(\d+)|)(?:\.(\d+)|)
+    family_replacement: Baidu Explorer
   - regex: (MQQBrowser/Mini)(?:(\d+)(?:\.(\d+)|)(?:\.(\d+)|)|)
     family_replacement: QQ Browser Mini
   - regex: (MQQBrowser)(?:/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)|)
@@ -305,8 +307,12 @@ user_agent_parsers:
     family_replacement: Ecosia iOS
   - regex: (Ecosia) android@(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)
     family_replacement: Ecosia Android
-  - regex: (VivoBrowser)\/(\d+)\.(\d+)\.(\d+)\.(\d+)
+  - regex: (VivoBrowser)\/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)
   - regex: (HiBrowser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)
+  - regex: (weibo)__(\d+)\.(\d+)\.(\d+)
+    family_replacement: Weibo
+  - regex: (WeiboliteiOS|WeiboIntliOS)
+    family_replacement: Weibo
   - regex: Version/.{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
     family_replacement: Chrome Mobile WebView
   - regex: ; wv\).{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
@@ -347,6 +353,48 @@ user_agent_parsers:
   - regex: PAN (GlobalProtect)/(\d+)\.(\d+)\.(\d+) .{1,100} \(X11; Linux x86_64\)
   - regex: ^(surveyon)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Surveyon
+  - regex: (115Browser)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: 115 Browser
+  - regex: (Avira)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: Avira
+  - regex: (CCleaner)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: CCleaner
+  - regex: (Norton)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: Norton
+  - regex: (Quark)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: Quark
+  - regex: (QuarkPC)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: Quark PC
+  - regex: (SLBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+) SLBChan/(\d+)
+    family_replacement: Smart Lenovo Browser
+  - regex: (Atom)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: Atom Browser
+  - regex: (Chrome)/\d+\.\d+\.\d+\.\d+ .* QIHU 360(?:SEi18n|ENT)
+    family_replacement: 360 Secure Browser
+  - regex: (Decentr)
+    family_replacement: Decentr Web3 Browser
+  - regex: (Sparrow)
+    family_replacement: Sparrow Browser
+  - regex: (Chromium GOST)
+    family_replacement: Chromium GOST Browser
+  - regex: (AOLShield)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: AOL Shield Browser
+  - regex: (Hola)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: Hola Browser
+  - regex: (CravingExplorer)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: Craving Explorer Browser
+  - regex: (Talon)
+    family_replacement: Talon Cyber Security Browser
+  - regex: (Qaxbrowser)
+    family_replacement: QAX Browser
+  - regex: (ADG)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: AOL Desktop Gold Browser
+  - regex: (SberBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: Sber Browser
+  - regex: (JiSu)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: JiSu Browser
+  - regex: (Wolvic)/(\d+)\.(\d+)\.(\d+)
+    family_replacement: Wolvic Browser
   - regex: (Slack_SSB)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Slack Desktop Client
   - regex: (HipChat)/?(\d+|)
@@ -1195,8 +1243,9 @@ os_parsers:
     os_v1_replacement: $1
     os_v2_replacement: $2
     os_v3_replacement: $3
+  - regex: (HarmonyOS)[\s;]+(\d+|)\.?(\d+|)\.?(\d+|)
 device_parsers:
-  - regex: ^.{0,100}?(?:(?:iPhone|Windows CE|Windows Phone|Android).{0,300}(?:(?:Bot|Yeti)-Mobile|YRSpider|BingPreview|bots?/\d|(?:bot|spider)\.html)|AdsBot-Google-Mobile.{0,200}iPhone)
+  - regex: ^.{0,100}?(?:(?:iPhone|Windows CE|Windows Phone|Android).{0,300}(?:(?:Bot|Yeti)-Mobile|YRSpider|BingPreview|bots?/\d|(?:bot|spider)\.html|Google-InspectionTool)|AdsBot-Google-Mobile.{0,200}iPhone)
     regex_flag: i
     device_replacement: Spider
     brand_replacement: Spider
@@ -1963,7 +2012,7 @@ device_parsers:
     device_replacement: HTC $1
     brand_replacement: HTC
     model_replacement: $1
-  - regex: ; {0,2}(ADR6200|ADR6400L|ADR6425LVW|Amaze|DesireS?|EndeavorU|Eris|EVO|Evo\d[A-Z]+|HD2|IncredibleS?|Inspire[A-Z0-9]*|Inspire[A-Z0-9]*|Sensation[A-Z0-9]*|Wildfire)[
+  - regex: ; {0,2}(ADR6200|ADR6400L|ADR6425LVW|Amaze|DesireS?|EndeavorU|Eris|EVO|Evo\d[A-Z]+|HD2|IncredibleS?|Inspire[A-Z0-9]*|Sensation[A-Z0-9]*|Wildfire)[
       _-](.{1,200}?)(?:[/;\)]|Build|MIUI|1\.0)
     regex_flag: i
     device_replacement: HTC $1 $2
@@ -3842,7 +3891,7 @@ device_parsers:
       Java|EtaoSpider|PaperLiBot|SputnikBot|A6\-Indexer|netresearch|searchsight|baiduspider|YisouSpider|ICC\-Crawler|http%20client|Python-urllib|dataparksearch|converacrawler|Screaming
       Frog|AppEngine-Google|YahooCacheSystem|fast\-webcrawler|Sogou Pic Spider|semanticdiscovery|Innovazion
       Crawler|facebookexternalhit|Google.{0,200}/\+/web/snippet|Google-HTTP-Java-Client|BlogBridge|IlTrovatore-Setaccio|InternetArchive|GomezAgent|WebThumbnail|heritrix|NewsGator|PagePeeker|Reaper|ZooShot|holmes|NL-Crawler|Pingdom|StatusCake|WhatsApp|masscan|Google
-      Web Preview|Qwantify|Yeti|OgScrper|RecipeRadar)
+      Web Preview|Qwantify|Yeti|OgScrper|RecipeRadar|GPTBot|Google-InspectionTool)
     regex_flag: i
     device_replacement: Spider
     brand_replacement: Spider

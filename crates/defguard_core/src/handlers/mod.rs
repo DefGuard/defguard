@@ -1,7 +1,7 @@
 use axum::{
     Json,
     extract::{FromRef, FromRequestParts},
-    http::{HeaderName, HeaderValue, StatusCode, request::Parts},
+    http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
 use axum_client_ip::InsecureClientIp;
@@ -14,7 +14,6 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
-    VERSION,
     appstate::AppState,
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
@@ -219,10 +218,6 @@ impl IntoResponse for WebError {
 impl IntoResponse for ApiResponse {
     fn into_response(self) -> Response {
         let mut response = Json(self.json).into_response();
-        response.headers_mut().insert(
-            HeaderName::from_static("x-defguard-version"),
-            HeaderValue::from_static(VERSION),
-        );
         *response.status_mut() = self.status;
         response
     }

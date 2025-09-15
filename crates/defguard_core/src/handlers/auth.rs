@@ -137,53 +137,34 @@ pub(crate) async fn authenticate(
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let username_or_email = data.username;
     debug!("Authenticating user {username_or_email}");
+
     // check if user can proceed with login
     check_failed_logins(&appstate.failed_logins, &username_or_email)?;
+
     let settings = Settings::get_current_settings();
 
     // attempt to find user first by username and then by email
     let mut conn = appstate.pool.acquire().await?;
-    let mut user = match User::find_by_username_or_email(&mut conn, &username_or_email).await? {
-        Some(user) => {
-            // user was found, attempt to authenticate by password first
-            match user.verify_password(&data.password) {
-                Ok(()) => user,
-                Err(err) => {
-                    // password authentication failed, try authenticating with LDAP if configured
-                    if settings.ldap_enabled {
-                        match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
-                            .await
-                        {
-                            Ok(user) => user,
-                            Err(ldap_err) => {
-                                warn!(
-                                    "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
-                                );
+    let mut user = if let Some(user) =
+        User::find_by_username_or_email(&mut conn, &username_or_email).await?
+    {
+        // user was found, attempt to authenticate by password first
+        match user.verify_password(&data.password) {
+            Ok(()) => user,
+            Err(err) => {
+                // password authentication failed, try authenticating with LDAP if configured
+                if settings.ldap_enabled {
+                    match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
+                        .await
+                    {
+                        Ok(user) => user,
+                        Err(ldap_err) => {
+                            warn!(
+                                "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
+                            );
 
-                                log_failed_login_attempt(
-                                    &appstate.failed_logins,
-                                    &username_or_email,
-                                );
-                                appstate.emit_event(ApiEvent {
-                                context: ApiRequestContext::new(
-                                    user.id,
-                                    user.username,
-                                    insecure_ip,
-                                    user_agent.to_string(),
-                                ),
-                                event: Box::new(ApiEventType::UserLoginFailed {
-                                    message: format!(
-                                        "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
-                                    ),
-                                }),
-                            })?;
-                                return Err(WebError::Authorization(ldap_err.to_string()));
-                            }
-                        }
-                    } else {
-                        warn!("Failed to authenticate user {username_or_email}: {err}");
-                        log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                        appstate.emit_event(ApiEvent {
+                            log_failed_login_attempt(&appstate.failed_logins, &user.username);
+                            appstate.emit_event(ApiEvent {
                             context: ApiRequestContext::new(
                                 user.id,
                                 user.username,
@@ -192,25 +173,42 @@ pub(crate) async fn authenticate(
                             ),
                             event: Box::new(ApiEventType::UserLoginFailed {
                                 message: format!(
-                                    "Authentication for {username_or_email} failed: {err}"
+                                    "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
                                 ),
                             }),
                         })?;
-                        return Err(WebError::Authorization(err.to_string()));
+                            return Err(WebError::Authorization(ldap_err.to_string()));
+                        }
                     }
+                } else {
+                    warn!("Failed to authenticate user {username_or_email}: {err}");
+                    log_failed_login_attempt(&appstate.failed_logins, &user.username);
+                    appstate.emit_event(ApiEvent {
+                        context: ApiRequestContext::new(
+                            user.id,
+                            user.username,
+                            insecure_ip,
+                            user_agent.to_string(),
+                        ),
+                        event: Box::new(ApiEventType::UserLoginFailed {
+                            message: format!(
+                                "Authentication for {username_or_email} failed: {err}"
+                            ),
+                        }),
+                    })?;
+                    return Err(WebError::Authorization(err.to_string()));
                 }
             }
         }
-        None => {
-            // try to create user from LDAP
-            debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
-            match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
-                Ok(user) => user,
-                Err(err) => {
-                    info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
-                    log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                    return Err(WebError::Authorization(err.to_string()));
-                }
+    } else {
+        // try to create user from LDAP
+        debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
+        match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
+            Ok(user) => user,
+            Err(err) => {
+                info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
+                log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                return Err(WebError::Authorization(err.to_string()));
             }
         }
     };
@@ -694,6 +692,9 @@ pub async fn totp_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying TOTP for user {}", username);
         if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
@@ -748,6 +749,8 @@ pub async fn totp_code(
                 format!("TOTP authentication is disabled for {username}")
             };
 
+            log_failed_login_attempt(&appstate.failed_logins, &username);
+
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use
                 // context extractor in this handler since it requires
@@ -786,7 +789,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
-    send_email_mfa_activation_email(&user, &appstate.mail_tx, &session.session)?;
+    send_email_mfa_activation_email(&user, &appstate.mail_tx, Some(&session.session))?;
 
     Ok(ApiResponse::default())
 }
@@ -876,6 +879,10 @@ pub async fn email_mfa_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
+
+        // check if user can proceed with login
+        check_failed_logins(&appstate.failed_logins, &username)?;
+
         debug!("Verifying email MFA code for user {}", username);
         if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
@@ -898,7 +905,7 @@ pub async fn email_mfa_code(
                 }),
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-                debug!("Found openid session cookie.");
+                debug!("Found OpenID session cookie.");
                 let redirect_url = openid_cookie.value().to_string();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
@@ -929,6 +936,8 @@ pub async fn email_mfa_code(
             } else {
                 format!("Email code authentication is disabled for {username}")
             };
+
+            log_failed_login_attempt(&appstate.failed_logins, &username);
 
             appstate.emit_event(ApiEvent {
                 // User may not be fully authenticated so we can't use

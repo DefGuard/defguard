@@ -8,17 +8,23 @@
   justify-content: center;
   align-content: center;
   box-sizing: border-box;
-  padding: 0 1.5rem;
-  height: 60px;
+  min-height: 60px;
+  max-width: 100%;
+  overflow: hidden;
 
-  & > p {
+  span,
+  a {
     @include typography-legacy(10px, 13px, regular, var(--gray-light));
+    display: inline-block;
+  }
 
-    & > span,
-    & > a {
-      @include typography-legacy(10px, 13px, regular, var(--gray-light));
+  p {
+    @include typography-legacy(10px, 13px, regular, var(--gray-light));
+  }
 
-      display: inline-block;
-    }
+  a {
+    text-wrap: auto;
+    word-break: break-word;
+    text-align: center;
   }
 }

@@ -51,6 +51,7 @@ export const MFATOTPAuth = () => {
       z.object({
         code: z
           .string()
+          .trim()
           .min(6, LL.form.error.validCode())
           .max(6, LL.form.error.validCode()),
       }),

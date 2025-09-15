@@ -14,7 +14,7 @@ import { NetworkSpeed } from '../../../shared/defguard-ui/components/Layout/Netw
 import { NetworkDirection } from '../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import type { WireguardNetworkStats } from '../../../shared/types';
-import { useOverviewStore } from '../hooks/store/useOverviewStore';
+import { useOverviewTimeSelection } from '../../overview-index/components/hooks/useOverviewTimeSelection';
 import { NetworkUsageChart } from '../OverviewConnectedUsers/shared/components/NetworkUsageChart/NetworkUsageChart';
 import { networkTrafficToChartData } from './utils';
 
@@ -24,7 +24,7 @@ interface Props {
 
 export const OverviewStats = forwardRef<HTMLDivElement, Props>(
   ({ networkStats }, ref) => {
-    const filterValue = useOverviewStore((state) => state.statsFilter);
+    const { from: filterValue } = useOverviewTimeSelection();
     const peakDownload = useMemo(() => {
       const sorted = orderBy(networkStats.transfer_series, (stats) => stats.download, [
         'desc',

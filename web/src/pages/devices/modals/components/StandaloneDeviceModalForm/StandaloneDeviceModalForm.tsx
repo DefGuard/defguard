@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import type { Subject } from 'rxjs';
-import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -19,12 +18,15 @@ import type { ToggleOption } from '../../../../../shared/defguard-ui/components/
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import type { GetAvailableLocationIpResponse } from '../../../../../shared/types';
-import { validateWireguardPublicKey } from '../../../../../shared/validators';
 import {
   type AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
 } from '../../AddStandaloneDeviceModal/types';
 import { StandaloneDeviceModalFormMode } from '../types';
+import {
+  type StandaloneDeviceFormFields,
+  standaloneDeviceFormSchema,
+} from './formSchema';
 
 type Props = {
   onSubmit: (formValues: AddStandaloneDeviceFormFields) => Promise<void>;
@@ -32,7 +34,7 @@ type Props = {
   onLoadingChange: (value: boolean) => void;
   locationOptions: SelectOption<number>[];
   submitSubject: Subject<void>;
-  defaults: AddStandaloneDeviceFormFields;
+  defaults: StandaloneDeviceFormFields;
   reservedNames: string[];
   initialIpRecommendation: GetAvailableLocationIpResponse;
 };
@@ -57,7 +59,6 @@ export const StandaloneDeviceModalForm = ({
   // auto assign upon location change is happening
   const [ipIsLoading, setIpIsLoading] = useState(false);
   const localLL = LL.modals.addStandaloneDevice.form;
-  const errors = LL.form.error;
   const labels = localLL.labels;
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
@@ -99,46 +100,12 @@ export const StandaloneDeviceModalForm = ({
 
   const schema = useMemo(
     () =>
-      z
-        .object({
-          name: z
-            .string()
-            .min(1, LL.form.error.required())
-            .refine((value) => {
-              if (mode === StandaloneDeviceModalFormMode.EDIT) {
-                const filtered = reservedNames.filter((n) => n !== defaults.name.trim());
-                return !filtered.includes(value.trim());
-              }
-              return !reservedNames.includes(value.trim());
-            }, LL.form.error.reservedName()),
-          location_id: z.number(),
-          description: z.string().optional(),
-          modifiableIpParts: z.array(z.string().min(1, LL.form.error.required())),
-          generationChoice: z.nativeEnum(WGConfigGenChoice),
-          wireguard_pubkey: z.string().optional(),
-        })
-        .superRefine((vals, ctx) => {
-          if (mode === StandaloneDeviceModalFormMode.CREATE_MANUAL) {
-            if (vals.generationChoice === WGConfigGenChoice.MANUAL) {
-              const result = validateWireguardPublicKey({
-                requiredError: errors.required(),
-                maxError: errors.maximumLengthOf({ length: 44 }),
-                minError: errors.minimumLengthOf({ length: 44 }),
-                validKeyError: errors.invalid(),
-              }).safeParse(vals.wireguard_pubkey);
-              if (!result.success) {
-                result.error.errors.forEach((e) => {
-                  ctx.addIssue({
-                    path: ['wireguard_pubkey'],
-                    message: e.message,
-                    code: 'custom',
-                  });
-                });
-              }
-            }
-          }
-        }),
-    [LL.form.error, defaults.name, errors, mode, reservedNames],
+      standaloneDeviceFormSchema(LL, {
+        mode,
+        reservedNames,
+        originalName: defaults.name,
+      }),
+    [mode, reservedNames, defaults.name, LL],
   );
 
   const {
@@ -156,54 +123,62 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
-  function newIps(formIps: string[]): string[] {
-    const initialIpsSet = new Set<string>(
-      initialIpRecommendation.map((ip) => ip.network_part + ip.modifiable_part),
-    );
-    const formIpsSet = new Set<string>(formIps);
-    return Array.from(formIpsSet.difference(initialIpsSet));
-  }
-  const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (
-    formValues,
-  ) => {
+  const submitHandler: SubmitHandler<StandaloneDeviceFormFields> = async (formValues) => {
     const values = formValues;
-    const { modifiableIpParts: modifiableIpPart } = values;
-    values.description = values.description?.trim();
-    values.name = values.name.trim();
-    const currentIpResp = internalRecommendedIps ?? initialIpRecommendation;
-    values.modifiableIpParts = currentIpResp.map(
-      (resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim(),
-    );
-    if (
-      mode === StandaloneDeviceModalFormMode.EDIT &&
-      modifiableIpPart === defaults.modifiableIpParts
-    ) {
-      await onSubmit(values);
-      return;
+    const recommendationResponse = internalRecommendedIps ?? initialIpRecommendation;
+    let validationList = recommendationResponse.map((recommendation, index) => ({
+      ip: recommendation.network_part + formValues.modifiableIpParts[index],
+      index,
+    }));
+    values.modifiableIpParts = validationList.map((item) => item.ip);
+    // try to validate explicitly chosen IPs before submission
+    let validationErrors = false;
+
+    // if edit exclude initial ip's from validation as they are reserved already by edited device
+    if (mode === StandaloneDeviceModalFormMode.EDIT) {
+      const reservedByDevice = initialIpRecommendation.map(
+        (item) => item.network_part + item.modifiable_part,
+      );
+      validationList = validationList.filter(
+        (item) => !reservedByDevice.includes(item.ip),
+      );
     }
-    try {
-      const response = await validateLocationIp({
-        ips: newIps(values.modifiableIpParts),
-        location: values.location_id,
-      });
-      const { available, valid } = response;
-      if (available && valid) {
-        await onSubmit(values);
-      } else {
-        if (!available) {
-          setError('modifiableIpParts', {
-            message: LL.form.error.reservedIp(),
-          });
-        }
-        if (!valid) {
-          setError('modifiableIpParts', {
-            message: LL.form.error.invalidIp(),
-          });
-        }
+
+    if (validationList.length) {
+      try {
+        const response = await validateLocationIp({
+          ips: validationList.map((item) => item.ip),
+          location: values.location_id,
+        });
+
+        response.forEach(({ available, valid }, index) => {
+          const fieldIndex = validationList[index].index;
+          if (!available) {
+            validationErrors = true;
+            setError(`modifiableIpParts.${fieldIndex}`, {
+              message: LL.form.error.reservedIp(),
+            });
+          }
+          if (!valid) {
+            validationErrors = true;
+            setError(`modifiableIpParts.${fieldIndex}`, {
+              message: LL.form.error.invalidIp(),
+            });
+          }
+        });
+      } catch (_) {
+        validationErrors = true;
+        toaster.error(LL.messages.error());
       }
-    } catch (e) {
-      toaster.error(LL.messages.error());
-      console.error(e);
+    }
+
+    // submit form if no validation errors occurred
+    if (!validationErrors) {
+      try {
+        await onSubmit(values);
+      } catch (_) {
+        toaster.error(LL.messages.error());
+      }
     }
   };
 

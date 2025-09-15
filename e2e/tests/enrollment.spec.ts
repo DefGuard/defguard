@@ -15,7 +15,7 @@ import {
 import { loginBasic } from '../utils/controllers/login';
 import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
 import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerDown, dockerRestart } from '../utils/docker';
+import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 
@@ -35,10 +35,6 @@ test.describe('Create user with enrollment enabled', () => {
     const response = await createUserEnrollment(browser, user);
     token = response.token;
     await createNetwork(browser, testNetwork);
-  });
-
-  test.afterAll(() => {
-    dockerDown();
   });
 
   test('Try to complete enrollment with disabled user', async ({ page, browser }) => {

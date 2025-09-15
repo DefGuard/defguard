@@ -69,6 +69,7 @@ export const AddApiTokenForm = () => {
           .string({
             required_error: LL.form.error.required(),
           })
+          .trim()
           .min(1, LL.form.error.required())
           .min(4, LL.form.error.minimumLength()),
       }),

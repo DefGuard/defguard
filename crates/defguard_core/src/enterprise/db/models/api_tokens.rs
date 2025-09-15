@@ -15,6 +15,7 @@ pub struct ApiToken<I = NoId> {
 }
 
 impl ApiToken {
+    #[must_use]
     pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_string: &str) -> Self {
         let token_hash = Self::hash_token(token_string);
         Self {
@@ -57,8 +58,9 @@ impl ApiToken<Id> {
         let token_hash = ApiToken::hash_token(auth_token);
         let maybe_token = query_as!(
             Self,
-            "SELECT id, user_id, created_at, name, token_hash \
-                    FROM api_token WHERE token_hash = $1",
+            "SELECT at.id, user_id, created_at, name, token_hash \
+             FROM api_token at JOIN \"user\" ON \"user\".id = user_id \
+             WHERE token_hash = $1 AND \"user\".is_active = true",
             token_hash
         )
         .fetch_optional(executor)

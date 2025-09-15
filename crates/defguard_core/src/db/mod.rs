@@ -1,9 +1,9 @@
 pub mod models;
 
-use crate::MIGRATOR;
-
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use utoipa::ToSchema;
+
+use crate::MIGRATOR;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
 pub struct NoId;

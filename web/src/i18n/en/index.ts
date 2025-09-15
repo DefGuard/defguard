@@ -61,6 +61,15 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    outdatedComponentsModal: {
+      title: 'Version mismatch',
+      subtitle: 'Defguard detected unsupported version in some components.',
+      content: {
+        title: 'Incompatible components:',
+        unknownVersion: 'Unknown version',
+        unknownHostname: 'Unknown hostname',
+      },
+    },
     upgradeLicenseModal: {
       enterprise: {
         title: 'Upgrade to Enterprise',
@@ -283,6 +292,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         successDesktop: 'Desktop configuration started',
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
+      },
+      messageBox: {
+        clientForm:
+          'You can share the following URL and token with the user to configure their Defguard desktop or mobile client.',
+        clientQr:
+          'You can share this QR code for easy Defguard mobile client configuration.',
       },
       form: {
         email: {
@@ -644,10 +659,15 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
       client: {
         title: 'Client Activation',
+        desktopDeepLinkHelp:
+          'If you want to configure your Defguard desktop client, please install the client (links below), open it and just press the One-Click Desktop Configuration button',
+        //md
         message:
-          'Please enter the provided Instance URL and Token into your Defguard Client. You can scan the QR code or copy and paste the token manually.',
+          'If you are having trouble with the One-Click configuration you can do it manually by clicking *Add Instance* in the desktop client, and entering the following URL and Token:',
         qrDescription:
           "Scan the QR code with your installed Defguard app. If you haven't installed it yet, use your device's app store or the link below.",
+        qrHelp:
+          'If you want to configure your Mobile Defguard Client, please just scan this QR code in the app:',
         desktopDownload: 'Download for Desktop',
         tokenCopy: 'Token copied to clipboard',
         tokenFailure: 'Failed to prepare client setup',
@@ -691,7 +711,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         title: 'Create VPN device',
         infoMessage: `
         <p>
-          You need to configure WireGuardVPN on your device, please visit&nbsp;
+          You need to configure WireGuard® VPN on your device, please visit&nbsp;
           <a href="{addDevicesDocs:string}">documentation</a> if you don&apos;t know how to do it.
         </p>
 `,
@@ -1093,6 +1113,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    openClientDeepLink: 'One-Click Desktop Configuration',
     aclDefaultPolicySelect: {
       label: 'Default ACL Policy',
       options: {
@@ -1403,6 +1424,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             label: 'Directory Sync Client Private Key',
             helper:
               "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
+          },
+          jumpcloud_api_key: {
+            label: 'JumpCloud API Key',
+            helper:
+              'API Key for the JumpCloud directory sync. It will be used to periodically query JumpCloud for user state and group membership changes.',
           },
           group_match: {
             label: 'Sync only matching groups',
@@ -1986,6 +2012,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       helpers: {
         address:
           'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
+        endpoint:
+          'Public IP address or domain name to which the remote peers/users will connect to. This address will be used in the configuration for the clients, but Defguard Gateways do not bind to this address.',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
@@ -2024,7 +2052,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: 'Gateway VPN IP address and netmask',
         },
         endpoint: {
-          label: 'Gateway address',
+          label: 'Gateway IP address or domain name',
         },
         allowedIps: {
           label: 'Allowed Ips',

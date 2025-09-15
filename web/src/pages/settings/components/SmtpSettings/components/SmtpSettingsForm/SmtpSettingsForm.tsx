@@ -109,6 +109,7 @@ export const SmtpSettingsForm = () => {
       z.object({
         smtp_server: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine(
             (val) => (!val ? true : validateIpOrDomain(val, false, true)),
@@ -119,13 +120,14 @@ export const SmtpSettingsForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        smtp_password: z.string(),
-        smtp_user: z.string(),
+        smtp_password: z.string().trim(),
+        smtp_user: z.string().trim(),
         smtp_sender: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .regex(patternValidEmail, LL.form.error.invalid()),
-        smtp_encryption: z.string().min(1, LL.form.error.required()),
+        smtp_encryption: z.string().trim().min(1, LL.form.error.required()),
       }),
     [LL.form],
   );

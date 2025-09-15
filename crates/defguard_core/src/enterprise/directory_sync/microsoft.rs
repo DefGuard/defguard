@@ -59,9 +59,10 @@ impl From<GroupsResponse> for Vec<DirectoryGroup> {
         response
             .value
             .into_iter()
-            .filter_map(|group| match group.display_name {
-                Some(name) => Some(DirectoryGroup { id: group.id, name }),
-                None => {
+            .filter_map(|group| {
+                if let Some(name) = group.display_name {
+                    Some(DirectoryGroup { id: group.id, name })
+                } else {
                     warn!(
                         "Group with ID {} doesn't have a display name set, skipping it.",
                         group.id
@@ -125,10 +126,10 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .into_iter()
             .filter_map(|user| {
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: user.account_enabled })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
                 } else if let Some(email) = user.other_mails.into_iter().next() {
                     warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
-                    Some(DirectoryUser { email, active: user.account_enabled })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
                 } else {
                     warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
                     None
@@ -177,7 +178,7 @@ impl MicrosoftDirectorySync {
                     self.url
                 )))?;
         debug!("Tenant ID extracted successfully: {tenant_id}",);
-        Ok(tenant_id.to_string())
+        Ok((*tenant_id).to_string())
     }
 
     async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
@@ -252,7 +253,30 @@ impl MicrosoftDirectorySync {
         let mut combined_response = GroupsResponse::default();
         let mut url = GROUPS_URL.to_string();
 
-        if !self.group_filter.is_empty() {
+        if self.group_filter.is_empty() {
+            debug!("No group filter defined, all groups will be synced.");
+            let params = vec![("$top", MAX_RESULTS)];
+            let mut query = Some(params.as_slice());
+
+            for _ in 0..MAX_REQUESTS {
+                let response = make_get_request(&url, access_token, query).await?;
+                let response: GroupsResponse =
+                    parse_response(response, "Failed to query Microsoft groups.").await?;
+                combined_response.value.extend(response.value);
+
+                if let Some(next_page) = response.next_page {
+                    url = next_page;
+                    // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
+                    query = None;
+                    debug!("Found next page of results, querying it: {url}");
+                } else {
+                    debug!("No more pages of results found, finishing query.");
+                    break;
+                }
+
+                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
+            }
+        } else {
             info!(
                 "Applying defined group filter to user group query, only the following groups will be synced: {:?}",
                 self.group_filter
@@ -261,7 +285,7 @@ impl MicrosoftDirectorySync {
             let groups = self
                 .group_filter
                 .iter()
-                .map(|group| group.replace("'", "''"))
+                .map(|group| group.replace('\'', "''"))
                 .collect::<Vec<_>>();
 
             // Microsoft has a limit of about 15 OR conditions per request, so batch it first.
@@ -283,29 +307,6 @@ impl MicrosoftDirectorySync {
                 let response: GroupsResponse =
                     parse_response(response, "Failed to query Microsoft groups.").await?;
                 combined_response.value.extend(response.value);
-
-                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
-            }
-        } else {
-            debug!("No group filter defined, all groups will be synced.");
-            let params = vec![("$top", MAX_RESULTS)];
-            let mut query = Some(params.as_slice());
-
-            for _ in 0..MAX_REQUESTS {
-                let response = make_get_request(&url, access_token, query).await?;
-                let response: GroupsResponse =
-                    parse_response(response, "Failed to query Microsoft groups.").await?;
-                combined_response.value.extend(response.value);
-
-                if let Some(next_page) = response.next_page {
-                    url = next_page;
-                    // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
-                    query = None;
-                    debug!("Found next page of results, querying it: {url}");
-                } else {
-                    debug!("No more pages of results found, finishing query.");
-                    break;
-                }
 
                 sleep(REQUEST_PAGINATION_SLOWDOWN).await;
             }
@@ -499,10 +500,10 @@ impl DirectorySync for MicrosoftDirectorySync {
 
     async fn get_user_groups(
         &self,
-        user_id: &str,
+        user_email: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Querying groups of user: {user_id}");
-        let groups = self.query_user_groups(user_id).await?;
+        debug!("Querying groups of user: {user_email}");
+        let groups = self.query_user_groups(user_email).await?;
         debug!("User groups queried successfully.");
         Ok(groups.into())
     }
@@ -510,6 +511,7 @@ impl DirectorySync for MicrosoftDirectorySync {
     async fn get_group_members(
         &self,
         group: &DirectoryGroup,
+        _all_users_helper: Option<&[DirectoryUser]>,
     ) -> Result<Vec<String>, DirectorySyncError> {
         debug!("Querying members of group: {}", group.name);
         let members = self.query_group_members(group).await?;

@@ -9,18 +9,24 @@
   border-radius: 15px;
   padding: var(--spacing-l) var(--spacing-s);
   box-shadow: var(--box-shadow);
+  opacity: 1;
   cursor: pointer;
   outline: 0px solid transparent;
-  transition-property: outline;
+  transition-property: outline, opacity;
 
   @include animate-standard;
 
-  &:not(.active):hover {
+  &:not(.active):not(.disabled):hover {
     outline: 1px solid var(--surface-main-primary);
   }
 
   &.active {
     outline: 3px solid var(--surface-main-primary);
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   .title {

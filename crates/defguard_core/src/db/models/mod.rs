@@ -2,6 +2,7 @@ pub mod activity_log;
 #[cfg(feature = "openid")]
 pub mod auth_code;
 pub mod authentication_key;
+pub mod biometric_auth;
 pub mod device;
 pub mod device_login;
 pub mod enrollment;
@@ -33,6 +34,7 @@ use self::{
     user::{MFAMethod, User},
 };
 use super::{Group, Id};
+use crate::db::models::biometric_auth::BiometricAuth;
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -85,6 +87,7 @@ pub struct GroupDiff {
 }
 
 impl GroupDiff {
+    #[must_use]
     pub fn changed(&self) -> bool {
         !self.added.is_empty() || !self.removed.is_empty()
     }
@@ -203,6 +206,7 @@ pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]
     pub devices: Vec<UserDevice>,
+    pub biometric_enabled_devices: Vec<i64>,
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
 }
@@ -211,11 +215,16 @@ impl UserDetails {
     pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let devices = user.user_devices(pool).await?;
         let security_keys = user.security_keys(pool).await?;
-
+        let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
+            .await?
+            .iter()
+            .map(|a| a.device_id)
+            .collect::<Vec<_>>();
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
             devices,
             security_keys,
+            biometric_enabled_devices,
         })
     }
 }
@@ -232,11 +241,14 @@ impl MFAInfo {
     pub async fn for_user(pool: &PgPool, user: &User<Id>) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
+            "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \
+            email_mfa_enabled email_available, \
             (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
             FROM \"user\" WHERE \"user\".id = $1",
             user.id
-        ).fetch_optional(pool).await
+        )
+        .fetch_optional(pool)
+        .await
     }
 
     #[must_use]

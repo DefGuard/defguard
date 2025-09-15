@@ -56,14 +56,23 @@ export const summarizeUsersNetworkStats = (
 
 export const getMaxDeviceStats = (data: NetworkUserStats[]): number => {
   const download: number[] = [];
-  data.forEach((obj) =>
-    obj.devices.forEach((obj) => obj.stats.forEach((obj) => download.push(obj.download))),
-  );
+  data.forEach((obj) => {
+    obj.devices.forEach((obj) => {
+      obj.stats.forEach((obj) => {
+        download.push(obj.download);
+      });
+    });
+  });
 
   const upload: number[] = [];
-  data.forEach((obj) =>
-    obj.devices.forEach((obj) => obj.stats.forEach((obj) => upload.push(obj.upload))),
-  );
+  data.forEach((obj) => {
+    obj.devices.forEach((obj) => {
+      obj.stats.forEach((obj) => {
+        upload.push(obj.upload);
+      });
+    });
+  });
+
   const maxDownload = Math.max.apply(null, download);
   const maxUpload = Math.max.apply(null, upload);
   return maxUpload > maxDownload ? maxUpload : maxDownload;

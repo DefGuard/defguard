@@ -820,7 +820,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
                 .collect(),
             id: NoId,
             parent_id: None,
-            state: Default::default(),
+            state: RuleState::default(),
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,

@@ -117,12 +117,14 @@ export const NetworkEditForm = () => {
         name: z.string().min(1, LL.form.error.required()),
         address: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
+          .trim()
           .min(1, LL.form.error.required())
           .refine(
             (val) => validateIpOrDomain(val, false, true),
@@ -136,6 +138,7 @@ export const NetworkEditForm = () => {
         allowed_ips: z.string(),
         dns: z
           .string()
+          .trim()
           .optional()
           .refine((val) => {
             if (val === '' || !val) {
@@ -206,7 +209,17 @@ export const NetworkEditForm = () => {
         address = data.address.join(',');
       }
 
-      return { ...defaultValues, ...omited, allowed_ips, address };
+      // we changed the default and this field is conditionally disabled
+      const peer_disconnect_threshold =
+        data.peer_disconnect_threshold < 120 ? 120 : data.peer_disconnect_threshold;
+
+      return {
+        ...defaultValues,
+        ...omited,
+        allowed_ips,
+        address,
+        peer_disconnect_threshold,
+      };
     },
     [defaultValues],
   );
@@ -295,6 +308,9 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'endpoint' }}
           label={LL.networkConfiguration.form.fields.endpoint.label()}
         />
+        <MessageBox>
+          <p>{LL.networkConfiguration.form.helpers.endpoint()}</p>
+        </MessageBox>
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
