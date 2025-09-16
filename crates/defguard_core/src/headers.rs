@@ -24,7 +24,8 @@ pub(crate) static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|
 
 #[must_use]
 pub(crate) fn get_device_info(user_agent: &str) -> String {
-    let client = USER_AGENT_PARSER.parse(user_agent);
+    let escaped = tera::escape_html(user_agent);
+    let client = USER_AGENT_PARSER.parse(&escaped);
     get_user_agent_device(&client)
 }
 

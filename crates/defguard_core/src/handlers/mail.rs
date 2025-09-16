@@ -39,8 +39,8 @@ static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Co
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
 static GATEWAY_RECONNECTED: &str = "Defguard: Gateway reconnected";
 
-pub static EMAIL_PASSOWRD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
-pub static EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
+pub static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
+pub static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -461,7 +461,7 @@ pub fn send_password_reset_email(
 
     let mail = Mail {
         to: user.email.clone(),
-        subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+        subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
         content: templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
         attachments: Vec::new(),
         result_tx: None,
@@ -491,7 +491,7 @@ pub fn send_password_reset_success_email(
 
     let mail = Mail {
         to: user.email.clone(),
-        subject: EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT.into(),
+        subject: EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT.into(),
         content: templates::email_password_reset_success_mail(ip_address, device_info)?,
         attachments: Vec::new(),
         result_tx: None,
