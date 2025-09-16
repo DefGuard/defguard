@@ -103,20 +103,18 @@ impl Mail {
             .from(Self::mailbox(from)?)
             .to(Self::mailbox(&self.to)?)
             .subject(self.subject.clone());
-        match self.attachments {
-            attachments if attachments.is_empty() => Ok(builder
-                .header(ContentType::TEXT_HTML)
-                .body(self.content.clone())?),
-            attachments => {
-                let mut multipart = MultiPart::mixed().singlepart(SinglePart::html(self.content));
-                for attachment in attachments {
-                    multipart = multipart.singlepart(attachment.into());
-                }
-                Ok(builder.multipart(multipart)?)
+
+        let mut multipart =
+            MultiPart::alternative_plain_html(self.content.clone(), self.content);
+
+        if !self.attachments.is_empty() {
+            for attachment in self.attachments {
+                multipart = multipart.singlepart(attachment.into());
             }
         }
-    }
 
+        Ok(builder.multipart(multipart)?)
+    }
     /// Builds Mailbox structure from string representing email address
     fn mailbox(address: &str) -> Result<Mailbox, MailError> {
         if let Some((user, domain)) = address.split_once('@') {
@@ -238,4 +236,36 @@ impl MailHandler {
 pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>) {
     info!("Starting mail sending service");
     MailHandler::new(rx).run().await;
+}
+
+#[cfg(test)]
+mod mail_tests {
+    use super::*;
+    use crate::templates::{self};
+
+    #[test]
+    fn test_mailer() {
+        let test_attachment = Attachment {
+            filename: "test.filename".to_string(),
+            content: Vec::new(),
+            content_type: ContentType::TEXT_PLAIN,
+        };
+
+        let test =
+            templates::gateway_disconnected_mail("example_name", "1.2.3.4", "example_name");
+
+        let test_mail = Mail {
+            to: "test@example.com".to_string(),
+            subject: "test".to_string(),
+            content: test.unwrap(),
+            attachments: vec![test_attachment],
+            result_tx: None,
+        };
+
+        let message = test_mail.into_message("sender@example.com").unwrap();
+
+
+
+        println!("content:\n{}", String::from_utf8(message.formatted()).unwrap());
+    }
 }
