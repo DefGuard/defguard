@@ -39,7 +39,10 @@ use crate::{
             CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
             RegisterMobileAuthRequest,
         },
-        utils::{build_device_config_response, new_polling_token, parse_client_info},
+        utils::{
+            build_device_config_response, is_valid_phone_number, new_polling_token,
+            parse_client_info,
+        },
     },
     handlers::{
         mail::{
@@ -343,6 +346,19 @@ impl EnrollmentServer {
         Ok(())
     }
 
+    fn validate_activated_user(&self, request: &ActivateUserRequest) -> Result<(), Status> {
+        if let Some(ref phone_number) = request.phone_number {
+            if !is_valid_phone_number(phone_number) {
+                return Err(Status::new(
+                    tonic::Code::InvalidArgument,
+                    "invalid phone number",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub async fn activate_user(
         &self,
@@ -351,6 +367,7 @@ impl EnrollmentServer {
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
+        self.validate_activated_user(&request)?;
 
         let ip_address;
         let device_info;

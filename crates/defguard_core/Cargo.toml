@@ -84,6 +84,7 @@ strum_macros = { workspace = true }
 bytes = { workspace = true }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 tower = "0.5"
+regex = "1.10"
 
 [dev-dependencies]
 bytes = "1.6"
