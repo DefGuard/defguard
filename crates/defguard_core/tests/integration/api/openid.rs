@@ -818,7 +818,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
 
     // Try to authorize with allowed redirect url - invalid client id
     let response = client
-        .post(format!(
+        .post(
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=xxx&\
@@ -827,14 +827,14 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
             state=ABCDEF&\
             allow=true&\
             nonce=blabla",
-        ))
+        )
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(redirect_url(&response), fallback_url,);
 
     let response = client
-        .get(format!(
+        .get(
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=xxx&\
@@ -843,7 +843,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
             state=ABCDEF&\
             allow=true&\
             nonce=blabla",
-        ))
+        )
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
@@ -851,7 +851,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
 
     // Try to authorize with forbidden redirect url - invalid client id
     let response = client
-        .post(format!(
+        .post(
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=xxx&\
@@ -860,14 +860,14 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
             state=ABCDEF&\
             allow=true&\
             nonce=blabla",
-        ))
+        )
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(redirect_url(&response), fallback_url);
 
     let response = client
-        .get(format!(
+        .get(
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id=xxx&\
@@ -876,7 +876,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
             state=ABCDEF&\
             allow=true&\
             nonce=blabla",
-        ))
+        )
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
