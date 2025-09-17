@@ -109,7 +109,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
-    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Default::default();
+    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;

@@ -229,6 +229,7 @@ impl Hash for IncompatibleGatewayData {
 }
 
 impl IncompatibleGatewayData {
+    #[must_use]
     pub fn new(
         version: Option<Version>,
         hostname: Option<String>,
@@ -238,8 +239,8 @@ impl IncompatibleGatewayData {
         Self {
             version,
             hostname,
-            created,
             network_id,
+            created,
         }
     }
 
@@ -276,6 +277,7 @@ impl PartialEq for IncompatibleProxyData {
 impl Eq for IncompatibleProxyData {}
 
 impl IncompatibleProxyData {
+    #[must_use]
     pub fn new(version: Option<Version>) -> Self {
         let created = Utc::now().naive_utc();
         Self { version, created }
