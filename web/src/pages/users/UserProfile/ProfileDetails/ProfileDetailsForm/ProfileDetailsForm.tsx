@@ -35,7 +35,6 @@ import type { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
-import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 import { removeEmptyStrings } from '../../../../../shared/utils/removeEmptyStrings';
 
@@ -190,7 +189,6 @@ export const ProfileDetailsForm = () => {
   }, [LL.userPage.userDetails.fields.status]);
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
-    values = trimObjectStrings(values);
     if (userProfile?.user) {
       setUserProfile({ loading: true });
       mutate({

@@ -28,7 +28,6 @@ import {
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
-import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 import { removeEmptyStrings } from '../../../../../../../shared/utils/removeEmptyStrings';
@@ -59,6 +58,7 @@ export const AddUserForm = () => {
         .object({
           username: z
             .string()
+            .trim()
             .min(1, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
@@ -75,9 +75,9 @@ export const AddUserForm = () => {
               }
               return true;
             }, LL.modals.addUser.form.error.emailReserved()),
-          last_name: z.string().min(1, LL.form.error.required()),
-          first_name: z.string().min(1, LL.form.error.required()),
-          phone: z.string(),
+          last_name: z.string().trim().min(1, LL.form.error.required()),
+          first_name: z.string().trim().min(1, LL.form.error.required()),
+          phone: z.string().trim(),
           enable_enrollment: z.boolean(),
         })
         .superRefine((val, ctx) => {
@@ -188,7 +188,7 @@ export const AddUserForm = () => {
   });
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
-    const clean = removeEmptyStrings(trimObjectStrings(data));
+    const clean = removeEmptyStrings(data);
     if (reservedUserNames.current.includes(clean.username)) {
       void trigger('username', { shouldFocus: true });
     } else {
