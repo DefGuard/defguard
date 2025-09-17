@@ -39,10 +39,7 @@ use crate::{
             CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
             RegisterMobileAuthRequest,
         },
-        utils::{
-            build_device_config_response, is_valid_phone_number, new_polling_token,
-            parse_client_info,
-        },
+        utils::{build_device_config_response, new_polling_token, parse_client_info},
     },
     handlers::{
         mail::{
@@ -51,6 +48,7 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
+    is_valid_phone_number,
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},

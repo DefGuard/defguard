@@ -12,27 +12,18 @@ use super::{
     user_for_admin_or_self,
 };
 use crate::{
-    appstate::AppState,
-    auth::{AdminRole, SessionInfo},
-    db::{
-        AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
+    appstate::AppState, auth::{AdminRole, SessionInfo}, db::{
         models::{
-            GroupDiff,
-            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
-        },
-    },
-    enterprise::{
+            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE}, GroupDiff
+        }, AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn
+    }, enterprise::{
         db::models::{api_tokens::ApiToken, enterprise_settings::EnterpriseSettings},
         ldap::utils::{
             ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
             ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
         },
         limits::update_counts,
-    },
-    error::WebError,
-    events::{ApiEvent, ApiEventType, ApiRequestContext},
-    mail::Mail,
-    server_config, templates,
+    }, error::WebError, events::{ApiEvent, ApiEventType, ApiRequestContext}, is_valid_phone_number, mail::Mail, server_config, templates
 };
 
 /// Verify the given username
@@ -280,6 +271,7 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
     // check if email doesn't already exist
     if User::find_by_email(&appstate.pool, &user_data.email)
         .await?
@@ -291,6 +283,18 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_data.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for new user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let password = match &user_data.password {
         Some(password) => {
             // check password strength
@@ -645,11 +649,12 @@ pub async fn modify_user(
     context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Json(mut user_info): Json<UserInfo>,
+    Json(user_info): Json<UserInfo>,
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
+
     // store user before mods
     let before = user.clone();
     let old_username = user.username.clone();
@@ -660,6 +665,18 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_info.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;

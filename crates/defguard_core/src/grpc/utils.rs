@@ -1,6 +1,5 @@
-use std::{net::IpAddr, str::FromStr, sync::LazyLock};
+use std::{net::IpAddr, str::FromStr};
 
-use regex::Regex;
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -23,11 +22,6 @@ use crate::{
     },
     grpc::proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
 };
-
-static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
-        .expect("Failed to parse phone number regex")
-});
 
 // Create a new token for configuration polling.
 pub(crate) async fn new_polling_token(
@@ -225,40 +219,4 @@ pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, St
     let escaped_agent = tera::escape_html(&user_agent);
 
     Ok((ip, escaped_agent))
-}
-
-pub(crate) fn is_valid_phone_number(number: &str) -> bool {
-    PHONE_NUMBER_REGEX.is_match(number)
-}
-
-#[cfg(test)]
-mod test {
-    use crate::grpc::utils::is_valid_phone_number;
-
-    #[test]
-    fn test_is_valid_phone_number_dg25_10() {
-        let valid_numbers = &[
-            "+48 (91) 123-456",
-            "123 456 7890",
-            "+1 (202) 555-0173",
-            "91-1234-5678",
-            "(22) 567 890",
-        ];
-        for number in valid_numbers {
-            assert!(is_valid_phone_number(number));
-        }
-
-        let invalid_numbers = &[
-            "4*4",
-            "+48  123456789",
-            "123-456-789-0000",
-            "(+48) 123 456",
-            "202.555.0173",
-            "(12345) 6789",
-            "+48 (91) 123-456 000 111",
-        ];
-        for number in invalid_numbers {
-            assert!(!is_valid_phone_number(number));
-        }
-    }
 }
