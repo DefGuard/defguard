@@ -795,8 +795,8 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     assert_eq!(response.status(), StatusCode::CREATED);
     let oauth2client: OAuth2Client<Id> = response.json().await;
 
-    fn redirect_domain(response: &TestResponse) -> String {
-        let url = Url::parse(
+    fn redirect_url(response: &TestResponse) -> String {
+        Url::parse(
             response
                 .headers()
                 .get(reqwest::header::LOCATION)
@@ -804,11 +804,19 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
                 .to_str()
                 .unwrap(),
         )
-        .unwrap();
-        url.domain().unwrap().to_string()
+        .unwrap()
+        .origin()
+        .ascii_serialization()
     }
 
-    // Try to authorize with allowed redirect url
+    let fallback_url = state
+        .config
+        .url
+        .to_string()
+        .trim_end_matches('/')
+        .to_string();
+
+    // Try to authorize with allowed redirect url - invalid client id
     let response = client
         .post(format!(
             "/api/v1/oauth/authorize?\
@@ -823,10 +831,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url,);
 
     let response = client
         .get(format!(
@@ -842,10 +847,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url);
 
     // Try to authorize with forbidden redirect url - invalid client id
     let response = client
@@ -862,10 +864,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url);
 
     let response = client
         .get(format!(
@@ -881,10 +880,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url);
 
     // Try to authorize with forbidden redirect url - invalid scope
     let response = client
@@ -902,10 +898,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url);
 
     let response = client
         .get(format!(
@@ -922,10 +915,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(
-        redirect_domain(&response),
-        state.config.url.domain().unwrap()
-    );
+    assert_eq!(redirect_url(&response), fallback_url);
 
     // Same with allowed redirect_uri
     let response = client
@@ -943,7 +933,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_domain(&response), "safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net",);
 
     let response = client
         .get(format!(
@@ -960,7 +950,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_domain(&response), "safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net",);
 }
 
 #[sqlx::test]
