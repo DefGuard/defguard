@@ -261,7 +261,7 @@
                                     {% endif %}
                                     {% if device_type %}
                                       <p style="margin: auto;">
-                                        <span>Device type:</span> {{ device_type | safe }}
+                                        <span>Device type:</span> {{ device_type }}
                                       </p>
                                     {% endif %}
                                   </div>

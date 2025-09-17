@@ -18,6 +18,7 @@ use crate::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
     },
+    headers::get_device_info,
     mail::Mail,
     server_config,
 };
@@ -99,13 +100,14 @@ impl PasswordResetServer {
         debug!("Starting password reset request");
 
         let ip_address;
-        let user_agent;
+        let device_info;
         if let Some(ref info) = req_device_info {
             ip_address = info.ip_address.clone();
-            user_agent = info.user_agent.clone().unwrap_or_default();
+            let agent = info.user_agent.clone().unwrap_or_default();
+            device_info = get_device_info(&agent);
         } else {
             ip_address = String::new();
-            user_agent = String::new();
+            device_info = String::new();
         }
 
         let email = request.email;
@@ -152,14 +154,13 @@ impl PasswordResetServer {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
-
         send_password_reset_email(
             &user,
             &self.mail_tx,
             config.enrollment_url.clone(),
             &enrollment.id,
             Some(&ip_address),
-            Some(&user_agent),
+            Some(&device_info),
         )?;
 
         info!(
@@ -251,17 +252,18 @@ impl PasswordResetServer {
         request: PasswordResetRequest,
         req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Starting password reset: {request:?}");
+        debug!("Starting password reset");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
 
         let ip_address;
-        let user_agent;
+        let device_info;
         if let Some(ref info) = req_device_info {
             ip_address = info.ip_address.clone();
-            user_agent = info.user_agent.clone().unwrap_or_default();
+            let agent = info.user_agent.clone().unwrap_or_default();
+            device_info = get_device_info(&agent);
         } else {
             ip_address = String::new();
-            user_agent = String::new();
+            device_info = String::new();
         }
 
         if let Err(err) = check_password_strength(&request.password) {
@@ -302,7 +304,7 @@ impl PasswordResetServer {
             &user,
             &self.mail_tx,
             Some(&ip_address),
-            Some(&user_agent),
+            Some(&device_info),
         )?;
 
         // Prepare event context and push the event

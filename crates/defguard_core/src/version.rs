@@ -89,10 +89,16 @@ impl Interceptor for GatewayVersionInterceptor {
             .get("hostname")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
+        let maybe_network = request
+            .metadata()
+            .get("gateway_network_id")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
         if self.is_version_supported(version) {
-            IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_hostname);
+            IncompatibleComponents::remove_gateway(&self.incompatible_components, &maybe_network);
         } else {
-            let data = IncompatibleGatewayData::new(version.cloned(), maybe_hostname);
+            let data =
+                IncompatibleGatewayData::new(version.cloned(), maybe_hostname, maybe_network);
             data.insert(&self.incompatible_components);
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
@@ -105,7 +111,7 @@ impl Interceptor for GatewayVersionInterceptor {
     }
 }
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
     pub proxy: Option<IncompatibleProxyData>,
@@ -131,13 +137,13 @@ impl IncompatibleComponents {
     }
 
     /// Removes metadata from the HashSet while avoiding write-locking the structure unnecessarily.
-    pub fn remove_gateway(components: &Arc<RwLock<Self>>, maybe_hostname: &Option<String>) -> bool {
+    pub fn remove_gateway(components: &Arc<RwLock<Self>>, network_id: &Option<String>) -> bool {
         if !components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
             .gateways
             .iter()
-            .any(|gw| &gw.hostname == maybe_hostname)
+            .any(|gw| &gw.network_id == network_id)
         {
             return false;
         }
@@ -145,7 +151,7 @@ impl IncompatibleComponents {
             .write()
             .expect("Failed to write-lock IncompatibleComponents")
             .gateways
-            .retain(|gw| &gw.hostname != maybe_hostname);
+            .retain(|gw| &gw.network_id != network_id);
 
         true
     }
@@ -203,12 +209,13 @@ impl IncompatibleComponents {
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
+    pub network_id: Option<String>,
     created: NaiveDateTime,
 }
 
 impl PartialEq for IncompatibleGatewayData {
     fn eq(&self, other: &Self) -> bool {
-        self.version == other.version && self.hostname == other.hostname
+        self.version == other.version && self.network_id == other.network_id
     }
 }
 
@@ -217,16 +224,22 @@ impl Eq for IncompatibleGatewayData {}
 impl Hash for IncompatibleGatewayData {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.version.hash(state);
-        self.hostname.hash(state);
+        self.network_id.hash(state);
     }
 }
 
 impl IncompatibleGatewayData {
-    pub fn new(version: Option<Version>, hostname: Option<String>) -> Self {
+    #[must_use]
+    pub fn new(
+        version: Option<Version>,
+        hostname: Option<String>,
+        network_id: Option<String>,
+    ) -> Self {
         let created = Utc::now().naive_utc();
         Self {
             version,
             hostname,
+            network_id,
             created,
         }
     }
@@ -264,6 +277,7 @@ impl PartialEq for IncompatibleProxyData {
 impl Eq for IncompatibleProxyData {}
 
 impl IncompatibleProxyData {
+    #[must_use]
     pub fn new(version: Option<Version>) -> Self {
         let created = Utc::now().naive_utc();
         Self { version, created }

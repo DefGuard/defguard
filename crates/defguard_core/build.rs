@@ -6,9 +6,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Emitter::default().add_instructions(&git2)?.emit()?;
 
     tonic_prost_build::configure()
+        // These types contain sensitive data.
+        .skip_debug([
+            "ActivateUserRequest",
+            "AuthInfoResponse",
+            "AuthenticateRequest",
+            "AuthenticateResponse",
+            "ClientMfaFinishResponse",
+            "CodeMfaSetupStartResponse",
+            "CodeMfaSetupFinishResponse",
+            "CoreRequest",
+            "CoreResponse",
+            "DeviceConfigResponse",
+            "InstanceInfoResponse",
+            "NewDevice",
+            "PasswordResetRequest",
+        ])
         .protoc_arg("--experimental_allow_proto3_optional")
         .type_attribute(
-            "license.LicenseLimits",
+            "LicenseLimits",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
         .compile_protos(

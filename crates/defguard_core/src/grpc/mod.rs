@@ -162,8 +162,7 @@ async fn handle_proxy_message_loop(
                 break 'message;
             }
             Ok(Some(received)) => {
-                info!("Received message from proxy.");
-                debug!("Received the following message from proxy: {received:?}");
+                debug!("Received message from proxy; ID={}", received.id);
                 let payload = match received.payload {
                     // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                     Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -192,7 +191,7 @@ async fn handle_proxy_message_loop(
                                 Some(core_response::Payload::CodeMfaSetupFinishResponse(response))
                             }
                             Err(err) => {
-                                error!("Register mfa finish error {err}");
+                                error!("Register MFA finish error {err}");
                                 Some(core_response::Payload::CoreError(err.into()))
                             }
                         }
@@ -650,9 +649,8 @@ pub async fn run_grpc_bidi_stream(
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
-        } else {
-            IncompatibleComponents::remove_proxy(&incompatible_components);
         }
+        IncompatibleComponents::remove_proxy(&incompatible_components);
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
@@ -741,19 +739,6 @@ pub async fn build_grpc_service_router(
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
 
-    #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(
-            pool,
-            gateway_state,
-            client_state,
-            wireguard_tx,
-            mail_tx,
-            grpc_event_tx,
-        ),
-        JwtInterceptor::new(ClaimsType::Gateway),
-    );
-
     let (health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<AuthServiceServer<AuthServer>>()
@@ -769,9 +754,21 @@ pub async fn build_grpc_service_router(
     let router = {
         use crate::version::GatewayVersionInterceptor;
 
+        let gateway_service = GatewayServiceServer::new(GatewayServer::new(
+            pool,
+            gateway_state,
+            client_state,
+            wireguard_tx,
+            mail_tx,
+            grpc_event_tx,
+        ));
+
         let own_version = Version::parse(VERSION)?;
         router.add_service(
             ServiceBuilder::new()
+                .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
+                    ClaimsType::Gateway,
+                )))
                 .layer(tonic::service::InterceptorLayer::new(
                     GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
                 ))
