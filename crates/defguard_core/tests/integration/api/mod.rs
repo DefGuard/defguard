@@ -19,3 +19,5 @@ mod wireguard_network_devices;
 mod wireguard_network_import;
 mod wireguard_network_stats;
 mod worker;
+
+const TEST_SERVER_URL: &str = "http://localhost:3000/";

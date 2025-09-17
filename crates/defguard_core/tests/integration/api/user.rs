@@ -9,7 +9,10 @@ use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
-use super::common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
+use super::{
+    TEST_SERVER_URL,
+    common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool},
+};
 
 #[sqlx::test]
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
@@ -399,7 +402,7 @@ async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnec
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };

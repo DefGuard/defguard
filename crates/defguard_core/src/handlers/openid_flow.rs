@@ -43,7 +43,7 @@ use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo, UserClaims},
     db::{
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        Id, NoId, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
     },
     error::WebError,
@@ -538,7 +538,7 @@ pub struct GroupClaims {
 
 impl AdditionalClaims for GroupClaims {}
 
-pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
+async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
     let groups = user.member_of_names(pool).await?;
     Ok(GroupClaims {
         groups: Some(groups),
@@ -663,7 +663,7 @@ impl TokenRequest {
 
     fn authorization_code_flow<T>(
         &self,
-        auth_code: &AuthCode<Id>,
+        auth_code: &AuthCode<NoId>,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
         base_url: &Url,
@@ -794,20 +794,16 @@ pub async fn token(
 
             // for logging
             let form_client_id = match &form.client_id {
-                Some(id) => id.clone(),
-                None => String::from("N/A"),
+                Some(id) => id,
+                None => "N/A",
             };
 
             if let Some(code) = &form.code {
-                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
-                    // copy data before removing used token
-                    let auth_code = stored_auth_code.clone();
-                    // remove authorization_code from DB so it cannot be reused
-                    debug!(
-                        "Removing used authorization_code {code}, client_id `{}`",
-                        form_client_id
-                    );
-                    stored_auth_code.consume(&appstate.pool).await?;
+                // Look for `AuthCode`. If found, it will be deleted from the database to avoid
+                // concurrent requests that might return multiple tokens for the same code.
+                // This addresses DG25-24 and conforms to RFC 6749.
+                if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                    debug!("Consumed authorization_code {code}, client_id `{form_client_id}`");
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
@@ -824,7 +820,7 @@ pub async fn token(
                                     "Issuing new token for user {} client {}",
                                     user.username, client.name
                                 );
-                                // Remove existing token in case same client asks for new token
+                                // Remove existing token in case the same client asks for new token.
                                 if let Some(token) = OAuth2Token::find_by_authorized_app_id(
                                     &appstate.pool,
                                     authorized_app.id,
@@ -867,8 +863,8 @@ pub async fn token(
                                     }
                                     Err(err) => {
                                         error!(
-                                            "Error issuing new token for user {} client {}: {}",
-                                            user.username, client.name, err
+                                            "Error issuing new token for user {} client {}: {err}",
+                                            user.username, client.name
                                         );
                                         let response =
                                             StandardErrorResponse::<CoreErrorResponseType>::new(
@@ -895,7 +891,7 @@ pub async fn token(
                     error!("OAuth auth code not found");
                 }
             } else {
-                error!("No code provided in request for client id `{form_client_id}`",);
+                error!("No code provided in request for client id `{form_client_id}`");
             }
         }
         "refresh_token" => {
