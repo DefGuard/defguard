@@ -252,7 +252,7 @@ impl PasswordResetServer {
         request: PasswordResetRequest,
         req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Starting password reset: {request:?}");
+        debug!("Starting password reset");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
 
         let ip_address;

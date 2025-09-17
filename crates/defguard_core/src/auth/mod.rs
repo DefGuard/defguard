@@ -422,11 +422,10 @@ where
                                         &client,
                                         &oauth2token,
                                     )));
-                                } else {
-                                    return Err(WebError::Authorization(
-                                        "OAuth2 client not found".into(),
-                                    ));
                                 }
+                                return Err(WebError::Authorization(
+                                    "OAuth2 client not found".into(),
+                                ));
                             }
                         }
                         Ok(None) => {

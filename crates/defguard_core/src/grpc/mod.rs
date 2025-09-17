@@ -162,8 +162,7 @@ async fn handle_proxy_message_loop(
                 break 'message;
             }
             Ok(Some(received)) => {
-                info!("Received message from proxy.");
-                debug!("Received the following message from proxy: {received:?}");
+                debug!("Received message from proxy; ID={}", received.id);
                 let payload = match received.payload {
                     // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                     Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -192,7 +191,7 @@ async fn handle_proxy_message_loop(
                                 Some(core_response::Payload::CodeMfaSetupFinishResponse(response))
                             }
                             Err(err) => {
-                                error!("Register mfa finish error {err}");
+                                error!("Register MFA finish error {err}");
                                 Some(core_response::Payload::CoreError(err.into()))
                             }
                         }
@@ -650,9 +649,8 @@ pub async fn run_grpc_bidi_stream(
             // Sleep before trying to reconnect
             sleep(TEN_SECS).await;
             continue;
-        } else {
-            IncompatibleComponents::remove_proxy(&incompatible_components);
         }
+        IncompatibleComponents::remove_proxy(&incompatible_components);
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();

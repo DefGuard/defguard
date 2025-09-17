@@ -363,7 +363,7 @@ impl EnrollmentServer {
         request: ActivateUserRequest,
         req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Activating user account: {request:?}");
+        debug!("Activating user account");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
         self.validate_activated_user(&request)?;
 
@@ -486,7 +486,7 @@ impl EnrollmentServer {
         request: NewDevice,
         req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
-        debug!("Adding new user device: {request:?}");
+        debug!("Adding new user device");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;
 
         // fetch related users
@@ -855,7 +855,6 @@ impl EnrollmentServer {
             ),
             token: Some(token.token),
         };
-        debug!("{response:?}.");
 
         // Prepare event context and push the event
         let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
