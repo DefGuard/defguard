@@ -12,18 +12,28 @@ use super::{
     user_for_admin_or_self,
 };
 use crate::{
-    appstate::AppState, auth::{AdminRole, SessionInfo}, db::{
+    appstate::AppState,
+    auth::{AdminRole, SessionInfo},
+    db::{
+        AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
         models::{
-            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE}, GroupDiff
-        }, AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn
-    }, enterprise::{
+            GroupDiff,
+            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
+        },
+    },
+    enterprise::{
         db::models::{api_tokens::ApiToken, enterprise_settings::EnterpriseSettings},
         ldap::utils::{
             ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
             ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
         },
         limits::update_counts,
-    }, error::WebError, events::{ApiEvent, ApiEventType, ApiRequestContext}, is_valid_phone_number, mail::Mail, server_config, templates
+    },
+    error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
+    is_valid_phone_number,
+    mail::Mail,
+    server_config, templates,
 };
 
 /// Verify the given username
