@@ -101,6 +101,18 @@ impl OAuth2Client<Id> {
         .fetch_optional(pool)
         .await
     }
+
+    /// Checks if `url` matches client config (ignoring trailing slashes)
+    pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
+        let parsed_redirect_uris: Vec<String> = self
+            .redirect_uri
+            .iter()
+            .map(|uri| uri.trim_end_matches('/').into())
+            .collect();
+        !url.split(' ')
+            .map(|uri| uri.trim_end_matches('/'))
+            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
+    }
 }
 
 // Safe to show for not privileged users

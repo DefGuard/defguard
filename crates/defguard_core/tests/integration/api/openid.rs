@@ -769,7 +769,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
 async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (client, state) = make_client_with_state(pool).await;
-    let admin = User::find_by_username(&state.pool, "admin")
+    let _admin = User::find_by_username(&state.pool, "admin")
         .await
         .unwrap()
         .unwrap();
@@ -782,7 +782,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     // Create OAuth2 client
     let oauth2client = NewOpenIDClient {
         name: "Test Client".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net/".into()],
         scope: vec!["openid".into(), "email".into()],
         enabled: true,
     };
@@ -823,7 +823,29 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_domain(&response), "localhost");
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
+    );
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://localhost:3000&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
+    );
 
     // Try to authorize with forbidden redirect url - invalid client id
     let response = client
@@ -845,8 +867,25 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         state.config.url.domain().unwrap()
     );
 
-    use std::io::{self, Write};
-    io::stdout().flush().unwrap();
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://isec.pl&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
+    );
+
     // Try to authorize with forbidden redirect url - invalid scope
     let response = client
         .post(format!(
@@ -867,6 +906,61 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         redirect_domain(&response),
         state.config.url.domain().unwrap()
     );
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://isec.pl&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
+    );
+
+    // Same with allowed redirect_uri
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://safe.net&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_domain(&response), "safe.net",);
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://safe.net&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_domain(&response), "safe.net",);
 }
 
 #[sqlx::test]
