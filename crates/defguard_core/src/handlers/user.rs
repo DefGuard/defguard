@@ -31,6 +31,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    is_valid_phone_number,
     mail::Mail,
     server_config, templates,
 };
@@ -280,6 +281,7 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
     // check if email doesn't already exist
     if User::find_by_email(&appstate.pool, &user_data.email)
         .await?
@@ -291,6 +293,18 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_data.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for new user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let password = match &user_data.password {
         Some(password) => {
             // check password strength
@@ -645,11 +659,12 @@ pub async fn modify_user(
     context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Json(mut user_info): Json<UserInfo>,
+    Json(user_info): Json<UserInfo>,
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
+
     // store user before mods
     let before = user.clone();
     let old_username = user.username.clone();
@@ -660,6 +675,18 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_info.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;

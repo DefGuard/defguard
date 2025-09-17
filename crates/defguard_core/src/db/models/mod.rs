@@ -143,7 +143,7 @@ impl UserInfo {
     ///
     /// Return `true` if groups were changed, `false` otherwise.
     pub(crate) async fn handle_user_groups(
-        &mut self,
+        &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
     ) -> Result<GroupDiff, SqlxError> {

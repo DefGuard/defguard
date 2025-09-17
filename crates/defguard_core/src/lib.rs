@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, OnceLock, RwLock},
+    sync::{Arc, LazyLock, Mutex, OnceLock, RwLock},
 };
 
 use crate::version::IncompatibleComponents;
@@ -60,6 +60,7 @@ use handlers::{
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
+use regex::Regex;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -192,6 +193,11 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
         .get()
         .expect("Server configuration not set yet")
 }
+
+static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
+        .expect("Failed to parse phone number regex")
+});
 
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
@@ -962,5 +968,42 @@ where
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(",")
+    }
+}
+
+pub(crate) fn is_valid_phone_number(number: &str) -> bool {
+    PHONE_NUMBER_REGEX.is_match(number)
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::is_valid_phone_number;
+
+    #[test]
+    fn test_is_valid_phone_number_dg25_10() {
+        let valid_numbers = &[
+            "+48 (91) 123-456",
+            "123 456 7890",
+            "+1 (202) 555-0173",
+            "91-1234-5678",
+            "(22) 567 890",
+        ];
+        for number in valid_numbers {
+            assert!(is_valid_phone_number(number));
+        }
+
+        let invalid_numbers = &[
+            "4*4",
+            "+48  123456789",
+            "123-456-789-0000",
+            "(+48) 123 456",
+            "202.555.0173",
+            "(12345) 6789",
+            "+48 (91) 123-456 000 111",
+        ];
+        for number in invalid_numbers {
+            assert!(!is_valid_phone_number(number));
+        }
     }
 }
