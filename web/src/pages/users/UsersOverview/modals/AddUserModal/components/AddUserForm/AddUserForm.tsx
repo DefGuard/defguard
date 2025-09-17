@@ -31,6 +31,7 @@ import { invalidateMultipleQueries } from '../../../../../../../shared/utils/inv
 import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
+import { removeEmptyStrings } from '../../../../../../../shared/utils/removeEmptyStrings';
 
 export const AddUserForm = () => {
   const { LL } = useI18nContext();
@@ -187,23 +188,23 @@ export const AddUserForm = () => {
   });
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
-    const trimmed = trimObjectStrings(data);
-    if (reservedUserNames.current.includes(trimmed.username)) {
+    const clean = removeEmptyStrings(trimObjectStrings(data));
+    if (reservedUserNames.current.includes(clean.username)) {
       void trigger('username', { shouldFocus: true });
     } else {
-      usernameAvailable(trimmed.username)
+      usernameAvailable(clean.username)
         .then(() => {
           setCheckingUsername(false);
-          if (trimmed.enable_enrollment) {
-            const userData = omit(trimmed, ['password', 'enable_enrollment']);
+          if (clean.enable_enrollment) {
+            const userData = omit(clean, ['password', 'enable_enrollment']);
             addUserMutation.mutate(userData);
           } else {
-            addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
+            addUserMutation.mutate(omit(clean, ['enable_enrollment']));
           }
         })
         .catch(() => {
           setCheckingUsername(false);
-          reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
+          reservedUserNames.current = [...reservedUserNames.current, clean.username];
           void trigger('username', { shouldFocus: true });
         });
     }

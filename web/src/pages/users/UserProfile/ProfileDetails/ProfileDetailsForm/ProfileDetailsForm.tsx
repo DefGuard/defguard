@@ -37,6 +37,7 @@ import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
+import { removeEmptyStrings } from '../../../../../shared/utils/removeEmptyStrings';
 
 interface Inputs {
   username: string;
@@ -194,11 +195,11 @@ export const ProfileDetailsForm = () => {
       setUserProfile({ loading: true });
       mutate({
         username: userProfile.user.username,
-        data: {
+        data: removeEmptyStrings({
           ...userProfile.user,
           ...values,
           totp_enabled: userProfile.user.totp_enabled,
-        },
+        }),
       });
     }
   };
