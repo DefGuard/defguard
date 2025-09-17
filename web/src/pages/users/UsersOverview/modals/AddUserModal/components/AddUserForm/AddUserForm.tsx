@@ -28,9 +28,9 @@ import {
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
+import { removeEmptyStrings } from '../../../../../../../shared/utils/removeEmptyStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
-import { removeEmptyStrings } from '../../../../../../../shared/utils/removeEmptyStrings';
 
 export const AddUserForm = () => {
   const { LL } = useI18nContext();

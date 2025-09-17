@@ -34,9 +34,9 @@ import { QueryKeys } from '../../../../../shared/queries';
 import type { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
+import { removeEmptyStrings } from '../../../../../shared/utils/removeEmptyStrings';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
-import { removeEmptyStrings } from '../../../../../shared/utils/removeEmptyStrings';
 
 interface Inputs {
   username: string;
