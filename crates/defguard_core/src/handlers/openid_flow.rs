@@ -516,9 +516,8 @@ pub async fn authorization(
         error = CoreAuthErrorResponseType::UnauthorizedClient;
     }
 
-    let mut url =
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
-
+    // Don't allow open redirects (DG25-17)
+    let mut url = server_config().url.clone();
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());
@@ -552,8 +551,6 @@ pub async fn secure_authorization(
     Query(data): Query<AuthenticationRequest>,
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
-    let mut url =
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
     if data.allow {
         if let Some(oauth2client) =
@@ -616,6 +613,8 @@ pub async fn secure_authorization(
         error = CoreAuthErrorResponseType::AccessDenied;
     }
 
+    // Don't allow open redirects (DG25-17)
+    let mut url = server_config().url.clone();
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());

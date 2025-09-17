@@ -19,12 +19,14 @@ use openidconnect::{
     http::Method,
 };
 use reqwest::{
-    StatusCode,
+    StatusCode, Url,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, USER_AGENT},
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::api::common::client::TestResponse;
 
 use super::common::{
     client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
@@ -760,6 +762,110 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     assert!(
         authorized_app_preserved.is_some(),
         "Authorization should be preserved when scopes don't change"
+    );
+}
+
+#[sqlx::test]
+async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_client_with_state(pool).await;
+    let admin = User::find_by_username(&state.pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Authenticate admin
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create OAuth2 client
+    let oauth2client = NewOpenIDClient {
+        name: "Test Client".into(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into(), "email".into()],
+        enabled: true,
+    };
+
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+
+    fn redirect_domain(response: &TestResponse) -> String {
+        let url = Url::parse(
+            response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
+        url.domain().unwrap().to_string()
+    }
+
+    // Try to authorize with allowed redirect url
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://localhost:3000&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_domain(&response), "localhost");
+
+    // Try to authorize with forbidden redirect url - invalid client id
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://isec.pl&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
+    );
+
+    use std::io::{self, Write};
+    io::stdout().flush().unwrap();
+    // Try to authorize with forbidden redirect url - invalid scope
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://isec.pl&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(
+        redirect_domain(&response),
+        state.config.url.domain().unwrap()
     );
 }
 
