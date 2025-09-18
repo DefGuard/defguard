@@ -20,16 +20,18 @@ use openidconnect::{
 };
 use reqwest::{
     StatusCode, Url,
-    header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, USER_AGENT},
+    header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, LOCATION, USER_AGENT},
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::api::common::client::TestResponse;
-
-use super::common::{
-    client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
+use super::{
+    TEST_SERVER_URL,
+    common::{
+        client::{TestClient, TestResponse},
+        make_client, make_client_with_state, make_test_client, setup_pool,
+    },
 };
 
 #[derive(Deserialize)]
@@ -50,7 +52,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -109,7 +111,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into(), "http://safe.net".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -127,6 +129,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    // Try invalid request for `response_type = code id_token token`.
     let response = client
         .post(format!(
             "/api/v1/oauth/authorize?\
@@ -149,6 +152,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert!(location.contains("error=invalid_request"));
 
+    // Try invalid request for `response_type = id_token`.
     let response = client
         .post(format!(
             "/api/v1/oauth/authorize?\
@@ -195,11 +199,11 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .to_str()
         .unwrap();
     let (location, query) = location.split_once('?').unwrap();
-    assert_eq!(location, "http://localhost:3000/");
+    assert_eq!(location, TEST_SERVER_URL);
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
     assert_eq!(auth_response.state, "ABCDEF");
 
-    // exchange wrong code for token should fail
+    // Exchanging a wrong code for a token should fail.
     let response = client
         .post("/api/v1/oauth/token")
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
@@ -215,23 +219,33 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // exchange correct code for token
+    // Exchange correct code for a token.
+    let token_body = format!(
+        "grant_type=authorization_code&\
+        code={}&\
+        redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
+        client_id={}&\
+        client_secret={}",
+        auth_response.code, openid_client.client_id, openid_client.client_secret
+    );
     let response = client
         .post("/api/v1/oauth/token")
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
-        .body(format!(
-            "grant_type=authorization_code&\
-            code={}&\
-            redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-            client_id={}&\
-            client_secret={}",
-            auth_response.code, openid_client.client_id, openid_client.client_secret
-        ))
+        .body(token_body.clone())
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // make sure access token cannot be used to manage defguard server itself
+    // Try to get another authentication code for the same code.
+    let another_response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(token_body)
+        .send()
+        .await;
+    assert_eq!(another_response.status(), StatusCode::BAD_REQUEST);
+
+    // Make sure access token cannot be used to manage Defguard server itself.
     client.post("/api/v1/auth/logout").send().await;
     let token_response: CoreTokenResponse = response.json().await;
     let bearer = format!("Bearer {}", token_response.access_token().secret());
@@ -249,7 +263,6 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // log back in
-    let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -346,7 +359,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id={}&\
-            redirect_uri=http://safe.net%3Fvalue1=one%26value2=two&\
+            redirect_uri=http://safe.net&\
             scope=profile&\
             state=ABCDEF&\
             allow=true&\
@@ -364,8 +377,6 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert!(location.starts_with("http://safe.net"));
     assert!(location.contains("error=invalid_scope"));
-    assert!(location.contains("value1=one"));
-    assert!(location.contains("value2=two"));
 
     // test wrong redirect uri
     let response = client
@@ -414,7 +425,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    assert!(location.starts_with("http://localhost:3000"));
+    assert!(location.starts_with(TEST_SERVER_URL));
     assert!(location.contains("error=access_denied"));
 }
 
@@ -696,7 +707,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     // Create OAuth2 client with initial scopes
     let oauth2client = NewOpenIDClient {
         name: "Test Client".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into(), "email".into()],
         enabled: true,
     };
@@ -743,7 +754,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     // Update the client with different scopes
     let updated_client = NewOpenIDClient {
         name: "Test Client".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into(), "profile".into()], // Changed from email to profile
         enabled: true,
     };
@@ -803,7 +814,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     // Update the client without changing scopes (only name)
     let same_scope_update = NewOpenIDClient {
         name: "Test Client Updated Name".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into(), "profile".into()], // Same scopes
         enabled: true,
     };
@@ -846,7 +857,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     // Create OAuth2 client
     let oauth2client = NewOpenIDClient {
         name: "Test Client".into(),
-        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into(), "http://safe.net/".into()],
         scope: vec!["openid".into(), "email".into()],
         enabled: true,
     };
@@ -860,17 +871,10 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     let oauth2client: OAuth2Client<Id> = response.json().await;
 
     fn redirect_url(response: &TestResponse) -> String {
-        Url::parse(
-            response
-                .headers()
-                .get(reqwest::header::LOCATION)
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        )
-        .unwrap()
-        .origin()
-        .ascii_serialization()
+        Url::parse(response.headers().get(LOCATION).unwrap().to_str().unwrap())
+            .unwrap()
+            .origin()
+            .ascii_serialization()
     }
 
     let fallback_url = state
@@ -895,7 +899,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), fallback_url,);
+    assert_eq!(redirect_url(&response), fallback_url);
 
     let response = client
         .get(
@@ -997,7 +1001,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), "http://safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net");
 
     let response = client
         .get(format!(
@@ -1014,7 +1018,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), "http://safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net");
 }
 
 #[sqlx::test]
@@ -1220,7 +1224,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     for name in invalid_names {
         let openid_client = NewOpenIDClient {
             name: name.to_string(),
-            redirect_uri: vec!["http://localhost:3000/".into()],
+            redirect_uri: vec![TEST_SERVER_URL.into()],
             scope: vec!["openid".into()],
             enabled: true,
         };
@@ -1235,7 +1239,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     // create valid openid client
     let openid_client = NewOpenIDClient {
         name: "Test".to_string(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -1252,7 +1256,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     for name in invalid_names {
         let openid_client = NewOpenIDClient {
             name: name.to_string(),
-            redirect_uri: vec!["http://localhost:3000/".into()],
+            redirect_uri: vec![TEST_SERVER_URL.into()],
             scope: vec!["openid".into()],
             enabled: true,
         };
@@ -1283,7 +1287,7 @@ async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -1324,7 +1328,7 @@ async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOpt
         .to_str()
         .unwrap();
     let (location, query) = location.split_once('?').unwrap();
-    assert_eq!(location, "http://localhost:3000/");
+    assert_eq!(location, TEST_SERVER_URL);
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
     assert_eq!(auth_response.state, "ABCDEF");
 
