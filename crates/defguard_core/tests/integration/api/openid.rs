@@ -359,7 +359,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
             "/api/v1/oauth/authorize?\
             response_type=code&\
             client_id={}&\
-            redirect_uri=http://safe.net%3Fvalue1=one%26value2=two&\
+            redirect_uri=http://safe.net&\
             scope=profile&\
             state=ABCDEF&\
             allow=true&\
@@ -375,10 +375,8 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    assert!(location.starts_with("http://safe.net"), "{location}");
+    assert!(location.starts_with("http://safe.net"));
     assert!(location.contains("error=invalid_scope"));
-    assert!(location.contains("value1=one"));
-    assert!(location.contains("value2=two"));
 
     // test wrong redirect uri
     let response = client

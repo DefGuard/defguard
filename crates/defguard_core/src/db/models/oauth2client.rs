@@ -1,5 +1,4 @@
 use model_derive::Model;
-use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
@@ -105,11 +104,6 @@ impl OAuth2Client<Id> {
 
     /// Checks if `url` matches client config (ignoring trailing slashes).
     pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
-        // Extract origin from `url`.
-        let Ok(url) = Url::parse(url) else {
-            return false;
-        };
-        let url = url.origin().ascii_serialization();
         let url_trimmed = url.trim_end_matches('/');
 
         for redirect in &self.redirect_uri {
@@ -117,6 +111,7 @@ impl OAuth2Client<Id> {
                 return true;
             }
         }
+
         false
     }
 }
@@ -159,7 +154,7 @@ mod tests {
         };
         assert!(oauth2client.contains_redirect_url("http://safe.net"));
         assert!(oauth2client.contains_redirect_url("http://localhost"));
-        assert!(oauth2client.contains_redirect_url("http://safe.net/api"));
+        assert!(!oauth2client.contains_redirect_url("http://safe.net/api"));
         assert!(!oauth2client.contains_redirect_url("http://nonexistent:8000"));
     }
 }
