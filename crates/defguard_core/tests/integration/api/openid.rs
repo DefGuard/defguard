@@ -944,6 +944,74 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 }
 
 #[sqlx::test]
+async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let invalid_names = &[
+        "Test <a href=\"isec.pl\">Click</a>",
+        "Test <a href=\"isec.pl\">Click",
+        "Test <script>alert('xss')</script>",
+        "Test <script>alert('xss')",
+        "Test <img src=x onerror=alert(1)>",
+        "Test <a href=\"javascript:alert(1)\">here</a>",
+        "Test <svg onload=\"alert(1)\"></svg>",
+    ];
+
+    // ensure creation of openid client with name containing HTML is forbidden
+    for name in invalid_names {
+        let openid_client = NewOpenIDClient {
+            name: name.to_string(),
+            redirect_uri: vec!["http://localhost:3000/".into()],
+            scope: vec!["openid".into()],
+            enabled: true,
+        };
+        let response = client
+            .post("/api/v1/oauth")
+            .json(&openid_client)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // create valid openid client
+    let openid_client = NewOpenIDClient {
+        name: "Test".to_string(),
+        redirect_uri: vec!["http://localhost:3000/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&openid_client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let valid_openid_client: OAuth2Client<Id> = response.json().await;
+    assert_eq!(valid_openid_client.name, "Test");
+
+    // ensure edits of openid client with name containing HTML are forbidden
+    for name in invalid_names {
+        let openid_client = NewOpenIDClient {
+            name: name.to_string(),
+            redirect_uri: vec!["http://localhost:3000/".into()],
+            scope: vec!["openid".into()],
+            enabled: true,
+        };
+        let response = client
+            .put(format!("/api/v1/oauth/{}", valid_openid_client.client_id))
+            .json(&openid_client)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+}
+
+#[sqlx::test]
 async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
