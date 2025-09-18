@@ -137,7 +137,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
     // Add the provider (ourselves)
     let provider_data = AddProviderData {
         name: "Custom".into(),
-        base_url: url.into(),
+        base_url: url,
         client_id: openid_client.client_id.clone(),
         client_secret: openid_client.client_secret.clone(),
         display_name: Some("Defguard".to_string()),
