@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, client_id, code, redirect_uri, scope, auth_time, nonce, code_challenge FROM authorization_code WHERE code = $1",
+  "query": "DELETE FROM authorization_code WHERE code = $1 RETURNING id, user_id, client_id, code, redirect_uri, scope, auth_time, nonce, code_challenge",
   "describe": {
     "columns": [
       {
@@ -66,5 +66,5 @@
       true
     ]
   },
-  "hash": "321ce9355db39c3d93d8b915ba7888357f5403c2e9e97fa17e502223bbcc918a"
+  "hash": "27f3c5ea4443993df10ea337195635ad0e24e4855aa42cdceab2712f8c8dbef4"
 }
