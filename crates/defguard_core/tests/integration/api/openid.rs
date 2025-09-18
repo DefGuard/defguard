@@ -103,7 +103,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let (client, state) = make_client_with_state(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -253,7 +253,12 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let fallback_url = "http://localhost:8000";
+    let fallback_url = state
+        .config
+        .url
+        .to_string()
+        .trim_end_matches('/')
+        .to_string();
 
     // check code cannot be reused
     let response = client
@@ -291,7 +296,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .to_str()
         .unwrap();
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert!(location.starts_with(fallback_url));
+    assert!(location.starts_with(&fallback_url));
     assert!(location.contains("error"));
 
     // test invalid redirect uri
@@ -309,7 +314,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert!(location.starts_with(fallback_url));
+    assert!(location.starts_with(&fallback_url));
 
     // test non-whitelisted uri
     let response = client
@@ -332,7 +337,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    assert!(location.starts_with(fallback_url));
+    assert!(location.starts_with(&fallback_url));
     assert!(location.contains("error=access_denied"));
 
     // test whitelisted uri, invalid scope
@@ -384,7 +389,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    assert!(location.starts_with(fallback_url));
+    assert!(location.starts_with(&fallback_url));
     assert!(location.contains("error=access_denied"));
 
     // test allow false

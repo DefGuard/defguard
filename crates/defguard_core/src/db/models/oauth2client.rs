@@ -111,14 +111,13 @@ impl OAuth2Client<Id> {
             .map(|uri| uri.trim_end_matches('/').into())
             .collect();
 
-		// extract origin from url
-		let Ok(url) = Url::parse(url) else {
-			return false;
-		};
-		let url = url.origin().ascii_serialization();
+        // extract origin from url
+        let Ok(url) = Url::parse(url) else {
+            return false;
+        };
+        let url = url.origin().ascii_serialization();
 
-        !url
-            .split(' ')
+        !url.split(' ')
             .map(|uri| uri.trim_end_matches('/'))
             .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
     }
