@@ -427,7 +427,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    assert!(location.starts_with("http://localhost:3000"));
+    assert!(location.starts_with(TEST_SERVER_URL));
     assert!(location.contains("error=access_denied"));
 }
 
@@ -859,7 +859,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     // Create OAuth2 client
     let oauth2client = NewOpenIDClient {
         name: "Test Client".into(),
-        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into(), "http://safe.net/".into()],
         scope: vec!["openid".into(), "email".into()],
         enabled: true,
     };
@@ -1233,7 +1233,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     for name in invalid_names {
         let openid_client = NewOpenIDClient {
             name: name.to_string(),
-            redirect_uri: vec!["http://localhost:3000/".into()],
+            redirect_uri: vec![TEST_SERVER_URL.into()],
             scope: vec!["openid".into()],
             enabled: true,
         };
@@ -1248,7 +1248,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     // create valid openid client
     let openid_client = NewOpenIDClient {
         name: "Test".to_string(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -1265,7 +1265,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
     for name in invalid_names {
         let openid_client = NewOpenIDClient {
             name: name.to_string(),
-            redirect_uri: vec!["http://localhost:3000/".into()],
+            redirect_uri: vec![TEST_SERVER_URL.into()],
             scope: vec!["openid".into()],
             enabled: true,
         };
