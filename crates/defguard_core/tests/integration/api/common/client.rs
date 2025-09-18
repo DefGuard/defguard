@@ -177,7 +177,6 @@ impl RequestBuilder {
 /// non-panicking versions or the complete `Response` API use `into_inner()` or
 /// `as_ref()`.
 #[derive(Debug)]
-
 pub struct TestResponse {
     response: reqwest::Response,
 }
