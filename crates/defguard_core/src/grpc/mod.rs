@@ -3,7 +3,6 @@ use std::{
     fs::read_to_string,
     time::{Duration, Instant},
 };
-#[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, RwLock},
@@ -11,7 +10,6 @@ use std::{
 
 use axum::http::Uri;
 use defguard_common::{VERSION, db::Id};
-#[cfg(feature = "wireguard")]
 use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
@@ -20,7 +18,6 @@ use defguard_version::{
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
-#[cfg(feature = "worker")]
 use sqlx::PgPool;
 use tokio::{
     sync::{
@@ -38,7 +35,6 @@ use tonic::{
 };
 use tower::ServiceBuilder;
 
-#[cfg(feature = "wireguard")]
 use self::gateway::{GatewayServer, gateway_service_server::GatewayServiceServer};
 use self::{
     auth::{AuthServer, auth_service_server::AuthServiceServer},
@@ -47,14 +43,11 @@ use self::{
     password_reset::PasswordResetServer,
     proto::proxy::core_response,
 };
-#[cfg(feature = "worker")]
 use self::{
     interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
     worker::WorkerServer,
 };
-#[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
-#[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
     auth::failed_login::FailedLoginMap,
@@ -84,13 +77,10 @@ static VERSION_ZERO: Version = Version::new(0, 0, 0);
 mod auth;
 pub(crate) mod client_mfa;
 pub mod enrollment;
-#[cfg(feature = "wireguard")]
 pub mod gateway;
-#[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
 pub(crate) mod utils;
-#[cfg(feature = "worker")]
 pub mod worker;
 
 pub mod proto {
@@ -733,7 +723,6 @@ pub async fn build_grpc_service_router(
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
-    #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
         JwtInterceptor::new(ClaimsType::YubiBridge),
@@ -750,7 +739,6 @@ pub async fn build_grpc_service_router(
         .add_service(health_service)
         .add_service(auth_service);
 
-    #[cfg(feature = "wireguard")]
     let router = {
         use crate::version::GatewayVersionInterceptor;
 
@@ -777,13 +765,11 @@ pub async fn build_grpc_service_router(
         )
     };
 
-    #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
 
     Ok(router)
 }
 
-#[cfg(feature = "worker")]
 pub struct Job {
     id: u32,
     first_name: String,
@@ -792,7 +778,6 @@ pub struct Job {
     username: String,
 }
 
-#[cfg(feature = "worker")]
 #[derive(Serialize)]
 pub struct JobResponse {
     pub success: bool,
@@ -802,14 +787,12 @@ pub struct JobResponse {
     pub username: String,
 }
 
-#[cfg(feature = "worker")]
 pub struct WorkerInfo {
     last_seen: Instant,
     ip: IpAddr,
     jobs: Vec<Job>,
 }
 
-#[cfg(feature = "worker")]
 pub struct WorkerState {
     current_job_id: u32,
     workers: HashMap<String, WorkerInfo>,
@@ -817,7 +800,6 @@ pub struct WorkerState {
     webhook_tx: UnboundedSender<AppEvent>,
 }
 
-#[cfg(feature = "worker")]
 #[derive(Deserialize, Serialize)]
 pub struct WorkerDetail {
     id: String,

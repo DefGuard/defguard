@@ -3,11 +3,8 @@ pub mod device;
 pub mod enrollment;
 pub mod error;
 pub mod group;
-#[cfg(feature = "openid")]
 pub mod oauth2authorizedapp;
-#[cfg(feature = "openid")]
 pub mod oauth2client;
-#[cfg(feature = "openid")]
 pub mod oauth2token;
 pub mod polling_token;
 pub mod session;
@@ -31,7 +28,6 @@ use self::{
 };
 use super::Group;
 
-#[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
 pub struct NewOpenIDClient {
     pub name: String,

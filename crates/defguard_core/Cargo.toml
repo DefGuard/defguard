@@ -32,7 +32,7 @@ jsonwebtoken = { workspace = true }
 ldap3 = { workspace = true }
 lettre = { workspace = true }
 md4 = { workspace = true }
-openidconnect = { version = "4.0", default-features = false, optional = true, features = [
+openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
 ] }
 parse_link_header = { workspace = true }
@@ -106,9 +106,3 @@ webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
 tonic-prost-build = "0.14"
-
-[features]
-default = ["openid", "wireguard", "worker"]
-openid = ["dep:openidconnect"]
-worker = []
-wireguard = []

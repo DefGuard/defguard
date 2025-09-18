@@ -83,18 +83,15 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-#[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
     delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
     list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
     network_stats, remove_gateway,
 };
-#[cfg(feature = "worker")]
 use self::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
-#[cfg(feature = "openid")]
 use self::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
@@ -144,7 +141,6 @@ use self::{
     },
     mail::Mail,
 };
-#[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
@@ -537,7 +533,6 @@ pub fn build_webapp(
             ),
     );
 
-    #[cfg(feature = "openid")]
     let webapp = webapp
         .nest(
             "/api/v1/oauth",
@@ -581,7 +576,6 @@ pub fn build_webapp(
             .route("/alias/apply", put(apply_acl_aliases)),
     );
 
-    #[cfg(feature = "wireguard")]
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
@@ -655,7 +649,6 @@ pub fn build_webapp(
             .layer(Extension(gateway_state)),
     );
 
-    #[cfg(feature = "worker")]
     let webapp = webapp.nest(
         "/api/v1/worker",
         Router::new()
@@ -830,7 +823,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not assign IP to device");
     }
 
-    #[cfg(feature = "openid")]
     for app_id in 1..=3 {
         OAuth2Client::new(
             vec![format!("https://app-{app_id}.com")],

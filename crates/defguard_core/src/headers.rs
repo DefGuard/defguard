@@ -89,7 +89,6 @@ fn get_user_agent_device_login_data(
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn check_new_device_login(
     pool: &PgPool,
     mail_tx: &UnboundedSender<Mail>,

@@ -399,7 +399,6 @@ where
                 None
             }
         }) {
-            // TODO: #[cfg(feature = "openid")]
             match OAuth2Token::find_access_token(&appstate.pool, token).await {
                 Ok(Some(oauth2token)) => {
                     match OAuth2AuthorizedApp::find_by_id(
