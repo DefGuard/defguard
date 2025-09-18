@@ -1,11 +1,13 @@
 use chrono::NaiveDateTime;
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{AuthenticationKey, AuthenticationKeyType},
+};
 
 use crate::{
     db::{
         Device, Group, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{
-            authentication_key::{AuthenticationKey, AuthenticationKeyType},
             oauth2client::OAuth2Client,
             settings::{OpenidUsernameHandling, SmtpEncryption},
         },
