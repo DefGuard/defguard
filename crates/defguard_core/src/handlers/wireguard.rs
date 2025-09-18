@@ -11,7 +11,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::Id;
+use defguard_common::{csv::AsCsv, db::Id};
 use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
@@ -21,7 +21,6 @@ use uuid::Uuid;
 
 use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
-    AsCsv,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{

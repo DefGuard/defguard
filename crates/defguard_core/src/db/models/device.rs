@@ -4,7 +4,10 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{Id, NoId, models::ModelError};
+use defguard_common::{
+    csv::AsCsv,
+    db::{Id, NoId, models::ModelError},
+};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
@@ -23,7 +26,7 @@ use utoipa::ToSchema;
 use super::wireguard::{
     LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork,
 };
-use crate::{AsCsv, KEY_LENGTH, db::User};
+use crate::{KEY_LENGTH, db::User};
 
 #[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {

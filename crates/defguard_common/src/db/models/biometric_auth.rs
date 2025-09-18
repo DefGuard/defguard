@@ -121,6 +121,12 @@ fn decode_pub_key(public_key: &str) -> Result<VerifyingKey, BiometricAuthError> 
     Ok(verifying_key)
 }
 
+impl Default for BiometricChallenge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BiometricChallenge {
     pub fn new_with_owner(pub_key: &str) -> Result<Self, BiometricAuthError> {
         let _ = decode_pub_key(pub_key)?;

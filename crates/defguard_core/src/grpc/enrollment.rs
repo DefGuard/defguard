@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 
-use defguard_common::db::{
-    Id,
-    models::{BiometricAuth, MFAMethod, Settings},
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{BiometricAuth, MFAMethod, Settings},
+    },
 };
 use defguard_mail::{
     Mail,
@@ -17,7 +20,6 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    AsCsv,
     db::{
         Device, GatewayEvent, User, WireguardNetwork,
         models::{

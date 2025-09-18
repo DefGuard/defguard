@@ -1,12 +1,14 @@
 use std::{net::IpAddr, str::FromStr};
 
-use defguard_common::db::{Id, models::Settings};
+use defguard_common::{
+    csv::AsCsv,
+    db::{Id, models::Settings},
+};
 use sqlx::PgPool;
 use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    AsCsv,
     db::{
         Device, User,
         models::{

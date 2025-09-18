@@ -930,24 +930,6 @@ pub async fn init_vpn_location(
     Ok(token)
 }
 
-pub trait AsCsv {
-    fn as_csv(&self) -> String;
-}
-
-impl<T, I> AsCsv for I
-where
-    I: ?Sized + std::iter::IntoIterator<Item = T>,
-    for<'a> &'a I: IntoIterator<Item = &'a T>,
-    T: ToString,
-{
-    fn as_csv(&self) -> String {
-        self.into_iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
-
 pub(crate) fn is_valid_phone_number(number: &str) -> bool {
     PHONE_NUMBER_REGEX.is_match(number)
 }

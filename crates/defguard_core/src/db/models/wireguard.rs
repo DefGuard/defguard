@@ -7,7 +7,10 @@ use std::{
 
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{Id, NoId, models::ModelError};
+use defguard_common::{
+    csv::AsCsv,
+    db::{Id, NoId, models::ModelError},
+};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
@@ -29,7 +32,6 @@ use super::{
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    AsCsv,
     auth::{Claims, ClaimsType},
     enterprise::firewall::FirewallError,
     grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
