@@ -1192,7 +1192,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
     assert!(claims.phone_number().is_none());
 }
 
-// #[sqlx::test]
+#[sqlx::test]
 async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
