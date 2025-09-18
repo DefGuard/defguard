@@ -296,10 +296,11 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{User, setup_pool};
+    use crate::db::User;
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {

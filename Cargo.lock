@@ -1066,6 +1066,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "defguard_common",
  "defguard_core",
  "defguard_event_logger",
  "defguard_event_router",
@@ -1084,6 +1085,7 @@ dependencies = [
  "secrecy",
  "serde",
  "sqlx",
+ "tracing",
 ]
 
 [[package]]

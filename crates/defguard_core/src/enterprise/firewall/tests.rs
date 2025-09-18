@@ -1,6 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
+use defguard_common::db::setup_pool;
 use ipnetwork::{IpNetwork, Ipv6Network};
 use rand::{Rng, thread_rng};
 use sqlx::{
@@ -17,7 +18,6 @@ use crate::{
     db::{
         Device, Group, Id, NoId, User, WireguardNetwork,
         models::device::{DeviceType, WireguardNetworkDevice},
-        setup_pool,
     },
     enterprise::{
         db::models::acl::{

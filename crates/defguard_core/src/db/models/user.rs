@@ -1308,13 +1308,12 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
+    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
     use crate::{
-        SERVER_CONFIG,
-        config::DefGuardConfig,
-        db::{models::settings::initialize_current_settings, setup_pool},
+        SERVER_CONFIG, config::DefGuardConfig, db::models::settings::initialize_current_settings,
     };
 
     #[sqlx::test]

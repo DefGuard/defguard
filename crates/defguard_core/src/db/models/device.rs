@@ -1010,10 +1010,11 @@ mod test {
     use std::str::FromStr;
 
     use claims::{assert_err, assert_ok};
+    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{User, setup_pool};
+    use crate::db::User;
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

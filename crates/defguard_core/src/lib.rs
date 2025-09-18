@@ -15,6 +15,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_common::db::init_db;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
@@ -108,7 +109,7 @@ use self::{
     auth::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork, init_db,
+        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
     },
     handlers::{
@@ -178,10 +179,6 @@ extern crate tracing;
 
 #[macro_use]
 extern crate serde;
-
-// helper for easier migration handling with a custom `migration` folder location
-// reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature
-pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
 
 pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA"));
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();

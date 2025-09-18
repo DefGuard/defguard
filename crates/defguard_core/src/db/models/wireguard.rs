@@ -1419,11 +1419,12 @@ mod test {
     use std::str::FromStr;
 
     use chrono::{SubsecRound, TimeDelta};
+    use defguard_common::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{Group, setup_pool};
+    use crate::db::Group;
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {

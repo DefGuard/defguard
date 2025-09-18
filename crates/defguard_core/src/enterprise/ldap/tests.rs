@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use defguard_common::db::setup_pool;
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -8,7 +9,6 @@ use crate::{
     db::{
         Group, User,
         models::settings::{Settings, initialize_current_settings, update_current_settings},
-        setup_pool,
     },
     enterprise::ldap::{
         model::extract_rdn_value,

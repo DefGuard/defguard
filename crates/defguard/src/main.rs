@@ -4,14 +4,12 @@ use std::{
 };
 
 use bytes::Bytes;
+use defguard_common::db::init_db;
 use defguard_core::{
     SERVER_CONFIG, VERSION,
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{
-        AppEvent, GatewayEvent, Settings, User, init_db,
-        models::settings::initialize_current_settings,
-    },
+    db::{AppEvent, GatewayEvent, Settings, User, models::settings::initialize_current_settings},
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},

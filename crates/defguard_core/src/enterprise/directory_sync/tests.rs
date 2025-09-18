@@ -2,6 +2,7 @@
 mod test {
     use std::str::FromStr;
 
+    use defguard_common::db::setup_pool;
     use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -17,7 +18,6 @@ mod test {
                 device::DeviceType, settings::initialize_current_settings,
                 wireguard::LocationMfaMode,
             },
-            setup_pool,
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
     };
