@@ -294,22 +294,22 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(location.starts_with(fallback_url));
     assert!(location.contains("error"));
 
-    // // test invalid redirect uri
-    // let response = client
-    //     .post(format!(
-    //         "/api/v1/oauth/authorize?\
-    //         response_type=code&\
-    //         client_id={}&\
-    //         redirect_uri=http%3A%2F%example%3A3000%2F&\
-    //         scope=openid&\
-    //         state=ABCDEF&\
-    //         nonce=blabla",
-    //         openid_client.client_id
-    //     ))
-    //     .send()
-    //     .await;
-    // assert_eq!(response.status(), StatusCode::FOUND);
-    // assert!(location.starts_with(fallback_url));
+    // test invalid redirect uri
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%example%3A3000%2F&\
+            scope=openid&\
+            state=ABCDEF&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert!(location.starts_with(fallback_url));
 
     // test non-whitelisted uri
     let response = client
