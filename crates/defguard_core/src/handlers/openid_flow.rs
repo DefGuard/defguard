@@ -324,7 +324,7 @@ async fn generate_auth_code_redirect(
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
         }
-    };
+    }
 
     Ok(url.to_string())
 }
@@ -412,7 +412,8 @@ pub async fn authorization(
                                 // If session expired return login
                                 if session.expired() {
                                     info!(
-                                        "Session {} for user id {} has expired, redirecting to login",
+                                        "Session {} for user id {} has expired, redirecting to \
+                                        login",
                                         session.id, session.user_id
                                     );
                                     let _result = session.delete(&appstate.pool).await;
@@ -427,8 +428,9 @@ pub async fn authorization(
 
                                     user.verify_mfa_state(&appstate.pool).await?;
 
-                                    // Session exists even if user hasn't completed MFA verification yet,
-                                    // thus we need to check if MFA is enabled and the verification is done.
+                                    // Session exists even if user hasn't completed MFA verification
+                                    // yet, thus we need to check if MFA is enabled and the
+                                    // verification is done.
                                     if user.mfa_enabled
                                         && session.state != SessionState::MultiFactorVerified
                                     {
@@ -439,8 +441,9 @@ pub async fn authorization(
                                         return Ok(login_redirect(&data, private_cookies));
                                     }
 
-                                    // If session is present check if app is in user authorized apps.
-                                    // If yes return auth code and state else redirect to consent form.
+                                    // If session is present check if app is in user authorized
+                                    // apps. If yes, return auth code and state else redirect to
+                                    // consent form.
                                     if let Some(app) =
                                         OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                             &appstate.pool,
@@ -450,7 +453,8 @@ pub async fn authorization(
                                         .await?
                                     {
                                         info!(
-                                            "OAuth client id {} authorized by user id {}, returning auth code",
+                                            "OAuth client id {} authorized by user id {}, \
+                                            returning auth code",
                                             app.oauth2client_id, session.user_id
                                         );
                                         let private_cookies = private_cookies
@@ -465,7 +469,8 @@ pub async fn authorization(
                                     } else {
                                         // If authorized app not found redirect to consent form
                                         info!(
-                                            "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
+                                            "OAuth client id {} not yet authorized by user id {}, \
+                                            redirecting to consent form",
                                             oauth2client.id, session.user_id
                                         );
                                         Ok(redirect_to(
@@ -478,7 +483,7 @@ pub async fn authorization(
                                     }
                                 }
                             } else {
-                                // If session is not present in db redirect to login
+                                // If session is not present in database, redirect to login.
                                 info!(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
@@ -878,7 +883,8 @@ pub async fn token(
                                 }
                             }
                             error!(
-                                "Can't issue token - authorized app not found for user {}, client {}",
+                                "Can't issue token - authorized app not found for user {}, client \
+                                {}",
                                 user.username, client.name
                             );
                         } else {
