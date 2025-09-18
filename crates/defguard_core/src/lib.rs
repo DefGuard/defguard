@@ -17,6 +17,7 @@ use axum::{
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_common::{
     VERSION,
+    auth::claims::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
     db::init_db,
 };
@@ -108,7 +109,6 @@ use self::handlers::{
 };
 use self::{
     appstate::AppState,
-    auth::{Claims, ClaimsType},
     db::{
         AppEvent, Device, GatewayEvent, User, WireguardNetwork,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},

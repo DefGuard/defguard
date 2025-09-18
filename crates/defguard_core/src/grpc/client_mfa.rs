@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use defguard_common::db::{
-    Id,
-    models::{BiometricAuth, BiometricChallenge},
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    db::{
+        Id,
+        models::{BiometricAuth, BiometricChallenge},
+    },
 };
 use defguard_mail::Mail;
 use sqlx::PgPool;
@@ -15,7 +18,6 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use crate::{
-    auth::{Claims, ClaimsType},
     db::{
         Device, GatewayEvent, User, UserInfo, WireguardNetwork,
         models::{

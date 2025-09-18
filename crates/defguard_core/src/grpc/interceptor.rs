@@ -1,9 +1,7 @@
+use defguard_common::auth::claims::{Claims, ClaimsType};
 use tonic::{Status, service::Interceptor};
 
-use crate::{
-    auth::{Claims, ClaimsType},
-    grpc::{AUTHORIZATION_HEADER, HOSTNAME_HEADER},
-};
+use crate::grpc::{AUTHORIZATION_HEADER, HOSTNAME_HEADER};
 
 /// Auth interceptor used by gRPC services. Verifies JWT token sent
 /// in gRPC metadata under "authorization" key.

@@ -1089,6 +1089,7 @@ dependencies = [
  "ed25519-dalek",
  "humantime",
  "ipnetwork",
+ "jsonwebtoken",
  "matches",
  "model_derive",
  "openidconnect",

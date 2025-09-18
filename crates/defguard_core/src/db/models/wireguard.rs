@@ -8,6 +8,7 @@ use std::{
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
     csv::AsCsv,
     db::{Id, NoId, models::ModelError},
 };
@@ -32,7 +33,6 @@ use super::{
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    auth::{Claims, ClaimsType},
     enterprise::firewall::FirewallError,
     grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,

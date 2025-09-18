@@ -17,6 +17,7 @@ clap.workspace = true
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 humantime.workspace = true
 ipnetwork.workspace = true
+jsonwebtoken.workspace = true
 openidconnect.workspace = true
 rand.workspace = true
 reqwest.workspace = true

@@ -11,6 +11,7 @@ use std::{
 use axum::http::Uri;
 use defguard_common::{
     VERSION,
+    auth::claims::ClaimsType,
     db::{Id, models::Settings},
 };
 use defguard_mail::Mail;
@@ -45,8 +46,8 @@ use self::{
     password_reset::PasswordResetServer,
 };
 use self::{interceptor::JwtInterceptor, worker::WorkerServer};
+use crate::db::GatewayEvent;
 pub use crate::version::MIN_GATEWAY_VERSION;
-use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
