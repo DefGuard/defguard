@@ -20,6 +20,8 @@ use totp_lite::{Sha1, totp_custom};
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
+use crate::api::common::client::TestResponse;
+
 use super::common::{
     X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
     make_test_client, setup_pool,
@@ -96,6 +98,57 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         }
     }
+}
+
+#[sqlx::test]
+async fn dg25_21_test_login_enumeration(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let user_auth = Auth::new("hpotter", "pass123");
+    let admin_auth = Auth::new("admin", "pass123");
+
+    let response = client.post("/api/v1/auth").json(&admin_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    async fn responses_eq(response1: TestResponse, response2: TestResponse) -> bool {
+        // omit date header
+        let mut headers1 = response1.headers().clone();
+        headers1.remove("date");
+        let mut headers2 = response2.headers().clone();
+        headers2.remove("date");
+        let headers = headers1 == headers2;
+
+        let status = response1.status() == response2.status();
+        let body = response1.bytes().await == response2.bytes().await;
+
+        status && headers && body
+    }
+
+    // regular user
+    let user_auth = Auth::new("hpotter", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("nothpotter", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
+
+    // admin user
+    let user_auth = Auth::new("admin", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("notadmin", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
+
+    // response for admin = response for regular user
+    let user_auth = Auth::new("admin", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("hpotter", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
 }
 
 #[sqlx::test]
