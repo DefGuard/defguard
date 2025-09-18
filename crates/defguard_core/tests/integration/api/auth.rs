@@ -604,7 +604,7 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     let (client, pool) = make_client_with_db(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -723,7 +723,7 @@ async fn test_cannot_skip_security_key_by_adding_yubikey(
     let client = make_client(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -806,7 +806,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey(
 
     // WebAuthn registration
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     let response = client.post("/api/v1/auth/webauthn/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
