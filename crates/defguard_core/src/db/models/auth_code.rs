@@ -1,11 +1,9 @@
 use chrono::Utc;
+use defguard_common::random::gen_alphanumeric;
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgPool, query_as};
 
-use crate::{
-    db::{Id, NoId},
-    random::gen_alphanumeric,
-};
+use crate::db::{Id, NoId};
 
 #[derive(Model, Clone)]
 #[table(authorization_code)]

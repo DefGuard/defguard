@@ -6,8 +6,8 @@ use strum_macros::{Display, EnumString};
 use crate::{
     db::{Id, NoId},
     enterprise::activity_log_stream::error::ActivityLogStreamError,
-    secret::SecretStringWrapper,
 };
+use defguard_common::secret::SecretStringWrapper;
 
 #[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]

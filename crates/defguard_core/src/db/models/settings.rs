@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use defguard_common::secret::SecretStringWrapper;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{enterprise::ldap::sync::SyncStatus, global_value, secret::SecretStringWrapper};
+use crate::{enterprise::ldap::sync::SyncStatus, global_value};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 

@@ -3,10 +3,8 @@ use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
-use crate::{
-    db::{Id, NoId},
-    random::gen_alphanumeric,
-};
+use crate::db::{Id, NoId};
+use defguard_common::random::gen_alphanumeric;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]
 pub struct OAuth2Client<I = NoId> {

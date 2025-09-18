@@ -164,8 +164,6 @@ pub mod handlers;
 pub mod headers;
 pub mod hex;
 pub mod mail;
-pub(crate) mod random;
-pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod updates;

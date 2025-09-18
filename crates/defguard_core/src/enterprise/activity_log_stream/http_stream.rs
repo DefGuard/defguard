@@ -2,16 +2,14 @@ use std::sync::Arc;
 
 use base64::prelude::{BASE64_STANDARD, Engine};
 use bytes::Bytes;
+use defguard_common::secret::SecretStringWrapper;
 use reqwest::tls;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error};
 
-use crate::{
-    enterprise::db::models::activity_log_stream::{
-        LogstashHttpActivityLogStream, VectorHttpActivityLogStream,
-    },
-    secret::SecretStringWrapper,
+use crate::enterprise::db::models::activity_log_stream::{
+    LogstashHttpActivityLogStream, VectorHttpActivityLogStream,
 };
 
 /// Spawns an asynchronous task that reads activity log events from the channel and sends them as NDJSON via HTTP.

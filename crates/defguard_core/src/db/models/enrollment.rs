@@ -1,4 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_common::random::gen_alphanumeric;
 use reqwest::Url;
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
@@ -11,7 +12,6 @@ use crate::{
     VERSION,
     db::Id,
     mail::Mail,
-    random::gen_alphanumeric,
     server_config,
     templates::{self, TemplateError, safe_tera},
 };

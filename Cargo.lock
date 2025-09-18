@@ -1077,6 +1077,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard_common"
+version = "0.0.0"
+dependencies = [
+ "rand 0.8.5",
+ "secrecy",
+ "serde",
+ "sqlx",
+]
+
+[[package]]
 name = "defguard_core"
 version = "1.5.0"
 dependencies = [
@@ -1092,6 +1102,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
+ "defguard_common",
  "defguard_version",
  "defguard_web_ui",
  "ed25519-dalek",

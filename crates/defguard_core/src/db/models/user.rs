@@ -39,9 +39,9 @@ use crate::{
         gateway::{send_multiple_wireguard_events, send_wireguard_event},
         proto::proxy::MfaMethod,
     },
-    random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
+use defguard_common::random::{gen_alphanumeric, gen_totp_secret};
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
