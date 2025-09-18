@@ -1,4 +1,5 @@
 use model_derive::Model;
+use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
@@ -109,9 +110,14 @@ impl OAuth2Client<Id> {
             .iter()
             .map(|uri| uri.trim_end_matches('/').into())
             .collect();
-        !url.split(' ')
+        eprintln!("parsed uris: {parsed_redirect_uris:?}, url: {url}");
+		let url = Url::parse(url).expect("Failed to parse url").origin().ascii_serialization();
+        let contains = !url
+            .split(' ')
             .map(|uri| uri.trim_end_matches('/'))
-            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
+            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri));
+        eprintln!("contains: {contains}");
+        contains
     }
 }
 

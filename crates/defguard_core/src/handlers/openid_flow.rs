@@ -548,11 +548,12 @@ pub async fn secure_authorization(
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let error;
     let mut is_redirect_allowed = false;
-    if data.allow {
-        if let Some(oauth2client) =
-            OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
-        {
-            is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
+    if let Some(oauth2client) =
+        OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
+    {
+        is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
+        eprintln!("is_redirect_allowed: {is_redirect_allowed}");
+        if data.allow {
             match data.validate_for_client(&oauth2client) {
                 Ok(()) => {
                     if OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
@@ -596,24 +597,27 @@ pub async fn secure_authorization(
                 }
             }
         } else {
-            error!(
-                "User {} tried to log in with non-existent OIDC client id {}",
+            info!(
+                "User {} denied OIDC login with app id {}",
                 session_info.user.username, data.client_id
             );
-            error = CoreAuthErrorResponseType::UnauthorizedClient;
+            error = CoreAuthErrorResponseType::AccessDenied;
         }
     } else {
-        info!(
-            "User {} denied OIDC login with app id {}",
+        eprintln!("is_redirect_allowed 2: {is_redirect_allowed}");
+        error!(
+            "User {} tried to log in with non-existent OIDC client id {}",
             session_info.user.username, data.client_id
         );
-        error = CoreAuthErrorResponseType::AccessDenied;
+        error = CoreAuthErrorResponseType::UnauthorizedClient;
     }
 
     let mut url = if is_redirect_allowed {
+        eprintln!("redirect allowed");
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
     } else {
         // Don't allow open redirects (DG25-17)
+        eprintln!("redirect NOT allowed (secure)");
         server_config().url.clone()
     };
     {
