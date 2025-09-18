@@ -19,12 +19,14 @@ use openidconnect::{
     http::Method,
 };
 use reqwest::{
-    StatusCode,
+    StatusCode, Url,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, USER_AGENT},
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::api::common::client::TestResponse;
 
 use super::common::{
     client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
@@ -101,13 +103,13 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let (client, state) = make_client_with_state(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec!["http://localhost:3000/".into()],
+        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -251,6 +253,13 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    let fallback_url = state
+        .config
+        .url
+        .to_string()
+        .trim_end_matches('/')
+        .to_string();
+
     // check code cannot be reused
     let response = client
         .post("/api/v1/oauth/token")
@@ -286,34 +295,39 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert!(location.starts_with(&fallback_url));
     assert!(location.contains("error"));
 
-    // test wrong invalid uri
+    // test invalid redirect uri
     let response = client
-        .post(
+        .post(format!(
             "/api/v1/oauth/authorize?\
             response_type=code&\
-            client_id=1&\
+            client_id={}&\
             redirect_uri=http%3A%2F%example%3A3000%2F&\
             scope=openid&\
             state=ABCDEF&\
             nonce=blabla",
-        )
+            openid_client.client_id
+        ))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert!(location.starts_with(&fallback_url));
 
-    // test wrong redirect uri
+    // test non-whitelisted uri
     let response = client
-        .post(
+        .post(format!(
             "/api/v1/oauth/authorize?\
             response_type=code&\
-            client_id=1&\
+            client_id={}&\
             redirect_uri=http%3A%2F%2Fexample%3A3000%3Fvalue1=one%26value2=two&\
             scope=openid&\
             state=ABCDEF&\
             nonce=blabla",
-        )
+            openid_client.client_id
+        ))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
@@ -323,9 +337,60 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
+    assert!(location.starts_with(&fallback_url));
     assert!(location.contains("error=access_denied"));
-    assert!(location.contains("value1="));
-    assert!(location.contains("value2="));
+
+    // test whitelisted uri, invalid scope
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://safe.net%3Fvalue1=one%26value2=two&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(location.starts_with("http://safe.net"));
+    assert!(location.contains("error=invalid_scope"));
+    assert!(location.contains("value1=one"));
+    assert!(location.contains("value2=two"));
+
+    // test wrong redirect uri
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Fexample%3A3000%3Fvalue1=one%26value2=two&\
+            scope=openid&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            openid_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(location.starts_with(&fallback_url));
+    assert!(location.contains("error=access_denied"));
 
     // test allow false
     let response = client
@@ -349,6 +414,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
+    assert!(location.starts_with("http://localhost:3000"));
     assert!(location.contains("error=access_denied"));
 }
 
@@ -761,6 +827,194 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
         authorized_app_preserved.is_some(),
         "Authorization should be preserved when scopes don't change"
     );
+}
+
+#[sqlx::test]
+async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_client_with_state(pool).await;
+    let _admin = User::find_by_username(&state.pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Authenticate admin
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create OAuth2 client
+    let oauth2client = NewOpenIDClient {
+        name: "Test Client".into(),
+        redirect_uri: vec!["http://localhost:3000/".into(), "http://safe.net/".into()],
+        scope: vec!["openid".into(), "email".into()],
+        enabled: true,
+    };
+
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+
+    fn redirect_url(response: &TestResponse) -> String {
+        Url::parse(
+            response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap()
+        .origin()
+        .ascii_serialization()
+    }
+
+    let fallback_url = state
+        .config
+        .url
+        .to_string()
+        .trim_end_matches('/')
+        .to_string();
+
+    // Try to authorize with allowed redirect url - invalid client id
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://localhost:3000&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url,);
+
+    let response = client
+        .get(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://localhost:3000&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url);
+
+    // Try to authorize with forbidden redirect url - invalid client id
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://isec.pl&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url);
+
+    let response = client
+        .get(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id=xxx&\
+            redirect_uri=http://isec.pl&\
+            scope=openid email&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url);
+
+    // Try to authorize with forbidden redirect url - invalid scope
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://isec.pl&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url);
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://isec.pl&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), fallback_url);
+
+    // Same with allowed redirect_uri
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://safe.net&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), "http://safe.net",);
+
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http://safe.net&\
+            scope=profile&\
+            state=ABCDEF&\
+            allow=true&\
+            nonce=blabla",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(redirect_url(&response), "http://safe.net",);
 }
 
 #[sqlx::test]

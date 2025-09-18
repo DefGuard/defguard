@@ -1,4 +1,5 @@
 use model_derive::Model;
+use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
@@ -100,6 +101,25 @@ impl OAuth2Client<Id> {
         )
         .fetch_optional(pool)
         .await
+    }
+
+    /// Checks if `url` matches client config (ignoring trailing slashes)
+    pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
+        let parsed_redirect_uris: Vec<String> = self
+            .redirect_uri
+            .iter()
+            .map(|uri| uri.trim_end_matches('/').into())
+            .collect();
+
+        // extract origin from url
+        let Ok(url) = Url::parse(url) else {
+            return false;
+        };
+        let url = url.origin().ascii_serialization();
+
+        !url.split(' ')
+            .map(|uri| uri.trim_end_matches('/'))
+            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
     }
 }
 
