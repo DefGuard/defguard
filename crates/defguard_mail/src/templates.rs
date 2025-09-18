@@ -408,7 +408,7 @@ mod test {
 
     #[test]
     fn test_enrollment_start_mail() {
-        let _ = SERVER_CONFIG.set(DefGuardConfig::default());
+        let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
