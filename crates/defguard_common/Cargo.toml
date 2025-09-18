@@ -10,13 +10,20 @@ rust-version.workspace = true
 [dependencies]
 model_derive.workspace = true
 
+base64.workspace = true
 chrono.workspace = true
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 rand.workspace = true
 secrecy.workspace = true
 serde.workspace = true
 sqlx.workspace = true
+thiserror.workspace = true
+tonic.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
+
+[dev-dependencies]
+matches.workspace = true
 
 [build-dependencies]
 vergen-git2 = { version = "1.0", features = ["build"] }

@@ -1,5 +1,4 @@
 pub mod activity_log;
-pub mod biometric_auth;
 pub mod device;
 pub mod device_login;
 pub mod enrollment;
@@ -23,7 +22,7 @@ pub mod yubikey;
 
 use std::collections::HashSet;
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::BiometricAuth};
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
@@ -32,7 +31,6 @@ use self::{
     user::{MFAMethod, User},
 };
 use super::Group;
-use crate::db::models::biometric_auth::BiometricAuth;
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]

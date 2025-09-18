@@ -1,11 +1,13 @@
 use base64::{Engine, engine::general_purpose, prelude::BASE64_STANDARD};
-use defguard_common::random::gen_alphanumeric;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use model_derive::Model;
 use sqlx::{PgExecutor, query, query_as};
 use thiserror::Error;
 
-use defguard_common::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    random::gen_alphanumeric,
+};
 
 #[derive(Error, Debug)]
 pub enum BiometricAuthError {
@@ -55,7 +57,7 @@ impl BiometricAuth {
 }
 
 impl BiometricAuth<Id> {
-    pub(crate) async fn find_by_device_id<'e, E>(
+    pub async fn find_by_device_id<'e, E>(
         executor: E,
         device_id: Id,
     ) -> Result<Option<Self>, sqlx::Error>
@@ -71,7 +73,7 @@ impl BiometricAuth<Id> {
         .await
     }
 
-    pub(crate) async fn verify_owner<'e, E>(
+    pub async fn verify_owner<'e, E>(
         executor: E,
         user_id: Id,
         pub_key: &str,
@@ -89,10 +91,7 @@ impl BiometricAuth<Id> {
         Ok(q_result.is_some())
     }
 
-    pub(crate) async fn find_by_user_id<'e, E>(
-        executor: E,
-        user_id: Id,
-    ) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> Result<Vec<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {

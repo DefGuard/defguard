@@ -1081,12 +1081,17 @@ dependencies = [
 name = "defguard_common"
 version = "1.5.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
+ "ed25519-dalek",
+ "matches",
  "model_derive",
  "rand 0.8.5",
  "secrecy",
  "serde",
  "sqlx",
+ "thiserror 2.0.16",
+ "tonic",
  "tracing",
  "utoipa",
  "vergen-git2",
@@ -1111,7 +1116,6 @@ dependencies = [
  "defguard_common",
  "defguard_version",
  "defguard_web_ui",
- "ed25519-dalek",
  "humantime",
  "hyper-util",
  "ipnetwork",

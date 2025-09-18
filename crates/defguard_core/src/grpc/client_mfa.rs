@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{BiometricAuth, BiometricChallenge},
+};
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -19,7 +22,6 @@ use crate::{
     db::{
         Device, GatewayEvent, User, UserInfo, WireguardNetwork,
         models::{
-            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
             wireguard::LocationMfaMode,
         },

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::BiometricAuth};
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -21,7 +21,6 @@ use crate::{
     db::{
         Device, GatewayEvent, MFAMethod, Settings, User, WireguardNetwork,
         models::{
-            biometric_auth::BiometricAuth,
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
