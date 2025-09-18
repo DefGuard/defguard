@@ -571,7 +571,7 @@ pub async fn secure_authorization(
                             &session_info.user.email,
                             oauth2client.name.to_string(),
                             &appstate.mail_tx,
-                            &session_info.session,
+                            &session_info.session.into(),
                         )
                         .await?;
                     }

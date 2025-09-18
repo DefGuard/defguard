@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
-use defguard_common::db::models::ModelError;
+use defguard_common::db::models::{ModelError, settings::SettingsValidationError};
+use defguard_mail::templates::TemplateError;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -7,17 +8,13 @@ use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
-    db::models::{
-        device::DeviceError, enrollment::TokenError, settings::SettingsValidationError,
-        wireguard::WireguardNetworkError,
-    },
+    db::models::{device::DeviceError, enrollment::TokenError, wireguard::WireguardNetworkError},
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
     grpc::gateway::map::GatewayMapError,
-    templates::TemplateError,
 };
 
 /// Represents kinds of error that occurred

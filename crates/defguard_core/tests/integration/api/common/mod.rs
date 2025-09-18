@@ -6,20 +6,18 @@ pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
     config::DefGuardConfig,
-    db::{Id, NoId},
+    db::{Id, NoId, models::settings::initialize_current_settings},
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{
-        AppEvent, GatewayEvent, User, UserDetails, models::settings::initialize_current_settings,
-    },
+    db::{AppEvent, GatewayEvent, User, UserDetails},
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::Auth,
-    mail::Mail,
 };
+use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde::de::DeserializeOwned;

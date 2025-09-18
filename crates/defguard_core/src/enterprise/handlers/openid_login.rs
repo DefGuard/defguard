@@ -9,7 +9,13 @@ use axum_extra::{
     headers::UserAgent,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_common::{config::server_config, db::Id};
+use defguard_common::{
+    config::server_config,
+    db::{
+        Id,
+        models::{Settings, settings::OpenidUsernameHandling},
+    },
+};
 use openidconnect::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
     EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
@@ -30,7 +36,7 @@ pub(crate) const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{Settings, User, models::settings::OpenidUsernameHandling},
+    db::User,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,

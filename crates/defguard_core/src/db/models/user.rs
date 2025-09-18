@@ -8,6 +8,7 @@ use argon2::{
     },
 };
 use axum::http::StatusCode;
+use defguard_mail::templates::UserContext;
 use model_derive::Model;
 #[cfg(test)]
 use rand::{
@@ -17,12 +18,10 @@ use rand::{
 };
 use serde::Serialize;
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, query, query_as, query_scalar,
 };
 use tokio::sync::broadcast::Sender;
 use totp_lite::{Sha1, totp_custom};
-use utoipa::ToSchema;
 
 use super::{
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
@@ -39,36 +38,11 @@ use crate::{
 };
 use defguard_common::{
     config::server_config,
-    db::{Id, NoId},
+    db::{Id, NoId, models::MFAMethod},
     random::{gen_alphanumeric, gen_totp_secret},
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, ToSchema, Type)]
-#[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
-pub enum MFAMethod {
-    None,
-    OneTimePassword,
-    Webauthn,
-    Email,
-}
-
-// Web MFA methods
-impl fmt::Display for MFAMethod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                MFAMethod::None => "None",
-                MFAMethod::OneTimePassword => "TOTP",
-                MFAMethod::Webauthn => "WebAuthn",
-                MFAMethod::Email => "Email",
-            }
-        )
-    }
-}
 
 // User information ready to be sent as part of diagnostic data.
 #[derive(Serialize)]
@@ -183,6 +157,15 @@ fn hash_password(password: &str) -> Result<String, HashError> {
     Ok(Argon2::default()
         .hash_password(password.as_bytes(), &salt)?
         .to_string())
+}
+
+impl From<User<Id>> for UserContext {
+    fn from(value: User<Id>) -> Self {
+        Self {
+            last_name: value.last_name,
+            first_name: value.first_name,
+        }
+    }
 }
 
 impl User {
@@ -1298,7 +1281,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::models::settings::initialize_current_settings;
+    use defguard_common::db::models::settings::initialize_current_settings;
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {

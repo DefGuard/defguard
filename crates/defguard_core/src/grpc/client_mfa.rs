@@ -5,6 +5,7 @@ use defguard_common::db::{
     Id,
     models::{BiometricAuth, BiometricChallenge},
 };
+use defguard_mail::Mail;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -26,7 +27,6 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
-    mail::Mail,
 };
 use defguard_proto::proxy::{
     self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,

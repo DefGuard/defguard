@@ -1,10 +1,13 @@
 use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
-use defguard_common::db::{Id, models::AuthenticationKey};
+use defguard_common::db::{
+    Id,
+    models::{AuthenticationKey, MFAMethod, Settings},
+};
 use defguard_core::{
     db::{
-        Device, Group, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, User, WebAuthn, WebHook, WireguardNetwork,
         models::oauth2client::OAuth2Client,
     },
     enterprise::db::models::{

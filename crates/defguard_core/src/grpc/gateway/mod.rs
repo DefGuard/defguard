@@ -8,6 +8,7 @@ use std::{
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
 use defguard_common::db::{Id, NoId};
+use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
     gateway::{
@@ -37,7 +38,6 @@ use crate::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},
-    mail::Mail,
 };
 
 pub mod client_state;

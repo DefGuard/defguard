@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 # internal crates
 defguard_common = { workspace = true }
+defguard_mail = { workspace = true }
 defguard_proto = { workspace = true }
 defguard_web_ui = { workspace = true }
 defguard_version = { workspace = true }
@@ -37,7 +38,6 @@ parse_link_header = { workspace = true }
 paste = { workspace = true }
 pgp = { workspace = true }
 prost.workspace = true
-pulldown-cmark = { workspace = true }
 # match version used by sqlx
 rand = { workspace = true }
 reqwest = { workspace = true }
@@ -87,7 +87,7 @@ ammonia = "4.1.1"
 
 [dev-dependencies]
 bytes = "1.6"
-claims = "0.8"
+claims.workspace = true
 hyper-util = "0.1"
 matches.workspace = true
 regex = "1.10"

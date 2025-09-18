@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use defguard_common::{global_value, secret::SecretStringWrapper};
+use crate::{global_value, secret::SecretStringWrapper};
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
+use tracing::{debug, info, warn};
 use uuid::Uuid;
-
-use crate::enterprise::ldap::sync::SyncStatus;
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -62,6 +62,21 @@ pub enum OpenidUsernameHandling {
     PruneEmailDomain,
 }
 
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
+#[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
+pub enum LdapSyncStatus {
+    InSync,
+    #[default]
+    OutOfSync,
+}
+
+impl LdapSyncStatus {
+    #[must_use]
+    pub fn is_out_of_sync(&self) -> bool {
+        matches!(self, LdapSyncStatus::OutOfSync)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
@@ -108,7 +123,7 @@ pub struct Settings {
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
     pub ldap_tls_verify_cert: bool,
-    pub ldap_sync_status: SyncStatus,
+    pub ldap_sync_status: LdapSyncStatus,
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
@@ -150,7 +165,7 @@ impl Settings {
             license, gateway_disconnect_notifications_enabled, ldap_use_starttls, \
             ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
-            ldap_sync_status \"ldap_sync_status: SyncStatus\", \
+            ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
@@ -271,7 +286,7 @@ impl Settings {
             self.gateway_disconnect_notifications_enabled,
             self.gateway_disconnect_notifications_inactivity_threshold,
             self.gateway_disconnect_notifications_reconnect_notification_enabled,
-            &self.ldap_sync_status as &SyncStatus,
+            &self.ldap_sync_status as &LdapSyncStatus,
             self.ldap_enabled,
             self.ldap_sync_enabled,
             self.ldap_is_authoritative,
@@ -353,7 +368,7 @@ pub struct SettingsEssentials {
 }
 
 impl SettingsEssentials {
-    pub(crate) async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
+    pub async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {

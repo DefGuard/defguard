@@ -1,6 +1,13 @@
 use std::collections::HashSet;
 
-use defguard_common::db::{Id, models::BiometricAuth};
+use defguard_common::db::{
+    Id,
+    models::{BiometricAuth, MFAMethod, Settings},
+};
+use defguard_mail::{
+    Mail,
+    templates::{self, TemplateLocation},
+};
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -12,7 +19,7 @@ use super::InstanceInfo;
 use crate::{
     AsCsv,
     db::{
-        Device, GatewayEvent, MFAMethod, Settings, User, WireguardNetwork,
+        Device, GatewayEvent, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
@@ -34,10 +41,7 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
-    is_valid_phone_number,
-    mail::Mail,
-    server_config,
-    templates::{self, TemplateLocation},
+    is_valid_phone_number, server_config,
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
@@ -1137,8 +1141,8 @@ impl Token {
             to: admin.email.clone(),
             subject: "[defguard] User enrollment completed".into(),
             content: templates::enrollment_admin_notification(
-                user,
-                admin,
+                &user.clone().into(),
+                &admin.clone().into(),
                 ip_address,
                 device_info,
             )?,

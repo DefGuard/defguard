@@ -9,6 +9,7 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use defguard_common::db::Id;
+use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::json;
 use sqlx::PgConnection;
@@ -29,7 +30,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::mail::send_new_device_added_email,
     server_config,
-    templates::TemplateLocation,
 };
 
 #[derive(Serialize)]

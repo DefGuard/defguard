@@ -1,6 +1,6 @@
 use std::{net::IpAddr, str::FromStr};
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::Settings};
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -8,7 +8,7 @@ use super::InstanceInfo;
 use crate::{
     AsCsv,
     db::{
-        Device, Settings, User,
+        Device, User,
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,

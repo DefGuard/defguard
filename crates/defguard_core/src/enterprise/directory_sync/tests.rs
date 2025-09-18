@@ -4,7 +4,10 @@ mod test {
 
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::setup_pool,
+        db::{
+            models::{Settings, settings::initialize_current_settings},
+            setup_pool,
+        },
     };
     use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
@@ -14,11 +17,8 @@ mod test {
     use super::super::*;
     use crate::{
         db::{
-            Device, Session, SessionState, Settings, WireguardNetwork,
-            models::{
-                device::DeviceType, settings::initialize_current_settings,
-                wireguard::LocationMfaMode,
-            },
+            Device, Session, SessionState, WireguardNetwork,
+            models::{device::DeviceType, wireguard::LocationMfaMode},
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
     };

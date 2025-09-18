@@ -9,7 +9,11 @@ use std::{
 };
 
 use axum::http::Uri;
-use defguard_common::{VERSION, db::Id};
+use defguard_common::{
+    VERSION,
+    db::{Id, models::Settings},
+};
+use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
@@ -46,7 +50,7 @@ use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent, Settings,
+        AppEvent,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
@@ -61,7 +65,6 @@ use crate::{
     },
     events::{BidiStreamEvent, GrpcEvent},
     grpc::gateway::{client_state::ClientMap, map::GatewayMap},
-    mail::Mail,
     server_config,
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };

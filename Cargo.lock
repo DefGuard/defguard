@@ -1070,6 +1070,7 @@ dependencies = [
  "defguard_core",
  "defguard_event_logger",
  "defguard_event_router",
+ "defguard_mail",
  "defguard_version",
  "dotenvy",
  "secrecy",
@@ -1097,10 +1098,12 @@ dependencies = [
  "secrecy",
  "serde",
  "sqlx",
+ "struct-patch",
  "thiserror 2.0.16",
  "tonic",
  "tracing",
  "utoipa",
+ "uuid",
  "vergen-git2",
 ]
 
@@ -1120,6 +1123,7 @@ dependencies = [
  "chrono",
  "claims",
  "defguard_common",
+ "defguard_mail",
  "defguard_proto",
  "defguard_version",
  "defguard_web_ui",
@@ -1138,7 +1142,6 @@ dependencies = [
  "paste",
  "pgp",
  "prost",
- "pulldown-cmark",
  "rand 0.8.5",
  "regex",
  "reqwest",
@@ -1204,6 +1207,26 @@ version = "0.0.0"
 dependencies = [
  "defguard_core",
  "defguard_event_logger",
+ "defguard_mail",
+ "thiserror 2.0.16",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "defguard_mail"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "claims",
+ "defguard_common",
+ "lettre",
+ "pulldown-cmark",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tera",
  "thiserror 2.0.16",
  "tokio",
  "tracing",

@@ -20,6 +20,7 @@ use defguard_common::{
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
     db::init_db,
 };
+use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
@@ -142,7 +143,6 @@ use self::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
     },
-    mail::Mail,
 };
 use self::{
     auth::failed_login::FailedLoginMap,
@@ -160,9 +160,7 @@ pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
-pub mod mail;
 pub mod support;
-pub mod templates;
 pub mod updates;
 pub mod utility_thread;
 pub mod version;

@@ -15,6 +15,7 @@ defguard_common = { path = "./crates/defguard_common", version = "1.5.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
+defguard_mail = { path = "./crates/defguard_mail", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
 defguard_version = { path = "./crates/defguard_version", version = "0.0.0" }
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
@@ -37,6 +38,7 @@ chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
 ] }
+claims = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
 humantime = "2.1"
 # match version used by sqlx

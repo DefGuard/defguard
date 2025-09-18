@@ -7,7 +7,6 @@ pub mod oauth2client;
 pub mod oauth2token;
 pub mod polling_token;
 pub mod session;
-pub mod settings;
 pub mod user;
 pub mod webauthn;
 pub mod webhook;
@@ -17,14 +16,14 @@ pub mod yubikey;
 
 use std::collections::HashSet;
 
-use defguard_common::db::{Id, models::BiometricAuth};
+use defguard_common::db::{
+    Id,
+    models::{BiometricAuth, MFAMethod},
+};
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
-use self::{
-    device::UserDevice,
-    user::{MFAMethod, User},
-};
+use self::{device::UserDevice, user::User};
 use super::Group;
 
 #[derive(Deserialize, Serialize)]

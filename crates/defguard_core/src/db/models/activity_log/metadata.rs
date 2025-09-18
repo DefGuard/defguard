@@ -1,25 +1,22 @@
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
-    models::{AuthenticationKey, AuthenticationKeyType},
+    models::{
+        AuthenticationKey, AuthenticationKeyType, MFAMethod, Settings,
+        settings::{LdapSyncStatus, OpenidUsernameHandling, SmtpEncryption},
+    },
 };
 
 use crate::{
     db::{
-        Device, Group, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
-        models::{
-            oauth2client::OAuth2Client,
-            settings::{OpenidUsernameHandling, SmtpEncryption},
-        },
+        Device, Group, User, WebAuthn, WebHook, WireguardNetwork,
+        models::oauth2client::OAuth2Client,
     },
-    enterprise::{
-        db::models::{
-            activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
-            api_tokens::ApiToken,
-            openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
-            snat::UserSnatBinding,
-        },
-        ldap::sync::SyncStatus,
+    enterprise::db::models::{
+        activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
+        api_tokens::ApiToken,
+        openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
+        snat::UserSnatBinding,
     },
     events::ClientMFAMethod,
 };
@@ -380,7 +377,7 @@ pub struct SettingsNoSecrets {
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
     pub ldap_tls_verify_cert: bool,
-    pub ldap_sync_status: SyncStatus,
+    pub ldap_sync_status: LdapSyncStatus,
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,

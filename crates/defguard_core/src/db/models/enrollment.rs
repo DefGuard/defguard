@@ -1,5 +1,14 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{VERSION, config::server_config, db::Id, random::gen_alphanumeric};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::{Id, models::Settings},
+    random::gen_alphanumeric,
+};
+use defguard_mail::{
+    Mail,
+    templates::{self, TemplateError, safe_tera},
+};
 use reqwest::Url;
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
@@ -7,11 +16,7 @@ use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
-use super::{User, settings::Settings};
-use crate::{
-    mail::Mail,
-    templates::{self, TemplateError, safe_tera},
-};
+use super::User;
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
@@ -353,7 +358,7 @@ impl Token {
 
         // load configured content as template
         let mut tera = safe_tera();
-        tera.add_raw_template("welcome_page", &settings.enrollment_welcome_message()?)?;
+        tera.add_raw_template("welcome_page", &enrollment_welcome_message(&settings)?)?;
 
         let context = self.get_welcome_message_context(&mut *transaction).await?;
 
@@ -371,7 +376,7 @@ impl Token {
 
         // load configured content as template
         let mut tera = safe_tera();
-        tera.add_raw_template("welcome_email", &settings.enrollment_welcome_email()?)?;
+        tera.add_raw_template("welcome_email", &enrollment_welcome_email(&settings)?)?;
 
         let context = self.get_welcome_message_context(&mut *transaction).await?;
         let content = tera.render("welcome_email", &context)?;
@@ -613,21 +618,19 @@ impl User<Id> {
     }
 }
 
-impl Settings {
-    pub fn enrollment_welcome_message(&self) -> Result<String, TokenError> {
-        self.enrollment_welcome_message.clone().ok_or_else(|| {
-            error!("Enrollment welcome message not configured");
-            TokenError::WelcomeMsgNotConfigured
-        })
-    }
+pub fn enrollment_welcome_message(settings: &Settings) -> Result<String, TokenError> {
+    settings.enrollment_welcome_message.clone().ok_or_else(|| {
+        error!("Enrollment welcome message not configured");
+        TokenError::WelcomeMsgNotConfigured
+    })
+}
 
-    pub fn enrollment_welcome_email(&self) -> Result<String, TokenError> {
-        if self.enrollment_use_welcome_message_as_email {
-            return self.enrollment_welcome_message();
-        }
-        self.enrollment_welcome_email.clone().ok_or_else(|| {
-            error!("Enrollment welcome email not configured");
-            TokenError::WelcomeEmailNotConfigured
-        })
+pub fn enrollment_welcome_email(settings: &Settings) -> Result<String, TokenError> {
+    if settings.enrollment_use_welcome_message_as_email {
+        return enrollment_welcome_message(settings);
     }
+    settings.enrollment_welcome_email.clone().ok_or_else(|| {
+        error!("Enrollment welcome email not configured");
+        TokenError::WelcomeEmailNotConfigured
+    })
 }

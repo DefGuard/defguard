@@ -1,3 +1,4 @@
+use defguard_mail::Mail;
 use sqlx::PgPool;
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
@@ -15,7 +16,6 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
-    mail::Mail,
     server_config,
 };
 use defguard_proto::proxy::{
