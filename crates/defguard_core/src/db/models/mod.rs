@@ -26,6 +26,7 @@ pub mod yubikey;
 
 use std::collections::HashSet;
 
+use defguard_common::db::Id;
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
@@ -33,7 +34,7 @@ use self::{
     device::UserDevice,
     user::{MFAMethod, User},
 };
-use super::{Group, Id};
+use super::Group;
 use crate::db::models::biometric_auth::BiometricAuth;
 
 #[cfg(feature = "openid")]

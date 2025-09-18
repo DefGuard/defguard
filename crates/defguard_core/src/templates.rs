@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, NaiveDateTime, Utc};
+use defguard_common::db::Id;
 use reqwest::Url;
 use serde_json::Value;
 use tera::{Context, Function, Tera};
@@ -8,7 +9,7 @@ use thiserror::Error;
 
 use crate::{
     VERSION,
-    db::{Id, MFAMethod, Session, User},
+    db::{MFAMethod, Session, User},
     server_config,
 };
 

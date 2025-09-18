@@ -3,6 +3,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
+use defguard_common::db::Id;
 use serde_json::json;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
@@ -12,7 +13,7 @@ use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{
-        Group, Id, User,
+        Group, User,
         models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
     },
     error::WebError,

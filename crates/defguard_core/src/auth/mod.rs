@@ -15,6 +15,7 @@ use axum_extra::{
     extract::cookie::CookieJar,
     headers::{Authorization, authorization::Bearer},
 };
+use defguard_common::db::Id;
 use jsonwebtoken::{
     DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::Error as JWTError,
 };
@@ -23,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     appstate::AppState,
     db::{
-        Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
         models::{group::Permission, oauth2client::OAuth2Client},
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},

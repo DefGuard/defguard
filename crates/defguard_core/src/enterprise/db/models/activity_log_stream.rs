@@ -3,11 +3,11 @@ use serde::Serialize;
 use sqlx::{Error as SqlxError, FromRow, PgExecutor, Type, query_as};
 use strum_macros::{Display, EnumString};
 
-use crate::{
+use crate::enterprise::activity_log_stream::error::ActivityLogStreamError;
+use defguard_common::{
     db::{Id, NoId},
-    enterprise::activity_log_stream::error::ActivityLogStreamError,
+    secret::SecretStringWrapper,
 };
-use defguard_common::secret::SecretStringWrapper;
 
 #[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]

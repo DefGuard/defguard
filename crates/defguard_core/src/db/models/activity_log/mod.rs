@@ -3,7 +3,7 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 pub mod metadata;
 

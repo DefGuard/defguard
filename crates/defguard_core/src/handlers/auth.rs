@@ -13,6 +13,7 @@ use axum_extra::{
     },
     headers::UserAgent,
 };
+use defguard_common::db::Id;
 use serde_json::json;
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
@@ -31,7 +32,7 @@ use crate::{
         SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
+    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},

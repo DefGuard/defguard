@@ -1,8 +1,9 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        Device, GatewayEvent, Id, WireguardNetwork,
+        Device, GatewayEvent, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
             settings::OpenidUsernameHandling,

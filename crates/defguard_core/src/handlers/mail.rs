@@ -5,6 +5,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{NaiveDateTime, Utc};
+use defguard_common::db::Id;
 use lettre::message::header::ContentType;
 use reqwest::Url;
 use serde_json::json;
@@ -18,7 +19,7 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Id, MFAMethod, Session, User, models::enrollment::TokenError},
+    db::{MFAMethod, Session, User, models::enrollment::TokenError},
     error::WebError,
     mail::{Attachment, Mail},
     server_config,

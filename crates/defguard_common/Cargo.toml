@@ -13,6 +13,7 @@ secrecy.workspace = true
 serde.workspace = true
 sqlx.workspace = true
 tracing.workspace = true
+utoipa.workspace = true
 
 [build-dependencies]
 vergen-git2 = { version = "1.0", features = ["build"] }

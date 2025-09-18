@@ -1,8 +1,9 @@
+use defguard_common::db::Id;
 use sqlx::PgPool;
 use tonic::Status;
 
 use crate::{
-    db::{Device, Id, User, models::polling_token::PollingToken},
+    db::{Device, User, models::polling_token::PollingToken},
     enterprise::is_enterprise_enabled,
     grpc::{
         proto::proxy::{InstanceInfoRequest, InstanceInfoResponse},

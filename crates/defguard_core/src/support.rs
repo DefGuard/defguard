@@ -5,10 +5,10 @@ use serde_json::{Value, json, value::to_value};
 use sqlx::PgPool;
 
 use crate::{
-    db::{Id, Settings, User, WireguardNetwork, models::device::WireguardNetworkDevice},
+    db::{Settings, User, WireguardNetwork, models::device::WireguardNetworkDevice},
     server_config,
 };
-use defguard_common::VERSION;
+use defguard_common::{VERSION, db::Id};
 
 /// Unwraps the result returning a JSON representation of value or error
 fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Value {

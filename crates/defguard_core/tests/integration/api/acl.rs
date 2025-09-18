@@ -1,7 +1,8 @@
+use defguard_common::db::Id;
 use defguard_core::{
     config::DefGuardConfig,
     db::{
-        Device, Group, Id, User, WireguardNetwork,
+        Device, Group, User, WireguardNetwork,
         models::{
             device::DeviceType, settings::initialize_current_settings, wireguard::LocationMfaMode,
         },

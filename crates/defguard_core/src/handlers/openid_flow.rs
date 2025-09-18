@@ -15,6 +15,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
+use defguard_common::db::Id;
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -43,7 +44,7 @@ use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo, UserClaims},
     db::{
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
     },
     error::WebError,

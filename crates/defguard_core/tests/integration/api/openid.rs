@@ -2,9 +2,10 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
+use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        Id, User,
+        User,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     handlers::Auth,

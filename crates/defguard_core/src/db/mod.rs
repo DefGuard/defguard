@@ -14,9 +14,3 @@ pub use models::{
     wireguard::{GatewayEvent, WireguardNetwork},
     yubikey::YubiKey,
 };
-
-use utoipa::ToSchema;
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
-pub struct NoId;
-pub type Id = i64;

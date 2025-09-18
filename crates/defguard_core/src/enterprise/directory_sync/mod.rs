@@ -3,6 +3,7 @@ use std::{
     time::Duration,
 };
 
+use defguard_common::db::Id;
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgPool, error::Error as SqlxError};
@@ -16,7 +17,7 @@ use super::{
     ldap::utils::ldap_update_users_state,
 };
 use crate::{
-    db::{GatewayEvent, Group, Id, User},
+    db::{GatewayEvent, Group, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
         ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},

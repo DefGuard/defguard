@@ -1,12 +1,13 @@
 use std::{borrow::Borrow, sync::LazyLock};
 
 use axum::http::{HeaderName, HeaderValue};
+use defguard_common::db::Id;
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{Id, Session, User, models::device_login::DeviceLoginEvent},
+    db::{Session, User, models::device_login::DeviceLoginEvent},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,

@@ -10,7 +10,7 @@ use std::{
 };
 
 use axum::http::Uri;
-use defguard_common::VERSION;
+use defguard_common::{VERSION, db::Id};
 #[cfg(feature = "wireguard")]
 use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
@@ -59,7 +59,7 @@ use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent, Id, Settings,
+        AppEvent, Settings,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{

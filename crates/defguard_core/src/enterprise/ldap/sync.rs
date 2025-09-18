@@ -54,11 +54,12 @@
 //!
 use std::collections::{HashMap, HashSet};
 
+use defguard_common::db::Id;
 use sqlx::{PgConnection, PgPool, Type};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
-    db::{Group, Id, Settings, User, models::settings::update_current_settings},
+    db::{Group, Settings, User, models::settings::update_current_settings},
     hashset,
 };
 

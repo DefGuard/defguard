@@ -1086,6 +1086,7 @@ dependencies = [
  "serde",
  "sqlx",
  "tracing",
+ "utoipa",
  "vergen-git2",
 ]
 
@@ -1175,6 +1176,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "chrono",
+ "defguard_common",
  "defguard_core",
  "serde_json",
  "sqlx",

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use defguard_common::db::Id;
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -18,7 +19,7 @@ use super::{
 use crate::{
     AsCsv,
     db::{
-        Device, GatewayEvent, Id, MFAMethod, Settings, User, WireguardNetwork,
+        Device, GatewayEvent, MFAMethod, Settings, User, WireguardNetwork,
         models::{
             biometric_auth::BiometricAuth,
             device::{DeviceConfig, DeviceInfo, DeviceType},

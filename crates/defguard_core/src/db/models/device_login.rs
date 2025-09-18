@@ -4,7 +4,7 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgPool, query_as};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 #[table(device_login_event)]

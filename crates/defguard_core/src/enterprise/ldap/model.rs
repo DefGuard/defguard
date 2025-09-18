@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
+use defguard_common::db::Id;
 use ldap3::{Mod, SearchEntry};
 use sqlx::{Error as SqlxError, PgExecutor};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
-    db::{Id, Settings, User},
+    db::{Settings, User},
     handlers::user::check_username,
     hashset,
 };

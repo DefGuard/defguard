@@ -1,8 +1,14 @@
+use serde::{Deserialize, Serialize};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tracing::info;
+use utoipa::ToSchema;
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
+pub struct NoId;
+pub type Id = i64;
 
 // helper for easier migration handling with a custom `migration` folder location
 // reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature

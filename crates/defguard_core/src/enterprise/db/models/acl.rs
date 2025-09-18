@@ -6,6 +6,7 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
+use defguard_common::db::{Id, NoId};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
@@ -17,10 +18,7 @@ use thiserror::Error;
 use crate::{
     DeviceType,
     appstate::AppState,
-    db::{
-        Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork,
-        models::wireguard::LocationMfaMode,
-    },
+    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::wireguard::LocationMfaMode},
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},

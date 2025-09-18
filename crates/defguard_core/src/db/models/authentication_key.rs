@@ -3,7 +3,7 @@ use std::fmt::Display;
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]

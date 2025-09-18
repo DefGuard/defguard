@@ -1,11 +1,12 @@
 use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
+use defguard_common::db::Id;
 use serde::Serialize;
 
 use crate::{
     db::{
-        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
+        Device, Group, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
         models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
     },
     enterprise::db::models::{

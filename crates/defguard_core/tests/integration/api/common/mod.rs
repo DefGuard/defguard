@@ -2,15 +2,17 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
-use defguard_common::VERSION;
 pub use defguard_common::db::setup_pool;
+use defguard_common::{
+    VERSION,
+    db::{Id, NoId},
+};
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
     db::{
-        AppEvent, GatewayEvent, Id, NoId, User, UserDetails,
-        models::settings::initialize_current_settings,
+        AppEvent, GatewayEvent, User, UserDetails, models::settings::initialize_current_settings,
     },
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,

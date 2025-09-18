@@ -32,7 +32,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{GatewayEvent, Id, NoId, Session, WireguardNetwork, models::group::Permission},
+    db::{GatewayEvent, Session, WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::{
@@ -41,7 +41,10 @@ use crate::{
     },
     server_config,
 };
-use defguard_common::random::{gen_alphanumeric, gen_totp_secret};
+use defguard_common::{
+    db::{Id, NoId},
+    random::{gen_alphanumeric, gen_totp_secret},
+};
 
 const RECOVERY_CODES_COUNT: usize = 8;
 

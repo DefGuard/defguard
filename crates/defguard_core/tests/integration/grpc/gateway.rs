@@ -5,10 +5,10 @@ use std::{
 
 use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
-use defguard_common::db::setup_pool;
+use defguard_common::db::{Id, NoId, setup_pool};
 use defguard_core::{
     db::{
-        Device, Id, NoId, User, WireguardNetwork,
+        Device, User, WireguardNetwork,
         models::{
             device::DeviceType, wireguard::LocationMfaMode,
             wireguard_peer_stats::WireguardPeerStats,

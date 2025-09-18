@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use defguard_common::db::Id;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -16,7 +17,7 @@ use super::proto::proxy::{
 use crate::{
     auth::{Claims, ClaimsType},
     db::{
-        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, User, UserInfo, WireguardNetwork,
         models::{
             biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},

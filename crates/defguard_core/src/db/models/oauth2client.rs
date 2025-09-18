@@ -3,7 +3,7 @@ use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 use defguard_common::random::gen_alphanumeric;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]

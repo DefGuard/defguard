@@ -11,6 +11,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -23,7 +24,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
+        AddDevice, Device, GatewayEvent, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,

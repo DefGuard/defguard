@@ -6,6 +6,7 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{TypedHeader, headers::UserAgent};
+use defguard_common::db::{Id, NoId};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -16,7 +17,7 @@ use crate::db::Device;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Id, NoId, User, UserInfo, WebHook},
+    db::{User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,

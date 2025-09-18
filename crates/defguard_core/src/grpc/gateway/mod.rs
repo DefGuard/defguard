@@ -7,6 +7,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
+use defguard_common::db::{Id, NoId};
 use defguard_version::version_info_from_metadata;
 use semver::Version;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
@@ -30,7 +31,7 @@ pub use crate::grpc::proto::gateway::{
 };
 use crate::{
     db::{
-        Device, GatewayEvent, Id, NoId, User,
+        Device, GatewayEvent, User,
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},

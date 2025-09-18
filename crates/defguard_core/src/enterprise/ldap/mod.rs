@@ -1,5 +1,6 @@
 use std::{collections::HashSet, future::Future};
 
+use defguard_common::db::Id;
 #[cfg(not(test))]
 use ldap3::Ldap;
 use ldap3::{Mod, SearchEntry, ldap_escape};
@@ -10,7 +11,7 @@ use sync::{SyncStatus, get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_sta
 
 use self::error::LdapError;
 use crate::{
-    db::{self, Id, Settings, User, models::settings::update_current_settings},
+    db::{self, Settings, User, models::settings::update_current_settings},
     enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
 };
 
