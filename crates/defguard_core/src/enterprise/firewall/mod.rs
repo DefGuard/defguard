@@ -3,7 +3,7 @@ use std::{
     ops::RangeInclusive,
 };
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::ModelError};
 use ipnetwork::IpNetwork;
 use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
 
@@ -15,7 +15,7 @@ use super::{
     utils::merge_ranges,
 };
 use crate::{
-    db::{Device, User, WireguardNetwork, models::error::ModelError},
+    db::{Device, User, WireguardNetwork},
     enterprise::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
         is_enterprise_enabled,

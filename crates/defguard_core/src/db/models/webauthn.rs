@@ -2,8 +2,7 @@ use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query, query_as, query_scalar};
 use webauthn_rs::prelude::Passkey;
 
-use super::error::ModelError;
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::ModelError};
 
 #[derive(Model, Clone, Debug)]
 pub struct WebAuthn<I = NoId> {

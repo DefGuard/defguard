@@ -11,7 +11,7 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::ModelError};
 use sqlx::{Error as SqlxError, PgPool, query_as};
 use thiserror::Error;
 use tokio::{
@@ -27,7 +27,6 @@ use crate::{
         Device, GatewayEvent, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-            error::ModelError,
             wireguard::{LocationMfaMode, WireguardNetworkError},
         },
     },

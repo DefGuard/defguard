@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use defguard_common::db::models::ModelError;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -7,8 +8,8 @@ use utoipa::ToSchema;
 use crate::{
     auth::failed_login::FailedLoginError,
     db::models::{
-        device::DeviceError, enrollment::TokenError, error::ModelError,
-        settings::SettingsValidationError, wireguard::WireguardNetworkError,
+        device::DeviceError, enrollment::TokenError, settings::SettingsValidationError,
+        wireguard::WireguardNetworkError,
     },
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,

@@ -1,11 +1,11 @@
 use std::fmt;
 
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::ModelError};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
-use crate::db::{User, WireguardNetwork, models::error::ModelError};
+use crate::db::{User, WireguardNetwork};
 
 #[derive(Debug)]
 pub enum Permission {

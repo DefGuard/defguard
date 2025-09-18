@@ -4,7 +4,7 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::ModelError};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
@@ -20,9 +20,8 @@ use sqlx::{
 use thiserror::Error;
 use utoipa::ToSchema;
 
-use super::{
-    error::ModelError,
-    wireguard::{LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork},
+use super::wireguard::{
+    LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork,
 };
 use crate::{AsCsv, KEY_LENGTH, db::User};
 

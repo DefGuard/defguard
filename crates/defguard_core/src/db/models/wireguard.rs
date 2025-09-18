@@ -7,7 +7,7 @@ use std::{
 
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::ModelError};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
@@ -25,7 +25,6 @@ use super::{
     device::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
-    error::ModelError,
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
 };
