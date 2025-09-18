@@ -8,6 +8,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+model_derive.workspace = true
+
+chrono.workspace = true
 rand.workspace = true
 secrecy.workspace = true
 serde.workspace = true

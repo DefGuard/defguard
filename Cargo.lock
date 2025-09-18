@@ -1081,6 +1081,8 @@ dependencies = [
 name = "defguard_common"
 version = "1.5.0"
 dependencies = [
+ "chrono",
+ "model_derive",
  "rand 0.8.5",
  "secrecy",
  "serde",

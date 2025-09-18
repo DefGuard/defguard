@@ -6,6 +6,8 @@ use sqlx::{
 use tracing::info;
 use utoipa::ToSchema;
 
+pub mod models;
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
 pub struct NoId;
 pub type Id = i64;
