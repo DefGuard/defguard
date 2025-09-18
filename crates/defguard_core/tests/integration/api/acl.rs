@@ -1,6 +1,5 @@
-use defguard_common::db::Id;
+use defguard_common::{config::DefGuardConfig, db::Id};
 use defguard_core::{
-    config::DefGuardConfig,
     db::{
         Device, Group, User, WireguardNetwork,
         models::{

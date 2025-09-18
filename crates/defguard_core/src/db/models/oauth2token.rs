@@ -1,8 +1,6 @@
 use chrono::{TimeDelta, Utc};
-use defguard_common::{db::Id, random::gen_alphanumeric};
+use defguard_common::{config::server_config, db::Id, random::gen_alphanumeric};
 use sqlx::{Error as SqlxError, PgPool, query, query_as};
-
-use crate::server_config;
 
 pub struct OAuth2Token {
     pub oauth2authorizedapp_id: Id,

@@ -5,12 +5,12 @@ use std::sync::{Arc, Mutex};
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
+    config::DefGuardConfig,
     db::{Id, NoId},
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    config::DefGuardConfig,
     db::{
         AppEvent, GatewayEvent, User, UserDetails, models::settings::initialize_current_settings,
     },

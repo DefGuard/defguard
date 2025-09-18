@@ -360,9 +360,9 @@ pub fn email_password_reset_success_mail(
 #[cfg(test)]
 mod test {
     use claims::assert_ok;
+    use defguard_common::config::{DefGuardConfig, SERVER_CONFIG};
 
     use super::*;
-    use crate::{SERVER_CONFIG, config::DefGuardConfig};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();

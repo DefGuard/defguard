@@ -9,7 +9,7 @@ use axum_extra::{
     headers::UserAgent,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_common::db::Id;
+use defguard_common::{config::server_config, db::Id};
 use openidconnect::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
     EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
@@ -41,7 +41,6 @@ use crate::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME, auth::create_session,
         user::check_username,
     },
-    server_config,
 };
 
 /// Prune the given username from illegal characters in accordance with the following rules:

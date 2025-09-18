@@ -1,9 +1,7 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{db::Id, random::gen_alphanumeric};
+use defguard_common::{config::server_config, db::Id, random::gen_alphanumeric};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
-
-use crate::server_config;
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]

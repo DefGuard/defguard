@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, LazyLock, Mutex, OnceLock, RwLock},
+    sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
 use crate::version::IncompatibleComponents;
@@ -15,7 +15,11 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
-use defguard_common::{VERSION, db::init_db};
+use defguard_common::{
+    VERSION,
+    config::{DefGuardConfig, InitVpnLocationArgs, server_config},
+    db::init_db,
+};
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
@@ -104,7 +108,6 @@ use self::handlers::{
 use self::{
     appstate::AppState,
     auth::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
         AppEvent, Device, GatewayEvent, User, WireguardNetwork,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
@@ -150,7 +153,6 @@ use self::{
 
 pub mod appstate;
 pub mod auth;
-pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
@@ -174,14 +176,6 @@ extern crate tracing;
 
 #[macro_use]
 extern crate serde;
-
-pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
-
-pub(crate) fn server_config() -> &'static DefGuardConfig {
-    SERVER_CONFIG
-        .get()
-        .expect("Server configuration not set yet")
-}
 
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
@@ -721,11 +715,12 @@ pub async fn run_web_server(
         incompatible_components,
     );
     info!("Started web services");
+    let server_config = server_config();
     let addr = SocketAddr::new(
-        server_config()
+        server_config
             .http_bind_address
             .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config().http_port,
+        server_config.http_port,
     );
     let listener = TcpListener::bind(&addr).await?;
     serve(

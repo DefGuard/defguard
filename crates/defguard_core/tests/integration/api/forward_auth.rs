@@ -1,4 +1,5 @@
-use defguard_core::{SERVER_CONFIG, handlers::Auth};
+use defguard_common::config::SERVER_CONFIG;
+use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

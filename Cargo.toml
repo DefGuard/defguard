@@ -46,6 +46,9 @@ ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1-native-tls"] }
 matches = "0.1"
 md4 = "0.10"
+openidconnect = { version = "4.0", default-features = false, features = [
+    "reqwest",
+] }
 parse_link_header = "0.4"
 paste = "1.0"
 pgp = { version = "0.16", default-features = false }

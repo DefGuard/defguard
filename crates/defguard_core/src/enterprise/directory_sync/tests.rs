@@ -2,7 +2,10 @@
 mod test {
     use std::str::FromStr;
 
-    use defguard_common::db::setup_pool;
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::setup_pool,
+    };
     use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -10,8 +13,6 @@ mod test {
 
     use super::super::*;
     use crate::{
-        SERVER_CONFIG,
-        config::DefGuardConfig,
         db::{
             Device, Session, SessionState, Settings, WireguardNetwork,
             models::{

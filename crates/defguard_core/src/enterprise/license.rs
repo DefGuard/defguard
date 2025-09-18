@@ -17,9 +17,8 @@ use super::limits::Counts;
 use crate::{
     db::{Settings, models::settings::update_current_settings},
     grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
-    server_config,
 };
-use defguard_common::{VERSION, global_value};
+use defguard_common::{VERSION, config::server_config, global_value};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 

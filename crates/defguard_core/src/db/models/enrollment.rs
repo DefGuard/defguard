@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{VERSION, db::Id, random::gen_alphanumeric};
+use defguard_common::{VERSION, config::server_config, db::Id, random::gen_alphanumeric};
 use reqwest::Url;
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
@@ -10,7 +10,6 @@ use tonic::{Code, Status};
 use super::{User, settings::Settings};
 use crate::{
     mail::Mail,
-    server_config,
     templates::{self, TemplateError, safe_tera},
 };
 

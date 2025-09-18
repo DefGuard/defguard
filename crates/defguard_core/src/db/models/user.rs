@@ -39,9 +39,9 @@ use crate::{
         gateway::{send_multiple_wireguard_events, send_wireguard_event},
         proto::proxy::MfaMethod,
     },
-    server_config,
 };
 use defguard_common::{
+    config::server_config,
     db::{Id, NoId},
     random::{gen_alphanumeric, gen_totp_secret},
 };
@@ -1311,13 +1311,14 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
-    use defguard_common::db::setup_pool;
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::setup_pool,
+    };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::{
-        SERVER_CONFIG, config::DefGuardConfig, db::models::settings::initialize_current_settings,
-    };
+    use crate::db::models::settings::initialize_current_settings;
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
