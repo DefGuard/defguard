@@ -85,6 +85,7 @@ bytes = { workspace = true }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 tower = "0.5"
 regex = "1.10"
+ammonia = "4.1.1"
 
 [dev-dependencies]
 bytes = "1.6"
