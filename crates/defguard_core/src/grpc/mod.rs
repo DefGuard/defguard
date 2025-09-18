@@ -10,6 +10,7 @@ use std::{
 };
 
 use axum::http::Uri;
+use defguard_common::VERSION;
 #[cfg(feature = "wireguard")]
 use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
@@ -53,8 +54,9 @@ use self::{
 };
 #[cfg(feature = "wireguard")]
 pub use crate::version::MIN_GATEWAY_VERSION;
+#[cfg(feature = "worker")]
+use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
-    VERSION,
     auth::failed_login::FailedLoginMap,
     db::{
         AppEvent, Id, Settings,
@@ -76,8 +78,6 @@ use crate::{
     server_config,
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
-#[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::GatewayEvent};
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 

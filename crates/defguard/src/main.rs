@@ -4,9 +4,9 @@ use std::{
 };
 
 use bytes::Bytes;
-use defguard_common::db::init_db;
+use defguard_common::{VERSION, db::init_db};
 use defguard_core::{
-    SERVER_CONFIG, VERSION,
+    SERVER_CONFIG,
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{AppEvent, GatewayEvent, Settings, User, models::settings::initialize_current_settings},

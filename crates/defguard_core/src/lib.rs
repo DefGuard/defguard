@@ -15,7 +15,7 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
-use defguard_common::db::init_db;
+use defguard_common::{VERSION, db::init_db};
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
@@ -180,7 +180,6 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA"));
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {

@@ -15,12 +15,12 @@ use tokio::time::sleep;
 
 use super::limits::Counts;
 use crate::{
-    VERSION,
     db::{Settings, models::settings::update_current_settings},
     global_value,
     grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
     server_config,
 };
+use defguard_common::VERSION;
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 

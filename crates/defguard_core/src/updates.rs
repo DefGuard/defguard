@@ -1,13 +1,13 @@
 use std::{env, time::Duration};
 
 use chrono::NaiveDate;
+use defguard_common::CARGO_VERSION;
 use semver::Version;
 
 use crate::global_value;
 
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -26,7 +26,7 @@ global_value!(NEW_UPDATE, Option<Update>, None, set_update, get_update);
 async fn fetch_update() -> Result<Update, anyhow::Error> {
     let body = serde_json::json!({
         "product": PRODUCT_NAME,
-        "client_version": VERSION,
+        "client_version": CARGO_VERSION,
         "operating_system": env::consts::OS,
     });
     let response = reqwest::Client::new()
@@ -41,7 +41,7 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
 pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
     debug!("Checking for new version of Defguard.");
     let update = fetch_update().await?;
-    let current_version = Version::parse(VERSION)?;
+    let current_version = Version::parse(CARGO_VERSION)?;
     let new_version = Version::parse(&update.version)?;
     if new_version > current_version {
         if update.critical {

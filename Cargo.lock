@@ -1079,18 +1079,19 @@ dependencies = [
 
 [[package]]
 name = "defguard_common"
-version = "0.0.0"
+version = "1.5.0"
 dependencies = [
  "rand 0.8.5",
  "secrecy",
  "serde",
  "sqlx",
  "tracing",
+ "vergen-git2",
 ]
 
 [[package]]
 name = "defguard_core"
-version = "1.5.0"
+version = "0.0.0"
 dependencies = [
  "ammonia",
  "anyhow",
@@ -1162,7 +1163,6 @@ dependencies = [
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
- "vergen-git2",
  "webauthn-authenticator-rs",
  "webauthn-rs",
  "webauthn-rs-proto",

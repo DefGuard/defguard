@@ -3,7 +3,6 @@ use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
-    VERSION,
     appstate::AppState,
     auth::SessionInfo,
     db::{Settings, WireguardNetwork},
@@ -14,6 +13,7 @@ use crate::{
         limits::{LimitsExceeded, get_counts},
     },
 };
+use defguard_common::VERSION;
 
 #[derive(Serialize)]
 struct LicenseInfo {

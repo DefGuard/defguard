@@ -2,9 +2,9 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
+use defguard_common::VERSION;
 pub use defguard_common::db::setup_pool;
 use defguard_core::{
-    VERSION,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
