@@ -20,7 +20,7 @@ use openidconnect::{
 };
 use reqwest::{
     StatusCode, Url,
-    header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, USER_AGENT},
+    header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, LOCATION, USER_AGENT},
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
@@ -111,7 +111,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
-        redirect_uri: vec![TEST_SERVER_URL.into()],
+        redirect_uri: vec![TEST_SERVER_URL.into(), "http://safe.net".into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -375,10 +375,10 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_str()
         .unwrap();
-    // assert!(location.starts_with("http://safe.net"), "{location}");
+    assert!(location.starts_with("http://safe.net"), "{location}");
     assert!(location.contains("error=invalid_scope"));
-    // assert!(location.contains("value1=one"));
-    // assert!(location.contains("value2=two"));
+    assert!(location.contains("value1=one"));
+    assert!(location.contains("value2=two"));
 
     // test wrong redirect uri
     let response = client
@@ -873,17 +873,10 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     let oauth2client: OAuth2Client<Id> = response.json().await;
 
     fn redirect_url(response: &TestResponse) -> String {
-        Url::parse(
-            response
-                .headers()
-                .get(reqwest::header::LOCATION)
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        )
-        .unwrap()
-        .origin()
-        .ascii_serialization()
+        Url::parse(response.headers().get(LOCATION).unwrap().to_str().unwrap())
+            .unwrap()
+            .origin()
+            .ascii_serialization()
     }
 
     let fallback_url = state
@@ -908,7 +901,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), fallback_url,);
+    assert_eq!(redirect_url(&response), fallback_url);
 
     let response = client
         .get(
@@ -1010,7 +1003,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), "http://safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net");
 
     let response = client
         .get(format!(
@@ -1027,7 +1020,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FOUND);
-    assert_eq!(redirect_url(&response), "http://safe.net",);
+    assert_eq!(redirect_url(&response), "http://safe.net");
 }
 
 #[sqlx::test]

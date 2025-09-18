@@ -396,7 +396,7 @@ pub async fn authorization(
                         );
                         // FIXME: do not panic
                         return Ok(redirect_to(
-                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap(),),
+                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap()),
                             private_cookies,
                         ));
                     }
