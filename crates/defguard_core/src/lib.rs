@@ -155,7 +155,6 @@ pub mod db;
 pub mod enterprise;
 mod error;
 pub mod events;
-pub mod globals;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;

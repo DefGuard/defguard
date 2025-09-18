@@ -1,10 +1,8 @@
 use std::{env, time::Duration};
 
 use chrono::NaiveDate;
-use defguard_common::CARGO_VERSION;
+use defguard_common::{CARGO_VERSION, global_value};
 use semver::Version;
-
-use crate::global_value;
 
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";

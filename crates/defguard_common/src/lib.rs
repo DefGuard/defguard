@@ -1,4 +1,5 @@
 pub mod db;
+pub mod globals;
 pub mod random;
 pub mod secret;
 
