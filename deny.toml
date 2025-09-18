@@ -113,7 +113,16 @@ exceptions = [
     ], crate = "defguard" },
     { allow = [
         "AGPL-3.0-only",
+    ], crate = "defguard_common" },
+    { allow = [
+        "AGPL-3.0-only",
     ], crate = "defguard_core" },
+    { allow = [
+        "AGPL-3.0-only",
+    ], crate = "defguard_mail" },
+    { allow = [
+        "AGPL-3.0-only",
+    ], crate = "defguard_proto" },
     { allow = [
         "AGPL-3.0-only",
     ], crate = "defguard_web_ui" },
