@@ -1,13 +1,13 @@
 use std::{borrow::Borrow, sync::LazyLock};
 
 use axum::http::{HeaderName, HeaderValue};
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::DeviceLoginEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{Session, User, models::device_login::DeviceLoginEvent},
+    db::{Session, User},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,
@@ -89,6 +89,7 @@ fn get_user_agent_device_login_data(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn check_new_device_login(
     pool: &PgPool,
     mail_tx: &UnboundedSender<Mail>,

@@ -2,9 +2,10 @@ use std::fmt;
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, PgPool, query_as};
 
-use defguard_common::db::{Id, NoId};
+use crate::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 #[table(device_login_event)]
@@ -34,6 +35,7 @@ impl fmt::Display for DeviceLoginEvent<Id> {
 }
 
 impl DeviceLoginEvent {
+    #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
         user_id: Id,
@@ -59,7 +61,7 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub(crate) async fn check_if_device_already_logged_in(
+    pub async fn check_if_device_already_logged_in(
         self,
         pool: &PgPool,
     ) -> Result<Option<DeviceLoginEvent<Id>>, anyhow::Error> {
@@ -72,7 +74,7 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub(crate) async fn find_device_login_event(
+    pub async fn find_device_login_event(
         &self,
         pool: &PgPool,
     ) -> Result<Option<DeviceLoginEvent<Id>>, SqlxError> {

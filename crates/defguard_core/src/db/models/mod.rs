@@ -1,6 +1,5 @@
 pub mod activity_log;
 pub mod device;
-pub mod device_login;
 pub mod enrollment;
 pub mod error;
 pub mod group;

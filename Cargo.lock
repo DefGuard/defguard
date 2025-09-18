@@ -1081,6 +1081,7 @@ dependencies = [
 name = "defguard_common"
 version = "1.5.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
  "chrono",
  "ed25519-dalek",
