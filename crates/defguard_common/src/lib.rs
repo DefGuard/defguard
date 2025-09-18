@@ -1,6 +1,7 @@
 pub mod config;
 pub mod db;
 pub mod globals;
+pub mod hex;
 pub mod random;
 pub mod secret;
 

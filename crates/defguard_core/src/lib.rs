@@ -160,7 +160,6 @@ pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
-pub mod hex;
 pub mod mail;
 pub mod support;
 pub mod templates;

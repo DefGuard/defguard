@@ -1119,7 +1119,6 @@ dependencies = [
  "bytes",
  "chrono",
  "claims",
- "clap",
  "defguard_common",
  "defguard_version",
  "defguard_web_ui",

@@ -23,7 +23,6 @@ axum-extra = { workspace = true }
 base32 = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
-clap = { workspace = true }
 humantime = { workspace = true }
 # match version used by sqlx
 ipnetwork = { workspace = true }

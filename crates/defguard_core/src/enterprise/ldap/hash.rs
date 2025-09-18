@@ -1,12 +1,11 @@
 use base64::Engine;
+use defguard_common::hex::to_lower_hex;
 use md4::Md4;
 use rand::{RngCore, rngs::OsRng};
 use sha1::{
     Digest, Sha1,
     digest::generic_array::{GenericArray, sequence::Concat},
 };
-
-use crate::hex::to_lower_hex;
 
 /// Calculate salted SHA1 hash from given password in SSHA password storage scheme.
 #[must_use]
