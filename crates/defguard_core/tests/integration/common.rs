@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use defguard_core::{SERVER_CONFIG, config::DefGuardConfig, db::User};
 use reqwest::Url;
 use secrecy::ExposeSecret;
@@ -10,7 +8,7 @@ use sqlx::PgPool;
 pub(crate) fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let mut config = DefGuardConfig::new_test_config();
-    config.url = Url::from_str(url).unwrap();
+    config.url = Url::parse(url).unwrap();
     let _ = SERVER_CONFIG.set(config.clone());
     config
 }

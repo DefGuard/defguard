@@ -76,7 +76,7 @@ impl ClientMfaServer {
 
         let code = AuthorizationCode::new(request.code.clone());
         let url = match Url::parse(&request.callback_url).map_err(|err| {
-            error!("Invalid redirect URL provided: {err:?}");
+            error!("Invalid redirect URL provided: {err}");
             Status::invalid_argument("invalid redirect URL")
         }) {
             Ok(url) => url,
@@ -122,7 +122,7 @@ impl ClientMfaServer {
                 );
             }
             Err(err) => {
-                info!("Failed to verify OIDC code: {err:?}");
+                info!("Failed to verify OIDC code: {err}");
                 self.sessions.remove(&pubkey);
                 self.emit_event(BidiStreamEvent {
                     context,
@@ -131,7 +131,7 @@ impl ClientMfaServer {
                             location: location.clone(),
                             device: device.clone(),
                             method,
-                            message: format!("failed to verify OIDC code: {err:?}"),
+                            message: format!("failed to verify OIDC code: {err}"),
                         },
                     )),
                 })?;

@@ -5,13 +5,13 @@ use defguard_core::{
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{make_client_with_state, setup_pool};
+use super::common::{make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_settings(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _client_state) = make_client_with_state(pool).await;
+    let (client, _client_state) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);

@@ -36,11 +36,15 @@ use crate::{
     server_config, templates,
 };
 
+/// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
+/// characters according to the X.520 standard and many LDAP implementations like Active Directory.
+pub(crate) const MAX_USERNAME_CHARS: usize = 64;
+
 /// Verify the given username
 ///
 /// To enable LDAP sync usernames need to avoid reserved characters.
 /// Username requirements:
-/// - 1 - 64 characters long
+/// - 1 - MAX_USERNAME_CHARS characters long
 /// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
 /// - digits (0-9)
 /// - starts with non-special character
@@ -49,7 +53,7 @@ use crate::{
 pub fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
-    if !(1..64).contains(&length) {
+    if !(1..MAX_USERNAME_CHARS).contains(&length) {
         return Err(WebError::Serialization(format!(
             "Username ({username}) has incorrect length"
         )));

@@ -23,8 +23,8 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 use crate::api::common::client::TestResponse;
 
 use super::common::{
-    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
-    make_test_client, setup_pool,
+    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_test_client,
+    setup_pool,
 };
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -392,7 +392,7 @@ fn extract_email_code(content: &str) -> &str {
 async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -538,7 +538,7 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
 async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
