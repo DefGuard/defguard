@@ -177,7 +177,7 @@ pub(crate) async fn authenticate(
                                 ),
                             }),
                         })?;
-                            return Err(WebError::Authorization(ldap_err.to_string()));
+                            return Err(WebError::Authentication);
                         }
                     }
                 } else {
@@ -196,7 +196,7 @@ pub(crate) async fn authenticate(
                             ),
                         }),
                     })?;
-                    return Err(WebError::Authorization(err.to_string()));
+                    return Err(WebError::Authentication);
                 }
             }
         }
@@ -208,7 +208,7 @@ pub(crate) async fn authenticate(
             Err(err) => {
                 info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
                 log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                return Err(WebError::Authorization(err.to_string()));
+                return Err(WebError::Authentication);
             }
         }
     };
@@ -216,7 +216,7 @@ pub(crate) async fn authenticate(
     // check if user account is active
     if !user.is_active {
         info!("Failed to authenticate user {username_or_email}: user is disabled");
-        return Err(WebError::Authorization("user not found".into()));
+        return Err(WebError::Authentication);
     }
 
     let (session, user_info, mfa_info) = create_session(

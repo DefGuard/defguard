@@ -42,6 +42,8 @@ pub enum WebError {
     Deserialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
+    #[error("Authentication error")]
+    Authentication,
     #[error("Forbidden error: {0}")]
     Forbidden(String),
     #[error("Database error: {0}")]

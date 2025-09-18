@@ -80,6 +80,7 @@ impl From<WebError> for ApiResponse {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
             }
+            WebError::Authentication => ApiResponse::new(json!({}), StatusCode::UNAUTHORIZED),
             WebError::Forbidden(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
