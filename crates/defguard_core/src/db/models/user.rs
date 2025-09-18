@@ -35,10 +35,7 @@ use crate::{
     db::{GatewayEvent, Session, WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
-    grpc::{
-        gateway::{send_multiple_wireguard_events, send_wireguard_event},
-        proto::proxy::MfaMethod,
-    },
+    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
 };
 use defguard_common::{
     config::server_config,
@@ -68,23 +65,6 @@ impl fmt::Display for MFAMethod {
                 MFAMethod::OneTimePassword => "TOTP",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
-            }
-        )
-    }
-}
-
-// Client MFA methods
-impl fmt::Display for MfaMethod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                MfaMethod::Totp => "TOTP",
-                MfaMethod::Email => "Email",
-                MfaMethod::Oidc => "OIDC",
-                MfaMethod::Biometric => "Biometric",
-                MfaMethod::MobileApprove => "MobileApprove",
             }
         )
     }

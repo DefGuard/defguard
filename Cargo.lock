@@ -1120,6 +1120,7 @@ dependencies = [
  "chrono",
  "claims",
  "defguard_common",
+ "defguard_proto",
  "defguard_version",
  "defguard_web_ui",
  "humantime",
@@ -1206,6 +1207,17 @@ dependencies = [
  "thiserror 2.0.16",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "defguard_proto"
+version = "0.0.0"
+dependencies = [
+ "prost",
+ "serde",
+ "tonic",
+ "tonic-prost",
+ "tonic-prost-build",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ defguard_common = { path = "./crates/defguard_common", version = "1.5.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
+defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
 defguard_version = { path = "./crates/defguard_version", version = "0.0.0" }
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
 model_derive = { path = "./crates/model_derive", version = "0.0.0" }
@@ -52,6 +53,7 @@ openidconnect = { version = "4.0", default-features = false, features = [
 parse_link_header = "0.4"
 paste = "1.0"
 pgp = { version = "0.16", default-features = false }
+prost = "0.14"
 pulldown-cmark = "0.13"
 # match version used by sqlx
 rand = "0.8"
@@ -98,6 +100,8 @@ tonic = { version = "0.14", features = [
     "tls-ring",
 ] }
 tonic-health = "0.14"
+tonic-prost = "0.14"
+tonic-prost-build = "0.14"
 totp-lite = { version = "2.0" }
 tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
 tracing = "0.1"

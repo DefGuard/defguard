@@ -1,0 +1,37 @@
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tonic_prost_build::configure()
+        // These types contain sensitive data.
+        .skip_debug([
+            "ActivateUserRequest",
+            "AuthInfoResponse",
+            "AuthenticateRequest",
+            "AuthenticateResponse",
+            "ClientMfaFinishResponse",
+            "CodeMfaSetupStartResponse",
+            "CodeMfaSetupFinishResponse",
+            "CoreRequest",
+            "CoreResponse",
+            "DeviceConfigResponse",
+            "InstanceInfoResponse",
+            "NewDevice",
+            "PasswordResetRequest",
+        ])
+        .protoc_arg("--experimental_allow_proto3_optional")
+        .compile_protos(
+            &[
+                "../../proto/core/auth.proto",
+                "../../proto/core/proxy.proto",
+                "../../proto/worker/worker.proto",
+                "../../proto/wireguard/gateway.proto",
+                "../../proto/enterprise/firewall/firewall.proto",
+            ],
+            &[
+                "../../proto/core",
+                "../../proto/worker",
+                "../../proto/wireguard",
+                "../../proto/enterprise/firewall",
+            ],
+        )?;
+    println!("cargo:rerun-if-changed=../../proto");
+    Ok(())
+}

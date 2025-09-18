@@ -16,14 +16,11 @@ use defguard_core::{
     },
     enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
-    grpc::{
-        MIN_GATEWAY_VERSION,
-        gateway::{Configuration, Update, update},
-        proto::{
-            enterprise::firewall::FirewallPolicy,
-            gateway::{PeerStats, StatsUpdate, stats_update::Payload},
-        },
-    },
+    grpc::MIN_GATEWAY_VERSION,
+};
+use defguard_proto::{
+    enterprise::firewall::FirewallPolicy,
+    gateway::{Configuration, PeerStats, StatsUpdate, Update, stats_update::Payload, update},
 };
 use semver::Version;
 use sqlx::{

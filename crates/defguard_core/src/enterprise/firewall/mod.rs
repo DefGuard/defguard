@@ -20,11 +20,11 @@ use crate::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
         is_enterprise_enabled,
     },
-    grpc::proto::enterprise::firewall::{
-        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
-        PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
-        port::Port as PortInner,
-    },
+};
+use defguard_proto::enterprise::firewall::{
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+    PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
+    port::Port as PortInner,
 };
 
 #[derive(Debug, thiserror::Error)]

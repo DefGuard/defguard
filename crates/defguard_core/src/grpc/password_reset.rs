@@ -2,10 +2,6 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
-use super::proto::proxy::{
-    DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
-    PasswordResetStartResponse,
-};
 use crate::{
     db::{
         User,
@@ -21,6 +17,10 @@ use crate::{
     headers::get_device_info,
     mail::Mail,
     server_config,
+};
+use defguard_proto::proxy::{
+    DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+    PasswordResetStartResponse,
 };
 
 pub(super) struct PasswordResetServer {

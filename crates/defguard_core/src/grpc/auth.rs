@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use defguard_proto::auth::{AuthenticateRequest, AuthenticateResponse, auth_service_server};
 use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
 use tonic::{Request, Response, Status};
@@ -12,8 +13,6 @@ use crate::{
     db::User,
     server_config,
 };
-
-tonic::include_proto!("auth");
 
 pub struct AuthServer {
     pool: PgPool,

@@ -32,13 +32,12 @@ use crate::{
     AsCsv,
     auth::{Claims, ClaimsType},
     enterprise::firewall::FirewallError,
-    grpc::{
-        gateway::{Peer, send_multiple_wireguard_events, state::GatewayState},
-        proto::{
-            enterprise::firewall::FirewallConfig, proxy::LocationMfaMode as ProtoLocationMfaMode,
-        },
-    },
+    grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
+};
+use defguard_proto::{
+    enterprise::firewall::FirewallConfig, gateway::Peer,
+    proxy::LocationMfaMode as ProtoLocationMfaMode,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;

@@ -8,14 +8,7 @@ use tokio::sync::{
 };
 use tonic::Status;
 
-use super::{
-    InstanceInfo,
-    proto::proxy::{
-        ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-        InitialUserInfo, NewDevice,
-    },
-};
+use super::InstanceInfo;
 use crate::{
     AsCsv,
     db::{
@@ -33,14 +26,7 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::{
-        proto::proxy::{
-            CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest,
-            CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
-            RegisterMobileAuthRequest,
-        },
-        utils::{build_device_config_response, new_polling_token, parse_client_info},
-    },
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
@@ -52,6 +38,13 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
+};
+use defguard_proto::proxy::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
+    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
 };
 
 pub(super) struct EnrollmentServer {
@@ -131,7 +124,7 @@ impl EnrollmentServer {
     pub async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
-        info: Option<super::proto::proxy::DeviceInfo>,
+        info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<EnrollmentStartResponse, Status> {
         debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
@@ -231,7 +224,7 @@ impl EnrollmentServer {
                 user.username, user.id
             );
             let (username, user_id) = (user.username.clone(), user.id);
-            let user_info = InitialUserInfo::from_user(&self.pool, user)
+            let user_info = initial_info_from_user(&self.pool, user)
                 .await
                 .map_err(|err| {
                     error!(
@@ -264,14 +257,14 @@ impl EnrollmentServer {
             .fetch_one(&self.pool)
             .await
             .map_err(|_| Status::internal("Failed to read data".to_string()))?;
-            let enrollment_settings = super::proto::proxy::EnrollmentSettings {
+            let enrollment_settings = defguard_proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
                 smtp_configured,
                 only_client_activation: enterprise_settings.only_client_activation,
                 admin_device_management: enterprise_settings.admin_device_management,
                 mfa_required: instance_has_internal_mfa,
             };
-            let response = super::proto::proxy::EnrollmentStartResponse {
+            let response = defguard_proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
@@ -361,7 +354,7 @@ impl EnrollmentServer {
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
@@ -484,7 +477,7 @@ impl EnrollmentServer {
     pub async fn create_device(
         &self,
         request: NewDevice,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;
@@ -1038,24 +1031,25 @@ impl From<User<Id>> for AdminInfo {
     }
 }
 
-impl InitialUserInfo {
-    async fn from_user(pool: &PgPool, user: User<Id>) -> Result<Self, sqlx::Error> {
-        let enrolled = user.is_enrolled();
-        let devices = user.user_devices(pool).await?;
-        let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
-        let is_admin = user.is_admin(pool).await?;
-        Ok(Self {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            login: user.username,
-            email: user.email,
-            phone_number: user.phone,
-            is_active: user.is_active,
-            device_names,
-            enrolled,
-            is_admin,
-        })
-    }
+async fn initial_info_from_user(
+    pool: &PgPool,
+    user: User<Id>,
+) -> Result<InitialUserInfo, sqlx::Error> {
+    let enrolled = user.is_enrolled();
+    let devices = user.user_devices(pool).await?;
+    let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+    let is_admin = user.is_admin(pool).await?;
+    Ok(InitialUserInfo {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        login: user.username,
+        email: user.email,
+        phone_number: user.phone,
+        is_active: user.is_active,
+        device_names,
+        enrolled,
+        is_admin,
+    })
 }
 
 impl From<DeviceConfig> for ProtoDeviceConfig {

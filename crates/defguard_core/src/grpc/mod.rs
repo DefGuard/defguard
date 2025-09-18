@@ -28,25 +28,19 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    Code, Status, Streaming,
+    Code, Streaming,
     transport::{
         Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig, server::Router,
     },
 };
 use tower::ServiceBuilder;
 
-use self::gateway::{GatewayServer, gateway_service_server::GatewayServiceServer};
+use self::gateway::GatewayServer;
 use self::{
-    auth::{AuthServer, auth_service_server::AuthServiceServer},
-    client_mfa::ClientMfaServer,
-    enrollment::EnrollmentServer,
+    auth::AuthServer, client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
-    proto::proxy::core_response,
 };
-use self::{
-    interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
-    worker::WorkerServer,
-};
+use self::{interceptor::JwtInterceptor, worker::WorkerServer};
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{auth::ClaimsType, db::GatewayEvent};
 use crate::{
@@ -84,31 +78,21 @@ pub(crate) mod utils;
 pub mod worker;
 
 pub mod proto {
-    pub mod proxy {
-        tonic::include_proto!("defguard.proxy");
-    }
-    pub mod gateway {
-        tonic::include_proto!("gateway");
-    }
-    pub mod auth {
-        tonic::include_proto!("auth");
-    }
-    pub mod worker {
-        tonic::include_proto!("worker");
-    }
     pub mod enterprise {
         pub mod license {
             tonic::include_proto!("enterprise.license");
         }
-        pub mod firewall {
-            tonic::include_proto!("enterprise.firewall");
-        }
     }
 }
 
-use proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
-    proxy_client::ProxyClient,
+use defguard_proto::{
+    auth::auth_service_server::AuthServiceServer,
+    gateway::gateway_service_server::GatewayServiceServer,
+    proxy::{
+        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
+        core_response, proxy_client::ProxyClient,
+    },
+    worker::worker_service_server::WorkerServiceServer,
 };
 
 // gRPC header for passing auth token from clients
@@ -118,15 +102,6 @@ pub static AUTHORIZATION_HEADER: &str = "authorization";
 pub static HOSTNAME_HEADER: &str = "hostname";
 
 const TEN_SECS: Duration = Duration::from_secs(10);
-
-impl From<Status> for CoreError {
-    fn from(status: Status) -> Self {
-        Self {
-            status_code: status.code().into(),
-            message: status.message().into(),
-        }
-    }
-}
 
 struct ProxyMessageLoopContext<'a> {
     pool: PgPool,
@@ -844,7 +819,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::proxy::InstanceInfo {
+impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,

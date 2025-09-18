@@ -4,10 +4,7 @@ use defguard_common::db::Id;
 use sqlx::PgPool;
 use tonic::Status;
 
-use super::{
-    InstanceInfo,
-    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
-};
+use super::InstanceInfo;
 use crate::{
     AsCsv,
     db::{
@@ -21,7 +18,10 @@ use crate::{
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
+};
+use defguard_proto::proxy::{
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
+    LocationMfaMode as ProtoLocationMfaMode,
 };
 
 // Create a new token for configuration polling.
