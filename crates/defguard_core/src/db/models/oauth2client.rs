@@ -1,5 +1,4 @@
 use model_derive::Model;
-use reqwest::Url;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 use super::NewOpenIDClient;
@@ -101,23 +100,17 @@ impl OAuth2Client<Id> {
         .await
     }
 
-    /// Checks if `url` matches client config (ignoring trailing slashes)
+    /// Checks if `url` matches client config (ignoring trailing slashes).
     pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
-        let parsed_redirect_uris: Vec<String> = self
-            .redirect_uri
-            .iter()
-            .map(|uri| uri.trim_end_matches('/').into())
-            .collect();
+        let url_trimmed = url.trim_end_matches('/');
 
-        // extract origin from url
-        let Ok(url) = Url::parse(url) else {
-            return false;
-        };
-        let url = url.origin().ascii_serialization();
+        for redirect in &self.redirect_uri {
+            if url_trimmed == redirect.trim_end_matches('/') {
+                return true;
+            }
+        }
 
-        !url.split(' ')
-            .map(|uri| uri.trim_end_matches('/'))
-            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
+        false
     }
 }
 
@@ -136,5 +129,30 @@ impl From<OAuth2Client<Id>> for OAuth2ClientSafe {
             name: client.name,
             scope: client.scope,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_contains_redirect_url() {
+        let oauth2client = OAuth2Client {
+            id: 1,
+            client_id: String::new(),
+            client_secret: String::new(),
+            redirect_uri: vec![
+                String::from("http://localhost/"),
+                String::from("http://safe.net/"),
+            ],
+            scope: Vec::new(),
+            name: String::new(),
+            enabled: true,
+        };
+        assert!(oauth2client.contains_redirect_url("http://safe.net"));
+        assert!(oauth2client.contains_redirect_url("http://localhost"));
+        assert!(!oauth2client.contains_redirect_url("http://safe.net/api"));
+        assert!(!oauth2client.contains_redirect_url("http://nonexistent:8000"));
     }
 }

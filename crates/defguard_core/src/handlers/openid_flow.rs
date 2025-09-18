@@ -15,7 +15,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
-use defguard_common::db::{Id, models::AuthCode};
+use defguard_common::db::{Id, NoId, models::AuthCode};
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -325,7 +325,7 @@ async fn generate_auth_code_redirect(
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
         }
-    };
+    }
 
     Ok(url.to_string())
 }
@@ -397,7 +397,7 @@ pub async fn authorization(
                         );
                         // FIXME: do not panic
                         return Ok(redirect_to(
-                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap(),),
+                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap()),
                             private_cookies,
                         ));
                     }
@@ -413,7 +413,8 @@ pub async fn authorization(
                                 // If session expired return login
                                 if session.expired() {
                                     info!(
-                                        "Session {} for user id {} has expired, redirecting to login",
+                                        "Session {} for user id {} has expired, redirecting to \
+                                        login",
                                         session.id, session.user_id
                                     );
                                     let _result = session.delete(&appstate.pool).await;
@@ -428,8 +429,9 @@ pub async fn authorization(
 
                                     user.verify_mfa_state(&appstate.pool).await?;
 
-                                    // Session exists even if user hasn't completed MFA verification yet,
-                                    // thus we need to check if MFA is enabled and the verification is done.
+                                    // Session exists even if user hasn't completed MFA verification
+                                    // yet, thus we need to check if MFA is enabled and the
+                                    // verification is done.
                                     if user.mfa_enabled
                                         && session.state != SessionState::MultiFactorVerified
                                     {
@@ -440,8 +442,9 @@ pub async fn authorization(
                                         return Ok(login_redirect(&data, private_cookies));
                                     }
 
-                                    // If session is present check if app is in user authorized apps.
-                                    // If yes return auth code and state else redirect to consent form.
+                                    // If session is present check if app is in user authorized
+                                    // apps. If yes, return auth code and state else redirect to
+                                    // consent form.
                                     if let Some(app) =
                                         OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                             &appstate.pool,
@@ -451,7 +454,8 @@ pub async fn authorization(
                                         .await?
                                     {
                                         info!(
-                                            "OAuth client id {} authorized by user id {}, returning auth code",
+                                            "OAuth client id {} authorized by user id {}, \
+                                            returning auth code",
                                             app.oauth2client_id, session.user_id
                                         );
                                         let private_cookies = private_cookies
@@ -466,7 +470,8 @@ pub async fn authorization(
                                     } else {
                                         // If authorized app not found redirect to consent form
                                         info!(
-                                            "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
+                                            "OAuth client id {} not yet authorized by user id {}, \
+                                            redirecting to consent form",
                                             oauth2client.id, session.user_id
                                         );
                                         Ok(redirect_to(
@@ -479,7 +484,7 @@ pub async fn authorization(
                                     }
                                 }
                             } else {
-                                // If session is not present in db redirect to login
+                                // If session is not present in database, redirect to login.
                                 info!(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
@@ -533,7 +538,7 @@ pub struct GroupClaims {
 
 impl AdditionalClaims for GroupClaims {}
 
-pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
+async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
     let groups = user.member_of_names(pool).await?;
     Ok(GroupClaims {
         groups: Some(groups),
@@ -664,7 +669,7 @@ impl TokenRequest {
 
     fn authorization_code_flow<T>(
         &self,
-        auth_code: &AuthCode<Id>,
+        auth_code: &AuthCode<NoId>,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
         base_url: &Url,
@@ -795,20 +800,16 @@ pub async fn token(
 
             // for logging
             let form_client_id = match &form.client_id {
-                Some(id) => id.clone(),
-                None => String::from("N/A"),
+                Some(id) => id,
+                None => "N/A",
             };
 
             if let Some(code) = &form.code {
-                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
-                    // copy data before removing used token
-                    let auth_code = stored_auth_code.clone();
-                    // remove authorization_code from DB so it cannot be reused
-                    debug!(
-                        "Removing used authorization_code {code}, client_id `{}`",
-                        form_client_id
-                    );
-                    stored_auth_code.consume(&appstate.pool).await?;
+                // Look for `AuthCode`. If found, it will be deleted from the database to avoid
+                // concurrent requests that might return multiple tokens for the same code.
+                // This addresses DG25-24 and conforms to RFC 6749.
+                if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                    debug!("Consumed authorization_code {code}, client_id `{form_client_id}`");
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
@@ -825,7 +826,7 @@ pub async fn token(
                                     "Issuing new token for user {} client {}",
                                     user.username, client.name
                                 );
-                                // Remove existing token in case same client asks for new token
+                                // Remove existing token in case the same client asks for new token.
                                 if let Some(token) = OAuth2Token::find_by_authorized_app_id(
                                     &appstate.pool,
                                     authorized_app.id,
@@ -868,8 +869,8 @@ pub async fn token(
                                     }
                                     Err(err) => {
                                         error!(
-                                            "Error issuing new token for user {} client {}: {}",
-                                            user.username, client.name, err
+                                            "Error issuing new token for user {} client {}: {err}",
+                                            user.username, client.name
                                         );
                                         let response =
                                             StandardErrorResponse::<CoreErrorResponseType>::new(
@@ -883,7 +884,8 @@ pub async fn token(
                                 }
                             }
                             error!(
-                                "Can't issue token - authorized app not found for user {}, client {}",
+                                "Can't issue token - authorized app not found for user {}, client \
+                                {}",
                                 user.username, client.name
                             );
                         } else {
@@ -896,7 +898,7 @@ pub async fn token(
                     error!("OAuth auth code not found");
                 }
             } else {
-                error!("No code provided in request for client id `{form_client_id}`",);
+                error!("No code provided in request for client id `{form_client_id}`");
             }
         }
         "refresh_token" => {
