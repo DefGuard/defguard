@@ -4,7 +4,7 @@ use defguard_common::{
     csv::AsCsv,
     db::{
         Id,
-        models::{BiometricAuth, MFAMethod, Settings},
+        models::{BiometricAuth, MFAMethod, Settings, settings::defaults::WELCOME_EMAIL_SUBJECT},
     },
 };
 use defguard_mail::{
@@ -1108,7 +1108,10 @@ impl Token {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
-            subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
+            subject: settings
+                .enrollment_welcome_email_subject
+                .clone()
+                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
             content: self
                 .get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
@@ -1164,5 +1167,123 @@ impl Token {
                 Err(TokenError::NotificationError(err.to_string()))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::{
+            models::{
+                Settings,
+                settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
+            },
+            setup_pool,
+        },
+    };
+    use defguard_mail::Mail;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::mpsc::unbounded_channel;
+
+    use crate::db::{
+        User,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    };
+
+    #[sqlx::test]
+    async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        // initialize server config
+        SERVER_CONFIG
+            .set(DefGuardConfig::new_test_config())
+            .unwrap();
+
+        // setup mail channel
+        let (mail_tx, mut mail_rx) = unbounded_channel::<Mail>();
+
+        // setup users
+        let admin = User::new(
+            "test_admin",
+            Some("pass123"),
+            "Test",
+            "Admin",
+            "admin@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let user = User::new(
+            "test_user",
+            Some("pass123"),
+            "Test",
+            "User",
+            "user@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // generate enrollment token
+        let token = Token::new(
+            user.id,
+            Some(admin.id),
+            Some(user.email.clone()),
+            10,
+            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        );
+
+        // initialize settings
+        Settings::init_defaults(&pool).await.unwrap();
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+
+        // send welcome email
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .send_welcome_email(
+                &mut transaction,
+                &mail_tx,
+                &user,
+                &settings,
+                "127.0.0.1",
+                None,
+            )
+            .await
+            .unwrap();
+
+        // check email content
+        let mail = mail_rx.recv().await.unwrap();
+        assert_eq!(mail.to, user.email);
+        assert_eq!(
+            mail.subject,
+            settings.enrollment_welcome_email_subject.unwrap()
+        );
+
+        // set subject to None
+        settings.enrollment_welcome_email_subject = None;
+
+        // send another welcome email
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .send_welcome_email(
+                &mut transaction,
+                &mail_tx,
+                &user,
+                &settings,
+                "127.0.0.1",
+                None,
+            )
+            .await
+            .unwrap();
+
+        // check email content
+        let mail = mail_rx.recv().await.unwrap();
+        assert_eq!(mail.to, user.email);
+        assert_eq!(mail.subject, WELCOME_EMAIL_SUBJECT);
     }
 }
