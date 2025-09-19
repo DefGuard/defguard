@@ -854,7 +854,7 @@ impl User<Id> {
         .await
     }
 
-    /// Attempts to find user by username and then by email, if none is initially found.ą
+    /// Attempts to find user by username and then by email, if none is initially found.
     pub async fn find_by_username_or_email(
         conn: &mut PgConnection,
         username_or_email: &str,
