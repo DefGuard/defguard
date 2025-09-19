@@ -1,6 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
+use defguard_common::db::{Id, NoId, setup_pool};
 use ipnetwork::{IpNetwork, Ipv6Network};
 use rand::{Rng, thread_rng};
 use sqlx::{
@@ -15,9 +16,8 @@ use super::{
 };
 use crate::{
     db::{
-        Device, Group, Id, NoId, User, WireguardNetwork,
+        Device, Group, User, WireguardNetwork,
         models::device::{DeviceType, WireguardNetworkDevice},
-        setup_pool,
     },
     enterprise::{
         db::models::acl::{
@@ -26,10 +26,10 @@ use crate::{
         },
         firewall::{get_source_addrs, get_source_network_devices},
     },
-    grpc::proto::enterprise::firewall::{
-        FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto, Protocol,
-        ip_address::Address, port::Port as PortInner,
-    },
+};
+use defguard_proto::enterprise::firewall::{
+    FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto, Protocol,
+    ip_address::Address, port::Port as PortInner,
 };
 
 impl Default for AclRuleDestinationRange<Id> {

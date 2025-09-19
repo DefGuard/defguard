@@ -9,13 +9,13 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Id, NoId},
     enterprise::db::models::activity_log_stream::{
         ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
+use defguard_common::db::{Id, NoId};
 
 pub async fn get_activity_log_stream(
     _admin: AdminRole,

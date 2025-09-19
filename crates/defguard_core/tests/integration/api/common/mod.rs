@@ -2,22 +2,22 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
-pub use defguard_core::db::setup_pool;
-use defguard_core::{
+pub use defguard_common::db::setup_pool;
+use defguard_common::{
     VERSION,
+    config::DefGuardConfig,
+    db::{Id, NoId, models::settings::initialize_current_settings},
+};
+use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    config::DefGuardConfig,
-    db::{
-        AppEvent, GatewayEvent, Id, NoId, User, UserDetails,
-        models::settings::initialize_current_settings,
-    },
+    db::{AppEvent, GatewayEvent, User, UserDetails},
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::Auth,
-    mail::Mail,
 };
+use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde::de::DeserializeOwned;

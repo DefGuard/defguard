@@ -1,9 +1,9 @@
 use std::net::IpAddr;
 
 use claims::assert_err;
+use defguard_common::{csv::AsCsv, db::Id};
 use defguard_core::{
-    AsCsv,
-    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork, models::device::DeviceType},
+    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::device::DeviceType},
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;

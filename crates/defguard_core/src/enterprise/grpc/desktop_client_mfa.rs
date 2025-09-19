@@ -10,10 +10,10 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
         client_mfa::{ClientLoginSession, ClientMfaServer},
-        proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod},
         utils::parse_client_info,
     },
 };
+use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 
 impl ClientMfaServer {
     #[instrument(skip_all)]

@@ -34,8 +34,8 @@ import { QueryKeys } from '../../../../../shared/queries';
 import type { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
+import { removeEmptyStrings } from '../../../../../shared/utils/removeEmptyStrings';
 import { titleCase } from '../../../../../shared/utils/titleCase';
-import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 
 interface Inputs {
@@ -189,16 +189,15 @@ export const ProfileDetailsForm = () => {
   }, [LL.userPage.userDetails.fields.status]);
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
-    values = trimObjectStrings(values);
     if (userProfile?.user) {
       setUserProfile({ loading: true });
       mutate({
         username: userProfile.user.username,
-        data: {
+        data: removeEmptyStrings({
           ...userProfile.user,
           ...values,
           totp_enabled: userProfile.user.totp_enabled,
-        },
+        }),
       });
     }
   };

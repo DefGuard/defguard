@@ -7,6 +7,15 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
+use defguard_common::db::{Id, NoId};
+use defguard_mail::Mail;
+use defguard_proto::{
+    enterprise::firewall::FirewallConfig,
+    gateway::{
+        Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
+        gateway_service_server, stats_update, update,
+    },
+};
 use defguard_version::version_info_from_metadata;
 use semver::Version;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
@@ -23,18 +32,12 @@ use tokio_stream::Stream;
 use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
-use super::proto::enterprise::firewall::FirewallConfig;
-pub use crate::grpc::proto::gateway::{
-    Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
-    gateway_service_server, stats_update, update,
-};
 use crate::{
     db::{
-        Device, GatewayEvent, Id, NoId, User,
+        Device, GatewayEvent, User,
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},
-    mail::Mail,
 };
 
 pub mod client_state;

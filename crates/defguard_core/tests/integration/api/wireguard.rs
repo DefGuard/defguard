@@ -1,11 +1,11 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
 use defguard_core::{
     db::{
-        Device, GatewayEvent, Id, WireguardNetwork,
+        Device, GatewayEvent, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
-            settings::OpenidUsernameHandling,
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             },

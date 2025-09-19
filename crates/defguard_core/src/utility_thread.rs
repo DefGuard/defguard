@@ -1,5 +1,6 @@
 use std::{collections::HashSet, time::Duration};
 
+use defguard_common::db::Id;
 use sqlx::{PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
@@ -8,7 +9,7 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    db::{GatewayEvent, Id, WireguardNetwork},
+    db::{GatewayEvent, WireguardNetwork},
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},

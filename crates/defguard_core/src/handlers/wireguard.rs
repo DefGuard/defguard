@@ -11,6 +11,8 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::{csv::AsCsv, db::Id};
+use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -19,11 +21,10 @@ use uuid::Uuid;
 
 use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
-    AsCsv,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
+        AddDevice, Device, GatewayEvent, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
@@ -45,7 +46,6 @@ use crate::{
     grpc::gateway::map::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
-    templates::TemplateLocation,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 

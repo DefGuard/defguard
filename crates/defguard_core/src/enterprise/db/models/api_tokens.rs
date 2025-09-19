@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, query_as};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]
 #[table(api_token)]

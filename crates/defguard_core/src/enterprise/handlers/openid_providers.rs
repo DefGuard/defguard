@@ -3,6 +3,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use defguard_common::db::models::{
+    Settings,
+    settings::{OpenidUsernameHandling, update_current_settings},
+};
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
 
@@ -10,13 +14,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        Settings, WireguardNetwork,
-        models::{
-            settings::{OpenidUsernameHandling, update_current_settings},
-            wireguard::LocationMfaMode,
-        },
-    },
+    db::{WireguardNetwork, models::wireguard::LocationMfaMode},
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },

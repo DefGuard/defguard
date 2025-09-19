@@ -171,7 +171,7 @@ pub(crate) fn parse_wireguard_config(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::db::NoId;
+    use defguard_common::db::NoId;
 
     #[test]
     fn test_parse_config() {

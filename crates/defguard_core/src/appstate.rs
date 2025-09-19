@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
+use defguard_common::config::server_config;
+use defguard_mail::Mail;
 use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde_json::json;
@@ -21,8 +23,6 @@ use crate::{
     error::WebError,
     events::ApiEvent,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
-    mail::Mail,
-    server_config,
     version::IncompatibleComponents,
 };
 

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     address::AddressError,
@@ -8,8 +9,9 @@ use lettre::{
 };
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tracing::{debug, error, info, instrument, warn};
 
-use crate::db::{Settings, models::settings::SmtpEncryption};
+pub mod templates;
 
 const SMTP_TIMEOUT_SECONDS: u64 = 15;
 

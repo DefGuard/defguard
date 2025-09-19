@@ -5,10 +5,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query_as};
 use utoipa::ToSchema;
 
-use crate::{
-    db::{Id, NoId},
-    enterprise::snat::error::UserSnatBindingError,
-};
+use crate::enterprise::snat::error::UserSnatBindingError;
+use defguard_common::db::{Id, NoId};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
 #[table(user_snat_binding)]

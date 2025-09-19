@@ -15,6 +15,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
+use defguard_common::db::{Id, NoId, models::AuthCode};
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -43,8 +44,8 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
     db::{
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
+        OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::oauth2client::OAuth2Client,
     },
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
@@ -271,18 +272,7 @@ impl AuthenticationRequest {
 
         // assume `client_id` is the same here and in `oauth2client`
 
-        // check `redirect_uri` matches client config (ignoring trailing slashes)
-        let parsed_redirect_uris: Vec<String> = oauth2client
-            .redirect_uri
-            .iter()
-            .map(|uri| uri.trim_end_matches('/').into())
-            .collect();
-        if self
-            .redirect_uri
-            .split(' ')
-            .map(|uri| uri.trim_end_matches('/'))
-            .all(|uri| !parsed_redirect_uris.iter().any(|u| u == uri))
-        {
+        if !oauth2client.contains_redirect_url(&self.redirect_uri) {
             error!(
                 "Invalid redirect_uri for client {}: {} not in [{}]",
                 oauth2client.name,
@@ -335,7 +325,7 @@ async fn generate_auth_code_redirect(
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
         }
-    };
+    }
 
     Ok(url.to_string())
 }
@@ -392,9 +382,11 @@ pub async fn authorization(
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let error;
+    let mut is_redirect_allowed = false;
     if let Some(oauth2client) =
         OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
     {
+        is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
         match (
             oauth2client.enabled,
             data.validate_for_client(&oauth2client),
@@ -408,7 +400,7 @@ pub async fn authorization(
                         );
                         // FIXME: do not panic
                         return Ok(redirect_to(
-                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap(),),
+                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap()),
                             private_cookies,
                         ));
                     }
@@ -424,7 +416,8 @@ pub async fn authorization(
                                 // If session expired return login
                                 if session.expired() {
                                     info!(
-                                        "Session {} for user id {} has expired, redirecting to login",
+                                        "Session {} for user id {} has expired, redirecting to \
+                                        login",
                                         session.id, session.user_id
                                     );
                                     let _result = session.delete(&appstate.pool).await;
@@ -439,8 +432,9 @@ pub async fn authorization(
 
                                     user.verify_mfa_state(&appstate.pool).await?;
 
-                                    // Session exists even if user hasn't completed MFA verification yet,
-                                    // thus we need to check if MFA is enabled and the verification is done.
+                                    // Session exists even if user hasn't completed MFA verification
+                                    // yet, thus we need to check if MFA is enabled and the
+                                    // verification is done.
                                     if user.mfa_enabled
                                         && session.state != SessionState::MultiFactorVerified
                                     {
@@ -451,8 +445,9 @@ pub async fn authorization(
                                         return Ok(login_redirect(&data, private_cookies));
                                     }
 
-                                    // If session is present check if app is in user authorized apps.
-                                    // If yes return auth code and state else redirect to consent form.
+                                    // If session is present check if app is in user authorized
+                                    // apps. If yes, return auth code and state else redirect to
+                                    // consent form.
                                     if let Some(app) =
                                         OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                             &appstate.pool,
@@ -462,7 +457,8 @@ pub async fn authorization(
                                         .await?
                                     {
                                         info!(
-                                            "OAuth client id {} authorized by user id {}, returning auth code",
+                                            "OAuth client id {} authorized by user id {}, \
+                                            returning auth code",
                                             app.oauth2client_id, session.user_id
                                         );
                                         let private_cookies = private_cookies
@@ -477,7 +473,8 @@ pub async fn authorization(
                                     } else {
                                         // If authorized app not found redirect to consent form
                                         info!(
-                                            "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
+                                            "OAuth client id {} not yet authorized by user id {}, \
+                                            redirecting to consent form",
                                             oauth2client.id, session.user_id
                                         );
                                         Ok(redirect_to(
@@ -490,7 +487,7 @@ pub async fn authorization(
                                     }
                                 }
                             } else {
-                                // If session is not present in db redirect to login
+                                // If session is not present in database, redirect to login.
                                 info!(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
@@ -522,9 +519,12 @@ pub async fn authorization(
         error = CoreAuthErrorResponseType::UnauthorizedClient;
     }
 
-    let mut url =
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
-
+    let mut url = if is_redirect_allowed {
+        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
+    } else {
+        // Don't allow open redirects (DG25-17)
+        server_config().url.clone()
+    };
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());
@@ -544,7 +544,7 @@ pub struct GroupClaims {
 
 impl AdditionalClaims for GroupClaims {}
 
-pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
+async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
     let groups = user.member_of_names(pool).await?;
     Ok(GroupClaims {
         groups: Some(groups),
@@ -558,13 +558,13 @@ pub async fn secure_authorization(
     Query(data): Query<AuthenticationRequest>,
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
-    let mut url =
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
     let error;
-    if data.allow {
-        if let Some(oauth2client) =
-            OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
-        {
+    let mut is_redirect_allowed = false;
+    if let Some(oauth2client) =
+        OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
+    {
+        is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
+        if data.allow {
             match (
                 oauth2client.enabled,
                 data.validate_for_client(&oauth2client),
@@ -585,7 +585,7 @@ pub async fn secure_authorization(
                             &session_info.user.email,
                             oauth2client.name.to_string(),
                             &appstate.mail_tx,
-                            &session_info.session,
+                            &session_info.session.into(),
                         )
                         .await?;
                     }
@@ -615,20 +615,26 @@ pub async fn secure_authorization(
                 }
             }
         } else {
-            error!(
-                "User {} tried to log in with non-existent OIDC client id {}",
+            info!(
+                "User {} denied OIDC login with app id {}",
                 session_info.user.username, data.client_id
             );
-            error = CoreAuthErrorResponseType::UnauthorizedClient;
+            error = CoreAuthErrorResponseType::AccessDenied;
         }
     } else {
-        info!(
-            "User {} denied OIDC login with app id {}",
+        error!(
+            "User {} tried to log in with non-existent OIDC client id {}",
             session_info.user.username, data.client_id
         );
-        error = CoreAuthErrorResponseType::AccessDenied;
+        error = CoreAuthErrorResponseType::UnauthorizedClient;
     }
 
+    let mut url = if is_redirect_allowed {
+        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
+    } else {
+        // Don't allow open redirects (DG25-17)
+        server_config().url.clone()
+    };
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.append_pair("error", error.as_ref());
@@ -676,7 +682,7 @@ impl TokenRequest {
 
     fn authorization_code_flow<T>(
         &self,
-        auth_code: &AuthCode<Id>,
+        auth_code: &AuthCode<NoId>,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
         base_url: &Url,
@@ -807,20 +813,16 @@ pub async fn token(
 
             // for logging
             let form_client_id = match &form.client_id {
-                Some(id) => id.clone(),
-                None => String::from("N/A"),
+                Some(id) => id,
+                None => "N/A",
             };
 
             if let Some(code) = &form.code {
-                if let Some(stored_auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
-                    // copy data before removing used token
-                    let auth_code = stored_auth_code.clone();
-                    // remove authorization_code from DB so it cannot be reused
-                    debug!(
-                        "Removing used authorization_code {code}, client_id `{}`",
-                        form_client_id
-                    );
-                    stored_auth_code.consume(&appstate.pool).await?;
+                // Look for `AuthCode`. If found, it will be deleted from the database to avoid
+                // concurrent requests that might return multiple tokens for the same code.
+                // This addresses DG25-24 and conforms to RFC 6749.
+                if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
+                    debug!("Consumed authorization_code {code}, client_id `{form_client_id}`");
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
                         if !client.enabled {
                             error!("OAuth client id `{}` is disabled", client.name);
@@ -850,7 +852,7 @@ pub async fn token(
                                     "Issuing new token for user {} client {}",
                                     user.username, client.name
                                 );
-                                // Remove existing token in case same client asks for new token
+                                // Remove existing token in case the same client asks for new token.
                                 if let Some(token) = OAuth2Token::find_by_authorized_app_id(
                                     &appstate.pool,
                                     authorized_app.id,
@@ -893,8 +895,8 @@ pub async fn token(
                                     }
                                     Err(err) => {
                                         error!(
-                                            "Error issuing new token for user {} client {}: {}",
-                                            user.username, client.name, err
+                                            "Error issuing new token for user {} client {}: {err}",
+                                            user.username, client.name
                                         );
                                         let response =
                                             StandardErrorResponse::<CoreErrorResponseType>::new(
@@ -908,7 +910,8 @@ pub async fn token(
                                 }
                             }
                             error!(
-                                "Can't issue token - authorized app not found for user {}, client {}",
+                                "Can't issue token - authorized app not found for user {}, client \
+                                {}",
                                 user.username, client.name
                             );
                         } else {
@@ -921,7 +924,7 @@ pub async fn token(
                     error!("OAuth auth code not found");
                 }
             } else {
-                error!("No code provided in request for client id `{form_client_id}`",);
+                error!("No code provided in request for client id `{form_client_id}`");
             }
         }
         "refresh_token" => {

@@ -5,6 +5,11 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{NaiveDateTime, Utc};
+use defguard_common::db::{Id, models::MFAMethod};
+use defguard_mail::{
+    Attachment, Mail,
+    templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
+};
 use lettre::message::header::ContentType;
 use reqwest::Url;
 use serde_json::json;
@@ -18,12 +23,10 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Id, MFAMethod, Session, User, models::enrollment::TokenError},
+    db::{User, models::enrollment::TokenError},
     error::WebError,
-    mail::{Attachment, Mail},
     server_config,
     support::dump_config,
-    templates::{self, TemplateError, TemplateLocation, support_data_mail},
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -73,7 +76,7 @@ pub async fn test_mail(
     let mail = Mail {
         to: data.to.clone(),
         subject: TEST_MAIL_SUBJECT.to_string(),
-        content: templates::test_mail(Some(&session.session))?,
+        content: templates::test_mail(Some(&session.session.into()))?,
         attachments: Vec::new(),
         result_tx: Some(tx),
     };
@@ -288,7 +291,7 @@ pub async fn send_gateway_reconnected_email(
 pub async fn send_new_device_login_email(
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: &SessionContext,
     created: NaiveDateTime,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
@@ -319,7 +322,7 @@ pub async fn send_new_device_ocid_login_email(
     user_email: &str,
     oauth2client_name: String,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: &SessionContext,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
 
@@ -348,7 +351,7 @@ pub async fn send_new_device_ocid_login_email(
 }
 
 pub fn send_mfa_configured_email(
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
     user: &User<Id>,
     mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
@@ -382,7 +385,7 @@ pub fn send_mfa_configured_email(
 pub fn send_email_mfa_activation_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA activation mail to {}", user.email);
 
@@ -395,7 +398,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(user, &code, session)?,
+        content: templates::email_mfa_activation_mail(&user.clone().into(), &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -417,7 +420,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
@@ -430,7 +433,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(user, &code, session)?,
+        content: templates::email_mfa_code_mail(&user.clone().into(), &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };

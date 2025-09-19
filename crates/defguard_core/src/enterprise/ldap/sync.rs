@@ -54,11 +54,18 @@
 //!
 use std::collections::{HashMap, HashSet};
 
-use sqlx::{PgConnection, PgPool, Type};
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings,
+        settings::{LdapSyncStatus, update_current_settings},
+    },
+};
+use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
-    db::{Group, Id, Settings, User, models::settings::update_current_settings},
+    db::{Group, User},
     hashset,
 };
 
@@ -85,28 +92,13 @@ pub enum Authority {
     Defguard,
 }
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
-#[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
-pub enum SyncStatus {
-    InSync,
-    #[default]
-    OutOfSync,
-}
-
-impl SyncStatus {
-    #[must_use]
-    pub fn is_out_of_sync(&self) -> bool {
-        matches!(self, SyncStatus::OutOfSync)
-    }
-}
-
 #[must_use]
-pub fn get_ldap_sync_status() -> SyncStatus {
+pub fn get_ldap_sync_status() -> LdapSyncStatus {
     let settings = Settings::get_current_settings();
     settings.ldap_sync_status
 }
 
-pub async fn set_ldap_sync_status(status: SyncStatus, pool: &PgPool) -> Result<(), LdapError> {
+pub async fn set_ldap_sync_status(status: LdapSyncStatus, pool: &PgPool) -> Result<(), LdapError> {
     debug!("Setting LDAP sync status to {status:?}");
     let mut settings = Settings::get_current_settings();
     settings.ldap_sync_status = status;

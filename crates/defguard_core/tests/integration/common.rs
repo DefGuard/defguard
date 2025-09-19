@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
-use defguard_core::{SERVER_CONFIG, config::DefGuardConfig, db::User};
+use defguard_common::config::{DefGuardConfig, SERVER_CONFIG};
+use defguard_core::db::User;
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use sqlx::PgPool;

@@ -3,7 +3,7 @@ use std::fmt;
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 // The behavior when a user is deleted from the directory
 // Keep: Keep the user, despite being deleted from the external provider's directory

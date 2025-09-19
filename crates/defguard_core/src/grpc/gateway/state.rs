@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use chrono::NaiveDateTime;
+use defguard_common::db::{Id, models::Settings};
+use defguard_mail::Mail;
 use defguard_version::{DefguardComponent, tracing::VersionInfo};
 use semver::Version;
 use serde::Serialize;
@@ -11,10 +13,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    db::{Id, Settings},
     grpc::MIN_GATEWAY_VERSION,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
-    mail::Mail,
 };
 
 #[derive(Clone, Debug, Serialize, ToSchema)]
