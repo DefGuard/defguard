@@ -7,6 +7,11 @@ use std::{
 
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    csv::AsCsv,
+    db::{Id, NoId, models::ModelError},
+};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
@@ -24,22 +29,17 @@ use super::{
     device::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
-    error::ModelError,
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    AsCsv,
-    auth::{Claims, ClaimsType},
-    db::{Id, NoId},
     enterprise::firewall::FirewallError,
-    grpc::{
-        gateway::{Peer, send_multiple_wireguard_events, state::GatewayState},
-        proto::{
-            enterprise::firewall::FirewallConfig, proxy::LocationMfaMode as ProtoLocationMfaMode,
-        },
-    },
+    grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
+};
+use defguard_proto::{
+    enterprise::firewall::FirewallConfig, gateway::Peer,
+    proxy::LocationMfaMode as ProtoLocationMfaMode,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -1419,11 +1419,12 @@ mod test {
     use std::str::FromStr;
 
     use chrono::{SubsecRound, TimeDelta};
+    use defguard_common::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{Group, setup_pool};
+    use crate::db::Group;
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {

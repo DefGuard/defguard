@@ -15,6 +15,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
+use defguard_common::db::{Id, NoId, models::AuthCode};
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -43,8 +44,8 @@ use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo, UserClaims},
     db::{
-        Id, NoId, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
+        OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::oauth2client::OAuth2Client,
     },
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
@@ -575,7 +576,7 @@ pub async fn secure_authorization(
                             &session_info.user.email,
                             oauth2client.name.to_string(),
                             &appstate.mail_tx,
-                            &session_info.session,
+                            &session_info.session.into(),
                         )
                         .await?;
                     }

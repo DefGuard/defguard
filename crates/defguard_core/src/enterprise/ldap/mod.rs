@@ -1,16 +1,23 @@
 use std::{collections::HashSet, future::Future};
 
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings,
+        settings::{LdapSyncStatus, update_current_settings},
+    },
+};
 #[cfg(not(test))]
 use ldap3::Ldap;
 use ldap3::{Mod, SearchEntry, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
-use sync::{SyncStatus, get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
+use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
 use crate::{
-    db::{self, Id, Settings, User, models::settings::update_current_settings},
+    db::{self, User},
     enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
 };
 
@@ -36,8 +43,8 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     // doesn't matter for the sync status if we can't pull changes.
     if !settings.ldap_enabled {
         debug!("LDAP is disabled, not performing LDAP sync");
-        if get_ldap_sync_status() == SyncStatus::InSync {
-            set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
+        if get_ldap_sync_status() == LdapSyncStatus::InSync {
+            set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         }
         return Ok(());
     }
@@ -68,16 +75,16 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     let mut ldap_connection = match LDAPConnection::create().await {
         Ok(connection) => connection,
         Err(err) => {
-            set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
+            set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
             return Err(err);
         }
     };
 
     if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced()).await {
-        set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
+        set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(err);
     }
-    set_ldap_sync_status(SyncStatus::InSync, pool).await?;
+    set_ldap_sync_status(LdapSyncStatus::InSync, pool).await?;
 
     let _ = update_counts(pool).await;
 
@@ -95,17 +102,17 @@ where
     let settings = Settings::get_current_settings();
     if !is_enterprise_enabled() {
         info!("Enterprise features are disabled, not performing LDAP operation");
-        set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
+        set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(LdapError::EnterpriseDisabled("LDAP".to_string()));
     }
 
     if !settings.ldap_enabled {
         debug!("LDAP is disabled, not performing LDAP operation");
-        set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
+        set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(LdapError::MissingSettings("LDAP is disabled".into()));
     }
 
-    if settings.ldap_sync_enabled && get_ldap_sync_status() == SyncStatus::OutOfSync {
+    if settings.ldap_sync_enabled && get_ldap_sync_status() == LdapSyncStatus::OutOfSync {
         warn!("LDAP is considered to be desynced, not performing LDAP operation");
         return Err(LdapError::Desynced);
     }
@@ -114,7 +121,7 @@ where
         Ok(result) => Ok(result),
         Err(e) => {
             warn!("Encountered an error while performing LDAP operation: {e:?}");
-            if let Err(status_err) = set_ldap_sync_status(SyncStatus::OutOfSync, pool).await {
+            if let Err(status_err) = set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await {
                 warn!("Failed to update LDAP sync status: {status_err:?}");
             }
 

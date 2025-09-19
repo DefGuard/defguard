@@ -57,7 +57,7 @@ impl BiometricAuth {
 }
 
 impl BiometricAuth<Id> {
-    pub(crate) async fn find_by_device_id<'e, E>(
+    pub async fn find_by_device_id<'e, E>(
         executor: E,
         device_id: Id,
     ) -> Result<Option<Self>, sqlx::Error>
@@ -73,7 +73,7 @@ impl BiometricAuth<Id> {
         .await
     }
 
-    pub(crate) async fn verify_owner<'e, E>(
+    pub async fn verify_owner<'e, E>(
         executor: E,
         user_id: Id,
         pub_key: &str,
@@ -91,10 +91,7 @@ impl BiometricAuth<Id> {
         Ok(q_result.is_some())
     }
 
-    pub(crate) async fn find_by_user_id<'e, E>(
-        executor: E,
-        user_id: Id,
-    ) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> Result<Vec<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
@@ -122,6 +119,12 @@ fn decode_pub_key(public_key: &str) -> Result<VerifyingKey, BiometricAuthError> 
     let verifying_key =
         VerifyingKey::from_bytes(&pub_bytes).map_err(|_| BiometricAuthError::InvalidPublicKey)?;
     Ok(verifying_key)
+}
+
+impl Default for BiometricChallenge {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BiometricChallenge {

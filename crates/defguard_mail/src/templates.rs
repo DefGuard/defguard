@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, NaiveDateTime, Utc};
+use defguard_common::{VERSION, config::server_config, db::models::user::MFAMethod};
 use reqwest::Url;
+use serde::Serialize;
 use serde_json::Value;
 use tera::{Context, Function, Tera};
 use thiserror::Error;
-
-use crate::{
-    VERSION,
-    db::{Id, MFAMethod, Session, User},
-    server_config,
-};
+use tracing::debug;
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
@@ -56,7 +53,7 @@ impl Function for NoOp {
 
 /// Return a safe instance of Tera, as Tera is vulnerable to `get_env()` function exploit.
 /// See: https://github.com/Keats/tera/issues/677
-pub(crate) fn safe_tera() -> Tera {
+pub fn safe_tera() -> Tera {
     let mut tera = Tera::default();
     let noop = NoOp("get_env");
     tera.register_function(noop.0, noop);
@@ -64,9 +61,19 @@ pub(crate) fn safe_tera() -> Tera {
     tera
 }
 
+pub struct SessionContext {
+    pub ip_address: String,
+    pub device_info: Option<String>,
+}
+
+pub struct UserContext {
+    pub last_name: String,
+    pub first_name: String,
+}
+
 fn get_base_tera(
     external_context: Option<Context>,
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<(Tera, Context), TemplateError> {
@@ -99,7 +106,7 @@ fn get_base_tera(
 }
 
 // sends test message when requested during SMTP configuration process
-pub fn test_mail(session: Option<&Session>) -> Result<String, TemplateError> {
+pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateError> {
     let (mut tera, context) = get_base_tera(None, session, None, None)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
     Ok(tera.render("mail_test", &context)?)
@@ -169,9 +176,9 @@ pub fn enrollment_welcome_mail(
 }
 
 // notification sent to admin after user completes enrollment
-pub fn enrollment_admin_notification<I>(
-    user: &User<I>,
-    admin: &User<I>,
+pub fn enrollment_admin_notification(
+    user: &UserContext,
+    admin: &UserContext,
     ip_address: &str,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
@@ -221,7 +228,7 @@ pub fn new_device_added_mail(
 }
 
 pub fn mfa_configured_mail(
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
     method: &MFAMethod,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
@@ -233,7 +240,7 @@ pub fn mfa_configured_mail(
 }
 
 pub fn new_device_login_mail(
-    session: &Session,
+    session: &SessionContext,
     created: NaiveDateTime,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
@@ -248,7 +255,7 @@ pub fn new_device_login_mail(
 }
 
 pub fn new_device_ocid_login_mail(
-    session: &Session,
+    session: &SessionContext,
     oauth2client_name: &str,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
@@ -290,9 +297,9 @@ pub fn gateway_reconnected_mail(
 }
 
 pub fn email_mfa_activation_mail(
-    user: &User<Id>,
+    user: &UserContext,
     code: &str,
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
@@ -306,9 +313,9 @@ pub fn email_mfa_activation_mail(
 }
 
 pub fn email_mfa_code_mail(
-    user: &User<Id>,
+    user: &UserContext,
     code: &str,
-    session: Option<&Session>,
+    session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
@@ -359,9 +366,9 @@ pub fn email_password_reset_success_mail(
 #[cfg(test)]
 mod test {
     use claims::assert_ok;
+    use defguard_common::config::{DefGuardConfig, SERVER_CONFIG};
 
     use super::*;
-    use crate::{SERVER_CONFIG, config::DefGuardConfig};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();
@@ -401,7 +408,7 @@ mod test {
 
     #[test]
     fn test_enrollment_start_mail() {
-        let _ = SERVER_CONFIG.set(DefGuardConfig::default());
+        let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
@@ -457,14 +464,11 @@ mod test {
 
     #[test]
     fn test_enrollment_admin_notification() {
-        let test_user: User = User::new(
-            "test",
-            Some("1234"),
-            "test_last",
-            "test_first",
-            "test@example.com",
-            Some("99999".into()),
-        );
+        let test_user = UserContext {
+            last_name: "test_last".into(),
+            first_name: "test_first".into(),
+        };
+
         assert_ok!(enrollment_admin_notification(
             &test_user,
             &test_user,

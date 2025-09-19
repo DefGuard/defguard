@@ -9,22 +9,22 @@ use crate::{
 
 #[derive(Model)]
 #[table(authorization_code)]
-pub(crate) struct AuthCode<I = NoId> {
+pub struct AuthCode<I = NoId> {
     #[allow(dead_code)]
     id: I,
-    pub(crate) user_id: Id,
-    pub(crate) client_id: String,
-    pub(crate) code: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) scope: String,
-    pub(crate) auth_time: i64,
-    pub(crate) nonce: Option<String>,
-    pub(crate) code_challenge: Option<String>,
+    pub user_id: Id,
+    pub client_id: String,
+    pub code: String,
+    pub redirect_uri: String,
+    pub scope: String,
+    pub auth_time: i64,
+    pub nonce: Option<String>,
+    pub code_challenge: Option<String>,
 }
 
 impl AuthCode {
     #[must_use]
-    pub(crate) fn new(
+    pub fn new(
         user_id: Id,
         client_id: String,
         redirect_uri: String,
@@ -66,7 +66,7 @@ impl From<AuthCode<Id>> for AuthCode<NoId> {
 impl AuthCode<Id> {
     /// Find by code.
     /// If found, delete `AuthCode` from the database right away, so it can't be reused.
-    pub(crate) async fn find_code<'e, E>(
+    pub async fn find_code<'e, E>(
         executor: E,
         code: &str,
     ) -> Result<Option<AuthCode<NoId>>, sqlx::Error>

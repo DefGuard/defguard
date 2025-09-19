@@ -15,8 +15,8 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
-    random::gen_alphanumeric,
 };
+use defguard_common::random::gen_alphanumeric;
 
 const API_TOKEN_LENGTH: usize = 32;
 

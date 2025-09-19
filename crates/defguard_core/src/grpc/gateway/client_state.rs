@@ -1,11 +1,12 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::Id;
 use thiserror::Error;
 use tonic::{Code, Status};
 
 use crate::{
-    db::{Device, Id, User, WireguardNetwork, models::wireguard_peer_stats::WireguardPeerStats},
+    db::{Device, User, WireguardNetwork, models::wireguard_peer_stats::WireguardPeerStats},
     events::GrpcRequestContext,
 };
 

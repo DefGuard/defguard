@@ -1,7 +1,5 @@
-use defguard_core::{
-    db::{Id, NoId, WebHook},
-    handlers::Auth,
-};
+use defguard_common::db::{Id, NoId};
+use defguard_core::{db::WebHook, handlers::Auth};
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

@@ -3,6 +3,10 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
+use defguard_common::db::{
+    Id,
+    models::{AuthenticationKey, AuthenticationKeyType},
+};
 use serde_json::json;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
@@ -11,10 +15,7 @@ use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{
-        Group, Id, User,
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    },
+    db::{Group, User},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };

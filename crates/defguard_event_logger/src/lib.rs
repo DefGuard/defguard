@@ -1,24 +1,22 @@
 use bytes::Bytes;
-use defguard_core::db::{
-    NoId,
-    models::activity_log::{
-        ActivityLogEvent, ActivityLogModule, EventType,
-        metadata::{
-            ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
-            ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
-            ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-            EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
-            GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
-            GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata,
-            MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
-            NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
-            OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
-            PasswordResetMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata,
-            UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-            UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-            VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata,
-            WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata,
-        },
+use defguard_common::db::NoId;
+use defguard_core::db::models::activity_log::{
+    ActivityLogEvent, ActivityLogModule, EventType,
+    metadata::{
+        ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
+        ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
+        ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
+        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
+        GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
+        GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata, MfaLoginMetadata,
+        MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
+        OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
+        OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
+        SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata,
+        UserModifiedMetadata, UserSnatBindingMetadata, UserSnatBindingModifiedMetadata,
+        VpnClientMetadata, VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+        VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
+        WebHookStateChangedMetadata,
     },
 };
 use description::{

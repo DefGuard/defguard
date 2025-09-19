@@ -3,6 +3,7 @@ use std::{
     ops::RangeInclusive,
 };
 
+use defguard_common::db::{Id, models::ModelError};
 use ipnetwork::IpNetwork;
 use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
 
@@ -14,16 +15,16 @@ use super::{
     utils::merge_ranges,
 };
 use crate::{
-    db::{Device, Id, User, WireguardNetwork, models::error::ModelError},
+    db::{Device, User, WireguardNetwork},
     enterprise::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
         is_enterprise_enabled,
     },
-    grpc::proto::enterprise::firewall::{
-        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
-        PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
-        port::Port as PortInner,
-    },
+};
+use defguard_proto::enterprise::firewall::{
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+    PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
+    port::Port as PortInner,
 };
 
 #[derive(Debug, thiserror::Error)]

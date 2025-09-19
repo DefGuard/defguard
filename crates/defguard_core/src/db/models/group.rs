@@ -1,10 +1,11 @@
 use std::fmt;
 
+use defguard_common::db::{Id, NoId, models::ModelError};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
-use crate::db::{Id, NoId, User, WireguardNetwork, models::error::ModelError};
+use crate::db::{User, WireguardNetwork};
 
 #[derive(Debug)]
 pub enum Permission {
@@ -296,10 +297,11 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{User, setup_pool};
+    use crate::db::User;
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {

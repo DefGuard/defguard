@@ -1,6 +1,6 @@
 use chrono::{Duration, Utc};
+use defguard_common::db::models::settings::OpenidUsernameHandling;
 use defguard_core::{
-    db::models::settings::OpenidUsernameHandling,
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,

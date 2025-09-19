@@ -1,19 +1,22 @@
 use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
-use serde::Serialize;
+use defguard_common::db::{
+    Id,
+    models::{AuthenticationKey, MFAMethod, Settings},
+};
 
 use crate::{
     db::{
-        Device, Group, Id, MFAMethod, Settings, User, WebAuthn, WebHook, WireguardNetwork,
-        models::{authentication_key::AuthenticationKey, oauth2client::OAuth2Client},
+        Device, Group, User, WebAuthn, WebHook, WireguardNetwork,
+        models::oauth2client::OAuth2Client,
     },
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
         openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
-    grpc::proto::proxy::MfaMethod,
 };
+use defguard_proto::proxy::MfaMethod;
 
 /// Shared context that needs to be added to every API event
 ///
@@ -382,23 +385,6 @@ pub enum PasswordResetEvent {
 }
 
 pub type ClientMFAMethod = MfaMethod;
-
-impl Serialize for ClientMFAMethod {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match *self {
-            MfaMethod::Totp => serializer.serialize_unit_variant("MfaMethod", 0, "Totp"),
-            MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
-            MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
-            MfaMethod::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
-            MfaMethod::MobileApprove => {
-                serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
-            }
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {

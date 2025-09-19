@@ -5,25 +5,22 @@ use std::{
 
 use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
+use defguard_common::db::{Id, NoId, setup_pool};
 use defguard_core::{
     db::{
-        Device, Id, NoId, User, WireguardNetwork,
+        Device, User, WireguardNetwork,
         models::{
             device::DeviceType, wireguard::LocationMfaMode,
             wireguard_peer_stats::WireguardPeerStats,
         },
-        setup_pool,
     },
     enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
-    grpc::{
-        MIN_GATEWAY_VERSION,
-        gateway::{Configuration, Update, update},
-        proto::{
-            enterprise::firewall::FirewallPolicy,
-            gateway::{PeerStats, StatsUpdate, stats_update::Payload},
-        },
-    },
+    grpc::MIN_GATEWAY_VERSION,
+};
+use defguard_proto::{
+    enterprise::firewall::FirewallPolicy,
+    gateway::{Configuration, PeerStats, StatsUpdate, Update, stats_update::Payload, update},
 };
 use semver::Version;
 use sqlx::{

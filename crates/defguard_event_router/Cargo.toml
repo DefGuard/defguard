@@ -11,6 +11,7 @@ rust-version.workspace = true
 # internal crates
 defguard_core = { workspace = true }
 defguard_event_logger = { workspace = true }
+defguard_mail = { workspace = true }
 
 # external dependencies
 thiserror = { workspace = true }

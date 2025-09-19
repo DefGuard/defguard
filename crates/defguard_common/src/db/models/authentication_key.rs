@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
 
 use crate::db::{Id, NoId};
@@ -25,11 +26,11 @@ impl Display for AuthenticationKeyType {
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]
 #[table(authentication_key)]
 pub struct AuthenticationKey<I = NoId> {
-    pub(crate) id: I,
-    pub(crate) yubikey_id: Option<i64>,
+    pub id: I,
+    pub yubikey_id: Option<i64>,
     pub name: Option<String>,
-    pub(crate) user_id: Id,
-    pub(crate) key: String,
+    pub user_id: Id,
+    pub key: String,
     #[model(enum)]
     pub key_type: AuthenticationKeyType,
 }
