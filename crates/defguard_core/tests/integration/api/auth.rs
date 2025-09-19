@@ -22,8 +22,8 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 use crate::api::common::client::TestResponse;
 
 use super::common::{
-    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
-    make_test_client, setup_pool,
+    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_test_client,
+    setup_pool,
 };
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -391,7 +391,7 @@ fn extract_email_code(content: &str) -> &str {
 async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -537,7 +537,7 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
 async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -603,7 +603,7 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     let (client, pool) = make_client_with_db(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -722,7 +722,7 @@ async fn test_cannot_skip_security_key_by_adding_yubikey(
     let client = make_client(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -805,7 +805,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey(
 
     // WebAuthn registration
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     let response = client.post("/api/v1/auth/webauthn/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);

@@ -453,7 +453,7 @@ async fn handle_proxy_message_loop(
                                             error!(
                                                 "Failed to sync user groups for user {} with the \
                                                 directory while the user was logging in through an \
-                                                external provider: {err:?}",
+                                                external provider: {err}",
                                                 user.username,
                                             );
                                         } else {

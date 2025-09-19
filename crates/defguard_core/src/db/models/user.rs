@@ -823,9 +823,9 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+            totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE username = $1",
             username
@@ -843,9 +843,10 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
-            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+            totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -853,8 +854,7 @@ impl User<Id> {
         .await
     }
 
-    /// Attempts to find user by username and then by email
-    /// of none is initially found
+    /// Attempts to find user by username and then by email, if none is initially found.
     pub async fn find_by_username_or_email(
         conn: &mut PgConnection,
         username_or_email: &str,
@@ -888,7 +888,6 @@ impl User<Id> {
         .await
     }
 
-    // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub(crate) async fn find_by_sub<'e, E>(
         executor: E,
         sub: &str,
@@ -902,7 +901,7 @@ impl User<Id> {
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
-            FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
+            FROM \"user\" WHERE openid_sub = $1",
             sub
         )
         .fetch_optional(executor)

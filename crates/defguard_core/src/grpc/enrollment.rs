@@ -343,7 +343,7 @@ impl EnrollmentServer {
         Ok(())
     }
 
-    fn validate_activated_user(&self, request: &ActivateUserRequest) -> Result<(), Status> {
+    fn validate_activated_user(request: &ActivateUserRequest) -> Result<(), Status> {
         if let Some(ref phone_number) = request.phone_number {
             if !is_valid_phone_number(phone_number) {
                 return Err(Status::new(
@@ -364,7 +364,7 @@ impl EnrollmentServer {
     ) -> Result<(), Status> {
         debug!("Activating user account");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
-        self.validate_activated_user(&request)?;
+        Self::validate_activated_user(&request)?;
 
         let ip_address;
         let device_info;

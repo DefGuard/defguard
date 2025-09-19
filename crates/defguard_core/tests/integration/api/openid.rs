@@ -31,7 +31,7 @@ use super::{
     TEST_SERVER_URL,
     common::{
         client::{TestClient, TestResponse},
-        make_client, make_client_with_state, make_test_client, setup_pool,
+        make_client, make_test_client, setup_pool,
     },
 };
 
@@ -106,7 +106,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -476,7 +476,7 @@ static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
 async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let config = state.config;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
@@ -578,7 +578,7 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
 async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let mut config = state.config;
 
     let mut rng = rand::thread_rng();
@@ -694,7 +694,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let admin = User::find_by_username(&state.pool, "admin")
         .await
         .unwrap()
@@ -844,7 +844,7 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
 #[sqlx::test]
 async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let _admin = User::find_by_username(&state.pool, "admin")
         .await
         .unwrap()
@@ -1029,7 +1029,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 ) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let mut config = state.config;
 
     let mut admin = User::find_by_username(&state.pool, "admin")

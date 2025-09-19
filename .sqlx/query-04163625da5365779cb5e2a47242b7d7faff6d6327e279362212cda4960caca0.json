@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" WHERE openid_sub = $1",
   "describe": {
     "columns": [
       {
@@ -144,5 +144,5 @@
       true
     ]
   },
-  "hash": "796641fb2d79872ae5de64c8b9181e5890a3a122ea5e37ad2fa216c9db47f0a3"
+  "hash": "04163625da5365779cb5e2a47242b7d7faff6d6327e279362212cda4960caca0"
 }

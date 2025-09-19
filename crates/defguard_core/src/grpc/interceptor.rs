@@ -30,7 +30,7 @@ impl Interceptor for JwtInterceptor {
                 warn!(
                     "Failed to parse authorization header during handling gRPC request from \
                     hostname {hostname}. If you recognize this hostname, there may be an issue \
-                    with the token used for authorization. Cause of the failed parsing: {err:?}"
+                    with the token used for authorization. Cause of the failed parsing: {err}"
                 );
                 Status::unauthenticated("Invalid token")
             })?,
@@ -66,7 +66,7 @@ impl Interceptor for JwtInterceptor {
                 warn!(
                     "Failed to authorize a gRPC request from hostname {hostname}. If you recognize \
                     this hostname, there may be an issue with the token used for authorization. \
-                    Cause of the failed authorization: {err:?}"
+                    Cause of the failed authorization: {err}"
                 );
                 Err(Status::unauthenticated("Invalid token"))
             }

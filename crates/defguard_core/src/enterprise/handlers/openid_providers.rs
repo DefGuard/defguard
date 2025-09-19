@@ -22,7 +22,7 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AddProviderData {
     pub name: String,
     pub base_url: String,
@@ -45,7 +45,7 @@ pub struct AddProviderData {
     pub jumpcloud_api_key: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DeleteProviderData {
     name: String,
 }
@@ -64,26 +64,29 @@ pub async fn add_openid_provider(
     );
     let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
 
-    // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
-    // Check if the thing received from the frontend is a valid RSA private key (signaling user intent to change key)
-    // or is it just some empty string or other junk.
+    // The key is sent from the frontend only when user explicitly changes it, as we never send it
+    // back. Check if the thing received from the frontend is a valid RSA private key (signaling
+    // user intent to change key) or is it just some empty string or other junk.
     let private_key = match &provider_data.google_service_account_key {
         Some(key) => {
             if RsaPrivateKey::from_pkcs8_pem(key).is_ok() {
                 debug!(
-                    "User {} provided a valid RSA private key for provider's directory sync, using it",
+                    "User {} provided a valid RSA private key for provider's directory sync. Using \
+                    it.",
                     session.user.username
                 );
                 provider_data.google_service_account_key.clone()
             } else if let Some(provider) = &current_provider {
                 debug!(
-                    "User {} did not provide a valid RSA private key for provider's directory sync or the key did not change, using the existing key",
+                    "User {} did not provide a valid RSA private key for provider's directory sync \
+                    or the key did not change. Using the existing key",
                     session.user.username
                 );
                 provider.google_service_account_key.clone()
             } else {
                 warn!(
-                    "User {} did not provide a valid RSA private key for provider's directory sync",
+                    "User {} did not provide a valid RSA private key for provider's directory \
+                    sync.",
                     session.user.username
                 );
                 None
@@ -96,19 +99,22 @@ pub async fn add_openid_provider(
         Some(key) => {
             if serde_json::from_str::<serde_json::Value>(key).is_ok() {
                 debug!(
-                    "User {} provided a valid JWK private key for provider's Okta directory sync, using it",
+                    "User {} provided a valid JWK private key for provider's Okta directory sync. \
+                    Using it.",
                     session.user.username
                 );
                 provider_data.okta_private_jwk.clone()
             } else if let Some(provider) = &current_provider {
                 debug!(
-                    "User {} did not provide a valid JWK private key for provider's Okta directory sync or the key did not change, using the existing key",
+                    "User {} did not provide a valid JWK private key for provider's Okta directory \
+                    sync or the key did not change. Using the existing key.",
                     session.user.username
                 );
                 provider.okta_private_jwk.clone()
             } else {
                 warn!(
-                    "User {} did not provide a valid JWK private key for provider's Okta directory sync",
+                    "User {} did not provide a valid JWK private key for provider's Okta directory \
+                    sync.",
                     session.user.username
                 );
                 None
@@ -124,7 +130,7 @@ pub async fn add_openid_provider(
 
     let group_match = if let Some(group_match) = provider_data.directory_sync_group_match {
         if group_match.is_empty() {
-            vec![]
+            Vec::new()
         } else {
             group_match
                 .split(',')
@@ -132,7 +138,7 @@ pub async fn add_openid_provider(
                 .collect()
         }
     } else {
-        vec![]
+        Vec::new()
     };
 
     // Currently, we only support one OpenID provider at a time
@@ -188,7 +194,8 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
+                    "settings": json!({"create_account": settings.openid_create_account,
+                        "username_handling": settings.openid_username_handling}),
                 }),
                 status: StatusCode::OK,
             })
@@ -196,7 +203,8 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({ "create_account": settings.openid_create_account, "username_handling": settings.openid_username_handling }),
+                "settings": json!({"create_account": settings.openid_create_account,
+                    "username_handling": settings.openid_username_handling}),
             }),
             status: StatusCode::NO_CONTENT,
         }),
@@ -227,7 +235,8 @@ pub async fn delete_openid_provider(
         // fall back to internal MFA in all relevant locations
         for mut location in locations {
             debug!(
-                "Falling back to internal MFA for {location} because exteral OIDC provider has been removed"
+                "Falling back to internal MFA for {location} because exteral OIDC provider has \
+                been removed"
             );
             location.location_mfa_mode = LocationMfaMode::Internal;
             location.save(&mut *transaction).await?;
@@ -324,7 +333,7 @@ pub async fn test_dirsync_connection(
             session.user.username, err
         );
         return Ok(ApiResponse {
-            json: json!({ "message": err.to_string(), "success": false }),
+            json: json!({"message": err.to_string(), "success": false}),
             status: StatusCode::OK,
         });
     }
@@ -333,7 +342,7 @@ pub async fn test_dirsync_connection(
         session.user.username
     );
     Ok(ApiResponse {
-        json: json!({ "message": "Connection successful", "success": true }),
+        json: json!({"message": "Connection successful", "success": true}),
         status: StatusCode::OK,
     })
 }
