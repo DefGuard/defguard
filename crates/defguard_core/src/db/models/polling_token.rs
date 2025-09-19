@@ -2,10 +2,8 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
-use crate::{
-    db::{Id, NoId},
-    random::gen_alphanumeric,
-};
+use defguard_common::db::{Id, NoId};
+use defguard_common::random::gen_alphanumeric;
 
 // Token used for polling requests.
 #[derive(Clone, Debug, Model)]

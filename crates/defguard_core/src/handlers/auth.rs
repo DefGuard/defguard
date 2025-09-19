@@ -13,6 +13,11 @@ use axum_extra::{
     },
     headers::UserAgent,
 };
+use defguard_common::db::{
+    Id,
+    models::{MFAMethod, Settings},
+};
+use defguard_mail::Mail;
 use serde_json::json;
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
@@ -31,7 +36,7 @@ use crate::{
         SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
+    db::{MFAInfo, Session, SessionState, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -43,7 +48,6 @@ use crate::{
         user_for_admin_or_self,
     },
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
-    mail::Mail,
     server_config,
 };
 
@@ -87,7 +91,7 @@ pub(crate) async fn create_session(
             check_new_device_login(
                 pool,
                 mail_tx,
-                &session,
+                &session.clone().into(),
                 user,
                 ip_address.to_string(),
                 login_event_type,
@@ -112,7 +116,7 @@ pub(crate) async fn create_session(
         check_new_device_login(
             pool,
             mail_tx,
-            &session,
+            &session.clone().into(),
             user,
             ip_address.to_string(),
             login_event_type,
@@ -471,7 +475,7 @@ pub async fn webauthn_finish(
         .await?;
     if user.mfa_method == MFAMethod::None {
         send_mfa_configured_email(
-            Some(&session.session),
+            Some(&session.session.into()),
             &user,
             &MFAMethod::Webauthn,
             &appstate.mail_tx,
@@ -640,7 +644,7 @@ pub async fn totp_enable(
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
             send_mfa_configured_email(
-                Some(&session.session),
+                Some(&session.session.into()),
                 &user,
                 &MFAMethod::OneTimePassword,
                 &appstate.mail_tx,
@@ -789,7 +793,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     info!("Generated new email MFA secret for user {}", user.username);
 
     // send email with code
-    send_email_mfa_activation_email(&user, &appstate.mail_tx, Some(&session.session))?;
+    send_email_mfa_activation_email(&user, &appstate.mail_tx, Some(&session.session.into()))?;
 
     Ok(ApiResponse::default())
 }
@@ -808,7 +812,7 @@ pub async fn email_mfa_enable(
         user.enable_email_mfa(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
             send_mfa_configured_email(
-                Some(&session.session),
+                Some(&session.session.into()),
                 &user,
                 &MFAMethod::Email,
                 &appstate.mail_tx,
@@ -857,7 +861,7 @@ pub async fn request_email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
-            send_email_mfa_code_email(&user, &appstate.mail_tx, Some(&session))?;
+            send_email_mfa_code_email(&user, &appstate.mail_tx, Some(&session.into()))?;
             info!("Sent email MFA code for user {}", user.username);
             Ok(ApiResponse::default())
         } else {

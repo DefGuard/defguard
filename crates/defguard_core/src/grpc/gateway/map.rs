@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use defguard_common::db::Id;
 use defguard_version::tracing::VersionInfo;
 use semver::Version;
 use sqlx::PgPool;
@@ -9,7 +10,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
 use super::state::GatewayState;
-use crate::{db::Id, mail::Mail};
+use defguard_mail::Mail;
 
 /// Helper struct used to handle gateway state. Gateways are grouped by network.
 type GatewayHostname = String;

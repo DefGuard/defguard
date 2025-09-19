@@ -8,17 +8,18 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
+use defguard_common::{csv::AsCsv, db::Id};
+use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::json;
 use sqlx::PgConnection;
 
 use super::{ApiResponse, ApiResult, WebError};
 use crate::{
-    AsCsv,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        Device, GatewayEvent, Id, User, WireguardNetwork,
+        Device, GatewayEvent, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
             wireguard::NetworkAddressError,
@@ -28,7 +29,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::mail::send_new_device_added_email,
     server_config,
-    templates::TemplateLocation,
 };
 
 #[derive(Serialize)]

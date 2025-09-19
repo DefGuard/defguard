@@ -2,11 +2,10 @@ use std::time::SystemTime;
 
 use chrono::DateTime;
 use claims::{assert_err, assert_ok};
+use defguard_common::db::models::{MFAMethod, Settings, settings::update_current_settings};
 use defguard_core::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{
-        MFAInfo, MFAMethod, Settings, User, UserDetails, models::settings::update_current_settings,
-    },
+    db::{MFAInfo, User, UserDetails},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp},
 };
 use reqwest::{StatusCode, header::USER_AGENT};

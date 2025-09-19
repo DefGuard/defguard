@@ -1,6 +1,7 @@
+use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        AddDevice, Id, UserInfo,
+        AddDevice, UserInfo,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},

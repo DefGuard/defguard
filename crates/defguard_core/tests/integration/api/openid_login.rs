@@ -1,9 +1,7 @@
 use chrono::{Duration, Utc};
+use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
 use defguard_core::{
-    db::{
-        Id,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client, settings::OpenidUsernameHandling},
-    },
+    db::models::{NewOpenIDClient, oauth2client::OAuth2Client},
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,

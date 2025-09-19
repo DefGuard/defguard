@@ -1,9 +1,10 @@
+use defguard_common::global_value;
 use sqlx::{PgPool, error::Error as SqlxError, query};
 
 use super::license::License;
 #[cfg(test)]
 use super::license::get_cached_license;
-use crate::{global_value, grpc::proto::enterprise::license::LicenseLimits};
+use crate::grpc::proto::enterprise::license::LicenseLimits;
 
 // Limits for free users
 pub const DEFAULT_USERS_LIMIT: u32 = 5;

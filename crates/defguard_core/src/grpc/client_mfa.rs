@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    db::{
+        Id,
+        models::{BiometricAuth, BiometricChallenge},
+    },
+};
+use defguard_mail::Mail;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -9,28 +17,23 @@ use tokio::sync::{
 };
 use tonic::{Code, Status};
 
-use super::proto::proxy::{
-    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-    ClientMfaStartResponse, MfaMethod,
-};
 use crate::{
-    auth::{Claims, ClaimsType},
     db::{
-        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, User, UserInfo, WireguardNetwork,
         models::{
-            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
             wireguard::LocationMfaMode,
         },
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{
-        proto::proxy::{ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse},
-        utils::parse_client_info,
-    },
+    grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
-    mail::Mail,
+};
+use defguard_proto::proxy::{
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
+    MfaMethod,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes

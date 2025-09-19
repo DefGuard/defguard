@@ -1,16 +1,16 @@
 use std::{net::IpAddr, str::FromStr};
 
+use defguard_common::{
+    csv::AsCsv,
+    db::{Id, models::Settings},
+};
 use sqlx::PgPool;
 use tonic::Status;
 
-use super::{
-    InstanceInfo,
-    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo},
-};
+use super::InstanceInfo;
 use crate::{
-    AsCsv,
     db::{
-        Device, Id, Settings, User,
+        Device, User,
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,
@@ -20,7 +20,10 @@ use crate::{
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::proto::proxy::LocationMfaMode as ProtoLocationMfaMode,
+};
+use defguard_proto::proxy::{
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
+    LocationMfaMode as ProtoLocationMfaMode,
 };
 
 // Create a new token for configuration polling.

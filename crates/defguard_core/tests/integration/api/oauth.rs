@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
+use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        Id, OAuth2AuthorizedApp,
+        OAuth2AuthorizedApp,
         models::{
             NewOpenIDClient,
             oauth2client::{OAuth2Client, OAuth2ClientSafe},

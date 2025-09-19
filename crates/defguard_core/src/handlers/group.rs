@@ -4,6 +4,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::db::Id;
 use serde_json::json;
 use sqlx::query_as;
 use utoipa::ToSchema;
@@ -12,7 +13,7 @@ use super::{ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Group, Id, User, WireguardNetwork, models::group::Permission},
+    db::{Group, User, WireguardNetwork, models::group::Permission},
     enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,

@@ -1,7 +1,5 @@
-use defguard_core::{
-    db::models::settings::{Settings, SettingsPatch},
-    handlers::Auth,
-};
+use defguard_common::db::models::{Settings, settings::SettingsPatch};
+use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

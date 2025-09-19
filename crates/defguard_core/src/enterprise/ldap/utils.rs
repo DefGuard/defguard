@@ -3,11 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
+use defguard_common::db::Id;
 use sqlx::PgPool;
 
 use super::{LDAPConnection, error::LdapError};
 use crate::{
-    db::{Group, Id, User},
+    db::{Group, User},
     enterprise::ldap::with_ldap_status,
 };
 

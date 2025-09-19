@@ -1,17 +1,18 @@
 use std::sync::{Arc, Mutex};
 
 use axum::http::Uri;
+use defguard_common::db::models::settings::initialize_current_settings;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, models::settings::initialize_current_settings},
+    db::{AppEvent, GatewayEvent},
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
     grpc::{
         WorkerState, build_grpc_service_router,
         gateway::{client_state::ClientMap, map::GatewayMap},
     },
-    mail::Mail,
 };
+use defguard_mail::Mail;
 use hyper_util::rt::TokioIo;
 use sqlx::PgPool;
 use tokio::{

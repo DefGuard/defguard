@@ -5,19 +5,15 @@ use std::{
     time::Instant,
 };
 
+use defguard_common::db::models::{AuthenticationKey, AuthenticationKeyType};
 use sqlx::{PgPool, query};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-pub use crate::grpc::proto::worker::JobStatus;
-use crate::{
-    db::{
-        AppEvent, HWKeyUserData, User, YubiKey,
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    },
-    grpc::proto::worker::{GetJobResponse, Worker, worker_service_server},
-};
+use crate::db::{AppEvent, HWKeyUserData, User, YubiKey};
+pub use defguard_proto::worker::JobStatus;
+use defguard_proto::worker::{GetJobResponse, Worker, worker_service_server};
 
 impl WorkerInfo {
     /// Create new `Worker` instance.

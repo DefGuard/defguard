@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
+use defguard_common::db::Id;
 use defguard_core::{
-    db::Id,
     enterprise::{
         db::models::snat::UserSnatBinding,
         license::{get_cached_license, set_cached_license},

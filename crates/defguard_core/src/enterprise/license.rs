@@ -14,12 +14,12 @@ use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
-use crate::{
+use crate::grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata};
+use defguard_common::{
     VERSION,
-    db::{Settings, models::settings::update_current_settings},
+    config::server_config,
+    db::models::{Settings, settings::update_current_settings},
     global_value,
-    grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
-    server_config,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";

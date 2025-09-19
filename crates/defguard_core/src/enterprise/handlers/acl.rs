@@ -4,13 +4,13 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
+use defguard_common::db::Id;
 use serde_json::{Value, json};
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::Id,
     enterprise::db::models::acl::{
         AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasKind, AliasState, Protocol, RuleState,
     },

@@ -4,6 +4,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_mail::{Mail, templates};
 use serde_json::json;
 
 use super::{
@@ -31,9 +32,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    is_valid_phone_number,
-    mail::Mail,
-    server_config, templates,
+    is_valid_phone_number, server_config,
 };
 
 /// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64

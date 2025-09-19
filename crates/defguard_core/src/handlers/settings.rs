@@ -2,6 +2,10 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::db::models::{
+    Settings, SettingsEssentials,
+    settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+};
 use serde_json::json;
 use struct_patch::Patch;
 
@@ -9,14 +13,7 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        Settings,
-        models::settings::{SettingsEssentials, SettingsPatch, update_current_settings},
-    },
-    enterprise::{
-        ldap::{LDAPConnection, sync::SyncStatus},
-        license::update_cached_license,
-    },
+    enterprise::{ldap::LDAPConnection, license::update_cached_license},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
@@ -147,19 +144,19 @@ pub async fn patch_settings(
 
     if let Some(ldap_enabled) = data.ldap_enabled {
         if !ldap_enabled {
-            settings.ldap_sync_status = SyncStatus::OutOfSync;
+            settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
         }
     }
 
     if let Some(ldap_authority) = data.ldap_is_authoritative {
         if settings.ldap_is_authoritative != ldap_authority {
-            settings.ldap_sync_status = SyncStatus::OutOfSync;
+            settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
         }
     }
 
     if let Some(ldap_sync_groups) = &data.ldap_sync_groups {
         if &settings.ldap_sync_groups != ldap_sync_groups {
-            settings.ldap_sync_status = SyncStatus::OutOfSync;
+            settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
         }
     }
 
