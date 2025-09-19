@@ -53,6 +53,7 @@ impl Function for NoOp {
 
 /// Return a safe instance of Tera, as Tera is vulnerable to `get_env()` function exploit.
 /// See: https://github.com/Keats/tera/issues/677
+#[must_use]
 pub fn safe_tera() -> Tera {
     let mut tera = Tera::default();
     let noop = NoOp("get_env");

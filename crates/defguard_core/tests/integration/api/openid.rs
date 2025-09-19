@@ -581,7 +581,7 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
 ) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let config = state.config;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
@@ -685,7 +685,7 @@ async fn dg25_25_openid_disabled_client_userinfo_fails(
 ) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let mut config = state.config;
 
     let mut rng = rand::thread_rng();
