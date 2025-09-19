@@ -44,8 +44,9 @@ use crate::{
     },
     error::WebError,
     handlers::{
-        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME, auth::create_session,
-        user::check_username,
+        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+        auth::create_session,
+        user::{MAX_USERNAME_CHARS, check_username},
     },
 };
 
@@ -90,8 +91,7 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
         }
     }
 
-    result.truncate(64);
-
+    result.truncate(MAX_USERNAME_CHARS);
     result
 }
 
@@ -101,7 +101,7 @@ fn get_async_http_client() -> Result<reqwest::Client, WebError> {
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|err| {
-            error!("Failed to create HTTP client: {err:?}");
+            error!("Failed to create HTTP client: {err}");
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })
 }
@@ -109,22 +109,24 @@ fn get_async_http_client() -> Result<reqwest::Client, WebError> {
 async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).map_err(|err| {
         WebError::BadRequest(format!(
-            "Failed to create issuer URL from the provided URL: {url}. Error details: {err:?}",
+            "Failed to create issuer URL from the provided URL: {url}. Error details: {err}",
         ))
     })?;
     let async_http_client = get_async_http_client()?;
-    // Discover the provider metadata based on a known base issuer URL
-    // The url should be in the form of e.g. https://accounts.google.com
-    // The url shouldn't contain a .well-known part, it will be added automatically
+    // Discover the provider metadata based on a known base issuer URL.
+    // The URL should be in the form of e.g. https://accounts.google.com.
+    // The URL shouldn't contain the ".well-known" part – it will be added automatically.
     match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
         Ok(provider_metadata) => Ok(provider_metadata),
         Err(err) => Err(WebError::Authorization(format!(
-            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
+            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. \
+            Error details: {err}",
         ))),
     }
 }
 
-/// Build a state with optional embedded data. Useful for passing additional information around the authentication flow.
+/// Build a state with optional embedded data. Useful for passing additional information around the
+/// authentication flow.
 pub(crate) fn build_state(state_data: Option<String>) -> CsrfToken {
     let csrf_token = CsrfToken::new_random();
     if let Some(data) = state_data {
@@ -202,7 +204,7 @@ pub(crate) async fn user_from_claims(
     let token_response = match core_client
         .exchange_code(code)
         .map_err(|err| {
-            error!("Failed to exchange code for ID token: {err:?}");
+            error!("Failed to exchange code for ID token: {err}");
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })?
         .request_async(&async_http_client)
@@ -211,7 +213,7 @@ pub(crate) async fn user_from_claims(
         Ok(token) => token,
         Err(err) => {
             return Err(WebError::Authorization(format!(
-                "Failed to exchange code for ID token; OpenID provider error: {err:?}"
+                "Failed to exchange code for ID token; OpenID provider error: {err}"
             )));
         }
     };
@@ -249,7 +251,7 @@ pub(crate) async fn user_from_claims(
             client_id.as_str(),
             audiences
                 .iter()
-                .map(|aud| aud.to_string())
+                .map(|aud| aud.as_str())
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
@@ -260,7 +262,7 @@ pub(crate) async fn user_from_claims(
             audiences
                 .iter()
                 .filter(|&aud| **aud != *client_id)
-                .map(|aud| aud.to_string())
+                .map(|aud| aud.as_str())
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -273,26 +275,6 @@ pub(crate) async fn user_from_claims(
         such information."
             .to_string(),
     ))?;
-
-    // Try to get the username from the preferred_username claim.
-    // If it's not there, extract it from email.
-    let username = if let Some(username) = token_claims.preferred_username() {
-        debug!("Preferred username {username:?} found in the claims, extracting username from it.");
-        username
-    } else {
-        debug!("Preferred username not found in the claims, extracting from email address.");
-        // Extract the username from the email address
-        let username = email.split('@').next().ok_or(WebError::BadRequest(
-            "Failed to extract username from email address".to_string(),
-        ))?;
-        debug!("Username extracted from email ({email:?}): {username})");
-        username
-    };
-    let settings = Settings::get_current_settings();
-
-    let username = prune_username(username, settings.openid_username_handling);
-    // Check if the username is valid just in case, not everything can be handled by the pruning.
-    check_username(&username)?;
 
     // Get the *sub* claim from the token.
     let sub = token_claims.subject().to_string();
@@ -320,7 +302,7 @@ pub(crate) async fn user_from_claims(
                     debug!("User {} tried to log in, but is disabled", user.username);
                     return Err(WebError::Authorization("User is disabled".into()));
                 }
-                // User with the same email already exists, merge the accounts
+                // User with the same email already exists, merge the accounts.
                 info!(
                     "User with email address {} is logging in through OpenID Connect for the \
                     first time and we've found an existing account with the same email \
@@ -331,7 +313,8 @@ pub(crate) async fn user_from_claims(
                 user.save(pool).await?;
                 user
             } else {
-                // Check if the user should be created if they don't exist (default: true)
+                let settings = Settings::get_current_settings();
+                // Check if the user should be created, if doesn't exist (default: true).
                 if !settings.openid_create_account {
                     warn!(
                         "User with email address {} is trying to log in through OpenID Connect \
@@ -346,6 +329,31 @@ pub(crate) async fn user_from_claims(
                     ));
                 }
 
+                // Try to get the username from `preferred_username` claim.
+                // If it's not there, extract it from email.
+                let username = if let Some(username) = token_claims.preferred_username() {
+                    let username = username.as_str();
+                    debug!(
+                        "Preferred username {username} found in the claims. Using the username."
+                    );
+                    username
+                } else {
+                    debug!(
+                        "Preferred username not found in the claims, extracting from email address."
+                    );
+                    // Extract the username from the email address
+                    let username = email.split('@').next().ok_or(WebError::BadRequest(
+                        "Failed to extract username from email address".to_string(),
+                    ))?;
+                    debug!("Username extracted from email ({email:?}): {username})");
+                    username
+                };
+
+                let username = prune_username(username, settings.openid_username_handling);
+                // Check if the username is valid just in case, not everything can be handled by the
+                // pruning.
+                check_username(&username)?;
+
                 info!(
                     "User {username} is logging in through OpenID Connect for the first time and \
                     there is no account with the same email address ({}). Creating a new account.",
@@ -358,11 +366,11 @@ pub(crate) async fn user_from_claims(
                     )));
                 }
 
-                // Extract all necessary information from the token or call the userinfo endpoint
+                // Extract all necessary information from the token or call the userinfo endpoint.
                 let given_name = token_claims
                     .given_name()
-                    // 'None' gets you the default value from a localized claim.
-                    //  Otherwise you would need to pass a locale.
+                    // `None` gets the default value from a localized claim.
+                    // Otherwise, it is required to pass a locale.
                     .and_then(|claim| claim.get(None));
                 let family_name = token_claims.family_name().and_then(|claim| claim.get(None));
                 let phone = token_claims.phone_number();
@@ -378,47 +386,42 @@ pub(crate) async fn user_from_claims(
                     (given_name, family_name, phone)
                 } else {
                     debug!(
-                        "Given name or family name not found in the claims for user {username}, trying to get them \
-                        from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
+                        "Given name or family name not found in the claims for user {username}, \
+                        trying to get them from the user info endpoint. Current values: \
+                        given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
                     );
 
                     let async_http_client = get_async_http_client()?;
 
-                    let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
-                        Make sure you have configured your provider correctly and that you have granted the \
-                        necessary permissions to retrieve such information from the token or the userinfo endpoint.";
+                    let retrieval_error = "Failed to retrieve given name and family name from \
+                        provider's userinfo endpoint. Make sure you have configured your provider \
+                        correctly and that you have granted the necessary permissions to retrieve \
+                        such information from the token or the userinfo endpoint.";
                     userinfo_response = core_client
                         .user_info(access_token.clone(), Some(token_claims.subject().clone()))
-                        .map_err(
-                            |err| {
-                                error!(
-                                    "Failed to get family name and given name from provider's userinfo endpoint, they may not support this. Error details: {err:?}",
-                                );
-
-                                WebError::BadRequest(
-                                    retrieval_error.into(),
-                                )
-                            }
-                        )?
+                        .map_err(|err| {
+                            error!(
+                                "Failed to get family name and given name from provider's \
+                                userinfo endpoint, they may not support this. Error details: {err}"
+                            );
+                            WebError::BadRequest(retrieval_error.into())
+                        })?
                         .request_async(&async_http_client)
                         .await
-                        .map_err(
-                            |err| {
-                                error!(
-                                    "Failed to get family name and given name from provider's userinfo endpoint. Error details: {err:?}",
-                                );
-
-                                WebError::BadRequest(
-                                    retrieval_error.into(),
-                                )
-                            }
-                        )?;
+                        .map_err(|err| {
+                            error!(
+                                "Failed to get family name and given name from provider's userinfo \
+                                endpoint. Error details: {err}",
+                            );
+                            WebError::BadRequest(retrieval_error.into())
+                        })?;
 
                     let claim_error = |claim_name: &str| {
                         format!(
-                            "Failed to retrieve {claim_name} from provider's userinfo endpoint and the ID token. \
-                            Make sure you have configured your provider correctly and that you have \
-                            granted the necessary permissions to retrieve such information from the token or the userinfo endpoint.",
+                            "Failed to retrieve {claim_name} from provider's userinfo endpoint and \
+                            the ID token.  Make sure you have configured your provider correctly \
+                            and that you have granted the necessary permissions to retrieve such \
+                            information from the token or the userinfo endpoint.",
                         )
                     };
                     let given_name = userinfo_response
@@ -432,7 +435,8 @@ pub(crate) async fn user_from_claims(
                     let phone = userinfo_response.phone_number();
 
                     debug!(
-                        "Given name and family name successfully retrieved from the user info endpoint for user {username}."
+                        "Given name and family name successfully retrieved from the user info \
+                        endpoint for user {username}."
                     );
 
                     (given_name, family_name, phone)
@@ -517,10 +521,7 @@ pub(crate) async fn get_auth_info(
         private_cookies,
         ApiResponse {
             json: json!(
-                {
-                    "url": authorize_url,
-                    "button_display_name": provider.display_name
-                }
+                {"url": authorize_url, "button_display_name": provider.display_name}
             ),
             status: StatusCode::OK,
         },
@@ -597,14 +598,16 @@ pub(crate) async fn auth_callback(
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
 
-    // The user may not be yet authorized (pre-MFA) but syncing their groups should be fine here, since he already managed to login through the provider.
-    // There is currently no other way to sync the groups for the MFA enabled user logging in through the provider without firing it
-    // on every login attempt, even for standard, non-provider users.
+    // The user may not yet be authorized (pre-MFA), but syncing their groups should be fine here,
+    // since he already managed to login through the provider. Currently, there is no other way to
+    // sync the groups for the MFA enabled user logging in through the provider without firing it on
+    // every login attempt, even for standard, non-provider users.
     if let Err(err) =
         sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
     {
         error!(
-            "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
+            "Failed to sync user groups for user {} with the directory while the user was trying \
+            to login in through an external provider: {err}",
             user.username
         );
     } else {

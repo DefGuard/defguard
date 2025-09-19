@@ -147,7 +147,7 @@ pub(crate) async fn authenticate(
 
     let settings = Settings::get_current_settings();
 
-    // attempt to find user first by username and then by email
+    // Attempt to find a user: first by username, and then by email.
     let mut conn = appstate.pool.acquire().await?;
     let mut user = if let Some(user) =
         User::find_by_username_or_email(&mut conn, &username_or_email).await?

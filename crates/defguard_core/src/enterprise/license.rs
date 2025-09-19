@@ -478,7 +478,7 @@ async fn renew_license() -> Result<String, LicenseError> {
                 reqwest::StatusCode::OK => {
                     let response: RefreshRequestResponse = response.json().await.map_err(|err| {
                     error!("Failed to parse the response from the license server while trying to \
-                        renew the license: {err:?}");
+                        renew the license: {err}");
                     LicenseError::LicenseServerError(err.to_string())
                 })?;
                     response.key
