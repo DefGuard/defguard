@@ -2,7 +2,7 @@ pub mod failed_login;
 
 use axum::{
     extract::{FromRef, FromRequestParts, OptionalFromRequestParts},
-    http::{header::AUTHORIZATION, request::Parts},
+    http::request::Parts,
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{
@@ -15,7 +15,7 @@ use defguard_common::db::Id;
 use crate::{
     appstate::AppState,
     db::{
-        Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        Group, OAuth2Token, Session, SessionState, User,
         models::{group::Permission, oauth2client::OAuth2Client},
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
@@ -276,80 +276,6 @@ impl UserClaims {
             },
             sub: user.username.clone(),
         }
-    }
-}
-
-// User authenticated by a valid access token
-pub struct AccessUserInfo(pub(crate) UserClaims);
-
-impl<S> FromRequestParts<S> for AccessUserInfo
-where
-    S: Send + Sync,
-    AppState: FromRef<S>,
-{
-    type Rejection = WebError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let appstate = AppState::from_ref(state);
-        if let Some(token) = parts.headers.get(AUTHORIZATION).and_then(|value| {
-            if let Ok(value) = value.to_str() {
-                if value.to_lowercase().starts_with("bearer ") {
-                    value.get(7..)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }) {
-            match OAuth2Token::find_access_token(&appstate.pool, token).await {
-                Ok(Some(oauth2token)) => {
-                    match OAuth2AuthorizedApp::find_by_id(
-                        &appstate.pool,
-                        oauth2token.oauth2authorizedapp_id,
-                    )
-                    .await
-                    {
-                        Ok(Some(authorized_app)) => {
-                            if let Ok(Some(user)) =
-                                User::find_by_id(&appstate.pool, authorized_app.user_id).await
-                            {
-                                if let Some(client) = OAuth2Client::find_by_id(
-                                    &appstate.pool,
-                                    authorized_app.oauth2client_id,
-                                )
-                                .await?
-                                {
-                                    return Ok(AccessUserInfo(UserClaims::from_user(
-                                        &user,
-                                        &client,
-                                        &oauth2token,
-                                    )));
-                                }
-                                return Err(WebError::Authorization(
-                                    "OAuth2 client not found".into(),
-                                ));
-                            }
-                        }
-                        Ok(None) => {
-                            return Err(WebError::Authorization("Authorized app not found".into()));
-                        }
-
-                        Err(err) => {
-                            return Err(err.into());
-                        }
-                    }
-                }
-                Ok(None) => {
-                    return Err(WebError::Authorization("Invalid token".into()));
-                }
-                Err(err) => {
-                    return Err(err.into());
-                }
-            }
-        }
-
-        Err(WebError::Authorization("Invalid session".into()))
     }
 }
 

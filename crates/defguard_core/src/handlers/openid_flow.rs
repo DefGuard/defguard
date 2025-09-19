@@ -42,7 +42,7 @@ use time::Duration;
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
-    auth::{AccessUserInfo, SessionInfo, UserClaims},
+    auth::{SessionInfo, UserClaims},
     db::{
         OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
         models::oauth2client::OAuth2Client,
@@ -387,8 +387,11 @@ pub async fn authorization(
         OAuth2Client::find_by_client_id(&appstate.pool, &data.client_id).await?
     {
         is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
-        match data.validate_for_client(&oauth2client) {
-            Ok(()) => {
+        match (
+            oauth2client.enabled,
+            data.validate_for_client(&oauth2client),
+        ) {
+            (true, Ok(())) => {
                 match &data.prompt {
                     Some(s) if s == "consent" => {
                         info!(
@@ -491,7 +494,6 @@ pub async fn authorization(
                                 );
                                 Ok(login_redirect(&data, private_cookies))
                             }
-
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
@@ -500,12 +502,16 @@ pub async fn authorization(
                     }
                 }
             }
-            Err(err) => {
+            (true, Err(err)) => {
                 error!(
                     "OIDC login validation failed for client {}: {err:?}",
                     data.client_id
                 );
                 error = err;
+            }
+            (false, _) => {
+                error!("OIDC client id {} is disabled", data.client_id);
+                error = CoreAuthErrorResponseType::UnauthorizedClient;
             }
         }
     } else {
@@ -559,8 +565,11 @@ pub async fn secure_authorization(
     {
         is_redirect_allowed = oauth2client.contains_redirect_url(&data.redirect_uri);
         if data.allow {
-            match data.validate_for_client(&oauth2client) {
-                Ok(()) => {
+            match (
+                oauth2client.enabled,
+                data.validate_for_client(&oauth2client),
+            ) {
+                (true, Ok(())) => {
                     if OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                         &appstate.pool,
                         session_info.user.id,
@@ -593,12 +602,16 @@ pub async fn secure_authorization(
                     );
                     return Ok(redirect_to(location, private_cookies));
                 }
-                Err(err) => {
+                (true, Err(err)) => {
                     info!(
                         "OIDC login validation failed for user {}, client {}",
                         session_info.user.username, oauth2client.name
                     );
                     error = err;
+                }
+                (false, _) => {
+                    error!("OIDC client id {} is disabled", oauth2client.name);
+                    error = CoreAuthErrorResponseType::UnauthorizedClient;
                 }
             }
         } else {
@@ -811,6 +824,19 @@ pub async fn token(
                 if let Some(auth_code) = AuthCode::find_code(&appstate.pool, code).await? {
                     debug!("Consumed authorization_code {code}, client_id `{form_client_id}`");
                     if let Some(client) = oauth2client.or(form.oauth2client(&appstate.pool).await) {
+                        if !client.enabled {
+                            error!("OAuth client id `{}` is disabled", client.name);
+                            let response = StandardErrorResponse::<CoreErrorResponseType>::new(
+                                CoreErrorResponseType::UnauthorizedClient,
+                                None,
+                                None,
+                            );
+                            return Ok(ApiResponse {
+                                json: json!(response),
+                                status: StatusCode::BAD_REQUEST,
+                            });
+                        }
+
                         if let Some(user) =
                             User::find_by_id(&appstate.pool, auth_code.user_id).await?
                         {
@@ -907,6 +933,31 @@ pub async fn token(
                 if let Ok(Some(mut token)) =
                     OAuth2Token::find_refresh_token(&appstate.pool, &refresh_token).await
                 {
+                    let Some(client) = OAuth2Client::find_by_token(&appstate.pool, &token).await?
+                    else {
+                        error!("OAuth client not found for provided refresh_token");
+                        let err = CoreErrorResponseType::InvalidClient;
+                        let response =
+                            StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
+                        return Ok(ApiResponse {
+                            json: json!(response),
+                            status: StatusCode::BAD_REQUEST,
+                        });
+                    };
+
+                    if !client.enabled {
+                        error!("OAuth client id `{}` is disabled", client.name);
+                        let response = StandardErrorResponse::<CoreErrorResponseType>::new(
+                            CoreErrorResponseType::UnauthorizedClient,
+                            None,
+                            None,
+                        );
+                        return Ok(ApiResponse {
+                            json: json!(response),
+                            status: StatusCode::BAD_REQUEST,
+                        });
+                    }
+
                     token.refresh_and_save(&appstate.pool).await?;
                     let response = TokenRequest::refresh_token_flow(&token);
                     token.save(&appstate.pool).await?;
@@ -928,10 +979,49 @@ pub async fn token(
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
-pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
-    let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
+pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> ApiResult {
+    let Some(token) = headers.get(AUTHORIZATION).and_then(|value| {
+        if let Ok(value) = value.to_str() {
+            if value.to_lowercase().starts_with("bearer ") {
+                value.get(7..)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }) else {
+        return Err(WebError::Authorization("Invalid session".into()));
+    };
+
+    let Some(oauth2token) = OAuth2Token::find_access_token(&appstate.pool, token).await? else {
+        return Err(WebError::Authorization("Invalid token".into()));
+    };
+
+    let Some(authorized_app) =
+        OAuth2AuthorizedApp::find_by_id(&appstate.pool, oauth2token.oauth2authorizedapp_id).await?
+    else {
+        return Err(WebError::Authorization("Authorized app not found".into()));
+    };
+
+    let Some(client) =
+        OAuth2Client::find_by_id(&appstate.pool, authorized_app.oauth2client_id).await?
+    else {
+        return Err(WebError::Authorization("OAuth2 client not found".into()));
+    };
+
+    if !client.enabled {
+        return Err(WebError::Authorization("OAuth2 client is disabled".into()));
+    }
+
+    let Some(user) = User::find_by_id(&appstate.pool, authorized_app.user_id).await? else {
+        return Err(WebError::Authorization("User not found".into()));
+    };
+
+    let user_claims = UserClaims::from_user(&user, &client, &oauth2token);
+
     Ok(ApiResponse {
-        json: json!(userclaims),
+        json: json!(StandardClaims::<CoreGenderClaim>::from(&user_claims)),
         status: StatusCode::OK,
     })
 }

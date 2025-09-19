@@ -575,6 +575,244 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
 }
 
 #[sqlx::test]
+async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
+    let config = state.config;
+
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
+
+    // discover OpenID service
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
+            .await
+            .unwrap();
+
+    // create OAuth2 client (initially enabled)
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+    assert_eq!(oauth2client.name, "My test client");
+    assert_eq!(oauth2client.scope[0], "openid");
+    assert_eq!(oauth2client.client_id.len(), 16);
+    assert_eq!(oauth2client.client_secret.len(), 32);
+
+    let client_id = ClientId::new(oauth2client.client_id.clone());
+    let client_secret = ClientSecret::new(oauth2client.client_secret);
+    let core_client =
+        CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
+            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
+    let (authorize_url, _csrf_state, _nonce) = core_client
+        .authorize_url(
+            AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
+            CsrfToken::new_random,
+            Nonce::new_random,
+        )
+        .add_scope(Scope::new("email".to_string()))
+        .add_scope(Scope::new("profile".to_string()))
+        .url();
+    assert_eq!(authorize_url.scheme(), "http");
+    assert_eq!(authorize_url.host_str(), Some("localhost"));
+    assert_eq!(authorize_url.path(), "/api/v1/oauth/authorize");
+
+    // verify that authorization works when client is enabled
+    let uri = format!(
+        "{}?allow=true&{}",
+        authorize_url.path(),
+        authorize_url.query().unwrap()
+    );
+    let response = client.post(uri.clone()).send().await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, FAKE_REDIRECT_URI);
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+    // Verify we got a valid authorization code
+    assert!(!auth_response.code.is_empty());
+
+    // Now disable the OAuth2 client
+    let disabled_oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+        scope: vec!["openid".into()],
+        enabled: false,
+    };
+    let response = client
+        .put(format!("/api/v1/oauth/{}", oauth2client.client_id))
+        .json(&disabled_oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.post(uri).send().await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    assert!(location.contains("error=unauthorized_client"));
+}
+
+#[sqlx::test]
+async fn dg25_25_openid_disabled_client_userinfo_fails(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
+    let mut config = state.config;
+
+    let mut rng = rand::thread_rng();
+    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
+
+    let issuer_url = IssuerUrl::from_url(config.url.clone());
+
+    // discover OpenID service
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
+            .await
+            .unwrap();
+
+    // create OAuth2 client (initially enabled)
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+        scope: vec!["openid".into(), "email".into(), "profile".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+    assert_eq!(oauth2client.name, "My test client");
+
+    // start the Authorization Code Flow with PKCE
+    let client_id = ClientId::new(oauth2client.client_id.clone());
+    let client_secret = ClientSecret::new(oauth2client.client_secret);
+    let core_client =
+        CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
+            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+    let (authorize_url, _csrf_state, nonce) = core_client
+        .authorize_url(
+            AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
+            CsrfToken::new_random,
+            Nonce::new_random,
+        )
+        .add_scope(Scope::new("email".to_string()))
+        .add_scope(Scope::new("profile".to_string()))
+        .set_pkce_challenge(pkce_challenge)
+        .url();
+
+    // obtain authorization code while client is enabled
+    let uri = format!(
+        "{}?allow=true&{}",
+        authorize_url.path(),
+        authorize_url.query().unwrap()
+    );
+    let response = client.post(uri).send().await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let (location, query) = location.split_once('?').unwrap();
+    assert_eq!(location, FAKE_REDIRECT_URI);
+    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
+
+    // exchange authorization code for token while client is enabled
+    let token_response = core_client
+        .exchange_code(AuthorizationCode::new(auth_response.code.into()))
+        .unwrap()
+        .set_pkce_verifier(pkce_verifier)
+        .request_async(&|r| http_client(r, &client))
+        .await
+        .unwrap();
+
+    // verify id token works while client is enabled
+    let id_token_verifier = core_client.id_token_verifier();
+    let _id_token_claims = token_response
+        .extra_fields()
+        .id_token()
+        .expect("Server did not return an ID token")
+        .claims(&id_token_verifier, &nonce)
+        .unwrap();
+
+    // verify userinfo works while client is enabled
+    let userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> = core_client
+        .user_info(token_response.access_token().clone(), None)
+        .expect("Missing info endpoint")
+        .request_async(&|r| http_client(r, &client))
+        .await
+        .unwrap();
+
+    // Verify we got valid userinfo
+    assert!(userinfo_claims.email().is_some());
+
+    // Now disable the OAuth2 client
+    let disabled_oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+        scope: vec!["openid".into(), "email".into(), "profile".into()],
+        enabled: false,
+    };
+    let response = client
+        .put(format!("/api/v1/oauth/{}", oauth2client.client_id))
+        .json(&disabled_oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Try to access userinfo with disabled client, should fail
+    let userinfo_result: Result<UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim>, _> =
+        core_client
+            .user_info(token_response.access_token().clone(), None)
+            .expect("Missing info endpoint")
+            .request_async(&|r| http_client(r, &client))
+            .await;
+
+    // The userinfo request should fail when client is disabled
+    assert!(
+        userinfo_result.is_err(),
+        "Userinfo should fail when client is disabled"
+    );
+}
+
+#[sqlx::test]
 async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
