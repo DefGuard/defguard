@@ -276,7 +276,7 @@ type RootTranslation = {
 		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
 		​-​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
 		​
-		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
+		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​e​n​t​e​r​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​e​n​t​e​r​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
 		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
 		​ ​ ​ ​ ​ ​ 
 			 */
@@ -1336,7 +1336,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​u​s​i​n​g​-​d​e​f​g​u​a​r​d​-​f​o​r​-​e​n​d​-​u​s​e​r​s​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
 						 */
 						link: string
 					}
@@ -1488,7 +1488,7 @@ type RootTranslation = {
 			 */
 			setupOpt: string
 			/**
-			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​u​s​i​n​g​-​d​e​f​g​u​a​r​d​-​f​o​r​-​e​n​d​-​u​s​e​r​s​/​d​e​s​k​t​o​p​-​c​l​i​e​n​t​/​i​n​s​t​a​n​c​e​-​c​o​n​f​i​g​u​r​a​t​i​o​n​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
 			 */
 			client: string
 		}
@@ -3019,7 +3019,7 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​i​n​t​e​g​r​a​t​i​o​n​/​t​w​o​-​w​a​y​-​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
+				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​f​e​a​t​u​r​e​s​/​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​i​n​t​e​g​r​a​t​i​o​n​/​t​w​o​-​w​a​y​-​l​d​a​p​-​a​n​d​-​a​c​t​i​v​e​-​d​i​r​e​c​t​o​r​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
 				 */
 				info: string
 				/**
@@ -3278,7 +3278,7 @@ type RootTranslation = {
 				 */
 				none: string
 				/**
-				 * M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​e​x​t​e​r​n​a​l​-​o​p​e​n​i​d​-​p​r​o​v​i​d​e​r​s​)​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+				 * M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​f​e​a​t​u​r​e​s​/​e​x​t​e​r​n​a​l​-​o​p​e​n​i​d​-​p​r​o​v​i​d​e​r​s​)​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
 				 */
 				documentation: string
 				/**
@@ -5058,7 +5058,7 @@ type RootTranslation = {
 			 */
 			statusError: string
 			/**
-			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​g​e​t​t​i​n​g​-​s​t​a​r​t​e​d​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
 			 */
 			oneLineInstall: string
@@ -6983,7 +6983,7 @@ export type TranslationFunctions = {
 		- External SSO
 		- Controlling VPN clients behavior
 	
-		Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+		Full enterprise feature list: [https://docs.defguard.net/enterprise/enterprise-features](https://docs.defguard.net/enterprise/enterprise-features)</br>
 		Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
 		      
 			 */
@@ -8025,7 +8025,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * <a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>
+						 * <a href="https://docs.defguard.net/using-defguard-for-end-users/enrollment" target="_blank">more information here</a>
 						 */
 						link: () => LocalizedString
 					}
@@ -8176,7 +8176,7 @@ export type TranslationFunctions = {
 			 */
 			setupOpt: () => LocalizedString
 			/**
-			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/using-defguard-for-end-users/desktop-client/instance-configuration" target="_blank">this guide</a>.
 			 */
 			client: () => LocalizedString
 		}
@@ -9690,7 +9690,7 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).
+				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).
 				 */
 				info: () => LocalizedString
 				/**
@@ -9949,7 +9949,7 @@ export type TranslationFunctions = {
 				 */
 				none: () => LocalizedString
 				/**
-				 * Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.
+				 * Make sure to check our [documentation](https://docs.defguard.net/features/external-openid-providers) for more information and examples.
 				 */
 				documentation: () => LocalizedString
 				/**
@@ -11712,7 +11712,7 @@ export type TranslationFunctions = {
 			 */
 			statusError: () => LocalizedString
 			/**
-			 * If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
+			 * If you are doing one line install: https://docs.defguard.net/getting-started/one-line-install
 		          you don't need to do anything.
 			 */
 			oneLineInstall: () => LocalizedString

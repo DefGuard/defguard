@@ -10,17 +10,17 @@
 
 ### Defguard provides Comprehensive Access Control (a complete security platform):
 
-- **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
-    - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-    - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
-- [ACLs/Firewall Management](https://docs.defguard.net/enterprise/all-enteprise-features/access-control-list) for Linux and FreeBSD/OPNSense
-- [Integrated SSO based on OpenID Connect](https://docs.defguard.net/admin-and-features/openid-connect): 
+- **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/in-depth/architecture/architecture)** - not 2FA to "access application" like most solutions
+    - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+    - Control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
+- [ACLs/Firewall Management](https://docs.defguard.net/features/access-control-list) for Linux and FreeBSD/OPNSense
+- [Integrated SSO based on OpenID Connect](https://docs.defguard.net/features/openid-connect): 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
-- [Two way Active Directory/LDAP synchronization](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization)
-- Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/help/enrollment)
-- Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
+- Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/features/external-openid-providers)
+- [Two way Active Directory/LDAP synchronization](https://docs.defguard.net/features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization)
+- Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/using-defguard-for-end-users/enrollment)
+- Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/features/yubikey-provisioning)
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Built on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
@@ -67,8 +67,8 @@ Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/d
 [Desktop client](https://github.com/DefGuard/client):
 
 - **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
-- [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-- Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
+- [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+- Control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
 - Defguard instances as well as **any WireGuard tunnel** - just import your tunnels - one client for all WireGuard connections
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
@@ -79,7 +79,7 @@ Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/d
 
 ## Quick start
 
-The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://docs.defguard.net/features/setting-up-your-instance/one-line-install).
+The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://docs.defguard.net/getting-started/one-line-install).
 Just run the command below in your shell and follow the prompts:
 
 ```bash
@@ -96,7 +96,7 @@ Here is a step-by-step video about this process:
 </p>
 </div>
 
-To learn more about the script and available options please see the [documentation](https://docs.defguard.net/features/setting-up-your-instance/one-line-install).
+To learn more about the script and available options please see the [documentation](https://docs.defguard.net/getting-started/one-line-install).
 
 ### Setup a VPN server in under 5 minutes !?
 
@@ -104,9 +104,9 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 ## Manual deployment examples
 
-- [Standalone system package based install](https://docs.defguard.net/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
-- Using [Docker Compose](https://docs.defguard.net/features/setting-up-your-instance/docker-compose)
-- Using [Kubernetes](https://docs.defguard.net/features/setting-up-your-instance/kubernetes)
+- [Standalone system package based install](https://docs.defguard.net/deployment-strategies/standalone-package-based-installation)
+- Using [Docker Compose](https://docs.defguard.net/deployment-strategies/docker-compose)
+- Using [Kubernetes](https://docs.defguard.net/deployment-strategies/kubernetes)
 
 ## Roadmap & Development backlog
 
@@ -116,27 +116,23 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGuard/projects/5/views/5)
 
-## Why?
-
-The story and motivation behind defguard [can be found here: https://teonite.com/blog/defguard/](https://teonite.com/blog/defguard/)
-
 ## Features
 
 * Remote Access: [WireGuard® VPN](https://www.wireguard.com/) server with:
-  - [Multi-Factor Authentication](https://docs.defguard.net/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
+  - [Multi-Factor Authentication](https://docs.defguard.net/features/wireguard/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - **import your current WireGuard® server configuration (with a wizard!)**
   - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
   - automatic IP allocation
-  - [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
-  - control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
+  - [automatic and real-time synchronization](https://docs.defguard.net/features/remote-user-enrollment/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+  - control users [ability to manage devices and VPN options](https://docs.defguard.net/features/wireguard/behavior-customization)
   - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * Identity & Account Management:
   - SSO based on OpenID Connect](https://openid.net/developers/how-connect-works/)
-  - External SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+  - External SSO: [external OpenID provider support](https://docs.defguard.net/features/external-openid-providers)
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
@@ -146,12 +142,12 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - nice UI to manage users
   - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard®, etc.)
 * Account Lifecycle Management:
-  - Secure remote (over the Internet) [user enrollment](https://docs.defguard.net/help/remote-user-enrollment) - on public web / Desktop Client
-  - User [onboarding after enrollment](https://docs.defguard.net/help/remote-user-enrollment/user-onboarding-after-enrollment)
-* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/admin-and-features/ssh-authentication)
+  - Secure remote (over the Internet) [user enrollment](https://docs.defguard.net/features/remote-user-enrollment) - on public web / Desktop Client
+  - User [onboarding after enrollment](https://docs.defguard.net/features/remote-user-enrollment/user-onboarding-after-enrollment)
+* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
-* [Email/SMTP support](https://docs.defguard.net/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
-* Easy support with [sending debug/support information](https://docs.defguard.net/help/sending-support-info)
+* [Email/SMTP support](https://docs.defguard.net/features/notifications/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
+* Easy support with [sending debug/support information](https://docs.defguard.net/support-1/troubleshooting/sending-support-info)
 * Webhooks & REST API
 * Built with [Rust](https://www.rust-lang.org/) for portability, security, and speed
 * [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:

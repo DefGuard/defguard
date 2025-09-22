@@ -360,7 +360,7 @@ const translation: PartialDeep<Translation> = {
           },
           enableEnrollment: {
             label: '등록 프로세스 사용',
-            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">자세한 정보는 여기를 참고하세요</a>',
+            link: '<a href="https://docs.defguard.net/using-defguard-for-end-users/enrollment" target="_blank">자세한 정보는 여기를 참고하세요</a>',
           },
         },
       },
@@ -427,7 +427,7 @@ const translation: PartialDeep<Translation> = {
     title: '장치 추가',
     helpers: {
       setupOpt: `이 마법사를 사용하여 장치를 추가할 수 있습니다. 당사의 기본 애플리케이션인 "defguard" 또는 다른 WireGuard 클라이언트를 선택하세요. 잘 모르시겠다면 간편하게 defguard를 사용하는 것을 권장합니다.`,
-      client: `defguard 데스크톱 클라이언트는 <a href="https://defguard.net/download" target="_blank">여기</a>에서 다운로드하고 <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">이 가이드</a>를 따르세요.`,
+      client: `defguard 데스크톱 클라이언트는 <a href="https://defguard.net/download" target="_blank">여기</a>에서 다운로드하고 <a href="https://docs.defguard.net/using-defguard-for-end-users/desktop-client/instance-configuration" target="_blank">이 가이드</a>를 따르세요.`,
     },
     messages: {
       deviceAdded: '장치가 추가되었습니다',
@@ -1496,7 +1496,7 @@ const translation: PartialDeep<Translation> = {
       noConnection: `연결이 설정되지 않았습니다. 제공된 명령을 실행하십시오.`,
       connected: `게이트웨이가 연결되었습니다.`,
       statusError: '게이트웨이 상태를 가져오지 못했습니다',
-      oneLineInstall: `한 줄 설치를 수행하는 경우: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `한 줄 설치를 수행하는 경우: https://docs.defguard.net/getting-started/one-line-install
           아무 것도 할 필요가 없습니다.`,
       fromPackage: `https://github.com/DefGuard/gateway/releases/latest에서 사용 가능한 패키지를 설치하고 [문서]({setupGatewayDocs})에 따라 \`/etc/defguard/gateway.toml\`을 구성하십시오.
           `,
