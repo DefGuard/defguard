@@ -55,6 +55,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Sanitize branch name
+        run: echo "SAFE_REF=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
+
       - name: Build container
         uses: docker/build-push-action@v6
         with:
@@ -65,8 +68,8 @@ jobs:
           tags: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
           cache-from: |
             type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}
-            type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ github.ref_name }}
-          cache-to: type=registry,mode=max,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ github.ref_name }}
+            type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ env.SAFE_REF }}
+          cache-to: type=registry,mode=max,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ env.SAFE_REF }}
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@0.32.0
