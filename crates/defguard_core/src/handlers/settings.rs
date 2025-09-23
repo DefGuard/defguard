@@ -129,7 +129,7 @@ pub async fn patch_settings(
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
     debug!(
-        "Admin {} patching settings with {data:?}",
+        "Admin {} patching settings",
         session.user.username
     );
     let mut settings = Settings::get_current_settings();
