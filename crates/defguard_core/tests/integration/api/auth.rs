@@ -2,11 +2,10 @@ use std::time::SystemTime;
 
 use chrono::DateTime;
 use claims::{assert_err, assert_ok};
+use defguard_common::db::models::{MFAMethod, Settings, settings::update_current_settings};
 use defguard_core::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{
-        MFAInfo, MFAMethod, Settings, User, UserDetails, models::settings::update_current_settings,
-    },
+    db::{MFAInfo, User, UserDetails},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp},
 };
 use reqwest::{StatusCode, header::USER_AGENT};
@@ -20,9 +19,11 @@ use totp_lite::{Sha1, totp_custom};
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
+use crate::api::common::client::TestResponse;
+
 use super::common::{
-    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_client_with_state,
-    make_test_client, setup_pool,
+    X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_test_client,
+    setup_pool,
 };
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -96,6 +97,57 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         }
     }
+}
+
+#[sqlx::test]
+async fn dg25_21_test_login_enumeration(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let user_auth = Auth::new("hpotter", "pass123");
+    let admin_auth = Auth::new("admin", "pass123");
+
+    let response = client.post("/api/v1/auth").json(&admin_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    async fn responses_eq(response1: TestResponse, response2: TestResponse) -> bool {
+        // omit date header
+        let mut headers1 = response1.headers().clone();
+        headers1.remove("date");
+        let mut headers2 = response2.headers().clone();
+        headers2.remove("date");
+        let headers = headers1 == headers2;
+
+        let status = response1.status() == response2.status();
+        let body = response1.bytes().await == response2.bytes().await;
+
+        status && headers && body
+    }
+
+    // regular user
+    let user_auth = Auth::new("hpotter", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("nothpotter", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
+
+    // admin user
+    let user_auth = Auth::new("admin", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("notadmin", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
+
+    // response for admin = response for regular user
+    let user_auth = Auth::new("admin", "invalid");
+    let response_existing_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    let user_auth = Auth::new("hpotter", "invalid");
+    let response_nonexisting_user = client.post("/api/v1/auth").json(&user_auth).send().await;
+    assert!(responses_eq(response_existing_user, response_nonexisting_user).await);
 }
 
 #[sqlx::test]
@@ -339,7 +391,7 @@ fn extract_email_code(content: &str) -> &str {
 async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -485,7 +537,7 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
 async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -551,7 +603,7 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     let (client, pool) = make_client_with_db(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -670,7 +722,7 @@ async fn test_cannot_skip_security_key_by_adding_yubikey(
     let client = make_client(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -753,7 +805,7 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey(
 
     // WebAuthn registration
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let origin = Url::parse("http://localhost:8000").unwrap();
+    let origin = Url::parse(&client.base_url()).unwrap();
 
     let response = client.post("/api/v1/auth/webauthn/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);

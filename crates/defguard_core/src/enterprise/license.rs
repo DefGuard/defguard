@@ -14,12 +14,12 @@ use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
-use crate::{
+use crate::grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata};
+use defguard_common::{
     VERSION,
-    db::{Settings, models::settings::update_current_settings},
+    config::server_config,
+    db::models::{Settings, settings::update_current_settings},
     global_value,
-    grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
-    server_config,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -478,7 +478,7 @@ async fn renew_license() -> Result<String, LicenseError> {
                 reqwest::StatusCode::OK => {
                     let response: RefreshRequestResponse = response.json().await.map_err(|err| {
                     error!("Failed to parse the response from the license server while trying to \
-                        renew the license: {err:?}");
+                        renew the license: {err}");
                     LicenseError::LicenseServerError(err.to_string())
                 })?;
                     response.key

@@ -1,11 +1,11 @@
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
+use crate::db::OAuth2Token;
+
 use super::NewOpenIDClient;
-use crate::{
-    db::{Id, NoId},
-    random::gen_alphanumeric,
-};
+use defguard_common::db::{Id, NoId};
+use defguard_common::random::gen_alphanumeric;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize)]
 pub struct OAuth2Client<I = NoId> {
@@ -101,6 +101,37 @@ impl OAuth2Client<Id> {
         .fetch_optional(pool)
         .await
     }
+
+    pub(crate) async fn find_by_token(
+        pool: &PgPool,
+        token: &OAuth2Token,
+    ) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT c.id, c.client_id, c.client_secret, c.redirect_uri, c.scope, c.name, c.enabled \
+            FROM oauth2client c \
+            JOIN oauth2authorizedapp a ON a.oauth2client_id = c.id \
+            JOIN oauth2token t ON t.oauth2authorizedapp_id = a.id \
+            WHERE t.access_token = $1 OR t.refresh_token = $2",
+            token.access_token,
+            token.refresh_token
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    /// Checks if `url` matches client config (ignoring trailing slashes).
+    pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
+        let url_trimmed = url.trim_end_matches('/');
+
+        for redirect in &self.redirect_uri {
+            if url_trimmed == redirect.trim_end_matches('/') {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 // Safe to show for not privileged users
@@ -118,5 +149,30 @@ impl From<OAuth2Client<Id>> for OAuth2ClientSafe {
             name: client.name,
             scope: client.scope,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_contains_redirect_url() {
+        let oauth2client = OAuth2Client {
+            id: 1,
+            client_id: String::new(),
+            client_secret: String::new(),
+            redirect_uri: vec![
+                String::from("http://localhost/"),
+                String::from("http://safe.net/"),
+            ],
+            scope: Vec::new(),
+            name: String::new(),
+            enabled: true,
+        };
+        assert!(oauth2client.contains_redirect_url("http://safe.net"));
+        assert!(oauth2client.contains_redirect_url("http://localhost"));
+        assert!(!oauth2client.contains_redirect_url("http://safe.net/api"));
+        assert!(!oauth2client.contains_redirect_url("http://nonexistent:8000"));
     }
 }

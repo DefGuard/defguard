@@ -4,14 +4,17 @@ use std::{
 };
 
 use bytes::Bytes;
-use defguard_core::{
-    SERVER_CONFIG, VERSION,
-    auth::failed_login::FailedLoginMap,
-    config::{Command, DefGuardConfig},
+use defguard_common::{
+    VERSION,
+    config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
-        AppEvent, GatewayEvent, Settings, User, init_db,
-        models::settings::initialize_current_settings,
+        init_db,
+        models::{Settings, settings::initialize_current_settings},
     },
+};
+use defguard_core::{
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, GatewayEvent, User},
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -23,9 +26,7 @@ use defguard_core::{
         gateway::{client_state::ClientMap, map::GatewayMap},
         run_grpc_bidi_stream, run_grpc_server,
     },
-    init_dev_env, init_vpn_location,
-    mail::{Mail, run_mail_handler},
-    run_web_server,
+    init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
@@ -33,6 +34,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
+use defguard_mail::{Mail, run_mail_handler};
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -109,7 +111,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
-    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Default::default();
+    let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
     // initialize admin user
     User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;

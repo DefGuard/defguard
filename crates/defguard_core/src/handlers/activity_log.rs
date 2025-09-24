@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use axum::extract::State;
 use axum_extra::extract::Query;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
@@ -10,11 +11,7 @@ use super::{
     DEFAULT_API_PAGE_SIZE,
     pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
 };
-use crate::{
-    appstate::AppState,
-    auth::SessionInfo,
-    db::{Id, models::activity_log::ActivityLogModule},
-};
+use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct FilterParams {

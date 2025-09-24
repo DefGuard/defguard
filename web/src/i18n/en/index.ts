@@ -90,7 +90,7 @@ You can find out more about features like:
 - External SSO
 - Controlling VPN clients behavior
 
-Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+Full enterprise feature list: [https://docs.defguard.net/enterprise/enterprise-features](https://docs.defguard.net/enterprise/enterprise-features)</br>
 Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
       `,
       controls: {
@@ -567,7 +567,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
           enableEnrollment: {
             label: 'Use user self-enrollment process',
-            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>',
+            link: '<a href="https://docs.defguard.net/using-defguard-for-end-users/enrollment" target="_blank">more information here</a>',
           },
         },
       },
@@ -634,7 +634,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     title: 'Add device',
     helpers: {
       setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
-      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
+      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/using-defguard-for-end-users/desktop-client/instance-configuration" target="_blank">this guide</a>.`,
     },
     messages: {
       deviceAdded: 'Device added',
@@ -1227,7 +1227,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: 'LDAP Settings',
       sync: {
         header: 'LDAP two-way synchronization',
-        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).',
+        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).',
         info_enterprise: 'This feature is available only in Defguard Enterprise.',
         helpers: {
           heading:
@@ -1329,7 +1329,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         custom: 'Custom',
         none: 'None',
         documentation:
-          'Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.',
+          'Make sure to check our [documentation](https://docs.defguard.net/features/external-openid-providers) for more information and examples.',
         delete: 'Delete provider',
         directory_sync_settings: {
           title: 'Directory synchronization settings',
@@ -2116,7 +2116,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       noConnection: `No connection established, please run provided command.`,
       connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
-      oneLineInstall: `If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `If you are doing one line install: https://docs.defguard.net/getting-started/one-line-install
           you don't need to do anything.`,
       fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\`
           according to the [documentation]({setupGatewayDocs:string}).`,

@@ -1,22 +1,12 @@
 pub mod activity_log;
-#[cfg(feature = "openid")]
-pub mod auth_code;
-pub mod authentication_key;
-pub mod biometric_auth;
 pub mod device;
-pub mod device_login;
 pub mod enrollment;
-pub mod error;
 pub mod group;
-#[cfg(feature = "openid")]
 pub mod oauth2authorizedapp;
-#[cfg(feature = "openid")]
 pub mod oauth2client;
-#[cfg(feature = "openid")]
 pub mod oauth2token;
 pub mod polling_token;
 pub mod session;
-pub mod settings;
 pub mod user;
 pub mod webauthn;
 pub mod webhook;
@@ -26,17 +16,16 @@ pub mod yubikey;
 
 use std::collections::HashSet;
 
+use defguard_common::db::{
+    Id,
+    models::{BiometricAuth, MFAMethod},
+};
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
-use self::{
-    device::UserDevice,
-    user::{MFAMethod, User},
-};
-use super::{Group, Id};
-use crate::db::models::biometric_auth::BiometricAuth;
+use self::{device::UserDevice, user::User};
+use super::Group;
 
-#[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
 pub struct NewOpenIDClient {
     pub name: String,
@@ -143,7 +132,7 @@ impl UserInfo {
     ///
     /// Return `true` if groups were changed, `false` otherwise.
     pub(crate) async fn handle_user_groups(
-        &mut self,
+        &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
     ) -> Result<GroupDiff, SqlxError> {
@@ -283,10 +272,10 @@ impl MFAInfo {
 
 #[cfg(test)]
 mod test {
+    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::setup_pool;
 
     #[sqlx::test]
     async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {

@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
+use crate::{global_value, secret::SecretStringWrapper};
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
+use tracing::{debug, info, warn};
 use uuid::Uuid;
-
-use crate::{enterprise::ldap::sync::SyncStatus, global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -61,7 +62,22 @@ pub enum OpenidUsernameHandling {
     PruneEmailDomain,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
+#[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
+pub enum LdapSyncStatus {
+    InSync,
+    #[default]
+    OutOfSync,
+}
+
+impl LdapSyncStatus {
+    #[must_use]
+    pub fn is_out_of_sync(&self) -> bool {
+        matches!(self, LdapSyncStatus::OutOfSync)
+    }
+}
+
+#[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
     // Modules
@@ -107,7 +123,7 @@ pub struct Settings {
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
     pub ldap_tls_verify_cert: bool,
-    pub ldap_sync_status: SyncStatus,
+    pub ldap_sync_status: LdapSyncStatus,
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
@@ -126,6 +142,85 @@ pub struct Settings {
     pub gateway_disconnect_notifications_enabled: bool,
     pub gateway_disconnect_notifications_inactivity_threshold: i32,
     pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
+}
+
+// Implement manually to avoid exposing the license key.
+impl fmt::Debug for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Settings")
+            .field("openid_enabled", &self.openid_enabled)
+            .field("wireguard_enabled", &self.wireguard_enabled)
+            .field("webhooks_enabled", &self.webhooks_enabled)
+            .field("worker_enabled", &self.worker_enabled)
+            .field("challenge_template", &self.challenge_template)
+            .field("instance_name", &self.instance_name)
+            .field("main_logo_url", &self.main_logo_url)
+            .field("nav_logo_url", &self.nav_logo_url)
+            .field("smtp_server", &self.smtp_server)
+            .field("smtp_port", &self.smtp_port)
+            .field("smtp_encryption", &self.smtp_encryption)
+            .field("smtp_user", &self.smtp_user)
+            .field("smtp_password", &self.smtp_password)
+            .field("smtp_sender", &self.smtp_sender)
+            .field(
+                "enrollment_vpn_step_optional",
+                &self.enrollment_vpn_step_optional,
+            )
+            .field(
+                "enrollment_welcome_message",
+                &self.enrollment_welcome_message,
+            )
+            .field("enrollment_welcome_email", &self.enrollment_welcome_email)
+            .field(
+                "enrollment_welcome_email_subject",
+                &self.enrollment_welcome_email_subject,
+            )
+            .field(
+                "enrollment_use_welcome_message_as_email",
+                &self.enrollment_use_welcome_message_as_email,
+            )
+            .field("uuid", &self.uuid)
+            .field("ldap_url", &self.ldap_url)
+            .field("ldap_bind_username", &self.ldap_bind_username)
+            .field("ldap_bind_password", &self.ldap_bind_password)
+            .field("ldap_group_search_base", &self.ldap_group_search_base)
+            .field("ldap_user_search_base", &self.ldap_user_search_base)
+            .field("ldap_user_obj_class", &self.ldap_user_obj_class)
+            .field("ldap_group_obj_class", &self.ldap_group_obj_class)
+            .field("ldap_username_attr", &self.ldap_username_attr)
+            .field("ldap_groupname_attr", &self.ldap_groupname_attr)
+            .field("ldap_group_member_attr", &self.ldap_group_member_attr)
+            .field("ldap_member_attr", &self.ldap_member_attr)
+            .field("ldap_use_starttls", &self.ldap_use_starttls)
+            .field("ldap_tls_verify_cert", &self.ldap_tls_verify_cert)
+            .field("ldap_sync_status", &self.ldap_sync_status)
+            .field("ldap_enabled", &self.ldap_enabled)
+            .field("ldap_sync_enabled", &self.ldap_sync_enabled)
+            .field("ldap_is_authoritative", &self.ldap_is_authoritative)
+            .field("ldap_uses_ad", &self.ldap_uses_ad)
+            .field("ldap_sync_interval", &self.ldap_sync_interval)
+            .field(
+                "ldap_user_auxiliary_obj_classes",
+                &self.ldap_user_auxiliary_obj_classes,
+            )
+            .field("ldap_user_rdn_attr", &self.ldap_user_rdn_attr)
+            .field("ldap_sync_groups", &self.ldap_sync_groups)
+            .field("openid_create_account", &self.openid_create_account)
+            .field("openid_username_handling", &self.openid_username_handling)
+            .field(
+                "gateway_disconnect_notifications_enabled",
+                &self.gateway_disconnect_notifications_enabled,
+            )
+            .field(
+                "gateway_disconnect_notifications_inactivity_threshold",
+                &self.gateway_disconnect_notifications_inactivity_threshold,
+            )
+            .field(
+                "gateway_disconnect_notifications_reconnect_notification_enabled",
+                &self.gateway_disconnect_notifications_reconnect_notification_enabled,
+            )
+            .finish_non_exhaustive()
+    }
 }
 
 impl Settings {
@@ -149,7 +244,7 @@ impl Settings {
             license, gateway_disconnect_notifications_enabled, ldap_use_starttls, \
             ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
-            ldap_sync_status \"ldap_sync_status: SyncStatus\", \
+            ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
@@ -270,7 +365,7 @@ impl Settings {
             self.gateway_disconnect_notifications_enabled,
             self.gateway_disconnect_notifications_inactivity_threshold,
             self.gateway_disconnect_notifications_reconnect_notification_enabled,
-            &self.ldap_sync_status as &SyncStatus,
+            &self.ldap_sync_status as &LdapSyncStatus,
             self.ldap_enabled,
             self.ldap_sync_enabled,
             self.ldap_is_authoritative,
@@ -352,7 +447,7 @@ pub struct SettingsEssentials {
 }
 
 impl SettingsEssentials {
-    pub(crate) async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
+    pub async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
@@ -381,7 +476,7 @@ impl From<Settings> for SettingsEssentials {
     }
 }
 
-mod defaults {
+pub mod defaults {
     pub static WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
 
 By completing the enrollment process, you now have access to all company systems.
@@ -448,5 +543,18 @@ mod test {
         settings.smtp_user = Some("smtp_user".into());
         settings.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
         assert!(settings.smtp_configured());
+    }
+
+    #[test]
+    fn dg25_32_test_dont_expose_license_key() {
+        let key = "0000000000000000";
+        let settings = Settings {
+            license: Some(key.to_string()),
+            ..Default::default()
+        };
+
+        let debug = format!("{settings:?}");
+        assert!(!debug.contains("license"));
+        assert!(!debug.contains(key));
     }
 }

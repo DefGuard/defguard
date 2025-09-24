@@ -1,5 +1,16 @@
 use std::collections::HashSet;
 
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{BiometricAuth, MFAMethod, Settings, settings::defaults::WELCOME_EMAIL_SUBJECT},
+    },
+};
+use defguard_mail::{
+    Mail,
+    templates::{self, TemplateLocation},
+};
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -7,20 +18,11 @@ use tokio::sync::{
 };
 use tonic::Status;
 
-use super::{
-    InstanceInfo,
-    proto::proxy::{
-        ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-        InitialUserInfo, NewDevice,
-    },
-};
+use super::InstanceInfo;
 use crate::{
-    AsCsv,
     db::{
-        Device, GatewayEvent, Id, MFAMethod, Settings, User, WireguardNetwork,
+        Device, GatewayEvent, User, WireguardNetwork,
         models::{
-            biometric_auth::BiometricAuth,
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
@@ -33,14 +35,7 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::{
-        proto::proxy::{
-            CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest,
-            CodeMfaSetupStartResponse, LocationMfaMode as ProtoLocationMfaMode, MfaMethod,
-            RegisterMobileAuthRequest,
-        },
-        utils::{build_device_config_response, new_polling_token, parse_client_info},
-    },
+    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
@@ -48,9 +43,14 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
-    mail::Mail,
-    server_config,
-    templates::{self, TemplateLocation},
+    is_valid_phone_number, server_config,
+};
+use defguard_proto::proxy::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
+    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
 };
 
 pub(super) struct EnrollmentServer {
@@ -130,7 +130,7 @@ impl EnrollmentServer {
     pub async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
-        info: Option<super::proto::proxy::DeviceInfo>,
+        info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<EnrollmentStartResponse, Status> {
         debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
@@ -230,7 +230,7 @@ impl EnrollmentServer {
                 user.username, user.id
             );
             let (username, user_id) = (user.username.clone(), user.id);
-            let user_info = InitialUserInfo::from_user(&self.pool, user)
+            let user_info = initial_info_from_user(&self.pool, user)
                 .await
                 .map_err(|err| {
                     error!(
@@ -263,14 +263,14 @@ impl EnrollmentServer {
             .fetch_one(&self.pool)
             .await
             .map_err(|_| Status::internal("Failed to read data".to_string()))?;
-            let enrollment_settings = super::proto::proxy::EnrollmentSettings {
+            let enrollment_settings = defguard_proto::proxy::EnrollmentSettings {
                 vpn_setup_optional,
                 smtp_configured,
                 only_client_activation: enterprise_settings.only_client_activation,
                 admin_device_management: enterprise_settings.admin_device_management,
                 mfa_required: instance_has_internal_mfa,
             };
-            let response = super::proto::proxy::EnrollmentStartResponse {
+            let response = defguard_proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
@@ -343,14 +343,28 @@ impl EnrollmentServer {
         Ok(())
     }
 
+    fn validate_activated_user(request: &ActivateUserRequest) -> Result<(), Status> {
+        if let Some(ref phone_number) = request.phone_number {
+            if !is_valid_phone_number(phone_number) {
+                return Err(Status::new(
+                    tonic::Code::InvalidArgument,
+                    "invalid phone number",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
-        debug!("Activating user account: {request:?}");
+        debug!("Activating user account");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
+        Self::validate_activated_user(&request)?;
 
         let ip_address;
         let device_info;
@@ -469,9 +483,9 @@ impl EnrollmentServer {
     pub async fn create_device(
         &self,
         request: NewDevice,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
-        debug!("Adding new user device: {request:?}");
+        debug!("Adding new user device");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;
 
         // fetch related users
@@ -840,7 +854,6 @@ impl EnrollmentServer {
             ),
             token: Some(token.token),
         };
-        debug!("{response:?}.");
 
         // Prepare event context and push the event
         let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
@@ -1024,24 +1037,25 @@ impl From<User<Id>> for AdminInfo {
     }
 }
 
-impl InitialUserInfo {
-    async fn from_user(pool: &PgPool, user: User<Id>) -> Result<Self, sqlx::Error> {
-        let enrolled = user.is_enrolled();
-        let devices = user.user_devices(pool).await?;
-        let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
-        let is_admin = user.is_admin(pool).await?;
-        Ok(Self {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            login: user.username,
-            email: user.email,
-            phone_number: user.phone,
-            is_active: user.is_active,
-            device_names,
-            enrolled,
-            is_admin,
-        })
-    }
+async fn initial_info_from_user(
+    pool: &PgPool,
+    user: User<Id>,
+) -> Result<InitialUserInfo, sqlx::Error> {
+    let enrolled = user.is_enrolled();
+    let devices = user.user_devices(pool).await?;
+    let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+    let is_admin = user.is_admin(pool).await?;
+    Ok(InitialUserInfo {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        login: user.username,
+        email: user.email,
+        phone_number: user.phone,
+        is_active: user.is_active,
+        device_names,
+        enrolled,
+        is_admin,
+    })
 }
 
 impl From<DeviceConfig> for ProtoDeviceConfig {
@@ -1094,7 +1108,10 @@ impl Token {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail {
             to: user.email.clone(),
-            subject: settings.enrollment_welcome_email_subject.clone().unwrap(),
+            subject: settings
+                .enrollment_welcome_email_subject
+                .clone()
+                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
             content: self
                 .get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
@@ -1129,8 +1146,8 @@ impl Token {
             to: admin.email.clone(),
             subject: "[defguard] User enrollment completed".into(),
             content: templates::enrollment_admin_notification(
-                user,
-                admin,
+                &user.clone().into(),
+                &admin.clone().into(),
                 ip_address,
                 device_info,
             )?,
@@ -1150,5 +1167,123 @@ impl Token {
                 Err(TokenError::NotificationError(err.to_string()))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::{
+            models::{
+                Settings,
+                settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
+            },
+            setup_pool,
+        },
+    };
+    use defguard_mail::Mail;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::mpsc::unbounded_channel;
+
+    use crate::db::{
+        User,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    };
+
+    #[sqlx::test]
+    async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        // initialize server config
+        SERVER_CONFIG
+            .set(DefGuardConfig::new_test_config())
+            .unwrap();
+
+        // setup mail channel
+        let (mail_tx, mut mail_rx) = unbounded_channel::<Mail>();
+
+        // setup users
+        let admin = User::new(
+            "test_admin",
+            Some("pass123"),
+            "Test",
+            "Admin",
+            "admin@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let user = User::new(
+            "test_user",
+            Some("pass123"),
+            "Test",
+            "User",
+            "user@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // generate enrollment token
+        let token = Token::new(
+            user.id,
+            Some(admin.id),
+            Some(user.email.clone()),
+            10,
+            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        );
+
+        // initialize settings
+        Settings::init_defaults(&pool).await.unwrap();
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+
+        // send welcome email
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .send_welcome_email(
+                &mut transaction,
+                &mail_tx,
+                &user,
+                &settings,
+                "127.0.0.1",
+                None,
+            )
+            .await
+            .unwrap();
+
+        // check email content
+        let mail = mail_rx.recv().await.unwrap();
+        assert_eq!(mail.to, user.email);
+        assert_eq!(
+            mail.subject,
+            settings.enrollment_welcome_email_subject.unwrap()
+        );
+
+        // set subject to None
+        settings.enrollment_welcome_email_subject = None;
+
+        // send another welcome email
+        let mut transaction = pool.begin().await.unwrap();
+        token
+            .send_welcome_email(
+                &mut transaction,
+                &mail_tx,
+                &user,
+                &settings,
+                "127.0.0.1",
+                None,
+            )
+            .await
+            .unwrap();
+
+        // check email content
+        let mail = mail_rx.recv().await.unwrap();
+        assert_eq!(mail.to, user.email);
+        assert_eq!(mail.subject, WELCOME_EMAIL_SUBJECT);
     }
 }

@@ -26,6 +26,16 @@ pub async fn add_openid_client(
         "User {} adding OpenID client {}",
         session.user.username, data.name
     );
+    if ammonia::is_html(&data.name) {
+        warn!(
+            "User {} attempted to create openid client with name containing HTML: {}",
+            session.user.username, data.name
+        );
+        return Ok(ApiResponse {
+            json: json!({"msg": "invalid name"}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
     let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
@@ -89,6 +99,16 @@ pub async fn change_openid_client(
         "User {} updating OpenID client {client_id}...",
         session.user.username
     );
+    if ammonia::is_html(&data.name) {
+        warn!(
+            "User {} attempted to edit openid client with name containing HTML: {}",
+            session.user.username, data.name
+        );
+        return Ok(ApiResponse {
+            json: json!({"msg": "invalid name"}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
     let mut transaction = appstate.pool.begin().await?;
     let status = match OAuth2Client::find_by_client_id(&mut *transaction, &client_id).await? {
         Some(mut client) => {

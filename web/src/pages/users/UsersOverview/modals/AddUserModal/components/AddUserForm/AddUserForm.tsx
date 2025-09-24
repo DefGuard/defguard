@@ -28,7 +28,7 @@ import {
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
-import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
+import { removeEmptyStrings } from '../../../../../../../shared/utils/removeEmptyStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
 
@@ -58,6 +58,7 @@ export const AddUserForm = () => {
         .object({
           username: z
             .string()
+            .trim()
             .min(1, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
@@ -74,9 +75,9 @@ export const AddUserForm = () => {
               }
               return true;
             }, LL.modals.addUser.form.error.emailReserved()),
-          last_name: z.string().min(1, LL.form.error.required()),
-          first_name: z.string().min(1, LL.form.error.required()),
-          phone: z.string(),
+          last_name: z.string().trim().min(1, LL.form.error.required()),
+          first_name: z.string().trim().min(1, LL.form.error.required()),
+          phone: z.string().trim(),
           enable_enrollment: z.boolean(),
         })
         .superRefine((val, ctx) => {
@@ -187,23 +188,23 @@ export const AddUserForm = () => {
   });
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
-    const trimmed = trimObjectStrings(data);
-    if (reservedUserNames.current.includes(trimmed.username)) {
+    const clean = removeEmptyStrings(data);
+    if (reservedUserNames.current.includes(clean.username)) {
       void trigger('username', { shouldFocus: true });
     } else {
-      usernameAvailable(trimmed.username)
+      usernameAvailable(clean.username)
         .then(() => {
           setCheckingUsername(false);
-          if (trimmed.enable_enrollment) {
-            const userData = omit(trimmed, ['password', 'enable_enrollment']);
+          if (clean.enable_enrollment) {
+            const userData = omit(clean, ['password', 'enable_enrollment']);
             addUserMutation.mutate(userData);
           } else {
-            addUserMutation.mutate(omit(trimmed, ['enable_enrollment']));
+            addUserMutation.mutate(omit(clean, ['enable_enrollment']));
           }
         })
         .catch(() => {
           setCheckingUsername(false);
-          reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
+          reservedUserNames.current = [...reservedUserNames.current, clean.username];
           void trigger('username', { shouldFocus: true });
         });
     }

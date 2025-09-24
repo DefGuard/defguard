@@ -2,6 +2,13 @@
 mod test {
     use std::str::FromStr;
 
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::{
+            models::{Settings, settings::initialize_current_settings},
+            setup_pool,
+        },
+    };
     use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -9,15 +16,9 @@ mod test {
 
     use super::super::*;
     use crate::{
-        SERVER_CONFIG,
-        config::DefGuardConfig,
         db::{
-            Device, Session, SessionState, Settings, WireguardNetwork,
-            models::{
-                device::DeviceType, settings::initialize_current_settings,
-                wireguard::LocationMfaMode,
-            },
-            setup_pool,
+            Device, Session, SessionState, WireguardNetwork,
+            models::{device::DeviceType, wireguard::LocationMfaMode},
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
     };

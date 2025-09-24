@@ -77,7 +77,7 @@ Aby dowiedzieć się więcej o:
 - Zewnętrznym SSO
 - Kontrolowaniu działania klientów VPN
 
-Pełna lista funkcjonalności enterprise: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+Pełna lista funkcjonalności enterprise: [https://docs.defguard.net/enterprise/enterprise-features](https://docs.defguard.net/enterprise/enterprise-features)</br>
 Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
       `,
       controls: {
@@ -528,7 +528,7 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
-            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">więcej informacji tutaj</a>',
+            link: '<a href="https://docs.defguard.net/using-defguard-for-end-users/enrollment" target="_blank">więcej informacji tutaj</a>',
           },
         },
       },
@@ -598,7 +598,7 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
     },
     helpers: {
       setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
-      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
+      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://docs.defguard.net/using-defguard-for-end-users/desktop-client/instance-configuration" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
     },
 
     steps: {
@@ -1126,7 +1126,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         custom: 'Niestandardowy',
         none: 'Brak',
         documentation:
-          'Przeczytaj więcej o tej funkcji w naszej [dokumentacji](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers).',
+          'Przeczytaj więcej o tej funkcji w naszej [dokumentacji](https://docs.defguard.net/enterprise/enterprise-features).',
         delete: 'Usuń dostawcę',
         directory_sync_settings: {
           title: 'Ustawienia synchronizacji katalogu',
@@ -1861,7 +1861,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
       connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
-      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://docs.defguard.net/getting-started/one-line-install
         nie ma potrzeby wykonywania dalszych kroków.`,
       fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,

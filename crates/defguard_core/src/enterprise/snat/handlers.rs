@@ -4,6 +4,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
+use defguard_common::db::Id;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -12,7 +13,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{GatewayEvent, Id, User, WireguardNetwork},
+    db::{GatewayEvent, User, WireguardNetwork},
     enterprise::{
         db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
     },

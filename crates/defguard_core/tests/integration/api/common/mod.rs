@@ -1,23 +1,26 @@
 pub(crate) mod client;
 
-use std::sync::{Arc, Mutex};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+};
 
-pub use defguard_core::db::setup_pool;
-use defguard_core::{
+pub use defguard_common::db::setup_pool;
+use defguard_common::{
     VERSION,
+    config::DefGuardConfig,
+    db::{Id, NoId, models::settings::initialize_current_settings},
+};
+use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    config::DefGuardConfig,
-    db::{
-        AppEvent, GatewayEvent, Id, NoId, User, UserDetails,
-        models::settings::initialize_current_settings,
-    },
+    db::{AppEvent, GatewayEvent, User, UserDetails},
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::Auth,
-    mail::Mail,
 };
+use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde::de::DeserializeOwned;
@@ -140,10 +143,12 @@ pub(crate) async fn make_base_client(
 }
 
 pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) {
-    let listener = TcpListener::bind("127.0.0.1:0")
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+    let listener = TcpListener::bind(addr)
         .await
         .expect("Could not bind ephemeral socket");
-    let config = init_config(None);
+    let port = listener.local_addr().unwrap().port();
+    let config = init_config(Some(&format!("http://localhost:{port}")));
     initialize_users(&pool, &config).await;
     initialize_current_settings(&pool)
         .await
@@ -234,11 +239,6 @@ pub(crate) async fn make_client(pool: PgPool) -> TestClient {
 pub(crate) async fn make_client_with_db(pool: PgPool) -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client(pool).await;
     (client, client_state.pool)
-}
-
-pub(crate) async fn make_client_with_state(pool: PgPool) -> (TestClient, ClientState) {
-    let (client, client_state) = make_test_client(pool).await;
-    (client, client_state)
 }
 
 pub(crate) async fn authenticate_admin(client: &TestClient) {

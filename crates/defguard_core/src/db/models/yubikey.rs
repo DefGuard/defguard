@@ -1,7 +1,7 @@
 use model_derive::Model;
 use sqlx::{PgExecutor, query, query_as};
 
-use crate::db::{Id, NoId};
+use defguard_common::db::{Id, NoId};
 
 #[derive(Deserialize, Model, Serialize)]
 pub struct YubiKey<I = NoId> {

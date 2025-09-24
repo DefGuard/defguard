@@ -6,17 +6,17 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{TypedHeader, headers::UserAgent};
+use defguard_common::db::{Id, NoId};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
-#[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Id, NoId, User, UserInfo, WebHook},
+    db::{User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
@@ -29,9 +29,7 @@ pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
 pub mod network_devices;
-#[cfg(feature = "openid")]
 pub(crate) mod openid_clients;
-#[cfg(feature = "openid")]
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub(crate) mod settings;
@@ -40,9 +38,7 @@ pub(crate) mod support;
 pub(crate) mod updates;
 pub(crate) mod user;
 pub(crate) mod webhooks;
-#[cfg(feature = "wireguard")]
 pub mod wireguard;
-#[cfg(feature = "worker")]
 pub mod worker;
 pub(crate) mod yubikey;
 
@@ -80,6 +76,7 @@ impl From<WebError> for ApiResponse {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
             }
+            WebError::Authentication => ApiResponse::new(json!({}), StatusCode::UNAUTHORIZED),
             WebError::Forbidden(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
@@ -438,7 +435,6 @@ pub async fn user_for_admin_or_self(
 
 /// Try to fetch [`Device'] if the device.id is of the currently logged in user, or
 /// the logged in user is an admin.
-#[cfg(feature = "wireguard")]
 pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
     session: &SessionInfo,

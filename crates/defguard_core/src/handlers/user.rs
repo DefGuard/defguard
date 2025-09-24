@@ -4,11 +4,12 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_mail::{Mail, templates};
 use serde_json::json;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
-    StartEnrollmentRequest, Username, mail::EMAIL_PASSOWRD_RESET_START_SUBJECT,
+    StartEnrollmentRequest, Username, mail::EMAIL_PASSWORD_RESET_START_SUBJECT,
     user_for_admin_or_self,
 };
 use crate::{
@@ -31,15 +32,18 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    mail::Mail,
-    server_config, templates,
+    is_valid_phone_number, server_config,
 };
+
+/// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
+/// characters according to the X.520 standard and many LDAP implementations like Active Directory.
+pub(crate) const MAX_USERNAME_CHARS: usize = 64;
 
 /// Verify the given username
 ///
 /// To enable LDAP sync usernames need to avoid reserved characters.
 /// Username requirements:
-/// - 1 - 64 characters long
+/// - 1 - MAX_USERNAME_CHARS characters long
 /// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
 /// - digits (0-9)
 /// - starts with non-special character
@@ -48,7 +52,7 @@ use crate::{
 pub fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
-    if !(1..64).contains(&length) {
+    if !(1..MAX_USERNAME_CHARS).contains(&length) {
         return Err(WebError::Serialization(format!(
             "Username ({username}) has incorrect length"
         )));
@@ -280,6 +284,7 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
     // check if email doesn't already exist
     if User::find_by_email(&appstate.pool, &user_data.email)
         .await?
@@ -291,6 +296,18 @@ pub async fn add_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_data.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for new user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let password = match &user_data.password {
         Some(password) => {
             // check password strength
@@ -645,11 +662,12 @@ pub async fn modify_user(
     context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Json(mut user_info): Json<UserInfo>,
+    Json(user_info): Json<UserInfo>,
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
+
     // store user before mods
     let before = user.clone();
     let old_username = user.username.clone();
@@ -660,6 +678,18 @@ pub async fn modify_user(
             status: StatusCode::BAD_REQUEST,
         });
     }
+
+    // check phone number
+    if let Some(ref phone) = user_info.phone {
+        if !is_valid_phone_number(phone) {
+            debug!("Invalid phone number for user {username}: {phone}");
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
@@ -1086,7 +1116,7 @@ pub async fn reset_password(
 
         let mail = Mail {
             to: user.email.clone(),
-            subject: EMAIL_PASSOWRD_RESET_START_SUBJECT.into(),
+            subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
             content: templates::email_password_reset_mail(
                 config.enrollment_url.clone(),
                 enrollment.id.clone().as_str(),

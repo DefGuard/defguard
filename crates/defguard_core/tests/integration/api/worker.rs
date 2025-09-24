@@ -8,13 +8,13 @@ use defguard_core::{
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{make_client_with_state, setup_pool};
+use super::common::{make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
 
     // register a fake worker
     {
@@ -167,7 +167,7 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
 async fn test_worker_management_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_client_with_state(pool).await;
+    let (client, state) = make_test_client(pool).await;
 
     // add some fake workers
     {

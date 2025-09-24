@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    db::{
+        Id,
+        models::{BiometricAuth, BiometricChallenge},
+    },
+};
+use defguard_mail::Mail;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -9,28 +17,23 @@ use tokio::sync::{
 };
 use tonic::{Code, Status};
 
-use super::proto::proxy::{
-    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-    ClientMfaStartResponse, MfaMethod,
-};
 use crate::{
-    auth::{Claims, ClaimsType},
     db::{
-        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, User, UserInfo, WireguardNetwork,
         models::{
-            biometric_auth::{BiometricAuth, BiometricChallenge},
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
             wireguard::LocationMfaMode,
         },
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{
-        proto::proxy::{ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse},
-        utils::parse_client_info,
-    },
+    grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
-    mail::Mail,
+};
+use defguard_proto::proxy::{
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
+    MfaMethod,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -91,7 +94,7 @@ impl ClientMfaServer {
         )
         .to_jwt()
         .map_err(|err| {
-            error!("Failed to generate JWT token: {err:?}");
+            error!("Failed to generate JWT token: {err}");
             Status::internal("unexpected error")
         })
     }
@@ -99,7 +102,7 @@ impl ClientMfaServer {
     /// Validate JWT and extract client pubkey
     pub(crate) fn parse_token(token: &str) -> Result<String, Status> {
         let claims = Claims::from_jwt(ClaimsType::DesktopClient, token).map_err(|err| {
-            error!("Failed to parse JWT token: {err:?}");
+            error!("Failed to parse JWT token: {err}");
             Status::invalid_argument("invalid token")
         })?;
         Ok(claims.client_id)
@@ -163,7 +166,7 @@ impl ClientMfaServer {
 
         user.verify_mfa_state(&self.pool).await.map_err(|err| {
             error!(
-                "Failed to verify MFA state for user {}: {err:?}",
+                "Failed to verify MFA state for user {}: {err}",
                 user.username
             );
             Status::internal("unexpected error")
@@ -249,7 +252,7 @@ impl ClientMfaServer {
                 // send email code
                 send_email_mfa_code_email(&user, &self.mail_tx, None).map_err(|err| {
                     error!(
-                        "Failed to send email MFA code for user {}: {err:?}",
+                        "Failed to send email MFA code for user {}: {err}",
                         user.username
                     );
                     Status::internal("unexpected error")
@@ -266,7 +269,7 @@ impl ClientMfaServer {
                 if OpenIdProvider::get_current(&self.pool)
                     .await
                     .map_err(|err| {
-                        error!("Failed to get current OpenID provider: {err:?}",);
+                        error!("Failed to get current OpenID provider: {err}",);
                         Status::internal("unexpected error")
                     })?
                     .is_none()
@@ -346,7 +349,7 @@ impl ClientMfaServer {
             .get_allowed_groups(&mut conn)
             .await
             .map_err(|err| {
-                error!("Failed to fetch allowed groups for location {location}: {err:?}");
+                error!("Failed to fetch allowed groups for location {location}: {err}");
                 Status::internal("unexpected error")
             })?;
         // if no groups are specified all users are allowed
@@ -604,7 +607,7 @@ impl ClientMfaServer {
             .update(&mut *transaction)
             .await
             .map_err(|err| {
-                error!("Failed to update device network config {network_device:?}: {err:?}");
+                error!("Failed to update device network config {network_device:?}: {err}");
                 Status::internal("unexpected error")
             })?;
 

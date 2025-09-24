@@ -3,7 +3,7 @@
 #![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, OnceLock, RwLock},
+    sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
 use crate::version::IncompatibleComponents;
@@ -15,6 +15,13 @@ use axum::{
     serve,
 };
 use db::models::{device::DeviceType, wireguard::LocationMfaMode};
+use defguard_common::{
+    VERSION,
+    auth::claims::{Claims, ClaimsType},
+    config::{DefGuardConfig, InitVpnLocationArgs, server_config},
+    db::init_db,
+};
+use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use enterprise::{
@@ -60,6 +67,7 @@ use handlers::{
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
+use regex::Regex;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -81,18 +89,15 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-#[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
     delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
     list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
     network_stats, remove_gateway,
 };
-#[cfg(feature = "worker")]
 use self::handlers::worker::{
     create_job, create_worker_token, job_status, list_workers, remove_worker,
 };
-#[cfg(feature = "openid")]
 use self::handlers::{
     openid_clients::{
         add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
@@ -104,10 +109,8 @@ use self::handlers::{
 };
 use self::{
     appstate::AppState,
-    auth::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork, init_db,
+        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
     },
     handlers::{
@@ -140,9 +143,7 @@ use self::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
     },
-    mail::Mail,
 };
-#[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
     auth::failed_login::FailedLoginMap,
     db::models::oauth2client::OAuth2Client,
@@ -152,21 +153,14 @@ use self::{
 
 pub mod appstate;
 pub mod auth;
-pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
 pub mod events;
-pub mod globals;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
-pub mod hex;
-pub mod mail;
-pub(crate) mod random;
-pub mod secret;
 pub mod support;
-pub mod templates;
 pub mod updates;
 pub mod utility_thread;
 pub mod version;
@@ -180,18 +174,10 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
-// helper for easier migration handling with a custom `migration` folder location
-// reference: https://docs.rs/sqlx/latest/sqlx/attr.test.html#automatic-migrations-requires-migrate-feature
-pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");
-
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA"));
-pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
-
-pub(crate) fn server_config() -> &'static DefGuardConfig {
-    SERVER_CONFIG
-        .get()
-        .expect("Server configuration not set yet")
-}
+static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
+        .expect("Failed to parse phone number regex")
+});
 
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
@@ -537,7 +523,6 @@ pub fn build_webapp(
             ),
     );
 
-    #[cfg(feature = "openid")]
     let webapp = webapp
         .nest(
             "/api/v1/oauth",
@@ -581,7 +566,6 @@ pub fn build_webapp(
             .route("/alias/apply", put(apply_acl_aliases)),
     );
 
-    #[cfg(feature = "wireguard")]
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
@@ -655,7 +639,6 @@ pub fn build_webapp(
             .layer(Extension(gateway_state)),
     );
 
-    #[cfg(feature = "worker")]
     let webapp = webapp.nest(
         "/api/v1/worker",
         Router::new()
@@ -729,11 +712,12 @@ pub async fn run_web_server(
         incompatible_components,
     );
     info!("Started web services");
+    let server_config = server_config();
     let addr = SocketAddr::new(
-        server_config()
+        server_config
             .http_bind_address
             .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config().http_port,
+        server_config.http_port,
     );
     let listener = TcpListener::bind(&addr).await?;
     serve(
@@ -830,7 +814,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not assign IP to device");
     }
 
-    #[cfg(feature = "openid")]
     for app_id in 1..=3 {
         OAuth2Client::new(
             vec![format!("https://app-{app_id}.com")],
@@ -947,20 +930,39 @@ pub async fn init_vpn_location(
     Ok(token)
 }
 
-pub trait AsCsv {
-    fn as_csv(&self) -> String;
+pub(crate) fn is_valid_phone_number(number: &str) -> bool {
+    PHONE_NUMBER_REGEX.is_match(number)
 }
 
-impl<T, I> AsCsv for I
-where
-    I: ?Sized + std::iter::IntoIterator<Item = T>,
-    for<'a> &'a I: IntoIterator<Item = &'a T>,
-    T: ToString,
-{
-    fn as_csv(&self) -> String {
-        self.into_iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
+#[cfg(test)]
+mod test {
+
+    use super::is_valid_phone_number;
+
+    #[test]
+    fn test_is_valid_phone_number_dg25_10() {
+        let valid_numbers = &[
+            "+48 (91) 123-456",
+            "123 456 7890",
+            "+1 (202) 555-0173",
+            "91-1234-5678",
+            "(22) 567 890",
+        ];
+        for number in valid_numbers {
+            assert!(is_valid_phone_number(number));
+        }
+
+        let invalid_numbers = &[
+            "4*4",
+            "+48  123456789",
+            "123-456-789-0000",
+            "(+48) 123 456",
+            "202.555.0173",
+            "(12345) 6789",
+            "+48 (91) 123-456 000 111",
+        ];
+        for number in invalid_numbers {
+            assert!(!is_valid_phone_number(number));
+        }
     }
 }

@@ -1,7 +1,8 @@
 use std::{net::IpAddr, str::FromStr};
 
+use defguard_common::db::Id;
 use defguard_core::{
-    db::{Device, GatewayEvent, Id, WireguardNetwork},
+    db::{Device, GatewayEvent, WireguardNetwork},
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;

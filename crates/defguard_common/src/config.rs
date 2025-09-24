@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, sync::OnceLock};
 
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
@@ -12,6 +12,15 @@ use rsa::{
     traits::PublicKeyParts,
 };
 use secrecy::{ExposeSecret, SecretString};
+use serde::Serialize;
+
+pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
+
+pub fn server_config() -> &'static DefGuardConfig {
+    SERVER_CONFIG
+        .get()
+        .expect("Server configuration not set yet")
+}
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
@@ -281,7 +290,7 @@ impl DefGuardConfig {
 
     /// Returns configured URL with "auth/callback" appended to the path.
     #[must_use]
-    pub(crate) fn callback_url(&self) -> Url {
+    pub fn callback_url(&self) -> Url {
         let mut url = self.url.clone();
         // Append "auth/callback" to the URL.
         if let Ok(mut path_segments) = url.path_segments_mut() {
