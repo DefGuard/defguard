@@ -31,7 +31,7 @@ jobs:
         with:
           scan-type: 'fs'
           format: 'github'
-          output: 'sbom.json'
+          output: "defguard-${{ env.VERSION }}.sbom.json"
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM"
 
@@ -41,7 +41,7 @@ jobs:
           image-ref: "ghcr.io/defguard/defguard:${{ env.VERSION }}"
           scan-type: 'image'
           format: 'github'
-          output: 'sbom-docker.json'
+          output: "defguard-${{ env.VERSION }}-docker.sbom.json"
           severity: "CRITICAL,HIGH,MEDIUM"
 
       - name: Upload SBOM
