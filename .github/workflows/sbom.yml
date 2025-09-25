@@ -31,7 +31,7 @@ jobs:
       - name: Create docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: "ghcr.io/defguard/defguard:${{ github.ref_name }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ github.ref_name#v }}"
           scan-type: 'image'
           format: 'github'
           output: 'sbom-docker.json'
