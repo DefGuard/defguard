@@ -381,39 +381,44 @@ async fn handle_proxy_message_loop(
                             }))
                         } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
                             if let Some(provider) = OpenIdProvider::get_current(&pool).await? {
-                                if let Ok((_client_id, client)) =
-                                    make_oidc_client(redirect_url, &provider).await
-                                {
-                                    let mut authorize_url_builder = client
-                                        .authorize_url(
-                                            CoreAuthenticationFlow::AuthorizationCode,
-                                            || build_state(request.state),
-                                            Nonce::new_random,
-                                        )
-                                        .add_scope(Scope::new("email".to_string()))
-                                        .add_scope(Scope::new("profile".to_string()));
+                                match make_oidc_client(redirect_url, &provider).await {
+                                    Ok((_client_id, client)) => {
+                                        let mut authorize_url_builder = client
+                                            .authorize_url(
+                                                CoreAuthenticationFlow::AuthorizationCode,
+                                                || build_state(request.state),
+                                                Nonce::new_random,
+                                            )
+                                            .add_scope(Scope::new("email".to_string()))
+                                            .add_scope(Scope::new("profile".to_string()));
 
-                                    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-                                        .iter()
-                                        .all(|p| p.eq_ignore_ascii_case(&provider.name))
-                                    {
-                                        authorize_url_builder = authorize_url_builder.add_prompt(
-                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                        );
+                                        if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                            .iter()
+                                            .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                        {
+                                            authorize_url_builder = authorize_url_builder
+                                                .add_prompt(
+                                                openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                            );
+                                        }
+                                        let (url, csrf_token, nonce) = authorize_url_builder.url();
+
+                                        Some(core_response::Payload::AuthInfo(AuthInfoResponse {
+                                            url: url.into(),
+                                            csrf_token: csrf_token.secret().to_owned(),
+                                            nonce: nonce.secret().to_owned(),
+                                            button_display_name: provider.display_name,
+                                        }))
                                     }
-                                    let (url, csrf_token, nonce) = authorize_url_builder.url();
-
-                                    Some(core_response::Payload::AuthInfo(AuthInfoResponse {
-                                        url: url.into(),
-                                        csrf_token: csrf_token.secret().to_owned(),
-                                        nonce: nonce.secret().to_owned(),
-                                        button_display_name: provider.display_name,
-                                    }))
-                                } else {
-                                    Some(core_response::Payload::CoreError(CoreError {
-                                        status_code: Code::Internal as i32,
-                                        message: "failed to build OIDC client".into(),
-                                    }))
+                                    Err(err) => {
+                                        error!(
+                                            "Failed to setup external OIDC provider client: {err}"
+                                        );
+                                        Some(core_response::Payload::CoreError(CoreError {
+                                            status_code: Code::Internal as i32,
+                                            message: "failed to build OIDC client".into(),
+                                        }))
+                                    }
                                 }
                             } else {
                                 error!("Failed to get current OpenID provider");
@@ -423,6 +428,10 @@ async fn handle_proxy_message_loop(
                                 }))
                             }
                         } else {
+                            error!(
+                                "Invalid redirect URL in authentication info request: {}",
+                                request.redirect_url
+                            );
                             Some(core_response::Payload::CoreError(CoreError {
                                 status_code: Code::Internal as i32,
                                 message: "invalid redirect URL".into(),
