@@ -50,8 +50,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: sbom.json
-          asset_name: sbom.json
+          asset_path: "defguard-${{ env.VERSION }}.sbom.json"
+          asset_name: "defguard-${{ env.VERSION }}.sbom.json"
           asset_content_type: application/octet-stream
 
       - name: Upload docker SBOM
@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: sbom-docker.json
-          asset_name: sbom-docker.json
+          asset_path: "defguard-${{ env.VERSION }}-docker.sbom.json"
+          asset_name: "defguard-${{ env.VERSION }}-docker.sbom.json"
           asset_content_type: application/octet-stream
 
