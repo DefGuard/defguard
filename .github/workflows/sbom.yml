@@ -19,6 +19,13 @@ jobs:
         with:
           submodules: recursive
 
+      # Store the version, stripping any v-prefix
+      - name: Write release version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Create SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
@@ -31,7 +38,7 @@ jobs:
       - name: Create docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: "ghcr.io/defguard/defguard:${{ github.ref_name#v }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ env.VERSION }}"
           scan-type: 'image'
           format: 'github'
           output: 'sbom-docker.json'
