@@ -1,0 +1,59 @@
+name: Create SBOM files
+
+on:
+  workflow_call:
+    inputs:
+      upload_url:
+        description: "Release assets upload url"
+        required: true
+        type: string
+
+jobs:
+  create-sbom:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Create SBOM with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          format: 'github'
+          output: 'sbom.json'
+          scan-ref: '.'
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Create docker image SBOM with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: "ghcr.io/defguard/defguard:${{ github.ref_name }}"
+          scan-type: 'image'
+          format: 'github'
+          output: 'sbom-docker.json'
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Upload SBOM
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: sbom.json
+          asset_name: sbom.json
+          asset_content_type: application/octet-stream
+
+      - name: Upload docker SBOM
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: sbom-docker.json
+          asset_name: sbom-docker.json
+          asset_content_type: application/octet-stream
+
