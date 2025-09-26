@@ -128,10 +128,7 @@ pub async fn patch_settings(
     context: ApiRequestContext,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
-    debug!(
-        "Admin {} patching settings with {data:?}",
-        session.user.username
-    );
+    debug!("Admin {} patching settings", session.user.username);
     let mut settings = Settings::get_current_settings();
     // prepare clone for emitting an event
     let before = settings.clone();
