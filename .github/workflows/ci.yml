@@ -55,6 +55,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Scan code with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH,MEDIUM"
+          scanners: "vuln"
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
