@@ -10,8 +10,7 @@ on:
 
 jobs:
   create-sbom:
-    runs-on:
-      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
