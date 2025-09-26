@@ -32,7 +32,7 @@ jobs:
           format: 'spdx-json'
           output: "defguard-${{ env.VERSION }}.sbom.json"
           scan-ref: '.'
-          severity: "CRITICAL,HIGH,MEDIUM"
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
       - name: Create docker image SBOM with Trivy
@@ -42,7 +42,7 @@ jobs:
           scan-type: 'image'
           format: 'spdx-json'
           output: "defguard-${{ env.VERSION }}-docker.sbom.json"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
       - name: Upload SBOM

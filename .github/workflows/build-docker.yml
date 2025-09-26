@@ -72,7 +72,7 @@ jobs:
           cache-to: type=registry,mode=max,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ env.SAFE_REF }}
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
           format: "table"
