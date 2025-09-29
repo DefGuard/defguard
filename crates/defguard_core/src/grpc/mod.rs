@@ -418,7 +418,7 @@ async fn handle_proxy_message_loop(
                             } else {
                                 error!("Failed to get current OpenID provider");
                                 Some(core_response::Payload::CoreError(CoreError {
-                                    status_code: Code::Internal as i32,
+                                    status_code: Code::NotFound as i32,
                                     message: "failed to get current OpenID provider".into(),
                                 }))
                             }
