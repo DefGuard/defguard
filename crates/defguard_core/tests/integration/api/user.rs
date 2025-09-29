@@ -51,17 +51,20 @@ async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_me(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+    client.clear_event_queue();
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.first_name, "Harry");
     assert_eq!(user_info.last_name, "Potter");
+
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]
