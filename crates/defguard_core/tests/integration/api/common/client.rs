@@ -3,7 +3,10 @@ use std::{net::SocketAddr, sync::Arc};
 use axum::{Router, serve};
 use bytes::Bytes;
 use defguard_common::db::Id;
-use defguard_core::events::{ApiEvent, ApiEventType};
+use defguard_core::{
+    events::{ApiEvent, ApiEventType},
+    handlers::Auth,
+};
 use reqwest::{
     Body, Client, StatusCode, Url,
     cookie::{Cookie, Jar},
@@ -67,6 +70,15 @@ impl TestClient {
         let url = Url::parse(&self.base_url()).unwrap();
         self.jar
             .add_cookie_str(&format!("{}={}", cookie.name(), cookie.value()), &url);
+    }
+
+    // Helper to perform API login
+    pub async fn login_user(&mut self, username: &str, password: &str) {
+        let auth = Auth::new(username, password);
+        let response = self.post("/api/v1/auth").json(&auth).send().await;
+        assert_eq!(response.status(), StatusCode::OK);
+
+        self.verify_api_events(&[ApiEventType::UserLogin]);
     }
 
     /// returns the base URL (http://ip:port) for this TestClient
@@ -177,7 +189,7 @@ impl TestClient {
         {
             assert_eq!(
                 expected_event, event,
-                "Event type mismatch at index {}: expected {:?}, got {:?}",
+                "Event type mismatch at index {}: expected {:#?}, got {:#?}",
                 index, expected_event, event
             );
             assert_eq!(
@@ -213,15 +225,6 @@ impl TestClient {
             }
         }
         all_events
-    }
-
-    /// Helper which can be used to empty the queue
-    ///
-    /// Mostly useful because test setup (logging in, creating devices etc)
-    /// can generate some irrelevant events for a given test.
-    pub fn clear_event_queue(&mut self) {
-        _ = self.drain_all_events();
-        self.assert_event_queue_is_empty();
     }
 
     /// Assert there are no events queued

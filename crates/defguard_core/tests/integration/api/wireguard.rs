@@ -128,8 +128,8 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _client_state) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -213,8 +213,8 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
 async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _client_state) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     let mut location_data = WireguardNetworkData {
         name: "test_location".into(),

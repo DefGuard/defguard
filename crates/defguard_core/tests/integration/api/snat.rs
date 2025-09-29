@@ -20,10 +20,10 @@ use super::common::{
 async fn test_snat_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (mut client, _) = make_test_client(pool).await;
 
     // admin login
-    authenticate_admin(&client).await;
+    authenticate_admin(&mut client).await;
 
     // create location
     let response = client
@@ -110,10 +110,10 @@ async fn test_snat_crud(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_snat_enterprise_required(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (mut client, _) = make_test_client(pool).await;
 
     // admin login
-    authenticate_admin(&client).await;
+    authenticate_admin(&mut client).await;
 
     exceed_enterprise_limits(&client).await;
 
