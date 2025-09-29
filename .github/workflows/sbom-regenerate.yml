@@ -1,10 +1,6 @@
 name: Periodic SBOM Regeneration
 
 on:
-  push:
-    branches:
-      - sbom-schedule
-
   schedule:
     - cron: '30 2 * * *' # 2:30 AM UTC
 
