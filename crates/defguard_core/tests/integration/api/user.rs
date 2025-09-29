@@ -1,7 +1,7 @@
 use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        AddDevice, UserInfo,
+        AddDevice, User, UserInfo,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     events::ApiEventType,
@@ -10,6 +10,8 @@ use defguard_core::{
 use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
+
+use crate::api::common::make_client_with_db;
 
 use super::{
     TEST_SERVER_URL,
@@ -53,10 +55,7 @@ async fn test_me(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut client = make_client(pool).await;
 
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    client.clear_event_queue();
+    client.login_user("hpotter", "pass123").await;
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -71,12 +70,9 @@ async fn test_me(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_change_self_password(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
-    let auth = Auth::new("hpotter", "pass123");
-
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("hpotter", "pass123").await;
 
     let bad_old = "notCurrentPassword123!$";
 
@@ -119,6 +115,7 @@ async fn test_change_self_password(_: PgPoolOptions, options: PgConnectOptions) 
     assert_eq!(response.status(), StatusCode::OK);
 
     // old pass login
+    let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
@@ -126,18 +123,27 @@ async fn test_change_self_password(_: PgPoolOptions, options: PgConnectOptions) 
 
     let response = client.post("/api/v1/auth").json(&new_auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    client.verify_api_events_with_user(&[
+        (ApiEventType::PasswordChanged, 2, "hpotter"),
+        (
+            ApiEventType::UserLoginFailed {
+                message: "Authentication for hpotter failed: invalid password".into(),
+            },
+            2,
+            "hpotter",
+        ),
+        (ApiEventType::UserLogin, 2, "hpotter"),
+    ]);
 }
 
 #[sqlx::test]
 async fn test_change_password(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     let new_password = "newPassword43$!";
 
@@ -175,62 +181,72 @@ async fn test_change_password(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let test_user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+
+    client.verify_api_events_with_user(&[
+        (
+            ApiEventType::PasswordChangedByAdmin { user: test_user },
+            1,
+            "admin",
+        ),
+        (ApiEventType::UserLogin, 2, "hpotter"),
+    ]);
 }
 
 #[sqlx::test]
 async fn test_list_users(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // normal user cannot list users
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("hpotter", "pass123").await;
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // admin can list users
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]
 async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     let response = client.get("/api/v1/user/hpotter").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("hpotter", "pass123").await;
 
     let user_info = fetch_user_details(&client, "hpotter").await;
     assert_eq!(user_info.user.first_name, "Harry");
     assert_eq!(user_info.user.last_name, "Potter");
+
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]
 async fn test_username_available(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     // standard user cannot check username availability
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("hpotter", "pass123").await;
 
     let avail = Username {
         username: "hpotter".into(),
@@ -243,9 +259,7 @@ async fn test_username_available(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // log in as admin
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     let avail = Username {
         username: "_CrashTestDummy".into(),
@@ -276,17 +290,17 @@ async fn test_username_available(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]
 async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     // create user
     let new_user = AddUserData {
@@ -304,6 +318,11 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
     let mut user_details = fetch_user_details(&client, "adumbledore").await;
     assert_eq!(user_details.user.first_name, "Albus");
 
+    let old_test_user = User::find_by_username(&pool, "adumbledore")
+        .await
+        .unwrap()
+        .unwrap();
+
     // edit user
     user_details.user.phone = Some("5678".into());
     let response = client
@@ -313,20 +332,36 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    let new_test_user = User::find_by_username(&pool, "adumbledore")
+        .await
+        .unwrap()
+        .unwrap();
+
     // delete user
     let response = client.delete("/api/v1/user/adumbledore").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: old_test_user.clone(),
+        },
+        ApiEventType::UserModified {
+            before: old_test_user,
+            after: new_test_user.clone(),
+        },
+        ApiEventType::UserRemoved {
+            user: new_test_user,
+        },
+    ]);
 }
 
 #[sqlx::test]
 async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     let invalid_usernames = ["ADumble dore", ".1user"];
     let valid_usernames = ["user1", "use2r3", "not_wrong"];
@@ -362,12 +397,10 @@ async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_check_password_strength(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     // auth session with admin
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     // test
     let strong_password = "strongPass1234$!";
@@ -413,10 +446,9 @@ async fn test_check_password_strength(_: PgPoolOptions, options: PgConnectOption
 async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    let mut client = make_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
         redirect_uri: vec![TEST_SERVER_URL.into()],
@@ -612,11 +644,9 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     // get yourself
     let mut user_details = fetch_user_details(&client, "admin").await;
@@ -666,11 +696,9 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_unique_email(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    client.login_user("admin", "pass123").await;
 
     // create user
     let new_user = AddUserData {
