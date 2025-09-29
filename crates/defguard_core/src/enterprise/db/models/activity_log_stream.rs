@@ -9,7 +9,7 @@ use defguard_common::{
     secret::SecretStringWrapper,
 };
 
-#[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone)]
+#[derive(Debug, Serialize, Deserialize, Type, EnumString, Display, Clone, PartialEq)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ActivityLogStreamType {
@@ -19,7 +19,7 @@ pub enum ActivityLogStreamType {
     LogstashHttp,
 }
 
-#[derive(Clone, Debug, Serialize, Model, FromRow)]
+#[derive(Clone, Debug, Serialize, Model, FromRow, PartialEq)]
 #[table(activity_log_stream)]
 pub struct ActivityLogStream<I = NoId> {
     pub id: I,

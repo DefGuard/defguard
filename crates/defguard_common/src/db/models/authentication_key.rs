@@ -6,7 +6,7 @@ use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, Type, PartialEq)]
 #[sqlx(type_name = "authentication_key_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum AuthenticationKeyType {
@@ -23,7 +23,7 @@ impl Display for AuthenticationKeyType {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 #[table(authentication_key)]
 pub struct AuthenticationKey<I = NoId> {
     pub id: I,

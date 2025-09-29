@@ -2,22 +2,25 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{Router, serve};
 use bytes::Bytes;
-use defguard_core::events::ApiEvent;
+use defguard_core::events::{ApiEvent, ApiEventType};
 use reqwest::{
     Body, Client, StatusCode, Url,
     cookie::{Cookie, Jar},
     header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
 };
-use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver, task::JoinHandle};
+use tokio::{
+    net::TcpListener,
+    sync::mpsc::{UnboundedReceiver, error::TryRecvError},
+    task::JoinHandle,
+};
 
 pub struct TestClient {
     client: Client,
     jar: Arc<Jar>,
     port: u16,
-    // Has to live during whole test
-    #[allow(dead_code)]
     api_event_rx: UnboundedReceiver<ApiEvent>,
+    // Has to live during whole test
     api_task_handle: JoinHandle<()>,
 }
 
@@ -121,6 +124,71 @@ impl TestClient {
         RequestBuilder {
             builder: self.client.delete(full_url),
         }
+    }
+
+    /// Assert that expected API events have been emitted
+    ///
+    /// `expected_events` should include all events that are currently in the queue
+    /// for the assertions to pass.
+    /// If there are too many or not enough events in the queue this should panic.
+    pub fn verify_api_events(&mut self, expected_events: &[ApiEventType]) {
+        // take all the events from the queue
+        let events = self.drain_all_events();
+
+        // verify number of events
+        assert_eq!(
+            events.len(),
+            expected_events.len(),
+            "Event number different than expected"
+        );
+
+        // compare events in order
+        for (i, (exp, act)) in expected_events.iter().zip(events.iter()).enumerate() {
+            assert_eq!(
+                exp, act,
+                "Mismatch at index {}: expected {:?}, got {:?}",
+                i, exp, act
+            );
+        }
+    }
+
+    /// Receive all messages currently present in API event queue
+    ///
+    /// Can also be used to clear the queue.
+    pub fn drain_all_events(&mut self) -> Vec<ApiEventType> {
+        let mut all_events = Vec::new();
+
+        loop {
+            match self.api_event_rx.try_recv() {
+                Ok(msg) => all_events.push(*msg.event),
+                Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                    // No more messages available right now
+                    break;
+                }
+                Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                    // Channel is closed
+                    break;
+                }
+            }
+        }
+        all_events
+    }
+
+    /// Helper which can be used to empty the queue
+    ///
+    /// Mostly useful because test setup (logging in, creating devices etc)
+    /// can generate some irrelevant events for a given test.
+    pub fn clear_event_queue(&mut self) {
+        _ = self.drain_all_events();
+        self.assert_event_queue_is_empty();
+    }
+
+    /// Assert there are no events queued
+    pub fn assert_event_queue_is_empty(&mut self) {
+        assert!(matches!(
+            self.api_event_rx.try_recv(),
+            Err(TryRecvError::Empty)
+        ));
     }
 }
 

@@ -83,7 +83,7 @@ impl GrpcRequestContext {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ApiEventType {
     UserLogin,
     UserLoginFailed {

@@ -6,6 +6,7 @@ use defguard_common::db::models::{MFAMethod, Settings, settings::update_current_
 use defguard_core::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{MFAInfo, User, UserDetails},
+    events::ApiEventType,
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp},
 };
 use reqwest::{StatusCode, header::USER_AGENT};
@@ -59,6 +60,8 @@ async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    client.verify_api_events(&[ApiEventType::UserLogin]);
+
     // store auth cookie for later use
     let auth_cookie = response
         .cookies()
@@ -73,6 +76,8 @@ async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    client.verify_api_events(&[ApiEventType::UserLogout]);
 
     // try reusing auth cookie
     client.set_cookie(&auth_cookie);
