@@ -1,0 +1,35 @@
+name: Periodic SBOM Regeneration
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # 2:30 AM UTC
+
+jobs:
+  list-releases:
+    name: List releases
+    runs-on: ubuntu-latest
+    outputs:
+      releases: ${{ steps.get-releases.outputs.releases }}
+    steps:
+      - name: Get list of releases
+        id: get-releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASES_JSON=$(gh api repos/${{ github.repository }}/releases \
+            --jq '[.[] | select(.draft == false) | {tagName: .tag_name, uploadUrl: .upload_url}][:1]')
+          echo "releases=$RELEASES_JSON" >> $GITHUB_OUTPUT
+  regenerate-for-release:
+    name: Regenerate SBOM for release
+    needs: list-releases
+    # Don't run if no releases were found.
+    if: needs.list-releases.outputs.releases != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ${{ fromJson(needs.list-releases.outputs.releases) }}
+    uses: ./.github/workflows/sbom.yml
+    with:
+      upload_url: ${{ matrix.release.uploadUrl }}
+      tag: ${{ matrix.release.tagName }}
+    secrets: inherit
