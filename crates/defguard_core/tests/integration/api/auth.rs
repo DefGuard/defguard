@@ -60,7 +60,7 @@ async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    client.verify_api_events(&[ApiEventType::UserLogin]);
+    client.verify_api_events_with_user(&[(ApiEventType::UserLogin, 2, "hpotter")]);
 
     // store auth cookie for later use
     let auth_cookie = response
@@ -77,7 +77,7 @@ async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    client.verify_api_events(&[ApiEventType::UserLogout]);
+    client.verify_api_events_with_user(&[(ApiEventType::UserLogout, 2, "hpotter")]);
 
     // try reusing auth cookie
     client.set_cookie(&auth_cookie);
@@ -89,7 +89,7 @@ async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     let invalid_auth = Auth::new("hpotter", "invalid");
 
@@ -98,8 +98,12 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
         let response = client.post("/api/v1/auth").json(&invalid_auth).send().await;
         if i == 5 {
             assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+            client.assert_event_queue_is_empty();
         } else {
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+            client.verify_api_events(&[ApiEventType::UserLoginFailed {
+                message: "Authentication for hpotter failed: invalid password".into(),
+            }]);
         }
     }
 }

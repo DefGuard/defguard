@@ -4,6 +4,7 @@ use defguard_core::{
         AddDevice, UserInfo,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
+    events::ApiEventType,
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
 };
 use reqwest::{StatusCode, header::USER_AGENT};
@@ -19,7 +20,7 @@ use super::{
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -32,6 +33,18 @@ async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
     let auth = Auth::new("adumbledore", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    // second user does not exist so we are unable to emit audit log event
+    client.verify_api_events_with_user(&[
+        (ApiEventType::UserLogin, 2, "hpotter"),
+        (
+            ApiEventType::UserLoginFailed {
+                message: "Authentication for hpotter failed: invalid password".into(),
+            },
+            2,
+            "hpotter",
+        ),
+    ]);
 }
 
 #[sqlx::test]
