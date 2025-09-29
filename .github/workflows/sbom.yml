@@ -7,30 +7,37 @@ on:
         description: "Release assets upload URL"
         required: true
         type: string
+      tag:
+        description: "The git tag to generate SBOM for - used in scheduled runs"
+        required: false
+        type: string
 
 jobs:
   create-sbom:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
+      - name: Determine release tag and version
+        id: vars
+        # Uses inputs.tag for scheduled runs, otherwise github.ref_name.
+        run: |
+          TAG_NAME=${{ inputs.tag || github.ref_name }}
+          VERSION=${TAG_NAME#v}
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.vars.outputs.TAG_NAME }}
           submodules: recursive
-
-      # Store the version, stripping any v-prefix
-      - name: Write release version
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo Version: $VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
           format: 'spdx-json'
-          output: "defguard-${{ env.VERSION }}.sbom.json"
+          output: "defguard-${{ steps.vars.outputs.VERSION }}.sbom.json"
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
@@ -38,18 +45,39 @@ jobs:
       - name: Create docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: "ghcr.io/defguard/defguard:${{ env.VERSION }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
           format: 'spdx-json'
-          output: "defguard-${{ env.VERSION }}-docker.sbom.json"
+          output: "defguard-${{ env.steps.vars.outputs.VERSION }}-docker.sbom.json"
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
-      - name: Upload SBOM
+      - name: Create security advisory file with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          format: 'json'
+          output: "defguard-${{ steps.vars.outputs.VERSION }}.advisories.json"
+          scan-ref: '.'
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
+          scanners: "vuln"
+
+      - name: Create docker image security advisory file with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: "ghcr.io/defguard/gateway:${{ steps.vars.outputs.VERSION }}"
+          scan-type: 'image'
+          format: 'json'
+          output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.advisories.json"
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
+          scanners: "vuln"
+
+      - name: Upload SBOMs and advisories
         uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: "defguard-*.sbom.json"
+          asset_path: "defguard-*.json"
           asset_content_type: application/octet-stream
+          overwrite: true
