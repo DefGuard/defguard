@@ -48,7 +48,7 @@ jobs:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
           format: 'spdx-json'
-          output: "defguard-${{ env.steps.vars.outputs.VERSION }}-docker.sbom.json"
+          output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.sbom.json"
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
