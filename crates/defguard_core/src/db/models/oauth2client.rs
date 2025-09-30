@@ -7,7 +7,7 @@ use super::NewOpenIDClient;
 use defguard_common::db::{Id, NoId};
 use defguard_common::random::gen_alphanumeric;
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct OAuth2Client<I = NoId> {
     pub id: I,
     pub client_id: String, // unique

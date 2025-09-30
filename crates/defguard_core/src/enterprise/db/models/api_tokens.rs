@@ -4,7 +4,7 @@ use sqlx::{Error as SqlxError, PgExecutor, query_as};
 
 use defguard_common::db::{Id, NoId};
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 #[table(api_token)]
 pub struct ApiToken<I = NoId> {
     pub id: I,

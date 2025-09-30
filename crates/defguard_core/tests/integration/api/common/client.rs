@@ -2,22 +2,29 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{Router, serve};
 use bytes::Bytes;
-use defguard_core::events::ApiEvent;
+use defguard_common::db::Id;
+use defguard_core::{
+    events::{ApiEvent, ApiEventType},
+    handlers::Auth,
+};
 use reqwest::{
     Body, Client, StatusCode, Url,
     cookie::{Cookie, Jar},
     header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
 };
-use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver, task::JoinHandle};
+use tokio::{
+    net::TcpListener,
+    sync::mpsc::{UnboundedReceiver, error::TryRecvError},
+    task::JoinHandle,
+};
 
 pub struct TestClient {
     client: Client,
     jar: Arc<Jar>,
     port: u16,
-    // Has to live during whole test
-    #[allow(dead_code)]
     api_event_rx: UnboundedReceiver<ApiEvent>,
+    // Has to live during whole test
     api_task_handle: JoinHandle<()>,
 }
 
@@ -63,6 +70,15 @@ impl TestClient {
         let url = Url::parse(&self.base_url()).unwrap();
         self.jar
             .add_cookie_str(&format!("{}={}", cookie.name(), cookie.value()), &url);
+    }
+
+    // Helper to perform API login
+    pub async fn login_user(&mut self, username: &str, password: &str) {
+        let auth = Auth::new(username, password);
+        let response = self.post("/api/v1/auth").json(&auth).send().await;
+        assert_eq!(response.status(), StatusCode::OK);
+
+        self.verify_api_events(&[ApiEventType::UserLogin]);
     }
 
     /// returns the base URL (http://ip:port) for this TestClient
@@ -120,6 +136,101 @@ impl TestClient {
         full_url.push_str(url.as_ref());
         RequestBuilder {
             builder: self.client.delete(full_url),
+        }
+    }
+
+    /// Assert that expected API events have been emitted
+    ///
+    /// `expected_events` should include all events that are currently in the queue
+    /// for the assertions to pass.
+    /// If there are too many or not enough events in the queue this should panic.
+    pub fn verify_api_events(&mut self, expected_events: &[ApiEventType]) {
+        // take all the events from the queue
+        let events = self.drain_all_events();
+
+        // verify number of events
+        assert_eq!(
+            events.len(),
+            expected_events.len(),
+            "Event number different than expected"
+        );
+
+        // compare events in order
+        for (index, (expected_event, (event, _user_id, _username))) in
+            expected_events.iter().zip(events.iter()).enumerate()
+        {
+            assert_eq!(
+                expected_event, event,
+                "Mismatch at index {index}: expected {expected_event:?}, got {event:?}",
+            );
+        }
+    }
+
+    /// A variant of `verify_api_events` which also compares user context
+    ///
+    /// Other parts of event context that would be hard and not that useful to test (timestamp, device) are omitted.
+    pub fn verify_api_events_with_user(&mut self, expected_events: &[(ApiEventType, Id, &str)]) {
+        // take all the events from the queue
+        let events = self.drain_all_events();
+
+        // verify number of events
+        assert_eq!(
+            events.len(),
+            expected_events.len(),
+            "Event number different than expected"
+        );
+
+        // compare events in order
+        for (
+            index,
+            ((expected_event, expected_user_id, expected_username), (event, user_id, username)),
+        ) in expected_events.iter().zip(events.iter()).enumerate()
+        {
+            assert_eq!(
+                expected_event, event,
+                "Event type mismatch at index {index}: expected {expected_event:?}, got {event:?}",
+            );
+            assert_eq!(
+                expected_user_id, user_id,
+                "User ID mismatch at index {index}: expected {expected_user_id:?}, got {user_id:?}",
+            );
+            assert_eq!(
+                expected_username, username,
+                "Username mismatch at index {index}: expected {expected_username:?}, got {username:?}",
+            );
+        }
+    }
+
+    /// Receive all messages currently present in API event queue
+    ///
+    /// Can also be used to clear the queue.
+    pub fn drain_all_events(&mut self) -> Vec<(ApiEventType, Id, String)> {
+        let mut all_events = Vec::new();
+
+        loop {
+            match self.api_event_rx.try_recv() {
+                Ok(msg) => all_events.push((*msg.event, msg.context.user_id, msg.context.username)),
+                Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                    // No more messages available right now
+                    break;
+                }
+                Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                    // Channel is closed
+                    break;
+                }
+            }
+        }
+        all_events
+    }
+
+    /// Assert there are no events queued
+    pub fn assert_event_queue_is_empty(&mut self) {
+        match self.api_event_rx.try_recv() {
+            Err(TryRecvError::Empty) => {
+                // Queue is empty, test passes
+            }
+            Ok(msg) => panic!("Expected empty queue, but got event: {msg:?}"),
+            Err(TryRecvError::Disconnected) => panic!("Channel is disconnected"),
         }
     }
 }

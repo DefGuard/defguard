@@ -4,7 +4,7 @@ use webauthn_rs::prelude::Passkey;
 
 use defguard_common::db::{Id, NoId, models::ModelError};
 
-#[derive(Model, Clone, Debug)]
+#[derive(Model, Clone, Debug, PartialEq)]
 pub struct WebAuthn<I = NoId> {
     pub id: I,
     pub user_id: Id,
