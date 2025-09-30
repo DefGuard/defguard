@@ -161,8 +161,7 @@ impl TestClient {
         {
             assert_eq!(
                 expected_event, event,
-                "Mismatch at index {}: expected {:?}, got {:?}",
-                index, expected_event, event
+                "Mismatch at index {index}: expected {expected_event:?}, got {event:?}",
             );
         }
     }
@@ -189,18 +188,15 @@ impl TestClient {
         {
             assert_eq!(
                 expected_event, event,
-                "Event type mismatch at index {}: expected {:#?}, got {:#?}",
-                index, expected_event, event
+                "Event type mismatch at index {index}: expected {expected_event:?}, got {event:?}",
             );
             assert_eq!(
                 expected_user_id, user_id,
-                "User ID mismatch at index {}: expected {:?}, got {:?}",
-                index, expected_user_id, user_id
+                "User ID mismatch at index {index}: expected {expected_user_id:?}, got {user_id:?}",
             );
             assert_eq!(
                 expected_username, username,
-                "Username mismatch at index {}: expected {:?}, got {:?}",
-                index, expected_username, username
+                "Username mismatch at index {index}: expected {expected_username:?}, got {username:?}",
             );
         }
     }
@@ -233,7 +229,7 @@ impl TestClient {
             Err(TryRecvError::Empty) => {
                 // Queue is empty, test passes
             }
-            Ok(msg) => panic!("Expected empty queue, but got event: {:?}", msg),
+            Ok(msg) => panic!("Expected empty queue, but got event: {msg:?}"),
             Err(TryRecvError::Disconnected) => panic!("Channel is disconnected"),
         }
     }
