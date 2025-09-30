@@ -1,4 +1,6 @@
 name: Periodic SBOM Regeneration
+permissions:
+  contents: read
 
 on:
   schedule:
