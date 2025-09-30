@@ -1,7 +1,7 @@
 use defguard_common::db::Id;
 use defguard_core::{
     db::{
-        AddDevice, User, UserInfo,
+        AddDevice, UserInfo,
         models::{NewOpenIDClient, oauth2client::OAuth2Client},
     },
     events::ApiEventType,
@@ -11,7 +11,7 @@ use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
-use crate::api::common::make_client_with_db;
+use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
 
 use super::{
     TEST_SERVER_URL,
@@ -182,10 +182,7 @@ async fn test_change_password(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    let test_user = User::find_by_username(&pool, "hpotter")
-        .await
-        .unwrap()
-        .unwrap();
+    let test_user = get_db_user(&pool, "hpotter").await;
 
     client.verify_api_events_with_user(&[
         (
@@ -318,10 +315,7 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
     let mut user_details = fetch_user_details(&client, "adumbledore").await;
     assert_eq!(user_details.user.first_name, "Albus");
 
-    let old_test_user = User::find_by_username(&pool, "adumbledore")
-        .await
-        .unwrap()
-        .unwrap();
+    let old_test_user = get_db_user(&pool, "adumbledore").await;
 
     // edit user
     user_details.user.phone = Some("5678".into());
@@ -332,10 +326,7 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let new_test_user = User::find_by_username(&pool, "adumbledore")
-        .await
-        .unwrap()
-        .unwrap();
+    let new_test_user = get_db_user(&pool, "adumbledore").await;
 
     // delete user
     let response = client.delete("/api/v1/user/adumbledore").send().await;
@@ -359,7 +350,7 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
     client.login_user("admin", "pass123").await;
 
@@ -379,6 +370,7 @@ async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
+    let mut expected_events = Vec::new();
     for (i, username) in valid_usernames.into_iter().enumerate() {
         let new_user = AddUserData {
             username: username.into(),
@@ -390,14 +382,19 @@ async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
         };
         let response = client.post("/api/v1/user").json(&new_user).send().await;
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let test_user = get_db_user(&pool, username).await;
+        expected_events.push(ApiEventType::UserAdded { user: test_user })
     }
+
+    client.verify_api_events(&expected_events);
 }
 
 #[sqlx::test]
 async fn test_check_password_strength(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
     // auth session with admin
     client.login_user("admin", "pass123").await;
@@ -440,15 +437,20 @@ async fn test_check_password_strength(_: PgPoolOptions, options: PgConnectOption
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+
+    let test_user = get_db_user(&pool, "strongpass").await;
+
+    client.verify_api_events(&[ApiEventType::UserAdded { user: test_user }]);
 }
 
 #[sqlx::test]
 async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
     client.login_user("admin", "pass123").await;
 
+    // add OpenID app
     let openid_client = NewOpenIDClient {
         name: "Test".into(),
         redirect_uri: vec![TEST_SERVER_URL.into()],
@@ -463,6 +465,13 @@ async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnec
     assert_eq!(response.status(), StatusCode::CREATED);
     let openid_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(openid_client.name, "Test");
+
+    // verify app is not authorized yet
+    let response = client.get("/api/v1/me").send().await;
+    let user_info: UserInfo = response.json().await;
+    assert_eq!(user_info.authorized_apps.len(), 0);
+
+    // authorize app
     let response = client
         .post(format!(
             "/api/v1/oauth/authorize?\
@@ -481,6 +490,10 @@ async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnec
     let response = client.get("/api/v1/me").send().await;
     let mut user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 1);
+
+    let old_test_user = get_db_user(&pool, "admin").await;
+
+    // unregister app
     user_info.authorized_apps = [].into();
     let response = client
         .put("/api/v1/user/admin")
@@ -491,15 +504,27 @@ async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnec
     let response = client.get("/api/v1/me").send().await;
     let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 0);
+
+    let new_test_user = get_db_user(&pool, "admin").await;
+
+    client.verify_api_events(&[
+        ApiEventType::OpenIdAppAdded { app: openid_client },
+        ApiEventType::UserModified {
+            before: old_test_user,
+            after: new_test_user.clone(),
+        },
+    ]);
 }
 
 #[sqlx::test]
 async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_test_client(pool).await;
+    let (mut client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+
+    let mut expected_events = Vec::new();
 
     // log in as admin
     let auth = Auth::new("admin", "pass123");
@@ -510,6 +535,7 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    expected_events.push(ApiEventType::UserLogin);
 
     // first email received is regarding admin login
     let mail = mail_rx.try_recv().unwrap();
@@ -526,6 +552,9 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    expected_events.push(ApiEventType::VpnLocationAdded {
+        location: get_db_location(&state.pool, 1).await,
+    });
 
     // add device for user
     let device_data = AddDevice {
@@ -539,6 +568,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    expected_events.push(ApiEventType::UserDeviceAdded {
+        owner: get_db_user(&state.pool, "hpotter").await,
+        device: get_db_device(&state.pool, 1).await,
+    });
 
     // send email regarding new device being added
     // it does not contain session info
@@ -560,6 +593,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    expected_events.push(ApiEventType::UserDeviceAdded {
+        owner: get_db_user(&state.pool, "admin").await,
+        device: get_db_device(&state.pool, 2).await,
+    });
 
     // send email regarding new device being added
     // it should contain session info
@@ -581,6 +618,7 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    expected_events.push(ApiEventType::UserLogin);
 
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -628,6 +666,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    expected_events.push(ApiEventType::UserDeviceAdded {
+        owner: get_db_user(&state.pool, "hpotter").await,
+        device: get_db_device(&state.pool, 3).await,
+    });
 
     // send email regarding new device being added
     let mail = mail_rx.try_recv().unwrap();
@@ -638,13 +680,15 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
         mail.content
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
+
+    client.verify_api_events(&expected_events);
 }
 
 #[sqlx::test]
 async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
     client.login_user("admin", "pass123").await;
 
@@ -678,6 +722,8 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(user_details.user.first_name, "Albus");
     assert!(user_details.user.is_active);
 
+    let old_test_user = get_db_user(&pool, "adumbledore").await;
+
     // disable user
     user_details.user.is_active = false;
     let response = client
@@ -690,13 +736,25 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
     let user_details = fetch_user_details(&client, "adumbledore").await;
     assert_eq!(user_details.user.first_name, "Albus");
     assert!(!user_details.user.is_active);
+
+    let new_test_user = get_db_user(&pool, "adumbledore").await;
+
+    client.verify_api_events(&[
+        ApiEventType::UserAdded {
+            user: old_test_user.clone(),
+        },
+        ApiEventType::UserModified {
+            before: old_test_user,
+            after: new_test_user.clone(),
+        },
+    ]);
 }
 
 #[sqlx::test]
 async fn test_unique_email(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut client = make_client(pool).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
 
     client.login_user("admin", "pass123").await;
 
@@ -723,4 +781,8 @@ async fn test_unique_email(_: PgPoolOptions, options: PgConnectOptions) {
     };
     let response = client.post("/api/v1/user").json(&new_user).send().await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let test_user = get_db_user(&pool, "adumbledore").await;
+
+    client.verify_api_events(&[ApiEventType::UserAdded { user: test_user }]);
 }

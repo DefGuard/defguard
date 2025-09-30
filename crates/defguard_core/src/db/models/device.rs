@@ -3,7 +3,7 @@ use std::{fmt, net::IpAddr};
 use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Timelike, Utc};
 use defguard_common::{
     csv::AsCsv,
     db::{Id, NoId, models::ModelError},
@@ -532,12 +532,20 @@ impl Device {
         description: Option<String>,
         configured: bool,
     ) -> Self {
+        // FIXME: this is a workaround for reducing timestamp precision
+        // `chrono` has nanosecond precision by default, while Postgres only does microseconds
+        // it avoids issues when comparing to objects fetched from DB
+        let created = Utc::now().naive_utc();
+        let created = created
+            .with_nanosecond((created.nanosecond() / 1_000) * 1_000)
+            .expect("failed to truncate timestamp precision");
+
         Self {
             id: NoId,
             name,
             wireguard_pubkey,
             user_id,
-            created: Utc::now().naive_utc(),
+            created,
             device_type,
             description,
             configured,
