@@ -532,9 +532,9 @@ impl Device {
         description: Option<String>,
         configured: bool,
     ) -> Self {
-        // FIXME: this is a workaround for reducing timestamp precision
-        // `chrono` has nanosecond precision by default, while Postgres only does microseconds
-        // it avoids issues when comparing to objects fetched from DB
+        // FIXME: this is a workaround for reducing timestamp precision.
+        // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
+        // It avoids issues when comparing to objects fetched from DB.
         let created = Utc::now().naive_utc();
         let created = created
             .with_nanosecond((created.nanosecond() / 1_000) * 1_000)
