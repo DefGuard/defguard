@@ -4,6 +4,9 @@ on:
     tags:
       - v*.*.*
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -50,6 +53,12 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
+
+  create-sbom:
+    needs: [create-release, build-docker-release]
+    uses: ./.github/workflows/sbom.yml
+    with:
+      upload_url: ${{ needs.create-release.outputs.upload_url }}
 
   build-binaries:
     needs: [create-release]
