@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
+
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { createUser } from '../utils/controllers/createUser';
+import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForRoute } from '../utils/waitForRoute';
-import { createGroup } from '../utils/controllers/groups';
 import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test groups', () => {
   test.beforeEach(() => dockerRestart());

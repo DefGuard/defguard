@@ -8,14 +8,13 @@ import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
+import { enableSecurityKey } from '../utils/controllers/mfa/enableSecurityKey';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
-import { enableSecurityKey } from '../utils/controllers/mfa/enableSecurityKey';
-import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test user authentication', () => {
   let testUser: User;

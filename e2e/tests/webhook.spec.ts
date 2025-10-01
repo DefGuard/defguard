@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { dockerRestart } from '../utils/docker';
+
 import { defaultUserAdmin, routes } from '../config';
-import { createWebhook } from '../utils/controllers/webhooks';
 import { loginBasic } from '../utils/controllers/login';
+import { createWebhook } from '../utils/controllers/webhooks';
+import { dockerRestart } from '../utils/docker';
 
 test.describe('Test webhooks', () => {
   test.beforeEach(() => {

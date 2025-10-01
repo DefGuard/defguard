@@ -1,5 +1,5 @@
 import { Browser } from 'playwright';
-import { defaultUserAdmin, routes } from '../../../config';
+
 import { User } from '../../../types';
 import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
