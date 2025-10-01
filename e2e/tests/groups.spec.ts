@@ -22,26 +22,24 @@ test.describe('Test groups', () => {
   });
 
   test('Bulk assign groups', async ({ page, browser }) => {
-
-    const additionalUsers = [ 
-      { ...testUserTemplate,mail:'test2@test.com', username: 'test2'}, 
-      { ...testUserTemplate,mail:'test3@test.com', username: 'test3'}
+    const additionalUsers = [
+      { ...testUserTemplate, mail: 'test2@test.com', username: 'test2' },
+      { ...testUserTemplate, mail: 'test3@test.com', username: 'test3' },
     ];
-    const test_group_name = "test_group";
+    const test_group_name = 'test_group';
     await waitForBase(page);
-    const testUser1 = { ...testUserTemplate,mail:'test1@test.com', username: 'test1'};
-    await createUser(browser,testUser1,['Admin']);
+    const testUser1 = { ...testUserTemplate, mail: 'test1@test.com', username: 'test1' };
+    await createUser(browser, testUser1, ['Admin']);
 
-
-    for (const newuser of additionalUsers){
-      await createUser(browser,newuser);
+    for (const newuser of additionalUsers) {
+      await createUser(browser, newuser);
     }
     await createGroup(browser, true, test_group_name);
-    await loginBasic(page,defaultUserAdmin);
+    await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.admin.users, {
-      waitUntil: 'networkidle'
+      waitUntil: 'networkidle',
     });
-  
+
     const userCheckboxes = page.locator('[data-testid^="user-"]').locator('.select-cell');
     const checkboxCount = await page.locator('[data-testid^="user-"]').count();
     for (let i = 0; i < checkboxCount; i++) {
@@ -53,9 +51,13 @@ test.describe('Test groups', () => {
     await page.locator('.select-row').nth(2).click();
     await page.getByTestId('confirm-bulk-assign').click();
     await page.locator('.groups-container').waitFor({ state: 'hidden', timeout: 10000 });
-    const testGroupElements = page.locator(`.groups-cell .group .text-container:has-text("${test_group_name}")`);
+    const testGroupElements = page.locator(
+      `.groups-cell .group .text-container:has-text("${test_group_name}")`,
+    );
 
     // 2(default admin + user with admin group) + additional users
-    await expect(testGroupElements).toHaveCount(2+additionalUsers.length, { timeout: 5000 });
+    await expect(testGroupElements).toHaveCount(2 + additionalUsers.length, {
+      timeout: 5000,
+    });
   });
 });

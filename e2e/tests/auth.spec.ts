@@ -112,23 +112,23 @@ test.describe('Test user authentication', () => {
   });
   test('Disable user MFA and log in', async ({ page, browser }) => {
     await waitForBase(page);
-    await createUser(browser,testUser);
+    await createUser(browser, testUser);
     const { secret } = await enableTOTP(browser, testUser);
-    await loginBasic(page,defaultUserAdmin);
+    await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.admin.users, {
-      waitUntil: 'networkidle'
+      waitUntil: 'networkidle',
     });
     await page.getByTestId('user-2').locator('.user-edit-cell').click();
     await page.getByTestId('disable-mfa-button').click();
     await page.waitForTimeout(800);
     await page.getByRole('button', { name: 'Disable MFA' }).click();
     await page.waitForTimeout(800);
-    await page.goto(routes.base + routes.admin.users+`/${testUser.username}`, {
-      waitUntil: 'networkidle'
+    await page.goto(routes.base + routes.admin.users + `/${testUser.username}`, {
+      waitUntil: 'networkidle',
     });
     await expect(page.locator('.mfa .status .message')).toHaveText('Disabled');
     await logout(page);
-    await loginBasic(page,testUser);
+    await loginBasic(page, testUser);
     await page.waitForTimeout(800);
     await expect(page.locator('.mfa .status .message')).toHaveText('Disabled');
   });

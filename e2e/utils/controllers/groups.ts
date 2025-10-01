@@ -1,13 +1,13 @@
 import { Browser } from 'playwright';
+
+import { defaultUserAdmin, routes } from '../../config';
 import { waitForBase } from '../waitForBase';
 import { loginBasic } from './login';
-import { defaultUserAdmin, routes } from '../../config';
-
 
 export const createGroup = async (
   browser: Browser,
-  is_admin: Boolean,
-  group_name: string
+  is_admin: boolean,
+  group_name: string,
 ): Promise<void> => {
   const context = await browser.newContext();
   const page = await context.newPage();
