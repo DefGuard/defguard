@@ -5,7 +5,7 @@ import { createWebhook } from '../utils/controllers/webhooks';
 import { loginBasic } from '../utils/controllers/login';
 
 test.describe('Test webhooks', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(() => {
     dockerRestart();
   });
   const webhook_url = 'https://defguard.defguard/webhook';

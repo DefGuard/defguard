@@ -263,8 +263,8 @@ export const UserAuthInfoMFA = () => {
             <p>{LL.userPage.userAuthInfo.mfa.labels.webauth()}</p>
             <div className="right">
               <span>{getWebAuthNInfoText}</span>
-              <EditButton>
-                <EditButtonOption
+              <EditButton data-testid="edit-security-key">
+                <EditButtonOption  data-testid="manage-security-keys"
                   text={LL.userPage.userAuthInfo.mfa.editMode.webauth.manage()}
                   onClick={() =>
                     setModalsState({

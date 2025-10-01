@@ -14,6 +14,8 @@ import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
+import { enableSecurityKey } from '../utils/controllers/mfa/enableSecurityKey';
+import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -113,7 +115,7 @@ test.describe('Test user authentication', () => {
   test('Disable user MFA and log in', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
-    const { secret } = await enableTOTP(browser, testUser);
+    await enableTOTP(browser, testUser);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.admin.users, {
       waitUntil: 'networkidle',
@@ -165,5 +167,60 @@ test.describe('Test password change', () => {
     await loginBasic(page, testUser);
     await waitForRoute(page, routes.me);
     expect(page.url()).toBe(routes.base + routes.me);
+  });
+});
+
+test.describe('Test security keys', () => {
+  let testUser: User;
+
+  test.beforeEach(() => {
+    dockerRestart();
+    testUser = { ...testUserTemplate, username: 'test' };
+  });
+
+  test('Login with security key', async ({ page, browser, context }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    const { credentialId, rpId, privateKey, userHandle } = await enableSecurityKey(
+      browser,
+      testUser,
+      'key_name',
+    );
+    await page.goto(routes.base);
+    await waitForRoute(page, routes.auth.login);
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
+    await page.getByTestId('login-form-submit').click();
+    await page.waitForTimeout(1000);
+
+    const authenticator = await context.newCDPSession(page);
+    await authenticator.send('WebAuthn.enable');
+    const { authenticatorId: loginAuthenticatorId } = await authenticator.send(
+      'WebAuthn.addVirtualAuthenticator',
+      {
+        options: {
+          protocol: 'ctap2',
+          transport: 'usb',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+        },
+      },
+    );
+
+    await authenticator.send('WebAuthn.addCredential', {
+      authenticatorId: loginAuthenticatorId,
+      credential: {
+        credentialId,
+        isResidentCredential: true,
+        rpId,
+        privateKey,
+        userHandle,
+        signCount: 1,
+      },
+    });
+    await page.getByTestId('use-security-key').click();
+    await page.waitForTimeout(2000);
+    await expect(page.url()).toBe(routes.base + routes.me);
   });
 });

@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic } from '../utils/controllers/login';
