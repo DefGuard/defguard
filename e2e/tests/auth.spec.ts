@@ -223,9 +223,6 @@ test.describe('Test security keys', () => {
     await expect(page.url()).toBe(routes.base + routes.me);
   });
 
-
-
-
   test('Add security key to admin and log in', async ({ page, browser, context }) => {
     await waitForBase(page);
     const { credentialId, rpId, privateKey, userHandle } = await enableSecurityKey(
