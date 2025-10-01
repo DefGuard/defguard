@@ -48,6 +48,7 @@ export const GroupsManagement = () => {
           icon={<SvgIconPlus />}
           text="Add new"
           onClick={() => openGroupModal()}
+          data-testid="add-group"
         />
       </div>
       {data && <GroupsList groups={data} search={search} />}

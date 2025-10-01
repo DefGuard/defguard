@@ -44,6 +44,8 @@ export const routes = {
     overview: '/admin/overview',
     settings: '/admin/settings',
     devices: '/admin/devices',
+    groups: '/admin/groups',
+    webhooks: '/admin/webhooks'
   },
   authorize: '/api/v1/oauth/authorize',
 };

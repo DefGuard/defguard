@@ -210,6 +210,7 @@ const ModalContent = () => {
           text={localLL.submit()}
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"
+          data-testid="submit-group"
         />
       </div>
     </form>

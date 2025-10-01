@@ -100,6 +100,7 @@ export const VersionUpdateToast = ({ id }: ToastOptions) => {
           {LL.modals.updatesNotificationToaster.controls.more()}
         </button>
         <button
+          data-testid="dismiss-version-button"
           onClick={() => {
             handleDismiss();
           }}
