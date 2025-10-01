@@ -43,6 +43,7 @@ jobs:
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
+          skip-dirs: "e2e"
 
       - name: Create docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
@@ -63,6 +64,7 @@ jobs:
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
+          skip-dirs: "e2e"
 
       - name: Create docker image security advisory file with Trivy
         uses: aquasecurity/trivy-action@0.33.1
