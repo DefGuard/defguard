@@ -1,6 +1,6 @@
 name: Periodic SBOM Regeneration
 permissions:
-  contents: read
+  contents: write
 
 on:
   schedule:
