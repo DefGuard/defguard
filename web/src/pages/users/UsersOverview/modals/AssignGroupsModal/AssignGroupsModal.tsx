@@ -156,6 +156,7 @@ const ModalContent = () => {
           disabled={selected.length === 0}
           loading={isPending}
           onClick={() => handleSubmit()}
+          data-testid="confirm-bulk-assign"
         />
       </div>
     </>

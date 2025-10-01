@@ -111,6 +111,7 @@ export const RegisterWebAuthNForm = () => {
           onClick={() => setModalState({ manageWebAuthNKeysModal: { visible: false } })}
         />
         <Button
+          data-testid="add-new-security-key"
           type="submit"
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}

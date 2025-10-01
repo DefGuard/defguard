@@ -8,6 +8,7 @@ import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
+import { enableSecurityKey } from '../utils/controllers/mfa/enableSecurityKey';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
 import { disableUser } from '../utils/controllers/toggleUserState';
@@ -30,7 +31,7 @@ test.describe('Test user authentication', () => {
     expect(page.url()).toBe(routes.base + routes.admin.wizard);
   });
 
-  test('Create user and login as him', async ({ page, browser }) => {
+  test('Create user and log in as him', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
@@ -38,7 +39,7 @@ test.describe('Test user authentication', () => {
     expect(page.url()).toBe(routes.base + routes.me);
   });
 
-  test('Login with admin user TOTP', async ({ page, browser }) => {
+  test('Log in with admin user TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     const { secret } = await enableTOTP(browser, defaultUserAdmin);
@@ -48,7 +49,7 @@ test.describe('Test user authentication', () => {
     await waitForRoute(page, routes.admin.wizard);
   });
 
-  test('Login with user TOTP', async ({ page, browser }) => {
+  test('Log in with user TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableTOTP(browser, testUser);
@@ -69,7 +70,7 @@ test.describe('Test user authentication', () => {
     expect(page.url()).toBe(routes.base + routes.me);
   });
 
-  test('Login with Email TOTP', async ({ page, browser }) => {
+  test('Log in with Email TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
@@ -84,7 +85,7 @@ test.describe('Test user authentication', () => {
     await waitForRoute(page, routes.me);
   });
 
-  test('Login as disabled user', async ({ page, browser }) => {
+  test('Log in as disabled user', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await disableUser(browser, testUser);
@@ -109,6 +110,28 @@ test.describe('Test user authentication', () => {
     const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
     await page.locator('a[href="/me"]').click();
     await responsePromise;
+  });
+  test('Disable user MFA and log in', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    await enableTOTP(browser, testUser);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.admin.users, {
+      waitUntil: 'networkidle',
+    });
+    await page.getByTestId('user-2').locator('.user-edit-cell').click();
+    await page.getByTestId('disable-mfa-button').click();
+    await page.waitForTimeout(800);
+    await page.getByRole('button', { name: 'Disable MFA' }).click();
+    await page.waitForTimeout(800);
+    await page.goto(routes.base + routes.admin.users + `/${testUser.username}`, {
+      waitUntil: 'networkidle',
+    });
+    await expect(page.locator('.mfa .status .message')).toHaveText('Disabled');
+    await logout(page);
+    await loginBasic(page, testUser);
+    await page.waitForTimeout(800);
+    await expect(page.locator('.mfa .status .message')).toHaveText('Disabled');
   });
 });
 
@@ -143,5 +166,105 @@ test.describe('Test password change', () => {
     await loginBasic(page, testUser);
     await waitForRoute(page, routes.me);
     expect(page.url()).toBe(routes.base + routes.me);
+  });
+});
+
+test.describe('Test security keys', () => {
+  let testUser: User;
+
+  test.beforeEach(() => {
+    dockerRestart();
+    testUser = { ...testUserTemplate, username: 'test' };
+  });
+
+  test('Create user and log in with security key', async ({ page, browser, context }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    const { credentialId, rpId, privateKey, userHandle } = await enableSecurityKey(
+      browser,
+      testUser,
+      'key_name',
+    );
+    await page.goto(routes.base);
+    await waitForRoute(page, routes.auth.login);
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
+    await page.getByTestId('login-form-submit').click();
+    await page.waitForTimeout(1000);
+
+    const authenticator = await context.newCDPSession(page);
+    await authenticator.send('WebAuthn.enable');
+    const { authenticatorId: loginAuthenticatorId } = await authenticator.send(
+      'WebAuthn.addVirtualAuthenticator',
+      {
+        options: {
+          protocol: 'ctap2',
+          transport: 'usb',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+        },
+      },
+    );
+
+    await authenticator.send('WebAuthn.addCredential', {
+      authenticatorId: loginAuthenticatorId,
+      credential: {
+        credentialId,
+        isResidentCredential: true,
+        rpId,
+        privateKey,
+        userHandle,
+        signCount: 1,
+      },
+    });
+    await page.getByTestId('use-security-key').click();
+    await page.waitForTimeout(2000);
+    await expect(page.url()).toBe(routes.base + routes.me);
+  });
+
+  test('Add security key to admin and log in', async ({ page, browser, context }) => {
+    await waitForBase(page);
+    const { credentialId, rpId, privateKey, userHandle } = await enableSecurityKey(
+      browser,
+      defaultUserAdmin,
+      'key_name',
+    );
+    await page.goto(routes.base);
+    await waitForRoute(page, routes.auth.login);
+    await page.getByTestId('login-form-username').fill(defaultUserAdmin.username);
+    await page.getByTestId('login-form-password').fill(defaultUserAdmin.password);
+    await page.getByTestId('login-form-submit').click();
+    await page.waitForTimeout(1000);
+
+    const authenticator = await context.newCDPSession(page);
+    await authenticator.send('WebAuthn.enable');
+    const { authenticatorId: loginAuthenticatorId } = await authenticator.send(
+      'WebAuthn.addVirtualAuthenticator',
+      {
+        options: {
+          protocol: 'ctap2',
+          transport: 'usb',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+        },
+      },
+    );
+
+    await authenticator.send('WebAuthn.addCredential', {
+      authenticatorId: loginAuthenticatorId,
+      credential: {
+        credentialId,
+        isResidentCredential: true,
+        rpId,
+        privateKey,
+        userHandle,
+        signCount: 1,
+      },
+    });
+    await page.getByTestId('use-security-key').click();
+    await page.waitForTimeout(2000);
+    await expect(page.url()).toBe(routes.base + routes.admin.wizard);
   });
 });
