@@ -103,6 +103,13 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
     // ensure normal users can't manage devices
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -136,6 +143,14 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     });
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // start desktop enrollment
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
@@ -218,6 +233,13 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[sqlx::test]
