@@ -12,7 +12,10 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use super::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
-async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_only_enterprise_can_modify_enterpise_settings(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
 
     // admin login
@@ -29,7 +32,7 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
 
     // try to patch enterprise settings
     let settings = EnterpriseSettings {
-        admin_device_management: true,
+        admin_device_management: false,
         disable_all_traffic: false,
         only_client_activation: false,
     };
@@ -40,7 +43,7 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
 
-    // server should say nono
+    // server should say no
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // restore valid license and try again
