@@ -23,7 +23,8 @@ use crate::{
         },
     },
     enterprise::{
-        db::models::{api_tokens::ApiToken, enterprise_settings::EnterpriseSettings},
+        db::models::api_tokens::ApiToken,
+        handlers::CanManageDevices,
         ldap::utils::{
             ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
             ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
@@ -497,6 +498,7 @@ pub async fn start_enrollment(
     )
 )]
 pub async fn start_remote_desktop_configuration(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
@@ -507,13 +509,6 @@ pub async fn start_remote_desktop_configuration(
         "User {} has started a new desktop activation for {username}.",
         session.user.username
     );
-
-    let settings = EnterpriseSettings::get(&appstate.pool).await?;
-    if settings.admin_device_management && !session.is_admin {
-        return Err(WebError::Forbidden(
-            "Only admin users can manage devices".into(),
-        ));
-    }
 
     debug!(
         "Verify that the user from the current session is an admin or only peforms desktop activation for self."
