@@ -12,7 +12,10 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use super::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
-async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_only_enterprise_can_modify_enterpise_settings(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
 
     // admin login
@@ -29,7 +32,7 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
 
     // try to patch enterprise settings
     let settings = EnterpriseSettings {
-        admin_device_management: true,
+        admin_device_management: false,
         disable_all_traffic: false,
         only_client_activation: false,
     };
@@ -40,7 +43,7 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
 
-    // server should say nono
+    // server should say no
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // restore valid license and try again
@@ -100,6 +103,13 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
     // ensure normal users can't manage devices
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -133,6 +143,14 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     });
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // start desktop enrollment
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
@@ -215,6 +233,13 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[sqlx::test]
