@@ -7,8 +7,6 @@ import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
 import { logout } from './logout';
 
-export const password = 'TestEnrollment1234!!';
-
 type EnrollmentResponse = {
   user: User;
   token: string;
@@ -45,6 +43,9 @@ export const createUserEnrollment = async (
   const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token
   const tokenP = tokenDiv.locator('p.display-element');
   const token = await tokenP.textContent();
+  if (typeof token !== 'string') {
+    throw Error('Enrollment token not found');
+  }
   expect(token.length).toBeGreaterThan(0);
   // close modal
   await modalElement.locator('.controls button.cancel').click();
@@ -55,40 +56,78 @@ export const createUserEnrollment = async (
   return { user, token };
 };
 
-export const selectEnrollment = async (page: Page) => {
-  const selectButton = page.getByTestId('select-enrollment');
-  selectButton.click();
+const startEnrollment = async (page: Page) => {
+  const enrollmentLink = page.getByTestId('start-enrollment');
+  await enrollmentLink.click();
+  await page.waitForURL('**/enrollment-start', {
+    waitUntil: 'networkidle',
+  });
 };
 
-export const setToken = async (token: string, page: Page) => {
-  const formElement = page.getByTestId('enrollment-token-form');
-  await formElement.getByTestId('field-token').fill(token);
-  await page.getByTestId('enrollment-token-submit-button').click();
+const startPasswordReset = async (page: Page) => {
+  const passwordLink = page.getByTestId('start-password-reset');
+  await passwordLink.click();
+  await page.waitForURL('**/password', {
+    waitUntil: 'networkidle',
+  });
 };
 
-export const validateData = async (user: User, page: Page) => {
-  const formElement = page
-    .locator('#enrollment-data-verification-card')
-    .getByTestId('enrollment-data-verification')
-    .locator('.row');
-  const firstName = await formElement.locator('p').nth(0).textContent();
-  const lastName = await formElement.locator('p').nth(1).textContent();
-  const mail = await formElement.locator('p').nth(2).textContent();
-  const phone = await formElement.getByTestId('field-phone').inputValue();
-  expect(firstName).toBe(user.firstName);
-  expect(lastName).toBe(user.lastName);
-  expect(mail).toBe(user.mail);
-  expect(phone).toBe(user.phone);
+const fillPasswordResetStartForm = async (email: string, page: Page) => {
+  const emailField = page.getByTestId('field-email');
+  await emailField.waitFor({
+    state: 'visible',
+  });
+  await emailField.pressSequentially(email);
 };
 
-export const setPassword = async (page: Page) => {
-  const formElement = page.getByTestId('enrollment-password-form');
-  await formElement.getByTestId('field-password').fill(password);
-  await formElement.getByTestId('field-repeat').fill(password);
+const fillPasswordResetForm = async (
+  {
+    password,
+    repeat,
+  }: {
+    password: string;
+    repeat: string;
+  },
+  page: Page,
+) => {
+  const passwordElement = page.getByTestId('field-password');
+  const repeatElement = page.getByTestId('field-repeat');
+  await passwordElement.waitFor({
+    state: 'visible',
+  });
+  await passwordElement.pressSequentially(password);
+  await repeatElement.pressSequentially(repeat);
 };
 
-export const createDevice = async (page: Page) => {
-  const formElement = page.getByTestId('enrollment-device-form');
-  await formElement.getByTestId('field-name').fill('test');
-  await formElement.locator('button[type="submit"]').click();
+const confirmClientDownloadModal = async (page: Page) => {
+  await page.getByTestId('modal-confirm-download-submit').click();
 };
+
+const navNext = async (page: Page) => {
+  await page.getByTestId('page-nav-next').click();
+};
+
+const navBack = async (page: Page) => {
+  await page.getByTestId('page-nav-back').click();
+};
+
+const fillTokenForm = async (token: string, page: Page) => {
+  const tokenField = page.getByTestId('field-token');
+  await tokenField.waitFor({
+    state: 'visible',
+  });
+  await tokenField.pressSequentially(token);
+};
+
+const enrollmentController = {
+  startEnrollment,
+  startPasswordReset,
+  fillPasswordResetForm,
+  fillPasswordResetStartForm,
+  fillTokenForm,
+  confirmClientDownloadModal,
+  navBack,
+  navNext,
+};
+
+export default enrollmentController;

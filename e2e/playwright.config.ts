@@ -1,4 +1,4 @@
-import { defineConfig, devices, ReporterDescription } from '@playwright/test';
+import { defineConfig, devices, FullConfig, ReporterDescription } from '@playwright/test';
 
 import { routes, testsConfig } from './config';
 import { loadEnv } from './utils/loadEnv';
@@ -49,7 +49,8 @@ export default defineConfig({
       permissions: ['clipboard-read', 'clipboard-write'],
     },
   },
-
+  globalTeardown: require.resolve('./utils/teardown'),
+  globalSetup: require.resolve('./utils/setup'),
   /* Configure projects for major browsers */
   projects: [
     {
