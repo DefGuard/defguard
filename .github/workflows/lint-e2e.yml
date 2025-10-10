@@ -24,7 +24,7 @@ jobs:
           node-version-file: "./e2e/.nvmrc"
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.18
           run_install: false
       - name: install deps
         working-directory: ./e2e
