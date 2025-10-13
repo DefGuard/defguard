@@ -43,7 +43,7 @@ test.describe('Reset password', () => {
     );
 
     const resetPromise = page.waitForResponse((response) =>
-      response.url().endsWith('/finish'),
+      response.url().endsWith('/reset'),
     );
     await page.getByTestId('form-submit').click();
 
