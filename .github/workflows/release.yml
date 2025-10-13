@@ -122,7 +122,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.18
+          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
+          version: 10.17
 
       - name: Use Node.js 24
         uses: actions/setup-node@v4
