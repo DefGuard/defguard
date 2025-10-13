@@ -8,7 +8,6 @@ import { dockerCompose } from './docker';
 const teardownFunction = async (_: FullConfig) => {
   const command = `${dockerCompose} down`;
   execSync(command);
-  console.log('Compose DOWN');
 };
 
 export default teardownFunction;

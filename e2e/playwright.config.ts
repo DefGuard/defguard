@@ -25,7 +25,7 @@ if (process.env.SHOW_REPORT) {
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  timeout: testsConfig.TEST_TIMEOUT * 1000,
+  timeout: process.env.CI ? testsConfig.TEST_TIMEOUT * 1000 : 180_000,
   testDir: './tests',
   /* Run tests in files in parallel */
   fullyParallel: false,

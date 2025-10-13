@@ -133,9 +133,7 @@ test.describe('Network devices', () => {
     expect(tokenMatch).not.toBeNull();
     expect(urlMatch?.length).toBeGreaterThan(0);
     expect(tokenMatch?.length).toBeGreaterThan(0);
-    const url = urlMatch?.pop() as string;
     const token = tokenMatch?.pop() as string;
-    console.log('URL:', url, 'Token:', token);
     const res = await request.post(`http://localhost:8080/api/v1/enrollment/start`, {
       data: {
         token,
