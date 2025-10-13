@@ -31,6 +31,12 @@ services:
       POSTGRES_PASSWORD: defguard
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defguard -d defguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   proxy:
     image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
