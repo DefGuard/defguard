@@ -1,0 +1,9 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "misc_or": "or",
+  "misc_and": "and",
+  "misc_for": "for",
+  "controls_submit": "Submit",
+  "controls_cancel": "Cancel",
+  "controls_save": "Save"
+}

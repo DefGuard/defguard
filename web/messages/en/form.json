@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "form_error_min_len": "Minimum length of {length}",
+  "form_error_email": "Enter valid email",
+  "form_error_required": "Field is required",
+  "form_error_token": "Token is not valid",
+  "password_form_check_title": "Your password must include:",
+  "password_form_check_number": "At least one number required",
+  "password_form_check_special": "At least one special character",
+  "password_form_check_lowercase": "At least one lowercase character",
+  "password_form_check_uppercase": "At least one uppercase character",
+  "password_form_check_minimum": "Minimum length of 8",
+  "password_form_check_repeat_match": "Password's doesn't match",
+  "password_form_special_error": "Password doesn't meet the requirements. Please check the list below."
+}
