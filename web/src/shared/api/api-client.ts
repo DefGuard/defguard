@@ -124,12 +124,13 @@ type HelperOpts = { invalidateKeys?: QueryKey[] };
 export function get<Res = unknown, Params = void>(
   url: string,
   opts?: HelperOpts,
-): RequestHandle<(props: GetDeleteProps<Params, never>) => Promise<ApiResponse<Res>>>;
+): RequestHandle<(props?: GetDeleteProps<Params, never>) => Promise<ApiResponse<Res>>>;
+
 export function get<Res = unknown, Params = void, P = unknown>(
   url: (path: P) => string,
   opts?: HelperOpts,
 ): RequestHandle<(props: GetDeleteProps<Params, P>) => Promise<ApiResponse<Res>>>;
-// implementation signature must be compatible with both overloads:
+
 export function get(url: UrlLike<unknown>, opts?: HelperOpts) {
   return createRequest({
     method: RequestMethod.Get,
@@ -141,11 +142,13 @@ export function get(url: UrlLike<unknown>, opts?: HelperOpts) {
 export function del<Res = unknown, Params = void>(
   url: string,
   opts?: HelperOpts,
-): RequestHandle<(props: GetDeleteProps<Params, never>) => Promise<ApiResponse<Res>>>;
+): RequestHandle<(props?: GetDeleteProps<Params, never>) => Promise<ApiResponse<Res>>>;
+
 export function del<Res = unknown, Params = void, P = unknown>(
   url: (path: P) => string,
   opts?: HelperOpts,
 ): RequestHandle<(props: GetDeleteProps<Params, P>) => Promise<ApiResponse<Res>>>;
+
 export function del(url: UrlLike<unknown>, opts?: HelperOpts) {
   return createRequest({
     method: RequestMethod.Delete,
