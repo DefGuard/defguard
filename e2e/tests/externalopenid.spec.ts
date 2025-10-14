@@ -54,7 +54,7 @@ test.describe('External OIDC.', () => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);
-    const oidcLoginButton = await page.getByTestId('login-oidc');
+    const oidcLoginButton = page.getByTestId('login-oidc');
     expect(oidcLoginButton).not.toBeNull();
     expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
     await oidcLoginButton.click();
@@ -74,8 +74,11 @@ test.describe('External OIDC.', () => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
-    await page.getByTestId('select-enrollment').click();
-    await page.getByTestId('login-oidc').click();
+    await page.getByTestId('start-enrollment').click();
+    const oidcLoginButton = page.locator('button.oidc-button');
+    expect(oidcLoginButton).not.toBeNull();
+    expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
+    await oidcLoginButton.click();
     await page.getByTestId('login-form-username').fill(testUser.username);
     await page.getByTestId('login-form-password').fill(testUser.password);
     await page.getByTestId('login-form-submit').click();
