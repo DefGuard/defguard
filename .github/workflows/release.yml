@@ -83,7 +83,7 @@ jobs:
       contents: write # needed to upload release assets
 
     steps:
-      # # Store the version, stripping any v-prefix
+      # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
           VERSION=${GITHUB_REF_NAME#v}
