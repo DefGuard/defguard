@@ -1,3 +1,7 @@
+ <p align="center">
+    <img src="docs/header.png" alt="defguard">
+ </p>
+
 <div align="center">
  <p align="center">
   Defguard is an enterprise-grade open-source VPN solution built with the highest security standards in mind. It provides the world’s only multi-factor authentication (MFA) for WireGuard VPN connections, using either its built-in SSO (with TOTP, biometrics, etc.) or external SSO providers such as Google, Microsoft, Active Directory/LDAP, Okta, JumpCloud or any other OpenID Connect Provider.
@@ -210,12 +214,6 @@ All release assets (binaries, packages, etc.) include SHA256 checksums that are 
    # Linux/macOS
    echo known_sha256_checksum_of_the_file path/to/file | sha256sum --check
    ```
-
-# Built and sponsored by
-
-<p align="center">
-      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="built by teonite" /></a>
-</p>
 
 # Legal
 
