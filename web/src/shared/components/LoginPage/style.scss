@@ -58,6 +58,9 @@
     & > main {
       grid-column: 3 / 8;
       width: 100%;
+      display: flex;
+      flex-flow: column;
+      flex: none;
 
       h1 {
         font: var(--t-title-h4);
@@ -69,6 +72,40 @@
         font: var(--t-body-primary-400);
         color: var(--fg-muted);
       }
+
+      footer {
+        margin-top: auto;
+
+        p {
+          font: var(--t-body-xxs-400);
+          color: var(--fg-muted);
+        }
+
+        a {
+          text-decoration: none;
+          color: var(--fg-action);
+          cursor: pointer;
+        }
+      }
     }
   }
+}
+
+#login-page .login-logo {
+  path {
+    &:nth-child(1) {
+      fill: var(--bg-inverted);
+    }
+
+    &:nth-child(2) {
+      fill: var(--bg-action);
+    }
+  }
+}
+
+#login-page main form {
+  display: flex;
+  flex-flow: column;
+  flex: none;
+  row-gap: var(--spacing-2xl);
 }

@@ -30,7 +30,7 @@ export default defineConfig({
   plugins: [
     paraglideVitePlugin({
       project: './project.inlang',
-      outdir: './src/paraglide',
+      outdir: './src/paraglide', 
       strategy: ['localStorage', 'preferredLanguage', 'baseLocale'],
     }),
     tanstackRouter({

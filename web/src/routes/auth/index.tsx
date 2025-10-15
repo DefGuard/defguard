@@ -1,10 +1,11 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../../shared/hooks/useAuth';
 
 export const Route = createFileRoute('/auth/')({
   beforeLoad: () => {
     const authState = useAuth.getState();
-    if (authState.isAuth && authState.user) {
+    if (isPresent(authState.user)) {
       throw redirect({
         to: '/user/$username',
         params: {

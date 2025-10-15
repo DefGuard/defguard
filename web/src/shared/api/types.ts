@@ -30,3 +30,22 @@ export interface User {
   phone?: string;
   authorized_apps?: OAuth2AuthorizedApps[];
 }
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginMfaResponse {
+  mfa_method: UserMfaMethodValue;
+  totp_available: boolean;
+  webauthn_available: boolean;
+  email_available: boolean;
+}
+
+export interface LoginResponseBasic {
+  url?: string;
+  user?: User;
+}
+
+export type LoginResponse = LoginResponseBasic | LoginMfaResponse;

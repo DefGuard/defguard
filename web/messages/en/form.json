@@ -11,5 +11,7 @@
   "password_form_check_uppercase": "At least one uppercase character",
   "password_form_check_minimum": "Minimum length of 8",
   "password_form_check_repeat_match": "Password's doesn't match",
-  "password_form_special_error": "Password doesn't meet the requirements. Please check the list below."
+  "password_form_special_error": "Password doesn't meet the requirements. Please check the list below.",
+  "form_label_username": "Username",
+  "form_label_password": "Password"
 }

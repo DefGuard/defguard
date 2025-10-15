@@ -1,9 +1,12 @@
-import { get } from './api-client';
-import type { User } from './types';
+import { get, post } from './api-client';
+import type { LoginRequest, LoginResponse, User } from './types';
 
 const api = {
   user: {
     getMe: get<User>('/me'),
+  },
+  auth: {
+    login: post<LoginRequest, LoginResponse>('/auth'),
   },
 } as const;
 
