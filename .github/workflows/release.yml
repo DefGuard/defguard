@@ -264,13 +264,17 @@ jobs:
           sudo apt update -y
           sudo apt install -y awscli curl jq
 
-          #For trixie
-          aws s3 cp s3://apt.defguard.net/dists/trixie/Release .
-          curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
-          -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
-          -F "file=@Release" \
-          -o response.json
-          cat response.json | jq -r '.files["Release.gpg"].content' | base64 --decode > Release.gpg
-          cat response.json | jq -r '.files.Release.content' | base64 --decode > InRelease
-          aws s3 cp Release.gpg s3://apt.defguard.net/dists/trixie/ --acl public-read
-          aws s3 cp InRelease s3://apt.defguard.net/dists/trixie/ --acl public-read
+          for DIST in trixie; do
+            aws s3 cp s3://apt.defguard.net/dists/{$DIST}/Release .
+            
+            curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
+              -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
+              -F "file=@Release" \
+              -o response.json
+            
+            cat response.json | jq -r '.files["Release.gpg"].content' | base64 --decode > Release.gpg
+            cat response.json | jq -r '.files.Release.content' | base64 --decode > InRelease
+            
+            aws s3 cp Release.gpg s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+            aws s3 cp InRelease s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+          done
