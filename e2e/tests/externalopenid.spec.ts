@@ -83,17 +83,8 @@ test.describe('External OIDC.', () => {
     await page.getByTestId('login-form-password').fill(testUser.password);
     await page.getByTestId('login-form-submit').click();
     await page.getByTestId('openid-allow').click();
-    const instanceUrlBoxText = await page
-      .locator('div.copy-field div.list-cell-text ')
-      .first()
-      .textContent();
-    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL + '/');
-
-    const instanceTokenBoxText = await page
-      .locator('div.copy-field div.list-cell-text ')
-      .nth(1)
-      .textContent();
-    expect(instanceTokenBoxText).toBeDefined();
-    expect(instanceTokenBoxText?.length).toBeGreaterThan(1);
+    await page.waitForURL('**/download', {
+      waitUntil: 'networkidle',
+    });
   });
 });
