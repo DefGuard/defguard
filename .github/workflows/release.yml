@@ -265,7 +265,7 @@ jobs:
           sudo apt install -y awscli curl jq
 
           for DIST in trixie; do
-            aws s3 cp s3://apt.defguard.net/dists/{$DIST}/Release .
+            aws s3 cp s3://apt.defguard.net/dists/${DIST}/Release .
             
             curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
               -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
