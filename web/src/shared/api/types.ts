@@ -20,6 +20,7 @@ export interface User {
   last_name: string;
   mfa_method: UserMfaMethodValue;
   mfa_enabled: boolean;
+  totp_enabled: boolean;
   email_mfa_enabled: boolean;
   email: string;
   groups: string[];
@@ -49,3 +50,44 @@ export interface LoginResponseBasic {
 }
 
 export type LoginResponse = LoginResponseBasic | LoginMfaResponse;
+
+export interface DeviceNetworkInfo {
+  device_wireguard_ips: string[];
+  is_active: boolean;
+  network_gateway_ip: string;
+  network_id: number;
+  network_name: string;
+  last_connected_at?: string;
+  last_connected_ip?: string;
+}
+
+export interface Device {
+  id: number;
+  user_id: number;
+  name: string;
+  wireguard_pubkey: string;
+  created: string;
+  networks: DeviceNetworkInfo[];
+}
+
+export interface SecurityKey {
+  id: number;
+  name: string;
+}
+
+export type UserProfileResponse = {
+  user: User;
+  devices: Device[];
+  security_keys: SecurityKey[];
+  biometric_enabled_devices: number[];
+};
+
+export interface UserDevice extends Device {
+  biometry_enabled: boolean;
+}
+
+export interface UserProfile {
+  user: User;
+  devices: UserDevice[];
+  security_keys: SecurityKey[];
+}

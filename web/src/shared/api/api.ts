@@ -1,12 +1,12 @@
-import { get, post } from './api-client';
-import type { LoginRequest, LoginResponse, User } from './types';
+import { client } from './api-client';
+import type { User, UserProfileResponse } from './types';
 
 const api = {
   user: {
-    getMe: get<User>('/me'),
-  },
-  auth: {
-    login: post<LoginRequest, LoginResponse>('/auth'),
+    getMe: client.get<User>('/me'),
+    getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
+    editUser: (data: { username: string; body: User }) =>
+      client.put(`/user/${data.username}`, data.body),
   },
 } as const;
 

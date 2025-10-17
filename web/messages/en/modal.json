@@ -1,0 +1,20 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "modal_change_password_title": "Change password",
+  "modal_change_password_submit": "Change password",
+  "modal_delete_authorized_app_title": "Delete authorized app",
+  "modal_delete_authorized_app_content_1": "Are you sure you want to remove this application? If you do, you won't be able to use it to log in with defguard anymore.",
+  "modal_delete_authorized_app_content_2": "Please note: until you log out from this application, it will remain signed in with DefGuard.",
+  "modal_mfa_enable_email_title": "Email MFA setup",
+  "modal_mfa_enable_email_verification": "Email verification",
+  "modal_mfa_enable_email_content": "To setup your MFA enter the code that was sent to your account email: {email}",
+  "modal_mfa_enable_email_resend": "Resend email",
+  "modal_mfa_enable_totp_title": "Authentication App Setup",
+  "modal_mfa_enable_totp_step_1_title": "Authentication App Setup",
+  "modal_mfa_enable_totp_step_1_content": "Authentication App Setup",
+  "modal_mfa_enable_totp_qr_problem": "Can't scan QR code?  Enter code manually in the app.",
+  "modal_mfa_enable_totp_step_2_title": "Enter 6-digit code from authentication app",
+  "modal_recovery_codes_download_title": "Download recovery codes",
+  "modal_recovery_codes_download_cta_download": "Download codes",
+  "modal_recovery_codes_download_confirm": "I have saved my codes"
+}

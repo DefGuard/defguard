@@ -6,5 +6,18 @@
   "controls_submit": "Submit",
   "controls_cancel": "Cancel",
   "controls_save": "Save",
-  "controls_sign_in": "Sign in"
+  "controls_save_changes": "Save changes",
+  "controls_sign_in": "Sign in",
+  "controls_enable": "Enable",
+  "controls_disable": "Disable",
+  "controls_next": "Next",
+  "controls_continue": "Continue",
+  "controls_verify_code": "Verify code",
+  "controls_complete": "Complete",
+  "state_disabled": "Disabled",
+  "state_warning": "Warning",
+  "state_active": "Active",
+  "state_default": "Default",
+  "state_enabled": "Enabled",
+  "state_step": "Step {step}"
 }

@@ -1,0 +1,48 @@
+#profile-auth-card {
+  & > .divider {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .section {
+    & > p {
+      font: var(--t-body-primary-500);
+      color: var(--fg-neutral);
+      padding-bottom: var(--spacing-lg);
+    }
+
+    & > .divider {
+      padding: var(--spacing-lg) 0;
+    }
+  }
+}
+
+#profile-auth-card .factor-row {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+
+  & > p {
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-lg);
+  }
+
+  .badges {
+    display: flex;
+    flex-flow: row;
+    flex: none;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+  }
+
+  .controls {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+    margin-left: auto;
+  }
+}

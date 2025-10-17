@@ -20,9 +20,14 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
         replace: true,
       });
     }
-
     if (!isLoading && response) {
       setUser(response.data);
+      navigate({
+        to: '/user/$username',
+        params: {
+          username: response.data.username,
+        },
+      });
     }
   }, [authMatch, isError, isLoading, navigate, response, setUser]);
 

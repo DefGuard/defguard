@@ -25,3 +25,5 @@ project.inlang/cache
 *.sln
 *.sw?
 .tanstack
+.cfft*
+blueprint-templates

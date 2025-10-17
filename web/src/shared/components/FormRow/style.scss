@@ -1,0 +1,7 @@
+.form-row {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  max-width: 100%;
+  column-gap: var(--spacing-md);
+}

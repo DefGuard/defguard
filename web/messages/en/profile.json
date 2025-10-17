@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "profile_tabs_details": "Details",
+  "profile_general_card_title": "General",
+  "profile_auth_card_title": "Password and authentication",
+  "profile_auth_card_section_password": "Password settings",
+  "profile_auth_card_section_2fa": "Two-factor methods",
+  "profile_auth_card_2fa_totp": "Time-based One-Time Password",
+  "profile_auth_card_2fa_email": "Email",
+  "profile_auth_card_2fa_passkeys": "Passkeys",
+  "profile_auth_card_password_change": "Change password",
+  "profile_apps_no_data_title": "No authorized apps",
+  "profile_apps_no_data_subtitle": "Applications you allow to log in with Defguard will appear here.",
+  "profile_apps_card_title": "Authorized apps",
+  "profile_apps_card_subtitle": "These applications are allowed to log in with DefGuard. You can remove them from the list if you wish."
+}
