@@ -277,4 +277,7 @@ jobs:
             
             aws s3 cp Release.gpg s3://apt.defguard.net/dists/${DIST}/ --acl public-read
             aws s3 cp InRelease s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+
+            aws s3 ls s3://apt.defguard.net/dists/ --recursive | awk '{print "<a href=\""$4"\">"$4"</a><br>"}' > index.html
+            aws s3 cp index.html s3://apt.defguard.net/ --acl public-read
           done
