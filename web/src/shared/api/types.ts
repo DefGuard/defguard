@@ -1,3 +1,5 @@
+import type { AxiosResponse } from 'axios';
+
 const UserMfaMethod = {
   None: 'none',
   OneTimePassword: 'OneTimePassword',
@@ -90,4 +92,27 @@ export interface UserProfile {
   user: User;
   devices: UserDevice[];
   security_keys: SecurityKey[];
+}
+
+export interface UserChangePasswordRequest {
+  new_password: string;
+  old_password: string;
+}
+
+export interface AdminChangeUserPasswordRequest {
+  new_password: string;
+  username: string;
+}
+
+export interface TotpInitResponse {
+  secret: string;
+}
+
+export interface EnableMfaMethodResponse {
+  codes?: string[];
+}
+
+export interface MfaFinishResponse {
+  url?: string;
+  user?: User;
 }

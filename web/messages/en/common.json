@@ -3,6 +3,7 @@
   "misc_or": "or",
   "misc_and": "and",
   "misc_for": "for",
+  "controls_logout": "Logout",
   "controls_submit": "Submit",
   "controls_cancel": "Cancel",
   "controls_save": "Save",

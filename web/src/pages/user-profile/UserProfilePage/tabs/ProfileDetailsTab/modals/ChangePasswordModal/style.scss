@@ -1,0 +1,51 @@
+#change-password-modal .modal-content {
+  form {
+    display: flex;
+    flex-flow: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    row-gap: var(--spacing-xl);
+    flex: none;
+  }
+
+  .checklist {
+    & > p {
+      font: var(--t-body-xs-600);
+      padding-bottom: var(--spacing-md);
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-sm);
+
+      li {
+        --color: var(--fg-muted);
+
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        column-gap: var(--spacing-sm);
+
+        &.active {
+          --color: var(--fg-success);
+        }
+
+        .icon[data-kind='check-filled'] {
+          path {
+            fill: var(--fg-success);
+          }
+        }
+
+        span {
+          font: var(--t-body-xs-500);
+          color: var(--color);
+        }
+      }
+    }
+  }
+}

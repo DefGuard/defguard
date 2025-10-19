@@ -43,9 +43,7 @@ export const LoginMainPage = () => {
     },
     onSubmit: async ({ value }) => {
       try {
-        const { data } = await mutateAsync({
-          data: value,
-        });
+        const { data } = await mutateAsync(value);
 
         // @ts-expect-error
         // biome-ignore lint/complexity/useLiteralKeys: needed
@@ -66,7 +64,7 @@ export const LoginMainPage = () => {
   });
 
   const { mutateAsync } = useMutation({
-    mutationFn: api.auth.login.callbackFn,
+    mutationFn: api.auth.login,
     onError: (error: AxiosError) => {
       const status = error.response?.status;
       if (isPresent(status)) {

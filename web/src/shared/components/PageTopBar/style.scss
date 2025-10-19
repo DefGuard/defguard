@@ -1,0 +1,29 @@
+.page-top-bar {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  user-select: none;
+  box-sizing: border-box;
+  border-bottom: var(--border-1) solid var(--border-default);
+  padding: var(--spacing-md) var(--spacing-xl);
+
+  .page-title {
+    font: var(--t-title-h3);
+    color: var(--fg-default);
+  }
+
+  & > .right {
+    margin-left: auto;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+
+    & > .divider {
+      height: 24px;
+      padding: 0 var(--spacing-lg);
+    }
+  }
+}

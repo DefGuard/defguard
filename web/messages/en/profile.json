@@ -1,5 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "profile_my_profile": "My Profile",
+  "profile_title": "{name} Profile",
   "profile_tabs_details": "Details",
   "profile_general_card_title": "General",
   "profile_auth_card_title": "Password and authentication",

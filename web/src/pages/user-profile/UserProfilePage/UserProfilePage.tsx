@@ -1,11 +1,13 @@
 import './style.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
+import { trainCase } from 'change-case';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Page } from '../../../shared/components/Page/Page';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
+import { useAuth } from '../../../shared/hooks/useAuth';
 import { userProfileQueryOptions } from '../../../shared/query';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
@@ -17,12 +19,31 @@ const tabs = {
 type TabsValue = (typeof tabs)[keyof typeof tabs];
 
 export const UserProfilePage = () => {
+  const authUsername = useAuth((s) => s.user?.username as string);
+
   const [activeTab, setActiveTab] = useState<TabsValue>('details');
   const { username } = useParams({
     from: '/_authorized/user/$username',
   });
 
+  const isSelf = useMemo(
+    (): boolean => authUsername === username,
+    [authUsername, username],
+  );
+
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
+
+  const pageTitle = useMemo(() => {
+    if (isSelf) {
+      return m.profile_my_profile();
+    }
+    const name = trainCase(
+      `${userProfile.user.first_name} ${userProfile.user.last_name}`,
+    );
+    return m.profile_title({
+      name,
+    });
+  }, [isSelf, userProfile.user.first_name, userProfile.user.last_name]);
 
   const store = useRef(
     createUserProfileStore({
@@ -54,7 +75,7 @@ export const UserProfilePage = () => {
 
   return (
     <UserProfileContext value={store}>
-      <Page id="user-profile-page">
+      <Page id="user-profile-page" title={pageTitle}>
         <Tabs items={tabsConfiguration} />
         <RenderActiveTab />
       </Page>
