@@ -1,8 +1,10 @@
 import { client } from './api-client';
 import type {
   AdminChangeUserPasswordRequest,
+  EnableMfaMethodResponse,
   LoginRequest,
   LoginResponse,
+  TotpInitResponse,
   User,
   UserChangePasswordRequest,
   UserProfileResponse,
@@ -30,9 +32,9 @@ const api = {
       disable: () => client.delete('/auth/mfa'),
       recovery: (code: string) => client.post('/auth/recovery', { code }),
       totp: {
-        init: () => client.post('/auth/totp/init'),
+        init: () => client.post<TotpInitResponse>('/auth/totp/init'),
         enable: (code: string) =>
-          client.post('/auth/totp', {
+          client.post<EnableMfaMethodResponse>('/auth/totp', {
             code,
           }),
         verify: (code: string) =>
@@ -44,7 +46,7 @@ const api = {
       email: {
         init: () => client.post('/auth/email/init'),
         enable: (code: string) =>
-          client.post('/auth/email', {
+          client.post<EnableMfaMethodResponse>('/auth/email', {
             code,
           }),
         disable: () => client.delete('/auth/delete'),
@@ -57,7 +59,8 @@ const api = {
             client.post('/auth/webauthn/init', {
               name,
             }),
-          finish: (_data: unknown) => client.post('/auth/webauthn/finish'),
+          finish: (_data: unknown) =>
+            client.post<EnableMfaMethodResponse>('/auth/webauthn/finish'),
         },
         login: {
           start: () => client.post('/auth/webauthn/start'),

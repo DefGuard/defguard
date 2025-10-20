@@ -10,6 +10,8 @@ import { useUserProfile } from '../../hooks/useUserProfilePage';
 import { ProfileAuthCard } from './components/ProfileAuthCard/ProfileAuthCard';
 import { ProfileAuthorizedApps } from './components/ProfileAuthorizedApps/ProfileAuthorizedApps';
 import { ProfileGeneralCard } from './components/ProfileGeneralCard/ProfileGeneralCard';
+import { ChangePasswordModal } from './modals/ChangePasswordModal/ChangePasswordModal';
+import { TotpSetupModal } from './modals/TotpSetupModal/TotpSetupModal';
 
 export const ProfileDetailsTab = () => {
   const authorizedApps = useUserProfile((s) => s.profile.user.authorized_apps);
@@ -30,14 +32,18 @@ export const ProfileDetailsTab = () => {
 
 const AuthorizedAppsNoData = () => {
   return (
-    <ProfileCard id="apps-no-data">
-      <SizedBox height={ThemeSpacing.Xl5} />
-      <EmptyState
-        icon="apps"
-        title={m.profile_apps_no_data_title()}
-        subtitle={m.profile_apps_no_data_subtitle()}
-      />
-      <SizedBox height={ThemeSpacing.Xl5} />
-    </ProfileCard>
+    <>
+      <ProfileCard id="apps-no-data">
+        <SizedBox height={ThemeSpacing.Xl5} />
+        <EmptyState
+          icon="apps"
+          title={m.profile_apps_no_data_title()}
+          subtitle={m.profile_apps_no_data_subtitle()}
+        />
+        <SizedBox height={ThemeSpacing.Xl5} />
+      </ProfileCard>
+      <ChangePasswordModal />
+      <TotpSetupModal />
+    </>
   );
 };

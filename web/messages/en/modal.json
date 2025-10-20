@@ -10,11 +10,13 @@
   "modal_mfa_enable_email_content": "To setup your MFA enter the code that was sent to your account email: {email}",
   "modal_mfa_enable_email_resend": "Resend email",
   "modal_mfa_enable_totp_title": "Authentication App Setup",
-  "modal_mfa_enable_totp_step_1_title": "Authentication App Setup",
-  "modal_mfa_enable_totp_step_1_content": "Authentication App Setup",
+  "modal_mfa_enable_totp_step_1_title": "Scan QR code",
+  "modal_mfa_enable_totp_step_1_content": "To set up Multi-Factor Authentication (MFA), simply scan this QR code using an authenticator app (like Google Authenticator, Microsoft Authenticator, or any other you prefer).",
   "modal_mfa_enable_totp_qr_problem": "Can't scan QR code?  Enter code manually in the app.",
   "modal_mfa_enable_totp_step_2_title": "Enter 6-digit code from authentication app",
   "modal_recovery_codes_download_title": "Download recovery codes",
   "modal_recovery_codes_download_cta_download": "Download codes",
-  "modal_recovery_codes_download_confirm": "I have saved my codes"
+  "modal_recovery_codes_download_confirm": "I have saved my codes",
+  "modal_recovery_codes_explain": "Recovery codes are your backup access. Store them securely (e.g. in a password manager like LastPass or Bitwarden) in case you lose your authenticator app.",
+  "modal_recovery_codes_error": "Confirm you have saved your recovery codes."
 }

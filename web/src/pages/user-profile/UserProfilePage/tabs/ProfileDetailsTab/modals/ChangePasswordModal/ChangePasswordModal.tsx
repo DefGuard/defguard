@@ -19,7 +19,7 @@ import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
-import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/types';
+import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import {
   adminChangePasswordDefaultValues,
   adminChangePasswordSchema,

@@ -1,0 +1,18 @@
+#email-mfa-setup-modal .modal-content {
+  p {
+    &:nth-child(1) {
+      font: var(--t-body-sm-500);
+    }
+
+    &:nth-child(3) {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+  }
+
+  form {
+    & > * {
+      width: 100%;
+    }
+  }
+}

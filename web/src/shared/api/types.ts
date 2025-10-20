@@ -114,3 +114,7 @@ export interface MfaFinishResponse {
   url?: string;
   user?: User;
 }
+
+export interface ApiError {
+  msg?: string;
+}

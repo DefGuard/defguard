@@ -10,7 +10,6 @@ import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { userProfileQueryOptions } from '../../../shared/query';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
-import { ChangePasswordModal } from './tabs/ProfileDetailsTab/modals/ChangePasswordModal/ChangePasswordModal';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
 
 const tabs = {
@@ -80,7 +79,6 @@ export const UserProfilePage = () => {
         <Tabs items={tabsConfiguration} />
         <RenderActiveTab />
       </Page>
-      <ChangePasswordModal />
     </UserProfileContext>
   );
 };

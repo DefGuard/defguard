@@ -17,6 +17,8 @@
   "password_form_check_minimum": "Minimum length of 8",
   "password_form_check_repeat_match": "Password's doesn't match",
   "password_form_special_error": "Password doesn't meet the requirements. Please check the list below.",
+  "form_label_auth_code": "Authentication Code",
+  "form_label_verification_code": "Verification Code",
   "form_label_username": "Username",
   "form_label_password": "Password",
   "form_label_first_name": "First Name",

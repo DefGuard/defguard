@@ -10,6 +10,7 @@ import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPrese
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import './style.scss';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
+import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { useOpenModal } from '../../../../../../../shared/hooks/modalControls/useOpenModal';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
@@ -19,6 +20,21 @@ export const ProfileAuthCard = () => {
   const user = useUserProfile((s) => s.profile.user);
   const authUsername = useAuth((s) => s.user?.username as string);
   const openChangePasswordModal = useOpenModal('changePassword');
+
+  const totpMenuItems = useMemo(() => {
+    const res: MenuItemsGroup = {
+      items: [
+        {
+          icon: 'check-circle',
+          text: m.controls_enable(),
+          onClick: () => {
+            openModal('totpSetup');
+          },
+        },
+      ],
+    };
+    return res;
+  }, []);
 
   return (
     <ProfileCard id="profile-auth-card">
@@ -45,6 +61,7 @@ export const ProfileAuthCard = () => {
           icon="one-time-password"
           title={m.profile_auth_card_2fa_totp()}
           enabled={user.totp_enabled}
+          menu={totpMenuItems}
         />
         <Divider />
         <FactorRow

@@ -3,6 +3,8 @@
   "misc_or": "or",
   "misc_and": "and",
   "misc_for": "for",
+  "misc_clipboard_copy": "Copied to clipboard!",
+  "misc_secret": "Secret",
   "controls_logout": "Logout",
   "controls_submit": "Submit",
   "controls_cancel": "Cancel",
