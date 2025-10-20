@@ -11,10 +11,13 @@ import {
 import { Avatar } from '../../defguard-ui/components/Avatar/Avatar';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import './style.scss';
+import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../api/api';
 import { Menu } from '../../defguard-ui/components/Menu/Menu';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
+import { useAuth } from '../../hooks/useAuth';
 
 type Props = {
   title: string;
@@ -33,6 +36,9 @@ export const PageTopBar = ({ title }: Props) => {
 };
 
 const ProfileMenu = () => {
+  const navigate = useNavigate();
+  const resetAuth = useAuth((s) => s.reset);
+
   const menuItems = useMemo(() => {
     const res: MenuItemsGroup[] = [
       {
@@ -40,13 +46,21 @@ const ProfileMenu = () => {
           {
             text: m.controls_logout(),
             icon: 'logout',
-            onClick: () => {},
+            onClick: () => {
+              api.auth.logout().then(() => {
+                resetAuth();
+                navigate({
+                  to: '/auth/login',
+                  replace: true,
+                });
+              });
+            },
           },
         ],
       },
     ];
     return res;
-  }, []);
+  }, [navigate, resetAuth]);
 
   const [isOpen, setOpen] = useState(false);
   const { refs, context, floatingStyles } = useFloating({

@@ -6,6 +6,10 @@
     align-items: flex-start;
     row-gap: var(--spacing-xl);
     flex: none;
+
+    & > * {
+      width: 100%;
+    }
   }
 
   .checklist {

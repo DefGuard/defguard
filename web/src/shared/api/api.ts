@@ -24,44 +24,45 @@ const api = {
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),
-  },
-  mfa: {
-    enable: client.post('/auth/mfa'),
-    disable: client.delete('/auth/mfa'),
-    recovery: (code: string) => client.post('/auth/recovery', { code }),
-    totp: {
-      init: client.post('/auth/totp/init'),
-      enable: (code: string) =>
-        client.post('/auth/totp', {
-          code,
-        }),
-      verify: (code: string) =>
-        client.post('/auth/totp/verify', {
-          code,
-        }),
-      disable: () => client.delete('/auth/totp'),
-    },
-    email: {
-      init: client.post('/auth/email/init'),
-      enable: (code: string) =>
-        client.post('/auth/email', {
-          code,
-        }),
-      disable: client.delete('/auth/delete'),
-      resend: client.get('/auth/email'),
-      verify: (code: string) => client.post('/auth/email/verify', { code }),
-    },
-    webauthn: {
-      register: {
-        start: (name: string) =>
-          client.post('/auth/webauthn/init', {
-            name,
+    logout: () => client.post('/auth/logout'),
+    mfa: {
+      enable: () => client.post('/auth/mfa'),
+      disable: () => client.delete('/auth/mfa'),
+      recovery: (code: string) => client.post('/auth/recovery', { code }),
+      totp: {
+        init: () => client.post('/auth/totp/init'),
+        enable: (code: string) =>
+          client.post('/auth/totp', {
+            code,
           }),
-        finish: (data: unknown) => client.post('/auth/webauthn/finish'),
+        verify: (code: string) =>
+          client.post('/auth/totp/verify', {
+            code,
+          }),
+        disable: () => client.delete('/auth/totp'),
       },
-      login: {
-        start: () => client.post('/auth/webauthn/start'),
-        finish: () => client.post('/auth/webauthn'),
+      email: {
+        init: () => client.post('/auth/email/init'),
+        enable: (code: string) =>
+          client.post('/auth/email', {
+            code,
+          }),
+        disable: () => client.delete('/auth/delete'),
+        resend: () => client.get('/auth/email'),
+        verify: (code: string) => client.post('/auth/email/verify', { code }),
+      },
+      webauthn: {
+        register: {
+          start: (name: string) =>
+            client.post('/auth/webauthn/init', {
+              name,
+            }),
+          finish: (_data: unknown) => client.post('/auth/webauthn/finish'),
+        },
+        login: {
+          start: () => client.post('/auth/webauthn/start'),
+          finish: () => client.post('/auth/webauthn'),
+        },
       },
     },
   },

@@ -4,15 +4,22 @@ import { ModalControls } from '../../../../../../../shared/defguard-ui/component
 import { useAppForm, withForm } from '../../../../../../../shared/defguard-ui/form';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import type z from 'zod';
+import api from '../../../../../../../shared/api/api';
 import type { User } from '../../../../../../../shared/api/types';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import type { IconKindValue } from '../../../../../../../shared/defguard-ui/components/Icon/icon-types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../../../../shared/form';
-import { useAuth } from '../../../../../../../shared/hooks/useAuth';
+import {
+  closeModal,
+  subscribeCloseModal,
+  subscribeOpenModal,
+} from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
+import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/types';
 import {
   adminChangePasswordDefaultValues,
   adminChangePasswordSchema,
@@ -21,18 +28,37 @@ import {
   userChangePasswordSchema,
 } from './form';
 
+const modalNameKey: ModalNameValue = 'changePassword' as const;
+
 export const ChangePasswordModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const isAdmin = useAuth((s) => s.isAdmin);
+  const [isAdmin, setAdmin] = useState(false);
+
+  useEffect(() => {
+    const openSub = subscribeOpenModal(modalNameKey, (data) => {
+      setUser(data.user);
+      setAdmin(data.adminForm);
+      setOpen(true);
+    });
+    const closeSub = subscribeCloseModal(modalNameKey, () => setOpen(false));
+    return () => {
+      openSub.unsubscribe();
+      closeSub.unsubscribe();
+    };
+  }, []);
 
   return (
     <Modal
       id="change-password-modal"
+      size="small"
       title={m.modal_change_password_title()}
-      isOpen={isOpen && isPresent(user)}
+      isOpen={isOpen}
       onClose={() => setOpen(false)}
-      afterClose={() => setUser(null)}
+      afterClose={() => {
+        setAdmin(false);
+        setUser(null);
+      }}
     >
       {isPresent(user) && <ModalContent isAdmin={isAdmin} user={user} />}
     </Modal>
@@ -47,12 +73,41 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
     return userChangePasswordSchema;
   }, [isAdmin]);
 
+  const onSuccess = useCallback(() => {
+    closeModal(modalNameKey);
+  }, []);
+
+  const { mutateAsync: mutateAdmin } = useMutation({
+    mutationFn: api.user.adminChangePassword,
+    onSuccess,
+    meta: {
+      invalidate: [['user', user.username]],
+    },
+  });
+
+  const { mutateAsync: mutateUser } = useMutation({
+    mutationFn: api.user.changePassword,
+    onSuccess,
+    meta: {
+      invalidate: [['me'], ['user', user.username]],
+    },
+  });
+
   const form = useAppForm({
     validationLogic: formChangeLogic,
     defaultValues: adminChangePasswordDefaultValues,
-    onSubmit: ({ value }) => {
-      console.table(value);
-      console.log(isAdmin);
+    onSubmit: async ({ value }) => {
+      if (isAdmin) {
+        await mutateAdmin({
+          new_password: value.password,
+          username: user.username,
+        });
+      } else {
+        await mutateUser({
+          new_password: value.password,
+          old_password: value.current,
+        });
+      }
     },
     validators: {
       onChange: formSchema,
@@ -77,6 +132,38 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
         }}
       >
         <form.AppForm>
+          {!isAdmin && (
+            <Fragment>
+              <form.AppField name="current">
+                {(field) => (
+                  <field.FormInput
+                    required
+                    type="password"
+                    label={m.form_label_current_password()}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="password">
+                {(field) => (
+                  <field.FormInput
+                    required
+                    type="password"
+                    label={m.form_label_new_password()}
+                    mapError={mapPasswordFieldError}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="repeat">
+                {(field) => (
+                  <field.FormInput
+                    required
+                    type="password"
+                    label={m.form_label_confirm_new_password()}
+                  />
+                )}
+              </form.AppField>
+            </Fragment>
+          )}
           {isAdmin && (
             <form.AppField name="password">
               {(field) => (
@@ -96,10 +183,16 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
         cancelProps={{
           text: m.controls_cancel(),
           disabled: isSubmitting,
+          onClick: () => {
+            closeModal(modalNameKey);
+          },
         }}
         submitProps={{
-          text: m.controls_submit(),
+          text: m.modal_change_password_submit(),
           loading: isSubmitting,
+          onClick: () => {
+            form.handleSubmit();
+          },
         }}
       />
     </>

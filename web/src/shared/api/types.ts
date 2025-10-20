@@ -1,5 +1,3 @@
-import type { AxiosResponse } from 'axios';
-
 const UserMfaMethod = {
   None: 'none',
   OneTimePassword: 'OneTimePassword',
