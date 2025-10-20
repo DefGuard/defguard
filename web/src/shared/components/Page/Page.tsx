@@ -1,4 +1,3 @@
-import './style.scss';
 import clsx from 'clsx';
 import type { HtmlHTMLAttributes, PropsWithChildren, Ref } from 'react';
 import { PageTopBar } from '../PageTopBar/PageTopBar';
