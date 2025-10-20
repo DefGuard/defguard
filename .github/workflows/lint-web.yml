@@ -33,6 +33,9 @@ jobs:
         run: |
           npm i -g npm pnpm
           pnpm i --frozen-lockfile
+      - name: Build
+        working-directory: ./web
+        run: pnpm build
       - name: Lint
         working-directory: ./web
         run: pnpm run lint
