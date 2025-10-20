@@ -11,7 +11,6 @@ import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import './style.scss';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
-import { useOpenModal } from '../../../../../../../shared/hooks/modalControls/useOpenModal';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
@@ -19,7 +18,6 @@ export const ProfileAuthCard = () => {
   const securityKeys = useUserProfile((s) => s.profile.security_keys);
   const user = useUserProfile((s) => s.profile.user);
   const authUsername = useAuth((s) => s.user?.username as string);
-  const openChangePasswordModal = useOpenModal('changePassword');
 
   const totpMenuItems = useMemo(() => {
     const res: MenuItemsGroup = {
@@ -47,7 +45,7 @@ export const ProfileAuthCard = () => {
           text={m.profile_auth_card_password_change()}
           onClick={() => {
             // open admin form only if admin and is not editing self
-            openChangePasswordModal({
+            openModal('changePassword', {
               user,
               adminForm: user.is_admin && user.username !== authUsername,
             });

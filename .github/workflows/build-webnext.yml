@@ -1,0 +1,25 @@
+name: Build webnext
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+on:
+  push:
+    branches:
+      - webnext
+
+jobs:
+  build-current:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      tags: |
+        type=ref,event=branch
+        type=sha
+
+  trigger-staging-deploy:
+    needs: build-current
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/staging-deployment.yml
+    secrets: inherit
+# FIXME: Remove this yml when new UI is done and merged to dev
