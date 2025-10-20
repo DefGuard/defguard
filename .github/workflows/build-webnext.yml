@@ -11,6 +11,7 @@ on:
 
 jobs:
   build-current:
+    if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/build-docker.yml
     with:
       tags: |
@@ -20,6 +21,6 @@ jobs:
   trigger-staging-deploy:
     needs: build-current
     if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/staging-deployment.yml
+    uses: ./.github/workflows/staging-deployment-webnext.yml
     secrets: inherit
 # FIXME: Remove this yml when new UI is done and merged to dev
