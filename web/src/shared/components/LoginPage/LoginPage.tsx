@@ -6,14 +6,14 @@ import { ThemeSpacing } from '../../defguard-ui/types';
 import asci_image from './assets/login_asci.png';
 import { LoginPageLogo } from './LoginPageLogo';
 
-export const LoginPage = ({ children }: PropsWithChildren) => {
+export const LoginPage = ({ children, id }: PropsWithChildren & { id?: string }) => {
   return (
     <div id="login-page">
       <aside>
         <img src={asci_image} />
       </aside>
       <div className="main-track">
-        <main>
+        <main id={id}>
           <LoginPageLogo />
           <SizedBox height={ThemeSpacing.Xl8} />
           {children}

@@ -49,6 +49,11 @@ export interface LoginResponseBasic {
   user?: User;
 }
 
+export interface MfaCompleteResponse {
+  user: User;
+  url?: string;
+}
+
 export type LoginResponse = LoginResponseBasic | LoginMfaResponse;
 
 export interface DeviceNetworkInfo {

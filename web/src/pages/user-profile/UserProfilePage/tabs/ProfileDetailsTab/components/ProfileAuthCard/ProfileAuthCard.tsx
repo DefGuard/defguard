@@ -9,7 +9,11 @@ import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/com
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import './style.scss';
+import { useMutation } from '@tanstack/react-query';
+import api from '../../../../../../../shared/api/api';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
+import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
@@ -18,6 +22,13 @@ export const ProfileAuthCard = () => {
   const securityKeys = useUserProfile((s) => s.profile.security_keys);
   const user = useUserProfile((s) => s.profile.user);
   const authUsername = useAuth((s) => s.user?.username as string);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: api.auth.mfa.disable,
+    meta: {
+      invalidate: [['me'], ['user']],
+    },
+  });
 
   const totpMenuItems = useMemo(() => {
     const res: MenuItemsGroup = {
@@ -50,6 +61,16 @@ export const ProfileAuthCard = () => {
               adminForm: user.is_admin && user.username !== authUsername,
             });
           }}
+        />
+        <SizedBox height={ThemeSpacing.Xl2} />
+        {/* TODO: Remove me, testing only */}
+        <Button
+          variant="critical"
+          text="Test Disable MFA"
+          onClick={() => {
+            mutate();
+          }}
+          loading={isPending}
         />
       </div>
       <Divider orientation="horizontal" />

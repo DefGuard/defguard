@@ -9,8 +9,24 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   const authMatch = useMatch({ from: '/auth/', shouldThrow: false });
 
   const setUser = useAuth((s) => s.setUser);
+  const mfa = useAuth((s) => s.mfaLogin);
 
   const { data: response, isError, isLoading } = useQuery(userMeQueryOptions);
+
+  useEffect(() => {
+    if (mfa && mfa.mfa_method !== 'none' && authMatch) {
+      switch (mfa.mfa_method) {
+        case 'OneTimePassword':
+          navigate({
+            to: '/auth/mfa/totp',
+            replace: true,
+          });
+          break;
+        default:
+          throw new Error('Unimplemented Factor');
+      }
+    }
+  }, [mfa, authMatch, navigate]);
 
   useEffect(() => {
     if (isError && !isLoading && !authMatch) {

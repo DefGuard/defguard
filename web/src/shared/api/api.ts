@@ -4,6 +4,7 @@ import type {
   EnableMfaMethodResponse,
   LoginRequest,
   LoginResponse,
+  MfaCompleteResponse,
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
@@ -28,9 +29,10 @@ const api = {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),
     logout: () => client.post('/auth/logout'),
     mfa: {
-      enable: () => client.post('/auth/mfa'),
+      enable: () => client.put('/auth/mfa'),
       disable: () => client.delete('/auth/mfa'),
-      recovery: (code: string) => client.post('/auth/recovery', { code }),
+      recovery: (code: string) =>
+        client.post<MfaCompleteResponse>('/auth/recovery', { code }),
       totp: {
         init: () => client.post<TotpInitResponse>('/auth/totp/init'),
         enable: (code: string) =>
@@ -38,7 +40,7 @@ const api = {
             code,
           }),
         verify: (code: string) =>
-          client.post('/auth/totp/verify', {
+          client.post<MfaCompleteResponse>('/auth/totp/verify', {
             code,
           }),
         disable: () => client.delete('/auth/totp'),
@@ -51,7 +53,8 @@ const api = {
           }),
         disable: () => client.delete('/auth/delete'),
         resend: () => client.get('/auth/email'),
-        verify: (code: string) => client.post('/auth/email/verify', { code }),
+        verify: (code: string) =>
+          client.post<MfaCompleteResponse>('/auth/email/verify', { code }),
       },
       webauthn: {
         register: {

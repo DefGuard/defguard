@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
+import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
+import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthorizedUserUsernameRouteImport } from './routes/_authorized/user/$username'
 
 const AuthorizedRoute = AuthorizedRouteImport.update({
@@ -29,10 +32,25 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/auth/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthMfaRoute = AuthMfaRouteImport.update({
+  id: '/auth/mfa',
+  path: '/auth/mfa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthMfaTotpRoute = AuthMfaTotpRouteImport.update({
+  id: '/totp',
+  path: '/totp',
+  getParentRoute: () => AuthMfaRoute,
+} as any)
+const AuthMfaRecoveryRoute = AuthMfaRecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => AuthMfaRoute,
 } as any)
 const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
   id: '/user/$username',
@@ -43,41 +61,68 @@ const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/user/$username': typeof AuthorizedUserUsernameRoute
+  '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
+  '/auth/mfa/totp': typeof AuthMfaTotpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/user/$username': typeof AuthorizedUserUsernameRoute
+  '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
+  '/auth/mfa/totp': typeof AuthMfaTotpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
+  '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/_authorized/user/$username': typeof AuthorizedUserUsernameRoute
+  '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
+  '/auth/mfa/totp': typeof AuthMfaTotpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth/login' | '/auth' | '/user/$username'
+  fullPaths:
+    | '/'
+    | '/auth/login'
+    | '/auth/mfa'
+    | '/auth'
+    | '/user/$username'
+    | '/auth/mfa/recovery'
+    | '/auth/mfa/totp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth/login' | '/auth' | '/user/$username'
+  to:
+    | '/'
+    | '/auth/login'
+    | '/auth/mfa'
+    | '/auth'
+    | '/user/$username'
+    | '/auth/mfa/recovery'
+    | '/auth/mfa/totp'
   id:
     | '__root__'
     | '/'
     | '/_authorized'
     | '/auth/login'
+    | '/auth/mfa'
     | '/auth/'
     | '/_authorized/user/$username'
+    | '/auth/mfa/recovery'
+    | '/auth/mfa/totp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
+  AuthMfaRoute: typeof AuthMfaRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
@@ -104,12 +149,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/mfa': {
+      id: '/auth/mfa'
+      path: '/auth/mfa'
+      fullPath: '/auth/mfa'
+      preLoaderRoute: typeof AuthMfaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/mfa/totp': {
+      id: '/auth/mfa/totp'
+      path: '/totp'
+      fullPath: '/auth/mfa/totp'
+      preLoaderRoute: typeof AuthMfaTotpRouteImport
+      parentRoute: typeof AuthMfaRoute
+    }
+    '/auth/mfa/recovery': {
+      id: '/auth/mfa/recovery'
+      path: '/recovery'
+      fullPath: '/auth/mfa/recovery'
+      preLoaderRoute: typeof AuthMfaRecoveryRouteImport
+      parentRoute: typeof AuthMfaRoute
     }
     '/_authorized/user/$username': {
       id: '/_authorized/user/$username'
@@ -133,10 +199,24 @@ const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
   AuthorizedRouteChildren,
 )
 
+interface AuthMfaRouteChildren {
+  AuthMfaRecoveryRoute: typeof AuthMfaRecoveryRoute
+  AuthMfaTotpRoute: typeof AuthMfaTotpRoute
+}
+
+const AuthMfaRouteChildren: AuthMfaRouteChildren = {
+  AuthMfaRecoveryRoute: AuthMfaRecoveryRoute,
+  AuthMfaTotpRoute: AuthMfaTotpRoute,
+}
+
+const AuthMfaRouteWithChildren =
+  AuthMfaRoute._addFileChildren(AuthMfaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthorizedRoute: AuthorizedRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
+  AuthMfaRoute: AuthMfaRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,10 +4,10 @@ import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/
 import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
-import z from 'zod';
+import type z from 'zod';
 import api from '../../../../../../../shared/api/api';
 import type { ApiError } from '../../../../../../../shared/api/types';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
@@ -26,6 +26,7 @@ import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
+import { totpCodeFormSchema } from '../../../../../../../shared/schema/totpCode';
 
 const modalName: ModalNameValue = 'totpSetup' as const;
 
@@ -56,19 +57,7 @@ export const TotpSetupModal = () => {
   );
 };
 
-const formSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .min(1, m.form_error_required())
-    .min(
-      6,
-      m.form_error_min_len({
-        length: 6,
-      }),
-    )
-    .max(6, m.form_error_max_len({ length: 6 })),
-});
+const formSchema = totpCodeFormSchema;
 
 type FormFields = z.infer<typeof formSchema>;
 
@@ -77,10 +66,6 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
-  const { mutate: initTotp, data: totpInitResponse } = useMutation({
-    mutationFn: api.auth.mfa.totp.init,
-  });
-
   const { mutateAsync: enableTotp } = useMutation({
     mutationFn: api.auth.mfa.totp.enable,
     onSuccess: (response) => {
@@ -91,6 +76,13 @@ const ModalContent = () => {
         closeModal(modalName);
       }
     },
+  });
+
+  const { data: totpInitResponse } = useQuery({
+    queryFn: api.auth.mfa.totp.init,
+    queryKey: ['totp_setup_init'],
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
   const qrData = useMemo(() => {
@@ -123,11 +115,6 @@ const ModalContent = () => {
   });
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: on mount
-  useEffect(() => {
-    initTotp();
-  }, []);
 
   return (
     <>

@@ -5,22 +5,21 @@
   }
 
   .codes {
-    list-style: none;
     display: flex;
-    flex-flow: row wrap;
+    flex-flow: row;
     align-items: center;
     justify-content: center;
     column-gap: var(--spacing-4xl);
-    box-sizing: border-box;
-    padding: var(--spacing-md) var(--spacing-xl);
-    margin: 0;
-    border-radius: var(--radius-lg);
+    padding: var(--spacing-md) 0;
     background-color: var(--bg-disabled);
+    border-radius: var(--radius-lg);
 
-    li {
-      width: 50%;
-      margin: 0;
-      padding: 0;
+    .col {
+      display: flex;
+      flex-flow: column;
+    }
+
+    .code {
       font: var(--t-body-sm-500);
       color: var(--fg-faded);
     }

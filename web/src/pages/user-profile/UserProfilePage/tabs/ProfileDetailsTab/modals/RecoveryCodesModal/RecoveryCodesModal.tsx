@@ -12,7 +12,7 @@ import type { ModalNameValue } from '../../../../../../../shared/hooks/modalCont
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const modalNameKey: ModalNameValue = 'recoveryCodes' as const;
 
@@ -58,16 +58,26 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
     },
   });
 
+  const codesSplit = useMemo(() => {
+    return [codes.slice(0, 4), codes.slice(4, 8)];
+  }, [codes]);
+
   const { writeToClipboard } = useClipboard();
   return (
     <>
       <p className="explain">{m.modal_recovery_codes_explain()}</p>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <ul className="codes">
-        {codes.map((code) => (
-          <li key={code}>{code}</li>
+      <div className="codes">
+        {codesSplit.map((col, index) => (
+          <div className="col" key={index}>
+            {col.map((code) => (
+              <p className="code" key={code}>
+                {code}
+              </p>
+            ))}
+          </div>
         ))}
-      </ul>
+      </div>
       <SizedBox height={ThemeSpacing.Xl} />
       <div className="actions">
         <Button
@@ -90,6 +100,7 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
       <SizedBox height={ThemeSpacing.Xl2} />
       <div className="bottom">
         <Checkbox
+          active={confirmed}
           text={m.modal_recovery_codes_download_confirm()}
           error={confirmError ? m.modal_recovery_codes_error() : undefined}
           onClick={() => {

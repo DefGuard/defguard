@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { User } from '../api/types';
+import type { LoginMfaResponse, User } from '../api/types';
 
 type Store = Values & Methods;
 
@@ -8,6 +8,7 @@ type Values = {
   isAdmin: boolean;
   isAuthenticated: boolean;
   user?: User;
+  mfaLogin?: LoginMfaResponse;
 };
 
 type Methods = {
@@ -19,6 +20,7 @@ const defaults: Values = {
   isAdmin: false,
   isAuthenticated: false,
   user: undefined,
+  mfaLogin: undefined,
 };
 
 export const useAuth = create<Store>()(
@@ -31,6 +33,7 @@ export const useAuth = create<Store>()(
             isAdmin: user.is_admin,
             isAuthenticated: true,
             user: user,
+            mfaLogin: undefined,
           });
         } else {
           set(defaults);

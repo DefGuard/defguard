@@ -11,6 +11,7 @@ import { ProfileAuthCard } from './components/ProfileAuthCard/ProfileAuthCard';
 import { ProfileAuthorizedApps } from './components/ProfileAuthorizedApps/ProfileAuthorizedApps';
 import { ProfileGeneralCard } from './components/ProfileGeneralCard/ProfileGeneralCard';
 import { ChangePasswordModal } from './modals/ChangePasswordModal/ChangePasswordModal';
+import { RecoveryCodesModal } from './modals/RecoveryCodesModal/RecoveryCodesModal';
 import { TotpSetupModal } from './modals/TotpSetupModal/TotpSetupModal';
 
 export const ProfileDetailsTab = () => {
@@ -44,6 +45,7 @@ const AuthorizedAppsNoData = () => {
       </ProfileCard>
       <ChangePasswordModal />
       <TotpSetupModal />
+      <RecoveryCodesModal />
     </>
   );
 };
