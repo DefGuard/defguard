@@ -139,7 +139,7 @@
     "standard-version": "^9.5.0",
     "type-fest": "^4.41.0",
     "typescript": "~5.9.2",
-    "vite": "^7.1.7",
+    "vite": "^7.1.11",
     "vite-plugin-package-version": "^1.1.0"
   }
 }
