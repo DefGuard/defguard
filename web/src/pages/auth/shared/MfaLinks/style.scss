@@ -1,4 +1,4 @@
-#login-page main .links {
+#login-page main .mfa-links {
   padding-top: var(--spacing-2xl);
   display: flex;
   flex-flow: column;
@@ -11,5 +11,13 @@
     font: var(--t-body-sm-400);
     color: var(--fg-action);
     cursor: pointer;
+
+    &[data-status='active'] {
+      display: none;
+    }
+
+    span {
+      color: inherit;
+    }
   }
 }

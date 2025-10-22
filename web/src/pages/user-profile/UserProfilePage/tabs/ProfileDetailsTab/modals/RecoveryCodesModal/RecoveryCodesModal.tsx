@@ -13,6 +13,7 @@ import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { downloadText } from '../../../../../../../shared/utils/download';
 
 const modalNameKey: ModalNameValue = 'recoveryCodes' as const;
 
@@ -85,13 +86,16 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
           iconLeft="download"
           variant="outlined"
           text={m.modal_recovery_codes_download_cta_download()}
-          onClick={() => {}}
+          onClick={() => {
+            const fileContent = codes.join('\n');
+            downloadText(fileContent, 'recovery', 'txt');
+          }}
         />
         <Button
           size="big"
           iconLeft="copy"
           variant="outlined"
-          text={m.modal_recovery_codes_download_cta_download()}
+          text={m.controls_copy_clipboard()}
           onClick={() => {
             void writeToClipboard(codes.join('\n'));
           }}

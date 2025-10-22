@@ -1,9 +1,10 @@
+import './style.scss';
 import { Link } from '@tanstack/react-router';
 import { m } from '../../../../paraglide/messages';
 
 export const MfaLinks = () => {
   return (
-    <div className="links">
+    <div className="mfa-links">
       <Link to="/auth/mfa/recovery">
         <span>
           {m.login_mfa_use_instead({

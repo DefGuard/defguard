@@ -11,7 +11,6 @@ import {
 import { Avatar } from '../../defguard-ui/components/Avatar/Avatar';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import './style.scss';
-import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../api/api';
@@ -36,7 +35,6 @@ export const PageTopBar = ({ title }: Props) => {
 };
 
 const ProfileMenu = () => {
-  const navigate = useNavigate();
   const resetAuth = useAuth((s) => s.reset);
 
   const menuItems = useMemo(() => {
@@ -49,10 +47,6 @@ const ProfileMenu = () => {
             onClick: () => {
               api.auth.logout().then(() => {
                 resetAuth();
-                navigate({
-                  to: '/auth/login',
-                  replace: true,
-                });
               });
             },
           },
@@ -60,7 +54,7 @@ const ProfileMenu = () => {
       },
     ];
     return res;
-  }, [navigate, resetAuth]);
+  }, [resetAuth]);
 
   const [isOpen, setOpen] = useState(false);
   const { refs, context, floatingStyles } = useFloating({

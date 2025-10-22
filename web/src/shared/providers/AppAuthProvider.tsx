@@ -1,20 +1,36 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMatch, useNavigate } from '@tanstack/react-router';
-import { type PropsWithChildren, useEffect } from 'react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import type { AxiosError } from 'axios';
+import { type PropsWithChildren, useEffect, useMemo } from 'react';
+import { isPresent } from '../defguard-ui/utils/isPresent';
 import { useAuth } from '../hooks/useAuth';
 import { userMeQueryOptions } from '../query';
 
 export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   const navigate = useNavigate();
-  const authMatch = useMatch({ from: '/auth/', shouldThrow: false });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const authMatch = useMemo(() => pathname.startsWith('/auth'), [pathname]);
 
   const setUser = useAuth((s) => s.setUser);
   const mfa = useAuth((s) => s.mfaLogin);
+  const storedUser = useAuth((s) => s.user);
 
-  const { data: response, isError, isLoading } = useQuery(userMeQueryOptions);
+  const { data: response, error } = useQuery(userMeQueryOptions);
 
+  // if me endpoint fails with 401 then auth store should reset and that should send user back to login
   useEffect(() => {
-    if (mfa && mfa.mfa_method !== 'none' && authMatch) {
+    if (isPresent(error)) {
+      const e = error as AxiosError;
+      const status = e.status;
+      if (isPresent(status) && status === 401) {
+        setUser();
+      }
+    }
+  }, [error, setUser]);
+
+  // when login requires internal 2FA this handles automatic redirect
+  useEffect(() => {
+    if (mfa && mfa.mfa_method !== 'none' && authMatch && !storedUser) {
       switch (mfa.mfa_method) {
         case 'OneTimePassword':
           navigate({
@@ -26,26 +42,32 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
           throw new Error('Unimplemented Factor');
       }
     }
-  }, [mfa, authMatch, navigate]);
+  }, [mfa, authMatch, navigate, storedUser]);
 
+  // store response in store
   useEffect(() => {
-    if (isError && !isLoading && !authMatch) {
-      setUser();
+    if (response) {
+      setUser(response.data);
+    }
+  }, [response, setUser]);
+
+  // handle automatic redirects when auth store changes
+  useEffect(() => {
+    if (storedUser && authMatch) {
+      navigate({
+        to: '/user/$username',
+        params: {
+          username: storedUser.username,
+        },
+      });
+    }
+    if (!storedUser && !authMatch) {
       navigate({
         to: '/auth/login',
         replace: true,
       });
     }
-    if (!isLoading && response) {
-      setUser(response.data);
-      navigate({
-        to: '/user/$username',
-        params: {
-          username: response.data.username,
-        },
-      });
-    }
-  }, [authMatch, isError, isLoading, navigate, response, setUser]);
+  }, [authMatch, navigate, storedUser]);
 
   return <>{children}</>;
 };

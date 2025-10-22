@@ -17,6 +17,7 @@
   "controls_continue": "Continue",
   "controls_verify_code": "Verify code",
   "controls_complete": "Complete",
+  "controls_copy_clipboard": "Copy to clipboard",
   "state_disabled": "Disabled",
   "state_warning": "Warning",
   "state_active": "Active",

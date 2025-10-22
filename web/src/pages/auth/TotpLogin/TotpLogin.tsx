@@ -1,15 +1,13 @@
+import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import type z from 'zod';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import type { ApiError } from '../../../shared/api/types';
 import { LoginPage } from '../../../shared/components/LoginPage/LoginPage';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { useAppForm } from '../../../shared/defguard-ui/form';
 import { ThemeSize } from '../../../shared/defguard-ui/types';
-import './style.scss';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import type { AxiosError } from 'axios';
-import api from '../../../shared/api/api';
-import type { ApiError } from '../../../shared/api/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../shared/form';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -25,17 +23,13 @@ const defaultValues: FormFields = {
 };
 
 export const TotpLogin = () => {
-  const navigate = useNavigate();
   const { mutateAsync } = useMutation({
     mutationFn: api.auth.mfa.totp.verify,
+    meta: {
+      invalidate: [['me']],
+    },
     onSuccess: (response) => {
       useAuth.getState().setUser(response.data.user);
-      navigate({
-        to: '/user/$username',
-        params: {
-          username: response.data.user.username,
-        },
-      });
     },
     onError: (e: AxiosError<ApiError>) => {
       const respCode = e.response?.status;
@@ -75,9 +69,9 @@ export const TotpLogin = () => {
       >
         <form.AppForm>
           <form.AppField name="code">
-            {(field) => <field.FormInput label={m.form_label_auth_code()} />}
+            {(field) => <field.FormInput size="lg" label={m.form_label_auth_code()} />}
           </form.AppField>
-          <form.FormSubmitButton text={m.controls_submit()} />
+          <form.FormSubmitButton size="big" text={m.controls_submit()} />
         </form.AppForm>
       </form>
       <MfaLinks />
