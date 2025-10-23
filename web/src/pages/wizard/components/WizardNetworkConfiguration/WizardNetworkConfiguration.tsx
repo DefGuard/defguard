@@ -25,7 +25,11 @@ import { QueryKeys } from '../../../../shared/queries';
 import { LocationMfaMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import { validateIpList, validateIpOrDomainList } from '../../../../shared/validators';
+import {
+  validateIpList,
+  validateIpOrDomain,
+  validateIpOrDomainList,
+} from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -109,7 +113,11 @@ export const WizardNetworkConfiguration = () => {
           .refine((value) => {
             return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
-        endpoint: z.string().trim().min(1, LL.form.error.required()),
+        endpoint: z
+          .string()
+          .trim()
+          .min(1, LL.form.error.required())
+          .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
         port: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
