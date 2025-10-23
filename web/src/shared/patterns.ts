@@ -1,5 +1,3 @@
-/* eslint-disable no-useless-escape */
-
 export const patternNoSpecialChars = /^\w+$/;
 
 export const patternDigitOrLowercase = /^[0-9a-z]+$/g;

@@ -1,0 +1,17 @@
+#profile-details {
+  box-sizing: border-box;
+  padding: var(--spacing-3xl) var(--spacing-xl);
+  align-items: start;
+
+  & > .left {
+    grid-column: 1 / 6;
+    display: flex;
+    flex-flow: column;
+    flex: none;
+    row-gap: var(--spacing-4xl);
+  }
+
+  #profile-auth-card {
+    grid-column: 6 / 10;
+  }
+}

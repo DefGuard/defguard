@@ -1,0 +1,41 @@
+#recovery-codes-modal .modal-content {
+  & > p {
+    font: var(--t-body-sm-400);
+    color: var(--fg-neutral);
+  }
+
+  .codes {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--spacing-4xl);
+    padding: var(--spacing-md) 0;
+    background-color: var(--bg-disabled);
+    border-radius: var(--radius-lg);
+
+    .col {
+      display: flex;
+      flex-flow: column;
+    }
+
+    .code {
+      font: var(--t-body-sm-500);
+      color: var(--fg-faded);
+    }
+  }
+
+  .bottom {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-md);
+  }
+}

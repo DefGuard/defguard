@@ -1,0 +1,39 @@
+#totp-setup-modal .modal-content {
+  section header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-md);
+
+    p {
+      font: var(--t-body-primary-500);
+    }
+  }
+
+  .step-1-content {
+    font: var(--t-body-sm-400);
+    color: var(--fg-neutral);
+  }
+
+  .divider {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .qr {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: none;
+
+    & > p {
+      font: var(--t-body-xs-500);
+      color: var(--fg-muted);
+    }
+
+    .copy-field {
+      width: 100%;
+    }
+  }
+}

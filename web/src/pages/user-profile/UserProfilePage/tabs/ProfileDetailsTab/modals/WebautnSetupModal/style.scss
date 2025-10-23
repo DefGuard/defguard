@@ -1,0 +1,7 @@
+#add-webauthn-modal .modal-content {
+  & > p {
+    font: var(--t-body-sm-400);
+    color: var(--fg-muted);
+    padding-bottom: var(--spacing-2xl);
+  }
+}
