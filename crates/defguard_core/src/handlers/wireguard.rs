@@ -31,8 +31,9 @@ use crate::{
                 WireguardNetworkDevice,
             },
             wireguard::{
-                DateTimeAggregation, LocationMfaMode, MappedDevice, WireguardDeviceStatsRow,
-                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
+                DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
+                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
+                WireguardUserStatsRow, networks_stats,
             },
         },
     },
@@ -85,6 +86,7 @@ pub struct WireguardNetworkData {
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
     pub location_mfa_mode: LocationMfaMode,
+    pub service_location_mode: ServiceLocationMode,
 }
 
 impl WireguardNetworkData {
@@ -196,6 +198,7 @@ pub(crate) async fn create_network(
         data.acl_enabled,
         data.acl_default_allow,
         data.location_mfa_mode,
+        data.service_location_mode,
     );
 
     let mut transaction = appstate.pool.begin().await?;
@@ -292,6 +295,16 @@ pub(crate) async fn modify_network(
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
+    network.service_location_mode = match data.location_mfa_mode {
+        LocationMfaMode::Disabled => data.service_location_mode,
+        _ => {
+            warn!(
+                "Disabling service location mode for location {} because location MFA is enabled",
+                network.name
+            );
+            ServiceLocationMode::Disabled
+        }
+    };
     network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;

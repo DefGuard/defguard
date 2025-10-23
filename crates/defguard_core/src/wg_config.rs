@@ -11,7 +11,7 @@ use crate::{
         Device, WireguardNetwork,
         models::wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            WireguardNetworkError,
+            ServiceLocationMode, WireguardNetworkError,
         },
     },
 };
@@ -112,6 +112,7 @@ pub(crate) fn parse_wireguard_config(
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     );
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
@@ -170,8 +171,9 @@ pub(crate) fn parse_wireguard_config(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use defguard_common::db::NoId;
+
+    use super::*;
 
     #[test]
     fn test_parse_config() {

@@ -9,7 +9,7 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    db::{GatewayEvent, WireguardNetwork},
+    db::{GatewayEvent, WireguardNetwork, models::wireguard::ServiceLocationMode},
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
@@ -172,25 +172,48 @@ async fn enterprise_status_check(
         if new_enterprise_enabled {
             // handle switch from disabled -> enabled
             debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
-            let mut conn = pool.acquire().await?;
+            let mut transaction = pool.begin().await?;
             for location in locations {
                 debug!("Re-enabling gateway firewall configuration for location {location:?}");
                 let firewall_config = location
-                    .try_get_firewall_config(&mut conn)
+                    .try_get_firewall_config(&mut transaction)
                     .await?
                     .expect("ACL-enabled location must have firewall config");
 
-                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
-                    location.id,
-                    firewall_config,
-                ))?;
+                // Handle service location update or just update the firewall
+                if location.service_location_mode != ServiceLocationMode::Disabled {
+                    let new_peers = location.get_peers(&mut *transaction).await?;
+                    wireguard_tx.send(GatewayEvent::NetworkModified(
+                        location.id,
+                        location,
+                        new_peers,
+                        Some(firewall_config),
+                    ))?;
+                } else {
+                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ))?;
+                }
             }
+            transaction.commit().await?;
         } else {
             // handle switch from enabled -> disabled
             debug!("Disabling gateway firewall configuration for ACL-enabled locations");
             for location in locations {
                 debug!("Disabling gateway firewall configuration for location {location:?}");
                 wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+
+                // Handle service location update
+                if location.service_location_mode != ServiceLocationMode::Disabled {
+                    let new_peers = location.get_peers(pool).await?;
+                    wireguard_tx.send(GatewayEvent::NetworkModified(
+                        location.id,
+                        location,
+                        new_peers,
+                        None,
+                    ))?;
+                }
             }
         }
     }

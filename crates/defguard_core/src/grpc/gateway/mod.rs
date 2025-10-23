@@ -35,8 +35,12 @@ use self::map::GatewayMap;
 use crate::{
     db::{
         Device, GatewayEvent, User,
-        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+        models::{
+            wireguard::{ServiceLocationMode, WireguardNetwork},
+            wireguard_peer_stats::WireguardPeerStats,
+        },
     },
+    enterprise::is_enterprise_enabled,
     events::{GrpcEvent, GrpcRequestContext},
 };
 
@@ -95,11 +99,22 @@ impl WireguardNetwork<Id> {
     ///
     /// Each device is marked as allowed or not allowed in a given network,
     /// which enables enforcing peer disconnect in MFA-protected networks.
+    ///
+    /// If the location is a service location, only returns peers if enterprise features are enabled.
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         debug!("Fetching all peers for network {}", self.id);
+
+        if self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled() {
+            warn!(
+                "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
+                self.name
+            );
+            return Ok(Vec::new());
+        }
+
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?

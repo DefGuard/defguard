@@ -10,7 +10,8 @@ use defguard_core::{
     db::{
         Device, User, WireguardNetwork,
         models::{
-            device::DeviceType, wireguard::LocationMfaMode,
+            device::DeviceType,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
@@ -50,6 +51,7 @@ async fn setup_test_server(
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -399,6 +401,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -520,6 +523,7 @@ async fn test_gateway_config(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await

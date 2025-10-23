@@ -139,6 +139,12 @@ export enum LocationMfaMode {
   EXTERNAL = 'external',
 }
 
+export enum ServiceLocationMode {
+  DISABLED = 'disabled',
+  PRELOGON = 'prelogon',
+  ALWAYSON = 'alwayson',
+}
+
 export interface Network {
   id: number;
   name: string;
@@ -156,6 +162,7 @@ export interface Network {
   acl_enabled: boolean;
   acl_default_allow: boolean;
   location_mfa_mode: LocationMfaMode;
+  service_location_mode: ServiceLocationMode;
 }
 
 export type ModifyNetworkRequest = {

@@ -8,6 +8,7 @@ use defguard_core::{
             device::WireguardNetworkDevice,
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
             },
         },
     },
@@ -71,6 +72,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -150,6 +152,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::External,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
 
     // create network
@@ -229,6 +232,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
 
     // create network
