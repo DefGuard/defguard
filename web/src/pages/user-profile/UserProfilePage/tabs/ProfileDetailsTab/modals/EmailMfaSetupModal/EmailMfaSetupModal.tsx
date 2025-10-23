@@ -5,10 +5,11 @@ import { ModalControls } from '../../../../../../../shared/defguard-ui/component
 import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
 import {
   closeModal,
+  openModal,
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
-import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -19,20 +20,20 @@ import type { ApiError } from '../../../../../../../shared/api/types';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
-import { createZodIssue } from '../../../../../../../shared/defguard-ui/utils/zod';
+import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../../../../shared/form';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
-const modalNameKey: ModalNameValue = 'emailMfaSetup' as const;
+const modalName = ModalName.EmailMfaSetup;
 
 export const EmailMfaSetupModal = () => {
   const [isOpen, setOpen] = useState(false);
 
   useEffect(() => {
-    const openSub = subscribeOpenModal(modalNameKey, () => {
+    const openSub = subscribeOpenModal(modalName, () => {
       setOpen(true);
     });
-    const closeSub = subscribeCloseModal(modalNameKey, () => setOpen(false));
+    const closeSub = subscribeCloseModal(modalName, () => setOpen(false));
     return () => {
       openSub.unsubscribe();
       closeSub.unsubscribe();
@@ -80,6 +81,16 @@ const ModalContent = () => {
 
   const { mutateAsync: enableMfa } = useMutation({
     mutationFn: api.auth.mfa.email.enable,
+    meta: {
+      invalidate: [['user', user.username]],
+    },
+    onSuccess: (response) => {
+      const recoveryCodes = response.data.codes;
+      if (isPresent(recoveryCodes)) {
+        openModal(ModalName.RecoveryCodes, recoveryCodes);
+      }
+      closeModal(modalName);
+    },
   });
 
   const form = useAppForm({
@@ -91,11 +102,12 @@ const ModalContent = () => {
     },
     onSubmit: async ({ value, formApi }) => {
       await enableMfa(value.code).catch((e: AxiosError<ApiError>) => {
-        if (e.code && parseInt(e.code, 2) < 500) {
+        const errorCode = e.response?.status;
+        if (errorCode && errorCode < 500) {
           formApi.setErrorMap({
             onSubmit: {
               fields: {
-                code: createZodIssue(m.form_error_code(), ['code']),
+                code: m.form_error_code(),
               },
             },
           });

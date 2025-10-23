@@ -1,4 +1,4 @@
-const UserMfaMethod = {
+export const UserMfaMethod = {
   None: 'none',
   OneTimePassword: 'OneTimePassword',
   Email: 'Email',
@@ -122,4 +122,43 @@ export interface MfaFinishResponse {
 
 export interface ApiError {
   msg?: string;
+}
+
+export interface LicenseLimits {
+  user: boolean;
+  device: boolean;
+  wireguard_network: boolean;
+}
+
+export interface LicenseInfo {
+  enterprise: boolean;
+  limits_exceeded: LicenseLimits;
+  any_limit_exceeded: boolean;
+  is_enterprise_free: boolean;
+}
+export interface LdapInfo {
+  enabled: boolean;
+  ad: boolean;
+}
+
+export interface ApplicationInfo {
+  version: string;
+  network_present: boolean;
+  smtp_enabled: boolean;
+  license_info: LicenseInfo;
+  ldap_info: LdapInfo;
+  external_openid_enabled: boolean;
+}
+
+export interface WebauthnRegisterStartResponse {
+  publicKey: PublicKeyCredentialCreationOptionsJSON;
+}
+
+export interface WebauthnRegisterFinishRequest {
+  name: string;
+  rpkc: PublicKeyCredentialJSON;
+}
+
+export interface WebauthnLoginStartResponse {
+  publicKey: PublicKeyCredentialJSON;
 }

@@ -1,6 +1,7 @@
 import './style.scss';
 import { revalidateLogic, useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../../../../paraglide/messages';
@@ -105,10 +106,21 @@ export const ProfileGeneralCard = () => {
     required: isAdmin,
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
+  useEffect(() => {
+    form.reset();
+  }, [profileUser]);
+
   return (
     <ProfileCard id="general-card">
       <h2>General</h2>
-      <form>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
         <form.AppForm>
           <form.AppField name="username">
             {(field) => (

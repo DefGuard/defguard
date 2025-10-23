@@ -38,6 +38,12 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
             replace: true,
           });
           break;
+        case 'Webauthn':
+          navigate({
+            to: '/auth/mfa/webauthn',
+            replace: true,
+          });
+          break;
         default:
           throw new Error('Unimplemented Factor');
       }

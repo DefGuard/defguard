@@ -11,8 +11,10 @@ import { ProfileAuthCard } from './components/ProfileAuthCard/ProfileAuthCard';
 import { ProfileAuthorizedApps } from './components/ProfileAuthorizedApps/ProfileAuthorizedApps';
 import { ProfileGeneralCard } from './components/ProfileGeneralCard/ProfileGeneralCard';
 import { ChangePasswordModal } from './modals/ChangePasswordModal/ChangePasswordModal';
+import { EmailMfaSetupModal } from './modals/EmailMfaSetupModal/EmailMfaSetupModal';
 import { RecoveryCodesModal } from './modals/RecoveryCodesModal/RecoveryCodesModal';
 import { TotpSetupModal } from './modals/TotpSetupModal/TotpSetupModal';
+import { WebautnSetupModal } from './modals/WebautnSetupModal/WebautnSetupModal';
 
 export const ProfileDetailsTab = () => {
   const authorizedApps = useUserProfile((s) => s.profile.user.authorized_apps);
@@ -46,6 +48,8 @@ const AuthorizedAppsNoData = () => {
       <ChangePasswordModal />
       <TotpSetupModal />
       <RecoveryCodesModal />
+      <EmailMfaSetupModal />
+      <WebautnSetupModal />
     </>
   );
 };

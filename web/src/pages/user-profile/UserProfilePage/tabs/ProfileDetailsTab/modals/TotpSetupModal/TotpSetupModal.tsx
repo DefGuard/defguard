@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
-import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -27,8 +27,9 @@ import {
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { totpCodeFormSchema } from '../../../../../../../shared/schema/totpCode';
+import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
-const modalName: ModalNameValue = 'totpSetup' as const;
+const modalName = ModalName.TotpSetup;
 
 export const TotpSetupModal = () => {
   const [isOpen, setOpen] = useState(false);
@@ -66,12 +67,16 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
+  const username = useUserProfile((s) => s.profile.user.username);
   const { mutateAsync: enableTotp } = useMutation({
     mutationFn: api.auth.mfa.totp.enable,
+    meta: {
+      invalidate: [['user', username]],
+    },
     onSuccess: (response) => {
       if (response.data.codes) {
         closeModal(modalName);
-        openModal('recoveryCodes', response.data.codes);
+        openModal(ModalName.RecoveryCodes, response.data.codes);
       } else {
         closeModal(modalName);
       }

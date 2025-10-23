@@ -1,17 +1,25 @@
 import { client } from './api-client';
 import type {
   AdminChangeUserPasswordRequest,
+  ApplicationInfo,
   EnableMfaMethodResponse,
   LoginRequest,
   LoginResponse,
+  LoginResponseBasic,
   MfaCompleteResponse,
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
   UserProfileResponse,
+  WebauthnLoginStartResponse,
+  WebauthnRegisterFinishRequest,
+  WebauthnRegisterStartResponse,
 } from './types';
 
 const api = {
+  app: {
+    info: () => client.get<ApplicationInfo>('/info'),
+  },
   user: {
     getMe: client.get<User>('/me'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
@@ -57,17 +65,20 @@ const api = {
           client.post<MfaCompleteResponse>('/auth/email/verify', { code }),
       },
       webauthn: {
+        deleteKey: (data: { username: string; keyId: number | string }) =>
+          client.delete(`/user/${data.username}/security_key/${data.keyId}`),
         register: {
           start: (name: string) =>
-            client.post('/auth/webauthn/init', {
+            client.post<WebauthnRegisterStartResponse>('/auth/webauthn/init', {
               name,
             }),
-          finish: (_data: unknown) =>
-            client.post<EnableMfaMethodResponse>('/auth/webauthn/finish'),
+          finish: (data: WebauthnRegisterFinishRequest) =>
+            client.post<EnableMfaMethodResponse>('/auth/webauthn/finish', data),
         },
         login: {
-          start: () => client.post('/auth/webauthn/start'),
-          finish: () => client.post('/auth/webauthn'),
+          start: () => client.post<WebauthnLoginStartResponse>('/auth/webauthn/start'),
+          finish: (data: PublicKeyCredentialJSON) =>
+            client.post<LoginResponseBasic>('/auth/webauthn', data),
         },
       },
     },

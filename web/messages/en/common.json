@@ -1,5 +1,8 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "test_placeholder": "Placeholder text",
+  "test_placeholder_long": "Placeholder text - Nam viverra, urna a rhoncus scelerisque, dolor nunc commodo ante, non ullamcorper quam elit a nunc. Aenean elementum sed lorem eu facilisis.",
+  "test_placeholder_extreme": "Placeholder text - Lorem ipsum dolor sit amet, consectetur adipiscing elit. In euismod pretium convallis. Integer commodo nunc et orci vulputate, vel euismod nunc faucibus. Morbi non lacinia tellus. Quisque egestas hendrerit rutrum. Cras vel ex at metus aliquet convallis. Pellentesque volutpat velit orci, in suscipit lectus ultricies eget. Mauris rhoncus tempor hendrerit. Nam viverra, urna a rhoncus scelerisque, dolor nunc commodo ante, non ullamcorper quam elit a nunc. Aenean elementum sed lorem eu facilisis.",
   "misc_or": "or",
   "misc_and": "and",
   "misc_for": "for",

@@ -1,5 +1,5 @@
 #email-mfa-setup-modal .modal-content {
-  p {
+  & > p {
     &:nth-child(1) {
       font: var(--t-body-sm-500);
     }
@@ -7,6 +7,7 @@
     &:nth-child(3) {
       font: var(--t-body-sm-400);
       color: var(--fg-muted);
+      padding-bottom: var(--spacing-2xl);
     }
   }
 
