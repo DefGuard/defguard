@@ -35,10 +35,7 @@ use self::map::GatewayMap;
 use crate::{
     db::{
         Device, GatewayEvent, User,
-        models::{
-            wireguard::{ServiceLocationMode, WireguardNetwork},
-            wireguard_peer_stats::WireguardPeerStats,
-        },
+        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     enterprise::is_enterprise_enabled,
     events::{GrpcEvent, GrpcRequestContext},

@@ -21,9 +21,8 @@ use crate::{
             wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
         },
     },
-    enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
-        is_enterprise_enabled,
+    enterprise::db::models::{
+        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
 };
 
