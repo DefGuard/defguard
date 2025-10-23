@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at,  keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "address: _",
         "type_info": "InetArray"
       },
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "allowed_ips",
+        "name": "allowed_ips: _",
         "type_info": "InetArray"
       },
       {
@@ -55,27 +55,27 @@
       },
       {
         "ordinal": 10,
-        "name": "keepalive_interval",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 11,
-        "name": "peer_disconnect_threshold",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 12,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "acl_default_allow",
         "type_info": "Bool"
       },
       {
+        "ordinal": 12,
+        "name": "keepalive_interval",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4"
+      },
+      {
         "ordinal": 14,
-        "name": "location_mfa_mode: LocationMfaMode",
+        "name": "location_mfa_mode: _",
         "type_info": {
           "Custom": {
             "name": "location_mfa_mode",
@@ -88,12 +88,26 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 15,
+        "name": "service_location_mode: _",
+        "type_info": {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -110,8 +124,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "0fb053b3b00a1fe78f764d2d1d90375d5674fd59fe3018af120ae2ef5fd10f48"
+  "hash": "7938837afdae9daee7a22d0ed919c33c6e14d74fb23bd9baf450dc9827d547c6"
 }
