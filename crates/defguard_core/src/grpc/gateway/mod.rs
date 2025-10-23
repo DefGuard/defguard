@@ -37,7 +37,6 @@ use crate::{
         Device, GatewayEvent, User,
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
-    enterprise::is_enterprise_enabled,
     events::{GrpcEvent, GrpcRequestContext},
 };
 
