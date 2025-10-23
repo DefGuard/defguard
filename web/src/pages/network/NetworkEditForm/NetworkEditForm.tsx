@@ -12,6 +12,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormLocationMfaModeSelect } from '../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
+import { FormServiceLocationModeSelect } from '../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect.tsx';
 import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown.tsx';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -25,8 +26,8 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import {
   LocationMfaMode,
-  ServiceLocationMode,
   type Network,
+  ServiceLocationMode,
 } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
@@ -37,7 +38,6 @@ import {
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
-import { FormServiceLocationModeSelect } from '../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect.tsx';
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();
