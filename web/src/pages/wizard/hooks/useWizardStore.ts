@@ -7,6 +7,7 @@ import {
   type ImportedDevice,
   LocationMfaMode,
   type Network,
+  ServiceLocationMode,
 } from '../../../shared/types';
 
 export enum WizardSetupType {
@@ -34,6 +35,7 @@ const defaultValues: StoreFields = {
     acl_enabled: false,
     acl_default_allow: false,
     location_mfa_mode: LocationMfaMode.DISABLED,
+    service_location_mode: ServiceLocationMode.DISABLED,
   },
 };
 
@@ -90,6 +92,7 @@ type StoreFields = {
     acl_enabled: boolean;
     acl_default_allow: boolean;
     location_mfa_mode: LocationMfaMode;
+    service_location_mode: ServiceLocationMode;
   };
 };
 
