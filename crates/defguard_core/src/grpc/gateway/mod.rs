@@ -107,7 +107,7 @@ impl WireguardNetwork<Id> {
     {
         debug!("Fetching all peers for network {}", self.id);
 
-        if self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled() {
+        if !self.check_service_location_requirements() {
             warn!(
                 "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
                 self.name

@@ -40,7 +40,7 @@ use super::{
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    enterprise::firewall::FirewallError,
+    enterprise::{firewall::FirewallError, is_enterprise_enabled},
     grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
 };
@@ -1302,6 +1302,12 @@ impl WireguardNetwork<Id> {
         .to_jwt()?;
 
         Ok(token)
+    }
+
+    /// If this location is marked as a service location, checks if all requirements are met for it to function:
+    /// - Enterprise is enabled
+    pub fn check_service_location_requirements(&self) -> bool {
+        self.service_location_mode != ServiceLocationMode::Disabled && is_enterprise_enabled()
     }
 }
 

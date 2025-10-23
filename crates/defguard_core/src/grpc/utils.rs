@@ -123,9 +123,7 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
-            if !is_enterprise_enabled()
-                && network.service_location_mode != ServiceLocationMode::Disabled
-            {
+            if !network.check_service_location_requirements() {
                 error!(
                     "Tried to use service location {} with disabled enterprise features.",
                     network.name
@@ -178,9 +176,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if !is_enterprise_enabled()
-                && network.service_location_mode != ServiceLocationMode::Disabled
-            {
+            if !network.check_service_location_requirements() {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
                     network.name
