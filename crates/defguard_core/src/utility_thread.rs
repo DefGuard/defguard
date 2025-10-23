@@ -201,18 +201,21 @@ async fn enterprise_status_check(
             // handle switch from enabled -> disabled
             debug!("Disabling gateway firewall configuration for ACL-enabled locations");
             for location in locations {
-                debug!("Disabling gateway firewall configuration for location {location:?}");
-                wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
-
-                // Handle service location update
                 if location.service_location_mode != ServiceLocationMode::Disabled {
-                    let new_peers = location.get_peers(pool).await?;
+                    debug!(
+                        "Disabling gateway firewall configuration and service location client connections \
+                        for location {location:?}"
+                    );
                     wireguard_tx.send(GatewayEvent::NetworkModified(
                         location.id,
                         location,
-                        new_peers,
+                        // Send empty peer list, we are disabling the service location
+                        Vec::new(),
                         None,
                     ))?;
+                } else {
+                    debug!("Disabling gateway firewall configuration for location {location:?}");
+                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
                 }
             }
         }
