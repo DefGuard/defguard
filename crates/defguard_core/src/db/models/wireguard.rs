@@ -1306,8 +1306,9 @@ impl WireguardNetwork<Id> {
 
     /// If this location is marked as a service location, checks if all requirements are met for it to function:
     /// - Enterprise is enabled
-    pub fn check_service_location_requirements(&self) -> bool {
-        self.service_location_mode != ServiceLocationMode::Disabled && is_enterprise_enabled()
+    #[must_use]
+    pub fn should_prevent_service_location_usage(&self) -> bool {
+        self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
     }
 }
 

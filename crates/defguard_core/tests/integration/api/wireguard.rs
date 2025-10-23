@@ -493,7 +493,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     });
     let response = client.post("/api/v1/network").json(&network).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -561,7 +562,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     });
     let response = client
         .put(format!("/api/v1/network/{}", network_from_details.id))

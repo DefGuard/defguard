@@ -729,7 +729,8 @@ pub struct AddDeviceResult {
                         "pubkey": "pubkey",
                         "dns": "8.8.8.8",
                         "keepalive_interval": 5,
-			            "location_mfa_mode": "disabled"
+			            "location_mfa_mode": "disabled",
+                        "service_location_mode": "disabled"
                     }
                 ],
                 "device": {

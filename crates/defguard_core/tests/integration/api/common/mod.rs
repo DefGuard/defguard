@@ -181,7 +181,8 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
-            "location_mfa_mode": "disabled"
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
         }))
         .send()
         .await;
@@ -201,7 +202,8 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
                 "peer_disconnect_threshold": 300,
                 "acl_enabled": false,
                 "acl_default_allow": false,
-                "location_mfa_mode": "disabled"
+                "location_mfa_mode": "disabled",
+                "service_location_mode": "disabled"
         }))
         .send()
         .await;
@@ -221,7 +223,8 @@ pub(crate) fn make_network() -> Value {
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     })
 }
 

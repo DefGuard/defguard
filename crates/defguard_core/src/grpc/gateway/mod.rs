@@ -103,7 +103,7 @@ impl WireguardNetwork<Id> {
     {
         debug!("Fetching all peers for network {}", self.id);
 
-        if !self.check_service_location_requirements() {
+        if self.should_prevent_service_location_usage() {
             warn!(
                 "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
                 self.name
