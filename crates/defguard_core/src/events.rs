@@ -5,6 +5,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, MFAMethod, Settings},
 };
+use defguard_proto::proxy::MfaMethod;
 
 use crate::{
     db::{
@@ -16,7 +17,6 @@ use crate::{
         openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
 };
-use defguard_proto::proxy::MfaMethod;
 
 /// Shared context that needs to be added to every API event
 ///

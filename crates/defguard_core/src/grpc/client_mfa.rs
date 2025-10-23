@@ -9,6 +9,11 @@ use defguard_common::{
     },
 };
 use defguard_mail::Mail;
+use defguard_proto::proxy::{
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
+    MfaMethod,
+};
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -29,11 +34,6 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::utils::parse_client_info,
     handlers::mail::send_email_mfa_code_email,
-};
-use defguard_proto::proxy::{
-    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
-    MfaMethod,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes

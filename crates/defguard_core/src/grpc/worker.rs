@@ -6,14 +6,14 @@ use std::{
 };
 
 use defguard_common::db::models::{AuthenticationKey, AuthenticationKeyType};
+pub use defguard_proto::worker::JobStatus;
+use defguard_proto::worker::{GetJobResponse, Worker, worker_service_server};
 use sqlx::{PgPool, query};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
 use crate::db::{AppEvent, HWKeyUserData, User, YubiKey};
-pub use defguard_proto::worker::JobStatus;
-use defguard_proto::worker::{GetJobResponse, Worker, worker_service_server};
 
 impl WorkerInfo {
     /// Create new `Worker` instance.

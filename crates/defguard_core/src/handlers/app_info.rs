@@ -1,4 +1,5 @@
 use axum::{extract::State, http::StatusCode};
+use defguard_common::{VERSION, db::models::Settings};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
@@ -13,7 +14,6 @@ use crate::{
         limits::{LimitsExceeded, get_counts},
     },
 };
-use defguard_common::{VERSION, db::models::Settings};
 
 #[derive(Serialize)]
 struct LicenseInfo {

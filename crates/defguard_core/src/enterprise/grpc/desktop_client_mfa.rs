@@ -1,3 +1,4 @@
+use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 use openidconnect::{AuthorizationCode, Nonce};
 use reqwest::Url;
 use tonic::Status;
@@ -13,7 +14,6 @@ use crate::{
         utils::parse_client_info,
     },
 };
-use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 
 impl ClientMfaServer {
     #[instrument(skip_all)]

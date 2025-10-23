@@ -1,9 +1,8 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{config::server_config, db::Id, random::gen_alphanumeric};
+use defguard_mail::templates::SessionContext;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
-
-use defguard_mail::templates::SessionContext;
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]

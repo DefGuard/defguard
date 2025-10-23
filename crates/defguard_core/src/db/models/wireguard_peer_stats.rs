@@ -1,12 +1,11 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::{Id, NoId};
 use humantime::format_duration;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
-
-use defguard_common::db::{Id, NoId};
 
 #[derive(Debug, Deserialize, Model, Serialize)]
 #[table(wireguard_peer_stats)]

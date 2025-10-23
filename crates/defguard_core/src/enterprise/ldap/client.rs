@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use defguard_common::db::models::Settings;
 use ldap3::{
     LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry, adapters::PagedResults, drive,
     ldap_escape,
@@ -11,7 +12,6 @@ use ldap3::{
 
 use super::error::LdapError;
 use crate::{db::User, enterprise::ldap::model::extract_rdn_value};
-use defguard_common::db::models::Settings;
 
 impl super::LDAPConnection {
     pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
