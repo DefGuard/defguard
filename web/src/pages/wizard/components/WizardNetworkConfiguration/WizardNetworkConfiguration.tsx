@@ -10,6 +10,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormLocationMfaModeSelect } from '../../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
+import { FormServiceLocationModeSelect } from '../../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect.tsx';
 import { RenderMarkdown } from '../../../../shared/components/Layout/RenderMarkdown/RenderMarkdown.tsx';
 import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -22,7 +23,7 @@ import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { LocationMfaMode } from '../../../../shared/types.ts';
+import { LocationMfaMode, ServiceLocationMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import {
@@ -149,6 +150,7 @@ export const WizardNetworkConfiguration = () => {
         acl_enabled: z.boolean(),
         acl_default_allow: z.boolean(),
         location_mfa_mode: z.nativeEnum(LocationMfaMode),
+        service_location_mode: z.nativeEnum(ServiceLocationMode),
       }),
     [LL.form.error],
   );
@@ -178,6 +180,15 @@ export const WizardNetworkConfiguration = () => {
   const mfaDisabled = useMemo(
     () => locationMfaMode === LocationMfaMode.DISABLED,
     [locationMfaMode],
+  );
+  const serviceLocationMode = useWatch({
+    control,
+    name: 'service_location_mode',
+    defaultValue: getDefaultValues.service_location_mode,
+  });
+  const serviceLocationEnabled = useMemo(
+    () => serviceLocationMode !== ServiceLocationMode.DISABLED,
+    [serviceLocationMode],
   );
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
@@ -290,7 +301,17 @@ export const WizardNetworkConfiguration = () => {
             </li>
           </ul>
         </MessageBox>
-        <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        {serviceLocationEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>
+              {LL.networkConfiguration.form.helpers.locationMfaMode.serviceLocationWarning()}
+            </p>
+          </MessageBox>
+        )}
+        <FormLocationMfaModeSelect
+          controller={{ control, name: 'location_mfa_mode' }}
+          disabled={serviceLocationEnabled}
+        />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
         </MessageBox>
@@ -299,6 +320,15 @@ export const WizardNetworkConfiguration = () => {
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
           disabled={mfaDisabled}
+        />
+        {!mfaDisabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+          </MessageBox>
+        )}
+        <FormServiceLocationModeSelect
+          controller={{ control, name: 'service_location_mode' }}
+          disabled={!mfaDisabled}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

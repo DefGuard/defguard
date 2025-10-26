@@ -209,8 +209,8 @@ pub fn build_version_suffix(
 /// Custom tracing formatter that conditionally includes version information in log messages.
 ///
 /// This formatter wraps the default tracing formatter and adds version suffix to log messages:
-/// - For ERROR level logs: includes own_version, own_info and components version and info
-/// - For other levels: includes only own_version and component version if available
+/// - For ERROR level logs: includes `own_version`, `own_info` and components version and info
+/// - For other levels: includes only `own_version` and component version if available
 ///
 /// The version information is extracted from tracing span fields.
 pub struct VersionSuffixFormat {

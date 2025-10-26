@@ -11,12 +11,11 @@ use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
-use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
-
 use super::{
     TEST_SERVER_URL,
     common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool},
 };
+use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
 
 #[sqlx::test]
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {

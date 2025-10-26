@@ -8,6 +8,11 @@ use argon2::{
     },
 };
 use axum::http::StatusCode;
+use defguard_common::{
+    config::server_config,
+    db::{Id, NoId, models::MFAMethod},
+    random::{gen_alphanumeric, gen_totp_secret},
+};
 use defguard_mail::templates::UserContext;
 use model_derive::Model;
 #[cfg(test)]
@@ -35,11 +40,6 @@ use crate::{
     enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
-};
-use defguard_common::{
-    config::server_config,
-    db::{Id, NoId, models::MFAMethod},
-    random::{gen_alphanumeric, gen_totp_secret},
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -1275,12 +1275,11 @@ impl Distribution<User<NoId>> for Standard {
 mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::setup_pool,
+        db::{models::settings::initialize_current_settings, setup_pool},
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use defguard_common::db::models::settings::initialize_current_settings;
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {

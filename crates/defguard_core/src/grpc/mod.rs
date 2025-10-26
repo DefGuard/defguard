@@ -1,11 +1,9 @@
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
-    time::{Duration, Instant},
-};
-use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, RwLock},
+    time::{Duration, Instant},
 };
 
 use axum::http::Uri;
@@ -15,10 +13,9 @@ use defguard_common::{
     db::{Id, models::Settings},
 };
 use defguard_mail::Mail;
-use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables,
+    get_tracing_variables, server::DefguardVersionLayer,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -40,18 +37,16 @@ use tonic::{
 };
 use tower::ServiceBuilder;
 
-use self::gateway::GatewayServer;
 use self::{
     auth::AuthServer, client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
-    password_reset::PasswordResetServer,
+    gateway::GatewayServer, interceptor::JwtInterceptor, password_reset::PasswordResetServer,
+    worker::WorkerServer,
 };
-use self::{interceptor::JwtInterceptor, worker::WorkerServer};
-use crate::db::GatewayEvent;
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent,
+        AppEvent, GatewayEvent,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{

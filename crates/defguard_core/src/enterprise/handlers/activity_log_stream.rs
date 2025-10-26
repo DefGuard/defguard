@@ -2,6 +2,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
+use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
 use serde_json::json;
 
@@ -15,7 +16,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
-use defguard_common::db::{Id, NoId};
 
 pub async fn get_activity_log_stream(
     _admin: AdminRole,

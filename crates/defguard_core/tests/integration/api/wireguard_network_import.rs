@@ -7,6 +7,7 @@ use defguard_core::{
             device::{DeviceType, UserDevice},
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
             },
         },
     },
@@ -62,6 +63,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     );
     initial_network.save(&pool).await.unwrap();
 

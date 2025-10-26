@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\" FROM \"wireguard_network\"",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -88,10 +88,28 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 15,
+        "name": "service_location_mode: _",
+        "type_info": {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -108,8 +126,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "0c7b5094f1e4dc79a5782b6948aa2527807bd9643f2758c83c728d1d003843ab"
+  "hash": "f7c1feed3561417bc20420558c27f7835e7ef3e0312aef9c56e495f05f11b4dd"
 }

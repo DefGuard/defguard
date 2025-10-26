@@ -2851,6 +2851,26 @@ type RootTranslation = {
 				external: string
 			}
 		}
+		serviceLocationModeSelect: {
+			/**
+			 * S​e​r​v​i​c​e​ ​L​o​c​a​t​i​o​n​ ​M​o​d​e
+			 */
+			label: string
+			options: {
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+				/**
+				 * P​r​e​-​l​o​g​o​n
+				 */
+				prelogon: string
+				/**
+				 * A​l​w​a​y​s​-​o​n
+				 */
+				alwayson: string
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -4871,6 +4891,28 @@ type RootTranslation = {
 					 * E​x​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​ ​(​s​e​e​ ​[​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s​]​(​s​e​t​t​i​n​g​s​)​)​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​u​s​e​s​ ​e​x​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​M​F​A
 					 */
 					external: string
+					/**
+					 * L​o​c​a​t​i​o​n​ ​M​F​A​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​e​n​ ​s​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​ ​m​o​d​e​ ​i​s​ ​e​n​a​b​l​e​d​.
+					 */
+					serviceLocationWarning: string
+				}
+				serviceLocation: {
+					/**
+					 * C​h​o​o​s​e​ ​i​f​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​s​h​o​u​l​d​ ​w​o​r​k​ ​a​s​ ​a​ ​s​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​.​ ​T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​o​n​ ​e​v​e​r​y​ ​p​l​a​t​f​o​r​m​.​ ​C​o​n​s​u​l​t​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​f​e​a​t​u​r​e​s​/​s​e​r​v​i​c​e​-​l​o​c​a​t​i​o​n​s​)​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
+					 */
+					description: string
+					/**
+					 * P​r​e​-​l​o​g​o​n​ ​-​ ​A​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​c​t​i​v​e​ ​o​n​l​y​ ​b​e​f​o​r​e​ ​t​h​e​ ​u​s​e​r​ ​l​o​g​s​ ​i​n​ ​o​n​ ​t​h​e​i​r​ ​d​e​v​i​c​e​.​ ​W​h​e​n​ ​t​h​e​ ​u​s​e​r​ ​c​o​m​p​l​e​t​e​s​ ​t​h​e​ ​l​o​g​i​n​,​ ​t​h​e​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​t​e​r​m​i​n​a​t​e​d​.
+					 */
+					preLogon: string
+					/**
+					 * A​l​w​a​y​s​-​o​n​ ​-​ ​A​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​w​i​l​l​ ​a​l​w​a​y​s​ ​b​e​ ​a​c​t​i​v​e​ ​w​h​e​n​ ​t​h​e​ ​u​s​e​r​ ​d​e​v​i​c​e​ ​i​s​ ​o​n​.
+					 */
+					alwaysOn: string
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​s​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​i​l​e​ ​l​o​c​a​t​i​o​n​ ​M​F​A​ ​i​s​ ​e​n​a​b​l​e​d​.
+					 */
+					mfaWarning: string
 				}
 			}
 			sections: {
@@ -4883,6 +4925,12 @@ type RootTranslation = {
 				mfa: {
 					/**
 					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
+					 */
+					header: string
+				}
+				serviceLocation: {
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n
 					 */
 					header: string
 				}
@@ -4971,6 +5019,12 @@ type RootTranslation = {
 				location_mfa_mode: {
 					/**
 					 * M​F​A​ ​r​e​q​u​i​r​e​m​e​n​t
+					 */
+					label: string
+				}
+				service_location_mode: {
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​ ​m​o​d​e
 					 */
 					label: string
 				}
@@ -9525,6 +9579,26 @@ export type TranslationFunctions = {
 				external: () => LocalizedString
 			}
 		}
+		serviceLocationModeSelect: {
+			/**
+			 * Service Location Mode
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+				/**
+				 * Pre-logon
+				 */
+				prelogon: () => LocalizedString
+				/**
+				 * Always-on
+				 */
+				alwayson: () => LocalizedString
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -11526,6 +11600,28 @@ export type TranslationFunctions = {
 					 * External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA
 					 */
 					external: () => LocalizedString
+					/**
+					 * Location MFA can't be used when service location mode is enabled.
+					 */
+					serviceLocationWarning: () => LocalizedString
+				}
+				serviceLocation: {
+					/**
+					 * Choose if this location should work as a service location. This feature is currently not supported on every platform. Consult our [documentation](https://docs.defguard.net/features/service-locations) for more details.
+					 */
+					description: () => LocalizedString
+					/**
+					 * Pre-logon - A VPN connection to this location will be active only before the user logs in on their device. When the user completes the login, the VPN connection will be terminated.
+					 */
+					preLogon: () => LocalizedString
+					/**
+					 * Always-on - A VPN connection will always be active when the user device is on.
+					 */
+					alwaysOn: () => LocalizedString
+					/**
+					 * Service locations can't be used while location MFA is enabled.
+					 */
+					mfaWarning: () => LocalizedString
 				}
 			}
 			sections: {
@@ -11538,6 +11634,12 @@ export type TranslationFunctions = {
 				mfa: {
 					/**
 					 * Multi-Factor Authentication
+					 */
+					header: () => LocalizedString
+				}
+				serviceLocation: {
+					/**
+					 * Service location
 					 */
 					header: () => LocalizedString
 				}
@@ -11626,6 +11728,12 @@ export type TranslationFunctions = {
 				location_mfa_mode: {
 					/**
 					 * MFA requirement
+					 */
+					label: () => LocalizedString
+				}
+				service_location_mode: {
+					/**
+					 * Service location mode
 					 */
 					label: () => LocalizedString
 				}

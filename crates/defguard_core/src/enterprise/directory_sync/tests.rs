@@ -18,7 +18,10 @@ mod test {
     use crate::{
         db::{
             Device, Session, SessionState, WireguardNetwork,
-            models::{device::DeviceType, wireguard::LocationMfaMode},
+            models::{
+                device::DeviceType,
+                wireguard::{LocationMfaMode, ServiceLocationMode},
+            },
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
     };
@@ -59,6 +62,7 @@ mod test {
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         )
         .save(pool)
         .await

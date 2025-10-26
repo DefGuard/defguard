@@ -18,7 +18,10 @@ use thiserror::Error;
 use crate::{
     DeviceType,
     appstate::AppState,
-    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::wireguard::LocationMfaMode},
+    db::{
+        Device, GatewayEvent, Group, User, WireguardNetwork,
+        models::wireguard::{LocationMfaMode, ServiceLocationMode},
+    },
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
@@ -906,7 +909,8 @@ impl AclRule<Id> {
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+                service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \

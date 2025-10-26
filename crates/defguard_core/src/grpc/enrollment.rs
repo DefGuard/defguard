@@ -11,6 +11,14 @@ use defguard_mail::{
     Mail,
     templates::{self, TemplateLocation},
 };
+use defguard_proto::proxy::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
+    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
+    ServiceLocationMode as ProtoServiceLocationMode,
+};
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -26,7 +34,7 @@ use crate::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
-            wireguard::LocationMfaMode,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     enterprise::{
@@ -44,13 +52,6 @@ use crate::{
     },
     headers::get_device_info,
     is_valid_phone_number, server_config,
-};
-use defguard_proto::proxy::{
-    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
 };
 
 pub(super) struct EnrollmentServer {
@@ -1077,6 +1078,12 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             location_mfa_mode: Some(
                 <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(config.location_mfa_mode)
                     .into(),
+            ),
+            service_location_mode: Some(
+                <ServiceLocationMode as Into<ProtoServiceLocationMode>>::into(
+                    config.service_location_mode,
+                )
+                .into(),
             ),
         }
     }

@@ -5,7 +5,10 @@ use defguard_common::{
 use defguard_core::{
     db::{
         Device, Group, User, WireguardNetwork,
-        models::{device::DeviceType, wireguard::LocationMfaMode},
+        models::{
+            device::DeviceType,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
     },
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
@@ -427,6 +430,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         )
         .save(&pool)
         .await
@@ -767,6 +771,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await

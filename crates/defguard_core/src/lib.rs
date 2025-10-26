@@ -6,7 +6,6 @@ use std::{
     sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
-use crate::version::IncompatibleComponents;
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
@@ -89,31 +88,19 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::handlers::wireguard::{
-    add_device, add_user_devices, create_network, create_network_token, delete_device,
-    delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
-    list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway,
-};
-use self::handlers::worker::{
-    create_job, create_worker_token, job_status, list_workers, remove_worker,
-};
-use self::handlers::{
-    openid_clients::{
-        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        get_openid_client, list_openid_clients,
-    },
-    openid_flow::{
-        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
-    },
-};
 use self::{
     appstate::AppState,
+    auth::failed_login::FailedLoginMap,
     db::{
         AppEvent, Device, GatewayEvent, User, WireguardNetwork,
-        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        models::{
+            oauth2client::OAuth2Client,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
     },
+    grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::{
+        app_info::get_app_info,
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
             logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
@@ -126,6 +113,14 @@ use self::{
             remove_group_member,
         },
         mail::{send_support_data, test_mail},
+        openid_clients::{
+            add_openid_client, change_openid_client, change_openid_client_state,
+            delete_openid_client, get_openid_client, list_openid_clients,
+        },
+        openid_flow::{
+            authorization, discovery_keys, openid_configuration, secure_authorization, token,
+            userinfo,
+        },
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -142,14 +137,16 @@ use self::{
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
+        wireguard::{
+            add_device, add_user_devices, create_network, create_network_token, delete_device,
+            delete_network, devices_stats, download_config, gateway_status, get_device,
+            import_network, list_devices, list_networks, list_user_devices, modify_device,
+            modify_network, network_details, network_stats, remove_gateway,
+        },
+        worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
 };
-use self::{
-    auth::failed_login::FailedLoginMap,
-    db::models::oauth2client::OAuth2Client,
-    grpc::{WorkerState, gateway::map::GatewayMap},
-    handlers::app_info::get_app_info,
-};
+use crate::{db::models::wireguard::ServiceLocationMode, version::IncompatibleComponents};
 
 pub mod appstate;
 pub mod auth;
@@ -777,6 +774,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
@@ -874,6 +872,7 @@ pub async fn init_vpn_location(
                 false,
                 false,
                 LocationMfaMode::Disabled,
+                ServiceLocationMode::Disabled,
             )
             .save(&mut *transaction)
             .await?;
@@ -913,6 +912,7 @@ pub async fn init_vpn_location(
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         )
         .save(pool)
         .await?

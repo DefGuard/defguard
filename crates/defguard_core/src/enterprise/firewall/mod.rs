@@ -4,6 +4,11 @@ use std::{
 };
 
 use defguard_common::db::{Id, models::ModelError};
+use defguard_proto::enterprise::firewall::{
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
+    PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
+    port::Port as PortInner,
+};
 use ipnetwork::IpNetwork;
 use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
 
@@ -20,11 +25,6 @@ use crate::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
         is_enterprise_enabled,
     },
-};
-use defguard_proto::enterprise::firewall::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
-    PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
-    port::Port as PortInner,
 };
 
 #[derive(Debug, thiserror::Error)]

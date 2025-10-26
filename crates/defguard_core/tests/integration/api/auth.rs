@@ -20,12 +20,11 @@ use totp_lite::{Sha1, totp_custom};
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-use crate::api::common::client::TestResponse;
-
 use super::common::{
     X_FORWARDED_FOR, fetch_user_details, make_client, make_client_with_db, make_test_client,
     setup_pool,
 };
+use crate::api::common::client::TestResponse;
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 

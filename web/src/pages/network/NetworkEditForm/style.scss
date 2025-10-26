@@ -43,6 +43,19 @@
     }
   }
 
+  #service-location-mode-explain-message-box {
+    ul {
+      list-style-position: inside;
+      margin-top: 8px;
+
+      li {
+        p {
+          display: inline;
+        }
+      }
+    }
+  }
+
   .divider-header {
     padding-bottom: var(--spacing-s);
 

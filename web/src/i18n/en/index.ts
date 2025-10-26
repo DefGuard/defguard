@@ -1162,6 +1162,14 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         external: 'External MFA',
       },
     },
+    serviceLocationModeSelect: {
+      label: 'Service Location Mode',
+      options: {
+        disabled: 'Disabled',
+        prelogon: 'Pre-logon',
+        alwayson: 'Always-on',
+      },
+    },
   },
   settingsPage: {
     title: 'Settings',
@@ -2030,6 +2038,17 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
           external:
             'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
+          serviceLocationWarning:
+            "Location MFA can't be used when service location mode is enabled.",
+        },
+        serviceLocation: {
+          description:
+            'Choose if this location should work as a service location. This feature is currently not supported on every platform. Consult our [documentation](https://docs.defguard.net/features/service-locations) for more details.',
+          preLogon:
+            'Pre-logon - A VPN connection to this location will be active only before the user logs in on their device. When the user completes the login, the VPN connection will be terminated.',
+          alwaysOn:
+            'Always-on - A VPN connection will always be active when the user device is on.',
+          mfaWarning: "Service locations can't be used while location MFA is enabled.",
         },
       },
       sections: {
@@ -2038,6 +2057,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         mfa: {
           header: 'Multi-Factor Authentication',
+        },
+        serviceLocation: {
+          header: 'Service location',
         },
       },
       messages: {
@@ -2081,6 +2103,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         location_mfa_mode: {
           label: 'MFA requirement',
+        },
+        service_location_mode: {
+          label: 'Service location mode',
         },
       },
       controls: {

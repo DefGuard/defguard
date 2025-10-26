@@ -1,9 +1,8 @@
 use chrono::NaiveDateTime;
+use defguard_common::db::{Id, NoId};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
-
-use defguard_common::db::{Id, NoId};
 
 pub mod metadata;
 

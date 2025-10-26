@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE location_mfa_mode != 'disabled'::location_mfa_mode",
   "describe": {
     "columns": [
       {
@@ -88,12 +88,26 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 15,
+        "name": "service_location_mode: ServiceLocationMode",
+        "type_info": {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -110,8 +124,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "5350e57595e044cea6976a73910210e5106af580e45647ae620850de0b77785b"
+  "hash": "38970835606c0fb0d2cf1d87253cc2deb6e638c229a1929afe35d79dddfbdf67"
 }
