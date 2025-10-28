@@ -10,6 +10,7 @@ import type {
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
+  UserDevice,
   UserProfileResponse,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
@@ -32,6 +33,8 @@ const api = {
         new_password,
       }),
     resetPassword: (username: string) => client.post(`/user/${username}/reset_password`),
+    getUserDevices: (username: string) =>
+      client.get<UserDevice[]>(`/device/user/${username}`),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),

@@ -12,7 +12,14 @@ export const Route = createFileRoute('/')({
 
     if (responseData.data) {
       useAuth.getState().setUser(responseData.data);
+      throw redirect({
+        to: '/user/$username',
+        params: {
+          username: responseData.data.username,
+        },
+      });
     }
+    throw redirect({ to: '/auth/login' });
   },
 });
 

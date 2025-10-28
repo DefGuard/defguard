@@ -3,6 +3,7 @@
   "profile_my_profile": "My Profile",
   "profile_title": "{name} Profile",
   "profile_tabs_details": "Details",
+  "profile_tabs_devices": "Devices",
   "profile_general_card_title": "General",
   "profile_auth_card_title": "Password and authentication",
   "profile_auth_card_section_password": "Password settings",
@@ -19,5 +20,16 @@
   "profile_apps_no_data_title": "No authorized apps",
   "profile_apps_no_data_subtitle": "Applications you allow to log in with Defguard will appear here.",
   "profile_apps_card_title": "Authorized apps",
-  "profile_apps_card_subtitle": "These applications are allowed to log in with DefGuard. You can remove them from the list if you wish."
+  "profile_apps_card_subtitle": "These applications are allowed to log in with DefGuard. You can remove them from the list if you wish.",
+  "profile_devices_title": "All devices",
+  "profile_devices_add_new": "Add new device",
+  "profile_devices_col_name": "Device name",
+  "profile_devices_col_pub_ip": "Public IP",
+  "profile_device_col_location": "Connected through",
+  "profile_device_col_connected": "Connected date",
+  "profile_device_col_location_name": "Location name",
+  "profile_device_col_location_ip": "Assigned IP",
+  "profile_device_col_location_connected_from": "Last connected from",
+  "profile_device_col_location_connected": "Last connected",
+  "profile_device_col_never_connected": "Never connected"
 }

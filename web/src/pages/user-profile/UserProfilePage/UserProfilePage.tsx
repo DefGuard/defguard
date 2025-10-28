@@ -11,9 +11,11 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { userProfileQueryOptions } from '../../../shared/query';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
+import { ProfileDevicesTab } from './tabs/ProfileDevicesTab/ProfileDevicesTab';
 
 const tabs = {
   Details: 'details',
+  Devices: 'devices',
 } as const;
 
 type TabsValue = (typeof tabs)[keyof typeof tabs];
@@ -58,6 +60,11 @@ export const UserProfilePage = () => {
         active: activeTab === 'details',
         onClick: () => setActiveTab('details'),
       },
+      {
+        title: m.profile_tabs_devices(),
+        active: activeTab === tabs.Devices,
+        onClick: () => setActiveTab(tabs.Devices),
+      },
     ];
     return res;
   }, [activeTab]);
@@ -66,6 +73,8 @@ export const UserProfilePage = () => {
     switch (activeTab) {
       case 'details':
         return ProfileDetailsTab;
+      case 'devices':
+        return ProfileDevicesTab;
     }
   }, [activeTab]);
 

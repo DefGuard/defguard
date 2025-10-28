@@ -22,6 +22,8 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "@tanstack/react-router": "^1.133.22",
     "@tanstack/react-router-devtools": "^1.133.22",
+    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.12",
     "@uidotdev/usehooks": "^2.4.1",
     "axios": "^1.12.2",
     "change-case": "^5.4.4",
