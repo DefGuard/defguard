@@ -162,3 +162,14 @@ export interface WebauthnRegisterFinishRequest {
 export interface WebauthnLoginStartResponse {
   publicKey: PublicKeyCredentialJSON;
 }
+
+export interface StartEnrollmentRequest {
+  username: string;
+  send_enrollment_notification: boolean;
+  email?: string;
+}
+
+export interface StartEnrollmentResponse {
+  enrollment_url: string;
+  enrollment_token: string;
+}

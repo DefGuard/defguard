@@ -1,5 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "form_error_name_reserved": "Name already taken",
   "form_error_email": "Enter valid email",
   "form_error_required": "Field is required",
   "form_error_token": "Token is not valid",
@@ -28,5 +29,9 @@
   "form_label_user_groups": "User Groups",
   "form_label_current_password": "Current Password",
   "form_label_new_password": "New Password",
-  "form_label_confirm_new_password": "Confirm New Password"
+  "form_label_confirm_new_password": "Confirm New Password",
+  "form_label_url": "URL",
+  "form_label_token": "Token",
+  "form_label_device_name": "Device name",
+  "form_label_public_key": "Public key"
 }

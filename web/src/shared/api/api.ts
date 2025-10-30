@@ -7,6 +7,8 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  StartEnrollmentRequest,
+  StartEnrollmentResponse,
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
@@ -35,6 +37,8 @@ const api = {
     resetPassword: (username: string) => client.post(`/user/${username}/reset_password`),
     getUserDevices: (username: string) =>
       client.get<UserDevice[]>(`/device/user/${username}`),
+    startClientActivation: (data: StartEnrollmentRequest) =>
+      client.post<StartEnrollmentResponse>(`/user/${data.username}/start_desktop`, data),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),

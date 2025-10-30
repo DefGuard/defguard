@@ -1,0 +1,122 @@
+/* stylelint-disable no-descending-specificity */
+#add-device-client-step {
+  & > header p {
+    &:nth-child(1) {
+      font: var(--t-body-sm-500);
+      padding-bottom: var(--spacing-xs);
+    }
+
+    &:nth-child(2) {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+  }
+
+  .container-with-icon {
+    width: 100%;
+
+    header {
+      padding-bottom: var(--spacing-2xl);
+
+      h5 {
+        font: var(--t-body-primary-500);
+      }
+    }
+  }
+}
+
+#add-device-client-step #setup-desktop {
+  .buttons {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+
+    & > .download {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-end;
+      column-gap: var(--spacing-md);
+
+      & > p {
+        font: var(--t-body-xs-400);
+        color: var(--fg-muted);
+      }
+    }
+  }
+
+  .divider {
+    padding: var(--spacing-xl) 0;
+  }
+
+  header {
+    h5 {
+      padding-bottom: var(--spacing-lg);
+    }
+
+    p {
+      &:nth-child(2) {
+        font: var(--t-body-sm-600);
+        color: var(--fg-faded);
+      }
+
+      &:nth-child(3) {
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+
+        span {
+          color: var(--fg-attention);
+        }
+      }
+    }
+  }
+
+  .manual {
+    & > p {
+      &:nth-child(1) {
+        font: var(--t-body-sm-600);
+        color: var(--fg-faded);
+      }
+
+      &:nth-child(2) {
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+      }
+    }
+  }
+}
+
+#add-device-client-step #setup-mobile {
+  header {
+    p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-neutral);
+    }
+  }
+
+  .bottom {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    grid-template-rows: 1fr;
+    align-items: center;
+    column-gap: var(--spacing-4xl);
+  }
+
+  .download {
+    & > p {
+      font: var(--t-body-xs-500);
+      color: var(--fg-muted);
+      padding-bottom: var(--spacing-md);
+    }
+
+    .links {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-md);
+    }
+  }
+}

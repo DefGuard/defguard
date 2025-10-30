@@ -25,11 +25,12 @@
   "profile_devices_add_new": "Add new device",
   "profile_devices_col_name": "Device name",
   "profile_devices_col_pub_ip": "Public IP",
-  "profile_device_col_location": "Connected through",
-  "profile_device_col_connected": "Connected date",
-  "profile_device_col_location_name": "Location name",
-  "profile_device_col_location_ip": "Assigned IP",
-  "profile_device_col_location_connected_from": "Last connected from",
-  "profile_device_col_location_connected": "Last connected",
-  "profile_device_col_never_connected": "Never connected"
+  "profile_devices_col_location": "Connected through",
+  "profile_devices_col_connected": "Connected date",
+  "profile_devices_col_location_name": "Location name",
+  "profile_devices_col_location_ip": "Assigned IP",
+  "profile_devices_col_location_connected_from": "Last connected from",
+  "profile_devices_col_location_connected": "Last connected",
+  "profile_devices_col_never_connected": "Never connected",
+  "profile_devices_menu_show_config": "Show configuration"
 }

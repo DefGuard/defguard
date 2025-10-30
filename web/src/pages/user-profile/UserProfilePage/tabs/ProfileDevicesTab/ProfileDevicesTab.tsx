@@ -17,8 +17,11 @@ import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import type { DeviceNetworkInfo, UserDevice } from '../../../../../shared/api/types';
+import { AddUserDeviceModal } from '../../../../../shared/components/modals/AddUserDeviceModal/AddUserDeviceModal';
+import { useAddUserDeviceModal } from '../../../../../shared/components/modals/AddUserDeviceModal/store/useAddUserDeviceModal';
 import { Icon } from '../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type { MenuItemsGroup } from '../../../../../shared/defguard-ui/components/Menu/types';
 import {
   tableActionColumnSize,
   tableEditColumnSize,
@@ -39,6 +42,7 @@ interface RowData extends UserDevice {
 
 export const ProfileDevicesTab = () => {
   const devices = useUserProfile((s) => s.profile.devices);
+  const user = useUserProfile((s) => s.profile.user);
 
   // extract needed top level info from networks array so it's easier to configure columns via accessor helper
   const rowData = useMemo((): RowData[] => {
@@ -48,7 +52,7 @@ export const ProfileDevicesTab = () => {
         ['last_connected_at'],
         ['desc'],
       );
-      const fallbackValue = m.profile_device_col_never_connected();
+      const fallbackValue = m.profile_devices_col_never_connected();
       const latestConnection = ordered.at(0);
 
       const row: RowData = {
@@ -63,13 +67,25 @@ export const ProfileDevicesTab = () => {
   }, [devices.map]);
 
   return (
-    <LayoutGrid id="profile-devices-tab">
-      <SizedBox height={ThemeSpacing.Xl3} />
-      <ProfileTabHeader title={m.profile_devices_title()}>
-        <Button iconLeft="add-device" text={m.profile_devices_add_new()} />
-      </ProfileTabHeader>
-      {isPresent(rowData) && <DevicesTable devices={rowData} />}
-    </LayoutGrid>
+    <>
+      <LayoutGrid id="profile-devices-tab">
+        <SizedBox height={ThemeSpacing.Xl3} />
+        <ProfileTabHeader title={m.profile_devices_title()}>
+          <Button
+            iconLeft="add-device"
+            text={m.profile_devices_add_new()}
+            onClick={() => {
+              useAddUserDeviceModal.getState().open({
+                user,
+                devices,
+              });
+            }}
+          />
+        </ProfileTabHeader>
+        {isPresent(rowData) && <DevicesTable devices={rowData} />}
+      </LayoutGrid>
+      <AddUserDeviceModal />
+    </>
   );
 };
 
@@ -77,6 +93,30 @@ const columnHelper = createColumnHelper<RowData>();
 
 const DevicesTable = ({ devices }: { devices: RowData[] }) => {
   const tableData = useMemo(() => devices, [devices]);
+
+  const makeRowMenu = useCallback(
+    (_row: RowData): MenuItemsGroup[] => [
+      {
+        items: [
+          {
+            text: m.controls_edit(),
+            icon: 'edit',
+          },
+          {
+            text: m.profile_devices_menu_show_config(),
+            icon: 'config',
+          },
+          {
+            text: m.controls_delete(),
+            variant: 'danger',
+            icon: 'delete',
+          },
+        ],
+      },
+    ],
+    [],
+  );
+
   const tableColumns = useMemo(
     () => [
       columnHelper.display({
@@ -99,27 +139,27 @@ const DevicesTable = ({ devices }: { devices: RowData[] }) => {
         enableSorting: false,
         cell: (info) => (
           <TableCell>
-            <span>{info.getValue() ?? m.profile_device_col_never_connected()}</span>
+            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
           </TableCell>
         ),
       }),
       columnHelper.accessor('connected_ip', {
         id: 'connected_through',
-        header: m.profile_device_col_location(),
+        header: m.profile_devices_col_location(),
         enableSorting: false,
         cell: (info) => (
           <TableCell>
-            <span>{info.getValue() ?? m.profile_device_col_never_connected()}</span>
+            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
           </TableCell>
         ),
       }),
       columnHelper.accessor('connected_at', {
         id: 'connected_at',
-        header: m.profile_device_col_connected(),
+        header: m.profile_devices_col_connected(),
         enableSorting: false,
         cell: (info) => (
           <TableCell>
-            <span>{info.getValue() ?? m.profile_device_col_never_connected()}</span>
+            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
           </TableCell>
         ),
       }),
@@ -127,14 +167,17 @@ const DevicesTable = ({ devices }: { devices: RowData[] }) => {
         id: 'edit',
         header: '',
         size: tableEditColumnSize,
-        cell: () => (
-          <TableCell alignContent="center" noPadding>
-            <IconButtonMenu icon="menu" menuItems={[]} />
-          </TableCell>
-        ),
+        cell: (info) => {
+          const menuItems = makeRowMenu(info.row.original);
+          return (
+            <TableCell alignContent="center" noPadding>
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
+            </TableCell>
+          );
+        },
       }),
     ],
-    [],
+    [makeRowMenu],
   );
 
   const renderExpandedRow = useCallback(
@@ -156,7 +199,7 @@ const DevicesTable = ({ devices }: { devices: RowData[] }) => {
             </TableCell>
             <TableCell>
               <span>
-                {network.last_connected_ip ?? m.profile_device_col_never_connected()}
+                {network.last_connected_ip ?? m.profile_devices_col_never_connected()}
               </span>
             </TableCell>
             <TableCell>
@@ -164,7 +207,7 @@ const DevicesTable = ({ devices }: { devices: RowData[] }) => {
             </TableCell>
             <TableCell>
               <span>
-                {network.last_connected_at ?? m.profile_device_col_never_connected()}
+                {network.last_connected_at ?? m.profile_devices_col_never_connected()}
               </span>
             </TableCell>
             <TableCell empty />
@@ -178,10 +221,10 @@ const DevicesTable = ({ devices }: { devices: RowData[] }) => {
   const expandedRowHeaders = useMemo(
     () => [
       '',
-      m.profile_device_col_location_name(),
-      m.profile_device_col_location_ip(),
-      m.profile_device_col_location_connected_from(),
-      m.profile_device_col_location_connected(),
+      m.profile_devices_col_location_name(),
+      m.profile_devices_col_location_ip(),
+      m.profile_devices_col_location_connected_from(),
+      m.profile_devices_col_location_connected(),
       '',
     ],
     [],

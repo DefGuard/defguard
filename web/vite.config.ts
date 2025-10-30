@@ -1,3 +1,4 @@
+import {devtools} from "@tanstack/devtools-vite";
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { defineConfig } from 'vite';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
@@ -28,6 +29,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    devtools(),
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide', 

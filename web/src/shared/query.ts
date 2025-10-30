@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import type { UserProfile } from './api/types';
+import { updateServiceApi } from './api/update-service';
 
 export const userMeQueryOptions = queryOptions({
   queryFn: () => api.user.getMe,
@@ -31,3 +32,12 @@ export const userProfileQueryOptions = (username: string) =>
     refetchOnMount: true,
     refetchOnReconnect: true,
   });
+
+export const clientArtifactsQueryOptions = queryOptions({
+  queryFn: updateServiceApi.getClientArtifacts,
+  queryKey: ['update-service', 'artifacts'],
+  staleTime: 180 * 1000,
+  refetchOnWindowFocus: false,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+});
