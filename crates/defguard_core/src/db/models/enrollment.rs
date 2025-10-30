@@ -394,7 +394,7 @@ impl User<Id> {
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends enrollment email notification to user
     pub async fn start_enrollment(
-        &self,
+        &mut self,
         transaction: &mut PgConnection,
         admin: &User<Id>,
         email: Option<String>,
@@ -446,6 +446,11 @@ impl User<Id> {
             "Saved a new enrollment token with id {} for user {}.",
             enrollment.id, self.username
         );
+
+        // Mark the user with enrollment-pending flag.
+        // https://github.com/DefGuard/client/issues/647
+        self.enrollment_pending = true;
+        self.save(&mut *transaction).await?;
 
         if send_user_notification {
             if let Some(email) = email {

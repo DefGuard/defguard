@@ -427,11 +427,6 @@ pub async fn start_enrollment(
     debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
-    // Mark the user with enrollment-pending flag.
-    // https://github.com/DefGuard/client/issues/647
-    user.enrollment_pending = true;
-    user.save(&mut *transaction).await?;
-
     let config = server_config();
     let enrollment_token = user
         .start_enrollment(

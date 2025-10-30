@@ -1658,41 +1658,41 @@ mod test {
         user.openid_sub = Some("sub".to_string());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
-		assert!(user.is_enrolled());
+        assert!(user.is_enrolled());
 
         user.enrollment_pending = false;
         user.password_hash = None;
         user.openid_sub = Some("sub".to_string());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
-		assert!(user.is_enrolled());
+        assert!(user.is_enrolled());
 
         user.enrollment_pending = false;
         user.password_hash = None;
         user.openid_sub = None;
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
-		assert!(user.is_enrolled());
+        assert!(user.is_enrolled());
 
         user.enrollment_pending = false;
         user.password_hash = None;
         user.openid_sub = None;
         user.from_ldap = false;
         user.save(&pool).await.unwrap();
-		assert!(!user.is_enrolled());
+        assert!(!user.is_enrolled());
 
         user.enrollment_pending = true;
         user.password_hash = None;
         user.openid_sub = None;
         user.from_ldap = false;
         user.save(&pool).await.unwrap();
-		assert!(!user.is_enrolled());
+        assert!(!user.is_enrolled());
 
         user.enrollment_pending = true;
         user.password_hash = Some(hash_password("31071980").unwrap());
         user.openid_sub = Some("sub".to_string());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
-		assert!(!user.is_enrolled());
+        assert!(!user.is_enrolled());
     }
 }
