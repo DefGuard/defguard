@@ -461,6 +461,7 @@ pub(crate) async fn start_network_device_setup(
     };
     let config = server_config();
     let configuration_token = user
+        .clone()
         .start_remote_desktop_configuration(
             &mut transaction,
             &user,
@@ -527,6 +528,7 @@ pub(crate) async fn start_network_device_setup_for_device(
         })?;
     let config = server_config();
     let configuration_token = user
+        .clone()
         .start_remote_desktop_configuration(
             &mut transaction,
             &user,

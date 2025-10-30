@@ -506,7 +506,7 @@ impl User<Id> {
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends email notification to user
     pub async fn start_remote_desktop_configuration(
-        &self,
+        &mut self,
         transaction: &mut PgConnection,
         admin: &User<Id>,
         email: Option<String>,
@@ -560,6 +560,11 @@ impl User<Id> {
             "Saved a new desktop activation token with id {} for user {}.",
             desktop_configuration.id, self.username
         );
+
+        // Mark the user with enrollment-pending flag.
+        // https://github.com/DefGuard/client/issues/647
+        self.enrollment_pending = true;
+        self.save(&mut *transaction).await?;
 
         if send_user_notification {
             if let Some(email) = email {

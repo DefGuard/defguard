@@ -518,7 +518,7 @@ pub async fn start_remote_desktop_configuration(
     debug!(
         "Verify that the user from the current session is an admin or only peforms desktop activation for self."
     );
-    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Successfully fetched user data: {user:?}");
 
     // if email is None assume that email should be sent to enrolling user
