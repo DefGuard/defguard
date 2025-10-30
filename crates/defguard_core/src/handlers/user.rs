@@ -417,7 +417,7 @@ pub async fn start_enrollment(
         "Search for the user {} in database to get started with enrollment process.",
         username
     );
-    let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
+    let Some(mut user) = User::find_by_username(&appstate.pool, &username).await? else {
         error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
@@ -426,6 +426,11 @@ pub async fn start_enrollment(
 
     debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
+
+    // Mark the user with enrollment-pending flag.
+    // https://github.com/DefGuard/client/issues/647
+    user.enrollment_pending = true;
+    user.save(&mut *transaction).await?;
 
     let config = server_config();
     let enrollment_token = user
@@ -440,7 +445,7 @@ pub async fn start_enrollment(
         )
         .await?;
 
-    debug!("Try to commit transaction to save the enrollment token into the databse.");
+    debug!("Try to commit transaction to save the enrollment token into the database.");
     transaction.commit().await?;
     debug!("Transaction committed.");
 
