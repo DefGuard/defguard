@@ -244,12 +244,17 @@ impl<I> User<I> {
         format!("{} {}", self.first_name, self.last_name)
     }
 
-    /// Check if user is enrolled.
-    /// We assume the user is enrolled if they have a password set
-    /// or they have logged in using an external OIDC.
+    /// Determines whether the user is considered enrolled.
+    ///
+    /// A user is treated as enrolled if:
+    /// - The `enrollment_pending` flag is **not** set, i.e. enrollment was not requested by an
+    ///   administrator (https://github.com/DefGuard/client/issues/647).
+    /// - They either have a password configured, have authenticated via an external OIDC provider
+    ///   or were synced from LDAP.
     #[must_use]
     pub fn is_enrolled(&self) -> bool {
-        self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
+        !self.enrollment_pending
+            && (self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap)
     }
 
     #[must_use]
@@ -1633,5 +1638,61 @@ mod test {
         assert_eq!(users.len(), 2);
         assert_eq!(users[0].id, user1.id);
         assert_eq!(users[1].id, albus.id);
+    }
+
+    #[sqlx::test]
+    async fn test_user_is_enrolled(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = User::new(
+            "test",
+            Some("31071980"),
+            "harry",
+            "potter",
+            "harry@hogwart.edu.uk",
+            None,
+        );
+        let mut user = user.save(&pool).await.unwrap();
+
+        user.enrollment_pending = false;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+		assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+		assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+		assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        user.save(&pool).await.unwrap();
+		assert!(!user.is_enrolled());
+
+        user.enrollment_pending = true;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        user.save(&pool).await.unwrap();
+		assert!(!user.is_enrolled());
+
+        user.enrollment_pending = true;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+		assert!(!user.is_enrolled());
     }
 }
