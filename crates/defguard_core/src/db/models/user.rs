@@ -96,6 +96,10 @@ pub struct User<I = NoId> {
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
     pub(crate) recovery_codes: Vec<String>,
+    /// Indicates that an administrator has requested an enrollment token for this user.
+    /// Uninitialized clients should then guide the user through enrollment process.
+    /// Related issue: https://github.com/DefGuard/client/issues/647.
+    pub(crate) enrollment_pending: bool,
 }
 
 // TODO: Refactor the user struct to use SecretStringWrapper instead of this
@@ -122,6 +126,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             email_mfa_secret: _,
             mfa_method,
             recovery_codes,
+            enrollment_pending,
         } = self;
 
         f.debug_struct("User")
@@ -148,6 +153,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             .field("password_hash", &"***")
             .field("totp_secret", &"***")
             .field("email_mfa_secret", &"***")
+            .field("enrollment_pending", enrollment_pending)
             .finish()
     }
 }
@@ -201,6 +207,7 @@ impl User {
             ldap_pass_randomized: false,
             ldap_rdn: Some(username.clone()),
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
@@ -675,7 +682,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -826,7 +833,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -846,7 +853,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -900,7 +907,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE openid_sub = $1",
             sub
         )
@@ -1130,7 +1137,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1181,7 +1188,7 @@ impl User<Id> {
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
@@ -1227,6 +1234,7 @@ impl Distribution<User<Id>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
@@ -1267,6 +1275,7 @@ impl Distribution<User<NoId>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
