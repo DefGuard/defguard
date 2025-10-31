@@ -506,7 +506,7 @@ impl User<Id> {
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends email notification to user
     pub async fn start_remote_desktop_configuration(
-        &mut self,
+        &self,
         transaction: &mut PgConnection,
         admin: &User<Id>,
         email: Option<String>,
