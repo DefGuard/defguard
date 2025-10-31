@@ -1,5 +1,3 @@
-use std::u64;
-
 use defguard_core::{
     db::{User, models::enrollment::Token},
     handlers::{AddUserData, Auth},
@@ -216,7 +214,7 @@ async fn test_request_enrollment(_: PgPoolOptions, options: PgConnectOptions) {
     // verify enrollment token was created correctly
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
-    let token = tokens.get(0).unwrap();
+    let token = tokens.first().unwrap();
     assert!(token.used_at.is_none());
 }
 
@@ -273,7 +271,7 @@ async fn test_enrollment_pending_unset_for_desktop_client(
     // verify enrollment token was created correctly
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
-    let token = tokens.get(0).unwrap();
+    let token = tokens.first().unwrap();
     assert!(token.used_at.is_none());
 
     // verify enrollment variables
