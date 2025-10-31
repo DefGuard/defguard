@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" WHERE ldap_user_path IS NULL\n            ",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" WHERE username = $1",
   "describe": {
     "columns": [
       {
@@ -114,10 +114,17 @@
         "ordinal": 19,
         "name": "ldap_user_path",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "enrollment_pending",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -139,8 +146,9 @@
       false,
       false,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "9aa803c71e997fb57e12108041077b49a6b3fbf202c63031bf38e9c68cc1fb31"
+  "hash": "fd671557afabd523045f73a2f32e876821bd29b49c096d798754857b22089c21"
 }

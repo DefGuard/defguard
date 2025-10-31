@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"is_active\" = $9,\"from_ldap\" = $10,\"ldap_pass_randomized\" = $11,\"ldap_rdn\" = $12,\"ldap_user_path\" = $13,\"openid_sub\" = $14,\"totp_enabled\" = $15,\"email_mfa_enabled\" = $16,\"totp_secret\" = $17,\"email_mfa_secret\" = $18,\"mfa_method\" = $19,\"recovery_codes\" = $20 WHERE id = $1",
+  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"is_active\" = $9,\"from_ldap\" = $10,\"ldap_pass_randomized\" = $11,\"ldap_rdn\" = $12,\"ldap_user_path\" = $13,\"openid_sub\" = $14,\"totp_enabled\" = $15,\"email_mfa_enabled\" = $16,\"totp_secret\" = $17,\"email_mfa_secret\" = $18,\"mfa_method\" = $19,\"recovery_codes\" = $20,\"enrollment_pending\" = $21 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -36,10 +36,11 @@
             }
           }
         },
-        "TextArray"
+        "TextArray",
+        "Bool"
       ]
     },
     "nullable": []
   },
-  "hash": "e428a1588ae20f1b217396600a4181dd9567568ff05c5ebcd94677aa66010c6c"
+  "hash": "b855a2bc8e31ac52f8e23f783652116227f55516d17150bd4f370d21f2e1a46b"
 }

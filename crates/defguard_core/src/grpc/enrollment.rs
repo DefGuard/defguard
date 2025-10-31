@@ -459,6 +459,16 @@ impl EnrollmentServer {
             )?;
         }
 
+        // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).
+        user.enrollment_pending = false;
+        user.save(&mut *transaction).await.map_err(|err| {
+            error!(
+                "Failed to unset enrollment_pending flag for user {}: {err}",
+                user.username
+            );
+            Status::internal("unexpected error")
+        })?;
+
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit transaction: {err}");
             Status::internal("unexpected error")

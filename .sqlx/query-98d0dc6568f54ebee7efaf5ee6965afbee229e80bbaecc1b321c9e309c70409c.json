@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
+  "query": "SELECT \"user\".id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id WHERE \"group\".name = $1",
   "describe": {
     "columns": [
       {
@@ -114,11 +114,16 @@
         "ordinal": 19,
         "name": "ldap_user_path",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "enrollment_pending",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -141,8 +146,9 @@
       false,
       false,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "f9b514b027dbca84d45db0a1d4cb3f58927885992773f753abf0a524ff2d783f"
+  "hash": "98d0dc6568f54ebee7efaf5ee6965afbee229e80bbaecc1b321c9e309c70409c"
 }
