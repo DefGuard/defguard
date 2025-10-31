@@ -517,19 +517,6 @@ impl EnrollmentServer {
         })?;
         debug!("Enterprise settings: {enterprise_settings:?}");
 
-        if !user.is_admin(&self.pool).await.map_err(|err| {
-            error!(
-                "Failed to fetch admin status for user {}({:?}): {err}",
-                user.username, user.id,
-            );
-            Status::internal("unexpected error")
-        })? && enterprise_settings.admin_device_management
-        {
-            return Err(Status::invalid_argument(
-                "only admin users can manage devices",
-            ));
-        }
-
         // add device
         debug!(
             "Verifying if user {}({:?}) is active",

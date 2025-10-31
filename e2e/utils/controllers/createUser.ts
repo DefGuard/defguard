@@ -16,7 +16,12 @@ export const createUser = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.users);
+  await page.goto(routes.base + routes.admin.users, {
+    waitUntil: 'networkidle',
+  });
+  await page.getByTestId('add-user').waitFor({
+    state: 'visible',
+  });
   await page.getByTestId('add-user').click();
   const formElement = page.getByTestId('add-user-form');
   await formElement.waitFor({ state: 'visible' });
