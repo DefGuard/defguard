@@ -561,11 +561,6 @@ impl User<Id> {
             desktop_configuration.id, self.username
         );
 
-        // Mark the user with enrollment-pending flag.
-        // https://github.com/DefGuard/client/issues/647
-        self.enrollment_pending = true;
-        self.save(&mut *transaction).await?;
-
         if send_user_notification {
             if let Some(email) = email {
                 debug!(
