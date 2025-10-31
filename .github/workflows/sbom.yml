@@ -14,6 +14,8 @@ on:
 
 jobs:
   create-sbom:
+    permissions:
+      contents: write
     runs-on: [self-hosted, Linux, X64]
 
     steps:
@@ -41,6 +43,7 @@ jobs:
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
+          skip-dirs: "e2e"
 
       - name: Create docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.33.1
@@ -61,11 +64,12 @@ jobs:
           scan-ref: '.'
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
+          skip-dirs: "e2e"
 
       - name: Create docker image security advisory file with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: "ghcr.io/defguard/gateway:${{ steps.vars.outputs.VERSION }}"
+          image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
           format: 'json'
           output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.advisories.json"
