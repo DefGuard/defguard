@@ -99,7 +99,7 @@ pub struct User<I = NoId> {
     /// Indicates that an administrator has requested an enrollment token for this user.
     /// Uninitialized clients should then guide the user through enrollment process.
     /// Related issue: https://github.com/DefGuard/client/issues/647.
-    pub(crate) enrollment_pending: bool,
+    pub enrollment_pending: bool,
 }
 
 // TODO: Refactor the user struct to use SecretStringWrapper instead of this
