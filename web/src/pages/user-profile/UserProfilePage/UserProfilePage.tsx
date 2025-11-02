@@ -2,7 +2,7 @@ import './style.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { trainCase } from 'change-case';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Page } from '../../../shared/components/Page/Page';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
@@ -77,10 +77,6 @@ export const UserProfilePage = () => {
         return ProfileDevicesTab;
     }
   }, [activeTab]);
-
-  useEffect(() => {
-    store.setState({ profile: userProfile });
-  }, [userProfile, store]);
 
   return (
     <UserProfileContext value={store}>

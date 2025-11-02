@@ -51,5 +51,14 @@
   "modal_add_user_device_manual_setup_explain": "Configure WireGuardVPN on your device, please visit documentation if you don't know how to do it.",
   "modal_add_user_device_manual_setup_choice": "Choose setup method",
   "modal_add_user_device_manual_setup_choice_auto": "Generate key pair",
-  "modal_add_user_device_manual_setup_choice_manual": "Use your own keys"
+  "modal_add_user_device_manual_setup_choice_manual": "Use your own keys",
+  "modal_add_user_device_manual_download_warn_title": "Important",
+  "modal_add_user_device_manual_download_warn_content": "Please download the configuration file now, as we do not store your private keys. After this window is closed, you will not be able to retrieve the full configuration file (only a blank template).",
+  "modal_add_user_device_manual_download_location_label": "Config file for location",
+  "modal_add_user_device_manual_download_explain": "Scan the QR code or import the configuration file into your device's WireGuard app.",
+  "modal_add_user_device_manual_download_actions_download": "Download config file",
+  "modal_add_user_device_manual_download_actions_download_one": "This location only",
+  "modal_add_user_device_manual_download_actions_download_all": "All locations",
+  "modal_edit_user_device_title": "Edit device",
+  "modal_user_device_config_title": "Device VPN configuration"
 }

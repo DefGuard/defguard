@@ -7,12 +7,14 @@ import { ProfileTabHeader } from '../../components/ProfileTabHeader/ProfileTabHe
 import './style.scss';
 import { AddUserDeviceModal } from '../../../../../shared/components/modals/AddUserDeviceModal/AddUserDeviceModal';
 import { useAddUserDeviceModal } from '../../../../../shared/components/modals/AddUserDeviceModal/store/useAddUserDeviceModal';
+import { EditUserDeviceModal } from '../../../../../shared/components/modals/EditUserDeviceModal/EditUserDeviceModal';
+import { UserDeviceConfigModal } from '../../../../../shared/components/modals/UserDeviceConfigModal/UserDeviceConfigModal';
 import { useUserProfile } from '../../hooks/useUserProfilePage';
 import { ProfileDevicesTable } from './components/ProfileDevicesTable/ProfileDevicesTable';
 
 export const ProfileDevicesTab = () => {
-  const devices = useUserProfile((s) => s.profile.devices);
-  const user = useUserProfile((s) => s.profile.user);
+  const devices = useUserProfile((s) => s.devices);
+  const user = useUserProfile((s) => s.user);
 
   return (
     <>
@@ -33,6 +35,8 @@ export const ProfileDevicesTab = () => {
         <ProfileDevicesTable />
       </LayoutGrid>
       <AddUserDeviceModal />
+      <EditUserDeviceModal />
+      <UserDeviceConfigModal />
     </>
   );
 };

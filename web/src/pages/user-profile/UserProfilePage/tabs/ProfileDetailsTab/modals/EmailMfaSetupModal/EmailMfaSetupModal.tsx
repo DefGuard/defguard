@@ -77,7 +77,7 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
-  const user = useUserProfile((s) => s.profile.user);
+  const user = useUserProfile((s) => s.user);
 
   const { mutateAsync: enableMfa } = useMutation({
     mutationFn: api.auth.mfa.email.enable,

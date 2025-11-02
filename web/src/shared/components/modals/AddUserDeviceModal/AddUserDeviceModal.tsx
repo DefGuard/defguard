@@ -14,6 +14,21 @@ export const AddUserDeviceModal = () => {
     useShallow((s) => [s.close, s.reset]),
   );
 
+  const activeStep = useAddUserDeviceModal((s) => s.step);
+
+  const modalTitle = useMemo(() => {
+    switch (activeStep) {
+      case 'start-choice':
+        return m.modal_add_user_device_title_add();
+      case 'client-setup':
+        return m.modal_add_user_device_title_add();
+      case 'manual-setup':
+        return m.modal_add_user_device_title_manual();
+      case 'manual-configuration':
+        return m.modal_add_user_device_title_save();
+    }
+  }, [activeStep]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: onUnmount
   useEffect(() => {
     return () => {
@@ -25,7 +40,7 @@ export const AddUserDeviceModal = () => {
     <Modal
       id="add-user-device-modal"
       size="primary"
-      title={m.modal_add_user_device_title_add()}
+      title={modalTitle}
       isOpen={isOpen}
       onClose={() => {
         closeModal();

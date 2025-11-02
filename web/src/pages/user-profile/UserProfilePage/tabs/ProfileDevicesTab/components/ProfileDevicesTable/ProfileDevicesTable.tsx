@@ -1,9 +1,4 @@
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
-import type {
-  DeviceNetworkInfo,
-  UserDevice,
-} from '../../../../../../../shared/api/types';
-import './style.scss';
+import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -14,7 +9,13 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import orderBy from 'lodash-es/orderBy';
+import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
+import api from '../../../../../../../shared/api/api';
+import type {
+  DeviceNetworkInfo,
+  UserDevice,
+} from '../../../../../../../shared/api/types';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/components/Menu/types';
@@ -28,6 +29,9 @@ import { TableExpandCell } from '../../../../../../../shared/defguard-ui/compone
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { renderTableCellValue } from '../../../../../../../shared/defguard-ui/components/table/utils/renderTableCellValue';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+import { displayDate } from '../../../../../../../shared/utils/displayDate';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
 interface RowData extends UserDevice {
@@ -37,7 +41,8 @@ interface RowData extends UserDevice {
 }
 
 export const ProfileDevicesTable = () => {
-  const devices = useUserProfile((s) => s.profile.devices);
+  const devices = useUserProfile((s) => s.devices);
+
   const rowData = useMemo((): RowData[] => {
     const rowData: RowData[] = devices.map((device) => {
       const ordered = orderBy(
@@ -50,14 +55,16 @@ export const ProfileDevicesTable = () => {
 
       const row: RowData = {
         ...device,
-        connected_at: latestConnection?.last_connected_at ?? fallbackValue,
+        connected_at: latestConnection?.last_connected_at
+          ? displayDate(latestConnection.last_connected_at)
+          : fallbackValue,
         connected_ip: latestConnection?.last_connected_ip ?? fallbackValue,
         network_gateway_ip: latestConnection?.network_gateway_ip ?? fallbackValue,
       };
       return row;
     });
     return rowData;
-  }, [devices.map]);
+  }, [devices]);
 
   if (isPresent(rowData)) return <DevicesTable rowData={rowData} />;
 
@@ -67,29 +74,54 @@ export const ProfileDevicesTable = () => {
 const columnHelper = createColumnHelper<RowData>();
 
 const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
+  const username = useUserProfile((s) => s.user.username);
   const tableData = useMemo(() => rowData, [rowData]);
 
+  const reservedNames = useMemo(() => rowData.map((row) => row.name), [rowData]);
+
+  const { mutate: deleteDevice } = useMutation({
+    mutationFn: api.device.deleteDevice,
+    meta: {
+      invalidate: ['user', username],
+    },
+  });
+
   const makeRowMenu = useCallback(
-    (_row: RowData): MenuItemsGroup[] => [
+    (row: RowData): MenuItemsGroup[] => [
       {
         items: [
           {
             text: m.controls_edit(),
             icon: 'edit',
+            onClick: () => {
+              openModal(ModalName.EditUserDevice, {
+                device: row,
+                reservedNames: reservedNames,
+                username,
+              });
+            },
           },
           {
             text: m.profile_devices_menu_show_config(),
+            onClick: () => {
+              api.device.getDeviceConfigs(row).then((modalData) => {
+                openModal(ModalName.UserDeviceConfig, modalData);
+              });
+            },
             icon: 'config',
           },
           {
             text: m.controls_delete(),
+            onClick: () => {
+              deleteDevice(row.id);
+            },
             variant: 'danger',
             icon: 'delete',
           },
         ],
       },
     ],
-    [],
+    [reservedNames, username, deleteDevice],
   );
 
   const tableColumns = useMemo(
@@ -132,11 +164,14 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         id: 'connected_at',
         header: m.profile_devices_col_connected(),
         enableSorting: false,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
-          </TableCell>
-        ),
+        size: 175,
+        cell: (info) => {
+          return (
+            <TableCell>
+              <span>{info.getValue()}</span>
+            </TableCell>
+          );
+        },
       }),
       columnHelper.display({
         id: 'edit',
@@ -182,7 +217,9 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             </TableCell>
             <TableCell>
               <span>
-                {network.last_connected_at ?? m.profile_devices_col_never_connected()}
+                {!network.last_connected_at && m.profile_devices_col_never_connected()}
+                {isPresent(network.last_connected_at) &&
+                  displayDate(network.last_connected_at)}
               </span>
             </TableCell>
             <TableCell empty />

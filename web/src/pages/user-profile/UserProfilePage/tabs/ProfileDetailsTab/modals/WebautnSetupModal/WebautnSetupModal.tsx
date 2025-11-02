@@ -67,7 +67,7 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
-  const user = useUserProfile((s) => s.profile.user);
+  const user = useUserProfile((s) => s.user);
   const queryClient = useQueryClient();
 
   const form = useAppForm({

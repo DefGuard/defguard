@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User, UserDevice } from '../../../../api/types';
+import type { AddDeviceResponse, User, UserDevice } from '../../../../api/types';
 import { AddUserDeviceModalStep, type AddUserDeviceModalStepValue } from '../types';
 
 interface StoreValues {
@@ -11,10 +11,7 @@ interface StoreValues {
   };
   user?: User;
   devices?: UserDevice[];
-  networks?: Array<{
-    id: number;
-    name: string;
-  }>;
+  createDeviceResponse?: AddDeviceResponse;
   manualConfig?: {
     publicKey: string;
     privateKey?: string;
@@ -37,7 +34,7 @@ const defaults: StoreValues = {
   step: AddUserDeviceModalStep.StartChoice,
   devices: undefined,
   user: undefined,
-  networks: undefined,
+  createDeviceResponse: undefined,
   manualConfig: undefined,
   enrollment: undefined,
 };

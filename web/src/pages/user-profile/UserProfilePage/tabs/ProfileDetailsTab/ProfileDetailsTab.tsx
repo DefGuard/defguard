@@ -17,7 +17,7 @@ import { TotpSetupModal } from './modals/TotpSetupModal/TotpSetupModal';
 import { WebautnSetupModal } from './modals/WebautnSetupModal/WebautnSetupModal';
 
 export const ProfileDetailsTab = () => {
-  const authorizedApps = useUserProfile((s) => s.profile.user.authorized_apps);
+  const authorizedApps = useUserProfile((s) => s.user.authorized_apps);
 
   return (
     <LayoutGrid id="profile-details">

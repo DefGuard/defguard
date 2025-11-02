@@ -6,7 +6,7 @@ interface ProfileProps {
   profile: UserProfile;
 }
 
-interface ProfileState extends ProfileProps {
+interface ProfileState extends UserProfile {
   reset: () => void;
 }
 
@@ -14,8 +14,8 @@ type UserProfileStore = ReturnType<typeof createUserProfileStore>;
 
 export const createUserProfileStore = (initialProps: ProfileProps) => {
   return createStore<ProfileState>()((set) => ({
-    ...initialProps,
-    reset: () => set(initialProps),
+    ...initialProps.profile,
+    reset: () => set(initialProps.profile),
   }));
 };
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { m } from '../../../../../../paraglide/messages';
 import api from '../../../../../api/api';
 import { Fold } from '../../../../../defguard-ui/components/Fold/Fold';
+import { FoldButton } from '../../../../../defguard-ui/components/FoldButton/FoldButton';
 import { Icon } from '../../../../../defguard-ui/components/Icon';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
@@ -54,21 +55,12 @@ export const AddDeviceModalStartStep = () => {
         <Icon icon="arrow-small" rotationDirection="right" />
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <div className="fold-header">
-        <button
-          className="fold-control"
-          onClick={() => {
-            setAdvancedOpen((s) => !s);
-          }}
-        >
-          <Icon icon="config" />
-          <span>
-            {advancedOpen
-              ? m.modal_add_user_device_hide_advanced()
-              : m.modal_add_user_device_show_advanced()}
-          </span>
-        </button>
-      </div>
+      <FoldButton
+        open={advancedOpen}
+        onChange={setAdvancedOpen}
+        textClose={m.modal_add_user_device_hide_advanced()}
+        textOpen={m.modal_add_user_device_show_advanced()}
+      />
       <Fold open={advancedOpen}>
         <SizedBox height={ThemeSpacing.Md} />
         <div

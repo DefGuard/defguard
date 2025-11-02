@@ -1,7 +1,11 @@
 import { client } from './api-client';
 import type {
+  AddDeviceRequest,
+  AddDeviceResponse,
+  AddDeviceResponseConfig,
   AdminChangeUserPasswordRequest,
   ApplicationInfo,
+  Device,
   EnableMfaMethodResponse,
   LoginRequest,
   LoginResponse,
@@ -88,6 +92,35 @@ const api = {
             client.post<LoginResponseBasic>('/auth/webauthn', data),
         },
       },
+    },
+  },
+  device: {
+    addDevice: ({ username, ...data }: AddDeviceRequest) =>
+      client.post<AddDeviceResponse>(`/device/${username}`, data),
+    deleteDevice: (deviceId: number) => client.delete(`/device/${deviceId}`),
+    editDevice: (device: Device) => client.put<Device>(`/device/${device.id}`, device),
+    getDevice: (deviceId: number) => client.get<Device>(`/device/${deviceId}`),
+    getDevices: () => client.get<Device[]>('/device'),
+    getDeviceConfig: ({ deviceId, networkId }: { networkId: number; deviceId: number }) =>
+      client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
+    getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
+      const networkConfigurations: AddDeviceResponseConfig[] = [];
+      for (const network of device.networks) {
+        const { data: config } = await api.device.getDeviceConfig({
+          deviceId: device.id,
+          networkId: network.network_id,
+        });
+        networkConfigurations.push({
+          config: config,
+          network_id: network.network_id,
+          network_name: network.network_name,
+        });
+      }
+
+      return {
+        configs: networkConfigurations,
+        device,
+      };
     },
   },
 } as const;

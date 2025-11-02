@@ -1,3 +1,20 @@
 #add-user-device-manual-download {
-  padding-top: 0;
+  .modal-controls {
+    padding: 0;
+  }
+
+  & > p {
+    &:nth-child(1) {
+      font: var(--t-body-sm-500);
+    }
+
+    &:nth-child(2) {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+  }
+
+  & > .divider {
+    padding: var(--spacing-2xl) 0;
+  }
 }

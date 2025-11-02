@@ -31,8 +31,8 @@ import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
 export const ProfileAuthCard = () => {
-  const securityKeys = useUserProfile((s) => s.profile.security_keys);
-  const user = useUserProfile((s) => s.profile.user);
+  const securityKeys = useUserProfile((s) => s.security_keys);
+  const user = useUserProfile((s) => s.user);
   const authUsername = useAuth((s) => s.user?.username as string);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
 

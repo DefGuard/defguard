@@ -184,11 +184,8 @@ export const AddDeviceModalClientConfigStep = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
         </Fold>
         <FoldButton
-          text={(isOpen) =>
-            isOpen
-              ? m.modal_add_user_device_client_fold_open()
-              : m.modal_add_user_device_client_fold_closed()
-          }
+          textClose={m.modal_add_user_device_client_fold_open()}
+          textOpen={m.modal_add_user_device_client_fold_closed()}
           open={manualOpen}
           onChange={setManualOpen}
         />

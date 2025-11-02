@@ -6,10 +6,13 @@ import { useAppForm, withForm } from '../../../../../defguard-ui/form';
 import { formChangeLogic } from '../../../../../form';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import api from '../../../../../api/api';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { patternValidWireguardKey } from '../../../../../patterns';
+import { generateWGKeys } from '../../../../../utils/generateWGKeys';
 import { useAddUserDeviceModal } from '../../store/useAddUserDeviceModal';
 import { AddUserDeviceModalStep } from '../../types';
 
@@ -55,6 +58,14 @@ const defaultValues: FormFields = {
 
 export const AddDeviceModalManualSetupStep = () => {
   const devices = useAddUserDeviceModal((s) => s.devices);
+  const username = useAddUserDeviceModal((s) => s.user?.username as string);
+
+  const { mutateAsync: createDevice } = useMutation({
+    mutationFn: api.device.addDevice,
+    meta: {
+      invalidate: [['user', username]],
+    },
+  });
 
   const formSchema = useMemo(
     () => getFormSchema((devices ?? []).map((d) => d.name)),
@@ -67,6 +78,37 @@ export const AddDeviceModalManualSetupStep = () => {
     validators: {
       onSubmit: formSchema,
       onChange: formSchema,
+    },
+    onSubmit: async ({ value }) => {
+      let publicKey: string;
+      let privateKey: string | undefined;
+
+      if (value.genChoice === 'auto') {
+        const keys = generateWGKeys();
+        publicKey = keys.publicKey;
+        privateKey = keys.privateKey;
+      } else {
+        publicKey = value.publicKey as string;
+      }
+
+      const createResponse = await createDevice({
+        name: value.name,
+        username,
+        wireguard_pubkey: publicKey,
+      });
+
+      if (!createResponse.data.configs.length) {
+        useAddUserDeviceModal.getState().close();
+      }
+
+      useAddUserDeviceModal.setState({
+        step: AddUserDeviceModalStep.ManualConfiguration,
+        manualConfig: {
+          publicKey,
+          privateKey,
+        },
+        createDeviceResponse: createResponse.data,
+      });
     },
   });
 
@@ -114,18 +156,21 @@ export const AddDeviceModalManualSetupStep = () => {
       <ModalControls
         cancelProps={{
           text: m.controls_cancel(),
+          disabled: form.state.isSubmitting,
           onClick: () => {
             useAddUserDeviceModal.getState().close();
           },
         }}
         submitProps={{
           text: m.controls_continue(),
+          loading: form.state.isSubmitting,
           onClick: () => {
             form.handleSubmit();
           },
         }}
       >
         <Button
+          disabled={form.state.isSubmitting}
           variant="outlined"
           text={m.controls_back()}
           onClick={() => {

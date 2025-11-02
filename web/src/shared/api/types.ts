@@ -173,3 +173,20 @@ export interface StartEnrollmentResponse {
   enrollment_url: string;
   enrollment_token: string;
 }
+
+export interface AddDeviceRequest {
+  username: string;
+  name: string;
+  wireguard_pubkey: string;
+}
+
+export interface AddDeviceResponseConfig {
+  network_id: number;
+  network_name: string;
+  config: string;
+}
+
+export interface AddDeviceResponse {
+  device: Omit<Device, 'networks'>;
+  configs: AddDeviceResponseConfig[];
+}

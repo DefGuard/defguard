@@ -60,7 +60,7 @@ const zodSchema = z.object({
 type FormFields = z.infer<typeof zodSchema>;
 
 export const ProfileGeneralCard = () => {
-  const profileUser = useUserProfile((s) => s.profile.user);
+  const profileUser = useUserProfile((s) => s.user);
   const isAdmin = profileUser.is_admin;
 
   const { mutateAsync } = useMutation({
@@ -73,13 +73,13 @@ export const ProfileGeneralCard = () => {
   const defaultValues = useUserProfile(
     useShallow(
       (s): FormFields => ({
-        authorized_apps: s.profile.user.authorized_apps ?? [],
-        email: s.profile.user.email,
-        first_name: s.profile.user.first_name,
-        last_name: s.profile.user.last_name,
-        groups: s.profile.user.groups,
-        is_active: s.profile.user.is_active,
-        username: s.profile.user.username,
+        authorized_apps: s.user.authorized_apps ?? [],
+        email: s.user.email,
+        first_name: s.user.first_name,
+        last_name: s.user.last_name,
+        groups: s.user.groups,
+        is_active: s.user.is_active,
+        username: s.user.username,
       }),
     ),
   );

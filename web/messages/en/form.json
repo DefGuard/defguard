@@ -33,5 +33,6 @@
   "form_label_url": "URL",
   "form_label_token": "Token",
   "form_label_device_name": "Device name",
-  "form_label_public_key": "Public key"
+  "form_label_public_key": "Public key",
+  "form_label_device_public_key": "Device public key (wireguard)"
 }

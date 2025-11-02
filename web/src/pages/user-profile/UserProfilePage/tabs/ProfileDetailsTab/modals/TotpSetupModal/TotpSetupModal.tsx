@@ -67,7 +67,7 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
-  const username = useUserProfile((s) => s.profile.user.username);
+  const username = useUserProfile((s) => s.user.username);
   const { mutateAsync: enableTotp } = useMutation({
     mutationFn: api.auth.mfa.totp.enable,
     meta: {
