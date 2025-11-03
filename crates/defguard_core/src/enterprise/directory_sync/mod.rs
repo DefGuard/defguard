@@ -601,6 +601,7 @@ async fn sync_all_users_state(
         .iter()
         .map(|u| u.email.as_str())
         .collect::<Vec<&str>>();
+    // get all users present in Defguard but not in directory
     let missing_users = User::exclude(&mut *transaction, &emails)
         .await?
         .into_iter()
