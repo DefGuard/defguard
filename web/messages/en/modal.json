@@ -60,5 +60,8 @@
   "modal_add_user_device_manual_download_actions_download_one": "This location only",
   "modal_add_user_device_manual_download_actions_download_all": "All locations",
   "modal_edit_user_device_title": "Edit device",
-  "modal_user_device_config_title": "Device VPN configuration"
+  "modal_user_device_config_title": "Device VPN configuration",
+  "modal_add_auth_key_title": "Add authentication key",
+  "modal_add_auth_key_submit": "Add key",
+  "modal_rename_auth_key_title": "Rename authentication key"
 }

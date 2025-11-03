@@ -1,29 +1,31 @@
 import './style.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { trainCase } from 'change-case';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Page } from '../../../shared/components/Page/Page';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
 import { useAuth } from '../../../shared/hooks/useAuth';
-import { userProfileQueryOptions } from '../../../shared/query';
+import {
+  getUserAuthKeysQueryOptions,
+  userProfileQueryOptions,
+} from '../../../shared/query';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
+import { ProfileAuthKeysTab } from './tabs/ProfileAuthKeysTab/ProfileAuthKeysTab';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
 import { ProfileDevicesTab } from './tabs/ProfileDevicesTab/ProfileDevicesTab';
+import { UserProfileTab, type UserProfileTabValue } from './tabs/types';
 
-const tabs = {
-  Details: 'details',
-  Devices: 'devices',
-} as const;
-
-type TabsValue = (typeof tabs)[keyof typeof tabs];
+const defaultTab = UserProfileTab.Details;
 
 export const UserProfilePage = () => {
+  const navigate = useNavigate();
   const authUsername = useAuth((s) => s.user?.username as string);
+  const search = useSearch({ from: '/_authorized/user/$username' });
+  const activeTab = search.tab ?? defaultTab;
 
-  const [activeTab, setActiveTab] = useState<TabsValue>('details');
   const { username } = useParams({
     from: '/_authorized/user/$username',
   });
@@ -34,6 +36,7 @@ export const UserProfilePage = () => {
   );
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
+  const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
 
   const pageTitle = useMemo(() => {
     if (isSelf) {
@@ -50,33 +53,72 @@ export const UserProfilePage = () => {
   const store = useRef(
     createUserProfileStore({
       profile: userProfile,
+      authKeys: userAuthKeys,
     }),
   ).current;
+
+  const setActiveTab = useCallback(
+    (tab: UserProfileTabValue) => {
+      navigate({
+        from: '/user/$username',
+        to: '/user/$username',
+        search: (perv) => ({ ...perv, tab }),
+      });
+    },
+    [navigate],
+  );
 
   const tabsConfiguration = useMemo(() => {
     const res: TabsItem[] = [
       {
         title: m.profile_tabs_details(),
-        active: activeTab === 'details',
-        onClick: () => setActiveTab('details'),
+        active: activeTab === UserProfileTab.Details,
+        onClick: () => setActiveTab(UserProfileTab.Details),
       },
       {
         title: m.profile_tabs_devices(),
-        active: activeTab === tabs.Devices,
-        onClick: () => setActiveTab(tabs.Devices),
+        active: activeTab === UserProfileTab.Devices,
+        onClick: () => setActiveTab(UserProfileTab.Devices),
+      },
+      {
+        title: m.profile_tabs_auth_keys(),
+        active: activeTab === UserProfileTab.AuthKeys,
+        onClick: () => setActiveTab(UserProfileTab.AuthKeys),
       },
     ];
     return res;
-  }, [activeTab]);
+  }, [activeTab, setActiveTab]);
 
   const RenderActiveTab = useMemo(() => {
     switch (activeTab) {
-      case 'details':
+      case UserProfileTab.Details:
         return ProfileDetailsTab;
-      case 'devices':
+      case UserProfileTab.Devices:
         return ProfileDevicesTab;
+      case UserProfileTab.AuthKeys:
+        return ProfileAuthKeysTab;
+      case UserProfileTab.ApiTokens:
+        return ProfileAuthKeysTab;
     }
   }, [activeTab]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
+  useEffect(() => {
+    if (store && userProfile) {
+      store.setState({
+        ...userProfile,
+      });
+    }
+  }, [userProfile]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
+  useEffect(() => {
+    if (store && userAuthKeys) {
+      store.setState({
+        authKeys: userAuthKeys,
+      });
+    }
+  }, [userAuthKeys]);
 
   return (
     <UserProfileContext value={store}>

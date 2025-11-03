@@ -190,3 +190,40 @@ export interface AddDeviceResponse {
   device: Omit<Device, 'networks'>;
   configs: AddDeviceResponseConfig[];
 }
+
+export const AuthKeyType = {
+  SSH: 'ssh',
+  GPG: 'gpg',
+} as const;
+
+export type AuthKeyTypeValue = (typeof AuthKeyType)[keyof typeof AuthKeyType];
+
+export interface AddAuthKeyRequest {
+  username: string;
+  name: string;
+  key: string;
+  key_type: string;
+}
+
+export interface RenameAuthKeyRequest {
+  id: number;
+  username: string;
+  name: string;
+}
+
+export interface DeleteAuthKeyRequest {
+  username: string;
+  id: number;
+}
+
+export interface AuthKey {
+  id: number;
+  user_id: number;
+  key: string;
+  key_type: AuthKeyTypeValue;
+  // name is null when key was made by provisioning an yubikey
+  name: string | null;
+  yubikey_id: number | null;
+  yubikey_name: string | null;
+  yubikey_serial: string | null;
+}

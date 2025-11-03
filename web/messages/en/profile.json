@@ -4,6 +4,8 @@
   "profile_title": "{name} Profile",
   "profile_tabs_details": "Details",
   "profile_tabs_devices": "Devices",
+  "profile_tabs_auth_keys": "Authentication Keys",
+  "profile_tabs_api": "API Tokens",
   "profile_general_card_title": "General",
   "profile_auth_card_title": "Password and authentication",
   "profile_auth_card_section_password": "Password settings",
@@ -17,6 +19,8 @@
   "profile_auth_card_delete_passkey": "Delete passkey",
   "profile_auth_card_password_change": "Change password",
   "profile_auth_card_make_default": "Make default",
+  "profile_auth_card_biometric_title": "Biometric authentication devices",
+  "profile_auth_card_devices_link": "Devices",
   "profile_apps_no_data_title": "No authorized apps",
   "profile_apps_no_data_subtitle": "Applications you allow to log in with Defguard will appear here.",
   "profile_apps_card_title": "Authorized apps",
@@ -32,5 +36,12 @@
   "profile_devices_col_location_connected_from": "Last connected from",
   "profile_devices_col_location_connected": "Last connected",
   "profile_devices_col_never_connected": "Never connected",
-  "profile_devices_menu_show_config": "Show configuration"
+  "profile_devices_menu_show_config": "Show configuration",
+  "profile_auth_keys_no_data_title": "You don't have any added keys.",
+  "profile_auth_keys_no_data_subtitle": "To add one, click the button below",
+  "profile_auth_keys_no_data_cta": "Add new key",
+  "profile_auth_keys_header_title": "Authentication keys",
+  "profile_auth_keys_table_col_name": "Key name",
+  "profile_auth_keys_table_menu_download_ssh": "Download SSH key",
+  "profile_auth_keys_table_menu_download_gpg": "Download GPG key"
 }

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
@@ -13,6 +13,7 @@ import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPrese
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import './style.scss';
 import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { cloneDeep } from 'lodash-es';
 import api from '../../../../../../../shared/api/api';
 import {
@@ -24,17 +25,24 @@ import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/
 import { TooltipContent } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
+import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
+import { UserProfileTab } from '../../../types';
 
 export const ProfileAuthCard = () => {
   const securityKeys = useUserProfile((s) => s.security_keys);
   const user = useUserProfile((s) => s.user);
   const authUsername = useAuth((s) => s.user?.username as string);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
+  const devices = useUserProfile((s) => s.devices);
+  const biometricDevices = useMemo(
+    () => devices.filter((device) => device.biometry_enabled),
+    [devices],
+  );
 
   const invalidateAfterMfaChange = useMemo(() => {
     const res: QueryKey[] = [];
@@ -291,6 +299,36 @@ export const ProfileAuthCard = () => {
               <WebauthnRow securityKey={key} username={user.username} key={key.id} />
             ))}
           </div>
+        )}
+        {devices.length > 0 && (
+          <>
+            <Divider spacing={ThemeSpacing.Xl} />
+            <div className="biometric-devices section">
+              <div className="top">
+                <p className="section-title">{m.profile_auth_card_biometric_title()}</p>
+                <Link
+                  from="/user/$username"
+                  to="/user/$username"
+                  search={{
+                    tab: UserProfileTab.Devices,
+                  }}
+                >
+                  {m.profile_auth_card_devices_link()}
+                </Link>
+              </div>
+              {biometricDevices.map((device, index) => (
+                <Fragment key={device.id}>
+                  <div className="device">
+                    <Icon icon="biometric" />
+                    <p>{device.name}</p>
+                  </div>
+                  {index !== biometricDevices.length - 1 && (
+                    <Divider spacing={ThemeSpacing.Lg} />
+                  )}
+                </Fragment>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </ProfileCard>

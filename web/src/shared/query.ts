@@ -41,3 +41,12 @@ export const clientArtifactsQueryOptions = queryOptions({
   refetchOnMount: true,
   refetchOnReconnect: true,
 });
+
+export const getUserAuthKeysQueryOptions = (username: string) =>
+  queryOptions({
+    queryFn: () => api.user.getAuthKeys(username),
+    queryKey: ['user', username, 'auth_key'],
+    select: (response) => response.data,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });

@@ -32,6 +32,42 @@
       padding: var(--spacing-lg) 0;
     }
   }
+
+  .biometric-devices {
+    & > .top {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-md);
+
+      & > p {
+        padding-bottom: var(--spacing-2xl);
+        margin-right: auto;
+      }
+
+      & > a {
+        font: var(--t-body-sm-400);
+        color: var(--fg-action);
+        text-decoration: none;
+        cursor: pointer;
+      }
+    }
+
+    .device {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-lg);
+
+      .icon {
+        user-select: none;
+      }
+
+      p {
+        font: var(--t-body-sm-400);
+      }
+    }
+  }
 }
 
 #profile-auth-card .factor-row {

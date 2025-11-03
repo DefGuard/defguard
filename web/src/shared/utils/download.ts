@@ -1,4 +1,8 @@
-export const downloadText = (content: string, filename: string, extension?: 'txt') => {
+export const downloadText = (
+  content: string,
+  filename: string,
+  extension?: 'txt' | 'pub',
+) => {
   extension = extension ?? 'txt';
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   downloadFile(blob, filename, extension);

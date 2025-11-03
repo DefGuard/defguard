@@ -27,7 +27,6 @@ import { TableBody } from '../../../../../../../shared/defguard-ui/components/ta
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableExpandCell } from '../../../../../../../shared/defguard-ui/components/table/TableExpandCell/TableExpandCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
-import { renderTableCellValue } from '../../../../../../../shared/defguard-ui/components/table/utils/renderTableCellValue';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -134,7 +133,12 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       }),
       columnHelper.accessor('name', {
         header: m.profile_devices_col_name(),
-        cell: renderTableCellValue,
+        cell: (info) => (
+          <TableCell>
+            {info.row.original.biometry_enabled && <Icon icon="biometric" />}
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
         enableSorting: true,
         meta: {
           flex: true,

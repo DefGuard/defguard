@@ -1,16 +1,20 @@
 import { client } from './api-client';
 import type {
+  AddAuthKeyRequest,
   AddDeviceRequest,
   AddDeviceResponse,
   AddDeviceResponseConfig,
   AdminChangeUserPasswordRequest,
   ApplicationInfo,
+  AuthKey,
+  DeleteAuthKeyRequest,
   Device,
   EnableMfaMethodResponse,
   LoginRequest,
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  RenameAuthKeyRequest,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
   TotpInitResponse,
@@ -43,6 +47,14 @@ const api = {
       client.get<UserDevice[]>(`/device/user/${username}`),
     startClientActivation: (data: StartEnrollmentRequest) =>
       client.post<StartEnrollmentResponse>(`/user/${data.username}/start_desktop`, data),
+    getAuthKeys: (username: string) =>
+      client.get<AuthKey[]>(`/user/${username}/auth_key`),
+    addAuthKey: ({ username, ...data }: AddAuthKeyRequest) =>
+      client.post(`/user/${username}/auth_key`, data),
+    renameAuthKey: ({ id, username, ...data }: RenameAuthKeyRequest) =>
+      client.post(`/user/${username}/auth_key/${id}/rename`, data),
+    deleteAuthKey: ({ username, id }: DeleteAuthKeyRequest) =>
+      client.delete(`/user/${username}/auth_key/${id}`),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),

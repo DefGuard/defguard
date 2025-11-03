@@ -1,12 +1,16 @@
 import { createContext, useContext } from 'react';
 import { createStore, useStore } from 'zustand';
-import type { UserProfile } from '../../../../shared/api/types';
+import type { AuthKey, UserProfile } from '../../../../shared/api/types';
 
-interface ProfileProps {
+interface Extras {
+  authKeys: AuthKey[];
+}
+
+interface ProfileProps extends Extras {
   profile: UserProfile;
 }
 
-interface ProfileState extends UserProfile {
+interface ProfileState extends UserProfile, Extras {
   reset: () => void;
 }
 
@@ -14,7 +18,10 @@ type UserProfileStore = ReturnType<typeof createUserProfileStore>;
 
 export const createUserProfileStore = (initialProps: ProfileProps) => {
   return createStore<ProfileState>()((set) => ({
-    ...initialProps.profile,
+    authKeys: initialProps.authKeys,
+    devices: initialProps.profile.devices,
+    security_keys: initialProps.profile.security_keys,
+    user: initialProps.profile.user,
     reset: () => set(initialProps.profile),
   }));
 };

@@ -1,6 +1,6 @@
 import z from 'zod';
 import type { AddDeviceResponse, User } from '../../api/types';
-import type { OpenEditDeviceModal } from './types';
+import type { OpenAuthKeyRenameModal, OpenEditDeviceModal } from './types';
 
 export const ModalName = {
   ChangePassword: 'changePassword',
@@ -10,6 +10,8 @@ export const ModalName = {
   WebauthnSetup: 'webauthnSetup',
   EditUserDevice: 'editUserDevice',
   UserDeviceConfig: 'userDeviceConfig',
+  AddAuthKey: 'addAuthKey',
+  RenameAuthKey: 'renameAuthKey',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -33,6 +35,16 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.UserDeviceConfig),
     data: z.custom<AddDeviceResponse>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.AddAuthKey),
+    data: z.object({
+      username: z.string(),
+    }),
+  }),
+  z.object({
+    name: z.literal(ModalName.RenameAuthKey),
+    data: z.custom<OpenAuthKeyRenameModal>(),
   }),
 ]);
 

@@ -5,3 +5,9 @@ export interface OpenEditDeviceModal {
   reservedNames: string[];
   username: string;
 }
+
+export interface OpenAuthKeyRenameModal {
+  id: number;
+  name: string;
+  username: string;
+}
