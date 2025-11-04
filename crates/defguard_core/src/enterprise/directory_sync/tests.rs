@@ -789,4 +789,72 @@ mod test {
         let user = User::find_by_username(&pool, "defguard").await.unwrap();
         assert!(user.is_none());
     }
+
+    #[sqlx::test]
+    async fn test_users_no_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // disable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            false,
+        )
+        .await;
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // no users in Defguard after sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // all active directory users were synced
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 2);
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
 }
