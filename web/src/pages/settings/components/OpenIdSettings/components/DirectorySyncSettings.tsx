@@ -5,10 +5,10 @@ import { useMemo, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { SUPPORTED_SYNC_PROVIDERS } from './SupportedProviders';
@@ -80,15 +80,19 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
       <div id="directory-sync-settings">
         {showDirsync ? (
           <>
-            <div id="enable-dir-sync">
-              {/* FIXME: Really buggy when using the controller, investigate why */}
-              <LabeledCheckbox
-                disabled={isLoading || !showDirsync}
-                label={localLL.form.labels.enable_directory_sync.label()}
-                value={dirsyncEnabled}
-                onChange={(val) => setValue('directory_sync_enabled', val)}
-                // controller={{ control, name: 'directory_sync_enabled' }}
+            <FormCheckBox
+              label={localLL.form.labels.enable_directory_sync.label()}
+              labelPlacement="right"
+              controller={{ control, name: 'directory_sync_enabled' }}
+            />
+
+            <div className="helper-row">
+              <FormCheckBox
+                controller={{ control, name: 'prefetch_users' }}
+                label={localLL.form.labels.prefetch_users.label()}
+                labelPlacement="right"
               />
+              <Helper>{localLL.form.labels.prefetch_users.helper()}</Helper>
             </div>
             <FormSelect
               controller={{ control, name: 'directory_sync_target' }}
