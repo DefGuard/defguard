@@ -1,0 +1,17 @@
+import { useQuery } from '@tanstack/react-query';
+import { LayoutGrid } from '../../shared/components/LayoutGrid/LayoutGrid';
+import { Page } from '../../shared/components/Page/Page';
+import './style.scss';
+import { m } from '../../paraglide/messages';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { getUsersQueryOptions } from '../../shared/query';
+import { UsersTable } from './UsersTable';
+
+export const UsersOverviewPage = () => {
+  const { data: users } = useQuery(getUsersQueryOptions);
+  return (
+    <Page title={m.users_title()} id="users-overview-page">
+      <LayoutGrid>{isPresent(users) && <UsersTable users={users} />}</LayoutGrid>
+    </Page>
+  );
+};

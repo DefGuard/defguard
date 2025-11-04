@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "users_title": "Users",
+  "users_header_title": "All users",
+  "users_search_placeholder": "Find user",
+  "users_add": "Add new user",
+  "users_empty_title": "No users here yet.",
+  "users_empty_subtitle": "Add more users by clicking the button below.",
+  "users_not_found_title": "Nothing is found.",
+  "users_not_found_subtitle": "We couldn't find any users matching your search. Try adjusting your filters or search terms.",
+  "users_col_name": "User name",
+  "users_col_login": "Login",
+  "users_col_phone": "Phone",
+  "users_col_groups": "Groups"
+}

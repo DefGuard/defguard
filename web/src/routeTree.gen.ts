@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthorizedUsersRouteImport } from './routes/_authorized/users'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
@@ -44,6 +45,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthorizedUsersRoute = AuthorizedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthorizedRoute,
+} as any)
 const AuthMfaWebauthnRoute = AuthMfaWebauthnRouteImport.update({
   id: '/webauthn',
   path: '/webauthn',
@@ -72,6 +78,7 @@ const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authorized': typeof AuthorizedRouteWithChildren
+  '/_authorized/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/users'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/users'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authorized'
+    | '/_authorized/users'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
@@ -187,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authorized/users': {
+      id: '/_authorized/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthorizedUsersRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/auth/mfa/webauthn': {
       id: '/auth/mfa/webauthn'
       path: '/webauthn'
@@ -226,10 +245,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthorizedRouteChildren {
+  AuthorizedUsersRoute: typeof AuthorizedUsersRoute
   AuthorizedUserUsernameRoute: typeof AuthorizedUserUsernameRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
+  AuthorizedUsersRoute: AuthorizedUsersRoute,
   AuthorizedUserUsernameRoute: AuthorizedUserUsernameRoute,
 }
 

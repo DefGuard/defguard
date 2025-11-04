@@ -60,6 +60,7 @@ export const ProfileApiTokensTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
+        enableSorting: true,
         header: m.profile_api_col_name(),
         cell: (info) => (
           <TableCell>

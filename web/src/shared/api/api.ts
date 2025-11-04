@@ -38,6 +38,7 @@ const api = {
   },
   user: {
     getMe: client.get<User>('/me'),
+    getUsers: () => client.get<User[]>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
