@@ -33,5 +33,6 @@
   "state_active": "Active",
   "state_default": "Default",
   "state_enabled": "Enabled",
-  "state_step": "Step {step}"
+  "state_step": "Step {step}",
+  "col_created_at": "Created at"
 }

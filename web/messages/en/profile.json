@@ -43,5 +43,10 @@
   "profile_auth_keys_header_title": "Authentication keys",
   "profile_auth_keys_table_col_name": "Key name",
   "profile_auth_keys_table_menu_download_ssh": "Download SSH key",
-  "profile_auth_keys_table_menu_download_gpg": "Download GPG key"
+  "profile_auth_keys_table_menu_download_gpg": "Download GPG key",
+  "profile_api_title": "API tokens",
+  "profile_api_add": "Add new API token",
+  "profile_api_empty_title": "You don't have any API tokens.",
+  "profile_api_empty_subtitle": "To add one, click the button below.",
+  "profile_api_col_name": "Token name"
 }

@@ -50,3 +50,12 @@ export const getUserAuthKeysQueryOptions = (username: string) =>
     refetchOnMount: true,
     refetchOnReconnect: true,
   });
+
+export const getUserApiTokensQueryOptions = (username: string) =>
+  queryOptions({
+    queryFn: () => api.user.getApiTokens(username),
+    queryKey: ['user', username, 'api_token'],
+    select: (resp) => resp.data,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });

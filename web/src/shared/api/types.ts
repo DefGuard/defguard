@@ -227,3 +227,29 @@ export interface AuthKey {
   yubikey_name: string | null;
   yubikey_serial: string | null;
 }
+
+export interface AddApiTokenRequest {
+  username: string;
+  name: string;
+}
+
+export interface AddApiTokenResponse {
+  token: string;
+}
+
+export interface ApiToken {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+export interface RenameApiTokenRequest {
+  id: number;
+  name: string;
+  username: string;
+}
+
+export interface DeleteApiTokenRequest {
+  id: number;
+  username: string;
+}

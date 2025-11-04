@@ -11,3 +11,18 @@ export interface OpenAuthKeyRenameModal {
   name: string;
   username: string;
 }
+
+export interface OpenAddApiTokenModal {
+  username: string;
+}
+
+export interface OpenRenameApiTokenModal {
+  id: number;
+  name: string;
+  username: string;
+}
+
+export interface OpenDeleteApiTokenModal {
+  id: number;
+  username: string;
+}

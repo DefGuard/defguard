@@ -63,5 +63,9 @@
   "modal_user_device_config_title": "Device VPN configuration",
   "modal_add_auth_key_title": "Add authentication key",
   "modal_add_auth_key_submit": "Add key",
-  "modal_rename_auth_key_title": "Rename authentication key"
+  "modal_rename_auth_key_title": "Rename authentication key",
+  "modal_add_api_title": "Add API token",
+  "modal_add_api_token_copy_copy_label": "API Token",
+  "modal_add_api_token_copy_warning": "Please copy and save the API token below now. You won't be able to see it again.",
+  "modal_rename_api_title": "Rename API token"
 }

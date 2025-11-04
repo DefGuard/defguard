@@ -9,10 +9,12 @@ import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import {
+  getUserApiTokensQueryOptions,
   getUserAuthKeysQueryOptions,
   userProfileQueryOptions,
 } from '../../../shared/query';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
+import { ProfileApiTokensTab } from './tabs/ProfileApiTokensTab/ProfileApiTokensTab';
 import { ProfileAuthKeysTab } from './tabs/ProfileAuthKeysTab/ProfileAuthKeysTab';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
 import { ProfileDevicesTab } from './tabs/ProfileDevicesTab/ProfileDevicesTab';
@@ -37,6 +39,9 @@ export const UserProfilePage = () => {
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
   const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
+  const { data: userApiTokens } = useSuspenseQuery(
+    getUserApiTokensQueryOptions(username),
+  );
 
   const pageTitle = useMemo(() => {
     if (isSelf) {
@@ -54,6 +59,7 @@ export const UserProfilePage = () => {
     createUserProfileStore({
       profile: userProfile,
       authKeys: userAuthKeys,
+      apiTokens: userApiTokens,
     }),
   ).current;
 
@@ -85,6 +91,11 @@ export const UserProfilePage = () => {
         active: activeTab === UserProfileTab.AuthKeys,
         onClick: () => setActiveTab(UserProfileTab.AuthKeys),
       },
+      {
+        title: m.profile_tabs_api(),
+        active: activeTab === UserProfileTab.ApiTokens,
+        onClick: () => setActiveTab(UserProfileTab.ApiTokens),
+      },
     ];
     return res;
   }, [activeTab, setActiveTab]);
@@ -98,7 +109,7 @@ export const UserProfilePage = () => {
       case UserProfileTab.AuthKeys:
         return ProfileAuthKeysTab;
       case UserProfileTab.ApiTokens:
-        return ProfileAuthKeysTab;
+        return ProfileApiTokensTab;
     }
   }, [activeTab]);
 
@@ -119,6 +130,15 @@ export const UserProfilePage = () => {
       });
     }
   }, [userAuthKeys]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
+  useEffect(() => {
+    if (store && userApiTokens) {
+      store.setState({
+        apiTokens: userApiTokens,
+      });
+    }
+  }, [userApiTokens]);
 
   return (
     <UserProfileContext value={store}>

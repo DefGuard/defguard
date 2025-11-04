@@ -1,12 +1,16 @@
 import { client } from './api-client';
 import type {
+  AddApiTokenRequest,
+  AddApiTokenResponse,
   AddAuthKeyRequest,
   AddDeviceRequest,
   AddDeviceResponse,
   AddDeviceResponseConfig,
   AdminChangeUserPasswordRequest,
+  ApiToken,
   ApplicationInfo,
   AuthKey,
+  DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
   EnableMfaMethodResponse,
@@ -14,6 +18,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  RenameApiTokenRequest,
   RenameAuthKeyRequest,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
@@ -55,6 +60,15 @@ const api = {
       client.post(`/user/${username}/auth_key/${id}/rename`, data),
     deleteAuthKey: ({ username, id }: DeleteAuthKeyRequest) =>
       client.delete(`/user/${username}/auth_key/${id}`),
+    addApiToken: ({ username, ...data }: AddApiTokenRequest) =>
+      client.post<AddApiTokenResponse>(`/user/${username}/api_token`, data),
+    getApiTokens: (username: string) =>
+      client.get<ApiToken[]>(`/user/${username}/api_token`),
+    renameApiToken: ({ username, id, ...data }: RenameApiTokenRequest) =>
+      client.post(`/user/${username}/api_token/${id}/rename`, data),
+    deleteApiToken: ({ username, id }: DeleteApiTokenRequest) =>
+      client.delete(`/user/${username}/api_token/${id}`),
+    disableMfa: (username: string) => client.delete(`/user/${username}/mfa`),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),
