@@ -116,6 +116,7 @@ pub struct OpenIdProvider<I = NoId> {
     pub directory_sync_group_match: Vec<String>,
     pub jumpcloud_api_key: Option<String>,
     // Fetch all users from directory and create them in Defguard
+    // TODO: currently only supported for Microsoft
     pub prefetch_users: bool,
 }
 

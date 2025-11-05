@@ -6,7 +6,7 @@ use super::{
     DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
     make_get_request, parse_response,
 };
-use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
+use crate::enterprise::directory_sync::{DirectoryUserDetails, REQUEST_TIMEOUT};
 
 pub(crate) struct MicrosoftDirectorySync {
     access_token: Option<String>,
@@ -103,6 +103,7 @@ impl From<GroupMembersResponse> for Vec<String> {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct User {
+    id: String,
     #[serde(rename = "displayName")]
     display_name: String,
     mail: Option<String>,
@@ -110,6 +111,15 @@ struct User {
     account_enabled: bool,
     #[serde(rename = "otherMails")]
     other_mails: Vec<String>,
+    #[serde(rename = "userPrincipalName")]
+    user_principal_name: String,
+    #[serde(rename = "givenName")]
+    given_name: String,
+    surname: String,
+    #[serde(rename = "mobilePhone")]
+    mobile_phone: String,
+    #[serde(rename = "businessPhones")]
+    business_phones: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -125,11 +135,18 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .value
             .into_iter()
             .filter_map(|user| {
+            	// get a phone number if any is available
+            	// prefer mobile phone
+            	let mut all_phone_numbers = user.business_phones;
+            	all_phone_numbers.push(user.mobile_phone);
+            	let phone_number = all_phone_numbers.into_iter().next_back();
+            	let user_details = DirectoryUserDetails { username: user.user_principal_name, last_name: user.surname, first_name: user.given_name, phone_number, openid_sub: user.id };
+
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None, user_details: Some(user_details) })
                 } else if let Some(email) = user.other_mails.into_iter().next() {
                     warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
-                    Some(DirectoryUser { email, active: user.account_enabled, id: None })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: None, user_details: Some(user_details) })
                 } else {
                     warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
                     None
