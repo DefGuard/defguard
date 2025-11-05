@@ -67,5 +67,13 @@
   "modal_add_api_title": "Add API token",
   "modal_add_api_token_copy_copy_label": "API Token",
   "modal_add_api_token_copy_warning": "Please copy and save the API token below now. You won't be able to see it again.",
-  "modal_rename_api_title": "Rename API token"
+  "modal_rename_api_title": "Rename API token",
+  "modal_add_user_title": "Add new user",
+  "modal_add_user_form_enable_enroll_label": "Enable user secure remote self-enrollment.",
+  "modal_add_user_form_enable_enroll_help": "By enabling this option, the user will be able to configure their account during the setup of their desktop client (e.g., set their own password, etc.). ",
+  "modal_add_user_section_login": "Login preferences",
+  "modal_add_user_section_account": "Account information",
+  "modal_add_user_groups_select_all": "All groups",
+  "modal_add_user_groups_search_empty_title": "No groups match your search.",
+  "modal_add_user_groups_search_empty_subtitle": "Please try another search request."
 }

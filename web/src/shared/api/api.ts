@@ -6,6 +6,7 @@ import type {
   AddDeviceRequest,
   AddDeviceResponse,
   AddDeviceResponseConfig,
+  AddUserRequest,
   AdminChangeUserPasswordRequest,
   ApiToken,
   ApplicationInfo,
@@ -50,6 +51,11 @@ const api = {
     info: () => client.get<ApplicationInfo>('/info'),
   },
   user: {
+    addUser: (data: AddUserRequest) => client.post<User>('/user', data),
+    usernameAvailable: (username: string) =>
+      client.post('/user/available', {
+        username,
+      }),
     getMe: client.get<User>('/me'),
     getUsers: () => client.get<User[]>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),

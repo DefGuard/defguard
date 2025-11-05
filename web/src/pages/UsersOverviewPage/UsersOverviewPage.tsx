@@ -5,13 +5,17 @@ import './style.scss';
 import { m } from '../../paraglide/messages';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getUsersQueryOptions } from '../../shared/query';
+import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { UsersTable } from './UsersTable';
 
 export const UsersOverviewPage = () => {
   const { data: users } = useQuery(getUsersQueryOptions);
   return (
-    <Page title={m.users_title()} id="users-overview-page">
-      <LayoutGrid>{isPresent(users) && <UsersTable users={users} />}</LayoutGrid>
-    </Page>
+    <>
+      <Page title={m.users_title()} id="users-overview-page">
+        <LayoutGrid>{isPresent(users) && <UsersTable users={users} />}</LayoutGrid>
+      </Page>
+      <AddUserModal />
+    </>
   );
 };

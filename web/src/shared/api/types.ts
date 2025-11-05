@@ -257,3 +257,12 @@ export interface DeleteApiTokenRequest {
   id: number;
   username: string;
 }
+
+export interface AddUserRequest {
+  username: string;
+  email: string;
+  last_name: string;
+  first_name: string;
+  password?: string;
+  phone?: string;
+}

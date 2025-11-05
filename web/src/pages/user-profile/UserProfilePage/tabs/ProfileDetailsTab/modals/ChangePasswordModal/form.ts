@@ -33,6 +33,26 @@ const hasLowercase = /[a-z]/;
 
 const hasSpecialChar = /[^a-zA-Z0-9]/;
 
+export const refinePasswordField = (password: string): string[] => {
+  const issues: string[] = [];
+  if (password.length < 8) {
+    issues.push(PasswordErrorCode.Minimum);
+  }
+  if (!hasNumber.test(password)) {
+    issues.push(PasswordErrorCode.Number);
+  }
+  if (!hasUppercase.test(password)) {
+    issues.push(PasswordErrorCode.Uppercase);
+  }
+  if (!hasLowercase.test(password)) {
+    issues.push(PasswordErrorCode.Lowercase);
+  }
+  if (!hasSpecialChar.test(password)) {
+    issues.push(PasswordErrorCode.Special);
+  }
+  return issues;
+};
+
 const createSchema = (isAdmin: boolean) =>
   z
     .object({
@@ -67,41 +87,10 @@ const createSchema = (isAdmin: boolean) =>
         ),
     })
     .superRefine(({ password, repeat }, ctx) => {
-      if (password.length < 8) {
+      const passwordIssues = refinePasswordField(password);
+      for (const issue of passwordIssues) {
         ctx.addIssue({
-          message: PasswordErrorCode.Minimum,
-          code: 'custom',
-          path: ['password'],
-          continue: true,
-        });
-      }
-      if (!hasNumber.test(password)) {
-        ctx.addIssue({
-          message: PasswordErrorCode.Number,
-          code: 'custom',
-          path: ['password'],
-          continue: true,
-        });
-      }
-      if (!hasUppercase.test(password)) {
-        ctx.addIssue({
-          message: PasswordErrorCode.Uppercase,
-          code: 'custom',
-          path: ['password'],
-          continue: true,
-        });
-      }
-      if (!hasLowercase.test(password)) {
-        ctx.addIssue({
-          message: PasswordErrorCode.Lowercase,
-          code: 'custom',
-          continue: true,
-          path: ['password'],
-        });
-      }
-      if (!hasSpecialChar.test(password)) {
-        ctx.addIssue({
-          message: PasswordErrorCode.Special,
+          message: issue,
           code: 'custom',
           continue: true,
           path: ['password'],

@@ -13,6 +13,7 @@ import { m } from '../../paraglide/messages';
 import type { UsersListItem } from '../../shared/api/types';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
+import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import {
@@ -26,6 +27,7 @@ import { TableRowContainer } from '../../shared/defguard-ui/components/table/Tab
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../shared/utils/displayDate';
+import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
 type Props = {
   users: UsersListItem[];
@@ -146,7 +148,14 @@ export const UsersTable = ({ users }: Props) => {
           // const _rowData = info.row.original;
           return (
             <TableCell>
-              <IconButtonMenu icon="menu" menuItems={[]} />
+              <IconButtonMenu
+                icon="menu"
+                menuItems={[
+                  {
+                    items: [],
+                  },
+                ]}
+              />
             </TableCell>
           );
         },
@@ -229,7 +238,20 @@ export const UsersTable = ({ users }: Props) => {
 
   return (
     <>
-      <TableTop text={m.users_header_title()}></TableTop>
+      <TableTop text={m.users_header_title()}>
+        <Button
+          iconLeft="add-user"
+          text={m.users_add()}
+          onClick={() => {
+            const reservedEmails = users.map((u) => u.email.toLowerCase());
+            const reservedUsernames = users.map((u) => u.username);
+            useAddUserModal.getState().open({
+              reservedEmails,
+              reservedUsernames,
+            });
+          }}
+        />
+      </TableTop>
       <TableBody
         table={table}
         renderExpandedRow={renderExpanded}
