@@ -1,6 +1,7 @@
 name: Deploy to webnext environment
 permissions:
   contents: read
+  id-token: write
   packages: write
 on:
   push:
