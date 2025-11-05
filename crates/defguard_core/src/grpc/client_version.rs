@@ -19,7 +19,7 @@ pub(crate) struct ClientPlatform {
     codename: Option<String>,
     /// "32-bit", "64-bit"
     #[allow(dead_code)]
-    biteness: Option<String>,
+    bitness: Option<String>,
 }
 
 impl TryFrom<&str> for ClientPlatform {
@@ -33,7 +33,17 @@ impl TryFrom<&str> for ClientPlatform {
         let mut architecture = None;
         let mut edition = None;
         let mut codename = None;
-        let mut biteness = None;
+        let mut bitness = None;
+
+        let to_option: fn(&str) -> Option<String> = |s: &str| {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        };
+
         // The expected format is:
         // "os_family={}; os_type={}; version={}; edition={}; codename={}; bitness={}; architecture={}",
         for part in parts {
@@ -41,62 +51,27 @@ impl TryFrom<&str> for ClientPlatform {
             if kv.len() != 2 {
                 continue;
             }
-            match kv[0].trim() {
+            match kv[0].trim().to_lowercase().as_str() {
                 "os_family" => {
-                    let trimmed = kv[1].trim();
-                    os_family = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    os_family = to_option(kv[1]);
                 }
                 "os_type" => {
-                    let trimmed = kv[1].trim();
-                    os_type = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    os_type = to_option(kv[1]);
                 }
                 "version" => {
-                    let trimmed = kv[1].trim();
-                    version = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    version = to_option(kv[1]);
                 }
                 "architecture" => {
-                    let trimmed = kv[1].trim();
-                    architecture = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    architecture = to_option(kv[1]);
                 }
                 "edition" => {
-                    let trimmed = kv[1].trim();
-                    edition = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    edition = to_option(kv[1]);
                 }
                 "codename" => {
-                    let trimmed = kv[1].trim();
-                    codename = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    codename = to_option(kv[1]);
                 }
                 "bitness" => {
-                    let trimmed = kv[1].trim();
-                    biteness = if trimmed.is_empty() {
-                        None
-                    } else {
-                        Some(trimmed.to_string())
-                    };
+                    bitness = to_option(kv[1]);
                 }
                 _ => {}
             }
@@ -117,7 +92,7 @@ impl TryFrom<&str> for ClientPlatform {
             architecture,
             edition,
             codename,
-            biteness,
+            bitness,
         })
     }
 }
@@ -242,7 +217,7 @@ mod tests {
         assert_eq!(platform.architecture, Some("x86_64".to_string()));
         assert_eq!(platform.edition, Some("Desktop".to_string()));
         assert_eq!(platform.codename, Some("jammy".to_string()));
-        assert_eq!(platform.biteness, Some("64-bit".to_string()));
+        assert_eq!(platform.bitness, Some("64-bit".to_string()));
 
         // Test minimal valid platform string (only required fields)
         let platform_str = "os_family=windows; os_type=Windows; version=11";
