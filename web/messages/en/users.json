@@ -11,5 +11,10 @@
   "users_col_name": "User name",
   "users_col_login": "Login",
   "users_col_phone": "Phone",
-  "users_col_groups": "Groups"
+  "users_col_groups": "Groups",
+  "users_col_status": "Status",
+  "users_col_assigned": "Assigned devices",
+  "users_col_ip": "Last connected from",
+  "users_col_connected_through": "Connected through",
+  "users_col_connected_date": "Connected date"
 }

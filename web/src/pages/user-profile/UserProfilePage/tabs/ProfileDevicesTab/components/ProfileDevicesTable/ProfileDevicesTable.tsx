@@ -16,6 +16,7 @@ import type {
   DeviceNetworkInfo,
   UserDevice,
 } from '../../../../../../../shared/api/types';
+import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/components/Menu/types';
@@ -36,7 +37,7 @@ import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 interface RowData extends UserDevice {
   connected_at: string;
   connected_ip: string;
-  network_gateway_ip: string;
+  network_name: string;
 }
 
 export const ProfileDevicesTable = () => {
@@ -58,7 +59,7 @@ export const ProfileDevicesTable = () => {
           ? displayDate(latestConnection.last_connected_at)
           : fallbackValue,
         connected_ip: latestConnection?.last_connected_ip ?? fallbackValue,
-        network_gateway_ip: latestConnection?.network_gateway_ip ?? fallbackValue,
+        network_name: latestConnection?.network_name ?? fallbackValue,
       };
       return row;
     });
@@ -148,16 +149,18 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         id: 'public_ip',
         header: m.profile_devices_col_pub_ip(),
         enableSorting: false,
+        size: 350,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
           </TableCell>
         ),
       }),
-      columnHelper.accessor('network_gateway_ip', {
+      columnHelper.accessor('network_name', {
         id: 'connected_through',
         header: m.profile_devices_col_location(),
         enableSorting: false,
+        size: 175,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
@@ -210,14 +213,20 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             </TableCell>
             <TableCell>
               <span>{network.network_name}</span>
+              {isPresent(network.network_gateway_ip) && (
+                <Badge variant="neutral" text={network.network_gateway_ip} />
+              )}
+            </TableCell>
+            <TableCell>
+              <span>
+                {network.device_wireguard_ips.join(', ') ??
+                  m.profile_devices_col_never_connected()}
+              </span>
             </TableCell>
             <TableCell>
               <span>
                 {network.last_connected_ip ?? m.profile_devices_col_never_connected()}
               </span>
-            </TableCell>
-            <TableCell>
-              <span>{network.network_gateway_ip}</span>
             </TableCell>
             <TableCell>
               <span>

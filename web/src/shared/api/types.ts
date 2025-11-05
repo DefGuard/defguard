@@ -1,3 +1,7 @@
+export interface UsersListItem extends User {
+  devices: Device[];
+}
+
 export const UserMfaMethod = {
   None: 'none',
   OneTimePassword: 'OneTimePassword',

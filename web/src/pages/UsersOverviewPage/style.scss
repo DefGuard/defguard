@@ -8,4 +8,10 @@
     padding-top: var(--spacing-3xl);
     box-sizing: border-box;
   }
+
+  .table .device-name-cell {
+    svg path {
+      fill: var(--fg-success);
+    }
+  }
 }

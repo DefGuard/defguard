@@ -8,6 +8,8 @@
   "misc_for": "for",
   "misc_clipboard_copy": "Copied to clipboard!",
   "misc_secret": "Secret",
+  "misc_active": "Active",
+  "misc_disabled": "Disabled",
   "controls_copy": "Copy",
   "controls_download": "Download",
   "controls_rename": "Rename",

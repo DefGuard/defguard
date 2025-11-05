@@ -27,12 +27,25 @@ import type {
   UserChangePasswordRequest,
   UserDevice,
   UserProfileResponse,
+  UsersListItem,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
 } from './types';
 
 const api = {
+  getUsersOverview: async (): Promise<UsersListItem[]> => {
+    const { data: users } = await api.user.getUsers();
+    const res: UsersListItem[] = [];
+    for (const user of users) {
+      const { data: profile } = await api.user.getUser(user.username);
+      res.push({
+        ...user,
+        devices: profile.devices,
+      });
+    }
+    return res;
+  },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),
   },

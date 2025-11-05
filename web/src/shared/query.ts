@@ -61,9 +61,8 @@ export const getUserApiTokensQueryOptions = (username: string) =>
   });
 
 export const getUsersQueryOptions = queryOptions({
-  queryFn: api.user.getUsers,
+  queryFn: api.getUsersOverview,
   queryKey: ['user'],
-  select: (resp) => resp.data,
   refetchOnMount: true,
   refetchOnReconnect: true,
 });

@@ -1,29 +1,41 @@
 import {
   createColumnHelper,
   getCoreRowModel,
+  getExpandedRowModel,
+  type Row,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { orderBy } from 'lodash-es';
+import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
-import type { User } from '../../shared/api/types';
+import type { UsersListItem } from '../../shared/api/types';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
+import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
+import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
-import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
+import {
+  tableActionColumnSize,
+  tableEditColumnSize,
+} from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableExpandCell } from '../../shared/defguard-ui/components/table/TableExpandCell/TableExpandCell';
+import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { displayDate } from '../../shared/utils/displayDate';
 
 type Props = {
-  users: User[];
+  users: UsersListItem[];
 };
 
-type RowData = User;
+type RowData = UsersListItem;
 
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = ({ users }: Props) => {
-  const transformedData = useMemo(() => users, [users]);
   const [sortingState, setSortingState] = useState<SortingState>([
     {
       id: 'name',
@@ -31,8 +43,30 @@ export const UsersTable = ({ users }: Props) => {
     },
   ]);
 
+  const transformedData = useMemo(() => {
+    const sorting = sortingState[0];
+    if (!sorting) return users;
+    const { id, desc } = sorting;
+    const direction = desc ? 'desc' : 'asc';
+    const orderedDevices = users.map((user) => ({
+      ...user,
+      devices: orderBy(user.devices, [id], [direction]),
+    }));
+    return orderBy(
+      orderedDevices,
+      (user) => `${user.first_name}${user.last_name}`.toLowerCase(),
+      [direction],
+    );
+  }, [users, sortingState]);
+
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: 'expand',
+        header: '',
+        size: tableActionColumnSize,
+        cell: (info) => <TableExpandCell row={info.row} />,
+      }),
       columnHelper.display({
         id: 'name',
         header: m.users_col_name(),
@@ -56,6 +90,19 @@ export const UsersTable = ({ users }: Props) => {
           );
         },
       }),
+      columnHelper.accessor('is_active', {
+        header: m.users_col_status(),
+        size: 100,
+        cell: (info) => (
+          <TableCell>
+            {info.getValue() ? (
+              <Badge variant="success" text={m.misc_active()} />
+            ) : (
+              <Badge variant="critical" text={m.misc_disabled()} />
+            )}
+          </TableCell>
+        ),
+      }),
       columnHelper.accessor('username', {
         header: m.users_col_login(),
         size: 170,
@@ -70,11 +117,15 @@ export const UsersTable = ({ users }: Props) => {
         size: 175,
         header: m.users_col_phone(),
         enableSorting: false,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
+        cell: (info) => {
+          const phone = info.getValue();
+          const display = isPresent(phone) && phone.length ? phone : '~';
+          return (
+            <TableCell>
+              <span>{display}</span>
+            </TableCell>
+          );
+        },
       }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
@@ -104,21 +155,86 @@ export const UsersTable = ({ users }: Props) => {
     [],
   );
 
+  const expandedHeader = useMemo(
+    () => [
+      '',
+      m.users_col_assigned(),
+      '',
+      m.users_col_ip(),
+      m.users_col_connected_through(),
+      m.users_col_connected_date(),
+      '',
+    ],
+    [],
+  );
+
+  const renderExpanded = useCallback(
+    (row: Row<RowData>, rowStyles: CSSProperties, isLast = false) =>
+      row.original.devices.map((device) => {
+        const latestNetwork = orderBy(
+          device.networks.filter((n) => isPresent(n.last_connected_at)),
+          (d) => d.last_connected_at,
+          ['desc'],
+        )[0];
+        const neverConnected = m.profile_devices_col_never_connected();
+        const ip = latestNetwork?.last_connected_ip ?? neverConnected;
+        const locationName = latestNetwork?.last_connected_at
+          ? latestNetwork.network_name
+          : neverConnected;
+        const connectionDate = latestNetwork?.last_connected_at
+          ? displayDate(latestNetwork.last_connected_at)
+          : neverConnected;
+        return (
+          <TableRowContainer
+            className={clsx({ last: isLast })}
+            key={device.id}
+            style={rowStyles}
+          >
+            <TableCell alignContent="center" noPadding>
+              <Icon icon="enter" />
+            </TableCell>
+            <TableCell className="device-name-cell">
+              <Icon icon="devices" />
+              <span>{device.name}</span>
+            </TableCell>
+            <TableCell empty />
+            <TableCell>
+              <span>{ip}</span>
+            </TableCell>
+            <TableCell>
+              <span>{locationName}</span>
+            </TableCell>
+            <TableCell>
+              <span>{connectionDate}</span>
+            </TableCell>
+            <TableCell empty />
+          </TableRowContainer>
+        );
+      }),
+    [],
+  );
+
   const table = useReactTable({
     state: {
       sorting: sortingState,
     },
     columns,
     data: transformedData,
-    getCoreRowModel: getCoreRowModel(),
     manualSorting: true,
+    getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: (row) => row.original.devices.length > 0,
     onSortingChange: setSortingState,
   });
 
   return (
     <>
       <TableTop text={m.users_header_title()}></TableTop>
-      <TableBody table={table} />
+      <TableBody
+        table={table}
+        renderExpandedRow={renderExpanded}
+        expandedHeaders={expandedHeader}
+      />
     </>
   );
 };
