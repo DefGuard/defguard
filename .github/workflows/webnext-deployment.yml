@@ -20,6 +20,7 @@ jobs:
         type=sha
 
   deploy-webnext:
+    needs: build-image
     runs-on: [self-hosted, Linux, X64]
     environment: WEBNEXT
     if: ${{ github.event_name != 'pull_request' && github.ref_name == 'webnext' }}
