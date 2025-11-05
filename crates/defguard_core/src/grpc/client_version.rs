@@ -205,10 +205,9 @@ impl ClientFeature {
 
         if !platform_matches {
             debug!(
-                "Client OS {:?} does not meet required OS {:?} for feature {:?}",
+                "Client OS {:?} does not meet required OS {:?} for feature {self:?}",
                 platform.as_ref().map(|p| &p.os_family),
-                self.required_os_family(),
-                self
+                self.required_os_family()
             );
         }
 
