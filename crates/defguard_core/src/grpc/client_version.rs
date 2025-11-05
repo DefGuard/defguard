@@ -134,7 +134,7 @@ pub(crate) fn parse_client_version_platform(
         |v| {
             Version::parse(v).map_or_else(
                 |_| {
-                    error!("Invalid version string: {}", v);
+                    error!("Invalid version string: {v}");
                     None
                 },
                 Some,
@@ -145,7 +145,7 @@ pub(crate) fn parse_client_version_platform(
     let platform = info.platform.as_ref().and_then(|p| {
         ClientPlatform::try_from(p.as_str()).map_or_else(
             |_| {
-                error!("Invalid platform string: {}", p);
+                error!("Invalid platform string: {p}");
                 None
             },
             Some,
