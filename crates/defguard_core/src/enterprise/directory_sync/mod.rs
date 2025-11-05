@@ -661,7 +661,9 @@ async fn sync_all_users_state(
         for user in missing_defguard_users {
             match &user.user_details {
                 None => {
-                    error!("Missing expected user details for user {user:?}");
+                    error!(
+                        "Missing directory user details for user {user:?}. Unable to create missing Defguard user."
+                    );
                 }
                 Some(details) => {
                     debug!(
