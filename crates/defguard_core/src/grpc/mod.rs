@@ -69,6 +69,7 @@ static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 mod auth;
 pub(crate) mod client_mfa;
+pub mod client_version;
 pub mod enrollment;
 pub mod gateway;
 mod interceptor;
@@ -234,7 +235,11 @@ async fn handle_proxy_message_loop(
                     }
                     // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                     Some(core_request::Payload::ExistingDevice(request)) => {
-                        match context.enrollment_server.get_network_info(request).await {
+                        match context
+                            .enrollment_server
+                            .get_network_info(request, received.device_info)
+                            .await
+                        {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::DeviceConfig(response_payload))
                             }
@@ -345,7 +350,11 @@ async fn handle_proxy_message_loop(
                     }
                     // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
                     Some(core_request::Payload::InstanceInfo(request)) => {
-                        match context.polling_server.info(request).await {
+                        match context
+                            .polling_server
+                            .info(request, received.device_info)
+                            .await
+                        {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::InstanceInfo(response_payload))
                             }
