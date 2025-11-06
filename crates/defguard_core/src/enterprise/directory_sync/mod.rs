@@ -826,9 +826,15 @@ async fn sync_all_users_state(
 
     transaction.commit().await?;
 
+    // trigger LDAP sync
     ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
     Box::pin(ldap_update_users_state(
         modified_users.iter_mut().collect::<Vec<_>>(),
+        pool,
+    ))
+    .await;
+    Box::pin(ldap_update_users_state(
+        created_users.iter_mut().collect::<Vec<_>>(),
         pool,
     ))
     .await;
