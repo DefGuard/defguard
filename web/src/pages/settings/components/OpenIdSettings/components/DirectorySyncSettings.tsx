@@ -85,15 +85,6 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               labelPlacement="right"
               controller={{ control, name: 'directory_sync_enabled' }}
             />
-
-            <div className="helper-row">
-              <FormCheckBox
-                controller={{ control, name: 'prefetch_users' }}
-                label={localLL.form.labels.prefetch_users.label()}
-                labelPlacement="right"
-              />
-              <Helper>{localLL.form.labels.prefetch_users.helper()}</Helper>
-            </div>
             <FormSelect
               controller={{ control, name: 'directory_sync_target' }}
               options={syncTarget}
@@ -145,15 +136,25 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               disabled={isLoading}
             />
             {providerName === 'Microsoft' ? (
-              <FormInput
-                controller={{ control, name: 'directory_sync_group_match' }}
-                label={localLL.form.labels.group_match.label()}
-                disabled={isLoading}
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.group_match.helper())}</Helper>
-                }
-                required={false}
-              ></FormInput>
+              <>
+                <div className="helper-row">
+                  <FormCheckBox
+                    controller={{ control, name: 'prefetch_users' }}
+                    label={localLL.form.labels.prefetch_users.label()}
+                    labelPlacement="right"
+                  />
+                  <Helper>{localLL.form.labels.prefetch_users.helper()}</Helper>
+                </div>
+                <FormInput
+                  controller={{ control, name: 'directory_sync_group_match' }}
+                  label={localLL.form.labels.group_match.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.group_match.helper())}</Helper>
+                  }
+                  required={false}
+                />
+              </>
             ) : null}
             {providerName === 'Okta' ? (
               <>
