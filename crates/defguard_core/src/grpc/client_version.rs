@@ -1,105 +1,11 @@
-use defguard_proto::proxy::DeviceInfo;
+use base64::{Engine, prelude::BASE64_STANDARD};
+use defguard_proto::proxy::{ClientPlatformInfo, DeviceInfo};
+use prost::Message;
 use semver::Version;
-
-#[derive(Debug)]
-pub(crate) struct ClientPlatform {
-    /// The general OS family, e.g., "windows", "macos", "linux"
-    os_family: String,
-    /// Specific OS type, e.g., "Ubuntu", "Debian"
-    /// May sometimes be the same as `os_family`, e.g., "Windows"
-    #[allow(dead_code)]
-    os_type: String,
-    #[allow(dead_code)]
-    version: String,
-    #[allow(dead_code)]
-    architecture: Option<String>,
-    #[allow(dead_code)]
-    edition: Option<String>,
-    #[allow(dead_code)]
-    codename: Option<String>,
-    /// "32-bit", "64-bit"
-    #[allow(dead_code)]
-    bitness: Option<String>,
-}
-
-impl TryFrom<&str> for ClientPlatform {
-    type Error = String;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let parts: Vec<&str> = value.split(';').collect();
-        let mut os_family = None;
-        let mut os_type = None;
-        let mut version = None;
-        let mut architecture = None;
-        let mut edition = None;
-        let mut codename = None;
-        let mut bitness = None;
-
-        let to_option: fn(&str) -> Option<String> = |s: &str| {
-            let trimmed = s.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
-        };
-
-        // The expected format is:
-        // "os_family={}; os_type={}; version={}; edition={}; codename={}; bitness={}; architecture={}",
-        for part in parts {
-            let kv: Vec<&str> = part.trim().splitn(2, '=').collect();
-            if kv.len() != 2 {
-                continue;
-            }
-            match kv[0].trim().to_lowercase().as_str() {
-                "os_family" => {
-                    os_family = to_option(kv[1]);
-                }
-                "os_type" => {
-                    os_type = to_option(kv[1]);
-                }
-                "version" => {
-                    version = to_option(kv[1]);
-                }
-                "architecture" => {
-                    architecture = to_option(kv[1]);
-                }
-                "edition" => {
-                    edition = to_option(kv[1]);
-                }
-                "codename" => {
-                    codename = to_option(kv[1]);
-                }
-                "bitness" => {
-                    bitness = to_option(kv[1]);
-                }
-                _ => {}
-            }
-        }
-
-        let (Some(os_family), Some(os_type), Some(version)) = (os_family, os_type, version) else {
-            let msg = format!(
-                "invalid client platform string: {value}. OS family, its concrete type and version are required."
-            );
-            error!(msg);
-            return Err(msg);
-        };
-
-        Ok(Self {
-            os_family,
-            os_type,
-            version,
-            architecture,
-            edition,
-            codename,
-            bitness,
-        })
-    }
-}
 
 pub(crate) fn parse_client_version_platform(
     info: Option<&DeviceInfo>,
-) -> (Option<Version>, Option<ClientPlatform>) {
+) -> (Option<Version>, Option<ClientPlatformInfo>) {
     let Some(info) = info else {
         debug!("Device information is missing from the request");
         return (None, None);
@@ -119,13 +25,20 @@ pub(crate) fn parse_client_version_platform(
     );
 
     let platform = info.platform.as_ref().and_then(|p| {
-        ClientPlatform::try_from(p.as_str()).map_or_else(
-            |_| {
-                error!("Invalid platform string: {p}");
-                None
-            },
-            Some,
-        )
+        let binary = BASE64_STANDARD
+            .decode(p)
+            .map_err(|e| {
+                error!("Failed to decode base64 platform string: {e}");
+                e
+            })
+            .ok()?;
+        let platform_info = ClientPlatformInfo::decode(&*binary)
+            .map_err(|e| {
+                error!("Failed to decode ClientPlatformInfo from bytes: {e}");
+                e
+            })
+            .ok()?;
+        Some(platform_info)
     });
 
     (version, platform)
@@ -202,81 +115,6 @@ mod tests {
             platform,
             ..Default::default()
         }
-    }
-
-    #[test]
-    fn test_client_platform_try_from() {
-        // Test valid full platform string
-        let platform_str = "os_family=linux; os_type=Ubuntu; version=22.04; architecture=x86_64; edition=Desktop; codename=jammy; bitness=64-bit";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-        let platform = result.unwrap();
-        assert_eq!(platform.os_family, "linux");
-        assert_eq!(platform.os_type, "Ubuntu");
-        assert_eq!(platform.version, "22.04");
-        assert_eq!(platform.architecture, Some("x86_64".to_string()));
-        assert_eq!(platform.edition, Some("Desktop".to_string()));
-        assert_eq!(platform.codename, Some("jammy".to_string()));
-        assert_eq!(platform.bitness, Some("64-bit".to_string()));
-
-        // Test minimal valid platform string (only required fields)
-        let platform_str = "os_family=windows; os_type=Windows; version=11";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-        let platform = result.unwrap();
-        assert_eq!(platform.os_family, "windows");
-        assert_eq!(platform.os_type, "Windows");
-        assert_eq!(platform.version, "11");
-        assert_eq!(platform.architecture, None);
-
-        // Test with empty optional fields
-        let platform_str = "os_family=macos; os_type=macOS; version=14.0; architecture=; edition=; codename=; bitness=";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-        let platform = result.unwrap();
-        assert_eq!(platform.os_family, "macos");
-        assert_eq!(platform.architecture, None);
-        assert_eq!(platform.edition, None);
-
-        // Test missing required field (os_family)
-        let platform_str = "os_type=Ubuntu; version=22.04";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("OS family"));
-
-        // Test missing required field (os_type)
-        let platform_str = "os_family=linux; version=22.04";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_err());
-
-        // Test missing required field (version)
-        let platform_str = "os_family=linux; os_type=Ubuntu";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_err());
-
-        // Test with extra whitespace
-        let platform_str = "  os_family = linux ;  os_type = Ubuntu  ; version = 22.04  ";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-        let platform = result.unwrap();
-        assert_eq!(platform.os_family, "linux");
-        assert_eq!(platform.os_type, "Ubuntu");
-        assert_eq!(platform.version, "22.04");
-
-        // Test with unknown keys (should be ignored)
-        let platform_str = "os_family=linux; os_type=Ubuntu; version=22.04; unknown_key=value";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-
-        // Test with malformed key-value pairs (missing equals sign)
-        let platform_str = "os_family=linux; os_type=Ubuntu; version=22.04; malformed_field";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_ok());
-
-        // Test empty string
-        let platform_str = "";
-        let result = ClientPlatform::try_from(platform_str);
-        assert!(result.is_err());
     }
 
     #[test]
