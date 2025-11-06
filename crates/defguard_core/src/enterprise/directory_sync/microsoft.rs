@@ -26,7 +26,8 @@ const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 const GRANT_TYPE: &str = "client_credentials";
 const MAX_RESULTS: &str = "200";
 const MAX_REQUESTS: usize = 50;
-const USER_QUERY_FIELDS: &str = "accountEnabled,displayName,mail,otherMails";
+const USER_QUERY_FIELDS: &str =
+    "accountEnabled,displayName,mail,otherMails,id,givenName,surname,mobilePhone,businessPhones";
 const USER_SEARCH_URL: &str =
     "https://graph.microsoft.com/v1.0/users?$select=id&$filter=mail eq '{email}'";
 const USER_SEARCH_URL_FALLBACK: &str =
@@ -111,11 +112,9 @@ struct User {
     account_enabled: bool,
     #[serde(rename = "otherMails")]
     other_mails: Vec<String>,
-    #[serde(rename = "userPrincipalName")]
-    user_principal_name: String,
     #[serde(rename = "givenName")]
-    given_name: String,
-    surname: String,
+    given_name: Option<String>,
+    surname: Option<String>,
     #[serde(rename = "mobilePhone")]
     mobile_phone: Option<String>,
     #[serde(rename = "businessPhones")]
@@ -135,19 +134,26 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .value
             .into_iter()
             .filter_map(|user| {
+// check if additional user detail data is available
+let user_details = if let ( Some(first_name), Some(last_name)) = ( user.given_name, user.surname) {
             	// get a phone number if any is available
             	// prefer mobile phone
             	let phone_number = match user.mobile_phone {
             		Some(mobile_phone) => Some(mobile_phone),
             		None => user.business_phones.into_iter().next()
             	};
-            	let user_details = DirectoryUserDetails { username: user.user_principal_name, last_name: user.surname, first_name: user.given_name, phone_number, openid_sub: user.id };
+	Some(DirectoryUserDetails { last_name, first_name, phone_number   })
+} else {
+	debug!("User {} doesn't have all required user details and will be skipped if user creation is required", user.display_name);
+	None
+};
+
 
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: user.account_enabled, id: None, user_details: Some(user_details) })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: Some(user.id), user_details })
                 } else if let Some(email) = user.other_mails.into_iter().next() {
                     warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {email}", user.display_name);
-                    Some(DirectoryUser { email, active: user.account_enabled, id: None, user_details: Some(user_details) })
+                    Some(DirectoryUser { email, active: user.account_enabled, id: Some(user.id), user_details  })
                 } else {
                     warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
                     None
@@ -487,6 +493,7 @@ impl MicrosoftDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
+            debug!("Microsoft response: {response:#?}");
             let response: UsersResponse =
                 parse_response(response, "Failed to query all users in the Microsoft API.").await?;
             combined_response.value.extend(response.value);
@@ -640,9 +647,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec![],
                     id: "user1-id".into(),
-                    user_principal_name: "user1".into(),
-                    given_name: "User".into(),
-                    surname: "One".into(),
+                    given_name: Some("User".into()),
+                    surname: Some("One".into()),
                     mobile_phone: Some("555555555".into()),
                     business_phones: vec![],
                 },
@@ -652,9 +658,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec!["email2@email.com".to_string()],
                     id: "user2-id".into(),
-                    user_principal_name: "user2".into(),
-                    given_name: "User".into(),
-                    surname: "Two".into(),
+                    given_name: Some("User".into()),
+                    surname: Some("Two".into()),
                     mobile_phone: None,
                     business_phones: vec![],
                 },
@@ -664,9 +669,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec![],
                     id: "user3-id".into(),
-                    user_principal_name: "user3".into(),
-                    given_name: "User".into(),
-                    surname: "Three".into(),
+                    given_name: Some("User".into()),
+                    surname: Some("Three".into()),
                     mobile_phone: None,
                     business_phones: vec![],
                 },
@@ -690,9 +694,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec![],
                     id: "user1-id".into(),
-                    user_principal_name: "user1".into(),
-                    given_name: "User".into(),
-                    surname: "One".into(),
+                    given_name: Some("User".into()),
+                    surname: None,
                     mobile_phone: None,
                     business_phones: vec![],
                 },
@@ -702,9 +705,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec!["email2@email.com".to_string()],
                     id: "user2-id".into(),
-                    user_principal_name: "user2".into(),
-                    given_name: "User".into(),
-                    surname: "Two".into(),
+                    given_name: None,
+                    surname: None,
                     mobile_phone: Some("555555555".into()),
                     business_phones: vec![],
                 },
@@ -714,9 +716,8 @@ mod tests {
                     account_enabled: true,
                     other_mails: vec![],
                     id: "user3-id".into(),
-                    user_principal_name: "user3".into(),
-                    given_name: "User".into(),
-                    surname: "Three".into(),
+                    given_name: Some("User".into()),
+                    surname: Some("Three".into()),
                     mobile_phone: Some("555555555".into()),
                     business_phones: vec![],
                 },

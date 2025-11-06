@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Debug,
     time::Duration,
 };
 
@@ -55,6 +56,8 @@ pub enum DirectorySyncError {
     NetworkUpdateError(String),
     #[error("Failed to update user state: {0}")]
     UserUpdateError(String),
+    #[error("Failed to create user state: {0}")]
+    UserCreateError(String),
     #[error("Failed to find user: {0}")]
     UserNotFound(String),
     #[error(
@@ -107,11 +110,9 @@ pub struct DirectoryUser {
 // additional user details required for user creation
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryUserDetails {
-    username: String,
     last_name: String,
     first_name: String,
     phone_number: Option<String>,
-    openid_sub: String,
 }
 
 #[trait_variant::make(Send)]
@@ -658,27 +659,37 @@ async fn sync_all_users_state(
             .collect();
 
         // create missing users
-        for user in missing_defguard_users {
-            match &user.user_details {
+        for directory_user in missing_defguard_users {
+            match &directory_user.user_details {
                 None => {
                     error!(
-                        "Missing directory user details for user {user:?}. Unable to create missing Defguard user."
+                        "Missing directory user details for user {directory_user:?}. Unable to create missing Defguard user."
                     );
                 }
                 Some(details) => {
-                    debug!(
-                        "User {} exists in directory but not in Defguard. Creating new user with: {user:?}",
-                        details.username
+                    info!(
+                        "User {directory_user:?} exists in directory but not in Defguard. Creating new Defguard user.",
                     );
+
+                    // Extract the username from the email address
+                    let email = directory_user.email.clone();
+                    let username =
+                        email
+                            .split('@')
+                            .next()
+                            .ok_or(DirectorySyncError::UserCreateError(format!(
+                                "Failed to extract username from email address {email}"
+                            )))?;
+
                     let mut user = User::new(
-                        details.username.clone(),
+                        username,
                         None,
-                        details.last_name.clone(),
-                        details.first_name.clone(),
-                        user.email.clone(),
+                        &details.last_name,
+                        &details.first_name,
+                        &directory_user.email,
                         details.phone_number.clone(),
                     );
-                    user.openid_sub = Some(details.openid_sub.clone());
+                    user.openid_sub = directory_user.id.clone();
                     let new_user = user.save(&mut *transaction).await?;
                     created_users.push(new_user);
                 }
@@ -1013,6 +1024,7 @@ where
     match status {
         &reqwest::StatusCode::OK => {
             let json: serde_json::Value = response.json().await?;
+            debug!("Microsoft response JSON: {json:#?}");
             Ok(serde_json::from_value(json).map_err(|err| {
                 DirectorySyncError::RequestError(format!("{context_message} Error: {err}"))
             })?)
