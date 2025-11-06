@@ -16,5 +16,12 @@
   "users_col_assigned": "Assigned devices",
   "users_col_ip": "Last connected from",
   "users_col_connected_through": "Connected through",
-  "users_col_connected_date": "Connected date"
+  "users_col_connected_date": "Connected date",
+  "users_row_menu_go_profile": "Go to user profile",
+  "users_row_menu_disable": "Disable account",
+  "users_row_menu_enable": "Enable account",
+  "users_row_menu_add_auth": "Add authentication key",
+  "users_row_menu_delete": "Delete account",
+  "users_row_menu_edit": "Edit details",
+  "users_row_menu_change_password": "Change password"
 }

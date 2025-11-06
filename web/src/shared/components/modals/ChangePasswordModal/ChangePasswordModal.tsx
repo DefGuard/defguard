@@ -1,25 +1,25 @@
-import { m } from '../../../../../../../paraglide/messages';
-import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
-import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm, withForm } from '../../../../../../../shared/defguard-ui/form';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import type z from 'zod';
-import api from '../../../../../../../shared/api/api';
-import type { User } from '../../../../../../../shared/api/types';
-import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
-import type { IconKindValue } from '../../../../../../../shared/defguard-ui/components/Icon/icon-types';
-import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { m } from '../../../../paraglide/messages';
+import api from '../../../api/api';
+import type { User } from '../../../api/types';
+import { Icon } from '../../../defguard-ui/components/Icon';
+import type { IconKindValue } from '../../../defguard-ui/components/Icon/icon-types';
+import { Modal } from '../../../defguard-ui/components/Modal/Modal';
+import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
+import { useAppForm, withForm } from '../../../defguard-ui/form';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { formChangeLogic } from '../../../form';
 import {
   closeModal,
   subscribeCloseModal,
   subscribeOpenModal,
-} from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
-import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+} from '../../../hooks/modalControls/modalsSubjects';
+import type { ModalNameValue } from '../../../hooks/modalControls/modalTypes';
 import {
   adminChangePasswordDefaultValues,
   adminChangePasswordSchema,

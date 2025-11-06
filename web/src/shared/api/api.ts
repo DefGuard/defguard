@@ -1,3 +1,4 @@
+import { cloneDeep } from 'lodash-es';
 import { client } from './api-client';
 import type {
   AddApiTokenRequest,
@@ -89,6 +90,18 @@ const api = {
     deleteApiToken: ({ username, id }: DeleteApiTokenRequest) =>
       client.delete(`/user/${username}/api_token/${id}`),
     disableMfa: (username: string) => client.delete(`/user/${username}/mfa`),
+    activeStateChange: async (username: string, state: boolean): Promise<void> => {
+      const { data: profile } = await api.user.getUser(username);
+      const clone = cloneDeep(profile.user);
+      clone.is_active = state;
+      if (clone.phone === '') {
+        delete clone.phone;
+      }
+      await api.user.editUser({
+        username,
+        body: clone,
+      });
+    },
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),

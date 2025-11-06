@@ -108,8 +108,8 @@ export const ProfileGeneralCard = () => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
   useEffect(() => {
-    form.reset();
-  }, [profileUser]);
+    form.reset(defaultValues);
+  }, [defaultValues]);
 
   return (
     <ProfileCard id="general-card">

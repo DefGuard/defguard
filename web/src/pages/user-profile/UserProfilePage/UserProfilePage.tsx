@@ -1,8 +1,8 @@
 import './style.scss';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { trainCase } from 'change-case';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { titleCase } from 'text-case';
 import { m } from '../../../paraglide/messages';
 import { Page } from '../../../shared/components/Page/Page';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
@@ -47,7 +47,7 @@ export const UserProfilePage = () => {
     if (isSelf) {
       return m.profile_my_profile();
     }
-    const name = trainCase(
+    const name = titleCase(
       `${userProfile.user.first_name} ${userProfile.user.last_name}`,
     );
     return m.profile_title({

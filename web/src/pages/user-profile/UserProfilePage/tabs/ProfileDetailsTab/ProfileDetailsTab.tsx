@@ -1,6 +1,7 @@
 import './style.scss';
 import { m } from '../../../../../paraglide/messages';
 import { LayoutGrid } from '../../../../../shared/components/LayoutGrid/LayoutGrid';
+import { ChangePasswordModal } from '../../../../../shared/components/modals/ChangePasswordModal/ChangePasswordModal';
 import { EmptyState } from '../../../../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -10,7 +11,6 @@ import { useUserProfile } from '../../hooks/useUserProfilePage';
 import { ProfileAuthCard } from './components/ProfileAuthCard/ProfileAuthCard';
 import { ProfileAuthorizedApps } from './components/ProfileAuthorizedApps/ProfileAuthorizedApps';
 import { ProfileGeneralCard } from './components/ProfileGeneralCard/ProfileGeneralCard';
-import { ChangePasswordModal } from './modals/ChangePasswordModal/ChangePasswordModal';
 import { EmailMfaSetupModal } from './modals/EmailMfaSetupModal/EmailMfaSetupModal';
 import { RecoveryCodesModal } from './modals/RecoveryCodesModal/RecoveryCodesModal';
 import { TotpSetupModal } from './modals/TotpSetupModal/TotpSetupModal';

@@ -1,26 +1,25 @@
 import z from 'zod';
-import { m } from '../../../../../../../paraglide/messages';
-import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
-import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { m } from '../../../../paraglide/messages';
+import { Modal } from '../../../defguard-ui/components/Modal/Modal';
+import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
+import { useAppForm } from '../../../defguard-ui/form';
+import { formChangeLogic } from '../../../form';
 import {
   closeModal,
   subscribeCloseModal,
   subscribeOpenModal,
-} from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+} from '../../../hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../hooks/modalControls/modalTypes';
 import './style.scss';
+import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
-import api from '../../../../../../../shared/api/api';
-import {
-  AuthKeyType,
-  type AuthKeyTypeValue,
-} from '../../../../../../../shared/api/types';
-import { Select } from '../../../../../../../shared/defguard-ui/components/Select/Select';
-import type { SelectOption } from '../../../../../../../shared/defguard-ui/components/Select/types';
-import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
+import api from '../../../api/api';
+import { type ApiError, AuthKeyType, type AuthKeyTypeValue } from '../../../api/types';
+import { Select } from '../../../defguard-ui/components/Select/Select';
+import type { SelectOption } from '../../../defguard-ui/components/Select/types';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 
 const modalNameKey = ModalName.AddAuthKey;
 
@@ -88,7 +87,7 @@ const ModalContent = ({ username }: { username: string }) => {
   const { mutateAsync: addKey } = useMutation({
     mutationFn: api.user.addAuthKey,
     meta: {
-      invalidate: ['user', username],
+      invalidate: [['user', username], ['user']],
     },
     onSuccess: () => {
       closeModal(modalNameKey);
@@ -102,14 +101,27 @@ const ModalContent = ({ username }: { username: string }) => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       await addKey({
         ...value,
         key_type: selected.value,
         username,
+      }).catch((e: AxiosError<ApiError>) => {
+        const msg = e.response?.data.msg;
+        if (msg?.includes('verification')) {
+          formApi.setErrorMap({
+            onSubmit: {
+              fields: {
+                key: m.form_error_invalid_key(),
+              },
+            },
+          });
+        }
       });
     },
   });
+
+  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
   useEffect(() => {
@@ -146,12 +158,14 @@ const ModalContent = ({ username }: { username: string }) => {
       <ModalControls
         cancelProps={{
           text: m.controls_cancel(),
+          disabled: isSubmitting,
           onClick: () => {
             closeModal(modalNameKey);
           },
         }}
         submitProps={{
           text: m.modal_add_auth_key_submit(),
+          loading: isSubmitting,
           onClick: () => {
             form.handleSubmit();
           },

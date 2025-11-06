@@ -1,13 +1,17 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
+import { refinePasswordField } from '../../../../shared/components/modals/ChangePasswordModal/form';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -18,11 +22,12 @@ import {
   patternValidPhoneNumber,
 } from '../../../../shared/patterns';
 import { removeEmptyStrings } from '../../../../shared/utils/removeEmptyStrings';
-import { refinePasswordField } from '../../../user-profile/UserProfilePage/tabs/ProfileDetailsTab/modals/ChangePasswordModal/form';
 import { useAddUserModal } from './useAddUserModal';
 
 export const AddUserModal = () => {
   const isOpen = useAddUserModal((s) => s.isOpen);
+  const step = useAddUserModal((s) => s.step);
+
   return (
     <Modal
       id="add-user-modal"
@@ -35,8 +40,39 @@ export const AddUserModal = () => {
         useAddUserModal.getState().reset();
       }}
     >
-      <AddUserModalForm />
+      {step === 'enroll-choice' && <EnrollmentChoice />}
+      {step === 'user' && <AddUserModalForm />}
     </Modal>
+  );
+};
+
+const EnrollmentChoice = () => {
+  return (
+    <>
+      <SectionSelect
+        image="self-enrollment"
+        title={m.modal_add_user_choice_enroll_title()}
+        content={m.modal_add_user_choice_enroll_content()}
+        onClick={() => {
+          useAddUserModal.setState({
+            step: 'user',
+            enrollUser: true,
+          });
+        }}
+      />
+      <SizedBox height={ThemeSpacing.Md} />
+      <SectionSelect
+        image="manual-user"
+        title={m.modal_add_user_choice_manual_title()}
+        content={m.modal_add_user_choice_manual_content()}
+        onClick={() => {
+          useAddUserModal.setState({
+            step: 'user',
+            enrollUser: false,
+          });
+        }}
+      />
+    </>
   );
 };
 
@@ -44,6 +80,7 @@ const AddUserModalForm = () => {
   const reservedEmails = useAddUserModal((s) => s.reservedEmails);
   const reservedUsernamesStart = useAddUserModal((s) => s.reservedUsernames);
   const reservedUsernames = useRef<string[]>(reservedUsernamesStart);
+  const [assignToGroups, setAssignToGroups] = useState(false);
 
   const formSchema = useMemo(
     () =>
@@ -209,6 +246,14 @@ const AddUserModalForm = () => {
           </form.AppField>
         </form.AppForm>
       </form>
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <Checkbox
+        active={assignToGroups}
+        text={m.modal_add_user_assign_groups_checkbox()}
+        onClick={() => {
+          setAssignToGroups((s) => !s);
+        }}
+      />
       <ModalControls
         cancelProps={{
           disabled: isSubmitting,
@@ -222,7 +267,17 @@ const AddUserModalForm = () => {
             form.handleSubmit();
           },
         }}
-      />
+      >
+        <Button
+          variant="outlined"
+          onClick={() => {
+            useAddUserModal.setState({
+              step: 'enroll-choice',
+            });
+          }}
+          text={m.controls_back()}
+        />
+      </ModalControls>
     </>
   );
 };

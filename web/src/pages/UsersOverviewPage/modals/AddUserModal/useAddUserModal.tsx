@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import type { User } from '../../../../shared/api/types';
 
 interface StoreValues {
-  step: 'user' | 'groups';
+  step: 'user' | 'groups' | 'enroll-choice';
   isOpen: boolean;
+  enrollUser: boolean;
   reservedEmails: string[];
   reservedUsernames: string[];
   user?: User;
@@ -11,7 +12,8 @@ interface StoreValues {
 
 const defaults: StoreValues = {
   isOpen: false,
-  step: 'user',
+  enrollUser: false,
+  step: 'enroll-choice',
   reservedEmails: [],
   reservedUsernames: [],
   user: undefined,

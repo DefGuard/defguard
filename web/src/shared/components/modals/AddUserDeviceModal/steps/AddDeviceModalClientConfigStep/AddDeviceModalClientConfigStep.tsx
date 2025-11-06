@@ -5,8 +5,8 @@ import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { useAddUserDeviceModal } from '../../store/useAddUserDeviceModal';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
-import { capitalCase } from 'change-case';
 import { QRCodeCanvas } from 'qrcode.react';
+import { titleCase } from 'text-case';
 import { externalLink } from '../../../../../constants';
 import { Button } from '../../../../../defguard-ui/components/Button/Button';
 import { CopyField } from '../../../../../defguard-ui/components/CopyField/CopyField';
@@ -67,7 +67,7 @@ export const AddDeviceModalClientConfigStep = () => {
     const res: MenuItemsGroup[] = [
       {
         header: {
-          text: `${capitalCase(m.misc_for())} Linux`,
+          text: `${titleCase(m.misc_for())} Linux`,
         },
         items: [
           {

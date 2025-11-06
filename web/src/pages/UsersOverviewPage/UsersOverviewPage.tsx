@@ -3,6 +3,8 @@ import { LayoutGrid } from '../../shared/components/LayoutGrid/LayoutGrid';
 import { Page } from '../../shared/components/Page/Page';
 import './style.scss';
 import { m } from '../../paraglide/messages';
+import { AddAuthKeyModal } from '../../shared/components/modals/AddAuthKeyModal/AddAuthKeyModal';
+import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswordModal/ChangePasswordModal';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getUsersQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
@@ -16,6 +18,8 @@ export const UsersOverviewPage = () => {
         <LayoutGrid>{isPresent(users) && <UsersTable users={users} />}</LayoutGrid>
       </Page>
       <AddUserModal />
+      <AddAuthKeyModal />
+      <ChangePasswordModal />
     </>
   );
 };

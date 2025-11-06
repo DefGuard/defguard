@@ -1,5 +1,6 @@
 import { m } from '../../../../../paraglide/messages';
 import { LayoutGrid } from '../../../../../shared/components/LayoutGrid/LayoutGrid';
+import { AddAuthKeyModal } from '../../../../../shared/components/modals/AddAuthKeyModal/AddAuthKeyModal';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { EmptyStateFlexible } from '../../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -8,7 +9,6 @@ import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubje
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import { ProfileTabHeader } from '../../components/ProfileTabHeader/ProfileTabHeader';
 import { useUserProfile } from '../../hooks/useUserProfilePage';
-import { AddAuthKeyModal } from './modals/AddAuthKeyModal/AddAuthKeyModal';
 import { RenameAuthKeyModal } from './modals/RenameAuthKeyModal/RenameAuthKeyModal';
 import { ProfileAuthKeysTable } from './ProfileAuthKeysTable';
 
@@ -24,6 +24,7 @@ export const ProfileAuthKeysTab = () => {
           title={m.profile_auth_keys_no_data_title()}
           subtitle={m.profile_auth_keys_no_data_subtitle()}
           primaryAction={{
+            iconLeft: 'key',
             text: m.profile_auth_keys_no_data_cta(),
             onClick: () => {
               openModal(ModalName.AddAuthKey, {

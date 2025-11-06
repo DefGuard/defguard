@@ -29,7 +29,6 @@
     "@tanstack/react-virtual": "^3.13.12",
     "@uidotdev/usehooks": "^2.4.1",
     "axios": "^1.13.1",
-    "change-case": "^5.4.4",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
     "lodash-es": "^4.17.21",
@@ -40,6 +39,7 @@
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
     "rxjs": "^7.8.2",
+    "text-case": "^1.2.9",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },

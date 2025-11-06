@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -10,6 +11,7 @@ import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
@@ -26,6 +28,8 @@ import { TableExpandCell } from '../../shared/defguard-ui/components/table/Table
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { displayDate } from '../../shared/utils/displayDate';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
@@ -38,6 +42,7 @@ type RowData = UsersListItem;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = ({ users }: Props) => {
+  const navigate = useNavigate({ from: '/users' });
   const [sortingState, setSortingState] = useState<SortingState>([
     {
       id: 'name',
@@ -144,15 +149,82 @@ export const UsersTable = ({ users }: Props) => {
         size: tableEditColumnSize,
         header: '',
         enableSorting: false,
-        cell: (_info) => {
-          // const _rowData = info.row.original;
+        cell: (info) => {
+          const rowData = info.row.original;
           return (
             <TableCell>
               <IconButtonMenu
                 icon="menu"
                 menuItems={[
                   {
-                    items: [],
+                    items: [
+                      {
+                        text: m.users_row_menu_go_profile(),
+                        icon: 'profile',
+                        onClick: () => {
+                          navigate({
+                            to: '/user/$username',
+                            params: {
+                              username: rowData.username,
+                            },
+                          });
+                        },
+                      },
+                      {
+                        text: m.users_row_menu_change_password(),
+                        icon: 'lock-open',
+                        onClick: () => {
+                          openModal(ModalName.ChangePassword, {
+                            adminForm: true,
+                            user: rowData,
+                          });
+                        },
+                      },
+                      {
+                        text: m.users_row_menu_edit(),
+                        icon: 'edit',
+                        onClick: () => {},
+                      },
+                    ],
+                  },
+                  {
+                    items: [
+                      {
+                        text: m.users_row_menu_add_auth(),
+                        icon: 'key',
+                        onClick: () => {
+                          openModal(ModalName.AddAuthKey, {
+                            username: rowData.username,
+                          });
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    items: [
+                      {
+                        text: rowData.is_active
+                          ? m.users_row_menu_disable()
+                          : m.users_row_menu_enable(),
+                        icon: rowData.is_active ? 'disabled' : 'check',
+                        onClick: () => {
+                          api.user.activeStateChange(
+                            rowData.username,
+                            !rowData.is_active,
+                          );
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    items: [
+                      {
+                        text: m.users_row_menu_delete(),
+                        icon: 'delete',
+                        variant: 'danger',
+                        onClick: () => {},
+                      },
+                    ],
                   },
                 ]}
               />
@@ -161,7 +233,7 @@ export const UsersTable = ({ users }: Props) => {
         },
       }),
     ],
-    [],
+    [navigate],
   );
 
   const expandedHeader = useMemo(

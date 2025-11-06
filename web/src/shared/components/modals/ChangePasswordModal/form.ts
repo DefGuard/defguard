@@ -1,5 +1,5 @@
 import z from 'zod';
-import { m } from '../../../../../../../paraglide/messages';
+import { m } from '../../../../paraglide/messages';
 
 const PasswordErrorCode = {
   Number: 'password_form_check_number',
