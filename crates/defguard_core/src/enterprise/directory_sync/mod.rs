@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::Settings};
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool, error::Error as SqlxError};
@@ -21,8 +21,10 @@ use crate::{
     db::{GatewayEvent, Group, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
+        handlers::openid_login::prune_username,
         ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
     },
+    handlers::user::check_username,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -658,6 +660,8 @@ async fn sync_all_users_state(
             .filter(|user| !existing_user_emails.contains(&user.email.as_str()))
             .collect();
 
+        let core_settings = Settings::get_current_settings();
+
         // create missing users
         for directory_user in missing_defguard_users {
             match &directory_user.user_details {
@@ -680,13 +684,26 @@ async fn sync_all_users_state(
                             .ok_or(DirectorySyncError::UserCreateError(format!(
                                 "Failed to extract username from email address {email}"
                             )))?;
+                    let username = prune_username(username, core_settings.openid_username_handling);
+                    check_username(&username).map_err(|err| {
+                        DirectorySyncError::UserCreateError(format!(
+                            "Username {username} validation failed: {err:?}"
+                        ))
+                    })?;
+
+                    // Check if user with the same username already exists (usernames are unique).
+                    if User::find_by_username(pool, &username).await?.is_some() {
+                        return Err(DirectorySyncError::UserCreateError(format!(
+                            "User with username {username} already exists"
+                        )));
+                    }
 
                     let mut user = User::new(
                         username,
                         None,
-                        &details.last_name,
-                        &details.first_name,
-                        &directory_user.email,
+                        details.last_name.clone(),
+                        details.first_name.clone(),
+                        directory_user.email.clone(),
                         details.phone_number.clone(),
                     );
                     user.openid_sub = directory_user.id.clone();
