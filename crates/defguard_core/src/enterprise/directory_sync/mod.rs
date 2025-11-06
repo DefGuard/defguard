@@ -628,7 +628,7 @@ async fn sync_all_users_state(
     let mut created_users = Vec::new();
 
     sync_inactive_directory_users(
-        &mut *transaction,
+        &mut transaction,
         &inactive_directory_users,
         &mut modified_users,
         wg_tx,
@@ -636,7 +636,7 @@ async fn sync_all_users_state(
     .await?;
 
     sync_active_directory_users(
-        &mut *transaction,
+        &mut transaction,
         &active_directory_users,
         &mut modified_users,
     )
