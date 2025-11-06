@@ -53,16 +53,37 @@ impl DirectorySync for TestProviderDirectorySync {
                 email: "testuser@email.com".into(),
                 active: true,
                 id: Some("testuser-id".into()),
+                user_details: Some(crate::enterprise::directory_sync::DirectoryUserDetails {
+                    username: "testuser".into(),
+                    last_name: "User".into(),
+                    first_name: "Test".into(),
+                    phone_number: None,
+                    openid_sub: "testuser-id".into(),
+                }),
             },
             DirectoryUser {
                 email: "testuserdisabled@email.com".into(),
                 active: false,
                 id: Some("testuserdisabled-id".into()),
+                user_details: Some(crate::enterprise::directory_sync::DirectoryUserDetails {
+                    username: "testuserdisabled".into(),
+                    last_name: "UserDisabled".into(),
+                    first_name: "Test".into(),
+                    phone_number: None,
+                    openid_sub: "testuserdisabled-id".into(),
+                }),
             },
             DirectoryUser {
                 email: "testuser2@email.com".into(),
                 active: true,
                 id: Some("testuser2-id".into()),
+                user_details: Some(crate::enterprise::directory_sync::DirectoryUserDetails {
+                    username: "testuser2".into(),
+                    last_name: "User2".into(),
+                    first_name: "Test".into(),
+                    phone_number: None,
+                    openid_sub: "testuser2-id".into(),
+                }),
             },
         ])
     }

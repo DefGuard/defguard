@@ -683,7 +683,6 @@ async fn sync_all_users_state(
                     created_users.push(new_user);
                 }
             }
-            todo!()
         }
     }
 

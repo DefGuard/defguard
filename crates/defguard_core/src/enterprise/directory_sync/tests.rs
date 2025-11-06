@@ -852,7 +852,7 @@ mod test {
 
         // all active directory users were synced
         let defguard_users = User::all(&pool).await.unwrap();
-        assert_eq!(defguard_users.len(), 2);
+        assert_eq!(defguard_users.len(), 3);
 
         // No events
         assert!(wg_rx.try_recv().is_err());
