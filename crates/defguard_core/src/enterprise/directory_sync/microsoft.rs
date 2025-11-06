@@ -117,7 +117,7 @@ struct User {
     given_name: String,
     surname: String,
     #[serde(rename = "mobilePhone")]
-    mobile_phone: String,
+    mobile_phone: Option<String>,
     #[serde(rename = "businessPhones")]
     business_phones: Vec<String>,
 }
@@ -137,9 +137,10 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             .filter_map(|user| {
             	// get a phone number if any is available
             	// prefer mobile phone
-            	let mut all_phone_numbers = user.business_phones;
-            	all_phone_numbers.push(user.mobile_phone);
-            	let phone_number = all_phone_numbers.into_iter().next_back();
+            	let phone_number = match user.mobile_phone {
+            		Some(mobile_phone) => Some(mobile_phone),
+            		None => user.business_phones.into_iter().next()
+            	};
             	let user_details = DirectoryUserDetails { username: user.user_principal_name, last_name: user.surname, first_name: user.given_name, phone_number, openid_sub: user.id };
 
                 if let Some(email) = user.mail {
@@ -638,18 +639,36 @@ mod tests {
                     mail: Some("email@email.com".to_string()),
                     account_enabled: true,
                     other_mails: vec![],
+                    id: "user1-id".into(),
+                    user_principal_name: "user1".into(),
+                    given_name: "User".into(),
+                    surname: "One".into(),
+                    mobile_phone: Some("555555555".into()),
+                    business_phones: vec![],
                 },
                 User {
                     display_name: "User 2".to_string(),
                     mail: None,
                     account_enabled: true,
                     other_mails: vec!["email2@email.com".to_string()],
+                    id: "user2-id".into(),
+                    user_principal_name: "user2".into(),
+                    given_name: "User".into(),
+                    surname: "Two".into(),
+                    mobile_phone: None,
+                    business_phones: vec![],
                 },
                 User {
                     display_name: "User 3".to_string(),
                     mail: None,
                     account_enabled: true,
                     other_mails: vec![],
+                    id: "user3-id".into(),
+                    user_principal_name: "user3".into(),
+                    given_name: "User".into(),
+                    surname: "Three".into(),
+                    mobile_phone: None,
+                    business_phones: vec![],
                 },
             ],
         };
@@ -670,18 +689,36 @@ mod tests {
                     mail: Some("email@email.com".to_string()),
                     account_enabled: true,
                     other_mails: vec![],
+                    id: "user1-id".into(),
+                    user_principal_name: "user1".into(),
+                    given_name: "User".into(),
+                    surname: "One".into(),
+                    mobile_phone: None,
+                    business_phones: vec![],
                 },
                 User {
                     display_name: "User 2".to_string(),
                     mail: None,
                     account_enabled: true,
                     other_mails: vec!["email2@email.com".to_string()],
+                    id: "user2-id".into(),
+                    user_principal_name: "user2".into(),
+                    given_name: "User".into(),
+                    surname: "Two".into(),
+                    mobile_phone: Some("555555555".into()),
+                    business_phones: vec![],
                 },
                 User {
                     display_name: "User 3".to_string(),
                     mail: None,
                     account_enabled: true,
                     other_mails: vec![],
+                    id: "user3-id".into(),
+                    user_principal_name: "user3".into(),
+                    given_name: "User".into(),
+                    surname: "Three".into(),
+                    mobile_phone: Some("555555555".into()),
+                    business_phones: vec![],
                 },
             ],
         };
