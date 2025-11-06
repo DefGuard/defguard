@@ -493,7 +493,6 @@ impl MicrosoftDirectorySync {
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
-            debug!("Microsoft response: {response:#?}");
             let response: UsersResponse =
                 parse_response(response, "Failed to query all users in the Microsoft API.").await?;
             combined_response.value.extend(response.value);

@@ -667,7 +667,7 @@ async fn sync_all_users_state(
                     );
                 }
                 Some(details) => {
-                    info!(
+                    debug!(
                         "User {directory_user:?} exists in directory but not in Defguard. Creating new Defguard user.",
                     );
 
@@ -1024,7 +1024,6 @@ where
     match status {
         &reqwest::StatusCode::OK => {
             let json: serde_json::Value = response.json().await?;
-            debug!("Microsoft response JSON: {json:#?}");
             Ok(serde_json::from_value(json).map_err(|err| {
                 DirectorySyncError::RequestError(format!("{context_message} Error: {err}"))
             })?)
