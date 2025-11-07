@@ -211,7 +211,8 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
             </TableCell>
-            <TableCell>
+            <TableCell className="device-name">
+              <Icon icon="location" />
               <span>{network.network_name}</span>
               {isPresent(network.network_gateway_ip) && (
                 <Badge variant="neutral" text={network.network_gateway_ip} />
