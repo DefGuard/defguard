@@ -58,7 +58,7 @@ pub enum DirectorySyncError {
     NetworkUpdateError(String),
     #[error("Failed to update user state: {0}")]
     UserUpdateError(String),
-    #[error("Failed to create user state: {0}")]
+    #[error("Failed to create user: {0}")]
     UserCreateError(String),
     #[error("Failed to find user: {0}")]
     UserNotFound(String),
