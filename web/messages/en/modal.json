@@ -75,6 +75,7 @@
   "modal_add_user_choice_manual_content": "The admin creates the user account by providing the details and assigning a password on their behalf.",
   "modal_add_user_form_enable_enroll_label": "Enable user secure remote self-enrollment.",
   "modal_add_user_form_enable_enroll_help": "By enabling this option, the user will be able to configure their account during the setup of their desktop client (e.g., set their own password, etc.). ",
+  "modal_add_user_submit": "Add user",
   "modal_add_user_section_login": "Login preferences",
   "modal_add_user_section_account": "Account information",
   "modal_add_user_groups_select_all": "All groups",

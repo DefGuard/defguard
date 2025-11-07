@@ -8,6 +8,7 @@ import type {
   AddDeviceResponse,
   AddDeviceResponseConfig,
   AddUserRequest,
+  AddUsersToGroupsRequest,
   AdminChangeUserPasswordRequest,
   ApiToken,
   ApplicationInfo,
@@ -59,6 +60,8 @@ const api = {
     editGroup: ({ originalName, ...data }: EditGroupRequest) =>
       client.put(`/group/${originalName ?? data.name}`, data),
     deleteGroup: (name: string) => client.delete(`/group/${name}`),
+    addUsersToGroups: (data: AddUsersToGroupsRequest) =>
+      client.post(`/groups-assign`, data),
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),

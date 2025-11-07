@@ -1,3 +1,7 @@
+export type AddUsersToGroupsRequest = {
+  groups: string[];
+  users: number[];
+};
 export interface GroupInfo {
   id: number;
   name: string;

@@ -7,6 +7,7 @@ interface StoreValues {
   enrollUser: boolean;
   reservedEmails: string[];
   reservedUsernames: string[];
+  groups: string[];
   user?: User;
 }
 
@@ -16,6 +17,7 @@ const defaults: StoreValues = {
   step: 'enroll-choice',
   reservedEmails: [],
   reservedUsernames: [],
+  groups: [],
   user: undefined,
 };
 
