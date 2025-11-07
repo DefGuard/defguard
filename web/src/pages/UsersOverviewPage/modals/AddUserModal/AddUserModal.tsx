@@ -4,7 +4,10 @@ import { useStore } from '@tanstack/react-form';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import { refinePasswordField } from '../../../../shared/components/modals/ChangePasswordModal/form';
+import {
+  mapPasswordFieldError,
+  refinePasswordField,
+} from '../../../../shared/components/modals/ChangePasswordModal/form';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
@@ -169,7 +172,6 @@ const AddUserModalForm = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value, formApi }) => {
-      console.log(value);
       let usernameAvailable: boolean;
       try {
         await api.user.usernameAvailable(value.username);
@@ -220,6 +222,8 @@ const AddUserModalForm = () => {
                 required
                 label={m.form_label_password()}
                 disabled={enrollEnabled}
+                mapError={(val) => mapPasswordFieldError(val, true)}
+                type="password"
               />
             )}
           </form.AppField>

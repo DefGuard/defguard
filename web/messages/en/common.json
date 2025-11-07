@@ -36,5 +36,9 @@
   "state_default": "Default",
   "state_enabled": "Enabled",
   "state_step": "Step {step}",
-  "col_created_at": "Created at"
+  "col_created_at": "Created at",
+  "search_empty_common_subtitle": "Please try another search.",
+  "search_users": "Find users",
+  "search_users_empty_title": "No users match your search.",
+  "select_users_all": "All users"
 }

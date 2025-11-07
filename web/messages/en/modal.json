@@ -80,5 +80,11 @@
   "modal_add_user_groups_select_all": "All groups",
   "modal_add_user_groups_search_empty_title": "No groups match your search.",
   "modal_add_user_groups_search_empty_subtitle": "Please try another search request.",
-  "modal_add_user_assign_groups_checkbox": "Assign user to group(s)"
+  "modal_add_user_assign_groups_checkbox": "Assign user to group(s)",
+  "modal_add_group_title_start": "Add new group",
+  "modal_add_group_title_users": "Assign users to the group",
+  "modal_add_group_form_label_name": "Group name",
+  "modal_add_group_admin_title": "Admin access",
+  "modal_add_group_admin_explain": "By setting this group as an admin group, you grant extended access rights and permissions to all users assigned to it.",
+  "modal_add_group_form_label_admin": "Set this group as Admin group"
 }

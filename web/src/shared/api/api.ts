@@ -12,10 +12,14 @@ import type {
   ApiToken,
   ApplicationInfo,
   AuthKey,
+  CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
+  EditGroupRequest,
   EnableMfaMethodResponse,
+  GroupInfo,
+  GroupsResponse,
   LoginRequest,
   LoginResponse,
   LoginResponseBasic,
@@ -47,6 +51,14 @@ const api = {
       });
     }
     return res;
+  },
+  group: {
+    addGroup: (data: CreateGroupRequest) => client.post('/group', data),
+    getGroups: () => client.get<GroupsResponse>('/group'),
+    getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
+    editGroup: ({ originalName, ...data }: EditGroupRequest) =>
+      client.put(`/group/${originalName ?? data.name}`, data),
+    deleteGroup: (name: string) => client.delete(`/group/${name}`),
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),

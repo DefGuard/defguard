@@ -15,7 +15,8 @@
       "./messages/{locale}/profile.json",
       "./messages/{locale}/modal.json",
       "./messages/{locale}/components.json",
-      "./messages/{locale}/users.json"
+      "./messages/{locale}/users.json",
+      "./messages/{locale}/groups.json"
     ]
   }
 }

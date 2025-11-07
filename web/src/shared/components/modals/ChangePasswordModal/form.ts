@@ -18,8 +18,14 @@ const errorIsCustomCode = (value: string): value is PasswordErrorCodeValue => {
   return (errorCodes as readonly string[]).includes(value);
 };
 
-export const mapPasswordFieldError = (errorValue: string): string => {
+export const mapPasswordFieldError = (
+  errorValue: string,
+  displayCustomError: boolean = false,
+): string => {
   if (errorIsCustomCode(errorValue)) {
+    if (displayCustomError) {
+      return m[errorValue]();
+    }
     return m.password_form_special_error();
   }
   return errorValue;

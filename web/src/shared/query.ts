@@ -66,3 +66,11 @@ export const getUsersQueryOptions = queryOptions({
   refetchOnMount: true,
   refetchOnReconnect: true,
 });
+
+export const getGroupsInfoQueryOptions = queryOptions({
+  queryFn: api.group.getGroupsInfo,
+  queryKey: ['group-info'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+});

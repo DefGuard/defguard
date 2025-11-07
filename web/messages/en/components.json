@@ -1,3 +1,5 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "cmp_selection_section_selected_filter": "Show selected only",
+  "cmp_selection_section_search_placeholder": "Filter/Search"
 }

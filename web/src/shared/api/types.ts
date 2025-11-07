@@ -1,5 +1,26 @@
+export interface GroupInfo {
+  id: number;
+  name: string;
+  members: string[];
+  vpn_locations: string[];
+  is_admin: boolean;
+}
+
+export interface GroupsResponse {
+  groups: string[];
+}
 export interface UsersListItem extends User {
   devices: Device[];
+}
+
+export interface EditGroupRequest extends CreateGroupRequest {
+  originalName?: string;
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  members?: string[];
+  is_admin: boolean;
 }
 
 export const UserMfaMethod = {
