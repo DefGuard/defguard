@@ -1388,6 +1388,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           enable_directory_sync: {
             label: 'Enable directory synchronization',
           },
+          prefetch_users: {
+            label: 'Prefetch users',
+            helper: 'Fetch users from external provider and create user accounts in Defguard without waiting for them to log in',
+          },
           sync_target: {
             label: 'Synchronize',
             helper:

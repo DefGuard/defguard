@@ -3416,6 +3416,16 @@ type RootTranslation = {
 						 */
 						label: string
 					}
+					prefetch_users: {
+						/**
+						 * P​r​e​f​e​t​c​h​ ​u​s​e​r​s
+						 */
+						label: string
+						/**
+						 * F​e​t​c​h​ ​u​s​e​r​s​ ​f​r​o​m​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​s​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​w​i​t​h​o​u​t​ ​w​a​i​t​i​n​g​ ​f​o​r​ ​t​h​e​m​ ​t​o​ ​l​o​g​ ​i​n
+						 */
+						helper: string
+					}
 					sync_target: {
 						/**
 						 * S​y​n​c​h​r​o​n​i​z​e
@@ -10140,6 +10150,16 @@ export type TranslationFunctions = {
 						 * Enable directory synchronization
 						 */
 						label: () => LocalizedString
+					}
+					prefetch_users: {
+						/**
+						 * Prefetch users
+						 */
+						label: () => LocalizedString
+						/**
+						 * Fetch users from external provider and create user accounts in Defguard without waiting for them to log in
+						 */
+						helper: () => LocalizedString
 					}
 					sync_target: {
 						/**
