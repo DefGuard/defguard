@@ -300,7 +300,7 @@ export const ProfileAuthCard = () => {
             ))}
           </div>
         )}
-        {devices.length > 0 && (
+        {biometricDevices.length > 0 && (
           <>
             <Divider spacing={ThemeSpacing.Xl} />
             <div className="biometric-devices section">
