@@ -76,10 +76,8 @@ impl ClientFeature {
 
         if !version_matches {
             debug!(
-                "Client version {:?} does not meet minimum version {:?} for feature {:?}",
-                version,
-                self.min_version(),
-                self
+                "Client version {version:?} does not meet minimum version {:?} for feature {self:?}",
+                self.min_version()
             );
         }
 
