@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
+import { Route as R404RouteImport } from './routes/404'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
@@ -23,6 +24,11 @@ import { Route as AuthorizedUserUsernameRouteImport } from './routes/_authorized
 
 const AuthorizedRoute = AuthorizedRouteImport.update({
   id: '/_authorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const R404Route = R404RouteImport.update({
+  id: '/404',
+  path: '/404',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -78,6 +84,7 @@ const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
@@ -90,6 +97,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
@@ -103,6 +111,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/_authorized/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/404'
     | '/users'
     | '/auth/login'
     | '/auth/mfa'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/404'
     | '/users'
     | '/auth/login'
     | '/auth/mfa'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/404'
     | '/_authorized'
     | '/_authorized/users'
     | '/auth/login'
@@ -156,6 +168,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthMfaRoute: typeof AuthMfaRouteWithChildren
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof AuthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/404': {
+      id: '/404'
+      path: '/404'
+      fullPath: '/404'
+      preLoaderRoute: typeof R404RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -277,6 +297,7 @@ const AuthMfaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthMfaRoute: AuthMfaRouteWithChildren,
