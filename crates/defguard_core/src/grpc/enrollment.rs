@@ -43,7 +43,10 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
+    grpc::{
+        client_version::ClientFeature,
+        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
+    },
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
@@ -289,7 +292,7 @@ impl EnrollmentServer {
             })?;
 
             // Prepare event context and push the event
-            let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+            let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
             let context = BidiRequestContext::new(user_id, username, ip, user_agent);
             self.emit_event(context, EnrollmentEvent::EnrollmentStarted)
                 .map_err(|err| {
@@ -479,7 +482,7 @@ impl EnrollmentServer {
         info!("User {} activated", user.username);
 
         // Prepare event context and push the event
-        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
             .map_err(|err| {
@@ -806,6 +809,16 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        // Don't send them service locations if they don't support it
+        let configs = configs
+            .into_iter()
+            .filter(|config| {
+                config.service_location_mode == ServiceLocationMode::Disabled
+                    || ClientFeature::ServiceLocations
+                        .is_supported_by_device(req_device_info.as_ref())
+            })
+            .collect::<Vec<DeviceConfig>>();
+
         let template_locations: Vec<TemplateLocation> = configs
             .iter()
             .map(|c| TemplateLocation {
@@ -854,7 +867,7 @@ impl EnrollmentServer {
         };
 
         // Prepare event context and push the event
-        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentDeviceAdded { device })
             .map_err(|err| {
@@ -870,6 +883,7 @@ impl EnrollmentServer {
     pub async fn get_network_info(
         &self,
         request: ExistingDevice,
+        device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
         let token = self.validate_session(request.token.as_ref()).await?;
@@ -896,7 +910,7 @@ impl EnrollmentServer {
         }
 
         let token = new_polling_token(&self.pool, &device).await?;
-        build_device_config_response(&self.pool, device, Some(token)).await
+        build_device_config_response(&self.pool, device, Some(token), device_info).await
     }
 
     // TODO: Add events

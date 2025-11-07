@@ -11,7 +11,7 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
         client_mfa::{ClientLoginSession, ClientMfaServer},
-        utils::parse_client_info,
+        utils::parse_client_ip_agent,
     },
 };
 
@@ -66,7 +66,7 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        let (ip, _user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),
