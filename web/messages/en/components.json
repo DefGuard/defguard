@@ -1,5 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "cmp_selection_section_selected_filter": "Show selected only",
-  "cmp_selection_section_search_placeholder": "Filter/Search"
+  "cmp_selection_section_search_placeholder": "Filter/Search",
+  "cmp_nav_group_vpn": "VPN",
+  "cmp_nav_group_identity": "Identity & Access",
+  "cmp_nav_group_integrations": "Applications & Integration",
+  "cmp_nav_group_admin": "Administration",
+  "cmp_nav_item_users": "Users",
+  "cmp_nav_item_groups": "Groups"
 }

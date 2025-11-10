@@ -2,12 +2,14 @@ import { create } from 'zustand';
 import type { ApplicationInfo } from '../api/types';
 
 type StoreValues = {
+  navigationOpen: boolean;
   appInfo: ApplicationInfo;
 };
 
 type Store = StoreValues;
 
 const defaults: StoreValues = {
+  navigationOpen: true,
   appInfo: {
     external_openid_enabled: false,
     ldap_info: {

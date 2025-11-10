@@ -1,0 +1,118 @@
+/* stylelint-disable no-descending-specificity */
+.navigation {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: var(--nav-width);
+  background-color: var(--bg-default);
+  max-height: 100dvh;
+  overflow: hidden auto;
+  border-right: var(--border-1) solid var(--border-muted);
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 100dvh;
+
+  & > .top {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+    width: 100%;
+
+    & > .control {
+      margin-left: auto;
+
+      .icon[icon-kind='hamburger'] path {
+        fill: var(--fg-neutral);
+      }
+    }
+  }
+
+  & > .groups {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+    box-sizing: border-box;
+    padding: 0 var(--spacing-lg);
+    width: 100%;
+  }
+
+  & > .bottom {
+    margin-top: auto;
+  }
+}
+
+.navigation .nav-group {
+  user-select: none;
+
+  & > .track {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-xs);
+    cursor: pointer;
+
+    .icon path {
+      fill: var(--fg-muted);
+    }
+
+    p {
+      font: var(--t-body-sm-500);
+      color: var(--fg-disabled);
+    }
+  }
+
+  .fold-content {
+    padding-top: var(--spacing-xs);
+
+    & > .items {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xs);
+    }
+  }
+}
+
+.nav-group .nav-item {
+  --bg-color: var(--bg-default);
+  --color: var(--fg-neutral);
+
+  box-sizing: border-box;
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: var(--spacing-md);
+  text-decoration: none;
+  color: var(--color);
+  background-color: var(--bg-color);
+  width: 100%;
+  user-select: none;
+  border-radius: var(--radius-md);
+
+  @include animate(color, background-color);
+
+  &:hover {
+    --bg-color: var(--bg-emphasis);
+  }
+
+  &[data-status='active'] {
+    --bg-color: var(--bg-action-muted);
+    --color: var(--fg-action);
+  }
+
+  & > .icon path {
+    fill: var(--color);
+
+    @include animate(fill);
+  }
+
+  span {
+    font: var(--t-body-sm-500);
+    color: inherit;
+  }
+}

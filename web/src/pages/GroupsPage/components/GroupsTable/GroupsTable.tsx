@@ -71,6 +71,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
         meta: {
           flex: true,
         },
+        enableSorting: true,
       }),
       columnHelper.display({
         size: 108,
