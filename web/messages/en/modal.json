@@ -59,6 +59,11 @@
   "modal_add_user_device_manual_download_actions_download": "Download config file",
   "modal_add_user_device_manual_download_actions_download_one": "This location only",
   "modal_add_user_device_manual_download_actions_download_all": "All locations",
+  "modal_add_user_enrollment_details": "Enrollment details",
+  "modal_add_user_enrollment_explain": "Provide the user with their token and URL in a convenient manner so they can complete the enrollment process independently.",
+  "modal_add_user_enrollment_form_label_url": "URL",
+  "modal_add_user_enrollment_form_label_token": "Activation token",
+  "modal_add_user_enrollment_form_label_send": "Send enrollment details to user by email",
   "modal_edit_user_device_title": "Edit device",
   "modal_user_device_config_title": "Device VPN configuration",
   "modal_add_auth_key_title": "Add authentication key",
@@ -69,6 +74,8 @@
   "modal_add_api_token_copy_warning": "Please copy and save the API token below now. You won't be able to see it again.",
   "modal_rename_api_title": "Rename API token",
   "modal_add_user_title": "Add new user",
+  "modal_add_user_groups_title": "Assign user to group(s)",
+  "modal_add_user_enroll_title": "Start enrollment for user",
   "modal_add_user_choice_enroll_title": "Add user with self-enrollment option",
   "modal_add_user_choice_enroll_content": "User will be able to configure their account during the setup of their desktop client (e.g., set their own password, etc.).",
   "modal_add_user_choice_manual_title": "Add user manually",
@@ -87,5 +94,8 @@
   "modal_add_group_form_label_name": "Group name",
   "modal_add_group_admin_title": "Admin access",
   "modal_add_group_admin_explain": "By setting this group as an admin group, you grant extended access rights and permissions to all users assigned to it.",
-  "modal_add_group_form_label_admin": "Set this group as Admin group"
+  "modal_add_group_form_label_admin": "Set this group as Admin group",
+  "modal_edit_user_title": "Edit user details",
+  "modal_edit_user_login_pref": "Login preferences",
+  "modal_edit_user_account": "Account information"
 }

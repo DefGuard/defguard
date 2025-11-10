@@ -1,14 +1,15 @@
 import { create } from 'zustand';
-import type { User } from '../../../../shared/api/types';
+import type { StartEnrollmentResponse, User } from '../../../../shared/api/types';
 
 interface StoreValues {
-  step: 'user' | 'groups' | 'enroll-choice';
+  step: 'user' | 'groups' | 'enroll-choice' | 'enrollment';
   isOpen: boolean;
   enrollUser: boolean;
   reservedEmails: string[];
   reservedUsernames: string[];
   groups: string[];
   user?: User;
+  enrollResponse?: StartEnrollmentResponse;
 }
 
 const defaults: StoreValues = {
@@ -19,6 +20,7 @@ const defaults: StoreValues = {
   reservedUsernames: [],
   groups: [],
   user: undefined,
+  enrollResponse: undefined,
 };
 
 interface Store extends StoreValues {

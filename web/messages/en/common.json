@@ -10,6 +10,8 @@
   "misc_secret": "Secret",
   "misc_active": "Active",
   "misc_disabled": "Disabled",
+  "controls_finish": "Finish",
+  "controls_send_email": "Send email",
   "controls_copy": "Copy",
   "controls_download": "Download",
   "controls_rename": "Rename",

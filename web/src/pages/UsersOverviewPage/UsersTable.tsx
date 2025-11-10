@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -42,6 +43,23 @@ type RowData = UsersListItem;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = ({ users }: Props) => {
+  const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
+  const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
+
+  const { mutate: deleteUser } = useMutation({
+    mutationFn: api.user.deleteUser,
+    meta: {
+      invalidate: ['user'],
+    },
+  });
+
+  const { mutate: changeAccountActiveState } = useMutation({
+    mutationFn: api.user.activeStateChange,
+    meta: {
+      invalidate: ['user'],
+    },
+  });
+
   const navigate = useNavigate({ from: '/users' });
   const [sortingState, setSortingState] = useState<SortingState>([
     {
@@ -183,7 +201,13 @@ export const UsersTable = ({ users }: Props) => {
                       {
                         text: m.users_row_menu_edit(),
                         icon: 'edit',
-                        onClick: () => {},
+                        onClick: () => {
+                          openModal(ModalName.EditUserModal, {
+                            user: rowData,
+                            reservedEmails,
+                            reservedUsernames,
+                          });
+                        },
                       },
                     ],
                   },
@@ -208,10 +232,10 @@ export const UsersTable = ({ users }: Props) => {
                           : m.users_row_menu_enable(),
                         icon: rowData.is_active ? 'disabled' : 'check',
                         onClick: () => {
-                          api.user.activeStateChange(
-                            rowData.username,
-                            !rowData.is_active,
-                          );
+                          changeAccountActiveState({
+                            active: !rowData.is_active,
+                            username: rowData.username,
+                          });
                         },
                       },
                     ],
@@ -222,7 +246,9 @@ export const UsersTable = ({ users }: Props) => {
                         text: m.users_row_menu_delete(),
                         icon: 'delete',
                         variant: 'danger',
-                        onClick: () => {},
+                        onClick: () => {
+                          deleteUser(rowData.username);
+                        },
                       },
                     ],
                   },
@@ -233,7 +259,7 @@ export const UsersTable = ({ users }: Props) => {
         },
       }),
     ],
-    [navigate],
+    [navigate, reservedEmails, reservedUsernames, changeAccountActiveState, deleteUser],
   );
 
   const expandedHeader = useMemo(
@@ -315,8 +341,6 @@ export const UsersTable = ({ users }: Props) => {
           iconLeft="add-user"
           text={m.users_add()}
           onClick={() => {
-            const reservedEmails = users.map((u) => u.email.toLowerCase());
-            const reservedUsernames = users.map((u) => u.username);
             useAddUserModal.getState().open({
               reservedEmails,
               reservedUsernames,

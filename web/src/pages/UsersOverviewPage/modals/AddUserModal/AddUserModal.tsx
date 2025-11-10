@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -10,8 +10,10 @@ import {
   mapPasswordFieldError,
   refinePasswordField,
 } from '../../../../shared/components/modals/ChangePasswordModal/form';
+import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
@@ -20,9 +22,14 @@ import { SectionSelect } from '../../../../shared/defguard-ui/components/Section
 import { SelectionSection } from '../../../../shared/defguard-ui/components/SelectionSection/SelectionSection';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { useAppForm } from '../../../../shared/defguard-ui/form';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../shared/form';
+import { useApp } from '../../../../shared/hooks/useApp';
 import {
   patternSafeUsernameCharacters,
   patternValidPhoneNumber,
@@ -34,10 +41,22 @@ export const AddUserModal = () => {
   const isOpen = useAddUserModal((s) => s.isOpen);
   const step = useAddUserModal((s) => s.step);
 
+  const modalTitle = useMemo(() => {
+    switch (step) {
+      case 'enroll-choice':
+      case 'user':
+        return m.modal_add_user_title();
+      case 'enrollment':
+        return m.modal_add_user_enroll_title();
+      case 'groups':
+        return m.modal_add_user_groups_title();
+    }
+  }, [step]);
+
   return (
     <Modal
       id="add-user-modal"
-      title={m.modal_add_user_title()}
+      title={modalTitle}
       isOpen={isOpen}
       onClose={() => {
         useAddUserModal.setState({ isOpen: false });
@@ -49,7 +68,142 @@ export const AddUserModal = () => {
       {step === 'enroll-choice' && <EnrollmentChoice />}
       {step === 'user' && <AddUserModalForm />}
       {step === 'groups' && <AddUserGroupsSelectionStep />}
+      {step === 'enrollment' && <EnrollmentStep />}
     </Modal>
+  );
+};
+
+const EnrollmentStep = () => {
+  const enrollResponse = useAddUserModal((s) => s.enrollResponse);
+  const user = useAddUserModal((s) => s.user as User);
+  const [sendEmail, setSendEmail] = useState(false);
+  const appInfo = useApp((s) => s.appInfo);
+
+  const formSchema = useMemo(
+    () =>
+      z
+        .object({
+          email: z.string(),
+        })
+        .superRefine((values, ctx) => {
+          if (sendEmail) {
+            const result = z
+              .email(m.form_error_email())
+              .min(1, m.form_error_required())
+              .safeParse(values.email);
+            if (!result.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['email'],
+                message: result.error.message,
+              });
+            }
+          }
+        }),
+    [sendEmail],
+  );
+
+  const form = useAppForm({
+    defaultValues: {
+      email: user.email,
+    },
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: formSchema,
+      onChange: formSchema,
+    },
+    onSubmit: async ({ value }) => {
+      await api.user.startEnrollment({
+        username: user.username,
+        send_enrollment_notification: true,
+        email: value.email,
+      });
+      useAddUserModal.setState({
+        isOpen: false,
+      });
+    },
+  });
+
+  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
+  useEffect(() => {
+    if (!form.state.isPristine) {
+      form.validateAllFields('change');
+    }
+  }, [sendEmail]);
+
+  if (!isPresent(enrollResponse)) return null;
+
+  return (
+    <>
+      <div className="enrollment-info">
+        <AppText font={TextStyle.TBodySm500}>
+          {m.modal_add_user_enrollment_details()}
+        </AppText>
+        <SizedBox height={ThemeSpacing.Xs} />
+        <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+          {m.modal_add_user_enrollment_explain()}
+        </AppText>
+      </div>
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <CopyField
+        copyTooltip={m.misc_clipboard_copy()}
+        label={m.modal_add_user_enrollment_form_label_url()}
+        text={enrollResponse.enrollment_url}
+      />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <CopyField
+        label={m.modal_add_user_enrollment_form_label_token()}
+        copyTooltip={m.misc_clipboard_copy()}
+        text={enrollResponse.enrollment_token}
+      />
+      {appInfo.smtp_enabled && (
+        <form
+          onSubmit={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <SizedBox height={ThemeSpacing.Xl3} />
+          <form.AppForm>
+            <Checkbox
+              text={m.modal_add_user_enrollment_form_label_send()}
+              active={sendEmail}
+              onClick={() => {
+                setSendEmail((s) => !s);
+              }}
+            />
+            <SizedBox height={ThemeSpacing.Xl} />
+            <form.AppField name="email">
+              {(field) => (
+                <field.FormInput
+                  required={sendEmail}
+                  disabled={!sendEmail}
+                  label={m.form_label_email()}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        </form>
+      )}
+      <ModalControls
+        submitProps={{
+          text: sendEmail ? m.controls_send_email() : m.controls_complete(),
+          loading: isSubmitting,
+          onClick: () => {
+            if (sendEmail) {
+              form.handleSubmit();
+            } else {
+              useAddUserModal.setState({
+                isOpen: false,
+              });
+            }
+          },
+        }}
+      />
+    </>
   );
 };
 
@@ -192,6 +346,15 @@ const AddUserModalForm = () => {
       const {
         data: { groups },
       } = await api.group.getGroups();
+      if (enrollmentEnabled) {
+        const enrollmentResponse = (
+          await api.user.startEnrollment({
+            send_enrollment_notification: false,
+            username: created.username,
+          })
+        ).data;
+        useAddUserModal.setState({ enrollResponse: enrollmentResponse });
+      }
       if (assignToGroups) {
         useAddUserModal.setState({
           step: 'groups',
@@ -199,7 +362,11 @@ const AddUserModalForm = () => {
           groups,
         });
       } else {
-        useAddUserModal.setState({ isOpen: false });
+        if (enrollmentEnabled) {
+          useAddUserModal.setState({ step: 'enrollment' });
+        } else {
+          useAddUserModal.setState({ isOpen: false });
+        }
       }
     },
   });
@@ -294,6 +461,7 @@ const AddUserModalForm = () => {
 };
 
 const AddUserGroupsSelectionStep = () => {
+  const enrollEnabled = useAddUserModal((s) => s.enrollUser);
   const groups = useAddUserModal((s) => s.groups);
   const user = useAddUserModal((s) => s.user as User);
   const [selected, setSelected] = useState(new Set<string>());
@@ -304,9 +472,15 @@ const AddUserGroupsSelectionStep = () => {
       invalidate: [['group'], ['group-info'], ['users']],
     },
     onSuccess: () => {
-      useAddUserModal.setState({
-        isOpen: false,
-      });
+      if (enrollEnabled) {
+        useAddUserModal.setState({
+          step: 'enrollment',
+        });
+      } else {
+        useAddUserModal.setState({
+          isOpen: false,
+        });
+      }
     },
   });
 

@@ -291,3 +291,8 @@ export interface AddUserRequest {
   password?: string;
   phone?: string;
 }
+
+export interface ChangeAccountActiveRequest {
+  username: string;
+  active: boolean;
+}

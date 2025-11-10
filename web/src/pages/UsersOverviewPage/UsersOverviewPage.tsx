@@ -8,6 +8,7 @@ import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswo
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getUsersQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
+import { EditUserModal } from './modals/EditUserModal/EditUserModal';
 import { UsersTable } from './UsersTable';
 
 export const UsersOverviewPage = () => {
@@ -18,6 +19,7 @@ export const UsersOverviewPage = () => {
         <LayoutGrid>{isPresent(users) && <UsersTable users={users} />}</LayoutGrid>
       </Page>
       <AddUserModal />
+      <EditUserModal />
       <AddAuthKeyModal />
       <ChangePasswordModal />
     </>

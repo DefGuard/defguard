@@ -31,3 +31,9 @@ export interface OpenAddGroupModal {
   reservedNames: string[];
   users: User[];
 }
+
+export interface OpenEditUserModal {
+  user: User;
+  reservedUsernames: string[];
+  reservedEmails: string[];
+}

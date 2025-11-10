@@ -1,4 +1,5 @@
 import { cloneDeep } from 'lodash-es';
+import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
   AddApiTokenRequest,
@@ -13,6 +14,7 @@ import type {
   ApiToken,
   ApplicationInfo,
   AuthKey,
+  ChangeAccountActiveRequest,
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
@@ -88,6 +90,11 @@ const api = {
       client.get<UserDevice[]>(`/device/user/${username}`),
     startClientActivation: (data: StartEnrollmentRequest) =>
       client.post<StartEnrollmentResponse>(`/user/${data.username}/start_desktop`, data),
+    startEnrollment: (data: StartEnrollmentRequest) =>
+      client.post<StartEnrollmentResponse>(
+        `/user/${data.username}/start_enrollment`,
+        data,
+      ),
     getAuthKeys: (username: string) =>
       client.get<AuthKey[]>(`/user/${username}/auth_key`),
     addAuthKey: ({ username, ...data }: AddAuthKeyRequest) =>
@@ -105,18 +112,19 @@ const api = {
     deleteApiToken: ({ username, id }: DeleteApiTokenRequest) =>
       client.delete(`/user/${username}/api_token/${id}`),
     disableMfa: (username: string) => client.delete(`/user/${username}/mfa`),
-    activeStateChange: async (username: string, state: boolean): Promise<void> => {
+    activeStateChange: async ({
+      active,
+      username,
+    }: ChangeAccountActiveRequest): Promise<void> => {
       const { data: profile } = await api.user.getUser(username);
-      const clone = cloneDeep(profile.user);
-      clone.is_active = state;
-      if (clone.phone === '') {
-        delete clone.phone;
-      }
+      const clone = removeEmptyStrings(cloneDeep(profile.user));
+      clone.is_active = active;
       await api.user.editUser({
         username,
         body: clone,
       });
     },
+    deleteUser: (username: string) => client.delete(`/user/${username}`),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),
