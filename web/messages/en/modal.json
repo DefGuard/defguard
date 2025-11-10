@@ -97,5 +97,6 @@
   "modal_add_group_form_label_admin": "Set this group as Admin group",
   "modal_edit_user_title": "Edit user details",
   "modal_edit_user_login_pref": "Login preferences",
-  "modal_edit_user_account": "Account information"
+  "modal_edit_user_account": "Account information",
+  "modal_edit_group_title": "Edit group"
 }

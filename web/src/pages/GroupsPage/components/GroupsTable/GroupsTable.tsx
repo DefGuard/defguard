@@ -1,16 +1,24 @@
+import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import { orderBy } from 'lodash-es';
+import { useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
 import type { GroupInfo, User } from '../../../../shared/api/types';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { IconButtonMenu } from '../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type { MenuItemProps } from '../../../../shared/defguard-ui/components/Menu/types';
+import { tableEditColumnSize } from '../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 
@@ -21,9 +29,36 @@ type Props = {
 
 type RowData = GroupInfo;
 
+type SortingKeys = 'name';
+
 const columnHelper = createColumnHelper<RowData>();
 
 export const GroupsTable = ({ groups, users }: Props) => {
+  const reservedNames = useMemo(() => groups.map((g) => g.name), [groups]);
+  const { mutate: deleteGroup } = useMutation({
+    mutationFn: api.group.deleteGroup,
+    meta: {
+      invalidate: [['group'], ['group-info']],
+    },
+  });
+
+  const [sortState, setSortState] = useState<SortingState>([
+    {
+      id: 'name',
+      desc: false,
+    },
+  ]);
+
+  const transformedData = useMemo(() => {
+    const sorting = sortState[0];
+    if (!isPresent(sorting)) return groups;
+    const sortingId = sorting.id as SortingKeys;
+    const sortingDirection = sorting.desc ? 'desc' : 'asc';
+    return orderBy(groups, (g) => g[sortingId].toLowerCase().replaceAll(' ', ''), [
+      sortingDirection,
+    ]);
+  }, [sortState, groups]);
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -72,14 +107,60 @@ export const GroupsTable = ({ groups, users }: Props) => {
           </TableCell>
         ),
       }),
+      columnHelper.display({
+        id: 'edit',
+        size: tableEditColumnSize,
+        header: '',
+        cell: (info) => {
+          const rowData = info.row.original;
+          const menuItems: MenuItemProps[] = [
+            {
+              text: m.controls_edit(),
+              icon: 'edit',
+              onClick: () => {
+                openModal(ModalName.CreateEditGroupModal, {
+                  reservedNames,
+                  users: users,
+                  groupInfo: rowData,
+                });
+              },
+            },
+            {
+              text: m.controls_delete(),
+              icon: 'delete',
+              variant: 'danger',
+              onClick: () => {
+                deleteGroup(rowData.name);
+              },
+            },
+          ];
+          return (
+            <TableCell>
+              <IconButtonMenu
+                icon="menu"
+                menuItems={[
+                  {
+                    items: menuItems,
+                  },
+                ]}
+              />
+            </TableCell>
+          );
+        },
+      }),
     ],
-    [],
+    [deleteGroup, reservedNames, users],
   );
 
   const table = useReactTable({
+    state: {
+      sorting: sortState,
+    },
     columns,
-    data: groups,
+    data: transformedData,
     getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setSortState,
+    manualSorting: true,
   });
 
   return (
@@ -89,8 +170,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
           iconLeft="add-user"
           text={m.groups_add()}
           onClick={() => {
-            const reservedNames = groups.map((g) => g.name);
-            openModal(ModalName.AddGroup, {
+            openModal(ModalName.CreateEditGroupModal, {
               reservedNames,
               users,
             });

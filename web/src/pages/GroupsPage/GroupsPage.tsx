@@ -4,7 +4,7 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { getGroupsInfoQueryOptions, getUsersQueryOptions } from '../../shared/query';
 import { GroupsTable } from './components/GroupsTable/GroupsTable';
-import { AddGroupModal } from './modals/AddGroupModal/AddGroupModal';
+import { CEGroupModal } from './modals/CEGroupModal/CEGroupModal';
 
 export const GroupsPage = () => {
   const { data: groups } = useSuspenseQuery(getGroupsInfoQueryOptions);
@@ -15,7 +15,7 @@ export const GroupsPage = () => {
         <SizedBox height={ThemeSpacing.Xl3} />
         <GroupsTable groups={groups} users={users} />
       </Page>
-      <AddGroupModal />
+      <CEGroupModal />
     </>
   );
 };

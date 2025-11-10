@@ -127,7 +127,9 @@ const ModalContent = ({ device, reservedNames, username }: OpenEditDeviceModal) 
         cancelProps={{
           text: m.controls_cancel(),
           disabled: isSubmitting,
-          onClick: () => {},
+          onClick: () => {
+            closeModal(modalName);
+          },
         }}
         submitProps={{
           text: m.controls_save_changes(),

@@ -1,4 +1,4 @@
-import type { Device, User } from '../../api/types';
+import type { Device, GroupInfo, User } from '../../api/types';
 
 export interface OpenEditDeviceModal {
   device: Device;
@@ -27,7 +27,8 @@ export interface OpenDeleteApiTokenModal {
   username: string;
 }
 
-export interface OpenAddGroupModal {
+export interface OpenCEGroupModal {
+  groupInfo?: GroupInfo;
   reservedNames: string[];
   users: User[];
 }

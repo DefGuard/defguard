@@ -7,12 +7,12 @@ import {
   subscribeOpenModal,
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
-import type { OpenAddGroupModal } from '../../../../shared/hooks/modalControls/types';
+import type { OpenCEGroupModal } from '../../../../shared/hooks/modalControls/types';
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react';
 import api from '../../../../shared/api/api';
-import type { CreateGroupRequest, GroupInfo, User } from '../../../../shared/api/types';
+import type { CreateGroupRequest, User } from '../../../../shared/api/types';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -23,22 +23,31 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../shared/form';
 
-interface ModalState extends OpenAddGroupModal {
+interface ModalState extends OpenCEGroupModal {
   step: 'start' | 'users';
-  initialState?: GroupInfo;
   startForm?: Pick<CreateGroupRequest, 'is_admin' | 'name'>;
 }
 
-const modalNameKey = ModalName.AddGroup;
+const modalNameKey = ModalName.CreateEditGroupModal;
 
-export const AddGroupModal = () => {
+export const CEGroupModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [modalState, setModalState] = useState<ModalState | null>(null);
 
+  const isEdit = useMemo(() => isPresent(modalState?.groupInfo), [modalState]);
+
   useEffect(() => {
     const openSub = subscribeOpenModal(modalNameKey, (data) => {
+      // assign first step data on open bcs you can "back" into it from users selection the edit state needs to be assigned once on open otherwise after back the form will be reset every time
+      const startForm: ModalState['startForm'] = isPresent(data.groupInfo)
+        ? {
+            is_admin: data.groupInfo.is_admin,
+            name: data.groupInfo.name,
+          }
+        : undefined;
       setModalState({
         ...data,
+        startForm: startForm,
         step: 'start',
       });
       setOpen(true);
@@ -53,7 +62,7 @@ export const AddGroupModal = () => {
   return (
     <Modal
       id="ce-group-modal"
-      title={m.modal_add_group_title_start()}
+      title={isEdit ? m.modal_edit_group_title() : m.modal_add_group_title_start()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -61,16 +70,17 @@ export const AddGroupModal = () => {
       }}
     >
       {modalState && modalState.step === 'start' && (
-        <StartStep {...modalState} setModalState={setModalState} />
+        <StartStep {...modalState} setModalState={setModalState} isEdit={isEdit} />
       )}
       {modalState && modalState.step === 'users' && (
-        <UsersStep {...modalState} setModalState={setModalState} />
+        <UsersStep {...modalState} setModalState={setModalState} isEdit={isEdit} />
       )}
     </Modal>
   );
 };
 
 interface StepProps extends ModalState {
+  isEdit: boolean;
   setModalState: Dispatch<SetStateAction<ModalState | null>>;
 }
 
@@ -79,29 +89,44 @@ const userToOption = (user: User): SelectionSectionOption<string> => ({
   label: `${user.first_name} ${user.last_name}`,
 });
 
-const UsersStep = ({ users, startForm, initialState, setModalState }: StepProps) => {
-  const { mutate, isPending } = useMutation({
+const UsersStep = ({ users, startForm, groupInfo, isEdit, setModalState }: StepProps) => {
+  const { mutate: editGroup, isPending: editPending } = useMutation({
+    mutationFn: api.group.editGroup,
+    meta: {
+      invalidate: [['group'], ['group-info'], ['user']],
+    },
+    onSuccess: () => {
+      closeModal(modalNameKey);
+    },
+  });
+
+  const { mutate: addGroup, isPending: addPending } = useMutation({
     mutationFn: api.group.addGroup,
     meta: {
-      invalidate: [['group'], ['group-info']],
+      invalidate: [['group'], ['group-info'], ['user']],
     },
     onSuccess: () => {
       closeModal(modalNameKey);
     },
   });
   const [selected, setSelected] = useState<Set<string>>(
-    new Set(initialState?.members ?? []),
+    new Set(groupInfo?.members ?? []),
   );
 
   const options = useMemo(() => users.map((user) => userToOption(user)), [users]);
 
   const handleSubmit = () => {
-    if (startForm && !isPending) {
+    if (startForm && !addPending && !editPending) {
       const members = Array.from(selected);
-      mutate({
+      const requestData = {
         ...startForm,
         members: members,
-      });
+      };
+      if (isEdit) {
+        editGroup(requestData);
+      } else {
+        addGroup(requestData);
+      }
     }
   };
 
@@ -117,7 +142,7 @@ const UsersStep = ({ users, startForm, initialState, setModalState }: StepProps)
       />
       <ModalControls
         cancelProps={{
-          disabled: isPending,
+          disabled: addPending || editPending,
           text: m.controls_back(),
           onClick: () => {
             setModalState((s) => {
@@ -129,8 +154,8 @@ const UsersStep = ({ users, startForm, initialState, setModalState }: StepProps)
           },
         }}
         submitProps={{
-          text: m.controls_submit(),
-          loading: isPending,
+          text: isEdit ? m.controls_save_changes() : m.controls_submit(),
+          loading: addPending || editPending,
           onClick: () => {
             handleSubmit();
           },
@@ -140,8 +165,8 @@ const UsersStep = ({ users, startForm, initialState, setModalState }: StepProps)
   );
 };
 
-const StartStep = ({ reservedNames, setModalState }: StepProps) => {
-  const [isAdmin, setIsAdmin] = useState(false);
+const StartStep = ({ reservedNames, setModalState, groupInfo, startForm }: StepProps) => {
+  const [isAdmin, setIsAdmin] = useState(startForm?.is_admin ?? false);
 
   const formSchema = useMemo(
     () =>
@@ -150,17 +175,18 @@ const StartStep = ({ reservedNames, setModalState }: StepProps) => {
           .string()
           .trim()
           .min(1, m.form_error_required())
-          .refine(
-            (value) => !reservedNames.includes(value),
-            m.form_error_name_reserved(),
-          ),
+          .refine((value) => {
+            // exclude initial name
+            if (groupInfo && groupInfo.name === value) return true;
+            return !reservedNames.includes(value);
+          }, m.form_error_name_reserved()),
       }),
-    [reservedNames],
+    [reservedNames, groupInfo],
   );
 
   const form = useAppForm({
     defaultValues: {
-      name: '',
+      name: startForm?.name ?? '',
     },
     validationLogic: formChangeLogic,
     validators: {
