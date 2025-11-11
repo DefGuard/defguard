@@ -13,11 +13,11 @@ import { useMutation } from '@tanstack/react-query';
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react';
 import api from '../../../../shared/api/api';
 import type { CreateGroupRequest, User } from '../../../../shared/api/types';
+import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
+import type { SelectionSectionOption } from '../../../../shared/components/SelectionSection/type';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SelectionSection } from '../../../../shared/defguard-ui/components/SelectionSection/SelectionSection';
-import type { SelectionSectionOption } from '../../../../shared/defguard-ui/components/SelectionSection/type';
 import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
@@ -28,7 +28,7 @@ interface ModalState extends OpenCEGroupModal {
   startForm?: Pick<CreateGroupRequest, 'is_admin' | 'name'>;
 }
 
-const modalNameKey = ModalName.CreateEditGroupModal;
+const modalNameKey = ModalName.CreateEditGroup;
 
 export const CEGroupModal = () => {
   const [isOpen, setOpen] = useState(false);
@@ -132,14 +132,7 @@ const UsersStep = ({ users, startForm, groupInfo, isEdit, setModalState }: StepP
 
   return (
     <>
-      <SelectionSection
-        options={options}
-        selection={selected}
-        onChange={setSelected}
-        searchPlaceholder={m.cmp_selection_section_search_placeholder()}
-        selectAllText={m.modal_add_user_groups_select_all()}
-        selectedOnlyText={m.cmp_selection_section_selected_filter()}
-      />
+      <SelectionSection options={options} selection={selected} onChange={setSelected} />
       <ModalControls
         cancelProps={{
           disabled: addPending || editPending,

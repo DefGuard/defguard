@@ -42,6 +42,18 @@ const navigationConfig: NavGroupProps[] = [
       },
     ],
   },
+  {
+    id: 'integrations',
+    label: m.cmp_nav_group_integrations(),
+    items: [
+      {
+        id: 'openid',
+        icon: 'openid',
+        label: m.cmp_nav_item_openid(),
+        link: '/openid',
+      },
+    ],
+  },
 ];
 
 export const Navigation = () => {

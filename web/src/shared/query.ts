@@ -74,3 +74,9 @@ export const getGroupsInfoQueryOptions = queryOptions({
   refetchOnMount: true,
   refetchOnReconnect: true,
 });
+
+export const getOpenIdClientQueryOptions = queryOptions({
+  queryFn: api.openIdClient.getOpenIdClients,
+  queryKey: ['oauth'],
+  select: (resp) => resp.data,
+});

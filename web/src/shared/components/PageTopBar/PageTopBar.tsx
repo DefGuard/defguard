@@ -11,9 +11,11 @@ import {
 import { Avatar } from '../../defguard-ui/components/Avatar/Avatar';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import './style.scss';
+import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../api/api';
+import type { User } from '../../api/types';
 import { IconButton } from '../../defguard-ui/components/IconButton/IconButton';
 import { Menu } from '../../defguard-ui/components/Menu/Menu';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
@@ -54,12 +56,26 @@ export const PageTopBar = ({ title, navOpen }: Props) => {
 };
 
 const ProfileMenu = () => {
+  const navigate = useNavigate();
   const resetAuth = useAuth((s) => s.reset);
+  const user = useAuth((s) => s.user as User);
 
   const menuItems = useMemo(() => {
     const res: MenuItemsGroup[] = [
       {
         items: [
+          {
+            text: 'Profile',
+            icon: 'profile',
+            onClick: () => {
+              navigate({
+                to: '/user/$username',
+                params: {
+                  username: user.username,
+                },
+              });
+            },
+          },
           {
             text: m.controls_logout(),
             icon: 'logout',
@@ -73,9 +89,10 @@ const ProfileMenu = () => {
       },
     ];
     return res;
-  }, [resetAuth]);
+  }, [resetAuth, navigate, user.username]);
 
   const [isOpen, setOpen] = useState(false);
+
   const { refs, context, floatingStyles } = useFloating({
     placement: 'bottom-end',
     whileElementsMounted: autoUpdate,

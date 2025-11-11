@@ -16,6 +16,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthorizedUsersRouteImport } from './routes/_authorized/users'
+import { Route as AuthorizedOpenidRouteImport } from './routes/_authorized/openid'
 import { Route as AuthorizedGroupsRouteImport } from './routes/_authorized/groups'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
@@ -57,6 +58,11 @@ const AuthorizedUsersRoute = AuthorizedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthorizedRoute,
 } as any)
+const AuthorizedOpenidRoute = AuthorizedOpenidRouteImport.update({
+  id: '/openid',
+  path: '/openid',
+  getParentRoute: () => AuthorizedRoute,
+} as any)
 const AuthorizedGroupsRoute = AuthorizedGroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/groups': typeof AuthorizedGroupsRoute
+  '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/groups': typeof AuthorizedGroupsRoute
+  '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/_authorized/groups': typeof AuthorizedGroupsRoute
+  '/_authorized/openid': typeof AuthorizedOpenidRoute
   '/_authorized/users': typeof AuthorizedUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/groups'
+    | '/openid'
     | '/users'
     | '/auth/login'
     | '/auth/mfa'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/groups'
+    | '/openid'
     | '/users'
     | '/auth/login'
     | '/auth/mfa'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/_authorized'
     | '/_authorized/groups'
+    | '/_authorized/openid'
     | '/_authorized/users'
     | '/auth/login'
     | '/auth/mfa'
@@ -238,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedUsersRouteImport
       parentRoute: typeof AuthorizedRoute
     }
+    '/_authorized/openid': {
+      id: '/_authorized/openid'
+      path: '/openid'
+      fullPath: '/openid'
+      preLoaderRoute: typeof AuthorizedOpenidRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/_authorized/groups': {
       id: '/_authorized/groups'
       path: '/groups'
@@ -285,12 +304,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthorizedRouteChildren {
   AuthorizedGroupsRoute: typeof AuthorizedGroupsRoute
+  AuthorizedOpenidRoute: typeof AuthorizedOpenidRoute
   AuthorizedUsersRoute: typeof AuthorizedUsersRoute
   AuthorizedUserUsernameRoute: typeof AuthorizedUserUsernameRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedGroupsRoute: AuthorizedGroupsRoute,
+  AuthorizedOpenidRoute: AuthorizedOpenidRoute,
   AuthorizedUsersRoute: AuthorizedUsersRoute,
   AuthorizedUserUsernameRoute: AuthorizedUserUsernameRoute,
 }

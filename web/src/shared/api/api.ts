@@ -8,6 +8,7 @@ import type {
   AddDeviceRequest,
   AddDeviceResponse,
   AddDeviceResponseConfig,
+  AddOpenIdClient,
   AddUserRequest,
   AddUsersToGroupsRequest,
   AdminChangeUserPasswordRequest,
@@ -20,6 +21,7 @@ import type {
   DeleteAuthKeyRequest,
   Device,
   EditGroupRequest,
+  EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
   GroupInfo,
   GroupsResponse,
@@ -27,6 +29,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  OpenIdClient,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   StartEnrollmentRequest,
@@ -54,6 +57,18 @@ const api = {
       });
     }
     return res;
+  },
+  openIdClient: {
+    getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
+    getOpenIdClient: (clientId: string) => client.get<OpenIdClient>(`/oauth/${clientId}`),
+    addOpenIdClient: (data: AddOpenIdClient) => client.post(`/oauth`, data),
+    editOpenIdClient: (data: OpenIdClient) =>
+      client.put(`/oauth/${data.client_id}`, data),
+    deleteOpenIdClient: (clientId: string) => client.delete(`/oauth/${clientId}`),
+    changeOpenIdClientState: (data: EditOpenIdClientActiveStateRequest) =>
+      client.post(`/oauth/${data.client_id}`, {
+        enabled: data.enabled,
+      }),
   },
   group: {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),

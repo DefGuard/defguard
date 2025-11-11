@@ -17,6 +17,7 @@ import type { UsersListItem } from '../../shared/api/types';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import {
@@ -46,6 +47,8 @@ export const UsersTable = ({ users }: Props) => {
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
+  const [search, setSearch] = useState('');
+
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
@@ -69,11 +72,19 @@ export const UsersTable = ({ users }: Props) => {
   ]);
 
   const transformedData = useMemo(() => {
+    let data = users;
+    if (search.length) {
+      data = data.filter(
+        (u) =>
+          u.first_name.toLowerCase().includes(search.toLowerCase()) ||
+          u.last_name.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
     const sorting = sortingState[0];
-    if (!sorting) return users;
+    if (!sorting) return data;
     const { id, desc } = sorting;
     const direction = desc ? 'desc' : 'asc';
-    const orderedDevices = users.map((user) => ({
+    const orderedDevices = data.map((user) => ({
       ...user,
       devices: orderBy(user.devices, [id], [direction]),
     }));
@@ -82,7 +93,7 @@ export const UsersTable = ({ users }: Props) => {
       (user) => `${user.first_name}${user.last_name}`.toLowerCase(),
       [direction],
     );
-  }, [users, sortingState]);
+  }, [users, sortingState, search.length, search.toLowerCase]);
 
   const columns = useMemo(
     () => [
@@ -177,14 +188,13 @@ export const UsersTable = ({ users }: Props) => {
                   {
                     items: [
                       {
-                        text: m.users_row_menu_go_profile(),
-                        icon: 'profile',
+                        text: m.users_row_menu_edit(),
+                        icon: 'edit',
                         onClick: () => {
-                          navigate({
-                            to: '/user/$username',
-                            params: {
-                              username: rowData.username,
-                            },
+                          openModal(ModalName.EditUserModal, {
+                            user: rowData,
+                            reservedEmails,
+                            reservedUsernames,
                           });
                         },
                       },
@@ -199,13 +209,14 @@ export const UsersTable = ({ users }: Props) => {
                         },
                       },
                       {
-                        text: m.users_row_menu_edit(),
-                        icon: 'edit',
+                        text: m.users_row_menu_go_profile(),
+                        icon: 'profile',
                         onClick: () => {
-                          openModal(ModalName.EditUserModal, {
-                            user: rowData,
-                            reservedEmails,
-                            reservedUsernames,
+                          navigate({
+                            to: '/user/$username',
+                            params: {
+                              username: rowData.username,
+                            },
                           });
                         },
                       },
@@ -336,7 +347,12 @@ export const UsersTable = ({ users }: Props) => {
 
   return (
     <>
-      <TableTop text={m.users_header_title()}>
+      <TableTop
+        text={m.users_header_title()}
+        initialSearch={search}
+        onSearch={setSearch}
+        searchPlaceholder={m.users_search_placeholder()}
+      >
         <Button
           iconLeft="add-user"
           text={m.users_add()}
@@ -348,6 +364,30 @@ export const UsersTable = ({ users }: Props) => {
           }}
         />
       </TableTop>
+      {transformedData.length === 0 && search.length > 0 && (
+        <EmptyState
+          icon="search"
+          title={m.search_empty_common_title()}
+          subtitle={m.search_empty_common_subtitle()}
+        />
+      )}
+      {transformedData.length === 0 && search.length === 0 && (
+        <EmptyState
+          icon="search"
+          title={m.users_empty_title()}
+          subtitle={m.users_empty_subtitle()}
+          primaryAction={{
+            text: m.users_add(),
+            iconLeft: 'add-user',
+            onClick: () => {
+              useAddUserModal.getState().open({
+                reservedEmails,
+                reservedUsernames,
+              });
+            },
+          }}
+        />
+      )}
       <TableBody
         table={table}
         renderExpandedRow={renderExpanded}

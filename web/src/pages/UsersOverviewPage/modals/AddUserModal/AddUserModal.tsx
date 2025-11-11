@@ -10,6 +10,7 @@ import {
   mapPasswordFieldError,
   refinePasswordField,
 } from '../../../../shared/components/modals/ChangePasswordModal/form';
+import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
@@ -19,7 +20,6 @@ import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/E
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
-import { SelectionSection } from '../../../../shared/defguard-ui/components/SelectionSection/SelectionSection';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { useAppForm } from '../../../../shared/defguard-ui/form';
 import {
@@ -495,13 +495,7 @@ const AddUserGroupsSelectionStep = () => {
 
   return (
     <>
-      <SelectionSection
-        options={options}
-        selection={selected}
-        onChange={setSelected}
-        searchPlaceholder={m.cmp_selection_section_search_placeholder()}
-        selectAllText={m.cmp_selection_section_selected_filter()}
-      />
+      <SelectionSection options={options} selection={selected} onChange={setSelected} />
       <ModalControls
         cancelProps={{
           text: m.controls_close(),

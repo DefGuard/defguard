@@ -39,8 +39,8 @@
   "state_enabled": "Enabled",
   "state_step": "Step {step}",
   "col_created_at": "Created at",
-  "search_empty_common_subtitle": "Please try another search.",
+  "search_empty_common_title": "Nothing is found.",
+  "search_empty_common_subtitle": "Try adjusting your filters or search terms.",
   "search_users": "Find users",
-  "search_users_empty_title": "No users match your search.",
   "select_users_all": "All users"
 }

@@ -2,10 +2,18 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "cmp_selection_section_selected_filter": "Show selected only",
   "cmp_selection_section_search_placeholder": "Filter/Search",
+  "cmp_selection_section_empty_title": "Nothing was found.",
+  "cmp_selection_section_empty_subtitle": "Please try another search request.",
+  "cmp_openid_scope_email": "Email",
+  "cmp_openid_scope_openid": "OpenID",
+  "cmp_openid_scope_phone": "Phone",
+  "cmp_openid_scope_profile": "Profile",
+  "cmp_openid_scope_groups": "Groups",
   "cmp_nav_group_vpn": "VPN",
   "cmp_nav_group_identity": "Identity & Access",
   "cmp_nav_group_integrations": "Applications & Integration",
   "cmp_nav_group_admin": "Administration",
   "cmp_nav_item_users": "Users",
-  "cmp_nav_item_groups": "Groups"
+  "cmp_nav_item_groups": "Groups",
+  "cmp_nav_item_openid": "OpenID Apps"
 }

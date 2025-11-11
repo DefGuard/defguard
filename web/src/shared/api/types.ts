@@ -296,3 +296,31 @@ export interface ChangeAccountActiveRequest {
   username: string;
   active: boolean;
 }
+
+export interface OpenIdClient {
+  id: string;
+  name: string;
+  client_id: string;
+  client_secret: string;
+  redirect_uri: string[];
+  scope: OpenIdClientScopeValue[];
+  enabled: boolean;
+}
+
+export type AddOpenIdClient = Omit<OpenIdClient, 'id' | 'client_id' | 'client_secret'>;
+
+export interface EditOpenIdClientActiveStateRequest {
+  client_id: string;
+  enabled: boolean;
+}
+
+export const OpenIdClientScope = {
+  OpenId: 'openid',
+  Groups: 'groups',
+  Email: 'email',
+  Profile: 'profile',
+  Phone: 'phone',
+} as const;
+
+export type OpenIdClientScopeValue =
+  (typeof OpenIdClientScope)[keyof typeof OpenIdClientScope];

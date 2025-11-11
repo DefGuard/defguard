@@ -1,0 +1,37 @@
+.selection-section {
+  .actions {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-xl);
+
+    & > .right {
+      margin-left: auto;
+
+      .selected-filter {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-end;
+        flex: none;
+        column-gap: var(--spacing-sm);
+        cursor: pointer;
+
+        & > span {
+          font: var(--t-body-sm-400);
+          color: var(--fg-neutral);
+        }
+      }
+    }
+  }
+
+  .items-box {
+    overflow: hidden auto;
+
+    & > .inner {
+      display: flex;
+      flex-flow: column;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { Device, GroupInfo, User } from '../../api/types';
+import type { Device, GroupInfo, OpenIdClient, User } from '../../api/types';
 
 export interface OpenEditDeviceModal {
   device: Device;
@@ -37,4 +37,9 @@ export interface OpenEditUserModal {
   user: User;
   reservedUsernames: string[];
   reservedEmails: string[];
+}
+
+export interface OpenCEOpenIdClientModal {
+  openIdClient?: OpenIdClient;
+  reservedNames: string[];
 }

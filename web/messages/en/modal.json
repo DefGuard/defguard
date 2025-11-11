@@ -98,5 +98,11 @@
   "modal_edit_user_title": "Edit user details",
   "modal_edit_user_login_pref": "Login preferences",
   "modal_edit_user_account": "Account information",
-  "modal_edit_group_title": "Edit group"
+  "modal_edit_group_title": "Edit group",
+  "modal_ce_openid_client_title_add": "Add OpenID App",
+  "modal_ce_openid_client_title_edit": "Edit OpenID App",
+  "modal_ce_openid_client_label_redirect": "Redirect URL {index}",
+  "modal_ce_openid_client_label_redirect_add": "Add URL",
+  "modal_ce_openid_client_label_scopes_title": "Scopes",
+  "modal_ce_openid_client_label_name": "Application name"
 }

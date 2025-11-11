@@ -34,6 +34,7 @@ type SortingKeys = 'name';
 const columnHelper = createColumnHelper<RowData>();
 
 export const GroupsTable = ({ groups, users }: Props) => {
+  const [search, setSearch] = useState('');
   const reservedNames = useMemo(() => groups.map((g) => g.name), [groups]);
   const { mutate: deleteGroup } = useMutation({
     mutationFn: api.group.deleteGroup,
@@ -50,14 +51,18 @@ export const GroupsTable = ({ groups, users }: Props) => {
   ]);
 
   const transformedData = useMemo(() => {
+    let data = groups;
+    if (search.length) {
+      data = data.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
+    }
     const sorting = sortState[0];
-    if (!isPresent(sorting)) return groups;
+    if (!isPresent(sorting)) return data;
     const sortingId = sorting.id as SortingKeys;
     const sortingDirection = sorting.desc ? 'desc' : 'asc';
-    return orderBy(groups, (g) => g[sortingId].toLowerCase().replaceAll(' ', ''), [
+    return orderBy(data, (g) => g[sortingId].toLowerCase().replaceAll(' ', ''), [
       sortingDirection,
     ]);
-  }, [sortState, groups]);
+  }, [sortState, groups, search]);
 
   const columns = useMemo(
     () => [
@@ -119,7 +124,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
               text: m.controls_edit(),
               icon: 'edit',
               onClick: () => {
-                openModal(ModalName.CreateEditGroupModal, {
+                openModal(ModalName.CreateEditGroup, {
                   reservedNames,
                   users: users,
                   groupInfo: rowData,
@@ -166,12 +171,17 @@ export const GroupsTable = ({ groups, users }: Props) => {
 
   return (
     <>
-      <TableTop text={m.groups_table_title()}>
+      <TableTop
+        text={m.groups_table_title()}
+        onSearch={setSearch}
+        initialSearch={search}
+        searchPlaceholder={m.groups_search_placeholder()}
+      >
         <Button
           iconLeft="add-user"
           text={m.groups_add()}
           onClick={() => {
-            openModal(ModalName.CreateEditGroupModal, {
+            openModal(ModalName.CreateEditGroup, {
               reservedNames,
               users,
             });

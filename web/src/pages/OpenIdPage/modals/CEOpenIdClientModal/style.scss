@@ -1,0 +1,34 @@
+#ce-openid-client-modal form {
+  .fields {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+  }
+
+  .add-url {
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-sm);
+    min-height: 28px;
+
+    .icon path {
+      fill: var(--fg-action);
+    }
+
+    span {
+      font: var(--t-button-label-primary);
+      color: var(--fg-action);
+    }
+  }
+
+  .scopes {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+  }
+}

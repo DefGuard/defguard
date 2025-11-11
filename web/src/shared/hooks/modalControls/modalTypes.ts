@@ -4,6 +4,7 @@ import type {
   OpenAddApiTokenModal,
   OpenAuthKeyRenameModal,
   OpenCEGroupModal,
+  OpenCEOpenIdClientModal,
   OpenEditDeviceModal,
   OpenEditUserModal,
   OpenRenameApiTokenModal,
@@ -21,8 +22,9 @@ export const ModalName = {
   RenameAuthKey: 'renameAuthKey',
   AddApiToken: 'addApiToken',
   RenameApiToken: 'renameApiToken',
-  CreateEditGroupModal: 'createEditGroup',
+  CreateEditGroup: 'createEditGroup',
   EditUserModal: 'editUserModal',
+  CEOpenIdClient: 'createEditOpenIdClient',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -66,12 +68,20 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
     data: z.custom<OpenRenameApiTokenModal>(),
   }),
   z.object({
-    name: z.literal(ModalName.CreateEditGroupModal),
+    name: z.literal(ModalName.CreateEditGroup),
     data: z.custom<OpenCEGroupModal>(),
   }),
   z.object({
     name: z.literal(ModalName.EditUserModal),
     data: z.custom<OpenEditUserModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.EditUserModal),
+    data: z.custom<OpenEditUserModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.CEOpenIdClient),
+    data: z.custom<OpenCEOpenIdClientModal>(),
   }),
 ]);
 
