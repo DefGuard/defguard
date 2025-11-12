@@ -39,5 +39,8 @@
   "form_label_name": "Name",
   "form_label_public_key": "Public key",
   "form_label_device_public_key": "Device public key (wireguard)",
-  "form_label_type": "Type"
+  "form_label_type": "Type",
+  "form_label_description": "Description",
+  "form_label_secret_token": "Secret Token",
+  "form_label_webhook_url": "Webhook URL"
 }

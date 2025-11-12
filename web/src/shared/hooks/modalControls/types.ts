@@ -1,4 +1,4 @@
-import type { Device, GroupInfo, OpenIdClient, User } from '../../api/types';
+import type { Device, GroupInfo, OpenIdClient, User, Webhook } from '../../api/types';
 
 export interface OpenEditDeviceModal {
   device: Device;
@@ -42,4 +42,8 @@ export interface OpenEditUserModal {
 export interface OpenCEOpenIdClientModal {
   openIdClient?: OpenIdClient;
   reservedNames: string[];
+}
+
+export interface OpenCEWebhookModal {
+  webhook?: Webhook;
 }

@@ -52,6 +52,12 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_openid(),
         link: '/openid',
       },
+      {
+        id: 'webhooks',
+        icon: 'webhooks',
+        label: m.cmp_nav_item_webhooks(),
+        link: '/webhooks',
+      },
     ],
   },
 ];

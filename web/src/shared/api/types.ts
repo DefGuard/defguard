@@ -324,3 +324,22 @@ export const OpenIdClientScope = {
 
 export type OpenIdClientScopeValue =
   (typeof OpenIdClientScope)[keyof typeof OpenIdClientScope];
+
+export interface Webhook {
+  id: number;
+  url: string;
+  description: string;
+  token: string;
+  enabled: boolean;
+  on_user_created: boolean;
+  on_user_deleted: boolean;
+  on_user_modified: boolean;
+  on_hwkey_provision: boolean;
+}
+
+export type AddWebhookRequest = Omit<Webhook, 'id'>;
+
+export interface ChangeWebhookStateRequest {
+  id: number;
+  enabled: boolean;
+}

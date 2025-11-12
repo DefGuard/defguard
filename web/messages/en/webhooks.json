@@ -1,0 +1,8 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "webhooks_title": "Webhooks",
+  "webhooks_table_title": "All Webhooks",
+  "webhooks_add": "Add new webhook",
+  "webhooks_empty_title": "You don't have any Webhooks.",
+  "webhooks_empty_subtitle": "To add one, click the button below."
+}

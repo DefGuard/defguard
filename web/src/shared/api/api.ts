@@ -11,11 +11,13 @@ import type {
   AddOpenIdClient,
   AddUserRequest,
   AddUsersToGroupsRequest,
+  AddWebhookRequest,
   AdminChangeUserPasswordRequest,
   ApiToken,
   ApplicationInfo,
   AuthKey,
   ChangeAccountActiveRequest,
+  ChangeWebhookStateRequest,
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
@@ -43,6 +45,7 @@ import type {
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
+  Webhook,
 } from './types';
 
 const api = {
@@ -140,6 +143,17 @@ const api = {
       });
     },
     deleteUser: (username: string) => client.delete(`/user/${username}`),
+  },
+  webhook: {
+    addWebhook: (data: AddWebhookRequest) => client.post('/webhook', data),
+    deleteWebhook: (id: number) => client.delete(`/webhook/${id}`),
+    editWebhook: ({ id, ...rest }: Webhook) => client.put(`/webhook/${id}`, rest),
+    changeWebhookState: (data: ChangeWebhookStateRequest) =>
+      client.post(`/webhook/${data.id}`, {
+        enabled: data.enabled,
+      }),
+    getWebhook: (id: number) => client.get<Webhook>(`/webhook/${id}`),
+    getWebhooks: () => client.get<Webhook[]>(`/webhook`),
   },
   auth: {
     login: (data: LoginRequest) => client.post<LoginResponse>(`/auth`, data),

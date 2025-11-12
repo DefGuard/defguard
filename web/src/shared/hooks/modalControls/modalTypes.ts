@@ -5,6 +5,7 @@ import type {
   OpenAuthKeyRenameModal,
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
+  OpenCEWebhookModal,
   OpenEditDeviceModal,
   OpenEditUserModal,
   OpenRenameApiTokenModal,
@@ -25,6 +26,7 @@ export const ModalName = {
   CreateEditGroup: 'createEditGroup',
   EditUserModal: 'editUserModal',
   CEOpenIdClient: 'createEditOpenIdClient',
+  CEWebhook: 'createEditWebhook',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -82,6 +84,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.CEOpenIdClient),
     data: z.custom<OpenCEOpenIdClientModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.CEWebhook),
+    data: z.custom<OpenCEWebhookModal>(),
   }),
 ]);
 

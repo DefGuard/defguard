@@ -2,98 +2,65 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
-  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { orderBy } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { OpenIdClient } from '../../shared/api/types';
+import type { Webhook } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
-import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { useClipboard } from '../../shared/defguard-ui/hooks/useClipboard';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 
-type RowData = OpenIdClient;
+type RowData = Webhook;
 
 const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
-  data: OpenIdClient[];
+  webhooks: Webhook[];
 };
 
-type SortKey = 'name';
-
-export const OpenIdClientTable = ({ data }: Props) => {
-  const [sortingState, setSortingState] = useState<SortingState>([
-    {
-      desc: false,
-      id: 'name',
-    },
-  ]);
-
-  const reservedNames = useMemo(
-    () => data.map((c) => c.name.toLowerCase().replaceAll(' ', '')),
-    [data],
-  );
-
-  const { writeToClipboard } = useClipboard();
-
-  const { mutate: deleteClient } = useMutation({
-    mutationFn: api.openIdClient.deleteOpenIdClient,
+export const WebhooksTable = ({ webhooks }: Props) => {
+  const { mutate: toggleWebhook } = useMutation({
+    mutationFn: api.webhook.changeWebhookState,
     meta: {
-      invalidate: ['oauth'],
+      invalidate: ['webhook'],
     },
   });
-
-  const { mutate: toggleClient } = useMutation({
-    mutationFn: api.openIdClient.changeOpenIdClientState,
+  const { mutate: deleteWebhook } = useMutation({
+    mutationFn: api.webhook.deleteWebhook,
     meta: {
-      invalidate: ['oauth'],
+      invalidate: ['webhook'],
     },
   });
-
-  const transformedData = useMemo(() => {
-    const result = data;
-    const sorting = sortingState[0];
-    if (sorting) {
-      const key = sorting.id as SortKey;
-      const direction = sorting.desc ? 'desc' : 'asc';
-      return orderBy(result, (c) => c[key].toLowerCase().replaceAll(' ', ''), [
-        direction,
-      ]);
-    }
-    return result;
-  }, [data, sortingState[0]]);
-
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add new application',
-      iconLeft: 'openid',
+      text: m.webhooks_add(),
+      iconLeft: 'webhooks',
       onClick: () => {
-        openModal(ModalName.CEOpenIdClient, {
-          reservedNames,
-        });
+        openModal(ModalName.CEWebhook, {});
       },
     }),
-    [reservedNames],
+    [],
   );
+
+  const transformedData = useMemo(() => {
+    return orderBy(webhooks, ['id'], 'desc');
+  }, [webhooks]);
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('name', {
-        header: 'App name',
-        enableSorting: true,
+      columnHelper.accessor('url', {
+        header: 'Webhook URL',
         meta: {
           flex: true,
         },
@@ -103,15 +70,24 @@ export const OpenIdClientTable = ({ data }: Props) => {
           </TableCell>
         ),
       }),
+      columnHelper.accessor('description', {
+        header: 'Description',
+        size: 625,
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
+      }),
       columnHelper.accessor('enabled', {
         header: 'Status',
-        size: 600,
+        size: 300,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
-              <Badge variant="success" text="Enabled" />
+              <Badge variant="success" text={m.misc_active()} />
             ) : (
-              <Badge variant="critical" text="Disabled" />
+              <Badge variant="critical" text={m.state_disabled()} />
             )}
           </TableCell>
         ),
@@ -119,7 +95,6 @@ export const OpenIdClientTable = ({ data }: Props) => {
       columnHelper.display({
         id: 'edit',
         header: '',
-        size: tableEditColumnSize,
         cell: (info) => {
           const row = info.row.original;
           const menuItems: MenuItemsGroup[] = [
@@ -129,33 +104,18 @@ export const OpenIdClientTable = ({ data }: Props) => {
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    openModal(ModalName.CEOpenIdClient, {
-                      reservedNames,
-                      openIdClient: row,
+                    openModal(ModalName.CEWebhook, {
+                      webhook: row,
                     });
                   },
                 },
                 {
-                  icon: 'copy',
-                  text: 'Copy client ID',
-                  onClick: () => {
-                    writeToClipboard(row.client_id);
-                  },
-                },
-                {
-                  icon: 'copy',
-                  text: 'Copy client secret',
-                  onClick: () => {
-                    writeToClipboard(row.client_secret);
-                  },
-                },
-                {
-                  icon: row.enabled ? 'disabled' : 'check-circle',
                   text: row.enabled ? m.controls_disable() : m.controls_enable(),
+                  icon: row.enabled ? 'disabled' : 'check-circle',
                   onClick: () => {
-                    toggleClient({
-                      client_id: row.client_id,
+                    toggleWebhook({
                       enabled: !row.enabled,
+                      id: row.id,
                     });
                   },
                 },
@@ -168,7 +128,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteClient(row.client_id);
+                    deleteWebhook(row.id);
                   },
                 },
               ],
@@ -176,40 +136,34 @@ export const OpenIdClientTable = ({ data }: Props) => {
           ];
           return (
             <TableCell>
-              <IconButtonMenu menuItems={menuItems} icon="menu" />
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
             </TableCell>
           );
         },
       }),
     ],
-    [reservedNames, deleteClient, writeToClipboard, toggleClient],
+    [deleteWebhook, toggleWebhook],
   );
-
   const table = useReactTable({
-    state: {
-      sorting: sortingState,
-    },
     columns,
     data: transformedData,
     getCoreRowModel: getCoreRowModel(),
-    manualSorting: true,
-    onSortingChange: setSortingState,
   });
-
   return (
     <>
-      {data.length > 0 && (
+      {webhooks.length > 0 && (
         <>
-          <TableTop text="All apps">
+          <TableTop text="All Webhooks">
             <Button {...addButtonProps} />
           </TableTop>
-          {transformedData.length > 0 && <TableBody table={table} />}
+          <TableBody table={table} />
         </>
       )}
-      {data.length === 0 && (
+      {webhooks.length === 0 && (
         <EmptyStateFlexible
-          title="You don't have any OpenID Apps."
-          subtitle="To add one, click the button below."
+          icon="webhook"
+          title={m.webhooks_empty_title()}
+          subtitle={m.webhooks_empty_subtitle()}
           primaryAction={addButtonProps}
         />
       )}

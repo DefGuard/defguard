@@ -104,5 +104,9 @@
   "modal_ce_openid_client_label_redirect": "Redirect URL {index}",
   "modal_ce_openid_client_label_redirect_add": "Add URL",
   "modal_ce_openid_client_label_scopes_title": "Scopes",
-  "modal_ce_openid_client_label_name": "Application name"
+  "modal_ce_openid_client_label_name": "Application name",
+  "modal_ce_webhook_create_title": "Add Webhook",
+  "modal_ce_webhook_edit_title": "Edit Webhook",
+  "modal_ce_webhook_events_title": "Trigger events",
+  "modal_ce_webhook_events_text": ""
 }

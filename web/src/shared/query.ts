@@ -80,3 +80,9 @@ export const getOpenIdClientQueryOptions = queryOptions({
   queryKey: ['oauth'],
   select: (resp) => resp.data,
 });
+
+export const getWebhooksQueryOptions = queryOptions({
+  queryFn: api.webhook.getWebhooks,
+  queryKey: ['webhook'],
+  select: (resp) => resp.data,
+});
