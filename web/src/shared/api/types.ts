@@ -57,7 +57,7 @@ export interface User {
   enrolled: boolean;
   is_admin: boolean;
   ldap_pass_requires_change: boolean;
-  phone?: string;
+  phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
 }
 

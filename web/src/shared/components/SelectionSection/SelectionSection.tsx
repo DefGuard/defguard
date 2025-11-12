@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import './style.scss';
-import { useDebounce } from '@uidotdev/usehooks';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import { m } from '../../../paraglide/messages';
 import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { EmptyState } from '../../defguard-ui/components/EmptyState/EmptyState';
-import { Input } from '../../defguard-ui/components/Input/Input';
+import { Search } from '../../defguard-ui/components/Search/Search';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../defguard-ui/types';
@@ -29,14 +28,14 @@ export const SelectionSection = <T extends SelectionSectionKey>({
 }: SelectionSectionProps<T>) => {
   const [onlySelected, setOnlySelected] = useState(false);
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 200);
+  const searching = search.trim().length > 0;
 
   const visibleOptions = useMemo(() => {
     let res = options;
     if (onlySelected) {
       res = res.filter((o) => selection.has(o.id));
     }
-    const trimmedSearch = debouncedSearch?.trim().toLowerCase();
+    const trimmedSearch = search.trim().toLowerCase();
     if (trimmedSearch) {
       res = res.filter((option) => {
         if (option.searchFields) {
@@ -48,7 +47,7 @@ export const SelectionSection = <T extends SelectionSectionKey>({
       });
     }
     return res;
-  }, [options, onlySelected, selection, debouncedSearch]);
+  }, [options, onlySelected, selection, search.trim]);
 
   const handleSelect = useCallback(
     (option: SelectionSectionOption<T>, selected: boolean, selection: Set<T>) => {
@@ -70,10 +69,9 @@ export const SelectionSection = <T extends SelectionSectionKey>({
 
   return (
     <div className={clsx('selection-section', className)} id={id}>
-      <Input
+      <Search
         placeholder={m.cmp_selection_section_search_placeholder()}
-        value={search}
-        type="search"
+        initialValue={search}
         onChange={setSearch}
       />
       <SizedBox height={ThemeSpacing.Xl} />
@@ -89,7 +87,7 @@ export const SelectionSection = <T extends SelectionSectionKey>({
         </div>
       </div>
       <Divider spacing={ThemeSpacing.Md} />
-      {debouncedSearch.length > 0 && visibleOptions.length === 0 && (
+      {searching && visibleOptions.length === 0 && (
         <>
           <SizedBox height={130} />
           <EmptyState

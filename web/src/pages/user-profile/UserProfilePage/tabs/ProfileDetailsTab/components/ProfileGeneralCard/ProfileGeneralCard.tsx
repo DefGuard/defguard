@@ -34,13 +34,13 @@ const zodSchema = z.object({
   phone: z
     .string()
     .trim()
-    .optional()
     .refine((val) => {
       if (val?.length) {
         return patternValidPhoneNumber.test(val);
       }
       return true;
-    }, m.form_error_invalid()),
+    }, m.form_error_invalid())
+    .nullable(),
   email: z
     .string()
     .trim()
@@ -80,6 +80,7 @@ export const ProfileGeneralCard = () => {
         groups: s.user.groups,
         is_active: s.user.is_active,
         username: s.user.username,
+        phone: s.user.phone,
       }),
     ),
   );

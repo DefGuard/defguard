@@ -136,15 +136,15 @@ export const OpenIdClientTable = ({ data }: Props) => {
                   },
                 },
                 {
-                  icon: 'copy',
-                  text: 'Copy client ID',
+                  icon: 'activity-notes',
+                  text: m.openid_edit_copy_id(),
                   onClick: () => {
                     writeToClipboard(row.client_id);
                   },
                 },
                 {
                   icon: 'copy',
-                  text: 'Copy client secret',
+                  text: m.openid_edit_copy_secret(),
                   onClick: () => {
                     writeToClipboard(row.client_secret);
                   },
@@ -200,7 +200,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
     <>
       {data.length > 0 && (
         <>
-          <TableTop text="All apps">
+          <TableTop text={m.openid_table_top_title()}>
             <Button {...addButtonProps} />
           </TableTop>
           {transformedData.length > 0 && <TableBody table={table} />}
@@ -208,8 +208,8 @@ export const OpenIdClientTable = ({ data }: Props) => {
       )}
       {data.length === 0 && (
         <EmptyStateFlexible
-          title="You don't have any OpenID Apps."
-          subtitle="To add one, click the button below."
+          title={m.openid_empty_title()}
+          subtitle={m.openid_empty_subtitle()}
           primaryAction={addButtonProps}
         />
       )}
