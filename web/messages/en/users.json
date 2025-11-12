@@ -15,6 +15,7 @@
   "users_col_ip": "Last connected from",
   "users_col_connected_through": "Connected through",
   "users_col_connected_date": "Connected date",
+  "users_col_enrolled": "Enrollment",
   "users_row_menu_go_profile": "Go to user profile",
   "users_row_menu_disable": "Disable account",
   "users_row_menu_enable": "Enable account",

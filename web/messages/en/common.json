@@ -38,6 +38,8 @@
   "state_default": "Default",
   "state_enabled": "Enabled",
   "state_step": "Step {step}",
+  "state_pending": "Pending",
+  "state_enrolled": "Enrolled",
   "col_created_at": "Created at",
   "search_empty_common_title": "Nothing is found.",
   "search_empty_common_subtitle": "Try adjusting your filters or search terms.",

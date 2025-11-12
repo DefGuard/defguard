@@ -213,7 +213,11 @@ const ModalContent = ({ webhook }: ModalData) => {
               form.handleSubmit();
             },
           }}
-        />
+        >
+          <form.AppField name="enabled">
+            {(field) => <field.FormToggle label={m.state_enabled()} />}
+          </form.AppField>
+        </ModalControls>
       </form.AppForm>
     </form>
   );

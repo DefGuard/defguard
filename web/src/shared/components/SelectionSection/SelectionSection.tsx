@@ -9,6 +9,7 @@ import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { EmptyState } from '../../defguard-ui/components/EmptyState/EmptyState';
 import { Input } from '../../defguard-ui/components/Input/Input';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
+import { Toggle } from '../../defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../defguard-ui/types';
 import type {
   SelectionSectionKey,
@@ -54,12 +55,15 @@ export const SelectionSection = <T extends SelectionSectionKey>({
       const clone = new Set(selection);
       if (selected) {
         clone.delete(option.id);
+        if (!clone.size && onlySelected) {
+          setOnlySelected(false);
+        }
       } else {
         clone.add(option.id);
       }
       onChange(clone);
     },
-    [onChange],
+    [onChange, onlySelected],
   );
 
   const maxHeight = useMemo(() => itemHeight * 10 + itemGap * 9, [itemGap, itemHeight]);
@@ -74,17 +78,14 @@ export const SelectionSection = <T extends SelectionSectionKey>({
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <div className="actions">
-        <Checkbox text={m.cmp_selection_section_selected_filter()} disabled />
+        <Checkbox text={m.cmp_selection_section_all()} disabled />
         <div className="right">
-          <div
-            className="selected-filter"
-            role="button"
-            onClick={() => {
-              setOnlySelected((s) => !s);
-            }}
-          >
-            <span>{m.cmp_selection_section_selected_filter()}</span>
-          </div>
+          <Toggle
+            label={m.cmp_selection_section_selected_filter()}
+            active={onlySelected}
+            onClick={() => setOnlySelected((s) => !s)}
+            disabled={selection.size === 0}
+          />
         </div>
       </div>
       <Divider spacing={ThemeSpacing.Md} />

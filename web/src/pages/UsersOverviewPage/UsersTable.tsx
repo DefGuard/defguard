@@ -173,6 +173,18 @@ export const UsersTable = ({ users }: Props) => {
           </TableCell>
         ),
       }),
+      columnHelper.accessor('enrolled', {
+        header: m.users_col_enrolled(),
+        cell: (info) => (
+          <TableCell>
+            {info.getValue() ? (
+              <Badge text={m.state_enrolled()} />
+            ) : (
+              <Badge text={m.state_pending()} icon="pending" variant="warning" showIcon />
+            )}
+          </TableCell>
+        ),
+      }),
       columnHelper.display({
         id: 'edit',
         size: tableEditColumnSize,
@@ -282,6 +294,7 @@ export const UsersTable = ({ users }: Props) => {
       m.users_col_connected_through(),
       m.users_col_connected_date(),
       '',
+      '',
     ],
     [],
   );
@@ -325,6 +338,7 @@ export const UsersTable = ({ users }: Props) => {
             <TableCell>
               <span>{connectionDate}</span>
             </TableCell>
+            <TableCell empty />
             <TableCell empty />
           </TableRowContainer>
         );
