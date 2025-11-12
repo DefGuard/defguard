@@ -330,6 +330,7 @@ pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
+    pub token_expiration_time: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
