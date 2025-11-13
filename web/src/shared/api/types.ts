@@ -14,6 +14,7 @@ export interface GroupsResponse {
   groups: string[];
 }
 export interface UsersListItem extends User {
+  name: string;
   devices: Device[];
 }
 

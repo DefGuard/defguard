@@ -47,3 +47,8 @@ export interface OpenCEOpenIdClientModal {
 export interface OpenCEWebhookModal {
   webhook?: Webhook;
 }
+
+export interface OpenAssignUsersToGroupsModal {
+  users: number[];
+  groups: GroupInfo[];
+}

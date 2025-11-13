@@ -2,6 +2,7 @@ import z from 'zod';
 import type { AddDeviceResponse, User } from '../../api/types';
 import type {
   OpenAddApiTokenModal,
+  OpenAssignUsersToGroupsModal,
   OpenAuthKeyRenameModal,
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
@@ -27,6 +28,7 @@ export const ModalName = {
   EditUserModal: 'editUserModal',
   CEOpenIdClient: 'createEditOpenIdClient',
   CEWebhook: 'createEditWebhook',
+  AssignGroupsToUsers: 'assignGroupsToUsers',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -88,6 +90,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.CEWebhook),
     data: z.custom<OpenCEWebhookModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.AssignGroupsToUsers),
+    data: z.custom<OpenAssignUsersToGroupsModal>(),
   }),
 ]);
 

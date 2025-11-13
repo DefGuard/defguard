@@ -4,7 +4,6 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -52,10 +51,6 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     }),
     [],
   );
-
-  const transformedData = useMemo(() => {
-    return orderBy(webhooks, ['id'], 'desc');
-  }, [webhooks]);
 
   const columns = useMemo(
     () => [
@@ -146,8 +141,9 @@ export const WebhooksTable = ({ webhooks }: Props) => {
   );
   const table = useReactTable({
     columns,
-    data: transformedData,
+    data: webhooks,
     getCoreRowModel: getCoreRowModel(),
+    enableRowSelection: false,
   });
   return (
     <>

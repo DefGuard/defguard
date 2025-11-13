@@ -49,6 +49,16 @@ export const SelectionSection = <T extends SelectionSectionKey>({
     return res;
   }, [options, onlySelected, selection, search.trim]);
 
+  const handleSelectAll = useCallback(() => {
+    const allSelected = selection.size === options.length;
+    if (allSelected) {
+      onChange(new Set());
+    } else {
+      const all = options.map((o) => o.id);
+      onChange(new Set(all));
+    }
+  }, [selection.size, onChange, options]);
+
   const handleSelect = useCallback(
     (option: SelectionSectionOption<T>, selected: boolean, selection: Set<T>) => {
       const clone = new Set(selection);
@@ -76,7 +86,11 @@ export const SelectionSection = <T extends SelectionSectionKey>({
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <div className="actions">
-        <Checkbox text={m.cmp_selection_section_all()} disabled />
+        <Checkbox
+          text={m.cmp_selection_section_all()}
+          active={selection.size === options.length}
+          onClick={handleSelectAll}
+        />
         <div className="right">
           <Toggle
             label={m.cmp_selection_section_selected_filter()}

@@ -3,30 +3,23 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
+  getSortedRowModel,
   type Row,
-  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import orderBy from 'lodash-es/orderBy';
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
+import { type CSSProperties, useCallback, useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import type {
-  DeviceNetworkInfo,
-  UserDevice,
-} from '../../../../../../../shared/api/types';
+import type { UserDevice } from '../../../../../../../shared/api/types';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/components/Menu/types';
-import {
-  tableActionColumnSize,
-  tableEditColumnSize,
-} from '../../../../../../../shared/defguard-ui/components/table/consts';
+import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { TableExpandCell } from '../../../../../../../shared/defguard-ui/components/table/TableExpandCell/TableExpandCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
@@ -75,7 +68,6 @@ const columnHelper = createColumnHelper<RowData>();
 
 const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const username = useUserProfile((s) => s.user.username);
-  const tableData = useMemo(() => rowData, [rowData]);
 
   const reservedNames = useMemo(() => rowData.map((row) => row.name), [rowData]);
 
@@ -126,12 +118,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
 
   const tableColumns = useMemo(
     () => [
-      columnHelper.display({
-        id: 'expand',
-        header: '',
-        size: tableActionColumnSize,
-        cell: (info) => <TableExpandCell row={info.row} />,
-      }),
       columnHelper.accessor('name', {
         header: m.profile_devices_col_name(),
         cell: (info) => (
@@ -246,7 +232,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
 
   const expandedRowHeaders = useMemo(
     () => [
-      '',
       m.profile_devices_col_location_name(),
       m.profile_devices_col_location_ip(),
       m.profile_devices_col_location_connected_from(),
@@ -256,46 +241,24 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     [],
   );
 
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: 'name',
-      desc: false,
-    },
-  ]);
-
-  const transformedData = useMemo(() => {
-    if (!sorting.length) return tableData;
-
-    const sortingValue = sorting[0];
-
-    const sortId = sortingValue.id as 'name';
-    const sortDirection = sortingValue.desc ? 'desc' : 'asc';
-
-    const networksSortKey: keyof DeviceNetworkInfo = 'network_name';
-
-    return orderBy(tableData, (obj) => obj[sortId].toLowerCase().replaceAll(' ', ''), [
-      sortDirection,
-    ]).map((device) => ({
-      ...device,
-      networks: orderBy(
-        device.networks,
-        (obj) => obj[networksSortKey].toLowerCase().replaceAll(' ', ''),
-        [sortDirection],
-      ),
-    }));
-  }, [tableData, sorting]);
-
   const table = useReactTable({
-    columns: tableColumns,
-    data: transformedData,
-    state: {
-      sorting,
+    initialState: {
+      sorting: [
+        {
+          id: 'name',
+          desc: false,
+        },
+      ],
     },
-    manualSorting: true,
+    columns: tableColumns,
+    data: rowData,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.networks.length > 0,
-    onSortingChange: setSorting,
+    enableExpanding: true,
+    enableRowSelection: false,
+    enableSorting: true,
   });
 
   return (

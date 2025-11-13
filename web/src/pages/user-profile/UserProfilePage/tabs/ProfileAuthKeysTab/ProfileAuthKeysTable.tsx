@@ -2,11 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
-  type SortingState,
+  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { groupBy, orderBy } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { groupBy } from 'lodash-es';
+import { useMemo } from 'react';
 import { m } from '../../../../../paraglide/messages';
 import api from '../../../../../shared/api/api';
 import type { AuthKey, AuthKeyTypeValue } from '../../../../../shared/api/types';
@@ -77,32 +77,12 @@ const mapData = (data: AuthKey[]): RowData[] => {
 
 const columnHelper = createColumnHelper<RowData>();
 
-type SortingKeys = 'name';
-
 export const ProfileAuthKeysTable = () => {
   const { writeToClipboard } = useClipboard();
   const username = useUserProfile((s) => s.user.username);
-  const [sortingState, setSortingState] = useState<SortingState>([
-    {
-      id: 'name',
-      desc: false,
-    },
-  ]);
 
   const authKeys = useUserProfile((s) => s.authKeys);
   const mapped = useMemo(() => mapData(authKeys), [authKeys]);
-
-  const transformedData = useMemo(() => {
-    if (!sortingState.length) return mapped;
-    const sorting = sortingState[0];
-    const sortingKey = sorting.id as SortingKeys;
-    const direction = sorting.desc ? 'desc' : 'asc';
-    return orderBy(
-      mapped,
-      (key) => key[sortingKey].trim().toLowerCase().replaceAll(' ', ''),
-      [direction],
-    );
-  }, [sortingState, mapped]);
 
   const { mutate: deleteAuthKey } = useMutation({
     mutationFn: api.user.deleteAuthKey,
@@ -225,14 +205,20 @@ export const ProfileAuthKeysTable = () => {
   );
 
   const table = useReactTable({
-    state: {
-      sorting: sortingState,
+    initialState: {
+      sorting: [
+        {
+          id: 'name',
+          desc: false,
+        },
+      ],
     },
     columns,
-    data: transformedData,
-    manualSorting: true,
+    data: mapped,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSortingState,
+    getSortedRowModel: getSortedRowModel(),
+    enableSorting: true,
+    enableRowSelection: false,
   });
 
   return <TableBody table={table} />;

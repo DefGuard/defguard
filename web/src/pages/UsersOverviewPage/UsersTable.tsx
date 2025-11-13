@@ -1,11 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
+  getSortedRowModel,
   type Row,
-  type SortingState,
+  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
 import clsx from 'clsx';
@@ -20,18 +21,16 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
-import {
-  tableActionColumnSize,
-  tableEditColumnSize,
-} from '../../shared/defguard-ui/components/table/consts';
+import { Search } from '../../shared/defguard-ui/components/Search/Search';
+import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { TableExpandCell } from '../../shared/defguard-ui/components/table/TableExpandCell/TableExpandCell';
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getGroupsInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
@@ -49,6 +48,8 @@ export const UsersTable = ({ users }: Props) => {
 
   const [search, setSearch] = useState('');
 
+  const { data: groups } = useQuery(getGroupsInfoQueryOptions);
+
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
@@ -64,12 +65,7 @@ export const UsersTable = ({ users }: Props) => {
   });
 
   const navigate = useNavigate({ from: '/users' });
-  const [sortingState, setSortingState] = useState<SortingState>([
-    {
-      id: 'name',
-      desc: false,
-    },
-  ]);
+  const [selected, setSelected] = useState<RowSelectionState>({});
 
   const transformedData = useMemo(() => {
     let data = users;
@@ -80,39 +76,20 @@ export const UsersTable = ({ users }: Props) => {
           u.last_name.toLowerCase().includes(search.toLowerCase()),
       );
     }
-    const sorting = sortingState[0];
-    if (!sorting) return data;
-    const { id, desc } = sorting;
-    const direction = desc ? 'desc' : 'asc';
-    const orderedDevices = data.map((user) => ({
-      ...user,
-      devices: orderBy(user.devices, [id], [direction]),
-    }));
-    return orderBy(
-      orderedDevices,
-      (user) => `${user.first_name}${user.last_name}`.toLowerCase(),
-      [direction],
-    );
-  }, [users, sortingState, search.length, search.toLowerCase]);
+    return data;
+  }, [users, search.length, search.toLowerCase]);
 
   const columns = useMemo(
     () => [
-      columnHelper.display({
-        id: 'expand',
-        header: '',
-        size: tableActionColumnSize,
-        cell: (info) => <TableExpandCell row={info.row} />,
-      }),
-      columnHelper.display({
-        id: 'name',
+      columnHelper.accessor('name', {
         header: m.users_col_name(),
         enableSorting: true,
+        sortingFn: 'text',
         meta: {
           flex: true,
         },
         cell: (info) => {
           const rowData = info.row.original;
-          const name = `${rowData.first_name} ${rowData.last_name}`;
           return (
             <TableCell>
               <Avatar
@@ -121,7 +98,7 @@ export const UsersTable = ({ users }: Props) => {
                 firstName={rowData.first_name}
                 lastName={rowData.last_name}
               />
-              <span>{name}</span>
+              <span>{info.getValue()}</span>
             </TableCell>
           );
         },
@@ -287,7 +264,6 @@ export const UsersTable = ({ users }: Props) => {
 
   const expandedHeader = useMemo(
     () => [
-      '',
       m.users_col_assigned(),
       '',
       m.users_col_ip(),
@@ -321,6 +297,7 @@ export const UsersTable = ({ users }: Props) => {
             key={device.id}
             style={rowStyles}
           >
+            <TableCell empty />
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
             </TableCell>
@@ -347,26 +324,53 @@ export const UsersTable = ({ users }: Props) => {
   );
 
   const table = useReactTable({
+    initialState: {
+      sorting: [
+        {
+          id: 'name',
+          desc: false,
+        },
+      ],
+    },
     state: {
-      sorting: sortingState,
+      rowSelection: selected,
     },
     columns,
     data: transformedData,
-    manualSorting: true,
+    enableRowSelection: true,
+    enableExpanding: true,
+    onRowSelectionChange: setSelected,
+    getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.devices.length > 0,
-    onSortingChange: setSortingState,
   });
 
   return (
     <>
-      <TableTop
-        text={m.users_header_title()}
-        initialSearch={search}
-        onSearch={setSearch}
-        searchPlaceholder={m.users_search_placeholder()}
-      >
+      <TableTop text={m.users_header_title()}>
+        {table.getIsSomeRowsSelected() && isPresent(groups) && (
+          <Button
+            variant="outlined"
+            text="Assign to a group"
+            iconLeft="add-group"
+            onClick={() => {
+              const selected = table
+                .getSelectedRowModel()
+                .rows.map((row) => row.original.id);
+              openModal(ModalName.AssignGroupsToUsers, {
+                groups,
+                users: selected,
+              });
+              table.resetRowSelection();
+            }}
+          />
+        )}
+        <Search
+          placeholder={m.users_search_placeholder()}
+          initialValue={search}
+          onChange={setSearch}
+        />
         <Button
           iconLeft="add-user"
           text={m.users_add()}

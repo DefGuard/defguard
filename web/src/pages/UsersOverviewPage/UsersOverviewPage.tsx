@@ -8,6 +8,7 @@ import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswo
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getUsersQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
+import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
 import { UsersTable } from './UsersTable';
 
@@ -22,6 +23,7 @@ export const UsersOverviewPage = () => {
       <EditUserModal />
       <AddAuthKeyModal />
       <ChangePasswordModal />
+      <AssignUsersToGroupsModal />
     </>
   );
 };

@@ -56,6 +56,7 @@ const api = {
       const { data: profile } = await api.user.getUser(user.username);
       res.push({
         ...user,
+        name: `${user.first_name} ${user.last_name}`,
         devices: profile.devices,
       });
     }

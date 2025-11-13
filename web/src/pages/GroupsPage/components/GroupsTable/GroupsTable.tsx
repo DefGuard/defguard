@@ -2,10 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
-  type SortingState,
+  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
@@ -18,7 +17,6 @@ import { tableEditColumnSize } from '../../../../shared/defguard-ui/components/t
 import { TableBody } from '../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 
@@ -28,8 +26,6 @@ type Props = {
 };
 
 type RowData = GroupInfo;
-
-type SortingKeys = 'name';
 
 const columnHelper = createColumnHelper<RowData>();
 
@@ -43,31 +39,19 @@ export const GroupsTable = ({ groups, users }: Props) => {
     },
   });
 
-  const [sortState, setSortState] = useState<SortingState>([
-    {
-      id: 'name',
-      desc: false,
-    },
-  ]);
-
   const transformedData = useMemo(() => {
     let data = groups;
     if (search.length) {
       data = data.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
     }
-    const sorting = sortState[0];
-    if (!isPresent(sorting)) return data;
-    const sortingId = sorting.id as SortingKeys;
-    const sortingDirection = sorting.desc ? 'desc' : 'asc';
-    return orderBy(data, (g) => g[sortingId].toLowerCase().replaceAll(' ', ''), [
-      sortingDirection,
-    ]);
-  }, [sortState, groups, search]);
+    return data;
+  }, [groups, search]);
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
         header: m.groups_col_name(),
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -159,14 +143,12 @@ export const GroupsTable = ({ groups, users }: Props) => {
   );
 
   const table = useReactTable({
-    state: {
-      sorting: sortState,
-    },
     columns,
     data: transformedData,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSortState,
-    manualSorting: true,
+    getSortedRowModel: getSortedRowModel(),
+    enableSorting: true,
+    enableRowSelection: false,
   });
 
   return (

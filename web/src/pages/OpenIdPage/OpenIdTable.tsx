@@ -2,11 +2,10 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
-  type SortingState,
+  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { orderBy } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { OpenIdClient } from '../../shared/api/types';
@@ -32,16 +31,7 @@ type Props = {
   data: OpenIdClient[];
 };
 
-type SortKey = 'name';
-
 export const OpenIdClientTable = ({ data }: Props) => {
-  const [sortingState, setSortingState] = useState<SortingState>([
-    {
-      desc: false,
-      id: 'name',
-    },
-  ]);
-
   const reservedNames = useMemo(
     () => data.map((c) => c.name.toLowerCase().replaceAll(' ', '')),
     [data],
@@ -63,19 +53,6 @@ export const OpenIdClientTable = ({ data }: Props) => {
     },
   });
 
-  const transformedData = useMemo(() => {
-    const result = data;
-    const sorting = sortingState[0];
-    if (sorting) {
-      const key = sorting.id as SortKey;
-      const direction = sorting.desc ? 'desc' : 'asc';
-      return orderBy(result, (c) => c[key].toLowerCase().replaceAll(' ', ''), [
-        direction,
-      ]);
-    }
-    return result;
-  }, [data, sortingState[0]]);
-
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       text: 'Add new application',
@@ -94,6 +71,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
       columnHelper.accessor('name', {
         header: 'App name',
         enableSorting: true,
+        sortingFn: 'text',
         meta: {
           flex: true,
         },
@@ -186,14 +164,11 @@ export const OpenIdClientTable = ({ data }: Props) => {
   );
 
   const table = useReactTable({
-    state: {
-      sorting: sortingState,
-    },
     columns,
-    data: transformedData,
+    data,
     getCoreRowModel: getCoreRowModel(),
-    manualSorting: true,
-    onSortingChange: setSortingState,
+    getSortedRowModel: getSortedRowModel(),
+    enableRowSelection: false,
   });
 
   return (
@@ -203,7 +178,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
           <TableTop text={m.openid_table_top_title()}>
             <Button {...addButtonProps} />
           </TableTop>
-          {transformedData.length > 0 && <TableBody table={table} />}
+          <TableBody table={table} />
         </>
       )}
       {data.length === 0 && (
