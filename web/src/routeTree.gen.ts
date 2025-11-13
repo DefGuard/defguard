@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,11 @@ import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as AuthorizedUserUsernameRouteImport } from './routes/_authorized/user/$username'
 
+const ConsentRoute = ConsentRouteImport.update({
+  id: '/consent',
+  path: '/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthorizedRoute = AuthorizedRouteImport.update({
   id: '/_authorized',
   getParentRoute: () => rootRouteImport,
@@ -103,6 +109,7 @@ const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/consent': typeof ConsentRoute
   '/groups': typeof AuthorizedGroupsRoute
   '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/consent': typeof ConsentRoute
   '/groups': typeof AuthorizedGroupsRoute
   '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
+  '/consent': typeof ConsentRoute
   '/_authorized/groups': typeof AuthorizedGroupsRoute
   '/_authorized/openid': typeof AuthorizedOpenidRoute
   '/_authorized/users': typeof AuthorizedUsersRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/404'
+    | '/consent'
     | '/groups'
     | '/openid'
     | '/users'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/404'
+    | '/consent'
     | '/groups'
     | '/openid'
     | '/users'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/_authorized'
+    | '/consent'
     | '/_authorized/groups'
     | '/_authorized/openid'
     | '/_authorized/users'
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
+  ConsentRoute: typeof ConsentRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthMfaRoute: typeof AuthMfaRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
@@ -213,6 +226,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/consent': {
+      id: '/consent'
+      path: '/consent'
+      fullPath: '/consent'
+      preLoaderRoute: typeof ConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authorized': {
       id: '/_authorized'
       path: ''
@@ -362,6 +382,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
+  ConsentRoute: ConsentRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthMfaRoute: AuthMfaRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,

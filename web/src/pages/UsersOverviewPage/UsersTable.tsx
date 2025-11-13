@@ -119,7 +119,8 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('username', {
         header: m.users_col_login(),
         size: 170,
-        enableSorting: false,
+        enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
