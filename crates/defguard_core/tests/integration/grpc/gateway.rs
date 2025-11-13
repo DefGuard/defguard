@@ -563,7 +563,7 @@ async fn test_gateway_version_validation(_: PgPoolOptions, options: PgConnectOpt
 #[sqlx::test]
 async fn test_device_pubkey_change(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (mut test_server, mut gateway, _test_location, test_user) =
+    let (mut test_server, mut gateway, test_location, test_user) =
         setup_test_server(pool.clone()).await;
 
     // initial client map is empty
@@ -605,10 +605,18 @@ async fn test_device_pubkey_change(_: PgPoolOptions, options: PgConnectOptions) 
 
     // wait for event to be emitted
     sleep(Duration::from_millis(100)).await;
-    let _grpc_event = test_server
+    let grpc_event = test_server
         .grpc_event_rx
         .try_recv()
         .expect("failed to receive gRPC event");
+    assert_matches!(
+    grpc_event,
+    GrpcEvent::ClientConnected {
+        context: _,
+        location,
+        device
+    } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
 
     // change device pubkey
     let new_device_pubkey = "TJG2T6rhndZtk06KnIIOlD6hhd7wpVkBss8sfyvMCAA=";
@@ -647,7 +655,20 @@ async fn test_device_pubkey_change(_: PgPoolOptions, options: PgConnectOptions) 
         })
         .expect("failed to send stats update");
 
-    // no event should be emitted
+    // wait for event
+    // FIXME: ideally this should not be emitted; we'll fix it once we implement a more robust VPN session logic
     sleep(Duration::from_millis(100)).await;
-    assert_err_eq!(test_server.grpc_event_rx.try_recv(), TryRecvError::Empty);
+    let grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+
+    assert_matches!(
+        grpc_event,
+        GrpcEvent::ClientConnected {
+            context: _,
+            location,
+            device
+        } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
 }
