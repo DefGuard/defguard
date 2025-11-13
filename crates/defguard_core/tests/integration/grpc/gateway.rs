@@ -558,3 +558,96 @@ async fn test_gateway_version_validation(_: PgPoolOptions, options: PgConnectOpt
     let status = response.err().unwrap();
     assert_eq!(status.code(), Code::FailedPrecondition);
 }
+
+// https://github.com/DefGuard/defguard/issues/1671
+#[sqlx::test]
+async fn test_device_pubkey_change(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut test_server, mut gateway, _test_location, test_user) =
+        setup_test_server(pool.clone()).await;
+
+    // initial client map is empty
+    {
+        let client_map = test_server.get_client_map();
+        assert!(client_map.is_empty())
+    }
+
+    // connect stats stream
+    let stats_tx = gateway.setup_stats_update_stream().await;
+    let mut update_id = 1;
+
+    // add user device
+    let device_pubkey = "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=";
+    let mut test_device = Device::new(
+        "test device".into(),
+        device_pubkey.into(),
+        test_user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // send stats update for existing device
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // wait for event to be emitted
+    sleep(Duration::from_millis(100)).await;
+    let _grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+
+    // change device pubkey
+    let new_device_pubkey = "TJG2T6rhndZtk06KnIIOlD6hhd7wpVkBss8sfyvMCAA=";
+    test_device.wireguard_pubkey = new_device_pubkey.to_owned();
+    test_device.save(&pool).await.unwrap();
+
+    // send stats update with old pubkey
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // no event should be emitted
+    sleep(Duration::from_millis(100)).await;
+    assert_err_eq!(test_server.grpc_event_rx.try_recv(), TryRecvError::Empty);
+
+    // send stats update with new pubkey
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: new_device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // no event should be emitted
+    sleep(Duration::from_millis(100)).await;
+    assert_err_eq!(test_server.grpc_event_rx.try_recv(), TryRecvError::Empty);
+}
