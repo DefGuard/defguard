@@ -344,3 +344,66 @@ export interface ChangeWebhookStateRequest {
   id: number;
   enabled: boolean;
 }
+
+export interface NetworkDevice {
+  id: number;
+  name: string;
+  assigned_ips: string[];
+  description?: string;
+  added_by: string;
+  added_date: string;
+  configured: boolean;
+  // when configured is false this will be empty
+  wireguard_pubkey?: string;
+  location: {
+    id: number;
+    name: string;
+  };
+  split_ips: [
+    {
+      network_part: string;
+      modifiable_part: string;
+      network_prefix: string;
+    },
+  ];
+}
+
+export const LocationMfaMode = {
+  Disabled: 'disabled',
+  Internal: 'internal',
+  External: 'external',
+} as const;
+
+export type LocationMfaModeValue = (typeof LocationMfaMode)[keyof typeof LocationMfaMode];
+
+export type DeviceConfigResponse = {
+  address: string;
+  allowed_ips: string[];
+  config: string;
+  endpoint: string;
+  keepalive_interval: number;
+  network_id: number;
+  network_name: string;
+  pubkey: string;
+  location_mfa_mode: LocationMfaModeValue;
+};
+
+export type AddNetworkDeviceResponse = {
+  config: DeviceConfigResponse;
+  device: NetworkDevice;
+};
+
+export type EditNetworkDeviceRequest = {
+  id: number;
+  assigned_ips: string[];
+  description?: string;
+  name: string;
+};
+
+export interface AddNetworkDeviceRequest {
+  name: string;
+  location_id: number;
+  assigned_ips: string[];
+  wireguard_pubkey?: string;
+  description?: string;
+}

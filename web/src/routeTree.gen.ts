@@ -19,6 +19,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthorizedWebhooksRouteImport } from './routes/_authorized/webhooks'
 import { Route as AuthorizedUsersRouteImport } from './routes/_authorized/users'
 import { Route as AuthorizedOpenidRouteImport } from './routes/_authorized/openid'
+import { Route as AuthorizedNetworkDevicesRouteImport } from './routes/_authorized/network-devices'
 import { Route as AuthorizedGroupsRouteImport } from './routes/_authorized/groups'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
@@ -75,6 +76,12 @@ const AuthorizedOpenidRoute = AuthorizedOpenidRouteImport.update({
   path: '/openid',
   getParentRoute: () => AuthorizedRoute,
 } as any)
+const AuthorizedNetworkDevicesRoute =
+  AuthorizedNetworkDevicesRouteImport.update({
+    id: '/network-devices',
+    path: '/network-devices',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthorizedGroupsRoute = AuthorizedGroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof R404Route
   '/consent': typeof ConsentRoute
   '/groups': typeof AuthorizedGroupsRoute
+  '/network-devices': typeof AuthorizedNetworkDevicesRoute
   '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
   '/webhooks': typeof AuthorizedWebhooksRoute
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/consent': typeof ConsentRoute
   '/groups': typeof AuthorizedGroupsRoute
+  '/network-devices': typeof AuthorizedNetworkDevicesRoute
   '/openid': typeof AuthorizedOpenidRoute
   '/users': typeof AuthorizedUsersRoute
   '/webhooks': typeof AuthorizedWebhooksRoute
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/consent': typeof ConsentRoute
   '/_authorized/groups': typeof AuthorizedGroupsRoute
+  '/_authorized/network-devices': typeof AuthorizedNetworkDevicesRoute
   '/_authorized/openid': typeof AuthorizedOpenidRoute
   '/_authorized/users': typeof AuthorizedUsersRoute
   '/_authorized/webhooks': typeof AuthorizedWebhooksRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/consent'
     | '/groups'
+    | '/network-devices'
     | '/openid'
     | '/users'
     | '/webhooks'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/consent'
     | '/groups'
+    | '/network-devices'
     | '/openid'
     | '/users'
     | '/webhooks'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authorized'
     | '/consent'
     | '/_authorized/groups'
+    | '/_authorized/network-devices'
     | '/_authorized/openid'
     | '/_authorized/users'
     | '/_authorized/webhooks'
@@ -296,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedOpenidRouteImport
       parentRoute: typeof AuthorizedRoute
     }
+    '/_authorized/network-devices': {
+      id: '/_authorized/network-devices'
+      path: '/network-devices'
+      fullPath: '/network-devices'
+      preLoaderRoute: typeof AuthorizedNetworkDevicesRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/_authorized/groups': {
       id: '/_authorized/groups'
       path: '/groups'
@@ -343,6 +363,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthorizedRouteChildren {
   AuthorizedGroupsRoute: typeof AuthorizedGroupsRoute
+  AuthorizedNetworkDevicesRoute: typeof AuthorizedNetworkDevicesRoute
   AuthorizedOpenidRoute: typeof AuthorizedOpenidRoute
   AuthorizedUsersRoute: typeof AuthorizedUsersRoute
   AuthorizedWebhooksRoute: typeof AuthorizedWebhooksRoute
@@ -351,6 +372,7 @@ interface AuthorizedRouteChildren {
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedGroupsRoute: AuthorizedGroupsRoute,
+  AuthorizedNetworkDevicesRoute: AuthorizedNetworkDevicesRoute,
   AuthorizedOpenidRoute: AuthorizedOpenidRoute,
   AuthorizedUsersRoute: AuthorizedUsersRoute,
   AuthorizedWebhooksRoute: AuthorizedWebhooksRoute,

@@ -3,6 +3,12 @@ import api from './api/api';
 import type { UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
 
+export const getNetworkDevicesQueryOptions = queryOptions({
+  queryFn: api.network_device.getDevices,
+  queryKey: ['device', 'network'],
+  select: (resp) => resp.data,
+});
+
 export const userMeQueryOptions = queryOptions({
   queryFn: () => api.user.getMe,
   queryKey: ['me'],

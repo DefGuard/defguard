@@ -8,6 +8,8 @@ import type {
   AddDeviceRequest,
   AddDeviceResponse,
   AddDeviceResponseConfig,
+  AddNetworkDeviceRequest,
+  AddNetworkDeviceResponse,
   AddOpenIdClient,
   AddUserRequest,
   AddUsersToGroupsRequest,
@@ -22,6 +24,7 @@ import type {
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
+  DeviceConfigResponse,
   EditGroupRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
@@ -31,6 +34,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  NetworkDevice,
   OpenIdClient,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
@@ -205,6 +209,19 @@ const api = {
         },
       },
     },
+  },
+  network_device: {
+    getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
+    getDevices: () => client.get<NetworkDevice[]>(`/device/network`),
+    getDeviceConfig: (id: number) =>
+      client.get<DeviceConfigResponse>(`/device/network/${id}/config`),
+    generateToken: (id: number) =>
+      client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
+    addDevice: (data: AddNetworkDeviceRequest) =>
+      client.post<AddNetworkDeviceResponse | StartEnrollmentResponse>(
+        `/device/network`,
+        data,
+      ),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

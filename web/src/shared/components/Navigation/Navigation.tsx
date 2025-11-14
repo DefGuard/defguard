@@ -47,6 +47,12 @@ const navigationConfig: NavGroupProps[] = [
     label: m.cmp_nav_group_integrations(),
     items: [
       {
+        id: 'network_devices',
+        icon: 'devices',
+        label: m.cmp_nav_item_network_devices(),
+        link: '/network-devices',
+      },
+      {
         id: 'openid',
         icon: 'openid',
         label: m.cmp_nav_item_openid(),
