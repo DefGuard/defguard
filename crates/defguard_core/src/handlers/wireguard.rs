@@ -96,6 +96,15 @@ impl WireguardNetworkData {
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
 
+    pub(crate) fn parse_addresses(&self) -> Vec<IpNetwork> {
+        // first parse the addresses
+        let mut subnets = parse_address_list(self.address.as_ref());
+
+        // filter out subnets with /0 mask
+        subnets.retain(|net| net.prefix() != 0);
+        subnets
+    }
+
     pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
@@ -281,6 +290,7 @@ pub(crate) async fn modify_network(
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
+    network.address = data.parse_addresses();
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -290,7 +300,6 @@ pub(crate) async fn modify_network(
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.address = parse_address_list(&data.address);
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
