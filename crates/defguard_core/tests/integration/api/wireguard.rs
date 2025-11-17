@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
 use defguard_core::{

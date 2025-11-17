@@ -96,13 +96,27 @@ impl WireguardNetworkData {
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
 
-    pub(crate) fn parse_addresses(&self) -> Vec<IpNetwork> {
+    pub(crate) fn parse_addresses(&self) -> Result<Vec<IpNetwork>, WebError> {
         // first parse the addresses
-        let mut subnets = parse_address_list(self.address.as_ref());
+        let subnets = parse_address_list(self.address.as_ref());
 
-        // filter out subnets with /0 mask
-        subnets.retain(|net| net.prefix() != 0);
-        subnets
+        // check if address list is not empty
+        if subnets.is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide at least one valid network address".to_owned(),
+            ));
+        }
+
+        // check if any subnet has an invalid /0 netmask
+        for subnet in &subnets {
+            if subnet.prefix() == 0 {
+                return Err(WebError::BadRequest(format!(
+                    "{subnet} is not a valid address"
+                )));
+            }
+        }
+
+        Ok(subnets)
     }
 
     pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
@@ -290,14 +304,8 @@ pub(crate) async fn modify_network(
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
-    let network_address = data.parse_addresses();
-    if network_address.is_empty() {
-        return Err(WebError::BadRequest(
-            "Must provide at least one valid network address".to_owned(),
-        ));
-    }
+    network.address = data.parse_addresses()?;
 
-    network.address = network_address;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
