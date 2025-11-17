@@ -2,18 +2,45 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::{
+    db::{
+        NoId,
+        models::oauth2client::{OAuth2Client, OAuth2ClientSafe},
+    },
+    random::gen_alphanumeric,
+};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult, webhooks::ChangeStateData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::models::{
-        NewOpenIDClient,
-        oauth2client::{OAuth2Client, OAuth2ClientSafe},
-    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
+
+#[derive(Deserialize, Serialize)]
+pub struct NewOpenIDClient {
+    pub name: String,
+    pub redirect_uri: Vec<String>,
+    pub scope: Vec<String>,
+    pub enabled: bool,
+}
+
+impl Into<OAuth2Client<NoId>> for NewOpenIDClient {
+    fn into(self) -> OAuth2Client<NoId> {
+        let client_id = gen_alphanumeric(16);
+        let client_secret = gen_alphanumeric(32);
+        OAuth2Client {
+            id: NoId,
+            client_id,
+            client_secret,
+            redirect_uri: self.redirect_uri,
+            scope: self.scope,
+            name: self.name,
+            enabled: self.enabled,
+        }
+    }
+}
 
 pub async fn add_openid_client(
     _admin: AdminRole,
@@ -36,7 +63,8 @@ pub async fn add_openid_client(
             status: StatusCode::BAD_REQUEST,
         });
     }
-    let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
+    let client: OAuth2Client = data.into();
+    let client = client.save(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, client.name

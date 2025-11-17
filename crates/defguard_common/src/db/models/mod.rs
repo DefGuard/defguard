@@ -4,10 +4,12 @@ pub mod biometric_auth;
 pub mod device_login;
 pub mod error;
 pub mod oauth2authorizedapp;
+pub mod oauth2client;
 pub mod oauth2token;
 pub mod polling_token;
 pub mod settings;
 pub mod user;
+pub mod webauthn;
 pub mod wireguard_peer_stats;
 pub mod yubikey;
 
@@ -20,4 +22,5 @@ pub use oauth2authorizedapp::OAuth2AuthorizedApp;
 pub use oauth2token::OAuth2Token;
 pub use settings::{Settings, SettingsEssentials};
 pub use user::MFAMethod;
+pub use webauthn::WebAuthn;
 pub use yubikey::YubiKey;

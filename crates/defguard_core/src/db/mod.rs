@@ -6,7 +6,6 @@ pub use models::{
     group::Group,
     session::{Session, SessionState},
     user::User,
-    webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
     wireguard::{GatewayEvent, WireguardNetwork},
 };

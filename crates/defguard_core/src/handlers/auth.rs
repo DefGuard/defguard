@@ -15,7 +15,7 @@ use axum_extra::{
 };
 use defguard_common::db::{
     Id,
-    models::{MFAMethod, Settings},
+    models::{MFAMethod, Settings, WebAuthn},
 };
 use defguard_mail::Mail;
 use serde_json::json;
@@ -36,7 +36,7 @@ use crate::{
         SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    db::{MFAInfo, Session, SessionState, User, UserInfo, WebAuthn},
+    db::{MFAInfo, Session, SessionState, User, UserInfo},
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},

@@ -28,7 +28,7 @@ pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
 pub mod network_devices;
-pub(crate) mod openid_clients;
+pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub(crate) mod settings;

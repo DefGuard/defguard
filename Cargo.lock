@@ -1126,6 +1126,7 @@ dependencies = [
  "rsa",
  "secrecy",
  "serde",
+ "serde_cbor_2 0.12.0-dev",
  "sqlx",
  "struct-patch",
  "thiserror 2.0.17",
@@ -1134,6 +1135,7 @@ dependencies = [
  "utoipa",
  "uuid",
  "vergen-git2",
+ "webauthn-rs",
 ]
 
 [[package]]

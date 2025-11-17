@@ -10,7 +10,10 @@ use argon2::{
 use axum::http::StatusCode;
 use defguard_common::{
     config::server_config,
-    db::{Id, NoId, models::MFAMethod},
+    db::{
+        Id, NoId,
+        models::{MFAMethod, WebAuthn},
+    },
     random::{gen_alphanumeric, gen_totp_secret},
 };
 use defguard_mail::templates::UserContext;
@@ -32,7 +35,6 @@ use super::{
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
     device::{Device, DeviceInfo, DeviceType, UserDevice},
     group::Group,
-    webauthn::WebAuthn,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},

@@ -2,13 +2,13 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use defguard_common::db::{Id, models::OAuth2AuthorizedApp};
+use defguard_common::db::{
+    Id,
+    models::{OAuth2AuthorizedApp, oauth2client::OAuth2Client},
+};
 use defguard_core::{
-    db::{
-        User,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client},
-    },
-    handlers::Auth,
+    db::User,
+    handlers::{Auth, openid_clients::NewOpenIDClient},
 };
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,

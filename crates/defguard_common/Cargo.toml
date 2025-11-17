@@ -24,6 +24,7 @@ reqwest.workspace = true
 rsa.workspace = true
 secrecy.workspace = true
 serde.workspace = true
+serde_cbor.workspace = true
 sqlx.workspace = true
 struct-patch.workspace = true
 thiserror.workspace = true
@@ -31,6 +32,7 @@ tonic.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
 uuid.workspace = true
+webauthn-rs.workspace = true
 
 [dev-dependencies]
 matches.workspace = true

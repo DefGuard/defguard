@@ -18,7 +18,7 @@ use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
-    db::init_db,
+    db::{init_db, models::oauth2client::OAuth2Client},
 };
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
@@ -93,10 +93,7 @@ use self::{
     auth::failed_login::FailedLoginMap,
     db::{
         AppEvent, Device, GatewayEvent, User, WireguardNetwork,
-        models::{
-            oauth2client::OAuth2Client,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        },
+        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
     },
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::{

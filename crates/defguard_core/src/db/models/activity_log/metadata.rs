@@ -2,16 +2,14 @@ use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
     models::{
-        AuthenticationKey, AuthenticationKeyType, MFAMethod, Settings,
+        AuthenticationKey, AuthenticationKeyType, MFAMethod, Settings, WebAuthn,
+        oauth2client::OAuth2Client,
         settings::{LdapSyncStatus, OpenidUsernameHandling, SmtpEncryption},
     },
 };
 
 use crate::{
-    db::{
-        Device, Group, User, WebAuthn, WebHook, WireguardNetwork,
-        models::oauth2client::OAuth2Client,
-    },
+    db::{Device, Group, User, WebHook, WireguardNetwork},
     enterprise::db::models::{
         activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
         api_tokens::ApiToken,

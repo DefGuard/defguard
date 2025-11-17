@@ -1,4 +1,4 @@
-use defguard_common::db::{Id, NoId, models::ModelError};
+use crate::db::{Id, NoId, models::ModelError};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query, query_as, query_scalar};
 use webauthn_rs::prelude::Passkey;
@@ -26,7 +26,7 @@ impl WebAuthn {
 
 impl<I> WebAuthn<I> {
     /// Serialize [`Passkey`] from binary data.
-    pub(crate) fn passkey(&self) -> Result<Passkey, ModelError> {
+    pub fn passkey(&self) -> Result<Passkey, ModelError> {
         let passkey =
             serde_cbor::from_slice(&self.passkey).map_err(|_| ModelError::CannotCreate)?;
 

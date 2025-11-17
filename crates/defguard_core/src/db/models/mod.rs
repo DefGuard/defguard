@@ -2,10 +2,8 @@ pub mod activity_log;
 pub mod device;
 pub mod enrollment;
 pub mod group;
-pub mod oauth2client;
 pub mod session;
 pub mod user;
-pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
 
@@ -20,14 +18,6 @@ use utoipa::ToSchema;
 
 use self::{device::UserDevice, user::User};
 use super::Group;
-
-#[derive(Deserialize, Serialize)]
-pub struct NewOpenIDClient {
-    pub name: String,
-    pub redirect_uri: Vec<String>,
-    pub scope: Vec<String>,
-    pub enabled: bool,
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
