@@ -10,6 +10,8 @@ pub struct EnterpriseSettings {
     pub admin_device_management: bool,
     // If true, the option to route all traffic through the vpn is disabled in the client
     pub disable_all_traffic: bool,
+	// If true, client is forced to route all traffic via vpn
+    pub force_all_traffic: bool,
     // If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
 }
@@ -21,6 +23,7 @@ impl Default for EnterpriseSettings {
         Self {
             admin_device_management: false,
             disable_all_traffic: false,
+            force_all_traffic: false,
             only_client_activation: false,
         }
     }
@@ -39,7 +42,7 @@ impl EnterpriseSettings {
             let settings = query_as!(
                 Self,
                 "SELECT admin_device_management, \
-                disable_all_traffic, only_client_activation \
+                disable_all_traffic, force_all_traffic, only_client_activation \
                 FROM \"enterprisesettings\" WHERE id = 1",
             )
             .fetch_optional(executor)
@@ -58,10 +61,12 @@ impl EnterpriseSettings {
             "UPDATE \"enterprisesettings\" SET \
             admin_device_management = $1, \
             disable_all_traffic = $2, \
-            only_client_activation = $3 \
+            force_all_traffic = $3, \
+            only_client_activation = $4 \
             WHERE id = 1",
             self.admin_device_management,
             self.disable_all_traffic,
+            self.force_all_traffic,
             self.only_client_activation,
         )
         .execute(executor)
