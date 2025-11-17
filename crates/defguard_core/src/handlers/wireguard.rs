@@ -96,6 +96,29 @@ impl WireguardNetworkData {
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
 
+    pub(crate) fn parse_addresses(&self) -> Result<Vec<IpNetwork>, WebError> {
+        // first parse the addresses
+        let subnets = parse_address_list(self.address.as_ref());
+
+        // check if address list is not empty
+        if subnets.is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide at least one valid network address".to_owned(),
+            ));
+        }
+
+        // check if any subnet has an invalid /0 netmask
+        for subnet in &subnets {
+            if subnet.prefix() == 0 {
+                return Err(WebError::BadRequest(format!(
+                    "{subnet} is not a valid address"
+                )));
+            }
+        }
+
+        Ok(subnets)
+    }
+
     pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
@@ -281,6 +304,8 @@ pub(crate) async fn modify_network(
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
+    network.address = data.parse_addresses()?;
+
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -290,7 +315,6 @@ pub(crate) async fn modify_network(
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.address = parse_address_list(&data.address);
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;

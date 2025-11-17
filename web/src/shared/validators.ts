@@ -69,6 +69,9 @@ export const validateIpOrDomainList = (
 // Returns false when invalid
 export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
+    if (ip.endsWith('/0')) {
+      return false;
+    }
     if (ip.includes('/')) {
       return ipaddr.IPv4.isValidCIDR(ip);
     }
@@ -78,6 +81,9 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
 
 export const validateIPv6 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
+    if (ip.endsWith('/0')) {
+      return false;
+    }
     if (ip.includes('/')) {
       return ipaddr.IPv6.isValidCIDR(ip);
     }
