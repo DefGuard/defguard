@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, NaiveDateTime, Utc};
-use defguard_common::{VERSION, config::server_config, db::models::user::MFAMethod};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::models::{Session, user::MFAMethod},
+};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
@@ -65,6 +69,15 @@ pub fn safe_tera() -> Tera {
 pub struct SessionContext {
     pub ip_address: String,
     pub device_info: Option<String>,
+}
+
+impl From<Session> for SessionContext {
+    fn from(value: Session) -> Self {
+        Self {
+            ip_address: value.ip_address,
+            device_info: value.device_info,
+        }
+    }
 }
 
 pub struct UserContext {

@@ -17,7 +17,10 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
-    models::{AuthCode, OAuth2AuthorizedApp, OAuth2Token, oauth2client::OAuth2Client},
+    models::{
+        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState,
+        oauth2client::OAuth2Client,
+    },
 };
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
@@ -46,7 +49,7 @@ use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
-    db::{Session, SessionState, User},
+    db::User,
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,

@@ -5,7 +5,7 @@ mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
-            models::{Settings, settings::initialize_current_settings},
+            models::{Session, SessionState, Settings, settings::initialize_current_settings},
             setup_pool,
         },
     };
@@ -17,7 +17,7 @@ mod test {
     use super::super::*;
     use crate::{
         db::{
-            Device, Session, SessionState, WireguardNetwork,
+            Device, WireguardNetwork,
             models::{
                 device::DeviceType,
                 wireguard::{LocationMfaMode, ServiceLocationMode},

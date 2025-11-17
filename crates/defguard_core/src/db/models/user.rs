@@ -12,7 +12,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id, NoId,
-        models::{MFAMethod, WebAuthn},
+        models::{MFAMethod, Session, WebAuthn},
     },
     random::{gen_alphanumeric, gen_totp_secret},
 };
@@ -38,7 +38,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{GatewayEvent, Session, WireguardNetwork, models::group::Permission},
+    db::{GatewayEvent, WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},

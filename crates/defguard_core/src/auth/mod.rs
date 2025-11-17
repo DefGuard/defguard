@@ -12,12 +12,12 @@ use axum_extra::{
 };
 use defguard_common::db::{
     Id,
-    models::{OAuth2Token, oauth2client::OAuth2Client},
+    models::{OAuth2Token, Session, SessionState, oauth2client::OAuth2Client},
 };
 
 use crate::{
     appstate::AppState,
-    db::{Group, Session, SessionState, User, models::group::Permission},
+    db::{Group, User, models::group::Permission},
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
@@ -27,7 +27,9 @@ pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
 pub const EMAIL_CODE_DIGITS: u32 = 6;
 pub const TOTP_CODE_DIGITS: u32 = 6;
 
-impl<S> FromRequestParts<S> for Session
+pub struct SessionExtractor(pub Session);
+
+impl<S> FromRequestParts<S> for SessionExtractor
 where
     S: Send + Sync,
     AppState: FromRef<S>,
@@ -59,12 +61,12 @@ where
                             error!("Failed to get client IP: {err:?}");
                             WebError::ClientIpError
                         })?;
-                        Ok(Session::new(
+                        Ok(Self(Session::new(
                             api_token.user_id,
                             SessionState::ApiTokenVerified,
                             ip_address.0.to_string(),
                             None,
-                        ))
+                        )))
                     }
                     Ok(None) => Err(WebError::Authorization("Invalid API token".into())),
                     Err(err) => Err(err.into()),
@@ -81,7 +83,7 @@ where
                             let _result = session.delete(&appstate.pool).await;
                             Err(WebError::Authorization("Session expired".into()))
                         } else {
-                            Ok(session)
+                            Ok(Self(session))
                         }
                     }
                     Ok(None) => Err(WebError::Authorization("Session not found".into())),
@@ -130,7 +132,7 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session = Session::from_request_parts(parts, state).await?;
+        let session = SessionExtractor::from_request_parts(parts, state).await?.0;
         let appstate = AppState::from_ref(state);
         let user = User::find_by_id(&appstate.pool, session.user_id).await?;
 

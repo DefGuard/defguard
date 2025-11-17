@@ -2,7 +2,6 @@ pub mod activity_log;
 pub mod device;
 pub mod enrollment;
 pub mod group;
-pub mod session;
 pub mod user;
 pub mod webhook;
 pub mod wireguard;
