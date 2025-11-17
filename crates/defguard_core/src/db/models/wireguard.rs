@@ -10,7 +10,10 @@ use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     csv::AsCsv,
-    db::{Id, NoId, models::ModelError},
+    db::{
+        Id, NoId,
+        models::{ModelError, wireguard_peer_stats::WireguardPeerStats},
+    },
 };
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -37,7 +40,6 @@ use super::{
         Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
     },
     user::User,
-    wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_enabled},

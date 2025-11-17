@@ -7,7 +7,7 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::wireguard_peer_stats::WireguardPeerStats};
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -33,10 +33,7 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    db::{
-        Device, GatewayEvent, User,
-        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
-    },
+    db::{Device, GatewayEvent, User, models::wireguard::WireguardNetwork},
     events::{GrpcEvent, GrpcRequestContext},
 };
 
@@ -63,6 +60,32 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     debug!("Sending {} wireguard events", events.len());
     for event in events {
         send_wireguard_event(event, wg_tx);
+    }
+}
+
+/// Helper used to convert peer stats coming from gRPC client
+/// into an internal representation
+fn protos_into_internal_stats(
+    proto_stats: PeerStats,
+    location_id: Id,
+    device_id: Id,
+) -> WireguardPeerStats {
+    let endpoint = match proto_stats.endpoint {
+        endpoint if endpoint.is_empty() => None,
+        _ => Some(proto_stats.endpoint),
+    };
+    WireguardPeerStats {
+        id: NoId,
+        network: location_id,
+        endpoint,
+        device_id,
+        collected_at: Utc::now().naive_utc(),
+        upload: proto_stats.upload as i64,
+        download: proto_stats.download as i64,
+        latest_handshake: DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
+            .unwrap_or_default()
+            .naive_utc(),
+        allowed_ips: Some(proto_stats.allowed_ips),
     }
 }
 
@@ -329,28 +352,6 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
-    }
-}
-
-impl WireguardPeerStats {
-    fn from_peer_stats(stats: PeerStats, network_id: Id, device_id: Id) -> Self {
-        let endpoint = match stats.endpoint {
-            endpoint if endpoint.is_empty() => None,
-            _ => Some(stats.endpoint),
-        };
-        Self {
-            id: NoId,
-            network: network_id,
-            endpoint,
-            device_id,
-            collected_at: Utc::now().naive_utc(),
-            upload: stats.upload as i64,
-            download: stats.download as i64,
-            latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
-                .unwrap_or_default()
-                .naive_utc(),
-            allowed_ips: Some(stats.allowed_ips),
-        }
     }
 }
 
@@ -837,7 +838,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             let location = self.fetch_location_from_db(network_id).await?;
 
             // convert stats to DB storage format
-            let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
+            let stats = protos_into_internal_stats(peer_stats, network_id, device_id);
 
             // only perform client state update if stats include an endpoint IP
             // otherwise a peer was added to the gateway interface

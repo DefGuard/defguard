@@ -3,10 +3,11 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use defguard_common::db::models::YubiKey;
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
-use crate::{appstate::AppState, auth::SessionInfo, db::YubiKey, error::WebError};
+use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
 
 pub async fn delete_yubikey(
     State(appstate): State<AppState>,

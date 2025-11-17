@@ -5,14 +5,13 @@ use std::{
 
 use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
-use defguard_common::db::{Id, NoId, setup_pool};
+use defguard_common::db::{Id, NoId, models::wireguard_peer_stats::WireguardPeerStats, setup_pool};
 use defguard_core::{
     db::{
         Device, User, WireguardNetwork,
         models::{
             device::DeviceType,
             wireguard::{LocationMfaMode, ServiceLocationMode},
-            wireguard_peer_stats::WireguardPeerStats,
         },
     },
     enterprise::{license::set_cached_license, limits::update_counts},

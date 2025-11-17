@@ -1098,6 +1098,7 @@ dependencies = [
  "defguard_event_logger",
  "defguard_event_router",
  "defguard_mail",
+ "defguard_session_manager",
  "defguard_version",
  "dotenvy",
  "secrecy",
@@ -1269,6 +1270,15 @@ dependencies = [
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
+]
+
+[[package]]
+name = "defguard_session_manager"
+version = "0.0.0"
+dependencies = [
+ "defguard_common",
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]

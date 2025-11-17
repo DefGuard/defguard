@@ -11,8 +11,6 @@ pub mod user;
 pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
-pub mod wireguard_peer_stats;
-pub mod yubikey;
 
 use std::collections::HashSet;
 
