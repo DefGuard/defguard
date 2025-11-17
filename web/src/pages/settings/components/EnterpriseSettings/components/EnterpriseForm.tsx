@@ -78,7 +78,7 @@ export const EnterpriseForm = () => {
         </div>
         <div className="helper-row">
           <LabeledCheckbox
-            disabled={isLoading}
+            disabled={isLoading || settings.force_all_traffic}
             label={LL.settingsPage.enterprise.fields.disableAllTraffic.label()}
             value={settings.disable_all_traffic}
             onChange={() =>
@@ -87,6 +87,19 @@ export const EnterpriseForm = () => {
           />
           <Helper>
             {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
+          </Helper>
+        </div>
+        <div className="helper-row">
+          <LabeledCheckbox
+            disabled={isLoading || settings.disable_all_traffic}
+            label={LL.settingsPage.enterprise.fields.forceAllTraffic.label()}
+            value={settings.force_all_traffic}
+            onChange={() =>
+              mutate({ force_all_traffic: !settings.force_all_traffic })
+            }
+          />
+          <Helper>
+            {parse(LL.settingsPage.enterprise.fields.forceAllTraffic.helper())}
           </Helper>
         </div>
       </div>

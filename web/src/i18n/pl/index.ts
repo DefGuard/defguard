@@ -1499,6 +1499,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
         },
+        forceAllTraffic: {
+          label: 'Wymuś przekierowanie całego ruchu przez VPN',
+          helper:
+            'Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN za pomocą klienta Defguard.',
+        },
         manualConfig: {
           label: 'Wyłącz manualną konfigurację WireGuard',
           helper:

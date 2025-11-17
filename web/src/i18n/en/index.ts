@@ -1713,6 +1713,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
         },
+        forceAllTraffic: {
+          label: 'Force the clients to route all traffic through VPN',
+          helper:
+            'When this option is enabled, the users will always route all traffic through the VPN using the defguard client.',
+        },
         manualConfig: {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:

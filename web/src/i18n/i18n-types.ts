@@ -4092,6 +4092,16 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
+				forceAllTraffic: {
+					/**
+					 * F​o​r​c​e​ ​t​h​e​ ​c​l​i​e​n​t​s​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​t​h​e​ ​u​s​e​r​s​ ​w​i​l​l​ ​a​l​w​a​y​s​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
+					 */
+					helper: string
+				}
 				manualConfig: {
 					/**
 					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
@@ -10820,6 +10830,16 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
+					 */
+					helper: () => LocalizedString
+				}
+				forceAllTraffic: {
+					/**
+					 * Force the clients to route all traffic through VPN
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, the users will always route all traffic through the VPN using the defguard client.
 					 */
 					helper: () => LocalizedString
 				}
