@@ -10,12 +10,12 @@ use axum_extra::{
     extract::cookie::CookieJar,
     headers::{Authorization, authorization::Bearer},
 };
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::OAuth2Token};
 
 use crate::{
     appstate::AppState,
     db::{
-        Group, OAuth2Token, Session, SessionState, User,
+        Group, Session, SessionState, User,
         models::{group::Permission, oauth2client::OAuth2Client},
     },
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},

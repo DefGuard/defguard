@@ -1,8 +1,8 @@
-use chrono::{NaiveDateTime, Utc};
-use defguard_common::{
+use crate::{
     db::{Id, NoId},
     random::gen_alphanumeric,
 };
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 

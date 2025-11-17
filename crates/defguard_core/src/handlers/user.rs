@@ -4,6 +4,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::db::models::OAuth2AuthorizedApp;
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
 use serde_json::json;
@@ -17,7 +18,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
+        AppEvent, User, UserDetails, UserInfo, WebAuthn,
         models::{
             GroupDiff,
             enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::OAuth2AuthorizedApp};
 use defguard_core::{
     db::{
         User,
@@ -977,7 +977,6 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     assert_eq!(response.status(), StatusCode::FOUND);
 
     // Verify that the authorization was created
-    use defguard_core::db::OAuth2AuthorizedApp;
     let authorized_app = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &state.pool,
         admin.id,

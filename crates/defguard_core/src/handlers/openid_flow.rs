@@ -15,7 +15,10 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
-use defguard_common::db::{Id, NoId, models::AuthCode};
+use defguard_common::db::{
+    Id, NoId,
+    models::{AuthCode, OAuth2AuthorizedApp, OAuth2Token},
+};
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -43,10 +46,7 @@ use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
-    db::{
-        OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
-        models::oauth2client::OAuth2Client,
-    },
+    db::{Session, SessionState, User, models::oauth2client::OAuth2Client},
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,

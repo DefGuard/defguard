@@ -4,8 +4,6 @@ pub use models::{
     MFAInfo, UserDetails, UserInfo,
     device::{AddDevice, Device},
     group::Group,
-    oauth2authorizedapp::OAuth2AuthorizedApp,
-    oauth2token::OAuth2Token,
     session::{Session, SessionState},
     user::User,
     webauthn::WebAuthn,

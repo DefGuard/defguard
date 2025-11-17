@@ -2,7 +2,10 @@ use std::{net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{Settings, polling_token::PollingToken},
+    },
 };
 use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
@@ -17,7 +20,6 @@ use crate::{
         Device, User,
         models::{
             device::{DeviceType, WireguardNetworkDevice},
-            polling_token::PollingToken,
             wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
         },
     },

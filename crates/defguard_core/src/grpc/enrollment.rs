@@ -4,7 +4,10 @@ use defguard_common::{
     csv::AsCsv,
     db::{
         Id,
-        models::{BiometricAuth, MFAMethod, Settings, settings::defaults::WELCOME_EMAIL_SUBJECT},
+        models::{
+            BiometricAuth, MFAMethod, Settings, polling_token::PollingToken,
+            settings::defaults::WELCOME_EMAIL_SUBJECT,
+        },
     },
 };
 use defguard_mail::{
@@ -33,7 +36,6 @@ use crate::{
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
-            polling_token::PollingToken,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
