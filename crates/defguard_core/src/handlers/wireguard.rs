@@ -290,7 +290,14 @@ pub(crate) async fn modify_network(
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
-    network.address = data.parse_addresses();
+    let network_address = data.parse_addresses();
+    if network_address.is_empty() {
+        return Err(WebError::BadRequest(
+            "Must provide at least one valid network address".to_owned(),
+        ));
+    }
+
+    network.address = network_address;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 

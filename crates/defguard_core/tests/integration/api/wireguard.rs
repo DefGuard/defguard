@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
 use defguard_core::{
@@ -845,7 +848,7 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, client_state) = make_test_client(pool).await;
+    let (client, _client_state) = make_test_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -954,4 +957,37 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // filter out subnet with invalid mask
+    let network = json!({
+        "id": network_from_details.id,
+        "name": "network",
+        "address": "10.2.0.1/24,10.1.1.1/0",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
+    });
+    let response = client
+        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .json(&network)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // get network details
+    let response = client.get("/api/v1/network/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network_from_details: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        network_from_details.address,
+        &[IpNetwork::from_str("10.2.0.1/24").unwrap()]
+    );
 }
