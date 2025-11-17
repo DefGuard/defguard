@@ -938,7 +938,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
     let network = json!({
         "id": network_from_details.id,
         "name": "network",
-        "address": "10.1.1.1/0",
+        "address": "10.2.0.1/24,10.1.1.1/0",
         "port": 55555,
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
@@ -958,11 +958,11 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // filter out subnet with invalid mask
+    // try to add no network
     let network = json!({
         "id": network_from_details.id,
         "name": "network",
-        "address": "10.2.0.1/24,10.1.1.1/0",
+        "address": "",
         "port": 55555,
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
@@ -980,14 +980,5 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         .json(&network)
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // get network details
-    let response = client.get("/api/v1/network/1").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let network_from_details: WireguardNetwork<Id> = response.json().await;
-    assert_eq!(
-        network_from_details.address,
-        &[IpNetwork::from_str("10.2.0.1/24").unwrap()]
-    );
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
