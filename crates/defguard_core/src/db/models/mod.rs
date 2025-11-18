@@ -6,9 +6,10 @@ pub mod user;
 pub mod webhook;
 pub mod wireguard;
 
-use std::collections::HashSet;
-
-use defguard_common::db::{Id, models::MFAMethod};
+use defguard_common::{
+    db::{Id, models::MFAMethod},
+    types::group_diff::GroupDiff,
+};
 use sqlx::{Error as SqlxError, PgConnection, PgPool, query_as};
 use utoipa::ToSchema;
 
@@ -48,19 +49,6 @@ pub struct UserInfo {
     pub enrolled: bool,
     pub is_admin: bool,
     pub ldap_pass_requires_change: bool,
-}
-
-#[derive(Debug, Default)]
-pub struct GroupDiff {
-    pub added: HashSet<String>,
-    pub removed: HashSet<String>,
-}
-
-impl GroupDiff {
-    #[must_use]
-    pub fn changed(&self) -> bool {
-        !self.added.is_empty() || !self.removed.is_empty()
-    }
 }
 
 impl UserInfo {

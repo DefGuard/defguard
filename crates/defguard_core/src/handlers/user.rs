@@ -4,9 +4,12 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::db::{
-    Id,
-    models::{BiometricAuth, OAuth2AuthorizedApp, WebAuthn},
+use defguard_common::{
+    db::{
+        Id,
+        models::{BiometricAuth, OAuth2AuthorizedApp, WebAuthn},
+    },
+    types::group_diff::GroupDiff,
 };
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
@@ -25,7 +28,7 @@ use crate::{
     db::{
         AppEvent, User, UserInfo,
         models::{
-            GroupDiff, SecurityKey,
+            SecurityKey,
             device::UserDevice,
             enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
         },

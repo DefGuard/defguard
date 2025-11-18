@@ -23,7 +23,7 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query_as, query_scalar,
+    postgres::types::PgInterval, query, query_as, query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
@@ -38,6 +38,7 @@ use super::{
     user::User,
 };
 use crate::{
+    db::{Group, models::group::Permission},
     enterprise::{firewall::FirewallError, is_enterprise_enabled},
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
@@ -1322,6 +1323,140 @@ impl WireguardNetwork<Id> {
     #[must_use]
     pub fn should_prevent_service_location_usage(&self) -> bool {
         self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
+    }
+
+    /// Fetch a list of all allowed groups for a given network from DB
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Fetching all allowed groups for network {self}");
+        let groups = query_scalar!(
+            "SELECT name FROM wireguard_network_allowed_group wag \
+            JOIN \"group\" g ON wag.group_id = g.id WHERE wag.network_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(groups)
+    }
+
+    /// Return a list of allowed groups for a given network.
+    /// Admin group should always be included.
+    /// If no `allowed_groups` are specified for a network then all devices are allowed.
+    /// In this case `None` is returned to signify that there's no filtering.
+    /// This helper method is meant for use in all business logic gating
+    /// access to networks based on allowed groups.
+    pub async fn get_allowed_groups(
+        &self,
+        conn: &mut PgConnection,
+    ) -> Result<Option<Vec<String>>, ModelError> {
+        debug!("Returning a list of allowed groups for network {self}");
+        let admin_groups = Group::find_by_permission(&mut *conn, Permission::IsAdmin).await?;
+
+        // get allowed groups from DB
+        let mut groups = self.fetch_allowed_groups(&mut *conn).await?;
+
+        // if no allowed groups are set then all groups are allowed
+        if groups.is_empty() {
+            return Ok(None);
+        }
+
+        for group in admin_groups {
+            if !groups.iter().any(|name| name == &group.name) {
+                groups.push(group.name);
+            }
+        }
+
+        Ok(Some(groups))
+    }
+
+    /// Set allowed groups, removing or adding groups as necessary.
+    pub async fn set_allowed_groups(
+        &self,
+        transaction: &mut PgConnection,
+        allowed_groups: Vec<String>,
+    ) -> Result<(), ModelError> {
+        info!("Setting allowed groups for network {self} to: {allowed_groups:?}");
+        if allowed_groups.is_empty() {
+            return self.clear_allowed_groups(transaction).await;
+        }
+
+        // get list of current allowed groups
+        let mut current_groups = self.fetch_allowed_groups(&mut *transaction).await?;
+
+        // add to group if not already a member
+        for group in &allowed_groups {
+            if !current_groups.contains(group) {
+                self.add_to_group(transaction, group).await?;
+            }
+        }
+
+        // remove groups which are no longer present
+        current_groups.retain(|group| !allowed_groups.contains(group));
+        if !current_groups.is_empty() {
+            self.remove_from_groups(transaction, current_groups).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn add_to_group(
+        &self,
+        transaction: &mut PgConnection,
+        group: &str,
+    ) -> Result<(), ModelError> {
+        info!("Adding allowed group {group} for network {self}");
+        query!(
+            "INSERT INTO wireguard_network_allowed_group (network_id, group_id) \
+            SELECT $1, g.id FROM \"group\" g WHERE g.name = $2",
+            self.id,
+            group
+        )
+        .execute(transaction)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn remove_from_groups(
+        &self,
+        transaction: &mut PgConnection,
+        groups: Vec<String>,
+    ) -> Result<(), ModelError> {
+        info!("Removing allowed groups {groups:?} for network {self}");
+        let result = query!(
+            "DELETE FROM wireguard_network_allowed_group \
+            WHERE network_id = $1 AND group_id IN ( \
+                SELECT id FROM \"group\" \
+                WHERE name IN (SELECT * FROM UNNEST($2::text[])) \
+            )",
+            self.id,
+            &groups
+        )
+        .execute(transaction)
+        .await?;
+        info!(
+            "Removed {} allowed groups for network {self}",
+            result.rows_affected(),
+        );
+        Ok(())
+    }
+
+    /// Remove all allowed groups for a given network
+    async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
+        info!("Removing all allowed groups for network {self}");
+        let result = query!(
+            "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",
+            self.id
+        )
+        .execute(transaction)
+        .await?;
+        info!(
+            "Removed {} allowed groups for network {self}",
+            result.rows_affected(),
+        );
+        Ok(())
     }
 }
 
