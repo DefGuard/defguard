@@ -38,6 +38,7 @@ use crate::{
 };
 
 pub mod client_state;
+pub mod events;
 pub mod map;
 pub(crate) mod state;
 
