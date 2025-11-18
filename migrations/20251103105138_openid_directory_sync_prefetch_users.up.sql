@@ -1,0 +1,1 @@
+ALTER TABLE openidprovider ADD COLUMN prefetch_users BOOLEAN NOT NULL DEFAULT FALSE;

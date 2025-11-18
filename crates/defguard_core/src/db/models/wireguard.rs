@@ -162,7 +162,7 @@ impl From<ServiceLocationMode> for ProtoServiceLocationMode {
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
     pub id: I,
@@ -204,6 +204,29 @@ impl fmt::Display for WireguardNetwork<NoId> {
 impl fmt::Display for WireguardNetwork<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[ID {}] {}", self.id, self.name)
+    }
+}
+
+impl fmt::Debug for WireguardNetwork<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WireguardNetwork")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("address", &self.address)
+            .field("port", &self.port)
+            .field("pubkey", &self.pubkey)
+            .field("prvkey", &"***")
+            .field("endpoint", &self.endpoint)
+            .field("dns", &self.dns)
+            .field("allowed_ips", &self.allowed_ips)
+            .field("connected_at", &self.connected_at)
+            .field("acl_enabled", &self.acl_enabled)
+            .field("acl_default_allow", &self.acl_default_allow)
+            .field("keepalive_interval", &self.keepalive_interval)
+            .field("peer_disconnect_threshold", &self.peer_disconnect_threshold)
+            .field("location_mfa_mode", &self.location_mfa_mode)
+            .field("service_location_mode", &self.service_location_mode)
+            .finish()
     }
 }
 
@@ -384,18 +407,22 @@ impl WireguardNetwork<Id> {
         &self,
         device_count: usize,
     ) -> Result<(), WireguardNetworkError> {
-        debug!("Checking if {device_count} devices can fit in network {self}");
-        let network_size = self.address[0].size();
-        // include address, network, and broadcast in the calculation
-        match network_size {
-            NetworkSize::V4(size) => {
-                if device_count as u32 > size {
-                    return Err(WireguardNetworkError::NetworkTooSmall);
+        debug!("Checking if {device_count} devices can fit in networks used by location {self}");
+        // if given location uses multiple subnets validate devices can fit them all
+        for subnet in &self.address {
+            debug!("Checking if {device_count} devices can fit in network {subnet}");
+            let network_size = subnet.size();
+            // include address, network, and broadcast in the calculation
+            match network_size {
+                NetworkSize::V4(size) => {
+                    if device_count as u32 > size {
+                        return Err(WireguardNetworkError::NetworkTooSmall);
+                    }
                 }
-            }
-            NetworkSize::V6(size) => {
-                if device_count as u128 > size {
-                    return Err(WireguardNetworkError::NetworkTooSmall);
+                NetworkSize::V6(size) => {
+                    if device_count as u128 > size {
+                        return Err(WireguardNetworkError::NetworkTooSmall);
+                    }
                 }
             }
         }

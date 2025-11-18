@@ -2,6 +2,7 @@ use base64::Engine;
 use defguard_common::hex::to_lower_hex;
 use md4::Md4;
 use rand::{RngCore, rngs::OsRng};
+#[allow(deprecated)]
 use sha1::{
     Digest, Sha1,
     digest::generic_array::{GenericArray, sequence::Concat},
@@ -18,6 +19,7 @@ pub fn salted_sha1_hash(password: &str) -> String {
     pass.extend_from_slice(&salt);
 
     let checksum = Sha1::digest(pass);
+    #[allow(deprecated)]
     let checksum = checksum.concat(GenericArray::from(salt));
 
     format!(

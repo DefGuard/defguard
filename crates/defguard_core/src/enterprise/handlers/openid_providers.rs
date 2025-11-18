@@ -43,6 +43,7 @@ pub struct AddProviderData {
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
     pub jumpcloud_api_key: Option<String>,
+    pub prefetch_users: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -160,6 +161,7 @@ pub async fn add_openid_provider(
         provider_data.okta_dirsync_client_id,
         group_match,
         provider_data.jumpcloud_api_key,
+        provider_data.prefetch_users,
     )
     .upsert(&appstate.pool)
     .await?;

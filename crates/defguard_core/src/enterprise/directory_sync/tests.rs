@@ -40,6 +40,7 @@ mod test {
         user_behavior: DirectorySyncUserBehavior,
         admin_behavior: DirectorySyncUserBehavior,
         target: DirectorySyncTarget,
+        prefetch_users: bool,
     ) -> OpenIdProvider<Id> {
         Settings::init_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();
@@ -86,6 +87,7 @@ mod test {
             None,
             vec![],
             None,
+            prefetch_users,
         )
         .save(pool)
         .await
@@ -146,6 +148,7 @@ mod test {
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -185,6 +188,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -231,6 +235,7 @@ mod test {
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -283,6 +288,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         User::init_admin_user(&pool, config.default_admin_password.expose_secret())
@@ -353,6 +359,7 @@ mod test {
             DirectorySyncUserBehavior::Disable,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -435,6 +442,7 @@ mod test {
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Disable,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -512,6 +520,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -568,6 +577,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -596,6 +606,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::Users,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -620,6 +631,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let network = get_test_network(&pool).await;
@@ -675,6 +687,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::Groups,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -702,6 +715,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -748,6 +762,7 @@ mod test {
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncTarget::All,
+            false,
         )
         .await;
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
@@ -773,5 +788,73 @@ mod test {
         do_directory_sync(&pool, &wg_tx).await.unwrap();
         let user = User::find_by_username(&pool, "defguard").await.unwrap();
         assert!(user.is_none());
+    }
+
+    #[sqlx::test]
+    async fn test_users_no_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // disable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            false,
+        )
+        .await;
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // no users in Defguard after sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // no users in Defguard before sync
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert!(defguard_users.is_empty());
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+
+        // all active directory users were synced
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), 3);
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
     }
 }
