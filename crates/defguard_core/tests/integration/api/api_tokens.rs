@@ -1,6 +1,9 @@
 use chrono::Utc;
 use defguard_core::{
-    db::{Group, UserInfo, models::group::Permission},
+    db::{
+        Group,
+        models::{group::Permission, user_info::UserInfo},
+    },
     enterprise::{
         db::models::api_tokens::{ApiToken, ApiTokenInfo},
         handlers::api_tokens::{AddApiTokenData, RenameRequest},

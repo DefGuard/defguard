@@ -29,11 +29,13 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
-    UserInfo,
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
     user::User,
 };
-use crate::db::{Group, models::group::Permission};
+use crate::db::{
+    Group,
+    models::{group::Permission, user_info::UserInfo},
+};
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;

@@ -36,7 +36,10 @@ use crate::{
         SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    db::{MFAInfo, User, UserInfo},
+    db::{
+        User,
+        models::{mfa_info::MFAInfo, user_info::UserInfo},
+    },
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},

@@ -1,6 +1,6 @@
 use defguard_common::db::{Id, models::oauth2client::OAuth2Client};
 use defguard_core::{
-    db::{AddDevice, UserInfo},
+    db::{AddDevice, models::user_info::UserInfo},
     events::ApiEventType,
     handlers::{
         AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username,

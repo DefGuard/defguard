@@ -29,9 +29,11 @@ use sqlx::{
 };
 use thiserror::Error;
 use totp_lite::{Sha1, totp_custom};
+use utoipa::ToSchema;
+
+use crate::db::models::{mfa_info::MFAInfo, user_info::OAuth2AuthorizedAppInfo};
 
 use super::{
-    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
     device::{Device, DeviceType, UserDevice},
     group::{Group, Permission},
 };
@@ -49,6 +51,13 @@ pub enum UserError {
     DbError(#[from] SqlxError),
     #[error("{0}")]
     EmailMfaError(String),
+}
+
+/// Only `id` and `name` from [`WebAuthn`].
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct SecurityKey {
+    pub id: Id,
+    pub name: String,
 }
 
 // User information ready to be sent as part of diagnostic data.

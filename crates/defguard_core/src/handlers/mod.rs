@@ -15,7 +15,7 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Device, User, UserInfo, WebHook},
+    db::{Device, User, WebHook, models::user_info::UserInfo},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,

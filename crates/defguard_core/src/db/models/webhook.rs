@@ -2,7 +2,7 @@ use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, FromRow, PgPool, query_as};
 
-use super::UserInfo;
+use crate::db::models::user_info::UserInfo;
 
 /// App events which triggers webhook action
 #[derive(Debug)]

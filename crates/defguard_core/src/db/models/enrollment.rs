@@ -16,7 +16,7 @@ use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
-use super::User;
+use crate::db::User;
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";

@@ -5,8 +5,11 @@ use claims::{assert_err, assert_ok};
 use defguard_common::db::models::{MFAMethod, Settings, settings::update_current_settings};
 use defguard_core::{
     db::{
-        MFAInfo, User,
-        models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+        User,
+        models::{
+            mfa_info::MFAInfo,
+            user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+        },
     },
     events::ApiEventType,
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, user::UserDetails},

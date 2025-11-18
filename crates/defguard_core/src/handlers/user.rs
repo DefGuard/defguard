@@ -26,11 +26,12 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, User, UserInfo,
+        AppEvent, User,
         models::{
-            SecurityKey,
             device::UserDevice,
             enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
+            user::SecurityKey,
+            user_info::UserInfo,
         },
     },
     enterprise::{

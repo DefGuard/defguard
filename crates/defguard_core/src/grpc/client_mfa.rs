@@ -24,9 +24,10 @@ use tonic::{Code, Status};
 
 use crate::{
     db::{
-        Device, User, UserInfo, WireguardNetwork,
+        Device, User, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            user_info::UserInfo,
             wireguard::LocationMfaMode,
         },
     },
