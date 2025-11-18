@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt, time::SystemTime};
+use std::{fmt, time::SystemTime};
 
 use argon2::{
     Argon2,
@@ -33,13 +33,12 @@ use totp_lite::{Sha1, totp_custom};
 
 use super::{
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
-    device::{Device, DeviceInfo, DeviceType, UserDevice},
+    device::{Device, DeviceType, UserDevice},
     group::Group,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{WireguardNetwork, models::group::Permission},
-    enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
 };
@@ -458,55 +457,6 @@ impl User<Id> {
             }
         }
         info!("Allowed devices of user {} synced", self.username);
-        Ok(())
-    }
-
-    /// Deletes the user and cleans up his devices from gateways
-    pub async fn delete_and_cleanup(
-        self,
-        conn: &mut PgConnection,
-        wg_tx: &Sender<GatewayEvent>,
-    ) -> Result<(), WebError> {
-        let username = self.username.clone();
-        debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
-        let devices = self.devices(&mut *conn).await?;
-        let mut events = Vec::new();
-
-        // get all locations affected by devices being deleted
-        let mut affected_location_ids = HashSet::new();
-
-        for device in devices {
-            let device_info = DeviceInfo::from_device(&mut *conn, device).await?;
-            for network_info in &device_info.network_info {
-                affected_location_ids.insert(network_info.network_id);
-            }
-            events.push(GatewayEvent::DeviceDeleted(device_info));
-        }
-
-        self.delete(&mut *conn).await?;
-        update_counts(&mut *conn).await?;
-
-        // send firewall config updates to affected locations
-        // if they have ACL enabled & enterprise features are active
-        for location_id in affected_location_ids {
-            if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
-                if let Some(firewall_config) = location.try_get_firewall_config(&mut *conn).await? {
-                    debug!(
-                        "Sending firewall config update for location {location} affected by deleting user {username} devices"
-                    );
-                    events.push(GatewayEvent::FirewallConfigChanged(
-                        location_id,
-                        firewall_config,
-                    ));
-                }
-            }
-        }
-
-        send_multiple_wireguard_events(events, wg_tx);
-        info!(
-            "The user {} has been deleted and his devices removed from gateways.",
-            &username
-        );
         Ok(())
     }
 

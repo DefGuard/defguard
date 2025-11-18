@@ -159,6 +159,7 @@ pub mod handlers;
 pub mod headers;
 pub mod support;
 pub mod updates;
+pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;

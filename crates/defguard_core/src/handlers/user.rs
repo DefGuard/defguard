@@ -36,6 +36,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     is_valid_phone_number, server_config,
+    user_management::delete_user_and_cleanup_devices,
 };
 
 /// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
@@ -880,8 +881,7 @@ pub async fn delete_user(
         } else {
             None
         };
-        user.clone()
-            .delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
+        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));

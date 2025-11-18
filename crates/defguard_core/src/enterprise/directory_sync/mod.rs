@@ -26,6 +26,7 @@ use crate::{
     },
     grpc::gateway::events::GatewayEvent,
     handlers::user::check_username,
+    user_management::delete_user_and_cleanup_devices,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -783,7 +784,7 @@ async fn sync_all_users_state(
                     if user.ldap_sync_allowed(&mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    user.delete_and_cleanup(&mut transaction, wg_tx)
+                    delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
@@ -829,7 +830,7 @@ async fn sync_all_users_state(
                     if user.ldap_sync_allowed(&mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
-                    user.delete_and_cleanup(&mut transaction, wg_tx)
+                    delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
