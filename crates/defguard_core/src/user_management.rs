@@ -9,6 +9,7 @@ use crate::{
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     error::WebError,
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    location_management::sync_allowed_devices_for_user,
 };
 
 /// Deletes the user and cleans up his devices from gateways
@@ -84,9 +85,8 @@ pub async fn sync_allowed_user_devices(
     debug!("Syncing allowed devices of user {}", user.username);
     let locations = WireguardNetwork::all(&mut *conn).await?;
     for location in locations {
-        let gateway_events = location
-            .sync_allowed_devices_for_user(&mut *conn, user, None)
-            .await?;
+        let gateway_events =
+            sync_allowed_devices_for_user(&location, &mut *conn, user, None).await?;
 
         // check if any peers were updated
         if !gateway_events.is_empty() {

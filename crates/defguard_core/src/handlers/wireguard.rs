@@ -47,7 +47,9 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::{events::GatewayEvent, map::GatewayMap, state::GatewayState},
     handlers::mail::send_new_device_added_email,
-    location_management::sync_location_allowed_devices,
+    location_management::{
+        handle_imported_devices, handle_mapped_devices, sync_location_allowed_devices,
+    },
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
@@ -638,9 +640,8 @@ pub(crate) async fn import_network(
         .iter()
         .flat_map(|dev| dev.wireguard_ips.clone())
         .collect();
-    let (devices, gateway_events) = network
-        .handle_imported_devices(&mut transaction, imported_devices)
-        .await?;
+    let (devices, gateway_events) =
+        handle_imported_devices(&network, &mut transaction, imported_devices).await?;
     appstate.send_multiple_wireguard_events(gateway_events);
 
     // assign IPs for other existing devices
@@ -696,9 +697,7 @@ pub(crate) async fn add_user_devices(
     if let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
         // wrap loop in transaction to abort if a device is invalid
         let mut transaction = appstate.pool.begin().await?;
-        let events = network
-            .handle_mapped_devices(&mut transaction, mapped_devices)
-            .await?;
+        let events = handle_mapped_devices(&network, &mut transaction, mapped_devices).await?;
         appstate.send_multiple_wireguard_events(events);
         transaction.commit().await?;
 
