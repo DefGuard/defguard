@@ -26,7 +26,7 @@ use crate::{
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::client_version::ClientFeature,
+    grpc::{client_version::ClientFeature, gateway::should_prevent_service_location_usage},
 };
 
 // Create a new token for configuration polling.
@@ -181,7 +181,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if network.should_prevent_service_location_usage() {
+            if should_prevent_service_location_usage(&network) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
                     network.name

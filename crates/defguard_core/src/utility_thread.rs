@@ -18,7 +18,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
-    grpc::gateway::events::GatewayEvent,
+    grpc::gateway::{events::GatewayEvent, get_location_allowed_peers},
     updates::do_new_version_check,
 };
 
@@ -183,7 +183,8 @@ async fn enterprise_status_check(
 
                 // Handle service location update or just update the firewall
                 if location.service_location_mode != ServiceLocationMode::Disabled {
-                    let new_peers = location.get_peers(&mut *transaction).await?;
+                    let new_peers =
+                        get_location_allowed_peers(&location, &mut *transaction).await?;
                     wireguard_tx.send(GatewayEvent::NetworkModified(
                         location.id,
                         location,

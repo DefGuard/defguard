@@ -33,10 +33,7 @@ use super::{
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
     user::User,
 };
-use crate::{
-    db::{Group, models::group::Permission},
-    enterprise::is_enterprise_enabled,
-};
+use crate::db::{Group, models::group::Permission};
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
@@ -948,13 +945,6 @@ impl WireguardNetwork<Id> {
         Ok(token)
     }
 
-    /// If this location is marked as a service location, checks if all requirements are met for it to function:
-    /// - Enterprise is enabled
-    #[must_use]
-    pub fn should_prevent_service_location_usage(&self) -> bool {
-        self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
-    }
-
     /// Fetch a list of all allowed groups for a given network from DB
     pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
     where
@@ -1243,7 +1233,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::Group;
+    use crate::{db::Group, grpc::gateway::get_location_allowed_peers};
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1873,7 +1863,9 @@ mod test {
         .await
         .unwrap();
 
-        let peers_normal = network_normal.get_peers(&pool).await.unwrap();
+        let peers_normal = get_location_allowed_peers(&network_normal, &pool)
+            .await
+            .unwrap();
         assert_eq!(peers_normal.len(), 1, "Normal location should return peers");
         assert_eq!(peers_normal[0].pubkey, "pubkey1");
 
@@ -1897,7 +1889,9 @@ mod test {
         .unwrap();
 
         // PreLogon service location should return peers when enterprise is enabled
-        let peers_prelogon = network_prelogon.get_peers(&pool).await.unwrap();
+        let peers_prelogon = get_location_allowed_peers(&network_prelogon, &pool)
+            .await
+            .unwrap();
         assert_eq!(
             peers_prelogon.len(),
             1,
@@ -1937,7 +1931,9 @@ mod test {
         .unwrap();
 
         // AlwaysOn service location should return peers when enterprise is enabled
-        let peers_alwayson = network_alwayson.get_peers(&pool).await.unwrap();
+        let peers_alwayson = get_location_allowed_peers(&network_alwayson, &pool)
+            .await
+            .unwrap();
         assert_eq!(
             peers_alwayson.len(),
             1,
@@ -1952,7 +1948,9 @@ mod test {
         set_counts(over_limit_counts);
 
         // Test that normal location still returns peers even without enterprise
-        let peers_normal_no_ent = network_normal.get_peers(&pool).await.unwrap();
+        let peers_normal_no_ent = get_location_allowed_peers(&network_normal, &pool)
+            .await
+            .unwrap();
         assert_eq!(
             peers_normal_no_ent.len(),
             1,
@@ -1960,14 +1958,18 @@ mod test {
         );
 
         // Test that PreLogon service location returns NO peers without enterprise
-        let peers_prelogon_no_ent = network_prelogon.get_peers(&pool).await.unwrap();
+        let peers_prelogon_no_ent = get_location_allowed_peers(&network_prelogon, &pool)
+            .await
+            .unwrap();
         assert!(
             peers_prelogon_no_ent.is_empty(),
             "PreLogon service location should return NO peers when enterprise is disabled"
         );
 
         // Test that AlwaysOn service location returns NO peers without enterprise
-        let peers_alwayson_no_ent = network_alwayson.get_peers(&pool).await.unwrap();
+        let peers_alwayson_no_ent = get_location_allowed_peers(&network_alwayson, &pool)
+            .await
+            .unwrap();
         assert!(
             peers_alwayson_no_ent.is_empty(),
             "AlwaysOn service location should return NO peers when enterprise is disabled"

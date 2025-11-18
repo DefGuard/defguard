@@ -33,8 +33,11 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    db::{Device, User, models::wireguard::WireguardNetwork},
-    enterprise::firewall::try_get_location_firewall_config,
+    db::{
+        Device, User,
+        models::wireguard::{ServiceLocationMode, WireguardNetwork},
+    },
+    enterprise::{firewall::try_get_location_firewall_config, is_enterprise_enabled},
     events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::events::GatewayEvent,
 };
@@ -116,29 +119,31 @@ pub struct GatewayServer {
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
-impl WireguardNetwork<Id> {
-    /// Get a list of all allowed peers
-    ///
-    /// Each device is marked as allowed or not allowed in a given network,
-    /// which enables enforcing peer disconnect in MFA-protected networks.
-    ///
-    /// If the location is a service location, only returns peers if enterprise features are enabled.
-    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        debug!("Fetching all peers for network {}", self.id);
+/// Get a list of all allowed peers for a given location
+///
+/// Each device is marked as allowed or not allowed in a given network,
+/// which enables enforcing peer disconnect in MFA-protected networks.
+///
+/// If the location is a service location, only returns peers if enterprise features are enabled.
+pub async fn get_location_allowed_peers<'e, E>(
+    location: &WireguardNetwork<Id>,
+    executor: E,
+) -> Result<Vec<Peer>, SqlxError>
+where
+    E: PgExecutor<'e>,
+{
+    debug!("Fetching all peers for network {}", location.id);
 
-        if self.should_prevent_service_location_usage() {
-            warn!(
-                "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
-                self.name
-            );
-            return Ok(Vec::new());
-        }
+    if should_prevent_service_location_usage(&location) {
+        warn!(
+            "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
+            location.name
+        );
+        return Ok(Vec::new());
+    }
 
-        let rows = query!(
-            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+    let rows = query!(
+        "SELECT d.wireguard_pubkey pubkey, preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?
                 ARRAY(
                     SELECT host(ip)
@@ -151,33 +156,39 @@ impl WireguardNetwork<Id> {
             AND d.configured = true \
             AND u.is_active = true \
             ORDER BY d.id ASC",
-            self.id,
-            self.mfa_enabled()
-        )
-        .fetch_all(executor)
-        .await?;
+        location.id,
+        location.mfa_enabled()
+    )
+    .fetch_all(executor)
+    .await?;
 
-        // keepalive has to be added manually because Postgres
-        // doesn't support unsigned integers
-        let result = rows
-            .into_iter()
-            .map(|row| Peer {
-                pubkey: row.pubkey,
-                allowed_ips: row.allowed_ips,
-                // Don't send preshared key if MFA is not enabled, it can't be used and may
-                // cause issues with clients connecting if they expect no preshared key
-                // e.g. when you disable MFA on a location
-                preshared_key: if self.mfa_enabled() {
-                    row.preshared_key
-                } else {
-                    None
-                },
-                keepalive_interval: Some(self.keepalive_interval as u32),
-            })
-            .collect();
+    // keepalive has to be added manually because Postgres
+    // doesn't support unsigned integers
+    let result = rows
+        .into_iter()
+        .map(|row| Peer {
+            pubkey: row.pubkey,
+            allowed_ips: row.allowed_ips,
+            // Don't send preshared key if MFA is not enabled, it can't be used and may
+            // cause issues with clients connecting if they expect no preshared key
+            // e.g. when you disable MFA on a location
+            preshared_key: if location.mfa_enabled() {
+                row.preshared_key
+            } else {
+                None
+            },
+            keepalive_interval: Some(location.keepalive_interval as u32),
+        })
+        .collect();
 
-        Ok(result)
-    }
+    Ok(result)
+}
+
+/// If this location is marked as a service location, checks if all requirements are met for it to function:
+/// - Enterprise is enabled
+#[must_use]
+pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
+    location.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
 }
 
 /// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
@@ -997,13 +1008,20 @@ impl gateway_service_server::GatewayService for GatewayServer {
             error!("Failed to save updated network {network_id} in the database, status: {err}");
         }
 
-        let peers = network.get_peers(&mut *conn).await.map_err(|error| {
-            error!("Failed to fetch peers from the database for network {network_id}: {error}",);
-            Status::new(
-                Code::Internal,
-                format!("Failed to retrieve peers from the database for network: {network_id}"),
-            )
-        })?;
+        let peers =
+            get_location_allowed_peers(&network, &mut *conn)
+                .await
+                .map_err(|error| {
+                    error!(
+                        "Failed to fetch peers from the database for network {network_id}: {error}",
+                    );
+                    Status::new(
+                        Code::Internal,
+                        format!(
+                            "Failed to retrieve peers from the database for network: {network_id}"
+                        ),
+                    )
+                })?;
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn)
             .await
             .map_err(|err| {

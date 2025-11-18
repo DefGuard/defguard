@@ -45,7 +45,9 @@ use crate::{
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::{events::GatewayEvent, map::GatewayMap, state::GatewayState},
+    grpc::gateway::{
+        events::GatewayEvent, get_location_allowed_peers, map::GatewayMap, state::GatewayState,
+    },
     handlers::mail::send_new_device_added_email,
     location_management::{
         handle_imported_devices, handle_mapped_devices, sync_location_allowed_devices,
@@ -350,7 +352,7 @@ pub(crate) async fn modify_network(
         .await?;
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
-    let peers = network.get_peers(&mut *transaction).await?;
+    let peers = get_location_allowed_peers(&network, &mut *transaction).await?;
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(

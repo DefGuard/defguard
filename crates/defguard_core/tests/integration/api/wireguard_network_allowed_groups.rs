@@ -4,7 +4,7 @@ use claims::assert_err;
 use defguard_common::{csv::AsCsv, db::Id};
 use defguard_core::{
     db::{Device, Group, User, WireguardNetwork, models::device::DeviceType},
-    grpc::gateway::events::GatewayEvent,
+    grpc::gateway::{events::GatewayEvent, get_location_allowed_peers},
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;
@@ -165,7 +165,9 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -211,7 +213,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // network configuration was created for all devices
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 4);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -241,7 +245,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(new_peers.len(), 2);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -269,7 +275,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(new_peers.len(), 3);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -298,7 +306,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(new_peers.len(), 2);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(new_peers[1].pubkey, devices[2].wireguard_pubkey);
@@ -326,7 +336,9 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
-    let new_peers = network.get_peers(&client_state.pool).await.unwrap();
+    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(new_peers.len(), 4);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -396,7 +408,9 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     );
     let network = response.network;
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -500,7 +514,9 @@ PersistentKeepalive = 300
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 4);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -581,7 +597,9 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -600,7 +618,9 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
 
@@ -616,7 +636,9 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     assert_err!(wg_rx.try_recv());
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
 
@@ -634,7 +656,9 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::DeviceCreated(..));
     assert_err!(wg_rx.try_recv());
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[3].wireguard_pubkey);
@@ -679,7 +703,9 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
@@ -689,7 +715,9 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
 
     // network configuration was created for all devices
-    let peers = network.get_peers(&client_state.pool).await.unwrap();
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 4);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
