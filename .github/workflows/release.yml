@@ -240,7 +240,7 @@ jobs:
         uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*' --depends openssl"
 
       - name: Upload FreeBSD
         if: matrix.build == 'freebsd'
