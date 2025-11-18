@@ -35,7 +35,7 @@ pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
 pub(crate) mod updates;
-pub(crate) mod user;
+pub mod user;
 pub(crate) mod webhooks;
 pub mod wireguard;
 pub mod worker;

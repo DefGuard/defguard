@@ -182,7 +182,7 @@ pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
     use db::{
-        AddDevice, UserDetails, UserInfo,
+        AddDevice, UserInfo,
         models::device::{ModifyDevice, UserDevice},
     };
     use handlers::{
@@ -198,7 +198,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::{enterprise::snat::handlers as snat, error::WebError};
+    use crate::{enterprise::snat::handlers as snat, error::WebError, handlers::user::UserDetails};
 
     #[derive(OpenApi)]
     #[openapi(

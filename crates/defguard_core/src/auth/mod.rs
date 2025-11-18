@@ -23,10 +23,6 @@ use crate::{
     handlers::SESSION_COOKIE_NAME,
 };
 
-pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
-pub const EMAIL_CODE_DIGITS: u32 = 6;
-pub const TOTP_CODE_DIGITS: u32 = 6;
-
 pub struct SessionExtractor(pub Session);
 
 impl<S> FromRequestParts<S> for SessionExtractor

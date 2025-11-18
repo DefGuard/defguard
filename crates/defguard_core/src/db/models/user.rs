@@ -7,7 +7,6 @@ use argon2::{
         rand_core::OsRng,
     },
 };
-use axum::http::StatusCode;
 use defguard_common::{
     config::server_config,
     db::{
@@ -28,20 +27,29 @@ use serde::Serialize;
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, query, query_as, query_scalar,
 };
+use thiserror::Error;
 use totp_lite::{Sha1, totp_custom};
 
 use super::{
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
     device::{Device, DeviceType, UserDevice},
-    group::Group,
-};
-use crate::{
-    auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::models::group::Permission,
-    error::WebError,
+    group::{Group, Permission},
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
+pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
+pub const EMAIL_CODE_DIGITS: u32 = 6;
+pub const TOTP_CODE_DIGITS: u32 = 6;
+
+#[derive(Debug, Error)]
+pub enum UserError {
+    #[error("Invalid MFA state for user {username}")]
+    InvalidMfaState { username: String },
+    #[error(transparent)]
+    DbError(#[from] SqlxError),
+    #[error("{0}")]
+    EmailMfaError(String),
+}
 
 // User information ready to be sent as part of diagnostic data.
 #[derive(Serialize)]
@@ -359,7 +367,7 @@ impl User<Id> {
     /// Verify the state of MFA flags are correct.
     /// Recovers from invalid mfa_method
     /// Use this function after removing any of the authentication factors.
-    pub async fn verify_mfa_state(&mut self, pool: &PgPool) -> Result<(), WebError> {
+    pub async fn verify_mfa_state(&mut self, pool: &PgPool) -> Result<(), UserError> {
         if let Some(info) = MFAInfo::for_user(pool, self).await? {
             let factors_present = info.mfa_available();
             if self.mfa_enabled != factors_present {
@@ -394,7 +402,9 @@ impl User<Id> {
                 match info.list_available_methods() {
                     None => {
                         error!("Incorrect MFA info state for user {}", self.username);
-                        return Err(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR));
+                        return Err(UserError::InvalidMfaState {
+                            username: self.username.clone(),
+                        });
                     }
                     Some(methods) => {
                         info!(
@@ -415,7 +425,7 @@ impl User<Id> {
     }
 
     /// Enable MFA. At least one of the authenticator factors must be configured.
-    pub async fn enable_mfa(&mut self, pool: &PgPool) -> Result<(), WebError> {
+    pub async fn enable_mfa(&mut self, pool: &PgPool) -> Result<(), UserError> {
         if !self.mfa_enabled {
             self.verify_mfa_state(pool).await?;
         }
@@ -627,7 +637,7 @@ impl User<Id> {
     /// Generate MFA code for email verification.
     ///
     /// NOTE: This code will be valid for two time frames. See comment for verify_email_mfa_code().
-    pub fn generate_email_mfa_code(&self) -> Result<String, WebError> {
+    pub fn generate_email_mfa_code(&self) -> Result<String, UserError> {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
             let timeout = &server_config().mfa_code_timeout;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
@@ -639,10 +649,12 @@ impl User<Id> {
                 );
                 Ok(code)
             } else {
-                Err(WebError::EmailMfa("SystemTime before UNIX epoch".into()))
+                Err(UserError::EmailMfaError(
+                    "SystemTime before UNIX epoch".into(),
+                ))
             }
         } else {
-            Err(WebError::EmailMfa(format!(
+            Err(UserError::EmailMfaError(format!(
                 "Email MFA secret not configured for user {}",
                 self.username
             )))

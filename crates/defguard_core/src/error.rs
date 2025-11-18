@@ -8,7 +8,10 @@ use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
-    db::models::{device::DeviceError, enrollment::TokenError, wireguard::WireguardNetworkError},
+    db::models::{
+        device::DeviceError, enrollment::TokenError, user::UserError,
+        wireguard::WireguardNetworkError,
+    },
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
@@ -185,6 +188,18 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
+        }
+    }
+}
+
+impl From<UserError> for WebError {
+    fn from(err: UserError) -> Self {
+        error!("{}", err);
+        match err {
+            UserError::InvalidMfaState { username: _ } | UserError::DbError(_) => {
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            UserError::EmailMfaError(msg) => WebError::EmailMfa(msg),
         }
     }
 }

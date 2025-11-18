@@ -4,10 +4,15 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::{OAuth2AuthorizedApp, WebAuthn};
+use defguard_common::db::{
+    Id,
+    models::{BiometricAuth, OAuth2AuthorizedApp, WebAuthn},
+};
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
 use serde_json::json;
+use sqlx::{Error as SqlxError, PgPool};
+use utoipa::ToSchema;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -18,9 +23,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, User, UserDetails, UserInfo,
+        AppEvent, User, UserInfo,
         models::{
-            GroupDiff,
+            GroupDiff, SecurityKey,
+            device::UserDevice,
             enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
         },
     },
@@ -107,6 +113,35 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         ));
     }
     Ok(())
+}
+
+// Full user info with related objects
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+pub struct UserDetails {
+    pub user: UserInfo,
+    #[serde(default)]
+    pub devices: Vec<UserDevice>,
+    pub biometric_enabled_devices: Vec<i64>,
+    #[serde(default)]
+    pub security_keys: Vec<SecurityKey>,
+}
+
+impl UserDetails {
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+        let devices = user.user_devices(pool).await?;
+        let security_keys = user.security_keys(pool).await?;
+        let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
+            .await?
+            .iter()
+            .map(|a| a.device_id)
+            .collect::<Vec<_>>();
+        Ok(Self {
+            user: UserInfo::from_user(pool, user).await?,
+            devices,
+            security_keys,
+            biometric_enabled_devices,
+        })
+    }
 }
 
 /// List of all users

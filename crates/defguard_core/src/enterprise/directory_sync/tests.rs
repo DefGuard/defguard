@@ -657,7 +657,7 @@ mod test {
         let user2 = get_test_user(&pool, "user2").await;
         assert!(user2.is_none());
         let mut transaction = pool.begin().await.unwrap();
-        sync_allowed_user_devices(user, &mut transaction, &wg_tx)
+        sync_allowed_user_devices(&user, &mut transaction, &wg_tx)
             .await
             .unwrap();
         transaction.commit().await.unwrap();

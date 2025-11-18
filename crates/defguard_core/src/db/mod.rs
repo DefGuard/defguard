@@ -1,7 +1,7 @@
 pub mod models;
 
 pub use models::{
-    MFAInfo, UserDetails, UserInfo,
+    MFAInfo, UserInfo,
     device::{AddDevice, Device},
     group::Group,
     user::User,
