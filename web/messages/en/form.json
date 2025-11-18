@@ -12,6 +12,8 @@
   "form_error_min_len": "Minimal length of {length} required",
   "form_error_code": "Incorrect code. Please check and try again.",
   "form_error_invalid_key": "Invalid key format",
+  "form_error_ip_invalid": "IP is invalid",
+  "form_error_ip_reserved": "IP is not available",
   "password_form_check_title": "Your password must include:",
   "password_form_check_number": "At least one number required",
   "password_form_check_special": "At least one special character",

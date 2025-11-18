@@ -1,11 +1,14 @@
+import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
-import type { NetworkDevice } from '../../shared/api/types';
+import api from '../../shared/api/api';
+import { LocationMfaMode, type NetworkDevice } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -15,6 +18,8 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { ThemeSize } from '../../shared/defguard-ui/types';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { displayDate } from '../../shared/utils/displayDate';
 
 type Props = {
@@ -26,13 +31,33 @@ type RowData = NetworkDevice;
 const columnHelper = createColumnHelper<RowData>();
 
 export const NetworkDevicesTable = ({ networkDevices }: Props) => {
+  const { mutate: openAdd, isPending: addPending } = useMutation({
+    mutationFn: async () => {
+      const { data: locations } = await api.location.getLocations();
+      const availableLocations = locations.filter(
+        (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
+      );
+      if (!availableLocations.length) return;
+      const { data: availableIps } = await api.network_device.getAvailableIp(
+        availableLocations[0].id,
+      );
+      openModal(ModalName.AddNetworkDevice, {
+        availableIps,
+        locations: orderBy(availableLocations, ['name'], ['asc']),
+      });
+    },
+  });
+
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       text: 'Add new device',
       iconLeft: 'add-device',
-      disabled: true,
+      loading: addPending,
+      onClick: () => {
+        openAdd();
+      },
     }),
-    [],
+    [addPending, openAdd],
   );
 
   const columns = useMemo(
@@ -115,6 +140,9 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
   );
 
   const table = useReactTable({
+    initialState: {
+      sorting: [{ id: 'name', desc: false }],
+    },
     data: networkDevices,
     columns,
     getCoreRowModel: getCoreRowModel(),

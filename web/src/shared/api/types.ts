@@ -1,3 +1,21 @@
+export interface ValidateDeviceIpsRequest {
+  ips: string[];
+  locationId: number;
+}
+
+export interface IpValidation {
+  valid: boolean;
+  available: boolean;
+}
+export interface AvailableLocationIP {
+  ip: string;
+  network_part: string;
+  modifiable_part: string;
+  network_prefix: string;
+}
+
+export type AvailableLocationIpResponse = AvailableLocationIP[];
+
 export type AddUsersToGroupsRequest = {
   groups: string[];
   users: number[];
@@ -404,6 +422,34 @@ export interface AddNetworkDeviceRequest {
   name: string;
   location_id: number;
   assigned_ips: string[];
-  wireguard_pubkey?: string;
-  description?: string;
+  wireguard_pubkey?: string | null;
+  description?: string | null;
+}
+
+export interface NetworkLocation {
+  id: number;
+  name: string;
+  address: string;
+  port: number;
+  endpoint: string;
+  connected?: boolean;
+  connected_at?: string;
+  gateways?: GatewayStatus[];
+  allowed_ips?: string[];
+  allowed_groups?: string[];
+  dns?: string;
+  keepalive_interval: number;
+  peer_disconnect_threshold: number;
+  acl_enabled: boolean;
+  acl_default_allow: boolean;
+  location_mfa_mode: LocationMfaModeValue;
+}
+
+export interface GatewayStatus {
+  connected: boolean;
+  network_id: number;
+  network_name: string;
+  name?: string;
+  hostname: string;
+  uid: string;
 }

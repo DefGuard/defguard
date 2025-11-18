@@ -18,6 +18,7 @@ import type {
   ApiToken,
   ApplicationInfo,
   AuthKey,
+  AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
   CreateGroupRequest,
@@ -30,11 +31,13 @@ import type {
   EnableMfaMethodResponse,
   GroupInfo,
   GroupsResponse,
+  IpValidation,
   LoginRequest,
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
   NetworkDevice,
+  NetworkLocation,
   OpenIdClient,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
@@ -46,6 +49,7 @@ import type {
   UserDevice,
   UserProfileResponse,
   UsersListItem,
+  ValidateDeviceIpsRequest,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
@@ -217,11 +221,20 @@ const api = {
       client.get<DeviceConfigResponse>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
+    startCli: (data: AddNetworkDeviceRequest) =>
+      client.post<StartEnrollmentResponse>('/device/network/start_cli', data),
     addDevice: (data: AddNetworkDeviceRequest) =>
-      client.post<AddNetworkDeviceResponse | StartEnrollmentResponse>(
-        `/device/network`,
-        data,
-      ),
+      client.post<AddNetworkDeviceResponse>(`/device/network`, data),
+    getAvailableIp: (locationId: number) =>
+      client.get<AvailableLocationIpResponse>(`/device/network/ip/${locationId}`),
+    validateIps: (data: ValidateDeviceIpsRequest) =>
+      client.post<IpValidation[]>(`/device/network/ip/${data.locationId}`, {
+        ips: data.ips,
+      }),
+  },
+  location: {
+    getLocations: () => client.get<NetworkLocation[]>('/network'),
+    getLocation: (id: number) => client.get<NetworkLocation>(`/network/${id}`),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

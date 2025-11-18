@@ -1,4 +1,12 @@
-import type { Device, GroupInfo, OpenIdClient, User, Webhook } from '../../api/types';
+import type {
+  AvailableLocationIpResponse,
+  Device,
+  GroupInfo,
+  NetworkLocation,
+  OpenIdClient,
+  User,
+  Webhook,
+} from '../../api/types';
 
 export interface OpenEditDeviceModal {
   device: Device;
@@ -51,4 +59,9 @@ export interface OpenCEWebhookModal {
 export interface OpenAssignUsersToGroupsModal {
   users: number[];
   groups: GroupInfo[];
+}
+
+export interface OpenAddNetworkDeviceModal {
+  locations: NetworkLocation[];
+  availableIps: AvailableLocationIpResponse;
 }
