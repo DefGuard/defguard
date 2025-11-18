@@ -107,7 +107,7 @@ jobs:
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.89.0
+          toolchain: stable
           target: ${{ matrix.target }}
           override: true
 
@@ -173,12 +173,12 @@ jobs:
           fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
       - name: Run `packer init`
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
+        if: matrix.build == 'linux'
         id: init
         run: "packer init ./images/ami/core.pkr.hcl"
 
       - name: Build AMI images for multiple regions
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
+        if: matrix.build == 'linux'
         run: |
           regions=(us-east-1 eu-west-1 ap-northeast-1 eu-central-1)
           for region in "${regions[@]}"; do
@@ -216,6 +216,7 @@ jobs:
           COMPONENT=$([[ "${{ github.ref_name }}" == *"-"* ]] && echo "pre-release" || echo "release") # if tag contain "-" assume it's pre-release.
 
           deb-s3 upload -l --bucket=apt.defguard.net --access-key-id=${{ secrets.AWS_ACCESS_KEY_APT }} --secret-access-key=${{ secrets.AWS_SECRET_KEY_APT }} --s3-region=eu-north-1 --no-fail-if-exists --codename=trixie --component="$COMPONENT" defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
+
       - name: Build RPM package
         if: matrix.build == 'linux'
         uses: defGuard/fpm-action@main
@@ -239,7 +240,7 @@ jobs:
         uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --depends openssl --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
 
       - name: Upload FreeBSD
         if: matrix.build == 'freebsd'
@@ -253,16 +254,14 @@ jobs:
           asset_content_type: application/octet-stream
 
   apt-sign:
-    needs: 
+    needs:
       - build-binaries
     runs-on:
       - self-hosted
       - Linux
       - X64
-    strategy:
-      fail-fast: false
     steps:
-      - name: Sign APT repository on trixie 
+      - name: Sign APT repository
         run: |
           export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_APT }}
           export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY_APT }}
@@ -272,15 +271,15 @@ jobs:
 
           for DIST in trixie; do
             aws s3 cp s3://apt.defguard.net/dists/${DIST}/Release .
-            
+
             curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
               -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
               -F "file=@Release" \
               -o response.json
-            
+
             cat response.json | jq -r '.files["Release.gpg"].content' | base64 --decode > Release.gpg
             cat response.json | jq -r '.files.Release.content' | base64 --decode > InRelease
-            
+
             aws s3 cp Release.gpg s3://apt.defguard.net/dists/${DIST}/ --acl public-read
             aws s3 cp InRelease s3://apt.defguard.net/dists/${DIST}/ --acl public-read
 
