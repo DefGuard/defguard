@@ -9,7 +9,7 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    db::{GatewayEvent, WireguardNetwork, models::wireguard::ServiceLocationMode},
+    db::{WireguardNetwork, models::wireguard::ServiceLocationMode},
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
@@ -17,6 +17,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
+    grpc::gateway::events::GatewayEvent,
     updates::do_new_version_check,
 };
 

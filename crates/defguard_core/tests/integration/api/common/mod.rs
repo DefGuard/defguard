@@ -14,10 +14,13 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, Device, GatewayEvent, User, UserDetails, WireguardNetwork},
+    db::{AppEvent, Device, User, UserDetails, WireguardNetwork},
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
-    grpc::{WorkerState, gateway::map::GatewayMap},
+    grpc::{
+        WorkerState,
+        gateway::{events::GatewayEvent, map::GatewayMap},
+    },
     handlers::Auth,
 };
 use defguard_mail::Mail;

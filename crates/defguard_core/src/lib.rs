@@ -92,7 +92,7 @@ use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
+        AppEvent, Device, User, WireguardNetwork,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
     },
     grpc::{WorkerState, gateway::map::GatewayMap},
@@ -143,7 +143,10 @@ use self::{
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
 };
-use crate::{db::models::wireguard::ServiceLocationMode, version::IncompatibleComponents};
+use crate::{
+    db::models::wireguard::ServiceLocationMode, grpc::gateway::events::GatewayEvent,
+    version::IncompatibleComponents,
+};
 
 pub mod appstate;
 pub mod auth;

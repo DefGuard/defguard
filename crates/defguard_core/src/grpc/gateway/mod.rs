@@ -33,8 +33,9 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    db::{Device, GatewayEvent, User, models::wireguard::WireguardNetwork},
+    db::{Device, User, models::wireguard::WireguardNetwork},
     events::{GrpcEvent, GrpcRequestContext},
+    grpc::gateway::events::GatewayEvent,
 };
 
 pub mod client_state;

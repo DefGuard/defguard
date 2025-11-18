@@ -24,13 +24,14 @@ use tokio::{
 
 use crate::{
     db::{
-        Device, GatewayEvent, WireguardNetwork,
+        Device, WireguardNetwork,
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
             wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetworkError},
         },
     },
     events::{InternalEvent, InternalEventContext},
+    grpc::gateway::events::GatewayEvent,
 };
 
 // How long to sleep between loop iterations

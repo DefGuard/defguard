@@ -13,12 +13,13 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{GatewayEvent, User, WireguardNetwork},
+    db::{User, WireguardNetwork},
     enterprise::{
         db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    grpc::gateway::events::GatewayEvent,
     handlers::{ApiResponse, ApiResult},
 };
 

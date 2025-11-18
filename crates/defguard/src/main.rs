@@ -17,7 +17,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, User},
+    db::{AppEvent, User},
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -26,7 +26,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, map::GatewayMap},
+        gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
         run_grpc_bidi_stream, run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,

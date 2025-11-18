@@ -32,7 +32,7 @@ use tonic::Status;
 use super::InstanceInfo;
 use crate::{
     db::{
-        Device, GatewayEvent, User, WireguardNetwork,
+        Device, User, WireguardNetwork,
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
@@ -47,6 +47,7 @@ use crate::{
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
         client_version::ClientFeature,
+        gateway::events::GatewayEvent,
         utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
     },
     handlers::{

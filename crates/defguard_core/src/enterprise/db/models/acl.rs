@@ -19,13 +19,14 @@ use crate::{
     DeviceType,
     appstate::AppState,
     db::{
-        Device, GatewayEvent, Group, User, WireguardNetwork,
+        Device, Group, User, WireguardNetwork,
         models::wireguard::{LocationMfaMode, ServiceLocationMode},
     },
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
+    grpc::gateway::events::GatewayEvent,
 };
 
 #[derive(Debug, Error)]

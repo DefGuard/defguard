@@ -38,10 +38,10 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{GatewayEvent, WireguardNetwork, models::group::Permission},
+    db::{WireguardNetwork, models::group::Permission},
     enterprise::limits::update_counts,
     error::WebError,
-    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
+    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;

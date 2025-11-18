@@ -15,12 +15,8 @@ use defguard_common::{
         models::{ModelError, wireguard_peer_stats::WireguardPeerStats},
     },
 };
-use defguard_proto::{
-    enterprise::firewall::FirewallConfig,
-    gateway::Peer,
-    proxy::{
-        LocationMfaMode as ProtoLocationMfaMode, ServiceLocationMode as ProtoServiceLocationMode,
-    },
+use defguard_proto::proxy::{
+    LocationMfaMode as ProtoLocationMfaMode, ServiceLocationMode as ProtoServiceLocationMode,
 };
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
@@ -43,7 +39,7 @@ use super::{
 };
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_enabled},
-    grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
+    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
 };
 
@@ -76,18 +72,6 @@ impl DateTimeAggregation {
             Self::Minute => "minute",
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum GatewayEvent {
-    NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
-    NetworkDeleted(Id, String),
-    DeviceCreated(DeviceInfo),
-    DeviceModified(DeviceInfo),
-    DeviceDeleted(DeviceInfo),
-    FirewallConfigChanged(Id, FirewallConfig),
-    FirewallDisabled(Id),
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]

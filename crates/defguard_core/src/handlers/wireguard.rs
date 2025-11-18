@@ -24,7 +24,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AddDevice, Device, GatewayEvent, WireguardNetwork,
+        AddDevice, Device, WireguardNetwork,
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
@@ -44,7 +44,7 @@ use crate::{
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::map::GatewayMap,
+    grpc::gateway::{events::GatewayEvent, map::GatewayMap},
     handlers::mail::send_new_device_added_email,
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},

@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use defguard_core::{
     db::{
-        Device, GatewayEvent, WireguardNetwork,
+        Device, WireguardNetwork,
         models::{
             device::{DeviceType, UserDevice},
             wireguard::{
@@ -11,6 +11,7 @@ use defguard_core::{
             },
         },
     },
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;

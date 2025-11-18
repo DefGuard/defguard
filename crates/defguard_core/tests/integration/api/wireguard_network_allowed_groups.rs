@@ -3,7 +3,8 @@ use std::net::IpAddr;
 use claims::assert_err;
 use defguard_common::{csv::AsCsv, db::Id};
 use defguard_core::{
-    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::device::DeviceType},
+    db::{Device, Group, User, WireguardNetwork, models::device::DeviceType},
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;

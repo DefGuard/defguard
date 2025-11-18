@@ -16,7 +16,7 @@ use defguard_core::{
     },
     enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
-    grpc::MIN_GATEWAY_VERSION,
+    grpc::{MIN_GATEWAY_VERSION, gateway::events::GatewayEvent},
 };
 use defguard_proto::{
     enterprise::firewall::FirewallPolicy,
@@ -427,7 +427,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     gateway_2.connect_to_updates_stream().await;
 
     // send update for location 1
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(
         test_location.id,
         "network name".into(),
     ));
@@ -449,7 +449,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(update, expected_update);
 
     // send update for location 2
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(
         test_location_2.id,
         "network name 2".into(),
     ));
@@ -471,10 +471,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(update, expected_update);
 
     // send update for location which does not exist
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
-        1234,
-        "does not exist".into(),
-    ));
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(1234, "does not exist".into()));
 
     // no gateway should receive this update
     assert!(gateway_1.receive_next_update().await.is_none());

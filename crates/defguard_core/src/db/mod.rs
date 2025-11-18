@@ -6,5 +6,5 @@ pub use models::{
     group::Group,
     user::User,
     webhook::{AppEvent, HWKeyUserData, WebHook},
-    wireguard::{GatewayEvent, WireguardNetwork},
+    wireguard::WireguardNetwork,
 };

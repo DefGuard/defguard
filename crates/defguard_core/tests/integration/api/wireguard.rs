@@ -3,7 +3,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
 use defguard_core::{
     db::{
-        Device, GatewayEvent, WireguardNetwork,
+        Device, WireguardNetwork,
         models::{
             device::WireguardNetworkDevice,
             wireguard::{
@@ -17,6 +17,7 @@ use defguard_core::{
         handlers::openid_providers::AddProviderData,
         license::{get_cached_license, set_cached_license},
     },
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;

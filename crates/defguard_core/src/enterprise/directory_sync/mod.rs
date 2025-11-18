@@ -18,12 +18,13 @@ use super::{
     ldap::utils::ldap_update_users_state,
 };
 use crate::{
-    db::{GatewayEvent, Group, User},
+    db::{Group, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
         handlers::openid_login::prune_username,
         ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
     },
+    grpc::gateway::events::GatewayEvent,
     handlers::user::check_username,
 };
 
