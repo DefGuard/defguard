@@ -26,7 +26,7 @@ use crate::{
     },
     grpc::gateway::events::GatewayEvent,
     handlers::user::check_username,
-    user_management::delete_user_and_cleanup_devices,
+    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -360,7 +360,7 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    user.sync_allowed_devices(&mut transaction, wg_tx)
+    sync_allowed_user_devices(user, &mut transaction, wg_tx)
         .await
         .map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
@@ -563,7 +563,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
             create_and_add_to_group(&user, group, pool).await?;
         }
 
-        user.sync_allowed_devices(&mut transaction, wg_tx).await.map_err(|err| {
+        sync_allowed_user_devices(&user, &mut transaction, wg_tx).await.map_err(|err| {
             DirectorySyncError::NetworkUpdateError(format!(
                 "Failed to sync allowed devices for user {} during directory synchronization: {err}",
                 user.email
@@ -754,7 +754,7 @@ async fn sync_all_users_state(
                             the admin behavior setting is set to disable",
                             user.email
                         );
-                        user.disable(&mut transaction, wg_tx).await.map_err(|err| {
+                        disable_user(&mut user, &mut transaction, wg_tx).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable admin {} during directory synchronization: {err}",
                                 user.email
@@ -808,7 +808,7 @@ async fn sync_all_users_state(
                             "Disabling user {} because they are not present in the directory and the user behavior setting is set to disable",
                             user.email
                         );
-                        user.disable(&mut transaction, wg_tx).await.map_err(|err| {
+                        disable_user(&mut user, &mut transaction, wg_tx).await.map_err(|err| {
                             DirectorySyncError::UserUpdateError(format!(
                                 "Failed to disable user {} during directory synchronization: {err}",
                                 user.email
@@ -892,12 +892,14 @@ async fn sync_inactive_directory_users(
                 "Disabling user {} because they are disabled in the directory",
                 user.email
             );
-            user.disable(transaction, wg_tx).await.map_err(|err| {
-                DirectorySyncError::UserUpdateError(format!(
-                    "Failed to disable user {} during directory synchronization: {err}",
-                    user.email
-                ))
-            })?;
+            disable_user(&mut user, transaction, wg_tx)
+                .await
+                .map_err(|err| {
+                    DirectorySyncError::UserUpdateError(format!(
+                        "Failed to disable user {} during directory synchronization: {err}",
+                        user.email
+                    ))
+                })?;
             modified_users.push(user);
         } else {
             debug!("User {} is already disabled, skipping", user.email);

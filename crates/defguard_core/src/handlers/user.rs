@@ -36,7 +36,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     is_valid_phone_number, server_config,
-    user_management::delete_user_and_cleanup_devices,
+    user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
 };
 
 /// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
@@ -744,8 +744,7 @@ pub async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            user.sync_allowed_devices(&mut transaction, &appstate.wireguard_tx)
-                .await?;
+            sync_allowed_user_devices(&user, &mut transaction, &appstate.wireguard_tx).await?;
         }
 
         // remove API tokens when deactivating a user

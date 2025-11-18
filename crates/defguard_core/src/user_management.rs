@@ -8,7 +8,7 @@ use crate::{
     db::{User, WireguardNetwork, models::device::DeviceInfo},
     enterprise::limits::update_counts,
     error::WebError,
-    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events},
+    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
 };
 
 /// Deletes the user and cleans up his devices from gateways
@@ -57,5 +57,49 @@ pub async fn delete_user_and_cleanup_devices(
         "The user {} has been deleted and his devices removed from gateways.",
         &username
     );
+    Ok(())
+}
+
+/// Disable user, log out all his sessions and update gateways state.
+pub async fn disable_user(
+    user: &mut User<Id>,
+    conn: &mut PgConnection,
+    wg_tx: &Sender<GatewayEvent>,
+) -> Result<(), WebError> {
+    user.is_active = false;
+    user.save(&mut *conn).await?;
+    user.logout_all_sessions(&mut *conn).await?;
+    sync_allowed_user_devices(user, conn, wg_tx).await?;
+    Ok(())
+}
+
+/// Update gateway state based on this user device access rights
+pub async fn sync_allowed_user_devices(
+    user: &User<Id>,
+    conn: &mut PgConnection,
+    wg_tx: &Sender<GatewayEvent>,
+) -> Result<(), WebError> {
+    debug!("Syncing allowed devices of user {}", user.username);
+    let networks = WireguardNetwork::all(&mut *conn).await?;
+    for network in networks {
+        let gateway_events = network
+            .sync_allowed_devices_for_user(&mut *conn, user, None)
+            .await?;
+
+        // check if any peers were updated
+        if !gateway_events.is_empty() {
+            // send peer update events
+            send_multiple_wireguard_events(gateway_events, wg_tx);
+        }
+
+        // send firewall config update if ACLs & enterprise features are enabled
+        if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+            send_wireguard_event(
+                GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                wg_tx,
+            );
+        }
+    }
+    info!("Allowed devices of user {} synced", user.username);
     Ok(())
 }
