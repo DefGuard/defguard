@@ -13,7 +13,7 @@ use super::{ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Group, User, WireguardNetwork, models::group::Permission},
+    db::{Group, User, models::group::Permission},
     enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,
@@ -22,6 +22,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     hashset,
+    location_management::sync_all_networks,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -116,7 +117,7 @@ pub(crate) async fn bulk_assign_to_groups(
         }
     }
 
-    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
 
     transaction.commit().await?;
 
@@ -365,7 +366,7 @@ pub(crate) async fn create_group(
             .insert(&group_info.name);
     }
 
-    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
 
     transaction.commit().await?;
 
@@ -502,7 +503,7 @@ pub(crate) async fn modify_group(
             .insert(group.name.as_str());
     }
 
-    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
+    sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
     let users_after = group.members(&mut *transaction).await?.clone();
     transaction.commit().await?;
 
@@ -602,7 +603,7 @@ pub(crate) async fn delete_group(
 
         // sync allowed devices for all locations
         let mut conn = appstate.pool.acquire().await?;
-        WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+        sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
 
         info!("User {} deleted group {name}", &session.user.username);
         appstate.emit_event(ApiEvent {
@@ -656,7 +657,7 @@ pub(crate) async fn add_group_member(
             ldap_add_user_to_groups(&user, hashset![group.name.as_str()], &appstate.pool).await;
             ldap_update_user_state(&mut user, &appstate.pool).await;
             let mut conn = appstate.pool.acquire().await?;
-            WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+            sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,
@@ -719,7 +720,7 @@ pub(crate) async fn remove_group_member(
                 .await;
 
             let mut conn = appstate.pool.acquire().await?;
-            WireguardNetwork::sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
+            sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);
             appstate.emit_event(ApiEvent {
                 context,

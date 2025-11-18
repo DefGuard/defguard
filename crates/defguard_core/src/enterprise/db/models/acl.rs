@@ -23,7 +23,7 @@ use crate::{
         models::wireguard::{LocationMfaMode, ServiceLocationMode},
     },
     enterprise::{
-        firewall::FirewallError,
+        firewall::{FirewallError, try_get_location_firewall_config},
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
     grpc::gateway::events::GatewayEvent,
@@ -480,7 +480,7 @@ impl AclRule {
         );
 
         for location in affected_locations {
-            match location.try_get_firewall_config(&mut transaction).await? {
+            match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
                     appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
@@ -1678,7 +1678,7 @@ impl AclAlias {
         );
 
         for location in affected_locations {
-            match location.try_get_firewall_config(&mut transaction).await? {
+            match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
                     appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(

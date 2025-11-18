@@ -6,7 +6,7 @@ use tokio::sync::broadcast::Sender;
 
 use crate::{
     db::{User, WireguardNetwork, models::device::DeviceInfo},
-    enterprise::limits::update_counts,
+    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     error::WebError,
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
 };
@@ -40,7 +40,9 @@ pub async fn delete_user_and_cleanup_devices(
     // if they have ACL enabled & enterprise features are active
     for location_id in affected_location_ids {
         if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
-            if let Some(firewall_config) = location.try_get_firewall_config(&mut *conn).await? {
+            if let Some(firewall_config) =
+                try_get_location_firewall_config(&location, &mut *conn).await?
+            {
                 debug!(
                     "Sending firewall config update for location {location} affected by deleting user {username} devices"
                 );
@@ -80,9 +82,9 @@ pub async fn sync_allowed_user_devices(
     wg_tx: &Sender<GatewayEvent>,
 ) -> Result<(), WebError> {
     debug!("Syncing allowed devices of user {}", user.username);
-    let networks = WireguardNetwork::all(&mut *conn).await?;
-    for network in networks {
-        let gateway_events = network
+    let locations = WireguardNetwork::all(&mut *conn).await?;
+    for location in locations {
+        let gateway_events = location
             .sync_allowed_devices_for_user(&mut *conn, user, None)
             .await?;
 
@@ -93,9 +95,11 @@ pub async fn sync_allowed_user_devices(
         }
 
         // send firewall config update if ACLs & enterprise features are enabled
-        if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+        if let Some(firewall_config) =
+            try_get_location_firewall_config(&location, &mut *conn).await?
+        {
             send_wireguard_event(
-                GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                GatewayEvent::FirewallConfigChanged(location.id, firewall_config),
                 wg_tx,
             );
         }

@@ -26,7 +26,6 @@ use sqlx::{
     postgres::types::PgInterval, query, query_as, query_scalar,
 };
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -39,8 +38,8 @@ use super::{
 };
 use crate::{
     db::{Group, models::group::Permission},
-    enterprise::{firewall::FirewallError, is_enterprise_enabled},
-    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, state::GatewayState},
+    enterprise::is_enterprise_enabled,
+    grpc::gateway::events::GatewayEvent,
     wg_config::ImportedDevice,
 };
 
@@ -259,8 +258,6 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
-    #[error("Firewall config error: {0}")]
-    FirewallError(#[from] FirewallError),
     #[error(transparent)]
     TokenError(#[from] jsonwebtoken::errors::Error),
 }
@@ -362,32 +359,6 @@ impl WireguardNetwork<Id> {
         }
 
         Ok(Some(networks))
-    }
-
-    // run sync_allowed_devices on all wireguard networks
-    pub(crate) async fn sync_all_networks(
-        conn: &mut PgConnection,
-        wireguard_tx: &Sender<GatewayEvent>,
-    ) -> Result<(), WireguardNetworkError> {
-        info!("Syncing allowed devices for all WireGuard locations");
-        let networks = Self::all(&mut *conn).await?;
-        for network in networks {
-            // sync allowed devices for location
-            let mut gateway_events = network.sync_allowed_devices(&mut *conn, None).await?;
-
-            // send firewall config update if ACLs are enabled for a given location
-            if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
-                gateway_events.push(GatewayEvent::FirewallConfigChanged(
-                    network.id,
-                    firewall_config,
-                ));
-            }
-            // check if any gateway events need to be sent
-            if !gateway_events.is_empty() {
-                send_multiple_wireguard_events(gateway_events, wireguard_tx);
-            }
-        }
-        Ok(())
     }
 
     pub(crate) fn validate_network_size(
@@ -582,7 +553,7 @@ impl WireguardNetwork<Id> {
 
     /// Works out which devices need to be added, removed, or readdressed based on the list
     /// of currently configured devices and the list of devices which should be allowed.
-    async fn process_device_access_changes(
+    pub async fn process_device_access_changes(
         &self,
         transaction: &mut PgConnection,
         mut allowed_devices: HashMap<Id, Device<Id>>,
@@ -702,46 +673,6 @@ impl WireguardNetwork<Id> {
                 assigned_ips,
                 reserved_ips,
             )
-            .await?;
-
-        Ok(events)
-    }
-
-    /// Refresh network IPs for all relevant devices
-    ///
-    /// If the list of allowed devices has changed add/remove devices accordingly
-    ///
-    /// If the network address has changed readdress existing devices
-    pub(crate) async fn sync_allowed_devices(
-        &self,
-        conn: &mut PgConnection,
-        reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!("Synchronizing IPs in network {self} for all allowed devices ");
-        // list all allowed devices
-        let mut allowed_devices = self.get_allowed_devices(&mut *conn).await?;
-
-        // network devices are always allowed, make sure to take only network devices already assigned to that network
-        let network_devices =
-            Device::find_by_type_and_network(&mut *conn, DeviceType::Network, self.id).await?;
-        allowed_devices.extend(network_devices);
-
-        // convert to a map for easier processing
-        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
-            .into_iter()
-            .map(|dev| (dev.id, dev))
-            .collect();
-
-        // check if all devices can fit within network
-        // include address, network, and broadcast in the calculation
-        let count = allowed_devices.len() + 3;
-        self.validate_network_size(count)?;
-
-        // list all assigned IPs
-        let assigned_ips = WireguardNetworkDevice::all_for_network(&mut *conn, self.id).await?;
-
-        let events = self
-            .process_device_access_changes(&mut *conn, allowed_devices, assigned_ips, reserved_ips)
             .await?;
 
         Ok(events)
@@ -1482,15 +1413,6 @@ impl Default for WireguardNetwork {
             service_location_mode: ServiceLocationMode::default(),
         }
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct WireguardNetworkInfo {
-    #[serde(flatten)]
-    pub network: WireguardNetwork<Id>,
-    pub connected: bool,
-    pub gateways: Vec<GatewayState>,
-    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq)]

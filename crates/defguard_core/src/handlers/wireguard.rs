@@ -32,20 +32,22 @@ use crate::{
             },
             wireguard::{
                 DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
-                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
-                WireguardUserStatsRow, networks_stats,
+                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
+                networks_stats,
             },
         },
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         is_enterprise_enabled,
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::{events::GatewayEvent, map::GatewayMap},
+    grpc::gateway::{events::GatewayEvent, map::GatewayMap, state::GatewayState},
     handlers::mail::send_new_device_added_email,
+    location_management::sync_location_allowed_devices,
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
@@ -70,6 +72,15 @@ pub(crate) fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
             IpNetwork::with_netmask(network_address, network_mask).ok()
         })
         .collect()
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    pub network: WireguardNetwork<Id>,
+    pub connected: bool,
+    pub gateways: Vec<GatewayState>,
+    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -335,10 +346,11 @@ pub(crate) async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
-    let _events = network.sync_allowed_devices(&mut transaction, None).await?;
+    let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = network.get_peers(&mut *transaction).await?;
-    let maybe_firewall_config = network.try_get_firewall_config(&mut transaction).await?;
+    let maybe_firewall_config =
+        try_get_location_firewall_config(&network, &mut transaction).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(
         network.id,
         network.clone(),
@@ -633,9 +645,8 @@ pub(crate) async fn import_network(
 
     // assign IPs for other existing devices
     debug!("Assigning IPs in imported network for remaining existing devices");
-    let gateway_events = network
-        .sync_allowed_devices(&mut transaction, Some(&reserved_ips))
-        .await?;
+    let gateway_events =
+        sync_location_allowed_devices(&network, &mut transaction, Some(&reserved_ips)).await?;
     appstate.send_multiple_wireguard_events(gateway_events);
     debug!("Assigned IPs in imported network for remaining existing devices");
 
@@ -866,7 +877,7 @@ pub(crate) async fn add_device(
         if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
         {
             if let Some(firewall_config) =
-                location.try_get_firewall_config(&mut transaction).await?
+                try_get_location_firewall_config(&location, &mut transaction).await?
             {
                 debug!(
                     "Sending firewall config update for location {location} affected by adding new user {username} devices"
@@ -1176,7 +1187,7 @@ pub(crate) async fn delete_device(
             WireguardNetwork::find_by_id(&mut *transaction, info.network_id).await?
         {
             if let Some(firewall_config) =
-                location.try_get_firewall_config(&mut transaction).await?
+                try_get_location_firewall_config(&location, &mut transaction).await?
             {
                 debug!(
                     "Sending firewall config update for location {location} affected by deleting user {username} device"

@@ -25,7 +25,7 @@ use crate::{
             wireguard::NetworkAddressError,
         },
     },
-    enterprise::limits::update_counts,
+    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,
     handlers::mail::send_new_device_added_email,
@@ -630,7 +630,9 @@ pub(crate) async fn add_network_device(
     update_counts(&mut *transaction).await?;
 
     // send firewall update event if ACLs & enterprise features are enabled
-    if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
+    if let Some(firewall_config) =
+        try_get_location_firewall_config(&network, &mut transaction).await?
+    {
         appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
             network.id,
             firewall_config,
@@ -734,9 +736,8 @@ pub async fn modify_network_device(
 
         // send firewall update event if ACLs are enabled
         if device_network.acl_enabled {
-            if let Some(firewall_config) = device_network
-                .try_get_firewall_config(&mut transaction)
-                .await?
+            if let Some(firewall_config) =
+                try_get_location_firewall_config(&device_network, &mut transaction).await?
             {
                 appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                     device_network.id,

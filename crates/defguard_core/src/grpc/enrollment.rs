@@ -41,6 +41,7 @@ use crate::{
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        firewall::try_get_location_firewall_config,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
@@ -744,13 +745,13 @@ impl EnrollmentServer {
                     Status::internal("unexpected error")
                 })?
             {
-                if let Some(firewall_config) = location
-                    .try_get_firewall_config(&mut transaction)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get firewall config for location {location}: {err}",);
-                        Status::internal("unexpected error")
-                    })?
+                if let Some(firewall_config) =
+                    try_get_location_firewall_config(&location, &mut transaction)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to get firewall config for location {location}: {err}",);
+                            Status::internal("unexpected error")
+                        })?
                 {
                     debug!(
                         "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",

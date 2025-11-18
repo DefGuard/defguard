@@ -145,7 +145,7 @@ use self::{
 };
 use crate::{
     db::models::wireguard::ServiceLocationMode, grpc::gateway::events::GatewayEvent,
-    version::IncompatibleComponents,
+    location_management::sync_location_allowed_devices, version::IncompatibleComponents,
 };
 
 pub mod appstate;
@@ -157,6 +157,7 @@ pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
+pub mod location_management;
 pub mod support;
 pub mod updates;
 pub mod user_management;
@@ -856,7 +857,7 @@ pub async fn init_vpn_location(
             network.dns.clone_from(&args.dns);
             network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
-            network.sync_allowed_devices(&mut transaction, None).await?;
+            sync_location_allowed_devices(&network, &mut transaction, None).await?;
             network
         }
         // Otherwise create it with the predefined ID

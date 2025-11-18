@@ -13,6 +13,7 @@ use crate::{
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
+        firewall::try_get_location_firewall_config,
         is_enterprise_enabled,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
@@ -176,8 +177,7 @@ async fn enterprise_status_check(
             let mut transaction = pool.begin().await?;
             for location in locations {
                 debug!("Re-enabling gateway firewall configuration for location {location:?}");
-                let firewall_config = location
-                    .try_get_firewall_config(&mut transaction)
+                let firewall_config = try_get_location_firewall_config(&location, &mut transaction)
                     .await?
                     .expect("ACL-enabled location must have firewall config");
 
@@ -267,7 +267,7 @@ async fn expired_acl_rules_check(
 
     let mut conn = pool.acquire().await?;
     for location in affected_locations {
-        match location.try_get_firewall_config(&mut conn).await? {
+        match try_get_location_firewall_config(&location, &mut conn).await? {
             Some(firewall_config) => {
                 debug!("Sending firewall update event for location {location}");
                 wireguard_tx.send(GatewayEvent::FirewallConfigChanged(

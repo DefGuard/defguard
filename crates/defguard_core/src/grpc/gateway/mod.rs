@@ -34,6 +34,7 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 use self::map::GatewayMap;
 use crate::{
     db::{Device, User, models::wireguard::WireguardNetwork},
+    enterprise::firewall::try_get_location_firewall_config,
     events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::events::GatewayEvent,
 };
@@ -1003,17 +1004,15 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 format!("Failed to retrieve peers from the database for network: {network_id}"),
             )
         })?;
-        let maybe_firewall_config =
-            network
-                .try_get_firewall_config(&mut conn)
-                .await
-                .map_err(|err| {
-                    error!("Failed to generate firewall config for network {network_id}: {err}");
-                    Status::new(
-                        Code::Internal,
-                        format!("Failed to generate firewall config for network: {network_id}"),
-                    )
-                })?;
+        let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn)
+            .await
+            .map_err(|err| {
+                error!("Failed to generate firewall config for network {network_id}: {err}");
+                Status::new(
+                    Code::Internal,
+                    format!("Failed to generate firewall config for network: {network_id}"),
+                )
+            })?;
 
         info!("Configuration sent to gateway client, network {network}.");
 

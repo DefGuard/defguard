@@ -18,6 +18,7 @@ use crate::{
     },
     events::ApiEvent,
     grpc::gateway::map::GatewayMapError,
+    location_management::LocationManagementError,
 };
 
 /// Represents kinds of error that occurred
@@ -152,7 +153,6 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
             | WireguardNetworkError::DeviceNotAllowed(_)
-            | WireguardNetworkError::FirewallError(_)
             | WireguardNetworkError::TokenError(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
@@ -200,6 +200,20 @@ impl From<UserError> for WebError {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
             UserError::EmailMfaError(msg) => WebError::EmailMfa(msg),
+        }
+    }
+}
+
+impl From<LocationManagementError> for WebError {
+    fn from(err: LocationManagementError) -> Self {
+        error!("{}", err);
+        match err {
+            LocationManagementError::FirewallError(firewall_error) => firewall_error.into(),
+            LocationManagementError::DbError(error) => error.into(),
+            LocationManagementError::WireguardNetworkError(wireguard_network_error) => {
+                wireguard_network_error.into()
+            }
+            LocationManagementError::ModelError(model_error) => model_error.into(),
         }
     }
 }

@@ -15,7 +15,8 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::{User, WireguardNetwork},
     enterprise::{
-        db::models::snat::UserSnatBinding, handlers::LicenseInfo, snat::error::UserSnatBindingError,
+        db::models::snat::UserSnatBinding, firewall::try_get_location_firewall_config,
+        handlers::LicenseInfo, snat::error::UserSnatBindingError,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -154,7 +155,9 @@ pub async fn create_snat_binding(
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location.id).await? {
-        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+        if let Some(firewall_config) =
+            try_get_location_firewall_config(&location, &mut conn).await?
+        {
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
@@ -256,7 +259,9 @@ pub async fn modify_snat_binding(
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
-        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+        if let Some(firewall_config) =
+            try_get_location_firewall_config(&location, &mut conn).await?
+        {
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
@@ -342,7 +347,9 @@ pub async fn delete_snat_binding(
     // trigger firewall config update on relevant gateways
     let mut conn = appstate.pool.acquire().await?;
     if let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? {
-        if let Some(firewall_config) = location.try_get_firewall_config(&mut conn).await? {
+        if let Some(firewall_config) =
+            try_get_location_firewall_config(&location, &mut conn).await?
+        {
             debug!(
                 "Sending firewall config update for location {location} affected by adding new SNAT binding"
             );
