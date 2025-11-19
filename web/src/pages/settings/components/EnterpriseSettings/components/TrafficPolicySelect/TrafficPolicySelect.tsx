@@ -1,22 +1,19 @@
 import './style.scss';
-import parse from 'html-react-parser';
 import clsx from 'clsx';
+import parse from 'html-react-parser';
 import { useMemo } from 'react';
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
 import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { ClientTrafficPolicy } from '../../../../../../shared/types';
-import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 
 type Props = {
   onChange: (event: ClientTrafficPolicy) => void;
   fieldValue: ClientTrafficPolicy;
 };
 
-export const ClientTrafficPolicySelect = ({
-  onChange,
-  fieldValue,
-}: Props) => {
+export const ClientTrafficPolicySelect = ({ onChange, fieldValue }: Props) => {
   const { LL } = useI18nContext();
   const options = useMemo(
     (): SelectOption<ClientTrafficPolicy>[] => [
@@ -29,13 +26,15 @@ export const ClientTrafficPolicySelect = ({
       {
         key: ClientTrafficPolicy.DISABLE_ALL_TRAFFIC,
         value: ClientTrafficPolicy.DISABLE_ALL_TRAFFIC,
-        label: LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.label(),
+        label:
+          LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.label(),
         meta: LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper(),
       },
       {
         key: ClientTrafficPolicy.FORCE_ALL_TRAFFIC,
         value: ClientTrafficPolicy.FORCE_ALL_TRAFFIC,
-        label: LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.label(),
+        label:
+          LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.label(),
         meta: LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper(),
       },
     ],
@@ -69,9 +68,7 @@ export const ClientTrafficPolicySelect = ({
           >
             <p className="label">{label}</p>
             <RadioButton active={active} />
-            <Helper>
-              {parse(meta)}
-            </Helper>
+            <Helper>{parse(meta)}</Helper>
           </div>
         );
       })}
