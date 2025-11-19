@@ -28,6 +28,7 @@ use super::{ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    enrollment_management::start_desktop_configuration,
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,
@@ -464,18 +465,18 @@ pub(crate) async fn start_network_device_setup(
         device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
     };
     let config = server_config();
-    let configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &user,
-            None,
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            false,
-            appstate.mail_tx.clone(),
-            Some(result.device.id),
-        )
-        .await?;
+    let configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &user,
+        None,
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        false,
+        appstate.mail_tx.clone(),
+        Some(result.device.id),
+    )
+    .await?;
 
     debug!(
         "Generated a new device CLI configuration token for a network device {device_name} with ID {}: {configuration_token}",
@@ -530,18 +531,18 @@ pub(crate) async fn start_network_device_setup_for_device(
             ))
         })?;
     let config = server_config();
-    let configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &user,
-            None,
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            false,
-            appstate.mail_tx.clone(),
-            Some(device.id),
-        )
-        .await?;
+    let configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &user,
+        None,
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        false,
+        appstate.mail_tx.clone(),
+        Some(device.id),
+    )
+    .await?;
     transaction.commit().await?;
 
     debug!(

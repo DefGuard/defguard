@@ -24,7 +24,10 @@ use crate::{
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
         handlers::openid_login::prune_username,
-        ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
+        ldap::{
+            model::ldap_sync_allowed_for_user,
+            utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
+        },
     },
     grpc::gateway::events::GatewayEvent,
     handlers::user::check_username,
@@ -783,7 +786,7 @@ async fn sync_all_users_state(
                         "Deleting admin {} because they are not present in the directory",
                         user.email
                     );
-                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                    if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
                     delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)
@@ -829,7 +832,7 @@ async fn sync_all_users_state(
                         "Deleting user {} because they are not present in the directory",
                         user.email
                     );
-                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                    if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                         deleted_users.push(user.clone().as_noid());
                     }
                     delete_user_and_cleanup_devices(user, &mut transaction, wg_tx)

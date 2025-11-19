@@ -1,11 +1,17 @@
 use std::net::IpAddr;
 
 use claims::assert_err;
-use defguard_common::{csv::AsCsv, db::Id};
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{Device, DeviceType, User, WireguardNetwork, group::Group},
+    },
+};
 use defguard_core::{
-    db::{Device, Group, User, WireguardNetwork, models::device::DeviceType},
-    grpc::gateway::{events::GatewayEvent, get_location_allowed_peers},
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, wireguard::ImportedNetworkData},
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 use matches::assert_matches;
 use reqwest::StatusCode;

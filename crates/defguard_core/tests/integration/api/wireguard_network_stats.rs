@@ -1,15 +1,16 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
-use defguard_common::db::{Id, NoId, models::wireguard_peer_stats::WireguardPeerStats};
-use defguard_core::{
-    db::models::{
-        device::Device,
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device,
         wireguard::{
             WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
             WireguardUserStatsRow,
         },
+        wireguard_peer_stats::WireguardPeerStats,
     },
-    handlers::Auth,
 };
+use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;

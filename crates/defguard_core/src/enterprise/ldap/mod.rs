@@ -18,7 +18,12 @@ use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
 use crate::enterprise::{
-    is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts,
+    is_enterprise_enabled,
+    ldap::model::{
+        extract_dn_path, ldap_sync_allowed_for_user, user_as_ldap_attrs, user_as_ldap_mod,
+        user_from_searchentry,
+    },
+    limits::update_counts,
 };
 
 #[cfg(not(test))]
@@ -357,7 +362,7 @@ impl LDAPConnection {
         debug!("Updating users state in LDAP");
 
         for user in users {
-            let user_sync_allowed = user.ldap_sync_allowed(pool).await?;
+            let user_sync_allowed = ldap_sync_allowed_for_user(&user, pool).await?;
             let user_exists_in_ldap = self.user_exists(user).await?;
             let user_groups = user.member_of_names(pool).await?;
             let user_in_sync_groups = self.user_in_ldap_sync_groups(user).await?;
@@ -405,7 +410,7 @@ impl LDAPConnection {
     /// Checks if user belongs to one of the defined sync groups in the LDAP server.
     /// Returns true if no sync groups are defined (sync all users) or if user is in at least one sync group.
     async fn user_in_ldap_sync_groups<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
-        debug!("Checking if user {} is in LDAP sync groups", user.username);
+        debug!("Checking if user {user} is in LDAP sync groups");
 
         // Sync groups empty, we should sync all users
         if self.config.ldap_sync_groups.is_empty() {
@@ -539,7 +544,7 @@ impl LDAPConnection {
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search: {username}");
             self.test_bind_user(&entry.dn, password).await?;
-            User::from_searchentry(&entry, username, Some(password))
+            user_from_searchentry(&entry, username, Some(password))
         } else {
             Err(LdapError::ObjectNotFound(format!(
                 "User {username} not found",
@@ -549,9 +554,8 @@ impl LDAPConnection {
 
     /// Retrieves user from LDAP by username.
     /// Returns an error if multiple users are found or if the user doesn't exist.
-    pub async fn get_user_by_username<I>(&mut self, username: &User<I>) -> Result<User, LdapError> {
+    pub async fn get_user_by_username(&mut self, username: &str) -> Result<User, LdapError> {
         debug!("Performing LDAP user search by username: {username}");
-        let username = &username.username;
         let username_escape = ldap_escape(username);
         let mut entries = self
             .search_users(&format!(
@@ -564,7 +568,7 @@ impl LDAPConnection {
         }
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search by username: {username}");
-            User::from_searchentry(&entry, username, None)
+            user_from_searchentry(&entry, username, None)
         } else {
             Err(LdapError::ObjectNotFound(format!(
                 "User {username} not found",
@@ -580,7 +584,7 @@ impl LDAPConnection {
         match self.get(&dn).await? {
             Some(entry) => {
                 info!("Found LDAP user with DN: {}", dn);
-                User::from_searchentry(&entry, &user.username, None)
+                user_from_searchentry(&entry, &user.username, None)
             }
             None => Err(LdapError::ObjectNotFound(format!("User {dn} not found",))),
         }
@@ -596,26 +600,23 @@ impl LDAPConnection {
         password: Option<&str>,
         pool: &PgPool,
     ) -> Result<(), LdapError> {
-        debug!("Adding LDAP user {}", user.username);
-        let user_dn = self.config.user_dn_from_user(user);
+        debug!("Adding LDAP user {user}");
+        let user_dn = self.config.user_dn_from_user(&user);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
-            debug!("Using provided password for user {}", user.username);
+            debug!("Using provided password for user {user}");
             password.to_string()
         } else {
             // ldap may not accept no password, this is a workaround when we don't have access to the
             // user's password
-            debug!(
-                "Generating random password for user {}, as no password has been specified",
-                user.username
-            );
+            debug!("Generating random password for user {user}, as no password has been specified",);
             let random_password = rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
                 .take(32)
                 .map(char::from)
                 .collect::<String>();
 
-            debug!("Generated random password for user {}", user.username);
+            debug!("Generated random password for user {user}");
             random_password
         };
         let ssha_password = hash::salted_sha1_hash(&password);
@@ -633,7 +634,8 @@ impl LDAPConnection {
         }
         self.add(
             &user_dn,
-            user.as_ldap_attrs(
+            user_as_ldap_attrs(
+                user,
                 &ssha_password,
                 &nt_password,
                 user_obj_classes.iter().map(String::as_str).collect(),
@@ -652,7 +654,7 @@ impl LDAPConnection {
             user.ldap_pass_randomized = true;
         }
         user.save(pool).await?;
-        info!("Added LDAP user {}", user.username);
+        info!("Added LDAP user {user}");
         Ok(())
     }
 
@@ -688,7 +690,7 @@ impl LDAPConnection {
         let old_dn = self.config.user_dn(old_rdn, user_dn_path);
         let new_dn = self.config.user_dn(new_rdn, user_dn_path);
         let config = self.config.clone();
-        let mods = user.as_ldap_mod(&config);
+        let mods = user_as_ldap_mod(user, &config);
         self.modify(&old_dn, &new_dn, mods).await?;
         info!("Modified user {old_username} in LDAP");
 

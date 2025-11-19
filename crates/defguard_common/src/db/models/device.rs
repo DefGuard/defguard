@@ -15,12 +15,9 @@ use crate::{
     },
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
-#[cfg(test)]
-use chrono::NaiveDate;
-use chrono::{NaiveDateTime, Timelike, Utc};
+use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
-#[cfg(test)]
 use rand::{
     Rng,
     distributions::{Alphanumeric, DistString, Standard},
@@ -108,7 +105,6 @@ impl fmt::Display for Device<Id> {
     }
 }
 
-#[cfg(test)]
 impl Distribution<Device<Id>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
         Device {

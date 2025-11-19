@@ -32,12 +32,16 @@ use crate::{
         AppEvent,
         models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
+    enrollment_management::{start_desktop_configuration, start_user_enrollment},
     enterprise::{
         db::models::api_tokens::ApiToken,
         handlers::CanManageDevices,
-        ldap::utils::{
-            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-            ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+        ldap::{
+            model::{ldap_sync_allowed_for_user, maybe_update_rdn},
+            utils::{
+                ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+                ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+            },
         },
         limits::update_counts,
     },
@@ -480,17 +484,17 @@ pub async fn start_enrollment(
         None => config.enrollment_token_timeout.as_secs(),
     };
 
-    let enrollment_token = user
-        .start_enrollment(
-            &mut transaction,
-            &session.user,
-            data.email,
-            token_expiration_time_seconds,
-            config.enrollment_url.clone(),
-            data.send_enrollment_notification,
-            appstate.mail_tx.clone(),
-        )
-        .await?;
+    let enrollment_token = start_user_enrollment(
+        &mut user,
+        &mut transaction,
+        &session.user,
+        data.email,
+        token_expiration_time_seconds,
+        config.enrollment_url.clone(),
+        data.send_enrollment_notification,
+        appstate.mail_tx.clone(),
+    )
+    .await?;
 
     debug!("Try to commit transaction to save the enrollment token into the database.");
     transaction.commit().await?;
@@ -583,18 +587,18 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
     let config = server_config();
-    let desktop_configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &session.user,
-            Some(email),
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            data.send_enrollment_notification,
-            appstate.mail_tx.clone(),
-            None,
-        )
-        .await?;
+    let desktop_configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &session.user,
+        Some(email),
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        data.send_enrollment_notification,
+        appstate.mail_tx.clone(),
+        None,
+    )
+    .await?;
 
     debug!("Try to submit transaction to save the desktop configuration token into the databse.");
     transaction.commit().await?;
@@ -739,7 +743,7 @@ pub async fn modify_user(
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
-    let ldap_sync_allowed = user.ldap_sync_allowed(&mut *transaction).await?;
+    let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &mut *transaction).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
@@ -804,7 +808,7 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
-    user.maybe_update_rdn();
+    maybe_update_rdn(&mut user);
     user.save(&appstate.pool).await?;
 
     Box::pin(ldap_update_user_state(&mut user, &appstate.pool)).await;
@@ -912,7 +916,7 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let user_for_ldap = if user.ldap_sync_allowed(&mut *transaction).await? {
+        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
             Some(user.clone().as_noid())
         } else {
             None

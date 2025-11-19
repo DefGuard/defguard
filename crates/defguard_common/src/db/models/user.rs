@@ -917,7 +917,7 @@ impl User<Id> {
         .await
     }
 
-    pub(crate) async fn oauth2authorizedapps<'e, E>(
+    pub async fn oauth2authorizedapps<'e, E>(
         &self,
         executor: E,
     ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
@@ -981,7 +981,7 @@ impl User<Id> {
     }
 
     /// Remove authorized apps by their client id's from user
-    pub(crate) async fn remove_oauth2_authorized_apps<'e, E>(
+    pub async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
         executor: E,
         app_client_ids: &[i64],

@@ -4,12 +4,9 @@ use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard_common::db::{
     Id,
-    models::{OAuth2AuthorizedApp, oauth2client::OAuth2Client},
+    models::{OAuth2AuthorizedApp, User, oauth2client::OAuth2Client},
 };
-use defguard_core::{
-    db::User,
-    handlers::{Auth, openid_clients::NewOpenIDClient},
-};
+use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,

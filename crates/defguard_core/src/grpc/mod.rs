@@ -49,6 +49,7 @@ use crate::{
         AppEvent,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
+    enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
@@ -455,7 +456,7 @@ async fn handle_proxy_message_loop(
                                 .await
                                 {
                                     Ok(mut user) => {
-                                        user.clear_unused_enrollment_tokens(&pool).await?;
+                                        clear_unused_enrollment_tokens(&user, &pool).await?;
                                         if let Err(err) = sync_user_groups_if_configured(
                                             &user,
                                             &pool,

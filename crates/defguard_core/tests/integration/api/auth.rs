@@ -2,15 +2,12 @@ use std::time::SystemTime;
 
 use chrono::DateTime;
 use claims::{assert_err, assert_ok};
-use defguard_common::db::models::{MFAMethod, Settings, settings::update_current_settings};
+use defguard_common::db::models::{
+    MFAInfo, MFAMethod, Settings, User,
+    settings::update_current_settings,
+    user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+};
 use defguard_core::{
-    db::{
-        User,
-        models::{
-            mfa_info::MFAInfo,
-            user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-        },
-    },
     events::ApiEventType,
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, user::UserDetails},
 };

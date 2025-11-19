@@ -10,7 +10,7 @@ use defguard_common::db::{
 use sqlx::PgPool;
 
 use super::{LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::with_ldap_status;
+use crate::enterprise::ldap::{model::ldap_sync_allowed_for_user, with_ldap_status};
 
 /// Retrieves a user from LDAP if they are in the configured LDAP sync groups.
 ///
@@ -80,7 +80,7 @@ pub(crate) async fn ldap_update_users_state(users: Vec<&mut User<Id>>, pool: &Pg
 pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Creating user {user} in LDAP");
-        if !user.ldap_sync_allowed(pool).await? {
+        if !ldap_sync_allowed_for_user(user, pool).await? {
             debug!(
                 "User {user} is not allowed to be synced to LDAP as he is not in the specified \
                 sync groups, skipping"
@@ -88,7 +88,8 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
             return Ok(());
         }
         let mut ldap_connection = LDAPConnection::create().await?;
-        if ldap_connection.user_exists(user).await? {
+        // convert to ldap module wrapper
+        if ldap_connection.user_exists(&user).await? {
             debug!("User {user} already exists in LDAP, skipping creation");
             return Ok(());
         }
@@ -101,7 +102,7 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
                     "Trying to set password for user {user} in LDAP, in case he already existed",
                 );
                 if let Some(password) = password {
-                    ldap_connection.set_password(user, password).await?;
+                    ldap_connection.set_password(&user, password).await?;
                     debug!("Password set for user {user} in LDAP");
                 } else {
                     debug!(
@@ -216,7 +217,7 @@ pub(crate) async fn ldap_add_users_to_groups(
             let adding_to_sync_groups = groups
                 .iter()
                 .any(|group| sync_groups_lookup.contains(*group));
-            if !user.ldap_sync_allowed(pool).await? && !adding_to_sync_groups {
+            if !ldap_sync_allowed_for_user(user, pool).await? && !adding_to_sync_groups {
                 debug!(
                     "User {user} is not allowed to be synced to LDAP as he is not in the \
                     specified sync groups, skipping"
@@ -251,7 +252,7 @@ pub(crate) async fn ldap_remove_users_from_groups(
             let removing_from_sync_groups = groups
                 .iter()
                 .any(|group| sync_groups_lookup.contains(*group));
-            if !user.ldap_sync_allowed(pool).await? && !removing_from_sync_groups {
+            if !ldap_sync_allowed_for_user(user, pool).await? && !removing_from_sync_groups {
                 debug!(
                     "User {user} is not allowed to be synced to LDAP as he is not in the
                     specified sync groups, skipping"
@@ -275,7 +276,7 @@ pub(crate) async fn ldap_remove_users_from_groups(
 pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {user} in LDAP");
-        if !user.ldap_sync_allowed(pool).await? {
+        if !ldap_sync_allowed_for_user(user, pool).await? {
             debug!(
                 "User {user} is not allowed to be synced to LDAP as he is not in the specified
                 sync groups, skipping"

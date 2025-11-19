@@ -18,6 +18,16 @@ pub mod enterprise {
     }
 }
 
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{
+            Device, DeviceConfig, User,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+    },
+};
 use proxy::{CoreError, MfaMethod};
 use serde::Serialize;
 use tonic::Status;
@@ -61,6 +71,101 @@ impl From<Status> for CoreError {
         Self {
             status_code: status.code().into(),
             message: status.message().into(),
+        }
+    }
+}
+
+impl From<DeviceConfig> for proxy::DeviceConfig {
+    fn from(config: DeviceConfig) -> Self {
+        // DEPRECATED(1.5): superseeded by location_mfa_mode
+        let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
+        Self {
+            network_id: config.network_id,
+            network_name: config.network_name,
+            config: config.config,
+            endpoint: config.endpoint,
+            assigned_ip: config.address.as_csv(),
+            pubkey: config.pubkey,
+            allowed_ips: config.allowed_ips.as_csv(),
+            dns: config.dns,
+            keepalive_interval: config.keepalive_interval,
+            #[allow(deprecated)]
+            mfa_enabled,
+            location_mfa_mode: Some(
+                <LocationMfaMode as Into<proxy::LocationMfaMode>>::into(config.location_mfa_mode)
+                    .into(),
+            ),
+            service_location_mode: Some(
+                <ServiceLocationMode as Into<proxy::ServiceLocationMode>>::into(
+                    config.service_location_mode,
+                )
+                .into(),
+            ),
+        }
+    }
+}
+
+impl From<Device<Id>> for proxy::Device {
+    fn from(device: Device<Id>) -> Self {
+        Self {
+            id: device.id,
+            name: device.name,
+            pubkey: device.wireguard_pubkey,
+            user_id: device.user_id,
+            created_at: device.created.and_utc().timestamp(),
+        }
+    }
+}
+
+impl From<User<Id>> for proxy::AdminInfo {
+    fn from(admin: User<Id>) -> Self {
+        Self {
+            name: format!("{} {}", admin.first_name, admin.last_name),
+            phone_number: admin.phone,
+            email: admin.email,
+        }
+    }
+}
+// impl From<ProtoLocationMfaMode> for LocationMfaMode {
+//     fn from(value: ProtoLocationMfaMode) -> Self {
+//         match value {
+//             ProtoLocationMfaMode::Unspecified | ProtoLocationMfaMode::Disabled => {
+//                 LocationMfaMode::Disabled
+//             }
+//             ProtoLocationMfaMode::Internal => LocationMfaMode::Internal,
+//             ProtoLocationMfaMode::External => LocationMfaMode::External,
+//         }
+//     }
+// }
+
+impl From<LocationMfaMode> for proxy::LocationMfaMode {
+    fn from(value: LocationMfaMode) -> Self {
+        match value {
+            LocationMfaMode::Disabled => proxy::LocationMfaMode::Disabled,
+            LocationMfaMode::Internal => proxy::LocationMfaMode::Internal,
+            LocationMfaMode::External => proxy::LocationMfaMode::External,
+        }
+    }
+}
+
+// impl From<ProtoServiceLocationMode> for ServiceLocationMode {
+//     fn from(value: ProtoServiceLocationMode) -> Self {
+//         match value {
+//             ProtoServiceLocationMode::Unspecified | ProtoServiceLocationMode::Disabled => {
+//                 ServiceLocationMode::Disabled
+//             }
+//             ProtoServiceLocationMode::Prelogon => ServiceLocationMode::PreLogon,
+//             ProtoServiceLocationMode::Alwayson => ServiceLocationMode::AlwaysOn,
+//         }
+//     }
+// }
+
+impl From<ServiceLocationMode> for proxy::ServiceLocationMode {
+    fn from(value: ServiceLocationMode) -> Self {
+        match value {
+            ServiceLocationMode::Disabled => proxy::ServiceLocationMode::Disabled,
+            ServiceLocationMode::PreLogon => proxy::ServiceLocationMode::Prelogon,
+            ServiceLocationMode::AlwaysOn => proxy::ServiceLocationMode::Alwayson,
         }
     }
 }

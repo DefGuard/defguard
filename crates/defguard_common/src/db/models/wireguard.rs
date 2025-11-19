@@ -91,27 +91,6 @@ impl Display for LocationMfaMode {
     }
 }
 
-// impl From<ProtoLocationMfaMode> for LocationMfaMode {
-//     fn from(value: ProtoLocationMfaMode) -> Self {
-//         match value {
-//             ProtoLocationMfaMode::Unspecified | ProtoLocationMfaMode::Disabled => {
-//                 LocationMfaMode::Disabled
-//             }
-//             ProtoLocationMfaMode::Internal => LocationMfaMode::Internal,
-//             ProtoLocationMfaMode::External => LocationMfaMode::External,
-//         }
-//     }
-// }
-// impl From<LocationMfaMode> for ProtoLocationMfaMode {
-//     fn from(value: LocationMfaMode) -> Self {
-//         match value {
-//             LocationMfaMode::Disabled => ProtoLocationMfaMode::Disabled,
-//             LocationMfaMode::Internal => ProtoLocationMfaMode::Internal,
-//             LocationMfaMode::External => ProtoLocationMfaMode::External,
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "service_location_mode", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -121,28 +100,6 @@ pub enum ServiceLocationMode {
     PreLogon,
     AlwaysOn,
 }
-
-// impl From<ProtoServiceLocationMode> for ServiceLocationMode {
-//     fn from(value: ProtoServiceLocationMode) -> Self {
-//         match value {
-//             ProtoServiceLocationMode::Unspecified | ProtoServiceLocationMode::Disabled => {
-//                 ServiceLocationMode::Disabled
-//             }
-//             ProtoServiceLocationMode::Prelogon => ServiceLocationMode::PreLogon,
-//             ProtoServiceLocationMode::Alwayson => ServiceLocationMode::AlwaysOn,
-//         }
-//     }
-// }
-
-// impl From<ServiceLocationMode> for ProtoServiceLocationMode {
-//     fn from(value: ServiceLocationMode) -> Self {
-//         match value {
-//             ServiceLocationMode::Disabled => ProtoServiceLocationMode::Disabled,
-//             ServiceLocationMode::PreLogon => ProtoServiceLocationMode::Prelogon,
-//             ServiceLocationMode::AlwaysOn => ProtoServiceLocationMode::Alwayson,
-//         }
-//     }
-// }
 
 /// Stores configuration required to setup a WireGuard network
 #[derive(Clone, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]

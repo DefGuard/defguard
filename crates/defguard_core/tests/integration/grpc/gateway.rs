@@ -5,15 +5,16 @@ use std::{
 
 use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
-use defguard_common::db::{Id, NoId, models::wireguard_peer_stats::WireguardPeerStats, setup_pool};
-use defguard_core::{
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::DeviceType,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
-        },
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, User, WireguardNetwork,
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+        wireguard_peer_stats::WireguardPeerStats,
     },
+    setup_pool,
+};
+use defguard_core::{
     enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
     grpc::{MIN_GATEWAY_VERSION, gateway::events::GatewayEvent},

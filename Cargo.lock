@@ -1272,6 +1272,7 @@ dependencies = [
 name = "defguard_proto"
 version = "0.0.0"
 dependencies = [
+ "defguard_common",
  "prost",
  "serde",
  "tonic",

@@ -9,12 +9,15 @@ pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
     config::DefGuardConfig,
-    db::{Id, NoId, models::settings::initialize_current_settings},
+    db::{
+        Id, NoId,
+        models::{Device, User, WireguardNetwork, settings::initialize_current_settings},
+    },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, Device, User, WireguardNetwork},
+    db::AppEvent,
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{

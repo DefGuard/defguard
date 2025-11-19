@@ -10,14 +10,14 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            Settings, settings::initialize_current_settings,
+            Settings, User, settings::initialize_current_settings,
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, User},
+    db::AppEvent,
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},

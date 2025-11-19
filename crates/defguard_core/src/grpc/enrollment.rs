@@ -6,11 +6,8 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
-            WireguardNetwork,
-            device::DeviceInfo,
-            polling_token::PollingToken,
-            settings::defaults::WELCOME_EMAIL_SUBJECT,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
+            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
+            settings::defaults::WELCOME_EMAIL_SUBJECT, wireguard::ServiceLocationMode,
         },
     },
 };
@@ -20,11 +17,9 @@ use defguard_mail::{
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
-    ServiceLocationMode as ProtoServiceLocationMode,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
+    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
+    NewDevice, RegisterMobileAuthRequest,
 };
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
@@ -1040,16 +1035,6 @@ impl EnrollmentServer {
     }
 }
 
-impl From<User<Id>> for AdminInfo {
-    fn from(admin: User<Id>) -> Self {
-        Self {
-            name: format!("{} {}", admin.first_name, admin.last_name),
-            phone_number: admin.phone,
-            email: admin.email,
-        }
-    }
-}
-
 async fn initial_info_from_user(
     pool: &PgPool,
     user: User<Id>,
@@ -1070,49 +1055,6 @@ async fn initial_info_from_user(
         is_admin,
     })
 }
-
-impl From<DeviceConfig> for ProtoDeviceConfig {
-    fn from(config: DeviceConfig) -> Self {
-        // DEPRECATED(1.5): superseeded by location_mfa_mode
-        let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
-        Self {
-            network_id: config.network_id,
-            network_name: config.network_name,
-            config: config.config,
-            endpoint: config.endpoint,
-            assigned_ip: config.address.as_csv(),
-            pubkey: config.pubkey,
-            allowed_ips: config.allowed_ips.as_csv(),
-            dns: config.dns,
-            keepalive_interval: config.keepalive_interval,
-            #[allow(deprecated)]
-            mfa_enabled,
-            location_mfa_mode: Some(
-                <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(config.location_mfa_mode)
-                    .into(),
-            ),
-            service_location_mode: Some(
-                <ServiceLocationMode as Into<ProtoServiceLocationMode>>::into(
-                    config.service_location_mode,
-                )
-                .into(),
-            ),
-        }
-    }
-}
-
-impl From<Device<Id>> for ProtoDevice {
-    fn from(device: Device<Id>) -> Self {
-        Self {
-            id: device.id,
-            name: device.name,
-            pubkey: device.wireguard_pubkey,
-            user_id: device.user_id,
-            created_at: device.created.and_utc().timestamp(),
-        }
-    }
-}
-
 impl Token {
     // Send configured welcome email to user after finishing enrollment
     async fn send_welcome_email(

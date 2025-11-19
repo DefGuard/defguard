@@ -12,7 +12,7 @@ static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration
 /// Start user enrollment process
 /// This creates a new enrollment token valid for 24h
 /// and optionally sends enrollment email notification to user
-pub async fn start_enrollment(
+pub async fn start_user_enrollment(
     user: &mut User<Id>,
     transaction: &mut PgConnection,
     admin: &User<Id>,
@@ -123,7 +123,7 @@ pub async fn start_enrollment(
 /// Start user remote desktop configuration process
 /// This creates a new enrollment token valid for 24h
 /// and optionally sends email notification to user
-pub async fn start_remote_desktop_configuration(
+pub async fn start_desktop_configuration(
     user: &User<Id>,
     transaction: &mut PgConnection,
     admin: &User<Id>,

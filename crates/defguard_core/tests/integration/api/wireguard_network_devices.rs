@@ -1,8 +1,10 @@
 use std::{net::IpAddr, str::FromStr};
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, WireguardNetwork},
+};
 use defguard_core::{
-    db::{Device, WireguardNetwork},
     grpc::gateway::events::GatewayEvent,
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
