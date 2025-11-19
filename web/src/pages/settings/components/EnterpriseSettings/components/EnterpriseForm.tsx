@@ -41,9 +41,6 @@ export const EnterpriseForm = () => {
     },
   });
 
-  const onPolicyChange = (newPolicy: ClientTrafficPolicy) =>
-    console.log('New policy:', newPolicy);
-
   if (!settings) return null;
 
   return (
