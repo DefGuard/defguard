@@ -17,6 +17,7 @@ export const ClientTrafficPolicySelect = ({
 }: Props) => {
   const { LL } = useI18nContext();
 
+  console.log("fieldValue:", fieldValue);
   const options = useMemo(
     (): SelectOption<ClientTrafficPolicy>[] => [
       {
