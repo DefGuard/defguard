@@ -1121,10 +1121,15 @@ export type SettingsGatewayNotifications = {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 };
 
+export enum ClientTrafficPolicy {
+  NONE = 'none',
+  DISABLE_ALL_TRAFFIC = 'disable_all_traffic',
+  FORCE_ALL_TRAFFIC = 'force_all_traffic',
+}
+
 export type SettingsEnterprise = {
   admin_device_management: boolean;
-  disable_all_traffic: boolean;
-  force_all_traffic: boolean;
+  client_traffic_policy: ClientTrafficPolicy;
   only_client_activation: boolean;
 };
 

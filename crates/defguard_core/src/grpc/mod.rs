@@ -46,15 +46,14 @@ pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent, GatewayEvent,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, GatewayEvent
     },
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings}, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
@@ -62,7 +61,7 @@ use crate::{
     events::{BidiStreamEvent, GrpcEvent},
     grpc::gateway::{client_state::ClientMap, map::GatewayMap},
     server_config,
-    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
+    version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData},
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -806,8 +805,7 @@ pub struct InstanceInfo {
     url: Url,
     proxy_url: Url,
     username: String,
-    disable_all_traffic: bool,
-    force_all_traffic: bool,
+	client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
 }
@@ -830,8 +828,7 @@ impl InstanceInfo {
             url: config.url.clone(),
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
-            disable_all_traffic: enterprise_settings.disable_all_traffic,
-            force_all_traffic: enterprise_settings.force_all_traffic,
+            client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_enterprise_enabled(),
             openid_display_name,
         }
@@ -846,8 +843,10 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
             url: instance.url.to_string(),
             proxy_url: instance.proxy_url.to_string(),
             username: instance.username,
-            disable_all_traffic: instance.disable_all_traffic,
-            force_all_traffic: Some(instance.force_all_traffic),
+			// Ensure backwards compatibility.
+			#[allow(deprecated)]
+            disable_all_traffic: instance.client_traffic_policy == ClientTrafficPolicy::DisableAllTraffic,
+            client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
         }

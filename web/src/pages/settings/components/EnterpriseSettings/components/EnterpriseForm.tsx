@@ -5,13 +5,18 @@ import type { AxiosError } from 'axios';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+// import { FormServiceLocationModeSelect } from '../../../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+// import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
+// import { SelectOption } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
+import type { ClientTrafficPolicy } from '../../../../../shared/types';
+import { ClientTrafficPolicySelect } from './TrafficPolicySelect/TrafficPolicySelect';
 
 export const EnterpriseForm = () => {
   const { LL } = useI18nContext();
@@ -38,6 +43,16 @@ export const EnterpriseForm = () => {
       console.error(err);
     },
   });
+
+  // const trafficPolicyOptions: SelectOption<ClientTrafficPolicy>[] =
+  //   Object.values(ClientTrafficPolicy).map((v) => ({
+  //     value: v,
+  //     label: v,
+  //     key: v,
+  //   }));
+
+  const onPolicyChange = (newPolicy: ClientTrafficPolicy) =>
+    console.log('New policy:', newPolicy);
 
   if (!settings) return null;
 
@@ -77,26 +92,9 @@ export const EnterpriseForm = () => {
           </Helper>
         </div>
         <div className="helper-row">
-          <LabeledCheckbox
-            disabled={isLoading || settings.force_all_traffic}
-            label={LL.settingsPage.enterprise.fields.disableAllTraffic.label()}
-            value={settings.disable_all_traffic}
-            onChange={() =>
-              mutate({ disable_all_traffic: !settings.disable_all_traffic })
-            }
-          />
-          <Helper>
-            {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
-          </Helper>
-        </div>
-        <div className="helper-row">
-          <LabeledCheckbox
-            disabled={isLoading || settings.disable_all_traffic}
-            label={LL.settingsPage.enterprise.fields.forceAllTraffic.label()}
-            value={settings.force_all_traffic}
-            onChange={() =>
-              mutate({ force_all_traffic: !settings.force_all_traffic })
-            }
+          <ClientTrafficPolicySelect
+            onChange={onPolicyChange}
+            fieldValue={settings.client_traffic_policy}
           />
           <Helper>
             {parse(LL.settingsPage.enterprise.fields.forceAllTraffic.helper())}
