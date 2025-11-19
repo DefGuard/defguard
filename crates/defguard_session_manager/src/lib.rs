@@ -3,8 +3,8 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 pub async fn run_session_manager(
-    pool: PgPool,
-    peer_stats_rx: UnboundedReceiver<WireguardPeerStats>,
+    _pool: PgPool,
+    _peer_stats_rx: UnboundedReceiver<WireguardPeerStats>,
 ) {
     unimplemented!()
 }

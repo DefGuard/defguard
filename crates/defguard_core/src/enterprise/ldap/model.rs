@@ -281,7 +281,7 @@ pub(super) async fn get_users_without_ldap_path<'e, E>(
 where
     E: PgExecutor<'e>,
 {
-    let users = sqlx::query_as!(
+    sqlx::query_as!(
         User,
         "
             SELECT id, username, password_hash, last_name, first_name, email, phone, \
@@ -292,9 +292,7 @@ where
             ",
     )
     .fetch_all(executor)
-    .await?;
-
-    Ok(users.into_iter().map(Into::into).collect())
+    .await
 }
 
 fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {

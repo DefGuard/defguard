@@ -19,7 +19,7 @@ where
 {
     debug!("Fetching all peers for network {}", location.id);
 
-    if should_prevent_service_location_usage(&location) {
+    if should_prevent_service_location_usage(location) {
         warn!(
             "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
             location.name

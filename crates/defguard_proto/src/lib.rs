@@ -126,17 +126,6 @@ impl From<User<Id>> for proxy::AdminInfo {
         }
     }
 }
-// impl From<ProtoLocationMfaMode> for LocationMfaMode {
-//     fn from(value: ProtoLocationMfaMode) -> Self {
-//         match value {
-//             ProtoLocationMfaMode::Unspecified | ProtoLocationMfaMode::Disabled => {
-//                 LocationMfaMode::Disabled
-//             }
-//             ProtoLocationMfaMode::Internal => LocationMfaMode::Internal,
-//             ProtoLocationMfaMode::External => LocationMfaMode::External,
-//         }
-//     }
-// }
 
 impl From<LocationMfaMode> for proxy::LocationMfaMode {
     fn from(value: LocationMfaMode) -> Self {
@@ -147,18 +136,6 @@ impl From<LocationMfaMode> for proxy::LocationMfaMode {
         }
     }
 }
-
-// impl From<ProtoServiceLocationMode> for ServiceLocationMode {
-//     fn from(value: ProtoServiceLocationMode) -> Self {
-//         match value {
-//             ProtoServiceLocationMode::Unspecified | ProtoServiceLocationMode::Disabled => {
-//                 ServiceLocationMode::Disabled
-//             }
-//             ProtoServiceLocationMode::Prelogon => ServiceLocationMode::PreLogon,
-//             ProtoServiceLocationMode::Alwayson => ServiceLocationMode::AlwaysOn,
-//         }
-//     }
-// }
 
 impl From<ServiceLocationMode> for proxy::ServiceLocationMode {
     fn from(value: ServiceLocationMode) -> Self {

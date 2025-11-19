@@ -26,18 +26,18 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-impl Into<OAuth2Client<NoId>> for NewOpenIDClient {
-    fn into(self) -> OAuth2Client<NoId> {
+impl From<NewOpenIDClient> for OAuth2Client<NoId> {
+    fn from(value: NewOpenIDClient) -> Self {
         let client_id = gen_alphanumeric(16);
         let client_secret = gen_alphanumeric(32);
-        OAuth2Client {
+        Self {
             id: NoId,
             client_id,
             client_secret,
-            redirect_uri: self.redirect_uri,
-            scope: self.scope,
-            name: self.name,
-            enabled: self.enabled,
+            redirect_uri: value.redirect_uri,
+            scope: value.scope,
+            name: value.name,
+            enabled: value.enabled,
         }
     }
 }

@@ -89,7 +89,7 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
         }
         let mut ldap_connection = LDAPConnection::create().await?;
         // convert to ldap module wrapper
-        if ldap_connection.user_exists(&user).await? {
+        if ldap_connection.user_exists(user).await? {
             debug!("User {user} already exists in LDAP, skipping creation");
             return Ok(());
         }
@@ -102,7 +102,7 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
                     "Trying to set password for user {user} in LDAP, in case he already existed",
                 );
                 if let Some(password) = password {
-                    ldap_connection.set_password(&user, password).await?;
+                    ldap_connection.set_password(user, password).await?;
                     debug!("Password set for user {user} in LDAP");
                 } else {
                     debug!(

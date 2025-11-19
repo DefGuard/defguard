@@ -19,9 +19,6 @@ use crate::{
 };
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-// use defguard_proto::proxy::{
-//     LocationMfaMode as ProtoLocationMfaMode, ServiceLocationMode as ProtoServiceLocationMode,
-// };
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
@@ -235,6 +232,7 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
         name: String,
@@ -314,6 +312,7 @@ impl WireguardNetwork<Id> {
         Ok(Some(networks))
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in networks used by location {self}");
         // if given location uses multiple subnets validate devices can fit them all
@@ -889,6 +888,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generates auth token for a VPN gateway
+    #[allow(clippy::result_large_err)]
     pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
         let location_id = self.id;
 

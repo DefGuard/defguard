@@ -362,7 +362,7 @@ impl LDAPConnection {
         debug!("Updating users state in LDAP");
 
         for user in users {
-            let user_sync_allowed = ldap_sync_allowed_for_user(&user, pool).await?;
+            let user_sync_allowed = ldap_sync_allowed_for_user(user, pool).await?;
             let user_exists_in_ldap = self.user_exists(user).await?;
             let user_groups = user.member_of_names(pool).await?;
             let user_in_sync_groups = self.user_in_ldap_sync_groups(user).await?;
@@ -601,7 +601,7 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {user}");
-        let user_dn = self.config.user_dn_from_user(&user);
+        let user_dn = self.config.user_dn_from_user(user);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {user}");
