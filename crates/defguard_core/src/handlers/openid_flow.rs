@@ -18,7 +18,7 @@ use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
     models::{
-        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState,
+        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
         oauth2client::OAuth2Client,
     },
 };
@@ -49,7 +49,6 @@ use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
-    db::User,
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,

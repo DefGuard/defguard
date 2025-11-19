@@ -5,8 +5,13 @@ use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{
         Id,
-        models::{BiometricAuth, BiometricChallenge},
+        models::{
+            BiometricAuth, BiometricChallenge, Device, DeviceNetworkInfo, User, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::LocationMfaMode,
+        },
     },
+    types::user_info::UserInfo,
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
@@ -23,14 +28,6 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use crate::{
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-            user_info::UserInfo,
-            wireguard::LocationMfaMode,
-        },
-    },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},

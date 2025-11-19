@@ -57,17 +57,15 @@ use std::collections::{HashMap, HashSet};
 use defguard_common::db::{
     Id,
     models::{
-        Settings,
+        Settings, User,
+        group::Group,
         settings::{LdapSyncStatus, update_current_settings},
     },
 };
 use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
-use crate::{
-    db::{Group, User},
-    hashset,
-};
+use crate::hashset;
 
 async fn get_or_create_group(
     transaction: &mut PgConnection,

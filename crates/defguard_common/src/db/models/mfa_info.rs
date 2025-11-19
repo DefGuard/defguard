@@ -1,7 +1,9 @@
-use defguard_common::db::{Id, models::MFAMethod};
+use crate::db::{
+    Id,
+    models::{MFAMethod, user::User},
+};
+use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, PgPool, query_as};
-
-use crate::db::User;
 
 #[derive(Deserialize, Serialize)]
 pub struct MFAInfo {

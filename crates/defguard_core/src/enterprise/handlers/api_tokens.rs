@@ -4,14 +4,13 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
-use defguard_common::random::gen_alphanumeric;
+use defguard_common::{db::models::user::User, random::gen_alphanumeric};
 use serde_json::json;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::User,
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},

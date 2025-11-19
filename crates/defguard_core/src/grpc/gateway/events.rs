@@ -1,7 +1,8 @@
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{WireguardNetwork, device::DeviceInfo},
+};
 use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::Peer};
-
-use crate::db::{WireguardNetwork, models::device::DeviceInfo};
 
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {

@@ -1,5 +1,8 @@
 use axum::http::StatusCode;
-use defguard_common::db::models::{ModelError, settings::SettingsValidationError};
+use defguard_common::db::models::{
+    DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
+    user::UserError,
+};
 use defguard_mail::templates::TemplateError;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
@@ -8,10 +11,7 @@ use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
-    db::models::{
-        device::DeviceError, enrollment::TokenError, user::UserError,
-        wireguard::WireguardNetworkError,
-    },
+    db::models::enrollment::TokenError,
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,

@@ -1,13 +1,23 @@
 use std::{fmt, net::IpAddr};
 
+use crate::{
+    KEY_LENGTH,
+    csv::AsCsv,
+    db::{
+        Id, NoId,
+        models::{
+            ModelError, WireguardNetwork,
+            user::User,
+            wireguard::{
+                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WIREGUARD_MAX_HANDSHAKE,
+            },
+        },
+    },
+};
 use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Timelike, Utc};
-use defguard_common::{
-    csv::AsCsv,
-    db::{Id, NoId, models::ModelError},
-};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 #[cfg(test)]
@@ -16,36 +26,30 @@ use rand::{
     distributions::{Alphanumeric, DistString, Standard},
     prelude::Distribution,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
     postgres::types::PgInterval, query, query_as,
 };
 use thiserror::Error;
+use tracing::{debug, error, info};
 use utoipa::ToSchema;
-
-use super::wireguard::{
-    LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork,
-};
-use crate::{
-    KEY_LENGTH,
-    db::{User, models::wireguard::ServiceLocationMode},
-};
 
 #[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {
-    pub(crate) network_id: Id,
-    pub(crate) network_name: String,
-    pub(crate) config: String,
+    pub network_id: Id,
+    pub network_name: String,
+    pub config: String,
     #[schema(value_type = String)]
-    pub(crate) address: Vec<IpAddr>,
-    pub(crate) endpoint: String,
+    pub address: Vec<IpAddr>,
+    pub endpoint: String,
     #[schema(value_type = String)]
-    pub(crate) allowed_ips: Vec<IpNetwork>,
-    pub(crate) pubkey: String,
-    pub(crate) dns: Option<String>,
-    pub(crate) keepalive_interval: i32,
-    pub(crate) location_mfa_mode: LocationMfaMode,
-    pub(crate) service_location_mode: ServiceLocationMode,
+    pub allowed_ips: Vec<IpNetwork>,
+    pub pubkey: String,
+    pub dns: Option<String>,
+    pub keepalive_interval: i32,
+    pub location_mfa_mode: LocationMfaMode,
+    pub service_location_mode: ServiceLocationMode,
 }
 
 // The type of a device:
@@ -154,10 +158,7 @@ pub struct DeviceNetworkInfo {
 }
 
 impl DeviceInfo {
-    pub(crate) async fn from_device<'e, E>(
-        executor: E,
-        device: Device<Id>,
-    ) -> Result<Self, ModelError>
+    pub async fn from_device<'e, E>(executor: E, device: Device<Id>) -> Result<Self, ModelError>
     where
         E: PgExecutor<'e>,
     {
@@ -288,7 +289,7 @@ pub struct ModifyDevice {
 
 impl WireguardNetworkDevice {
     #[must_use]
-    pub(crate) fn new<I>(network_id: Id, device_id: Id, wireguard_ips: I) -> Self
+    pub fn new<I>(network_id: Id, device_id: Id, wireguard_ips: I) -> Self
     where
         I: Into<Vec<IpAddr>>,
     {
@@ -310,7 +311,7 @@ impl WireguardNetworkDevice {
             .collect()
     }
 
-    pub(crate) async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -334,7 +335,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub(crate) async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -355,7 +356,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub(crate) async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -371,7 +372,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub(crate) async fn find<'e, E>(
+    pub async fn find<'e, E>(
         executor: E,
         device_id: Id,
         network_id: Id,
@@ -397,10 +398,7 @@ impl WireguardNetworkDevice {
 
     /// Get a first network the device was added to. Useful for network devices to
     /// make sure they always pull only one network's config.
-    pub(crate) async fn find_first<'e, E>(
-        executor: E,
-        device_id: Id,
-    ) -> Result<Option<Self>, SqlxError>
+    pub async fn find_first<'e, E>(executor: E, device_id: Id) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -444,10 +442,7 @@ impl WireguardNetworkDevice {
         })
     }
 
-    pub(crate) async fn all_for_network<'e, E>(
-        executor: E,
-        network_id: Id,
-    ) -> Result<Vec<Self>, SqlxError>
+    pub async fn all_for_network<'e, E>(executor: E, network_id: Id) -> Result<Vec<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -469,7 +464,7 @@ impl WireguardNetworkDevice {
     /// Get all devices for a given network and user
     /// Note: doesn't return network devices added by the user
     /// as they are not considered to be bound to the user
-    pub(crate) async fn all_for_network_and_user<'e, E>(
+    pub async fn all_for_network_and_user<'e, E>(
         executor: E,
         network_id: Id,
         user_id: Id,
@@ -494,10 +489,7 @@ impl WireguardNetworkDevice {
         Ok(res)
     }
 
-    pub(crate) async fn network<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<WireguardNetwork<Id>, SqlxError>
+    pub async fn network<'e, E>(&self, executor: E) -> Result<WireguardNetwork<Id>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -559,7 +551,7 @@ impl Device {
 }
 
 impl Device<Id> {
-    pub(crate) fn update_from(&mut self, other: ModifyDevice) {
+    pub fn update_from(&mut self, other: ModifyDevice) {
         self.name = other.name;
         self.wireguard_pubkey = other.wireguard_pubkey;
         self.description = other.description;
@@ -567,7 +559,7 @@ impl Device<Id> {
 
     /// Create WireGuard config for device.
     #[must_use]
-    pub(crate) fn create_config(
+    pub fn create_config(
         network: &WireguardNetwork<Id>,
         wireguard_network_device: &WireguardNetworkDevice,
     ) -> String {
@@ -606,7 +598,7 @@ impl Device<Id> {
         )
     }
 
-    pub(crate) async fn find_by_ip<'e, E>(
+    pub async fn find_by_ip<'e, E>(
         executor: E,
         ip: IpAddr,
         network_id: Id,
@@ -628,10 +620,7 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_pubkey<'e, E>(
-        executor: E,
-        pubkey: &str,
-    ) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -646,7 +635,7 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_id_and_username<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_by_id_and_username<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         id: Id,
         username: &str,
@@ -664,10 +653,7 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn all_for_username(
-        pool: &PgPool,
-        username: &str,
-    ) -> Result<Vec<Self>, SqlxError> {
+    pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
@@ -680,7 +666,7 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn get_network_configs(
+    pub async fn get_network_configs(
         &self,
         network: &WireguardNetwork<Id>,
         transaction: &mut PgConnection,
@@ -714,7 +700,7 @@ impl Device<Id> {
         Ok((device_network_info, device_config))
     }
 
-    pub(crate) async fn add_to_network(
+    pub async fn add_to_network(
         &self,
         network: &WireguardNetwork<Id>,
         ip: &[IpAddr],
@@ -834,7 +820,7 @@ impl Device<Id> {
     ///
     /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.
     /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
-    pub(crate) async fn assign_next_network_ip(
+    pub async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
@@ -972,7 +958,7 @@ impl Device<Id> {
         Err(format!("{pubkey} is not a valid pubkey"))
     }
 
-    pub(crate) async fn find_by_type<'e, E>(
+    pub async fn find_by_type<'e, E>(
         executor: E,
         device_type: DeviceType,
     ) -> Result<Vec<Self>, SqlxError>
@@ -987,7 +973,7 @@ impl Device<Id> {
         ).fetch_all(executor).await
     }
 
-    pub(crate) async fn find_by_type_and_network<'e, E>(
+    pub async fn find_by_type_and_network<'e, E>(
         executor: E,
         device_type: DeviceType,
         network_id: Id,
@@ -1006,7 +992,7 @@ impl Device<Id> {
         ).fetch_all(executor).await
     }
 
-    pub(crate) async fn get_owner<'e, E>(&self, executor: E) -> Result<User<Id>, SqlxError>
+    pub async fn get_owner<'e, E>(&self, executor: E) -> Result<User<Id>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -1027,11 +1013,11 @@ mod test {
     use std::str::FromStr;
 
     use claims::{assert_err, assert_ok};
-    use defguard_common::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+    use crate::db::setup_pool;
+
     use super::*;
-    use crate::db::User;
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

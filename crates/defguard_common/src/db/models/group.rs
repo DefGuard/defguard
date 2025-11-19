@@ -1,11 +1,10 @@
 use std::fmt;
 
-use defguard_common::db::{Id, NoId};
+use crate::db::{Id, NoId, models::user::User};
 use model_derive::Model;
+use serde::Serialize;
 use sqlx::{Error as SqlxError, FromRow, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
-
-use crate::db::User;
 
 #[derive(Debug)]
 pub enum Permission {
@@ -22,12 +21,11 @@ impl fmt::Display for Permission {
 
 #[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq, Serialize)]
 pub struct Group<I = NoId> {
-    pub(crate) id: I,
+    pub id: I,
     pub name: String,
     pub is_admin: bool,
 }
 
-#[cfg(test)]
 impl Default for Group {
     fn default() -> Self {
         Self {
@@ -124,7 +122,7 @@ impl Group<Id> {
         query_as(&query).fetch_all(executor).await
     }
 
-    pub(crate) async fn has_permission<'e, E>(
+    pub async fn has_permission<'e, E>(
         &self,
         executor: E,
         permission: Permission,
@@ -140,7 +138,7 @@ impl Group<Id> {
         Ok(result.unwrap_or(false))
     }
 
-    pub(crate) async fn set_permission<'e, E>(
+    pub async fn set_permission<'e, E>(
         &self,
         executor: E,
         permission: Permission,
@@ -161,11 +159,10 @@ impl Group<Id> {
 
 #[cfg(test)]
 mod test {
-    use defguard_common::db::setup_pool;
+    use crate::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::User;
 
     #[sqlx::test]
     async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {

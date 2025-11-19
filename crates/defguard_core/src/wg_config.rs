@@ -5,11 +5,11 @@ use ipnetwork::{IpNetwork, IpNetworkError};
 use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
-use crate::{
+use defguard_common::{
     KEY_LENGTH,
-    db::{
+    db::models::{
         Device, WireguardNetwork,
-        models::wireguard::{
+        wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             ServiceLocationMode, WireguardNetworkError,
         },

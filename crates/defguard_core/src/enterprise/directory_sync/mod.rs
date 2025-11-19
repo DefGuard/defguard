@@ -4,7 +4,10 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::db::{Id, models::Settings};
+use defguard_common::db::{
+    Id,
+    models::{Settings, group::Group, user::User},
+};
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool, error::Error as SqlxError};
@@ -18,7 +21,6 @@ use super::{
     ldap::utils::ldap_update_users_state,
 };
 use crate::{
-    db::{Group, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
         handlers::openid_login::prune_username,

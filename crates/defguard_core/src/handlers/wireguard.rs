@@ -11,7 +11,22 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{csv::AsCsv, db::Id};
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{
+            Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
+            device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
+            wireguard::{
+                DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
+                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
+                networks_stats,
+            },
+        },
+    },
+    utils::{parse_address_list, parse_network_address_list},
+};
 use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
@@ -23,20 +38,6 @@ use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        AddDevice, Device, WireguardNetwork,
-        models::{
-            device::{
-                DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
-                WireguardNetworkDevice,
-            },
-            wireguard::{
-                DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
-                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
-                networks_stats,
-            },
-        },
-    },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -45,38 +46,15 @@ use crate::{
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::{
-        events::GatewayEvent, get_location_allowed_peers, map::GatewayMap, state::GatewayState,
-    },
+    grpc::gateway::{events::GatewayEvent, map::GatewayMap, state::GatewayState},
     handlers::mail::send_new_device_added_email,
     location_management::{
-        handle_imported_devices, handle_mapped_devices, sync_location_allowed_devices,
+        allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
+        sync_location_allowed_devices,
     },
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
-
-/// Parse a string with comma-separated IP addresses.
-/// Invalid addresses will be silently ignored.
-pub(crate) fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
-    ips.split(',')
-        .filter_map(|ip| ip.trim().parse().ok())
-        .collect()
-}
-
-/// Parse a string with comma-separated IP network addresses.
-/// Host bits will be stripped.
-/// Invalid addresses will be silently ignored.
-pub(crate) fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
-    ips.split(',')
-        .filter_map(|ip| ip.trim().parse().ok())
-        .filter_map(|ip: IpNetwork| {
-            let network_address = ip.network();
-            let network_mask = ip.mask();
-            IpNetwork::with_netmask(network_address, network_mask).ok()
-        })
-        .collect()
-}
 
 #[derive(Serialize, ToSchema)]
 pub struct WireguardNetworkInfo {

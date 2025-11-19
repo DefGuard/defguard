@@ -1111,8 +1111,11 @@ name = "defguard_common"
 version = "1.6.0"
 dependencies = [
  "anyhow",
+ "argon2",
+ "base32",
  "base64 0.22.1",
  "chrono",
+ "claims",
  "clap",
  "ed25519-dalek",
  "humantime",
@@ -1131,11 +1134,13 @@ dependencies = [
  "struct-patch",
  "thiserror 2.0.17",
  "tonic",
+ "totp-lite",
  "tracing",
  "utoipa",
  "uuid",
  "vergen-git2",
  "webauthn-rs",
+ "x25519-dalek",
 ]
 
 [[package]]

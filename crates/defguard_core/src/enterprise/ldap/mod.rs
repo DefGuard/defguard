@@ -3,7 +3,8 @@ use std::{collections::HashSet, future::Future};
 use defguard_common::db::{
     Id,
     models::{
-        Settings,
+        Settings, User,
+        group::Group,
         settings::{LdapSyncStatus, update_current_settings},
     },
 };
@@ -16,9 +17,8 @@ use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
-use crate::{
-    db::{self, User},
-    enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
+use crate::enterprise::{
+    is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts,
 };
 
 #[cfg(not(test))]
@@ -861,7 +861,7 @@ impl LDAPConnection {
     pub async fn modify_group(
         &mut self,
         groupname: &str,
-        group: &db::Group<Id>,
+        group: &Group<Id>,
     ) -> Result<(), LdapError> {
         debug!("Modifying LDAP group {groupname}");
         let old_dn = self.config.group_dn(groupname);

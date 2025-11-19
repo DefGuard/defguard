@@ -5,8 +5,12 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            BiometricAuth, MFAMethod, Settings, polling_token::PollingToken,
+            BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
+            WireguardNetwork,
+            device::DeviceInfo,
+            polling_token::PollingToken,
             settings::defaults::WELCOME_EMAIL_SUBJECT,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
 };
@@ -31,14 +35,7 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::{DeviceConfig, DeviceInfo, DeviceType},
-            enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
-        },
-    },
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -1198,7 +1195,7 @@ mod test {
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
             models::{
-                Settings,
+                Settings, User,
                 settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
             },
             setup_pool,
@@ -1208,10 +1205,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::mpsc::unbounded_channel;
 
-    use crate::db::{
-        User,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    };
+    use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
 
     #[sqlx::test]
     async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {

@@ -3,7 +3,10 @@ use std::{
     ops::RangeInclusive,
 };
 
-use defguard_common::db::{Id, models::ModelError};
+use defguard_common::db::{
+    Id,
+    models::{Device, ModelError, WireguardNetwork, user::User},
+};
 use defguard_proto::enterprise::firewall::{
     FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
     PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
@@ -19,12 +22,9 @@ use super::{
     },
     utils::merge_ranges,
 };
-use crate::{
-    db::{Device, User, WireguardNetwork},
-    enterprise::{
-        db::models::{acl::AliasKind, snat::UserSnatBinding},
-        is_enterprise_enabled,
-    },
+use crate::enterprise::{
+    db::models::{acl::AliasKind, snat::UserSnatBinding},
+    is_enterprise_enabled,
 };
 
 #[derive(Debug, thiserror::Error)]

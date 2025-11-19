@@ -8,7 +8,17 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
-use defguard_common::{csv::AsCsv, db::Id};
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{
+            Device, DeviceConfig, DeviceType, User, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::NetworkAddressError,
+        },
+    },
+};
 use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::json;
@@ -18,13 +28,6 @@ use super::{ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
-            wireguard::NetworkAddressError,
-        },
-    },
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,

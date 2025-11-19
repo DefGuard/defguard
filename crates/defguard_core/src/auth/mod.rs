@@ -12,12 +12,16 @@ use axum_extra::{
 };
 use defguard_common::db::{
     Id,
-    models::{OAuth2Token, Session, SessionState, oauth2client::OAuth2Client},
+    models::{
+        OAuth2Token, Session, SessionState,
+        group::{Group, Permission},
+        oauth2client::OAuth2Client,
+        user::User,
+    },
 };
 
 use crate::{
     appstate::AppState,
-    db::{Group, User, models::group::Permission},
     enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,

@@ -7,7 +7,13 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_common::db::{Id, NoId, models::wireguard_peer_stats::WireguardPeerStats};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, User, WireguardNetwork, wireguard::ServiceLocationMode,
+        wireguard_peer_stats::WireguardPeerStats,
+    },
+};
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -18,7 +24,7 @@ use defguard_proto::{
 };
 use defguard_version::version_info_from_metadata;
 use semver::Version;
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -33,13 +39,10 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    db::{
-        Device, User,
-        models::wireguard::{ServiceLocationMode, WireguardNetwork},
-    },
     enterprise::{firewall::try_get_location_firewall_config, is_enterprise_enabled},
     events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::events::GatewayEvent,
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 
 pub mod client_state;
@@ -117,71 +120,6 @@ pub struct GatewayServer {
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
-}
-
-/// Get a list of all allowed peers for a given location
-///
-/// Each device is marked as allowed or not allowed in a given network,
-/// which enables enforcing peer disconnect in MFA-protected networks.
-///
-/// If the location is a service location, only returns peers if enterprise features are enabled.
-pub async fn get_location_allowed_peers<'e, E>(
-    location: &WireguardNetwork<Id>,
-    executor: E,
-) -> Result<Vec<Peer>, SqlxError>
-where
-    E: PgExecutor<'e>,
-{
-    debug!("Fetching all peers for network {}", location.id);
-
-    if should_prevent_service_location_usage(&location) {
-        warn!(
-            "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
-            location.name
-        );
-        return Ok(Vec::new());
-    }
-
-    let rows = query!(
-        "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                -- TODO possible to not use ARRAY-unnest here?
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ips) AS ip
-                ) \"allowed_ips!: Vec<String>\" \
-            FROM wireguard_network_device wnd \
-            JOIN device d ON wnd.device_id = d.id \
-            JOIN \"user\" u ON d.user_id = u.id \
-            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
-            AND d.configured = true \
-            AND u.is_active = true \
-            ORDER BY d.id ASC",
-        location.id,
-        location.mfa_enabled()
-    )
-    .fetch_all(executor)
-    .await?;
-
-    // keepalive has to be added manually because Postgres
-    // doesn't support unsigned integers
-    let result = rows
-        .into_iter()
-        .map(|row| Peer {
-            pubkey: row.pubkey,
-            allowed_ips: row.allowed_ips,
-            // Don't send preshared key if MFA is not enabled, it can't be used and may
-            // cause issues with clients connecting if they expect no preshared key
-            // e.g. when you disable MFA on a location
-            preshared_key: if location.mfa_enabled() {
-                row.preshared_key
-            } else {
-                None
-            },
-            keepalive_interval: Some(location.keepalive_interval as u32),
-        })
-        .collect();
-
-    Ok(result)
 }
 
 /// If this location is marked as a service location, checks if all requirements are met for it to function:

@@ -7,9 +7,12 @@ use axum::{
 use defguard_common::{
     db::{
         Id,
-        models::{BiometricAuth, OAuth2AuthorizedApp, WebAuthn},
+        models::{
+            BiometricAuth, OAuth2AuthorizedApp, User, WebAuthn, device::UserDevice,
+            user::SecurityKey,
+        },
     },
-    types::group_diff::GroupDiff,
+    types::{group_diff::GroupDiff, user_info::UserInfo},
 };
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
@@ -26,13 +29,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, User,
-        models::{
-            device::UserDevice,
-            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
-            user::SecurityKey,
-            user_info::UserInfo,
-        },
+        AppEvent,
+        models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
     enterprise::{
         db::models::api_tokens::ApiToken,

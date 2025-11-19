@@ -11,7 +11,14 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use defguard_common::db::{Id, models::ModelError};
+use defguard_common::db::{
+    Id,
+    models::{
+        Device, DeviceNetworkInfo, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
+        device::{DeviceInfo, WireguardNetworkDevice},
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+    },
+};
 use sqlx::{Error as SqlxError, PgPool, query_as};
 use thiserror::Error;
 use tokio::{
@@ -23,13 +30,6 @@ use tokio::{
 };
 
 use crate::{
-    db::{
-        Device, WireguardNetwork,
-        models::{
-            device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetworkError},
-        },
-    },
     events::{InternalEvent, InternalEventContext},
     grpc::gateway::events::GatewayEvent,
 };

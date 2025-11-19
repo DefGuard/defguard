@@ -2,27 +2,20 @@ use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{Settings, user::User},
+    },
     random::gen_alphanumeric,
 };
-use defguard_mail::{
-    Mail,
-    templates::{self, TemplateError, safe_tera},
-};
-use reqwest::Url;
+use defguard_mail::templates::{self, TemplateError, safe_tera};
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
-
-use crate::db::User;
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
-
-static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 #[derive(Error, Debug)]
 pub enum TokenError {
@@ -319,7 +312,7 @@ impl Token {
     /// - admin_last_name
     /// - admin_email
     /// - admin_phone
-    async fn get_welcome_message_context(
+    pub async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Context, TokenError> {
@@ -386,240 +379,6 @@ impl Token {
             Some(ip_address),
             device_info,
         )?)
-    }
-}
-
-impl User<Id> {
-    /// Start user enrollment process
-    /// This creates a new enrollment token valid for 24h
-    /// and optionally sends enrollment email notification to user
-    pub async fn start_enrollment(
-        &mut self,
-        transaction: &mut PgConnection,
-        admin: &User<Id>,
-        email: Option<String>,
-        token_timeout_seconds: u64,
-        enrollment_service_url: Url,
-        send_user_notification: bool,
-        mail_tx: UnboundedSender<Mail>,
-    ) -> Result<String, TokenError> {
-        info!(
-            "User {} started a new enrollment process for user {}.",
-            admin.username, self.username
-        );
-        debug!(
-            "Notify user by mail about the enrollment process: {}",
-            send_user_notification
-        );
-        debug!("Check if {} has a password.", self.username);
-        if self.has_password() {
-            debug!(
-                "User {} that you want to start enrollment process for already has a password.",
-                self.username
-            );
-            return Err(TokenError::AlreadyActive);
-        }
-
-        debug!("Verify that {} is an active user.", self.username);
-        if !self.is_active {
-            warn!(
-                "Can't create enrollment token for disabled user {}",
-                self.username
-            );
-            return Err(TokenError::UserDisabled);
-        }
-
-        self.clear_unused_enrollment_tokens(&mut *transaction)
-            .await?;
-
-        debug!("Create a new enrollment token for user {}.", self.username);
-        let enrollment = Token::new(
-            self.id,
-            Some(admin.id),
-            email.clone(),
-            token_timeout_seconds,
-            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
-        );
-        debug!("Saving a new enrollment token...");
-        enrollment.save(&mut *transaction).await?;
-        debug!(
-            "Saved a new enrollment token with id {} for user {}.",
-            enrollment.id, self.username
-        );
-
-        // Mark the user with enrollment-pending flag.
-        // https://github.com/DefGuard/client/issues/647
-        self.enrollment_pending = true;
-        self.save(&mut *transaction).await?;
-
-        if send_user_notification {
-            if let Some(email) = email {
-                debug!(
-                    "Sending an enrollment mail for user {} to {email}.",
-                    self.username
-                );
-                let base_message_context = enrollment
-                    .get_welcome_message_context(&mut *transaction)
-                    .await?;
-                let mail = Mail {
-                    to: email.clone(),
-                    subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                    content: templates::enrollment_start_mail(
-                        base_message_context,
-                        enrollment_service_url,
-                        &enrollment.id,
-                    )
-                    .map_err(|err| {
-                        debug!(
-                            "Cannot send an email to the user {} due to the error {}.",
-                            self.username,
-                            err.to_string()
-                        );
-                        TokenError::NotificationError(err.to_string())
-                    })?,
-                    attachments: Vec::new(),
-                    result_tx: None,
-                };
-                match mail_tx.send(mail) {
-                    Ok(()) => {
-                        info!(
-                            "Sent enrollment start mail for user {} to {email}",
-                            self.username
-                        );
-                    }
-                    Err(err) => {
-                        error!("Error sending mail: {err}");
-                        return Err(TokenError::NotificationError(err.to_string()));
-                    }
-                }
-            }
-        }
-        info!(
-            "New enrollment token has been generated for {}.",
-            self.username
-        );
-
-        Ok(enrollment.id)
-    }
-
-    /// Start user remote desktop configuration process
-    /// This creates a new enrollment token valid for 24h
-    /// and optionally sends email notification to user
-    pub async fn start_remote_desktop_configuration(
-        &self,
-        transaction: &mut PgConnection,
-        admin: &User<Id>,
-        email: Option<String>,
-        token_timeout_seconds: u64,
-        enrollment_service_url: Url,
-        send_user_notification: bool,
-        mail_tx: UnboundedSender<Mail>,
-        // Whether to attach some device to the token. It allows for a partial initialization of
-        // the device before the desktop configuration has taken place.
-        device_id: Option<Id>,
-    ) -> Result<String, TokenError> {
-        info!(
-            "User {} starting a new desktop activation for user {}",
-            admin.username, self.username
-        );
-        debug!(
-            "Notify {} by mail about the enrollment process: {}",
-            self.username, send_user_notification
-        );
-
-        debug!("Verify that {} is an active user.", self.username);
-        if !self.is_active {
-            warn!(
-                "Can't create desktop activation token for disabled user {}.",
-                self.username
-            );
-            return Err(TokenError::UserDisabled);
-        }
-
-        self.clear_unused_enrollment_tokens(&mut *transaction)
-            .await?;
-        debug!("Cleared unused tokens for {}.", self.username);
-
-        debug!(
-            "Create a new desktop activation token for user {}.",
-            self.username
-        );
-        let mut desktop_configuration = Token::new(
-            self.id,
-            Some(admin.id),
-            email.clone(),
-            token_timeout_seconds,
-            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
-        );
-        if let Some(device_id) = device_id {
-            desktop_configuration.device_id = Some(device_id);
-        }
-        debug!("Saving a new desktop configuration token...");
-        desktop_configuration.save(&mut *transaction).await?;
-        debug!(
-            "Saved a new desktop activation token with id {} for user {}.",
-            desktop_configuration.id, self.username
-        );
-
-        if send_user_notification {
-            if let Some(email) = email {
-                debug!(
-                    "Sending a desktop configuration mail for user {} to {email}",
-                    self.username
-                );
-                let base_message_context = desktop_configuration
-                    .get_welcome_message_context(&mut *transaction)
-                    .await?;
-                let mail = Mail {
-                    to: email.clone(),
-                    subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
-                    content: templates::desktop_start_mail(
-                        base_message_context,
-                        &enrollment_service_url,
-                        &desktop_configuration.id,
-                    )
-                    .map_err(|err| {
-                        debug!(
-                            "Cannot send an email to the user {} due to the error {}.",
-                            self.username,
-                            err.to_string()
-                        );
-                        TokenError::NotificationError(err.to_string())
-                    })?,
-                    attachments: Vec::new(),
-                    result_tx: None,
-                };
-                match mail_tx.send(mail) {
-                    Ok(()) => {
-                        info!(
-                            "Sent desktop configuration start mail for user {} to {email}",
-                            self.username
-                        );
-                    }
-                    Err(err) => {
-                        error!("Error sending mail: {err}");
-                    }
-                }
-            }
-        }
-        info!(
-            "New desktop activation token has been generated for {}.",
-            self.username
-        );
-
-        Ok(desktop_configuration.id)
-    }
-
-    // Remove unused tokens when triggering user enrollment
-    pub(crate) async fn clear_unused_enrollment_tokens<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<(), TokenError>
-    where
-        E: PgExecutor<'e>,
-    {
-        info!("Removing unused tokens for user {}.", self.username);
-        Token::delete_unused_user_tokens(executor, self.id).await
     }
 }
 

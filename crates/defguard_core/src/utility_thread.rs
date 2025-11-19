@@ -1,6 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{WireguardNetwork, wireguard::ServiceLocationMode},
+};
 use sqlx::{PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
@@ -9,7 +12,6 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    db::{WireguardNetwork, models::wireguard::ServiceLocationMode},
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
@@ -18,7 +20,8 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
-    grpc::gateway::{events::GatewayEvent, get_location_allowed_peers},
+    grpc::gateway::events::GatewayEvent,
+    location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
 };
 

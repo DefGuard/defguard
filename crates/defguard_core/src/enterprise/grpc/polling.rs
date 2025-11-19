@@ -1,13 +1,12 @@
-use defguard_common::db::{Id, models::polling_token::PollingToken};
+use defguard_common::db::{
+    Id,
+    models::{Device, polling_token::PollingToken, user::User},
+};
 use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoResponse};
 use sqlx::PgPool;
 use tonic::Status;
 
-use crate::{
-    db::{Device, User},
-    enterprise::is_enterprise_enabled,
-    grpc::utils::build_device_config_response,
-};
+use crate::{enterprise::is_enterprise_enabled, grpc::utils::build_device_config_response};
 
 pub struct PollingServer {
     pool: PgPool,

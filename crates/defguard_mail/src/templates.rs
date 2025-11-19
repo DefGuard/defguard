@@ -4,7 +4,13 @@ use chrono::{Datelike, NaiveDateTime, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::models::{Session, user::MFAMethod},
+    db::{
+        Id,
+        models::{
+            Session,
+            user::{MFAMethod, User},
+        },
+    },
 };
 use reqwest::Url;
 use serde::Serialize;
@@ -83,6 +89,15 @@ impl From<Session> for SessionContext {
 pub struct UserContext {
     pub last_name: String,
     pub first_name: String,
+}
+
+impl From<User<Id>> for UserContext {
+    fn from(value: User<Id>) -> Self {
+        Self {
+            last_name: value.last_name,
+            first_name: value.first_name,
+        }
+    }
 }
 
 fn get_base_tera(

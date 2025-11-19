@@ -13,12 +13,21 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
-use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
-    db::{init_db, models::oauth2client::OAuth2Client},
+    db::{
+        init_db,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            oauth2client::OAuth2Client,
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
+            },
+        },
+    },
 };
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
@@ -91,10 +100,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent, Device, User, WireguardNetwork,
-        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-    },
+    db::AppEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::{
         app_info::get_app_info,
@@ -144,13 +150,14 @@ use self::{
     },
 };
 use crate::{
-    db::models::wireguard::ServiceLocationMode, grpc::gateway::events::GatewayEvent,
-    location_management::sync_location_allowed_devices, version::IncompatibleComponents,
+    grpc::gateway::events::GatewayEvent, location_management::sync_location_allowed_devices,
+    version::IncompatibleComponents,
 };
 
 pub mod appstate;
 pub mod auth;
 pub mod db;
+pub mod enrollment_management;
 pub mod enterprise;
 mod error;
 pub mod events;
@@ -178,13 +185,13 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
-// WireGuard key length in bytes.
-pub(crate) const KEY_LENGTH: usize = 32;
-
 mod openapi {
-    use db::{
-        AddDevice,
-        models::device::{ModifyDevice, UserDevice},
+    use defguard_common::{
+        db::models::{
+            Device,
+            device::{AddDevice, ModifyDevice, UserDevice},
+        },
+        types::user_info::UserInfo,
     };
     use handlers::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
@@ -199,10 +206,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::{
-        db::models::user_info::UserInfo, enterprise::snat::handlers as snat, error::WebError,
-        handlers::user::UserDetails,
-    };
+    use crate::{enterprise::snat::handlers as snat, error::WebError, handlers::user::UserDetails};
 
     #[derive(OpenApi)]
     #[openapi(

@@ -3,14 +3,14 @@
 
 use std::collections::{HashMap, HashSet};
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{User, group::Group},
+};
 use sqlx::PgPool;
 
 use super::{LDAPConnection, error::LdapError};
-use crate::{
-    db::{Group, User},
-    enterprise::ldap::with_ldap_status,
-};
+use crate::enterprise::ldap::with_ldap_status;
 
 /// Retrieves a user from LDAP if they are in the configured LDAP sync groups.
 ///

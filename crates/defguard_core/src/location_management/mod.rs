@@ -2,24 +2,28 @@ use std::{collections::HashMap, net::IpAddr};
 
 use defguard_common::{
     csv::AsCsv,
-    db::{Id, models::ModelError},
+    db::{
+        Id,
+        models::{
+            Device, DeviceNetworkInfo, DeviceType, ModelError, WireguardNetwork,
+            WireguardNetworkError,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            user::User,
+            wireguard::MappedDevice,
+        },
+    },
 };
 use sqlx::PgConnection;
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
-            wireguard::{MappedDevice, WireguardNetworkError},
-        },
-    },
     enterprise::firewall::{FirewallError, try_get_location_firewall_config},
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events},
     wg_config::ImportedDevice,
 };
+
+pub mod allowed_peers;
 
 #[derive(Debug, Error)]
 pub enum LocationManagementError {
@@ -402,14 +406,11 @@ pub(crate) async fn handle_mapped_devices(
 
 #[cfg(test)]
 mod test {
-    use defguard_common::db::setup_pool;
+    use defguard_common::db::{models::group::Group, setup_pool};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::{
-        db::{Group, models::device::DeviceType},
-        grpc::gateway::events::GatewayEvent,
-    };
+    use crate::grpc::gateway::events::GatewayEvent;
 
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {

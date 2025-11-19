@@ -1,9 +1,3 @@
 pub mod activity_log;
-pub mod device;
 pub mod enrollment;
-pub mod group;
-pub mod mfa_info;
-pub mod user;
-pub mod user_info;
 pub mod webhook;
-pub mod wireguard;

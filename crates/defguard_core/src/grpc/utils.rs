@@ -4,7 +4,12 @@ use defguard_common::{
     csv::AsCsv,
     db::{
         Id,
-        models::{Settings, polling_token::PollingToken},
+        models::{
+            Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            polling_token::PollingToken,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
     },
 };
 use defguard_proto::proxy::{
@@ -16,13 +21,6 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    db::{
-        Device, User,
-        models::{
-            device::{DeviceType, WireguardNetworkDevice},
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
-        },
-    },
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },

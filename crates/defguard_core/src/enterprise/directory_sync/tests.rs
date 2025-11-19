@@ -5,7 +5,11 @@ mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
-            models::{Session, SessionState, Settings, settings::initialize_current_settings},
+            models::{
+                Device, DeviceType, Session, SessionState, Settings, WireguardNetwork,
+                settings::initialize_current_settings,
+                wireguard::{LocationMfaMode, ServiceLocationMode},
+            },
             setup_pool,
         },
     };
@@ -15,16 +19,7 @@ mod test {
     use tokio::sync::broadcast;
 
     use super::super::*;
-    use crate::{
-        db::{
-            Device, WireguardNetwork,
-            models::{
-                device::DeviceType,
-                wireguard::{LocationMfaMode, ServiceLocationMode},
-            },
-        },
-        enterprise::db::models::openid_provider::DirectorySyncTarget,
-    };
+    use crate::enterprise::db::models::openid_provider::DirectorySyncTarget;
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")

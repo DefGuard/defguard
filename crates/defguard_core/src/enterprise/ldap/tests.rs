@@ -5,16 +5,13 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::{
-    db::{Group, User},
-    enterprise::ldap::{
-        model::extract_rdn_value,
-        sync::{
-            Authority, compute_group_sync_changes, compute_user_sync_changes,
-            extract_intersecting_users,
-        },
-        test_client::LdapEvent,
+use crate::enterprise::ldap::{
+    model::extract_rdn_value,
+    sync::{
+        Authority, compute_group_sync_changes, compute_user_sync_changes,
+        extract_intersecting_users,
     },
+    test_client::LdapEvent,
 };
 
 const PASSWORD: &str = "test_password";

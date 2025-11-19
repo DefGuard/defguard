@@ -1,14 +1,14 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{Id, models::wireguard_peer_stats::WireguardPeerStats};
+use defguard_common::db::{
+    Id,
+    models::{Device, User, WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+};
 use thiserror::Error;
 use tonic::{Code, Status};
 
-use crate::{
-    db::{Device, User, WireguardNetwork},
-    events::GrpcRequestContext,
-};
+use crate::events::GrpcRequestContext;
 
 #[derive(Debug, Error)]
 pub enum ClientMapError {

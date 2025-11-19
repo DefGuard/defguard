@@ -1,7 +1,14 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
-use defguard_common::db::{Id, NoId, setup_pool};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, group::Group,
+        user::User,
+    },
+    setup_pool,
+};
 use defguard_proto::enterprise::firewall::{
     FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto, Protocol,
     ip_address::Address, port::Port as PortInner,
@@ -18,20 +25,12 @@ use super::{
     find_largest_subnet_in_range, get_last_ip_in_v6_subnet, get_source_users, merge_addrs,
     merge_port_ranges, process_destination_addrs,
 };
-use crate::{
-    db::{
-        Device, Group, User, WireguardNetwork,
-        models::device::{DeviceType, WireguardNetworkDevice},
+use crate::enterprise::{
+    db::models::acl::{
+        AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
+        AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
     },
-    enterprise::{
-        db::models::acl::{
-            AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
-            AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
-        },
-        firewall::{
-            get_source_addrs, get_source_network_devices, try_get_location_firewall_config,
-        },
-    },
+    firewall::{get_source_addrs, get_source_network_devices, try_get_location_firewall_config},
 };
 
 impl Default for AclRuleDestinationRange<Id> {

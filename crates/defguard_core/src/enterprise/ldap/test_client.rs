@@ -4,13 +4,11 @@ use std::{
     vec::Vec,
 };
 
+use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
 use super::error::LdapError;
-use crate::{
-    db::{Group, User},
-    enterprise::ldap::model::extract_rdn_value,
-};
+use crate::enterprise::ldap::model::extract_rdn_value;
 
 /// Extract attribute value from LDAP filter
 ///
@@ -608,7 +606,7 @@ impl<I> Group<I> {
 
 #[cfg(test)]
 mod tests {
-    use crate::db::User;
+    use defguard_common::db::models::User;
 
     #[tokio::test]
     async fn test_search_users_by_username() {

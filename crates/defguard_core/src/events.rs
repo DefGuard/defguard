@@ -3,12 +3,15 @@ use std::net::IpAddr;
 use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
     Id,
-    models::{AuthenticationKey, MFAMethod, Settings, WebAuthn, oauth2client::OAuth2Client},
+    models::{
+        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+        group::Group, oauth2client::OAuth2Client,
+    },
 };
 use defguard_proto::proxy::MfaMethod;
 
 use crate::{
-    db::{Device, Group, User, WebHook, WireguardNetwork},
+    db::WebHook,
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
         openid_provider::OpenIdProvider, snat::UserSnatBinding,

@@ -1,11 +1,13 @@
 use std::collections::HashSet;
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{User, WireguardNetwork, device::DeviceInfo},
+};
 use sqlx::PgConnection;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    db::{User, WireguardNetwork, models::device::DeviceInfo},
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     error::WebError,
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},

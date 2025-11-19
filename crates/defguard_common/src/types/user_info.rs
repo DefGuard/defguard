@@ -1,11 +1,13 @@
-use defguard_common::{
-    db::{Id, models::MFAMethod},
+use crate::{
+    db::{
+        Id,
+        models::{MFAMethod, group::Group, user::User},
+    },
     types::group_diff::GroupDiff,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, PgConnection, PgPool};
 use utoipa::ToSchema;
-
-use crate::db::{Group, User};
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
@@ -64,7 +66,7 @@ impl UserInfo {
     ///
     /// Return `true` if status was changed, `false` otherwise.
     /// If status was changed to inactive, all user sessions will be invalidated.
-    pub(crate) async fn handle_status_change(
+    pub async fn handle_status_change(
         &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
@@ -84,7 +86,7 @@ impl UserInfo {
     /// Copy groups to [`User`]. This function should be used by administrators.
     ///
     /// Return `true` if groups were changed, `false` otherwise.
-    pub(crate) async fn handle_user_groups(
+    pub async fn handle_user_groups(
         &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
@@ -144,7 +146,7 @@ impl UserInfo {
 
 #[cfg(test)]
 mod test {
-    use defguard_common::db::setup_pool;
+    use crate::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;

@@ -13,9 +13,12 @@ use axum_extra::{
     },
     headers::UserAgent,
 };
-use defguard_common::db::{
-    Id,
-    models::{MFAMethod, Session, SessionState, Settings, WebAuthn},
+use defguard_common::{
+    db::{
+        Id,
+        models::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, WebAuthn},
+    },
+    types::user_info::UserInfo,
 };
 use defguard_mail::Mail;
 use serde_json::json;
@@ -35,10 +38,6 @@ use crate::{
     auth::{
         SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
-    },
-    db::{
-        User,
-        models::{mfa_info::MFAInfo, user_info::UserInfo},
     },
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
