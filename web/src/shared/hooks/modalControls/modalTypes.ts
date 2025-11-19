@@ -9,7 +9,10 @@ import type {
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
   OpenEditDeviceModal,
+  OpenEditNetworkDeviceModal,
   OpenEditUserModal,
+  OpenNetworkDeviceConfigModal,
+  OpenNetworkDeviceTokenModal,
   OpenRenameApiTokenModal,
 } from './types';
 
@@ -31,6 +34,9 @@ export const ModalName = {
   CEWebhook: 'createEditWebhook',
   AssignGroupsToUsers: 'assignGroupsToUsers',
   AddNetworkDevice: 'addNetworkDevice',
+  EditNetworkDevice: 'editNetworkDevice',
+  NetworkDeviceConfig: 'networkDeviceConfig',
+  NetworkDeviceToken: 'networkDeviceToken',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -100,6 +106,18 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.AddNetworkDevice),
     data: z.custom<OpenAddNetworkDeviceModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.EditNetworkDevice),
+    data: z.custom<OpenEditNetworkDeviceModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.NetworkDeviceConfig),
+    data: z.custom<OpenNetworkDeviceConfigModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.NetworkDeviceToken),
+    data: z.custom<OpenNetworkDeviceTokenModal>(),
   }),
 ]);
 

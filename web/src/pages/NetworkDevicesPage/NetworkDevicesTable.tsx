@@ -7,13 +7,20 @@ import {
 } from '@tanstack/react-table';
 import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { LocationMfaMode, type NetworkDevice } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../shared/defguard-ui/components/Menu/types';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
@@ -31,6 +38,18 @@ type RowData = NetworkDevice;
 const columnHelper = createColumnHelper<RowData>();
 
 export const NetworkDevicesTable = ({ networkDevices }: Props) => {
+  const reservedNames = useMemo(
+    () => networkDevices.map((n) => n.name),
+    [networkDevices],
+  );
+
+  const { mutate: deleteDevice } = useMutation({
+    mutationFn: api.network_device.deleteDevice,
+    meta: {
+      invalidate: ['device', 'network'],
+    },
+  });
+
   const { mutate: openAdd, isPending: addPending } = useMutation({
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
@@ -44,6 +63,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       openModal(ModalName.AddNetworkDevice, {
         availableIps,
         locations: orderBy(availableLocations, ['name'], ['asc']),
+        reservedNames,
       });
     },
   });
@@ -135,8 +155,75 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
           </TableCell>
         ),
       }),
+      columnHelper.display({
+        id: 'edit',
+        header: '',
+        size: tableEditColumnSize,
+        cell: (info) => {
+          const row = info.row.original;
+          const mainItems: MenuItemProps[] = [
+            {
+              text: m.controls_edit(),
+              icon: 'edit',
+              onClick: () => {
+                openModal(ModalName.EditNetworkDevice, {
+                  device: row,
+                  reservedNames: reservedNames,
+                });
+              },
+            },
+            {
+              text: 'Generate auth token',
+              icon: 'token',
+              onClick: async () => {
+                const { data: enrollment } = await api.network_device.startCliForDevice(
+                  row.id,
+                );
+                openModal(ModalName.NetworkDeviceToken, {
+                  device: row,
+                  enrollment,
+                });
+              },
+            },
+          ];
+          if (row.configured) {
+            mainItems.splice(1, 0, {
+              text: 'View config',
+              icon: 'config',
+              onClick: async () => {
+                const { data: config } = await api.network_device.getDeviceConfig(row.id);
+                openModal(ModalName.NetworkDeviceConfig, {
+                  config,
+                  device: row,
+                });
+              },
+            });
+          }
+          const menuItems: MenuItemsGroup[] = [
+            {
+              items: mainItems,
+            },
+            {
+              items: [
+                {
+                  text: m.controls_delete(),
+                  icon: 'delete',
+                  onClick: () => {
+                    deleteDevice(row.id);
+                  },
+                },
+              ],
+            },
+          ];
+          return (
+            <TableCell>
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
+            </TableCell>
+          );
+        },
+      }),
     ],
-    [],
+    [reservedNames, deleteDevice],
   );
 
   const table = useReactTable({

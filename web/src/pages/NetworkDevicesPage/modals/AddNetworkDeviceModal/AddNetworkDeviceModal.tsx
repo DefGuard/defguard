@@ -54,6 +54,7 @@ type LocationOptions = SelectOption<number>[];
 interface ModalState {
   step: ModalStep;
   useCli: boolean;
+  reservedNames: string[];
   initialAvailableIps: AvailableLocationIP[];
   locationOptions: LocationOptions;
   manualDevice?: AddNetworkDeviceResponse;
@@ -68,6 +69,7 @@ interface StepProps {
 const defaultModalState: ModalState = {
   step: 'choice',
   useCli: false,
+  reservedNames: [],
   initialAvailableIps: [],
   locationOptions: [],
   privateKey: undefined,
@@ -88,6 +90,7 @@ export const AddNetworkDeviceModal = () => {
       setOpen(true);
       setModalState({
         ...defaultModalState,
+        reservedNames: data.reservedNames,
         initialAvailableIps: data.availableIps,
         locationOptions: data.locations.map((location) => ({
           key: location.id,
@@ -257,36 +260,8 @@ const ChoiceStep = ({ setModalState }: StepProps) => {
   );
 };
 
-const formSchema = z
-  .object({
-    name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-    description: z.string().trim().nullable(),
-    modifiableIpParts: z.array(
-      z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-    ),
-    generateKeys: z.boolean(),
-    wireguard_pubkey: z.string().trim().nullable(),
-  })
-  .superRefine((values, ctx) => {
-    if (!values.generateKeys) {
-      const result = z
-        .string(m.form_error_required())
-        .regex(patternValidWireguardKey, m.form_error_invalid_key())
-        .safeParse(values.wireguard_pubkey);
-      if (!result.success) {
-        ctx.addIssue({
-          code: 'custom',
-          message: result.error.issues[0].message,
-          path: ['wireguard_pubkey'],
-        });
-      }
-    }
-  });
-
-type FormFields = z.infer<typeof formSchema>;
-
 type SubmitError = {
-  [K: `modifiableIpParts${number}`]: string;
+  [K: `modifiableIpParts[${number}]`]: string;
 };
 
 const mutationMeta = {
@@ -297,6 +272,7 @@ const FormStep = ({
   useCli,
   initialAvailableIps,
   locationOptions,
+  reservedNames,
   setModalState,
 }: StepProps & ModalState) => {
   const { mutateAsync: addDevice } = useMutation({
@@ -304,12 +280,51 @@ const FormStep = ({
     meta: mutationMeta,
   });
   const { mutateAsync: startCli } = useMutation({
-    mutationFn: api.network_device.startCli,
+    mutationFn: api.network_device.addCliDevice,
     meta: mutationMeta,
   });
   const [selected, setSelected] = useState<SelectSingleValue<number>>(locationOptions[0]);
   const [availableIps, setAvailableIps] =
     useState<AvailableLocationIP[]>(initialAvailableIps);
+
+  const formSchema = useMemo(
+    () =>
+      z
+        .object({
+          name: z
+            .string(m.form_error_required())
+            .trim()
+            .min(1, m.form_error_required())
+            .refine(
+              (value) => !reservedNames.includes(value),
+              m.form_error_name_reserved(),
+            ),
+          description: z.string().trim().nullable(),
+          modifiableIpParts: z.array(
+            z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+          ),
+          generateKeys: z.boolean(),
+          wireguard_pubkey: z.string().trim().nullable(),
+        })
+        .superRefine((values, ctx) => {
+          if (!values.generateKeys) {
+            const result = z
+              .string(m.form_error_required())
+              .regex(patternValidWireguardKey, m.form_error_invalid_key())
+              .safeParse(values.wireguard_pubkey);
+            if (!result.success) {
+              ctx.addIssue({
+                code: 'custom',
+                message: result.error.issues[0].message,
+                path: ['wireguard_pubkey'],
+              });
+            }
+          }
+        }),
+    [reservedNames.includes],
+  );
+
+  type FormFields = z.infer<typeof formSchema>;
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -340,10 +355,10 @@ const FormStep = ({
       const errors: SubmitError = {};
       validationResponse.forEach(({ available, valid }, index) => {
         if (!valid) {
-          errors[`modifiableIpParts${index}`] = m.form_error_ip_invalid();
+          errors[`modifiableIpParts[${index}]`] = m.form_error_ip_invalid();
         }
         if (!available) {
-          errors[`modifiableIpParts${index}`] = m.form_error_ip_reserved();
+          errors[`modifiableIpParts[${index}]`] = m.form_error_ip_reserved();
         }
       });
       if (Object.keys(errors).length) {

@@ -25,8 +25,8 @@ import type {
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
-  DeviceConfigResponse,
   EditGroupRequest,
+  EditNetworkDeviceRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
   GroupInfo,
@@ -215,14 +215,18 @@ const api = {
     },
   },
   network_device: {
+    deleteDevice: (id: number) => client.delete(`/device/network/${id}`),
+    editDevice: ({ id, ...data }: EditNetworkDeviceRequest) =>
+      client.put(`/device/network/${id}`, data),
     getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
     getDevices: () => client.get<NetworkDevice[]>(`/device/network`),
-    getDeviceConfig: (id: number) =>
-      client.get<DeviceConfigResponse>(`/device/network/${id}/config`),
+    getDeviceConfig: (id: number) => client.get<string>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
-    startCli: (data: AddNetworkDeviceRequest) =>
+    addCliDevice: (data: AddNetworkDeviceRequest) =>
       client.post<StartEnrollmentResponse>('/device/network/start_cli', data),
+    startCliForDevice: (id: number) =>
+      client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
     addDevice: (data: AddNetworkDeviceRequest) =>
       client.post<AddNetworkDeviceResponse>(`/device/network`, data),
     getAvailableIp: (locationId: number) =>

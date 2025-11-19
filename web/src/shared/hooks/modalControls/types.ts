@@ -2,8 +2,10 @@ import type {
   AvailableLocationIpResponse,
   Device,
   GroupInfo,
+  NetworkDevice,
   NetworkLocation,
   OpenIdClient,
+  StartEnrollmentResponse,
   User,
   Webhook,
 } from '../../api/types';
@@ -64,4 +66,17 @@ export interface OpenAssignUsersToGroupsModal {
 export interface OpenAddNetworkDeviceModal {
   locations: NetworkLocation[];
   availableIps: AvailableLocationIpResponse;
+  reservedNames: string[];
+}
+export interface OpenEditNetworkDeviceModal {
+  device: NetworkDevice;
+  reservedNames: string[];
+}
+export interface OpenNetworkDeviceConfigModal {
+  device: NetworkDevice;
+  config: string;
+}
+export interface OpenNetworkDeviceTokenModal {
+  device: NetworkDevice;
+  enrollment: StartEnrollmentResponse;
 }

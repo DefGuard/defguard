@@ -2,6 +2,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Page } from '../../shared/components/Page/Page';
 import { getNetworkDevicesQueryOptions } from '../../shared/query';
 import { AddNetworkDeviceModal } from './modals/AddNetworkDeviceModal/AddNetworkDeviceModal';
+import { EditNetworkDeviceModal } from './modals/EditNetworkDeviceModal/EditNetworkDeviceModal';
+import { NetworkDeviceConfigModal } from './modals/NetworkDeviceConfigModal/NetworkDeviceConfigModal';
+import { NetworkDeviceTokenModal } from './modals/NetworkDeviceTokenModal/NetworkDeviceTokenModal';
 import { NetworkDevicesTable } from './NetworkDevicesTable';
 
 export const NetworkDevicesPage = () => {
@@ -13,6 +16,9 @@ export const NetworkDevicesPage = () => {
         <NetworkDevicesTable networkDevices={networkDevices} />
       </Page>
       <AddNetworkDeviceModal />
+      <NetworkDeviceConfigModal />
+      <NetworkDeviceTokenModal />
+      <EditNetworkDeviceModal />
     </>
   );
 };
