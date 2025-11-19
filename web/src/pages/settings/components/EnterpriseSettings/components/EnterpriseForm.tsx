@@ -5,11 +5,8 @@ import type { AxiosError } from 'axios';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-// import { FormServiceLocationModeSelect } from '../../../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
-// import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
-// import { SelectOption } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -43,13 +40,6 @@ export const EnterpriseForm = () => {
       console.error(err);
     },
   });
-
-  // const trafficPolicyOptions: SelectOption<ClientTrafficPolicy>[] =
-  //   Object.values(ClientTrafficPolicy).map((v) => ({
-  //     value: v,
-  //     label: v,
-  //     key: v,
-  //   }));
 
   const onPolicyChange = (newPolicy: ClientTrafficPolicy) =>
     console.log('New policy:', newPolicy);

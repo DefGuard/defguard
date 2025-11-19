@@ -1,34 +1,21 @@
 import './style.scss';
 import clsx from 'clsx';
 import { useMemo } from 'react';
-// import {
-//   type FieldValues,
-//   type UseControllerProps,
-//   useController,
-// } from 'react-hook-form';
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
-// import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { ClientTrafficPolicy } from '../../../../../../shared/types';
 
 type Props = {
-  // controller: UseControllerProps<T>;
-  // disabled?: boolean;
   onChange: (event: ClientTrafficPolicy) => void;
   fieldValue: ClientTrafficPolicy;
 };
 
 export const ClientTrafficPolicySelect = ({
-  // controller,
-  // disabled = false,
   onChange,
   fieldValue,
 }: Props) => {
   const { LL } = useI18nContext();
-  // const {
-  //   field: { onChange, value: fieldValue },
-  // } = useController(controller);
 
   const options = useMemo(
     (): SelectOption<ClientTrafficPolicy>[] => [
