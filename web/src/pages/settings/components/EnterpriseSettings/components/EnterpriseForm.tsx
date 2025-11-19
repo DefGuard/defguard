@@ -83,7 +83,7 @@ export const EnterpriseForm = () => {
         </div>
         <div className="helper-row">
           <ClientTrafficPolicySelect
-            onChange={onPolicyChange}
+            onChange={(value) => mutate({ client_traffic_policy: value })}
             fieldValue={settings.client_traffic_policy}
           />
         </div>
