@@ -118,7 +118,10 @@ export const WizardNetworkConfiguration = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
+          .refine(
+            (val) => validateIpOrDomain(val, false, true),
+            LL.form.error.endpoint(),
+          ),
         port: z
           .number({
             invalid_type_error: LL.form.error.invalid(),

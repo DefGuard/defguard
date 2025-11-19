@@ -1,6 +1,5 @@
 import ipaddr from 'ipaddr.js';
 import { z } from 'zod';
-
 import { patternValidDomain, patternValidWireguardKey } from './patterns';
 
 export const validateWireguardPublicKey = (props: {
@@ -24,11 +23,13 @@ export const validateIpOrDomain = (
   allowMask = false,
   allowIPv6 = false,
 ): boolean => {
-  return (
-    (allowIPv6 && validateIPv6(val, allowMask)) ||
-    validateIPv4(val, allowMask) ||
-    patternValidDomain.test(val)
-  );
+  const hasLetter = /\p{L}/u.test(val);
+  const hasColon = /:/.test(val);
+  if (!hasLetter || hasColon) {
+    return (allowIPv6 && validateIPv6(val, allowMask)) || validateIPv4(val, allowMask);
+  } else {
+    return patternValidDomain.test(val);
+  }
 };
 
 // Returns false when invalid
@@ -41,6 +42,7 @@ export const validateIpList = (
     .replace(' ', '')
     .split(splitWith)
     .every((el) => {
+      if (!el.includes('/') && allowMasks) return false;
       return validateIPv4(el, allowMasks) || validateIPv6(el, allowMasks);
     });
 };
@@ -75,6 +77,10 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
     if (ip.includes('/')) {
       return ipaddr.IPv4.isValidCIDR(ip);
     }
+  }
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipv4Pattern.test(ip)) {
+    return false;
   }
   return ipaddr.IPv4.isValid(ip);
 };
