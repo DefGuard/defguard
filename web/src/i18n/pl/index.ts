@@ -1494,21 +1494,29 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
         },
-        disableAllTraffic: {
-          label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
-          helper:
-            'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
-        },
-        forceAllTraffic: {
-          label: 'Wymuś przekierowanie całego ruchu przez VPN',
-          helper:
-            'Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN za pomocą klienta Defguard.',
-        },
         manualConfig: {
           label: 'Wyłącz manualną konfigurację WireGuard',
           helper:
             'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli pobrać ani wyświetlić danych do manualnej konfiguracji WireGuard. Możliwe będzie wyłącznie skonfigurowanie klienta Defguard.',
         },
+        clientTrafficPolicy: {
+          header: 'Polityka przekierowania ruchu klientów',
+          none: {
+            label: 'Brak',
+            helper:
+              'Kiedy ta opcja jest włączona, użytkownicy mogą wybierać dowolny typ przekierowania ruchu.',
+          },
+          disableAllTraffic: {
+            label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
+            helper:
+              'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN.',
+          },
+          forceAllTraffic: {
+            label: 'Wymuś przekierowanie całego ruchu przez VPN',
+            helper:
+              'Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN.',
+          },
+        }
       },
     },
     gatewayNotifications: {

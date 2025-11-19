@@ -86,9 +86,6 @@ export const EnterpriseForm = () => {
             onChange={onPolicyChange}
             fieldValue={settings.client_traffic_policy}
           />
-          <Helper>
-            {parse(LL.settingsPage.enterprise.fields.forceAllTraffic.helper())}
-          </Helper>
         </div>
       </div>
     </section>

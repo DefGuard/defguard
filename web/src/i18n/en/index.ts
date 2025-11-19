@@ -1708,20 +1708,28 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
-        disableAllTraffic: {
-          label: 'Disable the option to route all traffic through VPN',
-          helper:
-            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
-        },
-        forceAllTraffic: {
-          label: 'Force the clients to route all traffic through VPN',
-          helper:
-            'When this option is enabled, the users will always route all traffic through the VPN using the defguard client.',
-        },
         manualConfig: {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
             "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
+        },
+        clientTrafficPolicy: {
+          header: 'Client traffic policy',
+          none: {
+            label: 'None',
+            helper:
+              'When this option is enabled, users will be able to select all routing options.',
+          },
+          disableAllTraffic: {
+            label: 'Disable the option to route all traffic through VPN',
+            helper:
+              'When this option is enabled, users will not be able to route all traffic through the VPN.',
+          },
+          forceAllTraffic: {
+            label: 'Force the clients to route all traffic through VPN',
+            helper:
+              'When this option is enabled, the users will always route all traffic through the VPN.',
+          },
         },
       },
     },

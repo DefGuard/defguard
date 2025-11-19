@@ -1,10 +1,12 @@
 import './style.scss';
+import parse from 'html-react-parser';
 import clsx from 'clsx';
 import { useMemo } from 'react';
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import { RadioButton } from '../../../../../../shared/defguard-ui/components/Layout/RadioButton/Radiobutton';
 import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { ClientTrafficPolicy } from '../../../../../../shared/types';
+import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 
 type Props = {
   onChange: (event: ClientTrafficPolicy) => void;
@@ -16,37 +18,41 @@ export const ClientTrafficPolicySelect = ({
   fieldValue,
 }: Props) => {
   const { LL } = useI18nContext();
-
-  console.log("fieldValue:", fieldValue);
   const options = useMemo(
     (): SelectOption<ClientTrafficPolicy>[] => [
       {
         key: ClientTrafficPolicy.NONE,
         value: ClientTrafficPolicy.NONE,
-        label: LL.components.serviceLocationModeSelect.options.disabled(),
+        label: LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.label(),
+        meta: LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.helper(),
       },
       {
         key: ClientTrafficPolicy.DISABLE_ALL_TRAFFIC,
         value: ClientTrafficPolicy.DISABLE_ALL_TRAFFIC,
-        label: LL.components.serviceLocationModeSelect.options.prelogon(),
+        label: LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.label(),
+        meta: LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper(),
       },
       {
         key: ClientTrafficPolicy.FORCE_ALL_TRAFFIC,
         value: ClientTrafficPolicy.FORCE_ALL_TRAFFIC,
-        label: LL.components.serviceLocationModeSelect.options.alwayson(),
+        label: LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.label(),
+        meta: LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper(),
       },
     ],
     [
-      LL.components.serviceLocationModeSelect.options.disabled,
-      LL.components.serviceLocationModeSelect.options.prelogon,
-      LL.components.serviceLocationModeSelect.options.alwayson,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.label,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.helper,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.label,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.label,
+      LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper,
     ],
   );
 
   return (
     <div className="client-traffic-policy-select">
-      <label>{LL.networkConfiguration.form.fields.service_location_mode.label()}</label>
-      {options.map(({ key, value, label, disabled = false }) => {
+      <label>{LL.settingsPage.enterprise.fields.clientTrafficPolicy.header()}</label>
+      {options.map(({ key, value, label, meta, disabled = false }) => {
         const active = fieldValue === value;
         return (
           <div
@@ -63,6 +69,9 @@ export const ClientTrafficPolicySelect = ({
           >
             <p className="label">{label}</p>
             <RadioButton active={active} />
+            <Helper>
+              {parse(meta)}
+            </Helper>
           </div>
         );
       })}
