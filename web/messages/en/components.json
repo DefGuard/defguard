@@ -19,6 +19,7 @@
   "cmp_nav_item_network_devices": "Network Devices",
   "cmp_nav_item_openid": "OpenID Apps",
   "cmp_nav_item_webhooks": "Webhooks",
+  "cmp_nav_item_locations": "Locations",
   "cmp_webhook_event_user_delete": "User deleted",
   "cmp_webhook_event_user_add": "New user created",
   "cmp_webhook_event_user_edit": "User modified",

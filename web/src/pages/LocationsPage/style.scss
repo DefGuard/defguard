@@ -1,0 +1,13 @@
+#locations-page {
+  .table {
+    .cell-acl-enabled {
+      .icon[data-kind='disabled'] path {
+        fill: var(--fg-critical);
+      }
+
+      .icon[data-kind='check-circle'] path {
+        fill: var(--fg-success);
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { IconButtonMenu } from '../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemProps } from '../../../../shared/defguard-ui/components/Menu/types';
+import { Search } from '../../../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../shared/defguard-ui/components/table/TableCell/TableCell';
@@ -153,12 +154,12 @@ export const GroupsTable = ({ groups, users }: Props) => {
 
   return (
     <>
-      <TableTop
-        text={m.groups_table_title()}
-        onSearch={setSearch}
-        initialSearch={search}
-        searchPlaceholder={m.groups_search_placeholder()}
-      >
+      <TableTop text={m.groups_table_title()}>
+        <Search
+          initialValue={search}
+          onChange={setSearch}
+          placeholder={m.groups_search_placeholder()}
+        />
         <Button
           iconLeft="add-user"
           text={m.groups_add()}

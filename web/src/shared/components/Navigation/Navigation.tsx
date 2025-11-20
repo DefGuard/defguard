@@ -25,6 +25,18 @@ interface NavItemProps {
 
 const navigationConfig: NavGroupProps[] = [
   {
+    id: 'vpn',
+    label: m.cmp_nav_group_vpn(),
+    items: [
+      {
+        id: 'locations',
+        icon: 'location-tracking',
+        label: m.cmp_nav_item_locations(),
+        link: '/locations',
+      },
+    ],
+  },
+  {
     id: 'identity',
     label: m.cmp_nav_group_identity(),
     items: [

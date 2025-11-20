@@ -429,15 +429,15 @@ export interface AddNetworkDeviceRequest {
 export interface NetworkLocation {
   id: number;
   name: string;
-  address: string;
+  address: string[];
   port: number;
   endpoint: string;
-  connected?: boolean;
-  connected_at?: string;
-  gateways?: GatewayStatus[];
-  allowed_ips?: string[];
-  allowed_groups?: string[];
-  dns?: string;
+  connected: boolean;
+  connected_at: string | null;
+  gateways: GatewayStatus[];
+  allowed_ips: string[];
+  allowed_groups: string[];
+  dns: string | null;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
