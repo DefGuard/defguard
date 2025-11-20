@@ -9,12 +9,17 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, settings::initialize_current_settings},
+        models::{
+            Settings,
+            User,
+            settings::initialize_current_settings,
+            // wireguard_peer_stats::WireguardPeerStats,
+        },
     },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, User},
+    db::AppEvent,
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -23,7 +28,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, map::GatewayMap},
+        gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
         run_grpc_bidi_stream, run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
@@ -35,6 +40,7 @@ use defguard_core::{
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
+// use defguard_session_manager::run_session_manager;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -106,6 +112,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
+    // let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<WireguardPeerStats>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
@@ -220,6 +227,10 @@ async fn main() -> Result<(), anyhow::Error> {
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_rx
         ) => error!("Activity log stream manager returned early: {res:?}"),
+        // res = run_session_manager(
+        //     pool.clone(),
+        //     peer_stats_rx
+        // ) => error!("VPN client session manager returned early: {res:?}"),
     }
 
     Ok(())

@@ -13,12 +13,21 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
-use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
-    db::init_db,
+    db::{
+        init_db,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            oauth2client::OAuth2Client,
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
+            },
+        },
+    },
 };
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
@@ -91,13 +100,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
-        models::{
-            oauth2client::OAuth2Client,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        },
-    },
+    db::AppEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
     handlers::{
         app_info::get_app_info,
@@ -146,19 +149,25 @@ use self::{
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
 };
-use crate::{db::models::wireguard::ServiceLocationMode, version::IncompatibleComponents};
+use crate::{
+    grpc::gateway::events::GatewayEvent, location_management::sync_location_allowed_devices,
+    version::IncompatibleComponents,
+};
 
 pub mod appstate;
 pub mod auth;
 pub mod db;
+pub mod enrollment_management;
 pub mod enterprise;
 mod error;
 pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
+pub mod location_management;
 pub mod support;
 pub mod updates;
+pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;
@@ -176,13 +185,13 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
-// WireGuard key length in bytes.
-pub(crate) const KEY_LENGTH: usize = 32;
-
 mod openapi {
-    use db::{
-        AddDevice, UserDetails, UserInfo,
-        models::device::{ModifyDevice, UserDevice},
+    use defguard_common::{
+        db::models::{
+            Device,
+            device::{AddDevice, ModifyDevice, UserDevice},
+        },
+        types::user_info::UserInfo,
     };
     use handlers::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
@@ -197,7 +206,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::{enterprise::snat::handlers as snat, error::WebError};
+    use crate::{enterprise::snat::handlers as snat, error::WebError, handlers::user::UserDetails};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -855,7 +864,7 @@ pub async fn init_vpn_location(
             network.dns.clone_from(&args.dns);
             network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
-            network.sync_allowed_devices(&mut transaction, None).await?;
+            sync_location_allowed_devices(&network, &mut transaction, None).await?;
             network
         }
         // Otherwise create it with the predefined ID

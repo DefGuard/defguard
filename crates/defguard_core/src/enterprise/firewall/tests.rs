@@ -1,7 +1,14 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
-use defguard_common::db::{Id, NoId, setup_pool};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, group::Group,
+        user::User,
+    },
+    setup_pool,
+};
 use defguard_proto::enterprise::firewall::{
     FirewallPolicy, IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto, Protocol,
     ip_address::Address, port::Port as PortInner,
@@ -18,18 +25,12 @@ use super::{
     find_largest_subnet_in_range, get_last_ip_in_v6_subnet, get_source_users, merge_addrs,
     merge_port_ranges, process_destination_addrs,
 };
-use crate::{
-    db::{
-        Device, Group, User, WireguardNetwork,
-        models::device::{DeviceType, WireguardNetworkDevice},
+use crate::enterprise::{
+    db::models::acl::{
+        AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
+        AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
     },
-    enterprise::{
-        db::models::acl::{
-            AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
-            AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
-        },
-        firewall::{get_source_addrs, get_source_network_devices},
-    },
+    firewall::{get_source_addrs, get_source_network_devices, try_get_location_firewall_config},
 };
 
 impl Default for AclRuleDestinationRange<Id> {
@@ -1175,14 +1176,15 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // try to generate firewall config with ACL disabled
     location.acl_enabled = false;
-    let generated_firewall_config = location.try_get_firewall_config(&mut conn).await.unwrap();
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap();
     assert!(generated_firewall_config.is_none());
 
     // generate firewall config with default policy Allow
     location.acl_enabled = true;
     location.acl_default_allow = true;
-    let generated_firewall_config = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap();
@@ -1596,14 +1598,15 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // try to generate firewall config with ACL disabled
     location.acl_enabled = false;
-    let generated_firewall_config = location.try_get_firewall_config(&mut conn).await.unwrap();
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap();
     assert!(generated_firewall_config.is_none());
 
     // generate firewall config with default policy Allow
     location.acl_enabled = true;
     location.acl_default_allow = true;
-    let generated_firewall_config = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap();
@@ -2062,14 +2065,15 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // try to generate firewall config with ACL disabled
     location.acl_enabled = false;
-    let generated_firewall_config = location.try_get_firewall_config(&mut conn).await.unwrap();
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap();
     assert!(generated_firewall_config.is_none());
 
     // generate firewall config with default policy Allow
     location.acl_enabled = true;
     location.acl_default_allow = true;
-    let generated_firewall_config = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap();
@@ -2460,8 +2464,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2477,8 +2480,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     acl_rule_2.expires = Some(NaiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2531,8 +2533,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2548,8 +2549,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     acl_rule_2.expires = Some(NaiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2605,8 +2605,7 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2622,8 +2621,7 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     acl_rule_2.expires = Some(NaiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2675,8 +2673,7 @@ async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOption
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2692,8 +2689,7 @@ async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOption
     acl_rule_2.enabled = true;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2746,8 +2742,7 @@ async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOption
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2763,8 +2758,7 @@ async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOption
     acl_rule_2.enabled = true;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2820,8 +2814,7 @@ async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConn
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2837,8 +2830,7 @@ async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConn
     acl_rule_2.enabled = true;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2890,8 +2882,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2907,8 +2898,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
     acl_rule_2.state = RuleState::Applied;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2961,8 +2951,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -2978,8 +2967,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
     acl_rule_2.state = RuleState::Applied;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3035,8 +3023,7 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3052,8 +3039,7 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
     acl_rule_2.state = RuleState::Applied;
     acl_rule_2.save(&pool).await.unwrap();
 
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3191,8 +3177,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location_1
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_1, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3201,8 +3186,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     // both rules were assigned to this location
     assert_eq!(generated_firewall_rules.len(), 4);
 
-    let generated_firewall_rules = location_2
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3353,8 +3337,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location_1
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_1, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3363,8 +3346,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     // both rules were assigned to this location
     assert_eq!(generated_firewall_rules.len(), 4);
 
-    let generated_firewall_rules = location_2
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3529,8 +3511,7 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
     }
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location_1
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_1, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3539,8 +3520,7 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
     // both rules were assigned to this location
     assert_eq!(generated_firewall_rules.len(), 8);
 
-    let generated_firewall_rules = location_2
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3658,8 +3638,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     obj.save(&pool).await.unwrap();
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()
@@ -3854,8 +3833,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     obj.save(&pool).await.unwrap();
 
     let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
         .await
         .unwrap()
         .unwrap()

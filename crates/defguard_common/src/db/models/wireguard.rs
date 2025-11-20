@@ -5,44 +5,36 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
+use crate::{
+    auth::claims::{Claims, ClaimsType},
+    db::{
+        Id, NoId,
+        models::{
+            ModelError,
+            group::{Group, Permission},
+            wireguard_peer_stats::WireguardPeerStats,
+        },
+    },
+    types::user_info::UserInfo,
+};
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{
-    auth::claims::{Claims, ClaimsType},
-    csv::AsCsv,
-    db::{Id, NoId, models::ModelError},
-};
-use defguard_proto::{
-    enterprise::firewall::FirewallConfig,
-    gateway::Peer,
-    proxy::{
-        LocationMfaMode as ProtoLocationMfaMode, ServiceLocationMode as ProtoServiceLocationMode,
-    },
-};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
+use serde::{Deserialize, Serialize};
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query_as, query_scalar,
+    postgres::types::PgInterval, query, query_as, query_scalar,
 };
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tracing::{debug, info};
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
-    UserInfo,
-    device::{
-        Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
-    },
+    device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
     user::User,
-    wireguard_peer_stats::WireguardPeerStats,
-};
-use crate::{
-    enterprise::{firewall::FirewallError, is_enterprise_enabled},
-    grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
-    wg_config::ImportedDevice,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -76,18 +68,6 @@ impl DateTimeAggregation {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum GatewayEvent {
-    NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
-    NetworkDeleted(Id, String),
-    DeviceCreated(DeviceInfo),
-    DeviceModified(DeviceInfo),
-    DeviceDeleted(DeviceInfo),
-    FirewallConfigChanged(Id, FirewallConfig),
-    FirewallDisabled(Id),
-}
-
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "location_mfa_mode", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -108,27 +88,6 @@ impl Display for LocationMfaMode {
     }
 }
 
-impl From<ProtoLocationMfaMode> for LocationMfaMode {
-    fn from(value: ProtoLocationMfaMode) -> Self {
-        match value {
-            ProtoLocationMfaMode::Unspecified | ProtoLocationMfaMode::Disabled => {
-                LocationMfaMode::Disabled
-            }
-            ProtoLocationMfaMode::Internal => LocationMfaMode::Internal,
-            ProtoLocationMfaMode::External => LocationMfaMode::External,
-        }
-    }
-}
-impl From<LocationMfaMode> for ProtoLocationMfaMode {
-    fn from(value: LocationMfaMode) -> Self {
-        match value {
-            LocationMfaMode::Disabled => ProtoLocationMfaMode::Disabled,
-            LocationMfaMode::Internal => ProtoLocationMfaMode::Internal,
-            LocationMfaMode::External => ProtoLocationMfaMode::External,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "service_location_mode", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -137,28 +96,6 @@ pub enum ServiceLocationMode {
     Disabled,
     PreLogon,
     AlwaysOn,
-}
-
-impl From<ProtoServiceLocationMode> for ServiceLocationMode {
-    fn from(value: ProtoServiceLocationMode) -> Self {
-        match value {
-            ProtoServiceLocationMode::Unspecified | ProtoServiceLocationMode::Disabled => {
-                ServiceLocationMode::Disabled
-            }
-            ProtoServiceLocationMode::Prelogon => ServiceLocationMode::PreLogon,
-            ProtoServiceLocationMode::Alwayson => ServiceLocationMode::AlwaysOn,
-        }
-    }
-}
-
-impl From<ServiceLocationMode> for ProtoServiceLocationMode {
-    fn from(value: ServiceLocationMode) -> Self {
-        match value {
-            ServiceLocationMode::Disabled => ProtoServiceLocationMode::Disabled,
-            ServiceLocationMode::PreLogon => ProtoServiceLocationMode::Prelogon,
-            ServiceLocationMode::AlwaysOn => ProtoServiceLocationMode::Alwayson,
-        }
-    }
 }
 
 /// Stores configuration required to setup a WireGuard network
@@ -272,8 +209,6 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
-    #[error("Firewall config error: {0}")]
-    FirewallError(#[from] FirewallError),
     #[error(transparent)]
     TokenError(#[from] jsonwebtoken::errors::Error),
 }
@@ -297,6 +232,7 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
         name: String,
@@ -336,9 +272,8 @@ impl WireguardNetwork {
     }
 
     /// Try to set `address` from `&str`.
-    #[cfg(test)]
-    pub(crate) fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        use crate::handlers::wireguard::parse_address_list;
+    pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
+        use crate::utils::parse_address_list;
 
         let address = parse_address_list(address);
         if address.is_empty() {
@@ -351,7 +286,7 @@ impl WireguardNetwork {
 }
 
 impl WireguardNetwork<Id> {
-    pub(crate) async fn find_by_name<'e, E>(
+    pub async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
     ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
@@ -377,36 +312,8 @@ impl WireguardNetwork<Id> {
         Ok(Some(networks))
     }
 
-    // run sync_allowed_devices on all wireguard networks
-    pub(crate) async fn sync_all_networks(
-        conn: &mut PgConnection,
-        wireguard_tx: &Sender<GatewayEvent>,
-    ) -> Result<(), WireguardNetworkError> {
-        info!("Syncing allowed devices for all WireGuard locations");
-        let networks = Self::all(&mut *conn).await?;
-        for network in networks {
-            // sync allowed devices for location
-            let mut gateway_events = network.sync_allowed_devices(&mut *conn, None).await?;
-
-            // send firewall config update if ACLs are enabled for a given location
-            if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
-                gateway_events.push(GatewayEvent::FirewallConfigChanged(
-                    network.id,
-                    firewall_config,
-                ));
-            }
-            // check if any gateway events need to be sent
-            if !gateway_events.is_empty() {
-                send_multiple_wireguard_events(gateway_events, wireguard_tx);
-            }
-        }
-        Ok(())
-    }
-
-    pub(crate) fn validate_network_size(
-        &self,
-        device_count: usize,
-    ) -> Result<(), WireguardNetworkError> {
+    #[allow(clippy::result_large_err)]
+    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in networks used by location {self}");
         // if given location uses multiple subnets validate devices can fit them all
         for subnet in &self.address {
@@ -432,7 +339,7 @@ impl WireguardNetwork<Id> {
 
     /// Utility method to create WireGuard keypair
     #[must_use]
-    pub(crate) fn genkey() -> WireguardKey {
+    pub fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
@@ -444,7 +351,7 @@ impl WireguardNetwork<Id> {
     /// Get a list of all devices belonging to users in allowed groups.
     /// Admin users should always be allowed to access a network.
     /// Note: Doesn't check if the devices are really in the network.
-    pub(crate) async fn get_allowed_devices(
+    pub async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
@@ -491,7 +398,7 @@ impl WireguardNetwork<Id> {
     /// Get a list of devices belonging to a user which are also in the network's allowed groups.
     /// Admin users should always be allowed to access a network.
     /// Note: Doesn't check if the devices are really in the network.
-    async fn get_allowed_devices_for_user(
+    pub async fn get_allowed_devices_for_user(
         &self,
         transaction: &mut PgConnection,
         user_id: Id,
@@ -541,7 +448,7 @@ impl WireguardNetwork<Id> {
 
     /// Generate network IPs for all existing devices
     /// If `allowed_groups` is set, devices should be filtered accordingly
-    pub(crate) async fn add_all_allowed_devices(
+    pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), ModelError> {
@@ -591,342 +498,6 @@ impl WireguardNetwork<Id> {
     #[must_use]
     pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
         self.address.iter().find(|net| net.contains(addr)).copied()
-    }
-
-    /// Works out which devices need to be added, removed, or readdressed based on the list
-    /// of currently configured devices and the list of devices which should be allowed.
-    async fn process_device_access_changes(
-        &self,
-        transaction: &mut PgConnection,
-        mut allowed_devices: HashMap<Id, Device<Id>>,
-        currently_configured_devices: Vec<WireguardNetworkDevice>,
-        reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        // Loop through current device configurations; remove no longer allowed, readdress
-        // when necessary; remove processed entry from all devices list initial list should
-        // now contain only devices to be added.
-        let mut events: Vec<GatewayEvent> = Vec::new();
-        for device_network_config in currently_configured_devices {
-            // Device is allowed and an IP was already assigned
-            if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
-                // Network address has changed and IP addresses need to be updated
-                if !self.contains_all(&device_network_config.wireguard_ips)
-                    || self.address.len() != device_network_config.wireguard_ips.len()
-                {
-                    let wireguard_network_device = device
-                        .assign_next_network_ip(
-                            &mut *transaction,
-                            self,
-                            reserved_ips,
-                            Some(&device_network_config.wireguard_ips),
-                        )
-                        .await?;
-                    events.push(GatewayEvent::DeviceModified(DeviceInfo {
-                        device,
-                        network_info: vec![DeviceNetworkInfo {
-                            network_id: self.id,
-                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                            preshared_key: wireguard_network_device.preshared_key,
-                            is_authorized: wireguard_network_device.is_authorized,
-                        }],
-                    }));
-                }
-            // Device is no longer allowed
-            } else {
-                debug!(
-                    "Device {} no longer allowed, removing network config for {self}",
-                    device_network_config.device_id
-                );
-                device_network_config.delete(&mut *transaction).await?;
-                if let Some(device) =
-                    Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
-                {
-                    events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
-                        device,
-                        network_info: vec![DeviceNetworkInfo {
-                            network_id: self.id,
-                            device_wireguard_ips: device_network_config.wireguard_ips,
-                            preshared_key: device_network_config.preshared_key,
-                            is_authorized: device_network_config.is_authorized,
-                        }],
-                    }));
-                } else {
-                    let msg = format!("Device {} does not exist", device_network_config.device_id);
-                    error!(msg);
-                    return Err(WireguardNetworkError::Unexpected(msg));
-                }
-            }
-        }
-
-        // Add configs for new allowed devices
-        for device in allowed_devices.into_values() {
-            let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None)
-                .await?;
-            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
-                device,
-                network_info: vec![DeviceNetworkInfo {
-                    network_id: self.id,
-                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                    preshared_key: wireguard_network_device.preshared_key,
-                    is_authorized: wireguard_network_device.is_authorized,
-                }],
-            }));
-        }
-
-        Ok(events)
-    }
-
-    /// Refresh network IPs for all relevant devices of a given user
-    /// If the list of allowed devices has changed add/remove devices accordingly
-    /// If the network address has changed readdress existing devices
-    pub(crate) async fn sync_allowed_devices_for_user(
-        &self,
-        transaction: &mut PgConnection,
-        user: &User<Id>,
-        reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!("Synchronizing IPs in network {self} for all allowed devices ");
-        // list all allowed devices
-        let allowed_devices = self
-            .get_allowed_devices_for_user(&mut *transaction, user.id)
-            .await?;
-
-        // convert to a map for easier processing
-        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
-            .into_iter()
-            .map(|dev| (dev.id, dev))
-            .collect();
-
-        // check if all devices can fit within network
-        // include address, network, and broadcast in the calculation
-        let count = allowed_devices.len() + 3;
-        self.validate_network_size(count)?;
-
-        // list all assigned IPs
-        let assigned_ips =
-            WireguardNetworkDevice::all_for_network_and_user(&mut *transaction, self.id, user.id)
-                .await?;
-
-        let events = self
-            .process_device_access_changes(
-                &mut *transaction,
-                allowed_devices,
-                assigned_ips,
-                reserved_ips,
-            )
-            .await?;
-
-        Ok(events)
-    }
-
-    /// Refresh network IPs for all relevant devices
-    ///
-    /// If the list of allowed devices has changed add/remove devices accordingly
-    ///
-    /// If the network address has changed readdress existing devices
-    pub(crate) async fn sync_allowed_devices(
-        &self,
-        conn: &mut PgConnection,
-        reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!("Synchronizing IPs in network {self} for all allowed devices ");
-        // list all allowed devices
-        let mut allowed_devices = self.get_allowed_devices(&mut *conn).await?;
-
-        // network devices are always allowed, make sure to take only network devices already assigned to that network
-        let network_devices =
-            Device::find_by_type_and_network(&mut *conn, DeviceType::Network, self.id).await?;
-        allowed_devices.extend(network_devices);
-
-        // convert to a map for easier processing
-        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
-            .into_iter()
-            .map(|dev| (dev.id, dev))
-            .collect();
-
-        // check if all devices can fit within network
-        // include address, network, and broadcast in the calculation
-        let count = allowed_devices.len() + 3;
-        self.validate_network_size(count)?;
-
-        // list all assigned IPs
-        let assigned_ips = WireguardNetworkDevice::all_for_network(&mut *conn, self.id).await?;
-
-        let events = self
-            .process_device_access_changes(&mut *conn, allowed_devices, assigned_ips, reserved_ips)
-            .await?;
-
-        Ok(events)
-    }
-
-    /// Check if devices found in an imported config file exist already,
-    /// if they do assign a specified IP.
-    /// Return a list of imported devices which need to be manually mapped to a user
-    /// and a list of WireGuard events to be sent out.
-    pub(crate) async fn handle_imported_devices(
-        &self,
-        transaction: &mut PgConnection,
-        imported_devices: Vec<ImportedDevice>,
-    ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
-        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
-        // convert to a map for easier processing
-        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
-            .into_iter()
-            .map(|dev| (dev.id, dev))
-            .collect();
-
-        let mut devices_to_map = Vec::new();
-        let mut assigned_device_ids = Vec::new();
-        let mut events = Vec::new();
-        for imported_device in imported_devices {
-            // check if device with a given pubkey exists already
-            match Device::find_by_pubkey(&mut *transaction, &imported_device.wireguard_pubkey)
-                .await?
-            {
-                Some(existing_device) => {
-                    // check if device is allowed in network
-                    match allowed_devices.get(&existing_device.id) {
-                        Some(_) => {
-                            info!(
-                                "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
-                                existing_device.wireguard_pubkey,
-                                imported_device.wireguard_ips.as_csv()
-                            );
-                            let wireguard_network_device = WireguardNetworkDevice::new(
-                                self.id,
-                                existing_device.id,
-                                imported_device.wireguard_ips,
-                            );
-                            wireguard_network_device.insert(&mut *transaction).await?;
-                            // store ID of device with already generated config
-                            assigned_device_ids.push(existing_device.id);
-                            // send device to connected gateways
-                            events.push(GatewayEvent::DeviceModified(DeviceInfo {
-                                device: existing_device,
-                                network_info: vec![DeviceNetworkInfo {
-                                    network_id: self.id,
-                                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                                    preshared_key: wireguard_network_device.preshared_key,
-                                    is_authorized: wireguard_network_device.is_authorized,
-                                }],
-                            }));
-                        }
-                        None => {
-                            warn!(
-                                "Device with pubkey {} exists already, but is not allowed in network {self}. Skipping...",
-                                existing_device.wireguard_pubkey
-                            );
-                        }
-                    }
-                }
-                None => devices_to_map.push(imported_device),
-            }
-        }
-
-        Ok((devices_to_map, events))
-    }
-
-    /// Handle device -> user mapping in second step of network import wizard
-    pub(crate) async fn handle_mapped_devices(
-        &self,
-        transaction: &mut PgConnection,
-        mapped_devices: Vec<MappedDevice>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!("Mapping user devices for network {}", self);
-        // get allowed groups for network
-        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
-
-        let mut events = Vec::new();
-        // use a helper hashmap to avoid repeated queries
-        let mut user_groups = HashMap::new();
-        for mapped_device in &mapped_devices {
-            debug!("Mapping device {}", mapped_device.name);
-            // validate device pubkey
-            Device::validate_pubkey(&mapped_device.wireguard_pubkey).map_err(|_| {
-                WireguardNetworkError::InvalidDevicePubkey(mapped_device.wireguard_pubkey.clone())
-            })?;
-            // save a new device
-            let device = Device::new(
-                mapped_device.name.clone(),
-                mapped_device.wireguard_pubkey.clone(),
-                mapped_device.user_id,
-                DeviceType::User,
-                None,
-                true,
-            )
-            .save(&mut *transaction)
-            .await?;
-            debug!("Saved new device {device}");
-
-            // get a list of groups user is assigned to
-            let groups = match user_groups.get(&device.user_id) {
-                // user info has already been fetched before
-                Some(groups) => groups,
-                // fetch user info
-                None => match User::find_by_id(&mut *transaction, device.user_id).await? {
-                    Some(user) => {
-                        let groups = user.member_of_names(&mut *transaction).await?;
-                        user_groups.insert(device.user_id, groups);
-                        // FIXME: ugly workaround to get around `groups` being dropped
-                        user_groups.get(&device.user_id).unwrap()
-                    }
-                    None => return Err(WireguardNetworkError::from(ModelError::NotFound)),
-                },
-            };
-
-            let mut network_info = Vec::new();
-            match &allowed_groups {
-                None => {
-                    let wireguard_network_device = WireguardNetworkDevice::new(
-                        self.id,
-                        device.id,
-                        mapped_device.wireguard_ips.clone(),
-                    );
-                    wireguard_network_device.insert(&mut *transaction).await?;
-                    network_info.push(DeviceNetworkInfo {
-                        network_id: self.id,
-                        device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                        preshared_key: wireguard_network_device.preshared_key,
-                        is_authorized: wireguard_network_device.is_authorized,
-                    });
-                }
-                Some(allowed) => {
-                    // check if user belongs to an allowed group
-                    if allowed.iter().any(|group| groups.contains(group)) {
-                        // assign specified IP in imported network
-                        let wireguard_network_device = WireguardNetworkDevice::new(
-                            self.id,
-                            device.id,
-                            mapped_device.wireguard_ips.clone(),
-                        );
-                        wireguard_network_device.insert(&mut *transaction).await?;
-                        network_info.push(DeviceNetworkInfo {
-                            network_id: self.id,
-                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                            preshared_key: wireguard_network_device.preshared_key,
-                            is_authorized: wireguard_network_device.is_authorized,
-                        });
-                    }
-                }
-            }
-
-            // assign IPs in other networks
-            let (mut all_network_info, _configs) =
-                device.add_to_all_networks(&mut *transaction).await?;
-
-            network_info.append(&mut all_network_info);
-
-            // send device to connected gateways
-            if !network_info.is_empty() {
-                events.push(GatewayEvent::DeviceCreated(DeviceInfo {
-                    device,
-                    network_info,
-                }));
-            }
-        }
-
-        Ok(events)
     }
 
     /// Finds when the device connected based on handshake timestamps.
@@ -1030,7 +601,7 @@ impl WireguardNetwork<Id> {
         Ok(result)
     }
 
-    pub(crate) async fn distinct_device_stats(
+    pub async fn distinct_device_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -1057,7 +628,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp.
-    pub(crate) async fn user_stats(
+    pub async fn user_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -1166,7 +737,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats
-    pub(crate) async fn network_stats(
+    pub async fn network_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -1238,7 +809,7 @@ impl WireguardNetwork<Id> {
     ///
     /// - `Ok(())`: All addresses passed every check.
     /// - `Err(NetworkIpAssignmentError)`: The first failing check.
-    pub(crate) async fn can_assign_ips(
+    pub async fn can_assign_ips(
         &self,
         transaction: &mut PgConnection,
         ip_addrs: &[IpAddr],
@@ -1296,7 +867,7 @@ impl WireguardNetwork<Id> {
     }
 
     // fetch all locations using external MFA
-    pub(crate) async fn all_using_external_mfa<'e, E>(
+    pub async fn all_using_external_mfa<'e, E>(
         executor: E,
     ) -> Result<Vec<Self>, WireguardNetworkError>
     where
@@ -1317,6 +888,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generates auth token for a VPN gateway
+    #[allow(clippy::result_large_err)]
     pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
         let location_id = self.id;
 
@@ -1331,11 +903,138 @@ impl WireguardNetwork<Id> {
         Ok(token)
     }
 
-    /// If this location is marked as a service location, checks if all requirements are met for it to function:
-    /// - Enterprise is enabled
-    #[must_use]
-    pub fn should_prevent_service_location_usage(&self) -> bool {
-        self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
+    /// Fetch a list of all allowed groups for a given network from DB
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Fetching all allowed groups for network {self}");
+        let groups = query_scalar!(
+            "SELECT name FROM wireguard_network_allowed_group wag \
+            JOIN \"group\" g ON wag.group_id = g.id WHERE wag.network_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(groups)
+    }
+
+    /// Return a list of allowed groups for a given network.
+    /// Admin group should always be included.
+    /// If no `allowed_groups` are specified for a network then all devices are allowed.
+    /// In this case `None` is returned to signify that there's no filtering.
+    /// This helper method is meant for use in all business logic gating
+    /// access to networks based on allowed groups.
+    pub async fn get_allowed_groups(
+        &self,
+        conn: &mut PgConnection,
+    ) -> Result<Option<Vec<String>>, ModelError> {
+        debug!("Returning a list of allowed groups for network {self}");
+        let admin_groups = Group::find_by_permission(&mut *conn, Permission::IsAdmin).await?;
+
+        // get allowed groups from DB
+        let mut groups = self.fetch_allowed_groups(&mut *conn).await?;
+
+        // if no allowed groups are set then all groups are allowed
+        if groups.is_empty() {
+            return Ok(None);
+        }
+
+        for group in admin_groups {
+            if !groups.iter().any(|name| name == &group.name) {
+                groups.push(group.name);
+            }
+        }
+
+        Ok(Some(groups))
+    }
+
+    /// Set allowed groups, removing or adding groups as necessary.
+    pub async fn set_allowed_groups(
+        &self,
+        transaction: &mut PgConnection,
+        allowed_groups: Vec<String>,
+    ) -> Result<(), ModelError> {
+        info!("Setting allowed groups for network {self} to: {allowed_groups:?}");
+        if allowed_groups.is_empty() {
+            return self.clear_allowed_groups(transaction).await;
+        }
+
+        // get list of current allowed groups
+        let mut current_groups = self.fetch_allowed_groups(&mut *transaction).await?;
+
+        // add to group if not already a member
+        for group in &allowed_groups {
+            if !current_groups.contains(group) {
+                self.add_to_group(transaction, group).await?;
+            }
+        }
+
+        // remove groups which are no longer present
+        current_groups.retain(|group| !allowed_groups.contains(group));
+        if !current_groups.is_empty() {
+            self.remove_from_groups(transaction, current_groups).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn add_to_group(
+        &self,
+        transaction: &mut PgConnection,
+        group: &str,
+    ) -> Result<(), ModelError> {
+        info!("Adding allowed group {group} for network {self}");
+        query!(
+            "INSERT INTO wireguard_network_allowed_group (network_id, group_id) \
+            SELECT $1, g.id FROM \"group\" g WHERE g.name = $2",
+            self.id,
+            group
+        )
+        .execute(transaction)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn remove_from_groups(
+        &self,
+        transaction: &mut PgConnection,
+        groups: Vec<String>,
+    ) -> Result<(), ModelError> {
+        info!("Removing allowed groups {groups:?} for network {self}");
+        let result = query!(
+            "DELETE FROM wireguard_network_allowed_group \
+            WHERE network_id = $1 AND group_id IN ( \
+                SELECT id FROM \"group\" \
+                WHERE name IN (SELECT * FROM UNNEST($2::text[])) \
+            )",
+            self.id,
+            &groups
+        )
+        .execute(transaction)
+        .await?;
+        info!(
+            "Removed {} allowed groups for network {self}",
+            result.rows_affected(),
+        );
+        Ok(())
+    }
+
+    /// Remove all allowed groups for a given network
+    async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
+        info!("Removing all allowed groups for network {self}");
+        let result = query!(
+            "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",
+            self.id
+        )
+        .execute(transaction)
+        .await?;
+        info!(
+            "Removed {} allowed groups for network {self}",
+            result.rows_affected(),
+        );
+        Ok(())
     }
 }
 
@@ -1361,15 +1060,6 @@ impl Default for WireguardNetwork {
             service_location_mode: ServiceLocationMode::default(),
         }
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct WireguardNetworkInfo {
-    #[serde(flatten)]
-    pub network: WireguardNetwork<Id>,
-    pub connected: bool,
-    pub gateways: Vec<GatewayState>,
-    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
@@ -1428,7 +1118,7 @@ pub struct WireguardNetworkStats {
     pub transfer_series: Vec<WireguardStatsRow>,
 }
 
-pub(crate) async fn networks_stats(
+pub async fn networks_stats(
     conn: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
@@ -1495,13 +1185,12 @@ pub(crate) async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
+    use crate::db::setup_pool;
     use chrono::{SubsecRound, TimeDelta, Utc};
-    use defguard_common::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::Group;
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1804,259 +1493,6 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
-
-        let user1 = User::new(
-            "testuser1",
-            Some("pass1"),
-            "Tester1",
-            "Test1",
-            "test1@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let user2 = User::new(
-            "testuser2",
-            Some("pass2"),
-            "Tester2",
-            "Test2",
-            "test2@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device1 = Device::new(
-            "device1".into(),
-            "key1".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device2 = Device::new(
-            "device2".into(),
-            "key2".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device3 = Device::new(
-            "device3".into(),
-            "key3".into(),
-            user2.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let mut transaction = pool.begin().await.unwrap();
-
-        // user1 sync
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
-            .await
-            .unwrap();
-
-        assert_eq!(events.len(), 2);
-        assert!(events.iter().any(|e| match e {
-            GatewayEvent::DeviceCreated(info) => info.device.id == device1.id,
-            _ => false,
-        }));
-        assert!(events.iter().any(|e| match e {
-            GatewayEvent::DeviceCreated(info) => info.device.id == device2.id,
-            _ => false,
-        }));
-
-        // user 2 sync
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user2, None)
-            .await
-            .unwrap();
-
-        assert_eq!(events.len(), 1);
-        match &events[0] {
-            GatewayEvent::DeviceCreated(info) => {
-                assert_eq!(info.device.id, device3.id);
-            }
-            _ => panic!("Expected DeviceCreated event"),
-        }
-
-        // Second sync should not generate any events
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
-            .await
-            .unwrap();
-        assert_eq!(events.len(), 0);
-
-        transaction.commit().await.unwrap();
-    }
-
-    #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user_with_groups(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
-
-        let user1 = User::new(
-            "testuser1",
-            Some("pass1"),
-            "Tester1",
-            "Test1",
-            "test1@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let user2 = User::new(
-            "testuser2",
-            Some("pass2"),
-            "Tester2",
-            "Test2",
-            "test2@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let user3 = User::new(
-            "testuser3",
-            Some("pass3"),
-            "Tester3",
-            "Test3",
-            "test3@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device1 = Device::new(
-            "device1".into(),
-            "key1".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device2 = Device::new(
-            "device2".into(),
-            "key2".into(),
-            user2.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device3 = Device::new(
-            "device3".into(),
-            "key3".into(),
-            user3.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let group1 = Group::new("group1").save(&pool).await.unwrap();
-        let group2 = Group::new("group2").save(&pool).await.unwrap();
-
-        let mut transaction = pool.begin().await.unwrap();
-
-        network
-            .set_allowed_groups(
-                &mut transaction,
-                vec![group1.name.clone(), group2.name.clone()],
-            )
-            .await
-            .unwrap();
-
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
-            .await
-            .unwrap();
-        assert_eq!(events.len(), 0);
-
-        user1.add_to_group(&pool, &group1).await.unwrap();
-        user2.add_to_group(&pool, &group1).await.unwrap();
-        user3.add_to_group(&pool, &group2).await.unwrap();
-
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
-            .await
-            .unwrap();
-        assert_eq!(events.len(), 1);
-        match &events[0] {
-            GatewayEvent::DeviceCreated(info) => {
-                assert_eq!(info.device.id, device1.id);
-            }
-            _ => panic!("Expected DeviceCreated event"),
-        }
-
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user2, None)
-            .await
-            .unwrap();
-        assert_eq!(events.len(), 1);
-        match &events[0] {
-            GatewayEvent::DeviceCreated(info) => {
-                assert_eq!(info.device.id, device2.id);
-            }
-            _ => panic!("Expected DeviceCreated event"),
-        }
-
-        let events = network
-            .sync_allowed_devices_for_user(&mut transaction, &user3, None)
-            .await
-            .unwrap();
-        assert_eq!(events.len(), 1);
-        match &events[0] {
-            GatewayEvent::DeviceCreated(info) => {
-                assert_eq!(info.device.id, device3.id);
-            }
-            _ => panic!("Expected DeviceCreated event"),
-        }
-
-        transaction.commit().await.unwrap();
-    }
-
-    #[sqlx::test]
     async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
@@ -2323,168 +1759,5 @@ mod test {
                 .await,
             Err(NetworkAddressError::IsBroadcastAddress(..))
         );
-    }
-
-    #[sqlx::test]
-    async fn test_get_peers_service_location_modes(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-
-        let user = User::new(
-            "testuser",
-            Some("password123"),
-            "Test",
-            "User",
-            "test@example.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device1 = Device::new(
-            "device1".into(),
-            "pubkey1".into(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device2 = Device::new(
-            "device2".into(),
-            "pubkey2".into(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        // Normal location (service_location_mode = Disabled) should return peers
-        let mut network_normal = WireguardNetwork {
-            name: "normal-location".to_string(),
-            service_location_mode: ServiceLocationMode::Disabled,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_normal.try_set_address("10.1.1.1/24").unwrap();
-        let network_normal = network_normal.save(&pool).await.unwrap();
-
-        WireguardNetworkDevice::new(
-            network_normal.id,
-            device1.id,
-            vec![IpAddr::from_str("10.1.1.2").unwrap()],
-        )
-        .insert(&pool)
-        .await
-        .unwrap();
-
-        let peers_normal = network_normal.get_peers(&pool).await.unwrap();
-        assert_eq!(peers_normal.len(), 1, "Normal location should return peers");
-        assert_eq!(peers_normal[0].pubkey, "pubkey1");
-
-        // Service location with PreLogon mode returns peers when enterprise is enabled (test env default)
-        let mut network_prelogon = WireguardNetwork {
-            name: "prelogon-service-location".to_string(),
-            service_location_mode: ServiceLocationMode::PreLogon,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_prelogon.try_set_address("10.2.1.1/24").unwrap();
-        let network_prelogon = network_prelogon.save(&pool).await.unwrap();
-
-        WireguardNetworkDevice::new(
-            network_prelogon.id,
-            device2.id,
-            vec![IpAddr::from_str("10.2.1.2").unwrap()],
-        )
-        .insert(&pool)
-        .await
-        .unwrap();
-
-        // PreLogon service location should return peers when enterprise is enabled
-        let peers_prelogon = network_prelogon.get_peers(&pool).await.unwrap();
-        assert_eq!(
-            peers_prelogon.len(),
-            1,
-            "PreLogon service location should return peers when enterprise is enabled"
-        );
-        assert_eq!(peers_prelogon[0].pubkey, "pubkey2");
-
-        // Service location with AlwaysOn mode also returns peers when enterprise is enabled
-        let mut network_alwayson = WireguardNetwork {
-            name: "alwayson-service-location".to_string(),
-            service_location_mode: ServiceLocationMode::AlwaysOn,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_alwayson.try_set_address("10.3.1.1/24").unwrap();
-        let network_alwayson = network_alwayson.save(&pool).await.unwrap();
-
-        let device3 = Device::new(
-            "device3".into(),
-            "pubkey3".into(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        WireguardNetworkDevice::new(
-            network_alwayson.id,
-            device3.id,
-            vec![IpAddr::from_str("10.3.1.2").unwrap()],
-        )
-        .insert(&pool)
-        .await
-        .unwrap();
-
-        // AlwaysOn service location should return peers when enterprise is enabled
-        let peers_alwayson = network_alwayson.get_peers(&pool).await.unwrap();
-        assert_eq!(
-            peers_alwayson.len(),
-            1,
-            "AlwaysOn service location should return peers when enterprise is enabled"
-        );
-        assert_eq!(peers_alwayson[0].pubkey, "pubkey3");
-
-        // Now test the negative case: service locations with enterprise disabled
-        // Exceed the enterprise limits to disable enterprise features
-        use crate::enterprise::limits::{Counts, DEFAULT_LOCATIONS_LIMIT, set_counts};
-        let over_limit_counts = Counts::new(1, 1, DEFAULT_LOCATIONS_LIMIT + 1, 0);
-        set_counts(over_limit_counts);
-
-        // Test that normal location still returns peers even without enterprise
-        let peers_normal_no_ent = network_normal.get_peers(&pool).await.unwrap();
-        assert_eq!(
-            peers_normal_no_ent.len(),
-            1,
-            "Normal location should still return peers without enterprise"
-        );
-
-        // Test that PreLogon service location returns NO peers without enterprise
-        let peers_prelogon_no_ent = network_prelogon.get_peers(&pool).await.unwrap();
-        assert!(
-            peers_prelogon_no_ent.is_empty(),
-            "PreLogon service location should return NO peers when enterprise is disabled"
-        );
-
-        // Test that AlwaysOn service location returns NO peers without enterprise
-        let peers_alwayson_no_ent = network_alwayson.get_peers(&pool).await.unwrap();
-        assert!(
-            peers_alwayson_no_ent.is_empty(),
-            "AlwaysOn service location should return NO peers when enterprise is disabled"
-        );
-
-        let normal_counts = Counts::new(0, 0, 0, 0);
-        set_counts(normal_counts);
     }
 }

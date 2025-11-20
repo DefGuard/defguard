@@ -1,13 +1,15 @@
 use chrono::{Duration, Utc};
-use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
+use defguard_common::db::{
+    Id,
+    models::{oauth2client::OAuth2Client, settings::OpenidUsernameHandling},
+};
 use defguard_core::{
-    db::models::{NewOpenIDClient, oauth2client::OAuth2Client},
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
         license::{License, set_cached_license},
     },
-    handlers::Auth,
+    handlers::{Auth, openid_clients::NewOpenIDClient},
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;

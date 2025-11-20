@@ -5,7 +5,10 @@ use axum::{
     http::StatusCode,
 };
 use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{Id, models::MFAMethod};
+use defguard_common::db::{
+    Id,
+    models::{MFAMethod, User},
+};
 use defguard_mail::{
     Attachment, Mail,
     templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
@@ -23,7 +26,7 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{User, models::enrollment::TokenError},
+    db::models::enrollment::TokenError,
     error::WebError,
     server_config,
     support::dump_config,

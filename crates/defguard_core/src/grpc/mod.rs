@@ -46,9 +46,10 @@ pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent, GatewayEvent,
+        AppEvent,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
+    enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
@@ -60,7 +61,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
+    grpc::gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
     server_config,
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -455,7 +456,7 @@ async fn handle_proxy_message_loop(
                                 .await
                                 {
                                     Ok(mut user) => {
-                                        user.clear_unused_enrollment_tokens(&pool).await?;
+                                        clear_unused_enrollment_tokens(&user, &pool).await?;
                                         if let Err(err) = sync_user_groups_if_configured(
                                             &user,
                                             &pool,

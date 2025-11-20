@@ -19,10 +19,10 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, WebHook},
+    db::{AppEvent, WebHook},
     error::WebError,
     events::ApiEvent,
-    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
+    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
     version::IncompatibleComponents,
 };
 

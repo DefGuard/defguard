@@ -1,6 +1,5 @@
+use crate::{config::server_config, db::Id, random::gen_alphanumeric};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::{config::server_config, db::Id, random::gen_alphanumeric};
-use defguard_mail::templates::SessionContext;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
@@ -25,15 +24,6 @@ pub struct Session {
     pub webauthn_challenge: Option<Vec<u8>>,
     pub ip_address: String,
     pub device_info: Option<String>,
-}
-
-impl From<Session> for SessionContext {
-    fn from(value: Session) -> Self {
-        Self {
-            ip_address: value.ip_address,
-            device_info: value.device_info,
-        }
-    }
 }
 
 impl Session {

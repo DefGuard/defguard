@@ -1,7 +1,17 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, NaiveDateTime, Utc};
-use defguard_common::{VERSION, config::server_config, db::models::user::MFAMethod};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::{
+        Id,
+        models::{
+            Session,
+            user::{MFAMethod, User},
+        },
+    },
+};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
@@ -67,9 +77,27 @@ pub struct SessionContext {
     pub device_info: Option<String>,
 }
 
+impl From<Session> for SessionContext {
+    fn from(value: Session) -> Self {
+        Self {
+            ip_address: value.ip_address,
+            device_info: value.device_info,
+        }
+    }
+}
+
 pub struct UserContext {
     pub last_name: String,
     pub first_name: String,
+}
+
+impl From<User<Id>> for UserContext {
+    fn from(value: User<Id>) -> Self {
+        Self {
+            last_name: value.last_name,
+            first_name: value.first_name,
+        }
+    }
 }
 
 fn get_base_tera(

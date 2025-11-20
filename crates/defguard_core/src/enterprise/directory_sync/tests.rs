@@ -5,7 +5,11 @@ mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
-            models::{Settings, settings::initialize_current_settings},
+            models::{
+                Device, DeviceType, Session, SessionState, Settings, WireguardNetwork,
+                settings::initialize_current_settings,
+                wireguard::{LocationMfaMode, ServiceLocationMode},
+            },
             setup_pool,
         },
     };
@@ -15,16 +19,7 @@ mod test {
     use tokio::sync::broadcast;
 
     use super::super::*;
-    use crate::{
-        db::{
-            Device, Session, SessionState, WireguardNetwork,
-            models::{
-                device::DeviceType,
-                wireguard::{LocationMfaMode, ServiceLocationMode},
-            },
-        },
-        enterprise::db::models::openid_provider::DirectorySyncTarget,
-    };
+    use crate::enterprise::db::models::openid_provider::DirectorySyncTarget;
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")
@@ -657,7 +652,7 @@ mod test {
         let user2 = get_test_user(&pool, "user2").await;
         assert!(user2.is_none());
         let mut transaction = pool.begin().await.unwrap();
-        user.sync_allowed_devices(&mut transaction, &wg_tx)
+        sync_allowed_user_devices(&user, &mut transaction, &wg_tx)
             .await
             .unwrap();
         transaction.commit().await.unwrap();

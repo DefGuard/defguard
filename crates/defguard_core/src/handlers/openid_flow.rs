@@ -5,7 +5,7 @@ use std::{
 
 use axum::{
     Form,
-    extract::{FromRef, OptionalFromRequestParts, Query, State},
+    extract::{FromRef, FromRequestParts, Query, State},
     http::{
         HeaderMap, HeaderValue, StatusCode,
         header::{AUTHORIZATION, LOCATION},
@@ -15,7 +15,13 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::Utc;
-use defguard_common::db::{Id, NoId, models::AuthCode};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        oauth2client::OAuth2Client,
+    },
+};
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -43,10 +49,6 @@ use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
-    db::{
-        OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
-        models::oauth2client::OAuth2Client,
-    },
     error::WebError,
     handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
     server_config,
@@ -111,19 +113,17 @@ pub type DefguardIdTokenFields = IdTokenFields<
 >;
 
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
+pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
-impl<S> OptionalFromRequestParts<S> for OAuth2Client<Id>
+impl<S> FromRequestParts<S> for OAuth2ClientExtractor
 where
     S: Send + Sync,
     AppState: FromRef<S>,
 {
     type Rejection = WebError;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &S,
-    ) -> Result<Option<Self>, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         if let Some(basic_auth) = parts.headers.get(AUTHORIZATION).and_then(|value| {
             if let Ok(value) = value.to_str() {
                 if value.starts_with("Basic ") {
@@ -136,19 +136,17 @@ where
                 if let Ok(auth_pair) = String::from_utf8(decoded) {
                     if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
                         let appstate = AppState::from_ref(state);
-                        return OAuth2Client::find_by_auth(
-                            &appstate.pool,
-                            client_id,
-                            client_secret,
-                        )
-                        .await
-                        .map_err(Into::into);
+                        return Ok(Self(
+                            OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
+                                .await
+                                .map_err(Into::<WebError>::into)?,
+                        ));
                     }
                 }
             }
             Err(WebError::Authorization("Invalid credentials".into()))
         } else {
-            Ok(None)
+            Ok(Self(None))
         }
     }
 }
@@ -803,7 +801,7 @@ impl TokenRequest {
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 pub async fn token(
     State(appstate): State<AppState>,
-    oauth2client: Option<OAuth2Client<Id>>,
+    OAuth2ClientExtractor(oauth2client): OAuth2ClientExtractor,
     Form(form): Form<TokenRequest>,
 ) -> ApiResult {
     // TODO: cleanup branches

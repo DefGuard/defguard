@@ -1,22 +1,24 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
-use defguard_core::{
-    db::{
-        Device, GatewayEvent, WireguardNetwork,
-        models::{
-            device::WireguardNetworkDevice,
-            wireguard::{
-                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-                ServiceLocationMode,
-            },
+use defguard_common::db::{
+    Id,
+    models::{
+        Device, WireguardNetwork,
+        device::WireguardNetworkDevice,
+        settings::OpenidUsernameHandling,
+        wireguard::{
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+            ServiceLocationMode,
         },
     },
+};
+use defguard_core::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
         license::{get_cached_license, set_cached_license},
     },
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;

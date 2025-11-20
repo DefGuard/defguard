@@ -1,12 +1,14 @@
 use axum::{extract::State, http::StatusCode};
-use defguard_common::{VERSION, db::models::Settings};
+use defguard_common::{
+    VERSION,
+    db::models::{Settings, WireguardNetwork},
+};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::WireguardNetwork,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         is_enterprise_enabled, is_enterprise_free,

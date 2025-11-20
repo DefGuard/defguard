@@ -57,7 +57,8 @@ use std::collections::{HashMap, HashSet};
 use defguard_common::db::{
     Id,
     models::{
-        Settings,
+        Settings, User,
+        group::Group,
         settings::{LdapSyncStatus, update_current_settings},
     },
 };
@@ -65,7 +66,10 @@ use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
-    db::{Group, User},
+    enterprise::ldap::model::{
+        get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
+        user_from_searchentry,
+    },
     hashset,
 };
 
@@ -455,7 +459,7 @@ impl super::LDAPConnection {
                 match authority {
                     Authority::LDAP => {
                         debug!("Applying LDAP user attributes to Defguard user");
-                        defguard_user.update_from_ldap_user(ldap_user, &self.config);
+                        update_from_ldap_user(defguard_user, ldap_user, &self.config);
                         defguard_user.save(&mut *transaction).await?;
                     }
                     Authority::Defguard => {
@@ -546,11 +550,11 @@ impl super::LDAPConnection {
         debug!("Fixing missing user path in LDAP");
 
         let mut transaction = pool.begin().await?;
-        let users = User::get_without_ldap_path(&mut *transaction).await?;
+        let users = get_users_without_ldap_path(&mut *transaction).await?;
 
         let mut filtered_users = Vec::new();
         for user in users {
-            if user.ldap_sync_allowed(&mut *transaction).await? {
+            if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
                 filtered_users.push(user);
             }
         }
@@ -558,7 +562,7 @@ impl super::LDAPConnection {
 
         for mut defguard_user in users {
             if defguard_user.ldap_user_path.is_none() {
-                match self.get_user_by_username(&defguard_user).await {
+                match self.get_user_by_username(&defguard_user.username).await {
                     Ok(ldap_user) => {
                         debug!(
                             "Found LDAP user {} with missing path in Defguard, fixing their path",
@@ -650,7 +654,7 @@ impl super::LDAPConnection {
         // Filter out users that should be ignored from sync
         let mut filtered_users = Vec::new();
         for user in all_defguard_users {
-            if user.ldap_sync_allowed(pool).await? {
+            if ldap_sync_allowed_for_user(&user, pool).await? {
                 filtered_users.push(user);
             }
         }
@@ -678,7 +682,7 @@ impl super::LDAPConnection {
         for group in defguard_groups {
             let mut members = HashSet::new();
             for member in group.members(pool).await? {
-                if member.ldap_sync_allowed(pool).await? {
+                if ldap_sync_allowed_for_user(&member, pool).await? {
                     members.insert(member);
                 }
             }
@@ -879,7 +883,7 @@ impl super::LDAPConnection {
                     LdapError::ObjectNotFound(format!("No {username_attr} attribute found"))
                 })?;
 
-            match User::from_searchentry(&entry, username, None) {
+            match user_from_searchentry(&entry, username, None) {
                 Ok(user) => all_users.push(user),
                 Err(err) => {
                     warn!(

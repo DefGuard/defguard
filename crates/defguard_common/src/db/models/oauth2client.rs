@@ -1,12 +1,10 @@
-use defguard_common::{
-    db::{Id, NoId},
+use crate::{
+    db::{Id, NoId, models::OAuth2Token},
     random::gen_alphanumeric,
 };
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
-
-use super::NewOpenIDClient;
-use crate::db::OAuth2Token;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct OAuth2Client<I = NoId> {
@@ -22,7 +20,7 @@ pub struct OAuth2Client<I = NoId> {
     pub enabled: bool,
 }
 
-impl OAuth2Client {
+impl OAuth2Client<NoId> {
     #[must_use]
     pub fn new(redirect_uri: Vec<String>, scope: Vec<String>, name: String) -> Self {
         let client_id = gen_alphanumeric(16);
@@ -37,26 +35,11 @@ impl OAuth2Client {
             enabled: true,
         }
     }
-
-    #[must_use]
-    pub fn from_new(new: NewOpenIDClient) -> Self {
-        let client_id = gen_alphanumeric(16);
-        let client_secret = gen_alphanumeric(32);
-        Self {
-            id: NoId,
-            client_id,
-            client_secret,
-            redirect_uri: new.redirect_uri,
-            scope: new.scope,
-            name: new.name,
-            enabled: new.enabled,
-        }
-    }
 }
 
 impl OAuth2Client<Id> {
     /// Find client by 'client_id`.
-    pub(crate) async fn find_by_client_id<'e, E>(
+    pub async fn find_by_client_id<'e, E>(
         executor: E,
         client_id: &str,
     ) -> Result<Option<Self>, SqlxError>
@@ -73,7 +56,7 @@ impl OAuth2Client<Id> {
         .await
     }
 
-    pub(crate) async fn clear_authorizations<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn clear_authorizations<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -87,7 +70,7 @@ impl OAuth2Client<Id> {
     }
 
     /// Find using `client_id` and `client_secret`; must be `enabled`.
-    pub(crate) async fn find_by_auth(
+    pub async fn find_by_auth(
         pool: &PgPool,
         client_id: &str,
         client_secret: &str,
@@ -103,7 +86,7 @@ impl OAuth2Client<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_token(
+    pub async fn find_by_token(
         pool: &PgPool,
         token: &OAuth2Token,
     ) -> Result<Option<Self>, SqlxError> {
@@ -122,7 +105,7 @@ impl OAuth2Client<Id> {
     }
 
     /// Checks if `url` matches client config (ignoring trailing slashes).
-    pub(crate) fn contains_redirect_url(&self, url: &str) -> bool {
+    pub fn contains_redirect_url(&self, url: &str) -> bool {
         let url_trimmed = url.trim_end_matches('/');
 
         for redirect in &self.redirect_uri {

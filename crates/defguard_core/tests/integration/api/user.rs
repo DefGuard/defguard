@@ -1,11 +1,16 @@
-use defguard_common::db::Id;
-use defguard_core::{
+use defguard_common::{
     db::{
-        AddDevice, UserInfo,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client},
+        Id,
+        models::{device::AddDevice, oauth2client::OAuth2Client},
     },
+    types::user_info::UserInfo,
+};
+use defguard_core::{
     events::ApiEventType,
-    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
+    handlers::{
+        AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username,
+        openid_clients::NewOpenIDClient,
+    },
 };
 use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

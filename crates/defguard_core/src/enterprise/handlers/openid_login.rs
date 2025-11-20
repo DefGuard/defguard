@@ -13,7 +13,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, settings::OpenidUsernameHandling},
+        models::{Settings, settings::OpenidUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -36,7 +36,6 @@ pub(crate) const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::User,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,

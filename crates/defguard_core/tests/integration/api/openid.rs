@@ -2,14 +2,11 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use defguard_common::db::Id;
-use defguard_core::{
-    db::{
-        User,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client},
-    },
-    handlers::Auth,
+use defguard_common::db::{
+    Id,
+    models::{OAuth2AuthorizedApp, User, oauth2client::OAuth2Client},
 };
+use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
@@ -977,7 +974,6 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     assert_eq!(response.status(), StatusCode::FOUND);
 
     // Verify that the authorization was created
-    use defguard_core::db::OAuth2AuthorizedApp;
     let authorized_app = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &state.pool,
         admin.id,
