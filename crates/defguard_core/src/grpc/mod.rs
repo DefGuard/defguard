@@ -50,7 +50,10 @@ use crate::{
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
@@ -806,7 +809,7 @@ pub struct InstanceInfo {
     url: Url,
     proxy_url: Url,
     username: String,
-    disable_all_traffic: bool,
+    client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
 }
@@ -829,7 +832,7 @@ impl InstanceInfo {
             url: config.url.clone(),
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
-            disable_all_traffic: enterprise_settings.disable_all_traffic,
+            client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_enterprise_enabled(),
             openid_display_name,
         }
@@ -844,7 +847,11 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
             url: instance.url.to_string(),
             proxy_url: instance.proxy_url.to_string(),
             username: instance.username,
-            disable_all_traffic: instance.disable_all_traffic,
+            // Ensure backwards compatibility.
+            #[allow(deprecated)]
+            disable_all_traffic: instance.client_traffic_policy
+                == ClientTrafficPolicy::DisableAllTraffic,
+            client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
         }

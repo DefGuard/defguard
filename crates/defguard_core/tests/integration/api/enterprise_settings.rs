@@ -1,6 +1,6 @@
 use defguard_core::{
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
+        db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
@@ -33,7 +33,7 @@ async fn test_only_enterprise_can_modify_enterpise_settings(
     // try to patch enterprise settings
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
 
@@ -81,7 +81,7 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     // setup admin devices management
     let settings = EnterpriseSettings {
         admin_device_management: true,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
     let response = client
@@ -177,7 +177,7 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     // setup admin devices management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
     let response = client
@@ -265,7 +265,7 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
     // disable manual device management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
     };
     let response = client
@@ -346,7 +346,7 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
     // disable manual device management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
     };
     let response = client
