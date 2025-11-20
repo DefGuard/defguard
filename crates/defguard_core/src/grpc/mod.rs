@@ -46,14 +46,18 @@ pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, AppEvent, GatewayEvent
+        AppEvent, GatewayEvent,
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
-        db::models::{enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings}, openid_provider::OpenIdProvider},
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
@@ -61,7 +65,7 @@ use crate::{
     events::{BidiStreamEvent, GrpcEvent},
     grpc::gateway::{client_state::ClientMap, map::GatewayMap},
     server_config,
-    version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData},
+    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -805,7 +809,7 @@ pub struct InstanceInfo {
     url: Url,
     proxy_url: Url,
     username: String,
-	client_traffic_policy: ClientTrafficPolicy,
+    client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
 }
@@ -843,9 +847,10 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
             url: instance.url.to_string(),
             proxy_url: instance.proxy_url.to_string(),
             username: instance.username,
-			// Ensure backwards compatibility.
-			#[allow(deprecated)]
-            disable_all_traffic: instance.client_traffic_policy == ClientTrafficPolicy::DisableAllTraffic,
+            // Ensure backwards compatibility.
+            #[allow(deprecated)]
+            disable_all_traffic: instance.client_traffic_policy
+                == ClientTrafficPolicy::DisableAllTraffic,
             client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,

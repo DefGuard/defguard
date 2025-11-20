@@ -8,7 +8,7 @@ use crate::enterprise::is_enterprise_enabled;
 pub struct EnterpriseSettings {
     /// If true, only admins can manage devices
     pub admin_device_management: bool,
-	/// Describes allowed routing options for clients connecting to the instance.
+    /// Describes allowed routing options for clients connecting to the instance.
     pub client_traffic_policy: ClientTrafficPolicy,
     /// If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
@@ -21,7 +21,7 @@ impl Default for EnterpriseSettings {
         Self {
             admin_device_management: false,
             only_client_activation: false,
-			client_traffic_policy: ClientTrafficPolicy::default(),
+            client_traffic_policy: ClientTrafficPolicy::default(),
         }
     }
 }
@@ -77,11 +77,11 @@ impl EnterpriseSettings {
 #[sqlx(type_name = "client_traffic_policy", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientTrafficPolicy {
-	/// No restrictions
-	#[default]
-	None,
-	/// Clients are not allowed to route all traffic through the VPN.
-	DisableAllTraffic,
-	/// Clients are forced to route all traffic through the VPN.
-	ForceAllTraffic,
+    /// No restrictions
+    #[default]
+    None,
+    /// Clients are not allowed to route all traffic through the VPN.
+    DisableAllTraffic,
+    /// Clients are forced to route all traffic through the VPN.
+    ForceAllTraffic,
 }
