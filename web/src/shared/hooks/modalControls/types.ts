@@ -80,3 +80,8 @@ export interface OpenNetworkDeviceTokenModal {
   device: NetworkDevice;
   enrollment: StartEnrollmentResponse;
 }
+
+export interface OpenDisplayListModal {
+  title?: string;
+  data: string[];
+}

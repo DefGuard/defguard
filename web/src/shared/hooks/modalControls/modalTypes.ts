@@ -8,6 +8,7 @@ import type {
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
+  OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
   OpenEditUserModal,
@@ -17,6 +18,7 @@ import type {
 } from './types';
 
 export const ModalName = {
+  DisplayList: 'displayList',
   ChangePassword: 'changePassword',
   TotpSetup: 'totpSetup',
   RecoveryCodes: 'recoveryCodes',
@@ -118,6 +120,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.NetworkDeviceToken),
     data: z.custom<OpenNetworkDeviceTokenModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DisplayList),
+    data: z.custom<OpenDisplayListModal>(),
   }),
 ]);
 

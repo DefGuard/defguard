@@ -1,0 +1,18 @@
+#display-list-modal .modal-content {
+  ul {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden auto;
+
+    li {
+      margin: 0;
+      padding: 0;
+      font: var(--t-body-sm-400);
+      color: var(--fg-default);
+    }
+  }
+}

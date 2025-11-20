@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import type { NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
+import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -99,11 +100,7 @@ export const LocationsTable = ({ locations }: Props) => {
       columnHelper.accessor('address', {
         header: 'VPN network',
         size: 250,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue().join(', ')}</span>
-          </TableCell>
-        ),
+        cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('location_mfa_mode', {
         header: 'MFA',
