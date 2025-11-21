@@ -1,7 +1,16 @@
 use chrono::NaiveDateTime;
 use model_derive::Model;
+use sqlx::Type;
 
 use crate::db::{Id, NoId};
+
+#[derive(Type)]
+#[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
+pub enum VpnClientSessionState {
+    New,
+    Connected,
+    Disconnected,
+}
 
 /// Represents a single VPN client session from creation to eventual disconnection
 #[derive(Model)]
@@ -16,4 +25,5 @@ pub struct VpnClientSession<I = NoId> {
     pub connected_at: NaiveDateTime,
     pub disconnected_at: NaiveDateTime,
     pub mfa: bool,
+    pub state: VpnClientSessionState,
 }
