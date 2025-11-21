@@ -29,6 +29,12 @@ const navigationConfig: NavGroupProps[] = [
     label: m.cmp_nav_group_vpn(),
     items: [
       {
+        id: 'overview',
+        icon: 'pie-chart',
+        label: m.cmp_nav_item_overview(),
+        link: '/vpn-overview',
+      },
+      {
         id: 'locations',
         icon: 'location-tracking',
         label: m.cmp_nav_item_locations(),

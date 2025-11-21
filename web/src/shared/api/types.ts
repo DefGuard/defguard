@@ -453,3 +453,50 @@ export interface GatewayStatus {
   hostname: string;
   uid: string;
 }
+export interface TransferStats {
+  collected_at: string;
+  download: number;
+  upload: number;
+}
+
+export interface LocationStats {
+  active_users: number;
+  active_user_devices: number;
+  active_network_devices: number;
+  current_active_users: number;
+  current_active_user_devices: number;
+  current_active_network_devices: number;
+  upload: number;
+  download: number;
+  transfer_series: TransferStats[];
+}
+
+export interface LocationStatsRequest {
+  id: number;
+  // filter param
+  from?: number;
+}
+
+export interface DeleteGatewayRequest {
+  networkId: number;
+  gatewayId: number;
+}
+
+export interface DeviceStats {
+  connected_at: string;
+  id: number;
+  name: string;
+  public_ip: string;
+  wireguard_ips: string[];
+  stats: TransferStats[];
+}
+
+export interface LocationUserDeviceStats {
+  user: User;
+  devices: DeviceStats[];
+}
+
+export interface LocationDevicesStats {
+  user_devices: LocationUserDeviceStats[];
+  network_devices: DeviceStats[];
+}

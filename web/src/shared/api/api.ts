@@ -24,14 +24,19 @@ import type {
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
+  DeleteGatewayRequest,
   Device,
   EditGroupRequest,
   EditNetworkDeviceRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
+  GatewayStatus,
   GroupInfo,
   GroupsResponse,
   IpValidation,
+  LocationDevicesStats,
+  LocationStats,
+  LocationStatsRequest,
   LoginRequest,
   LoginResponse,
   LoginResponseBasic,
@@ -237,8 +242,24 @@ const api = {
       }),
   },
   location: {
+    getLocationsSummary: (from?: number) =>
+      client.get<LocationStats>(`/network/stats`, {
+        params: {
+          from,
+        },
+      }),
     getLocations: () => client.get<NetworkLocation[]>('/network'),
     getLocation: (id: number) => client.get<NetworkLocation>(`/network/${id}`),
+    getLocationStats: ({ id, ...params }: LocationStatsRequest) =>
+      client.get<LocationStats>(`/network/${id}/stats`, {
+        params,
+      }),
+    getLocationGatewaysStatus: (id: number) =>
+      client.get<GatewayStatus[]>(`/network/${id}/gateways`),
+    deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
+      client.delete(`/network/${networkId}/gateways/${gatewayId}`),
+    getLocationDevicesStats: ({ id, ...params }: LocationStatsRequest) =>
+      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, { params }),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

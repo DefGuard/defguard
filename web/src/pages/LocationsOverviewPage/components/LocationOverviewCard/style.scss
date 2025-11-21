@@ -1,0 +1,100 @@
+.location-overview-card {
+  box-sizing: border-box;
+  border: var(--border-1) solid var(--border-faded);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-default);
+  padding: var(--spacing-md);
+
+  & > .top {
+    min-height: 36px;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-xl);
+
+    & > .name {
+      display: grid;
+      grid-template-columns: 20px auto;
+      grid-template-rows: 1fr;
+      column-gap: var(--spacing-md);
+      align-items: center;
+      cursor: pointer;
+
+      & > p {
+        font: var(--t-title-h5);
+        color: var(--fg-action);
+      }
+    }
+
+    & > .right {
+      margin-left: auto;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+
+      .divider {
+        height: 36px;
+      }
+    }
+  }
+
+  .stats-summary {
+    & > .stats-track {
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: repeat(5, 1fr);
+      padding-bottom: var(--spacing-xl);
+    }
+  }
+}
+
+.location-overview-card .stats-segment {
+  box-sizing: border-box;
+
+  &:not(:first-child) {
+    padding-left: var(--spacing-2xl);
+  }
+
+  &:not(:last-child) {
+    border-right: var(--border-1) solid var(--bg-active);
+    padding-right: var(--spacing-2xl);
+  }
+
+  .label {
+    font: var(--t-body-xs-500);
+    color: var(--fg-muted);
+  }
+
+  & > .name {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+    padding-bottom: var(--spacing-xs);
+  }
+
+  & > .count {
+    padding-bottom: var(--spacing-sm);
+    font: var(--t-title-h2);
+    color: var(--fg-faded);
+  }
+
+  & > .sub-count {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+
+    // custom badge variant
+    .badge {
+      height: unset;
+      min-height: 14px;
+      padding: 0 var(--spacing-xs);
+
+      span {
+        font: var(--t-body-xxs-500);
+      }
+    }
+  }
+}

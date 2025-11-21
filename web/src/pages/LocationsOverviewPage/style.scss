@@ -1,0 +1,18 @@
+#locations-overview-page .page-content {
+  & > .top {
+    box-sizing: border-box;
+    padding: 0 var(--spacing-xl);
+
+    p {
+      font: var(--t-title-h4);
+    }
+  }
+
+  & > ul {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+    list-style: none;
+    padding: 0 var(--spacing-xl);
+  }
+}

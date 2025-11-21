@@ -22,6 +22,7 @@ import { Route as AuthorizedOpenidRouteImport } from './routes/_authorized/openi
 import { Route as AuthorizedNetworkDevicesRouteImport } from './routes/_authorized/network-devices'
 import { Route as AuthorizedLocationsRouteImport } from './routes/_authorized/locations'
 import { Route as AuthorizedGroupsRouteImport } from './routes/_authorized/groups'
+import { Route as AuthorizedVpnOverviewIndexRouteImport } from './routes/_authorized/vpn-overview/index'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
@@ -93,6 +94,12 @@ const AuthorizedGroupsRoute = AuthorizedGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AuthorizedRoute,
 } as any)
+const AuthorizedVpnOverviewIndexRoute =
+  AuthorizedVpnOverviewIndexRouteImport.update({
+    id: '/vpn-overview/',
+    path: '/vpn-overview/',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthMfaWebauthnRoute = AuthMfaWebauthnRouteImport.update({
   id: '/webauthn',
   path: '/webauthn',
@@ -137,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/vpn-overview': typeof AuthorizedVpnOverviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -156,6 +164,7 @@ export interface FileRoutesByTo {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/vpn-overview': typeof AuthorizedVpnOverviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,6 +186,7 @@ export interface FileRoutesById {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_authorized/vpn-overview/': typeof AuthorizedVpnOverviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/vpn-overview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/vpn-overview'
   id:
     | '__root__'
     | '/'
@@ -237,6 +249,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_authorized/vpn-overview/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -342,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedGroupsRouteImport
       parentRoute: typeof AuthorizedRoute
     }
+    '/_authorized/vpn-overview/': {
+      id: '/_authorized/vpn-overview/'
+      path: '/vpn-overview'
+      fullPath: '/vpn-overview'
+      preLoaderRoute: typeof AuthorizedVpnOverviewIndexRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/auth/mfa/webauthn': {
       id: '/auth/mfa/webauthn'
       path: '/webauthn'
@@ -388,6 +408,7 @@ interface AuthorizedRouteChildren {
   AuthorizedUsersRoute: typeof AuthorizedUsersRoute
   AuthorizedWebhooksRoute: typeof AuthorizedWebhooksRoute
   AuthorizedUserUsernameRoute: typeof AuthorizedUserUsernameRoute
+  AuthorizedVpnOverviewIndexRoute: typeof AuthorizedVpnOverviewIndexRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -398,6 +419,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedUsersRoute: AuthorizedUsersRoute,
   AuthorizedWebhooksRoute: AuthorizedWebhooksRoute,
   AuthorizedUserUsernameRoute: AuthorizedUserUsernameRoute,
+  AuthorizedVpnOverviewIndexRoute: AuthorizedVpnOverviewIndexRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
