@@ -1286,6 +1286,7 @@ version = "0.0.0"
 dependencies = [
  "defguard_common",
  "sqlx",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
 ]

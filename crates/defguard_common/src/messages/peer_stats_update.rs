@@ -7,15 +7,15 @@ use crate::db::Id;
 /// Represents stats read from a WireGuard interface
 /// sent from a gateway
 pub struct PeerStatsUpdate {
-    location_id: Id,
-    device_id: Id,
-    collected_at: NaiveDateTime,
-    endpoint: SocketAddr,
+    pub location_id: Id,
+    pub device_id: Id,
+    pub collected_at: NaiveDateTime,
+    pub endpoint: SocketAddr,
     // bytes sent to peer
-    upload: u64,
+    pub upload: u64,
     // bytes received from peer
-    download: u64,
-    latest_handshake: NaiveDateTime,
+    pub download: u64,
+    pub latest_handshake: NaiveDateTime,
 }
 
 impl PeerStatsUpdate {
