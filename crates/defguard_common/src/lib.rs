@@ -4,6 +4,7 @@ pub mod csv;
 pub mod db;
 pub mod globals;
 pub mod hex;
+pub mod messages;
 pub mod random;
 pub mod secret;
 pub mod types;

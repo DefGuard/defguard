@@ -14,6 +14,7 @@ use defguard_common::{
         Id,
         models::{Settings, wireguard_peer_stats::WireguardPeerStats},
     },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_mail::Mail;
 use defguard_version::{
@@ -669,7 +670,7 @@ pub async fn run_grpc_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    peer_stats_tx: UnboundedSender<WireguardPeerStats>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -718,7 +719,7 @@ pub async fn build_grpc_service_router(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    peer_stats_tx: UnboundedSender<WireguardPeerStats>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 

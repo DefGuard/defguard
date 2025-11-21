@@ -1287,6 +1287,7 @@ dependencies = [
  "defguard_common",
  "sqlx",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -9,11 +9,9 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{
-            Settings, User, settings::initialize_current_settings,
-            wireguard_peer_stats::WireguardPeerStats,
-        },
+        models::{Settings, User, settings::initialize_current_settings},
     },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -110,7 +108,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
-    let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<WireguardPeerStats>();
+    let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
