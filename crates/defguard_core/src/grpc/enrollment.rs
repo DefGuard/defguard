@@ -631,8 +631,6 @@ impl EnrollmentServer {
                 return Err(Status::invalid_argument("invalid device type"));
             }
 
-
-
             device.wireguard_pubkey.clone_from(&request.pubkey);
             device.configured = true;
 
@@ -697,8 +695,10 @@ impl EnrollmentServer {
                 None,
                 true,
             );
-            if device.name.is_empty(){
-                return Err(Status::invalid_argument("Cannot add a new device with no name. You may be trying to add a new user device as a network device. Defguard CLI supports only network devices."));
+            if device.name.is_empty() {
+                return Err(Status::invalid_argument(
+                    "Cannot add a new device with no name. You may be trying to add a new user device as a network device. Defguard CLI supports only network devices.",
+                ));
             }
             let device = device.save(&mut *transaction).await.map_err(|err| {
                 error!(
