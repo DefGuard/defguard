@@ -10,7 +10,10 @@ use axum::http::Uri;
 use defguard_common::{
     VERSION,
     auth::claims::ClaimsType,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{Settings, wireguard_peer_stats::WireguardPeerStats},
+    },
 };
 use defguard_mail::Mail;
 use defguard_version::{
@@ -666,6 +669,7 @@ pub async fn run_grpc_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    peer_stats_tx: UnboundedSender<WireguardPeerStats>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -686,6 +690,7 @@ pub async fn run_grpc_server(
         failed_logins,
         grpc_event_tx,
         incompatible_components,
+        peer_stats_tx,
     )
     .await?;
 
@@ -713,6 +718,7 @@ pub async fn build_grpc_service_router(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    peer_stats_tx: UnboundedSender<WireguardPeerStats>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
@@ -742,6 +748,7 @@ pub async fn build_grpc_service_router(
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
+            peer_stats_tx,
         ));
 
         let own_version = Version::parse(VERSION)?;
