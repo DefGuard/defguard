@@ -1718,17 +1718,17 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           none: {
             label: 'None',
             helper:
-              'When this option is enabled, users will be able to select all routing options.',
+              'None - When this option is enabled, users will be able to select all routing options.',
           },
           disableAllTraffic: {
             label: 'Disable the option to route all traffic through VPN',
             helper:
-              'When this option is enabled, users will not be able to route all traffic through the VPN.',
+              'Disable all traffic - When this option is enabled, users will not be able to route all traffic through the VPN.',
           },
           forceAllTraffic: {
             label: 'Force the clients to route all traffic through VPN',
             helper:
-              'When this option is enabled, the users will always route all traffic through the VPN.',
+              'Force all traffic - When this option is enabled, the users will always route all traffic through the VPN.',
           },
         },
       },

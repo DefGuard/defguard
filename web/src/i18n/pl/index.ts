@@ -1504,17 +1504,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           none: {
             label: 'Brak',
             helper:
-              'Kiedy ta opcja jest włączona, użytkownicy mogą wybierać dowolny typ przekierowania ruchu.',
+              'Brak - Kiedy ta opcja jest włączona, użytkownicy mogą wybrać dowolny typ przekierowania ruchu.',
           },
           disableAllTraffic: {
             label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
             helper:
-              'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN.',
+              'Zablokuj przekierowanie całego ruchu - Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN.',
           },
           forceAllTraffic: {
             label: 'Wymuś przekierowanie całego ruchu przez VPN',
             helper:
-              'Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN.',
+              'Wymuś przekierowanie całego ruchu - Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN.',
           },
         }
       },
