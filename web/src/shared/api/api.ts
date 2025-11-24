@@ -246,7 +246,7 @@ const api = {
     getLocationsSummary: (from?: number) =>
       client.get<LocationStats>(`/network/stats`, {
         params: {
-          from,
+          from: from ? dayjs.utc().subtract(from, 'hour').toISOString() : undefined,
         },
       }),
     getLocations: () => client.get<NetworkLocation[]>('/network'),

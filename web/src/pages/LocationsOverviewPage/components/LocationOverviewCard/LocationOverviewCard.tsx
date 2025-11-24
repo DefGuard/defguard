@@ -30,13 +30,14 @@ type Props = {
   statsPeriod?: number;
   showTop?: boolean;
   expanded?: boolean;
-};
+} & PropsWithChildren;
 
 export const LocationOverviewCard = ({
   location,
   statsPeriod = 1,
   expanded: initialExpanded = false,
   showTop = false,
+  children,
 }: Props) => {
   const [isOpen, setOpen] = useState(initialExpanded);
   const { data: stats } = useQuery({
@@ -60,8 +61,10 @@ export const LocationOverviewCard = ({
     placeholderData: (prev) => prev,
   });
 
+  if (!isPresent(stats)) return null;
+
   return (
-    <div className="location-overview-card">
+    <OverviewCard data={stats} expanded={isOpen} statsPeriod={statsPeriod}>
       {showTop && (
         <div className="top">
           <div
@@ -80,7 +83,26 @@ export const LocationOverviewCard = ({
           </div>
         </div>
       )}
-      <Fold open={isOpen}>
+      {children}
+    </OverviewCard>
+  );
+};
+
+type OverviewCardProps = {
+  data: LocationStats;
+  expanded: boolean;
+  statsPeriod: number;
+} & PropsWithChildren;
+
+export const OverviewCard = ({
+  data: stats,
+  expanded = false,
+  children,
+}: OverviewCardProps) => {
+  return (
+    <div className="location-overview-card">
+      {children}
+      <Fold open={expanded}>
         <Divider spacing={ThemeSpacing.Md} />
         {!isPresent(stats) && (
           <>
@@ -128,9 +150,9 @@ const Stats = ({ stats }: StatsProps) => {
         <StatsSegment
           icon="devices-active"
           name="Active devices in"
-          count={stats.active_user_devices + stats.active_user_devices}
+          count={stats.active_user_devices + stats.active_network_devices}
         />
-        <StatsSegment icon="activity" name="Currently active users">
+        <StatsSegment icon="activity" name="Network usage">
           <SizedBox height={8} />
           <div className="transfer-bar download">
             <div className="left">

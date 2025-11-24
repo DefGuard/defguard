@@ -22,5 +22,11 @@
     row-gap: var(--spacing-md);
     list-style: none;
     padding: 0 var(--spacing-xl);
+
+    .location-overview-card .summary-top {
+      p {
+        font: var(--t-title-h5);
+      }
+    }
   }
 }
