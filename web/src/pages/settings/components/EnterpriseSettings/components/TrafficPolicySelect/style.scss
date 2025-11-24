@@ -56,4 +56,17 @@
       @include animate-standard;
     }
   }
+
+  #client-traffic-policy-message-box {
+    ul {
+      list-style-position: inside;
+      margin-top: 8px;
+
+      li {
+        p {
+          display: inline;
+        }
+      }
+    }
+  }
 }
