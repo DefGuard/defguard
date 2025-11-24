@@ -36,11 +36,8 @@ export const ClientTrafficPolicySelect = ({ onChange, fieldValue }: Props) => {
     ],
     [
       LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.label,
-      LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.helper,
       LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.label,
-      LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper,
       LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.label,
-      LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper,
     ],
   );
 
