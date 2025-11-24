@@ -42,45 +42,49 @@ export const ClientTrafficPolicySelect = ({ onChange, fieldValue }: Props) => {
   );
 
   return (
-    <div className="client-traffic-policy-select">
-      <label>{LL.settingsPage.enterprise.fields.clientTrafficPolicy.header()}</label>
-      <MessageBox id="client-traffic-policy-message-box">
-        <ul>
-          <li>
-            <p>{LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.helper()}</p>
-          </li>
-          <li>
-            <p>
-              {LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper()}
-            </p>
-          </li>
-          <li>
-            <p>
-              {LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper()}
-            </p>
-          </li>
-        </ul>
-      </MessageBox>
-      {options.map(({ key, value, label, disabled = false }) => {
-        const active = fieldValue === value;
-        return (
-          <div
-            className={clsx(`client-traffic-policy`, {
-              active,
-              disabled,
-            })}
-            key={key}
-            onClick={() => {
-              if (!disabled) {
-                onChange(value);
-              }
-            }}
-          >
-            <p className="label">{label}</p>
-            <RadioButton active={active} />
-          </div>
-        );
-      })}
+    <div className="client-traffic-policy-settings">
+      <div className="subsection-header">
+        <h3>{LL.settingsPage.enterprise.fields.clientTrafficPolicy.header()}</h3>
+      </div>
+      <div className="client-traffic-policy-select">
+        <MessageBox id="client-traffic-policy-message-box">
+          <ul>
+            <li>
+              <p>{LL.settingsPage.enterprise.fields.clientTrafficPolicy.none.helper()}</p>
+            </li>
+            <li>
+              <p>
+                {LL.settingsPage.enterprise.fields.clientTrafficPolicy.disableAllTraffic.helper()}
+              </p>
+            </li>
+            <li>
+              <p>
+                {LL.settingsPage.enterprise.fields.clientTrafficPolicy.forceAllTraffic.helper()}
+              </p>
+            </li>
+          </ul>
+        </MessageBox>
+        {options.map(({ key, value, label, disabled = false }) => {
+          const active = fieldValue === value;
+          return (
+            <div
+              className={clsx(`client-traffic-policy`, {
+                active,
+                disabled,
+              })}
+              key={key}
+              onClick={() => {
+                if (!disabled) {
+                  onChange(value);
+                }
+              }}
+            >
+              <p className="label">{label}</p>
+              <RadioButton active={active} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
