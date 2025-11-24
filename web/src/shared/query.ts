@@ -3,6 +3,13 @@ import api from './api/api';
 import type { UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
 
+export const getLocationQueryOptions = (id: number) =>
+  queryOptions({
+    queryFn: () => api.location.getLocation(id),
+    queryKey: ['network', id],
+    select: (resp) => resp.data,
+  });
+
 export const getLocationsQueryOptions = queryOptions({
   queryFn: api.location.getLocations,
   queryKey: ['network'],

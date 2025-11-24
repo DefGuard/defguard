@@ -1,4 +1,3 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
 
@@ -16,19 +15,18 @@ const options = periods.map((item) => ({
   label: `${item} period`,
 }));
 
-export const OverviewPeriodSelect = () => {
-  const navigate = useNavigate({ from: '/vpn-overview' });
-  const { period } = useSearch({ from: '/_authorized/vpn-overview/' });
+type Props = {
+  period: number;
+  onChange: (period: number) => void;
+};
+
+export const OverviewPeriodSelect = ({ period, onChange }: Props) => {
   return (
     <Select
       value={periodToOption(period)}
       options={options}
       onChange={(option) => {
-        navigate({
-          search: {
-            period: option.value,
-          },
-        });
+        onChange(option.value);
       }}
     />
   );

@@ -264,7 +264,13 @@ const api = {
     deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
       client.delete(`/network/${networkId}/gateways/${gatewayId}`),
     getLocationDevicesStats: ({ id, ...params }: LocationStatsRequest) =>
-      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, { params }),
+      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, {
+        params: {
+          from: params.from
+            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+            : undefined,
+        },
+      }),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

@@ -27,6 +27,7 @@ import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
+import { Route as AuthorizedVpnOverviewLocationIdRouteImport } from './routes/_authorized/vpn-overview/$locationId'
 import { Route as AuthorizedUserUsernameRouteImport } from './routes/_authorized/user/$username'
 
 const ConsentRoute = ConsentRouteImport.update({
@@ -120,6 +121,12 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
+const AuthorizedVpnOverviewLocationIdRoute =
+  AuthorizedVpnOverviewLocationIdRouteImport.update({
+    id: '/vpn-overview/$locationId',
+    path: '/vpn-overview/$locationId',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
   id: '/user/$username',
   path: '/user/$username',
@@ -140,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/user/$username': typeof AuthorizedUserUsernameRoute
+  '/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -160,6 +168,7 @@ export interface FileRoutesByTo {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/user/$username': typeof AuthorizedUserUsernameRoute
+  '/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -182,6 +191,7 @@ export interface FileRoutesById {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/_authorized/user/$username': typeof AuthorizedUserUsernameRoute
+  '/_authorized/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth'
     | '/user/$username'
+    | '/vpn-overview/$locationId'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth'
     | '/user/$username'
+    | '/vpn-overview/$locationId'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -245,6 +257,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth/'
     | '/_authorized/user/$username'
+    | '/_authorized/vpn-overview/$locationId'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -390,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
     }
+    '/_authorized/vpn-overview/$locationId': {
+      id: '/_authorized/vpn-overview/$locationId'
+      path: '/vpn-overview/$locationId'
+      fullPath: '/vpn-overview/$locationId'
+      preLoaderRoute: typeof AuthorizedVpnOverviewLocationIdRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/_authorized/user/$username': {
       id: '/_authorized/user/$username'
       path: '/user/$username'
@@ -408,6 +428,7 @@ interface AuthorizedRouteChildren {
   AuthorizedUsersRoute: typeof AuthorizedUsersRoute
   AuthorizedWebhooksRoute: typeof AuthorizedWebhooksRoute
   AuthorizedUserUsernameRoute: typeof AuthorizedUserUsernameRoute
+  AuthorizedVpnOverviewLocationIdRoute: typeof AuthorizedVpnOverviewLocationIdRoute
   AuthorizedVpnOverviewIndexRoute: typeof AuthorizedVpnOverviewIndexRoute
 }
 
@@ -419,6 +440,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedUsersRoute: AuthorizedUsersRoute,
   AuthorizedWebhooksRoute: AuthorizedWebhooksRoute,
   AuthorizedUserUsernameRoute: AuthorizedUserUsernameRoute,
+  AuthorizedVpnOverviewLocationIdRoute: AuthorizedVpnOverviewLocationIdRoute,
   AuthorizedVpnOverviewIndexRoute: AuthorizedVpnOverviewIndexRoute,
 }
 

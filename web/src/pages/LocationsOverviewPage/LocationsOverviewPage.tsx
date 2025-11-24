@@ -1,6 +1,6 @@
 import './style.scss';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import api from '../../shared/api/api';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { Page } from '../../shared/components/Page/Page';
@@ -14,6 +14,7 @@ import {
 } from './components/LocationOverviewCard/LocationOverviewCard';
 
 export const LocationsOverviewPage = () => {
+  const navigate = useNavigate();
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
   const { period } = useSearch({ from: '/_authorized/vpn-overview/' });
 
@@ -37,7 +38,17 @@ export const LocationsOverviewPage = () => {
       <div className="top">
         <p>Dashboard</p>
         <div className="right">
-          <OverviewPeriodSelect />
+          <OverviewPeriodSelect
+            onChange={(value) => {
+              navigate({
+                from: '/vpn-overview',
+                search: {
+                  period: value,
+                },
+              });
+            }}
+            period={period}
+          />
         </div>
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />

@@ -6,7 +6,7 @@ import type {
 } from '../../../../shared/api/types';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
-import { useSearch } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { maxBy } from 'lodash-es';
 import api from '../../../../shared/api/api';
 import { GatewaysStatusBadge } from '../../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
@@ -39,6 +39,7 @@ export const LocationOverviewCard = ({
   showTop = false,
   children,
 }: Props) => {
+  const navigate = useNavigate({ from: '/vpn-overview' });
   const [isOpen, setOpen] = useState(initialExpanded);
   const { data: stats } = useQuery({
     queryFn: () =>
@@ -79,7 +80,19 @@ export const LocationOverviewCard = ({
           <div className="right">
             <GatewaysStatusBadge data={location.gateways} />
             <Divider orientation="vertical" spacing={ThemeSpacing.Lg} />
-            <Button text="Details" variant="outlined" onClick={() => {}} />
+            <Button
+              text="Details"
+              variant="outlined"
+              onClick={() => {
+                navigate({
+                  to: '$locationId',
+                  params: {
+                    locationId: location.id.toString(),
+                  },
+                  search: (perv) => perv,
+                });
+              }}
+            />
           </div>
         </div>
       )}
@@ -96,14 +109,15 @@ type OverviewCardProps = {
 
 export const OverviewCard = ({
   data: stats,
-  expanded = false,
+  statsPeriod,
   children,
+  expanded = false,
 }: OverviewCardProps) => {
   return (
     <div className="location-overview-card">
       {children}
       <Fold open={expanded}>
-        <Divider spacing={ThemeSpacing.Md} />
+        {isPresent(children) && <Divider spacing={ThemeSpacing.Md} />}
         {!isPresent(stats) && (
           <>
             <SizedBox height={ThemeSpacing.Xl2} />
@@ -114,7 +128,7 @@ export const OverviewCard = ({
             <SizedBox height={ThemeSpacing.Xl2} />
           </>
         )}
-        {isPresent(stats) && <Stats stats={stats} />}
+        {isPresent(stats) && <Stats stats={stats} period={statsPeriod} />}
       </Fold>
     </div>
   );
@@ -122,9 +136,10 @@ export const OverviewCard = ({
 
 type StatsProps = {
   stats: LocationStats;
+  period: number;
 };
 
-const Stats = ({ stats }: StatsProps) => {
+const Stats = ({ stats, period }: StatsProps) => {
   return (
     <div className="stats-summary">
       <div className="stats-track">
@@ -175,7 +190,7 @@ const Stats = ({ stats }: StatsProps) => {
           </div>
         </StatsSegment>
       </div>
-      <TransferSection transfer={stats.transfer_series} />
+      <TransferSection period={period} transfer={stats.transfer_series} />
     </div>
   );
 };
@@ -216,10 +231,10 @@ const StatsSegment = ({
 
 type TransferSectionProps = {
   transfer: TransferStats[];
+  period: number;
 };
 
-const TransferSection = ({ transfer }: TransferSectionProps) => {
-  const { period } = useSearch({ from: '/_authorized/vpn-overview/' });
+const TransferSection = ({ transfer, period }: TransferSectionProps) => {
   const maxDownload = useMemo(
     () => maxBy(transfer, (t) => t.download)?.download ?? 0,
     [transfer],

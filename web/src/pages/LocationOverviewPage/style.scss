@@ -1,0 +1,42 @@
+#location-overview-page .page-content {
+  box-sizing: border-box;
+
+  & > .info {
+    box-sizing: border-box;
+    padding: 0 var(--spacing-xl);
+
+    & > .top {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      padding-bottom: var(--spacing-xl);
+
+      & > .left {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        column-gap: var(--spacing-md);
+      }
+
+      & > .right {
+        margin-left: auto;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        width: 100%;
+        max-width: 200px;
+
+        .select,
+        .select > .inner {
+          width: 100%;
+        }
+      }
+
+      .subtitle {
+        font: var(--t-title-h3);
+      }
+    }
+  }
+}
