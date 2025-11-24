@@ -31,6 +31,8 @@ queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       retry: false,
+      // @ts-expect-error
+      placeholderData: (perv) => perv,
     },
   },
 });

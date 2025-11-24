@@ -1,9 +1,17 @@
-import { type PropsWithChildren, useState } from 'react';
-import type { LocationStats, NetworkLocation } from '../../../../shared/api/types';
+import { type PropsWithChildren, useMemo, useState } from 'react';
+import type {
+  LocationStats,
+  NetworkLocation,
+  TransferStats,
+} from '../../../../shared/api/types';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
+import { useSearch } from '@tanstack/react-router';
+import { maxBy } from 'lodash-es';
 import api from '../../../../shared/api/api';
 import { GatewaysStatusBadge } from '../../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
+import { TransferChart } from '../../../../shared/components/TransferChart/TransferChart';
+import { TransferText } from '../../../../shared/components/TransferText/TransferText';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
 import { BadgeVariant } from '../../../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
@@ -15,15 +23,18 @@ import type { IconKindValue } from '../../../../shared/defguard-ui/components/Ic
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { mapTransferToChart } from '../../../../shared/utils/stats';
 
 type Props = {
   location: NetworkLocation;
+  statsPeriod?: number;
   showTop?: boolean;
   expanded?: boolean;
 };
 
 export const LocationOverviewCard = ({
   location,
+  statsPeriod = 1,
   expanded: initialExpanded = false,
   showTop = false,
 }: Props) => {
@@ -32,12 +43,21 @@ export const LocationOverviewCard = ({
     queryFn: () =>
       api.location.getLocationStats({
         id: location.id,
+        from: statsPeriod,
       }),
-    queryKey: ['network', location.id, 'stats'],
+    queryKey: [
+      'network',
+      location.id,
+      'stats',
+      {
+        period: statsPeriod,
+      },
+    ],
     refetchInterval: 30_000,
     refetchOnMount: true,
     refetchOnReconnect: true,
     select: (response) => response.data,
+    placeholderData: (prev) => prev,
   });
 
   return (
@@ -111,10 +131,29 @@ const Stats = ({ stats }: StatsProps) => {
           count={stats.active_user_devices + stats.active_user_devices}
         />
         <StatsSegment icon="activity" name="Currently active users">
-          <p>Transfer placeholder</p>
+          <SizedBox height={8} />
+          <div className="transfer-bar download">
+            <div className="left">
+              <Icon icon="arrow-big" rotationDirection="right" />
+              <p>In</p>
+            </div>
+            <div className="right">
+              <TransferText variant="download" data={stats.download} />
+            </div>
+          </div>
+          <SizedBox height={ThemeSpacing.Sm} />
+          <div className="transfer-bar upload">
+            <div className="left">
+              <Icon icon="arrow-big" rotationDirection="left" />
+              <p>Out</p>
+            </div>
+            <div className="right">
+              <TransferText variant="upload" data={stats.upload} />
+            </div>
+          </div>
         </StatsSegment>
       </div>
-      <div className="chart"></div>
+      <TransferSection transfer={stats.transfer_series} />
     </div>
   );
 };
@@ -149,6 +188,40 @@ const StatsSegment = ({
         </div>
       )}
       {children}
+    </div>
+  );
+};
+
+type TransferSectionProps = {
+  transfer: TransferStats[];
+};
+
+const TransferSection = ({ transfer }: TransferSectionProps) => {
+  const { period } = useSearch({ from: '/_authorized/vpn-overview/' });
+  const maxDownload = useMemo(
+    () => maxBy(transfer, (t) => t.download)?.download ?? 0,
+    [transfer],
+  );
+
+  const maxUpload = useMemo(
+    () => maxBy(transfer, (t) => t.upload)?.upload ?? 0,
+    [transfer],
+  );
+
+  const chartMap = useMemo(() => mapTransferToChart(transfer), [transfer]);
+
+  return (
+    <div className="transfer-section">
+      <div className="top">
+        <p>Activity in {`${period} hours`}</p>
+        <div className="right">
+          <p className="peak">Peak</p>
+          <TransferText data={maxDownload} variant="download" icon />
+          <span className="sep">/</span>
+          <TransferText data={maxUpload} variant="upload" icon />
+        </div>
+      </div>
+      <TransferChart data={chartMap} showX height={50} />
     </div>
   );
 };

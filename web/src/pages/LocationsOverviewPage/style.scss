@@ -1,10 +1,18 @@
 #locations-overview-page .page-content {
   & > .top {
+    display: flex;
+    flex-flow: row nowrap;
     box-sizing: border-box;
     padding: 0 var(--spacing-xl);
 
-    p {
+    & > p {
       font: var(--t-title-h4);
+    }
+
+    & > .right {
+      margin-left: auto;
+      width: 100%;
+      max-width: 200px;
     }
   }
 

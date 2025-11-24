@@ -231,7 +231,7 @@ export const UsersTable = ({ users }: Props) => {
                         text: rowData.is_active
                           ? m.users_row_menu_disable()
                           : m.users_row_menu_enable(),
-                        icon: rowData.is_active ? 'disabled' : 'check',
+                        icon: rowData.is_active ? 'disabled' : 'check-circle',
                         onClick: () => {
                           changeAccountActiveState({
                             active: !rowData.is_active,

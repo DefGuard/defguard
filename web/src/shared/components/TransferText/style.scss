@@ -1,0 +1,25 @@
+.transfer-text {
+  --color: var(--fg-action);
+
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  column-gap: var(--spacing-xs);
+
+  &.upload {
+    --color: var(--fg-critical);
+  }
+
+  &.download {
+    --color: var(--fg-action);
+  }
+
+  .icon path {
+    fill: var(--color);
+  }
+
+  span {
+    font: var(--t-body-xs-500);
+    color: var(--color);
+  }
+}

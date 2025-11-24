@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
@@ -252,7 +253,11 @@ const api = {
     getLocation: (id: number) => client.get<NetworkLocation>(`/network/${id}`),
     getLocationStats: ({ id, ...params }: LocationStatsRequest) =>
       client.get<LocationStats>(`/network/${id}/stats`, {
-        params,
+        params: {
+          from: params.from
+            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+            : undefined,
+        },
       }),
     getLocationGatewaysStatus: (id: number) =>
       client.get<GatewayStatus[]>(`/network/${id}/gateways`),
