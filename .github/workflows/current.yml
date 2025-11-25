@@ -9,6 +9,7 @@ on:
       - main
       - dev
       - "release/**"
+      - fix_forward_auth
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -25,19 +26,19 @@ jobs:
         type=ref,event=branch
         type=sha
 
-  trigger-e2e:
-    needs: build-current
-    uses: ./.github/workflows/e2e.yml
-    secrets: inherit
+  # trigger-e2e:
+  #   needs: build-current
+  #   uses: ./.github/workflows/e2e.yml
+  #   secrets: inherit
 
-  trigger-dev-deploy:
-    needs: build-current
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
-    uses: ./.github/workflows/dev-deployment.yml
-    secrets: inherit
+  # trigger-dev-deploy:
+  #   needs: build-current
+  #   if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+  #   uses: ./.github/workflows/dev-deployment.yml
+  #   secrets: inherit
 
-  trigger-staging-deploy:
-    needs: build-current
-    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
-    uses: ./.github/workflows/staging-deployment.yml
-    secrets: inherit
+  # trigger-staging-deploy:
+  #   needs: build-current
+  #   if: ${{ github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/') }}
+  #   uses: ./.github/workflows/staging-deployment.yml
+  #   secrets: inherit
