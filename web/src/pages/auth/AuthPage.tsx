@@ -66,6 +66,14 @@ export const AuthPage = () => {
   const [params] = useSearchParams();
   const redirectUrl = useMemo(() => sanitizeRedirectUrl(params.get('r')), [params]);
 
+  // handle forward auth redirect
+  useEffect(() => {
+    if (redirectUrl && user) {
+      setShowRedirect(true);
+      window.location.replace(redirectUrl);
+    }
+  }, [redirectUrl, user]);
+
   useEffect(() => {
     if (user && (!mfaMethod || mfaMethod === UserMFAMethod.NONE) && !openIdParams) {
       navigate('/', { replace: true });
@@ -76,14 +84,6 @@ export const AuthPage = () => {
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     const sub = loginSubject.subscribe(async ({ user, url, mfa }): Promise<void> => {
-      // handle forward auth redirect
-      if (redirectUrl && user) {
-        setShowRedirect(true);
-        resetMFAStore();
-        window.location.replace(redirectUrl);
-        return;
-      }
-
       // handle openid scenarios
 
       // user authenticated but app needs consent
