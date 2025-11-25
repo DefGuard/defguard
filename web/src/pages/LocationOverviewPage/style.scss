@@ -39,4 +39,20 @@
       }
     }
   }
+
+  & > .table-selection {
+    box-sizing: border-box;
+    padding: 0 var(--spacing-xl);
+
+    & > p {
+      font: var(--t-title-h4);
+      color: var(--fg-default);
+    }
+  }
+
+  .devices-count-cell {
+    .icon[data-kind='connected-devices'] path {
+      fill: var(--fg-action);
+    }
+  }
 }

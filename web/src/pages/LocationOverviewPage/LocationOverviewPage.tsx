@@ -2,15 +2,20 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Page } from '../../shared/components/Page/Page';
 import './style.scss';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
+import type { LocationDevicesStats } from '../../shared/api/types';
 import { GatewaysStatusBadge } from '../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
+import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getLocationQueryOptions } from '../../shared/query';
 import { OverviewCard } from '../LocationsOverviewPage/components/LocationOverviewCard/LocationOverviewCard';
-import { LocationOverviewUsersTable } from './LocationOverviewTable';
+import { LocationOverviewNetworkDevicesTable } from './LocationOverviewNetworkDevicesTable';
+import { LocationOverviewUsersTable } from './LocationOverviewUsersTable';
 
 export const LocationOverviewPage = () => {
   const search = useSearch({ from: '/_authorized/vpn-overview/$locationId' });
@@ -80,9 +85,44 @@ export const LocationOverviewPage = () => {
         )}
       </div>
       <SizedBox height={ThemeSpacing.Xl4} />
-      {isPresent(locationDevicesStats) && (
-        <LocationOverviewUsersTable data={locationDevicesStats.user_devices} />
-      )}
+      {isPresent(locationDevicesStats) && <DevicesSection stats={locationDevicesStats} />}
     </Page>
+  );
+};
+
+const DevicesSection = ({ stats }: { stats: LocationDevicesStats }) => {
+  const [selected, setSelected] = useState<'users' | 'devices'>('users');
+
+  const tabItems = useMemo(
+    (): TabsItem[] => [
+      {
+        title: 'Users',
+        active: selected === 'users',
+        onClick: () => setSelected('users'),
+      },
+      {
+        title: 'Network devices',
+        active: selected === 'devices',
+        onClick: () => setSelected('devices'),
+      },
+    ],
+    [selected],
+  );
+  return (
+    <>
+      <div className="table-selection">
+        <p className="table-title">
+          {selected === 'users' && "Connected user's devices"}
+          {selected === 'devices' && 'Connected network devices'}
+        </p>
+        <SizedBox height={ThemeSpacing.Lg} />
+        <Tabs items={tabItems} />
+        <SizedBox height={ThemeSpacing.Lg} />
+      </div>
+      {selected === 'users' && <LocationOverviewUsersTable data={stats.user_devices} />}
+      {selected === 'devices' && (
+        <LocationOverviewNetworkDevicesTable data={stats.network_devices} />
+      )}
+    </>
   );
 };

@@ -8,15 +8,16 @@ type Props = {
   data: TransferChartData[];
   height?: number;
   showX?: boolean;
+  barGap?: number;
 };
 
-export const TransferChart = ({ data, showX, height = 50 }: Props) => {
+export const TransferChart = ({ data, showX, height = 50, barGap = 4 }: Props) => {
   return (
     <div className="transfer-chart">
       <ResponsiveContainer width="100%" height={height}>
         <BarChart
           data={data}
-          barGap={4}
+          barGap={barGap}
           barSize={2}
           margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
         >
