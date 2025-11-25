@@ -11,6 +11,10 @@ async fn test_forward_auth(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut client = make_client(pool).await;
 
+    // missing reverse proxy headers
+    let response = client.get("/api/v1/forward_auth").send().await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
     // auth request from reverse proxy
     let response = client
         .get("/api/v1/forward_auth")
