@@ -85,7 +85,11 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   }
 
   if (ipv4WithPortPattern.test(ip)) {
-    ip = ip.split(':')[0];
+    const [address, port] = ip.split(':');
+    ip = address;
+    if (!validatePort(port)) {
+      return false;
+    }
   }
 
   return ipaddr.IPv4.isValid(ip);
