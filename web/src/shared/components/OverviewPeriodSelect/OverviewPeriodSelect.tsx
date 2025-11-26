@@ -6,14 +6,10 @@ const periods = [1, 2, 4, 6, 8, 12, 16, 24];
 const periodToOption = (value: number): SelectOption<number> => ({
   key: value,
   value: value,
-  label: `${value} period`,
+  label: `${value}h period`,
 });
 
-const options = periods.map((item) => ({
-  key: item,
-  value: item,
-  label: `${item} period`,
-}));
+const options = periods.map((period) => periodToOption(period));
 
 type Props = {
   period: number;
