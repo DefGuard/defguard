@@ -79,7 +79,7 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
     }
   }
   const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-  const ipv4WithPortPattern = /^(\d{1,3}\.){3}\d{1,3}(:\d{1,5})?$/;
+  const ipv4WithPortPattern = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
   if (!ipv4Pattern.test(ip) && !ipv4WithPortPattern.test(ip)) {
     return false;
   }
