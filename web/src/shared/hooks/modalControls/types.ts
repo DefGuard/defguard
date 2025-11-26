@@ -1,6 +1,7 @@
 import type {
   AvailableLocationIpResponse,
   Device,
+  GatewayTokenResponse,
   GroupInfo,
   NetworkDevice,
   NetworkLocation,
@@ -84,4 +85,9 @@ export interface OpenNetworkDeviceTokenModal {
 export interface OpenDisplayListModal {
   title?: string;
   data: string[];
+}
+
+export interface OpenGatewaySetupModal {
+  networkId: number;
+  data: GatewayTokenResponse;
 }

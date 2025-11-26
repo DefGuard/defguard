@@ -32,6 +32,7 @@ import type {
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
   GatewayStatus,
+  GatewayTokenResponse,
   GroupInfo,
   GroupsResponse,
   IpValidation,
@@ -259,6 +260,8 @@ const api = {
             : undefined,
         },
       }),
+    getGatewayToken: (networkId: number) =>
+      client.get<GatewayTokenResponse>(`/network/${networkId}/token`),
     getLocationGatewaysStatus: (id: number) =>
       client.get<GatewayStatus[]>(`/network/${id}/gateways`),
     deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>

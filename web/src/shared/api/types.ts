@@ -1,3 +1,7 @@
+export interface GatewayTokenResponse {
+  grpc_url: string;
+  token: string;
+}
 export interface ValidateDeviceIpsRequest {
   ips: string[];
   locationId: number;

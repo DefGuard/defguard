@@ -12,12 +12,14 @@ import type {
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
   OpenEditUserModal,
+  OpenGatewaySetupModal,
   OpenNetworkDeviceConfigModal,
   OpenNetworkDeviceTokenModal,
   OpenRenameApiTokenModal,
 } from './types';
 
 export const ModalName = {
+  GatewaySetup: 'gatewaySetup',
   DisplayList: 'displayList',
   ChangePassword: 'changePassword',
   TotpSetup: 'totpSetup',
@@ -124,6 +126,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DisplayList),
     data: z.custom<OpenDisplayListModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.GatewaySetup),
+    data: z.custom<OpenGatewaySetupModal>(),
   }),
 ]);
 

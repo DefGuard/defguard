@@ -2,6 +2,7 @@ import './style.scss';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import api from '../../shared/api/api';
+import { GatewaySetupModal } from '../../shared/components/modals/GatewaySetupModal/GatewaySetupModal';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -33,41 +34,44 @@ export const LocationsOverviewPage = () => {
   });
 
   return (
-    <Page title="VPN Overview" id="locations-overview-page">
-      <SizedBox height={ThemeSpacing.Xl3} />
-      <div className="top">
-        <p>Dashboard</p>
-        <div className="right">
-          <OverviewPeriodSelect
-            onChange={(value) => {
-              navigate({
-                from: '/vpn-overview',
-                search: {
-                  period: value,
-                },
-              });
-            }}
-            period={period}
-          />
+    <>
+      <Page title="VPN Overview" id="locations-overview-page">
+        <SizedBox height={ThemeSpacing.Xl3} />
+        <div className="top">
+          <p>Dashboard</p>
+          <div className="right">
+            <OverviewPeriodSelect
+              onChange={(value) => {
+                navigate({
+                  from: '/vpn-overview',
+                  search: {
+                    period: value,
+                  },
+                });
+              }}
+              period={period}
+            />
+          </div>
         </div>
-      </div>
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <ul>
-        {isPresent(allStats) && (
-          <li>
-            <OverviewCard statsPeriod={period} data={allStats} expanded={true}>
-              <div className="summary-top">
-                <p>All locations summary</p>
-              </div>
-            </OverviewCard>
-          </li>
-        )}
-        {locations.map((location) => (
-          <li key={location.id}>
-            <LocationOverviewCard location={location} statsPeriod={period} showTop />
-          </li>
-        ))}
-      </ul>
-    </Page>
+        <SizedBox height={ThemeSpacing.Xl2} />
+        <ul>
+          {isPresent(allStats) && (
+            <li>
+              <OverviewCard statsPeriod={period} data={allStats} expanded={true}>
+                <div className="summary-top">
+                  <p>All locations summary</p>
+                </div>
+              </OverviewCard>
+            </li>
+          )}
+          {locations.map((location) => (
+            <li key={location.id}>
+              <LocationOverviewCard location={location} statsPeriod={period} showTop />
+            </li>
+          ))}
+        </ul>
+      </Page>
+      <GatewaySetupModal />
+    </>
   );
 };
