@@ -8,6 +8,7 @@ import { sumBy } from 'lodash-es';
 import { useMemo } from 'react';
 import type { DeviceStats, LocationDevicesStats } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
+import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { tableActionColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
@@ -114,6 +115,14 @@ export const LocationOverviewNetworkDevicesTable = ({
     enableSorting: true,
     enableRowSelection: false,
   });
+
+  if (data.length === 0)
+    return (
+      <EmptyStateFlexible
+        title="No connected network devices"
+        subtitle="Wait for some device to connect"
+      />
+    );
 
   return <TableBody table={table} />;
 };
