@@ -90,7 +90,6 @@ pub mod proto {
 
 use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
-    gateway::gateway_service_server::GatewayServiceServer,
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
         core_response, proxy_client::ProxyClient,
@@ -734,31 +733,31 @@ pub async fn build_grpc_service_router(
         .add_service(health_service)
         .add_service(auth_service);
 
-    let router = {
-        use crate::version::GatewayVersionInterceptor;
+    // let router = {
+    //     use crate::version::GatewayVersionInterceptor;
 
-        let gateway_service = GatewayServiceServer::new(GatewayServer::new(
-            pool,
-            gateway_state,
-            client_state,
-            wireguard_tx,
-            mail_tx,
-            grpc_event_tx,
-        ));
+    //     let gateway_service = GatewayServiceServer::new(GatewayServer::new(
+    //         pool,
+    //         gateway_state,
+    //         client_state,
+    //         wireguard_tx,
+    //         mail_tx,
+    //         grpc_event_tx,
+    //     ));
 
-        let own_version = Version::parse(VERSION)?;
-        router.add_service(
-            ServiceBuilder::new()
-                .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
-                    ClaimsType::Gateway,
-                )))
-                .layer(tonic::service::InterceptorLayer::new(
-                    GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
-                ))
-                .layer(DefguardVersionLayer::new(own_version))
-                .service(gateway_service),
-        )
-    };
+    //     let own_version = Version::parse(VERSION)?;
+    //     router.add_service(
+    //         ServiceBuilder::new()
+    //             .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
+    //                 ClaimsType::Gateway,
+    //             )))
+    //             .layer(tonic::service::InterceptorLayer::new(
+    //                 GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
+    //             ))
+    //             .layer(DefguardVersionLayer::new(own_version))
+    //             .service(gateway_service),
+    //     )
+    // };
 
     let router = router.add_service(worker_service);
 
