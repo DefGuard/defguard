@@ -447,6 +447,16 @@ export interface NetworkLocation {
   acl_enabled: boolean;
   acl_default_allow: boolean;
   location_mfa_mode: LocationMfaModeValue;
+  service_location_mode: LocationServiceModeValue;
+}
+
+export interface EditNetworkLocation
+  extends Omit<
+    NetworkLocation,
+    'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
+  > {
+  allowed_ips: string;
+  address: string;
 }
 
 export interface GatewayStatus {
@@ -504,3 +514,12 @@ export interface LocationDevicesStats {
   user_devices: LocationUserDeviceStats[];
   network_devices: DeviceStats[];
 }
+
+export const LocationServiceMode = {
+  Disabled: 'disabled',
+  Prelogon: 'prelogon',
+  Alwayson: 'alwayson',
+} as const;
+
+export type LocationServiceModeValue =
+  (typeof LocationServiceMode)[keyof typeof LocationServiceMode];

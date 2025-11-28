@@ -19,11 +19,11 @@ import { LocationOverviewNetworkDevicesTable } from './LocationOverviewNetworkDe
 import { LocationOverviewUsersTable } from './LocationOverviewUsersTable';
 
 export const LocationOverviewPage = () => {
-  const search = useSearch({ from: '/_authorized/vpn-overview/$locationId' });
+  const search = useSearch({ from: '/_authorized/_default/vpn-overview/$locationId' });
   const navigate = useNavigate({ from: '/vpn-overview/$locationId' });
 
   const { locationId } = useParams({
-    from: '/_authorized/vpn-overview/$locationId',
+    from: '/_authorized/_default/vpn-overview/$locationId',
   });
 
   const { data: location } = useSuspenseQuery(

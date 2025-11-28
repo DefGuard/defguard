@@ -34,6 +34,7 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
     "humanize-duration": "^3.33.1",
+    "ipaddr.js": "^2.2.0",
     "lodash-es": "^4.17.21",
     "motion": "^12.23.24",
     "qrcode.react": "^4.2.0",

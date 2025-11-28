@@ -1,13 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 import z from 'zod';
-import { queryClient } from '../../../app/query';
-import { UserProfileTab } from '../../../pages/user-profile/UserProfilePage/tabs/types';
-import { UserProfilePage } from '../../../pages/user-profile/UserProfilePage/UserProfilePage';
+import { UserProfileTab } from '../../../../pages/user-profile/UserProfilePage/tabs/types';
+import { UserProfilePage } from '../../../../pages/user-profile/UserProfilePage/UserProfilePage';
 import {
   getUserApiTokensQueryOptions,
   getUserAuthKeysQueryOptions,
   userProfileQueryOptions,
-} from '../../../shared/query';
+} from '../../../../shared/query';
 
 const searchSchema = z.object({
   tab: z
@@ -20,10 +19,10 @@ const searchSchema = z.object({
     .default(UserProfileTab.Details),
 });
 
-export const Route = createFileRoute('/_authorized/user/$username')({
+export const Route = createFileRoute('/_authorized/_default/user/$username')({
   component: UserProfilePage,
   validateSearch: searchSchema,
-  loader: ({ params }) => {
+  loader: ({ params, context: { queryClient } }) => {
     return Promise.all([
       queryClient.ensureQueryData(userProfileQueryOptions(params.username)),
       queryClient.ensureQueryData(getUserAuthKeysQueryOptions(params.username)),

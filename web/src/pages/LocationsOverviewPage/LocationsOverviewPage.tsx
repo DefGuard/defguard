@@ -17,7 +17,7 @@ import {
 export const LocationsOverviewPage = () => {
   const navigate = useNavigate();
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
-  const { period } = useSearch({ from: '/_authorized/vpn-overview/' });
+  const { period } = useSearch({ from: '/_authorized/_default/vpn-overview/' });
 
   const { data: allStats } = useQuery({
     queryFn: () => api.location.getLocationsSummary(period),

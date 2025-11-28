@@ -25,11 +25,11 @@ const defaultTab = UserProfileTab.Details;
 export const UserProfilePage = () => {
   const navigate = useNavigate();
   const authUsername = useAuth((s) => s.user?.username as string);
-  const search = useSearch({ from: '/_authorized/user/$username' });
+  const search = useSearch({ from: '/_authorized/_default/user/$username' });
   const activeTab = search.tab ?? defaultTab;
 
   const { username } = useParams({
-    from: '/_authorized/user/$username',
+    from: '/_authorized/_default/user/$username',
   });
 
   const isSelf = useMemo(

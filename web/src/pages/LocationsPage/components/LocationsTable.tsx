@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -21,6 +22,7 @@ import { TableCell } from '../../../shared/defguard-ui/components/table/TableCel
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
+import { useAddLocationStore } from '../../AddLocationPage/useAddLocationStore';
 
 type Props = {
   locations: NetworkLocation[];
@@ -31,6 +33,7 @@ type RowData = NetworkLocation;
 const columnHelper = createColumnHelper<RowData>();
 
 export const LocationsTable = ({ locations }: Props) => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
   const transformedData = useMemo(() => {
@@ -48,9 +51,15 @@ export const LocationsTable = ({ locations }: Props) => {
     (): ButtonProps => ({
       text: 'Add Location',
       iconLeft: 'add-location',
-      onClick: () => {},
+      onClick: () => {
+        useAddLocationStore.getState().reset();
+        navigate({
+          to: '/add-location',
+          replace: true,
+        });
+      },
     }),
-    [],
+    [navigate],
   );
 
   const columns = useMemo(

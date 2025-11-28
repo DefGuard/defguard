@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { GroupsPage } from '../../pages/GroupsPage/GroupsPage';
-import { getGroupsInfoQueryOptions, getUsersQueryOptions } from '../../shared/query';
+import { GroupsPage } from '../../../pages/GroupsPage/GroupsPage';
+import { getGroupsInfoQueryOptions, getUsersQueryOptions } from '../../../shared/query';
 
-export const Route = createFileRoute('/_authorized/groups')({
+export const Route = createFileRoute('/_authorized/_default/groups')({
   component: GroupsPage,
   loader: ({ context }) => {
     return Promise.all([

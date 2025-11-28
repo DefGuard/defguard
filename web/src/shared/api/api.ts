@@ -29,6 +29,7 @@ import type {
   Device,
   EditGroupRequest,
   EditNetworkDeviceRequest,
+  EditNetworkLocation,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
   GatewayStatus,
@@ -274,6 +275,7 @@ const api = {
             : undefined,
         },
       }),
+    addLocation: (data: EditNetworkLocation) => client.post('/network', data),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

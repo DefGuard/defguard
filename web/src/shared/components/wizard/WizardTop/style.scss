@@ -1,0 +1,18 @@
+.wizard-top {
+  width: 100%;
+  border-bottom: var(--border-1) solid var(--border-disabled);
+  min-height: 60px;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: center;
+
+  .content-track {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: var(--page-content-limit);
+  }
+}

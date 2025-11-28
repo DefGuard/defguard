@@ -1,0 +1,15 @@
+.wizard-card {
+  box-sizing: border-box;
+  padding: var(--spacing-2xl);
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: var(--radius-xl);
+  width: 100%;
+
+  & > * {
+    width: 100%;
+  }
+
+  .modal-controls {
+    padding-top: var(--spacing-3xl);
+  }
+}

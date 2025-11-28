@@ -1,5 +1,9 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "form_min_value": "Minimal value of {value} required",
+  "form_error_ip_or_domain": "Only valid IP or domain is allowed",
+  "form_error_port_max": "Port exceeds maximum value",
+  "form_error_len": "Required length {length}",
   "form_error_name_reserved": "Name already taken",
   "form_error_email": "Enter valid email",
   "form_error_required": "Field is required",

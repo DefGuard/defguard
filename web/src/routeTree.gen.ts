@@ -16,19 +16,21 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
-import { Route as AuthorizedWebhooksRouteImport } from './routes/_authorized/webhooks'
-import { Route as AuthorizedUsersRouteImport } from './routes/_authorized/users'
-import { Route as AuthorizedOpenidRouteImport } from './routes/_authorized/openid'
-import { Route as AuthorizedNetworkDevicesRouteImport } from './routes/_authorized/network-devices'
-import { Route as AuthorizedLocationsRouteImport } from './routes/_authorized/locations'
-import { Route as AuthorizedGroupsRouteImport } from './routes/_authorized/groups'
-import { Route as AuthorizedVpnOverviewIndexRouteImport } from './routes/_authorized/vpn-overview/index'
+import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
-import { Route as AuthorizedVpnOverviewLocationIdRouteImport } from './routes/_authorized/vpn-overview/$locationId'
-import { Route as AuthorizedUserUsernameRouteImport } from './routes/_authorized/user/$username'
+import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
+import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
+import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized/_default/users'
+import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
+import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
+import { Route as AuthorizedDefaultLocationsRouteImport } from './routes/_authorized/_default/locations'
+import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
+import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
+import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
+import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
 
 const ConsentRoute = ConsentRouteImport.update({
   id: '/consent',
@@ -64,43 +66,10 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthorizedWebhooksRoute = AuthorizedWebhooksRouteImport.update({
-  id: '/webhooks',
-  path: '/webhooks',
+const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
+  id: '/_default',
   getParentRoute: () => AuthorizedRoute,
 } as any)
-const AuthorizedUsersRoute = AuthorizedUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthorizedRoute,
-} as any)
-const AuthorizedOpenidRoute = AuthorizedOpenidRouteImport.update({
-  id: '/openid',
-  path: '/openid',
-  getParentRoute: () => AuthorizedRoute,
-} as any)
-const AuthorizedNetworkDevicesRoute =
-  AuthorizedNetworkDevicesRouteImport.update({
-    id: '/network-devices',
-    path: '/network-devices',
-    getParentRoute: () => AuthorizedRoute,
-  } as any)
-const AuthorizedLocationsRoute = AuthorizedLocationsRouteImport.update({
-  id: '/locations',
-  path: '/locations',
-  getParentRoute: () => AuthorizedRoute,
-} as any)
-const AuthorizedGroupsRoute = AuthorizedGroupsRouteImport.update({
-  id: '/groups',
-  path: '/groups',
-  getParentRoute: () => AuthorizedRoute,
-} as any)
-const AuthorizedVpnOverviewIndexRoute =
-  AuthorizedVpnOverviewIndexRouteImport.update({
-    id: '/vpn-overview/',
-    path: '/vpn-overview/',
-    getParentRoute: () => AuthorizedRoute,
-  } as any)
 const AuthMfaWebauthnRoute = AuthMfaWebauthnRouteImport.update({
   id: '/webauthn',
   path: '/webauthn',
@@ -121,59 +90,107 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
-const AuthorizedVpnOverviewLocationIdRoute =
-  AuthorizedVpnOverviewLocationIdRouteImport.update({
-    id: '/vpn-overview/$locationId',
-    path: '/vpn-overview/$locationId',
+const AuthorizedWizardAddLocationRoute =
+  AuthorizedWizardAddLocationRouteImport.update({
+    id: '/_wizard/add-location',
+    path: '/add-location',
     getParentRoute: () => AuthorizedRoute,
   } as any)
-const AuthorizedUserUsernameRoute = AuthorizedUserUsernameRouteImport.update({
-  id: '/user/$username',
-  path: '/user/$username',
-  getParentRoute: () => AuthorizedRoute,
+const AuthorizedDefaultWebhooksRoute =
+  AuthorizedDefaultWebhooksRouteImport.update({
+    id: '/webhooks',
+    path: '/webhooks',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultUsersRoute = AuthorizedDefaultUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultOpenidRoute = AuthorizedDefaultOpenidRouteImport.update({
+  id: '/openid',
+  path: '/openid',
+  getParentRoute: () => AuthorizedDefaultRoute,
+} as any)
+const AuthorizedDefaultNetworkDevicesRoute =
+  AuthorizedDefaultNetworkDevicesRouteImport.update({
+    id: '/network-devices',
+    path: '/network-devices',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultLocationsRoute =
+  AuthorizedDefaultLocationsRouteImport.update({
+    id: '/locations',
+    path: '/locations',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultGroupsRoute = AuthorizedDefaultGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => AuthorizedDefaultRoute,
+} as any)
+const AuthorizedDefaultVpnOverviewIndexRoute =
+  AuthorizedDefaultVpnOverviewIndexRouteImport.update({
+    id: '/vpn-overview/',
+    path: '/vpn-overview/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultVpnOverviewLocationIdRoute =
+  AuthorizedDefaultVpnOverviewLocationIdRouteImport.update({
+    id: '/vpn-overview/$locationId',
+    path: '/vpn-overview/$locationId',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultUserUsernameRoute =
+  AuthorizedDefaultUserUsernameRouteImport.update({
+    id: '/user/$username',
+    path: '/user/$username',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/consent': typeof ConsentRoute
-  '/groups': typeof AuthorizedGroupsRoute
-  '/locations': typeof AuthorizedLocationsRoute
-  '/network-devices': typeof AuthorizedNetworkDevicesRoute
-  '/openid': typeof AuthorizedOpenidRoute
-  '/users': typeof AuthorizedUsersRoute
-  '/webhooks': typeof AuthorizedWebhooksRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
-  '/user/$username': typeof AuthorizedUserUsernameRoute
-  '/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
+  '/groups': typeof AuthorizedDefaultGroupsRoute
+  '/locations': typeof AuthorizedDefaultLocationsRoute
+  '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
+  '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/users': typeof AuthorizedDefaultUsersRoute
+  '/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
-  '/vpn-overview': typeof AuthorizedVpnOverviewIndexRoute
+  '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
+  '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
+  '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/consent': typeof ConsentRoute
-  '/groups': typeof AuthorizedGroupsRoute
-  '/locations': typeof AuthorizedLocationsRoute
-  '/network-devices': typeof AuthorizedNetworkDevicesRoute
-  '/openid': typeof AuthorizedOpenidRoute
-  '/users': typeof AuthorizedUsersRoute
-  '/webhooks': typeof AuthorizedWebhooksRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
-  '/user/$username': typeof AuthorizedUserUsernameRoute
-  '/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
+  '/groups': typeof AuthorizedDefaultGroupsRoute
+  '/locations': typeof AuthorizedDefaultLocationsRoute
+  '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
+  '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/users': typeof AuthorizedDefaultUsersRoute
+  '/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
-  '/vpn-overview': typeof AuthorizedVpnOverviewIndexRoute
+  '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
+  '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
+  '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -181,22 +198,24 @@ export interface FileRoutesById {
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/consent': typeof ConsentRoute
-  '/_authorized/groups': typeof AuthorizedGroupsRoute
-  '/_authorized/locations': typeof AuthorizedLocationsRoute
-  '/_authorized/network-devices': typeof AuthorizedNetworkDevicesRoute
-  '/_authorized/openid': typeof AuthorizedOpenidRoute
-  '/_authorized/users': typeof AuthorizedUsersRoute
-  '/_authorized/webhooks': typeof AuthorizedWebhooksRoute
+  '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
-  '/_authorized/user/$username': typeof AuthorizedUserUsernameRoute
-  '/_authorized/vpn-overview/$locationId': typeof AuthorizedVpnOverviewLocationIdRoute
+  '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
+  '/_authorized/_default/locations': typeof AuthorizedDefaultLocationsRoute
+  '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
+  '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
+  '/_authorized/_default/users': typeof AuthorizedDefaultUsersRoute
+  '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
-  '/_authorized/vpn-overview/': typeof AuthorizedVpnOverviewIndexRoute
+  '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
+  '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
+  '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -204,42 +223,44 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/consent'
+    | '/auth/login'
+    | '/auth/mfa'
+    | '/auth'
     | '/groups'
     | '/locations'
     | '/network-devices'
     | '/openid'
     | '/users'
     | '/webhooks'
-    | '/auth/login'
-    | '/auth/mfa'
-    | '/auth'
-    | '/user/$username'
-    | '/vpn-overview/$locationId'
+    | '/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/user/$username'
+    | '/vpn-overview/$locationId'
     | '/vpn-overview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/404'
     | '/consent'
+    | '/auth/login'
+    | '/auth/mfa'
+    | '/auth'
     | '/groups'
     | '/locations'
     | '/network-devices'
     | '/openid'
     | '/users'
     | '/webhooks'
-    | '/auth/login'
-    | '/auth/mfa'
-    | '/auth'
-    | '/user/$username'
-    | '/vpn-overview/$locationId'
+    | '/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/user/$username'
+    | '/vpn-overview/$locationId'
     | '/vpn-overview'
   id:
     | '__root__'
@@ -247,22 +268,24 @@ export interface FileRouteTypes {
     | '/404'
     | '/_authorized'
     | '/consent'
-    | '/_authorized/groups'
-    | '/_authorized/locations'
-    | '/_authorized/network-devices'
-    | '/_authorized/openid'
-    | '/_authorized/users'
-    | '/_authorized/webhooks'
+    | '/_authorized/_default'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
-    | '/_authorized/user/$username'
-    | '/_authorized/vpn-overview/$locationId'
+    | '/_authorized/_default/groups'
+    | '/_authorized/_default/locations'
+    | '/_authorized/_default/network-devices'
+    | '/_authorized/_default/openid'
+    | '/_authorized/_default/users'
+    | '/_authorized/_default/webhooks'
+    | '/_authorized/_wizard/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
-    | '/_authorized/vpn-overview/'
+    | '/_authorized/_default/user/$username'
+    | '/_authorized/_default/vpn-overview/$locationId'
+    | '/_authorized/_default/vpn-overview/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -326,53 +349,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authorized/webhooks': {
-      id: '/_authorized/webhooks'
-      path: '/webhooks'
-      fullPath: '/webhooks'
-      preLoaderRoute: typeof AuthorizedWebhooksRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/users': {
-      id: '/_authorized/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof AuthorizedUsersRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/openid': {
-      id: '/_authorized/openid'
-      path: '/openid'
-      fullPath: '/openid'
-      preLoaderRoute: typeof AuthorizedOpenidRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/network-devices': {
-      id: '/_authorized/network-devices'
-      path: '/network-devices'
-      fullPath: '/network-devices'
-      preLoaderRoute: typeof AuthorizedNetworkDevicesRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/locations': {
-      id: '/_authorized/locations'
-      path: '/locations'
-      fullPath: '/locations'
-      preLoaderRoute: typeof AuthorizedLocationsRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/groups': {
-      id: '/_authorized/groups'
-      path: '/groups'
-      fullPath: '/groups'
-      preLoaderRoute: typeof AuthorizedGroupsRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/vpn-overview/': {
-      id: '/_authorized/vpn-overview/'
-      path: '/vpn-overview'
-      fullPath: '/vpn-overview'
-      preLoaderRoute: typeof AuthorizedVpnOverviewIndexRouteImport
+    '/_authorized/_default': {
+      id: '/_authorized/_default'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AuthorizedDefaultRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/auth/mfa/webauthn': {
@@ -403,45 +384,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
     }
-    '/_authorized/vpn-overview/$locationId': {
-      id: '/_authorized/vpn-overview/$locationId'
-      path: '/vpn-overview/$locationId'
-      fullPath: '/vpn-overview/$locationId'
-      preLoaderRoute: typeof AuthorizedVpnOverviewLocationIdRouteImport
+    '/_authorized/_wizard/add-location': {
+      id: '/_authorized/_wizard/add-location'
+      path: '/add-location'
+      fullPath: '/add-location'
+      preLoaderRoute: typeof AuthorizedWizardAddLocationRouteImport
       parentRoute: typeof AuthorizedRoute
     }
-    '/_authorized/user/$username': {
-      id: '/_authorized/user/$username'
+    '/_authorized/_default/webhooks': {
+      id: '/_authorized/_default/webhooks'
+      path: '/webhooks'
+      fullPath: '/webhooks'
+      preLoaderRoute: typeof AuthorizedDefaultWebhooksRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/users': {
+      id: '/_authorized/_default/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthorizedDefaultUsersRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/openid': {
+      id: '/_authorized/_default/openid'
+      path: '/openid'
+      fullPath: '/openid'
+      preLoaderRoute: typeof AuthorizedDefaultOpenidRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/network-devices': {
+      id: '/_authorized/_default/network-devices'
+      path: '/network-devices'
+      fullPath: '/network-devices'
+      preLoaderRoute: typeof AuthorizedDefaultNetworkDevicesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/locations': {
+      id: '/_authorized/_default/locations'
+      path: '/locations'
+      fullPath: '/locations'
+      preLoaderRoute: typeof AuthorizedDefaultLocationsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/groups': {
+      id: '/_authorized/_default/groups'
+      path: '/groups'
+      fullPath: '/groups'
+      preLoaderRoute: typeof AuthorizedDefaultGroupsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/vpn-overview/': {
+      id: '/_authorized/_default/vpn-overview/'
+      path: '/vpn-overview'
+      fullPath: '/vpn-overview'
+      preLoaderRoute: typeof AuthorizedDefaultVpnOverviewIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/vpn-overview/$locationId': {
+      id: '/_authorized/_default/vpn-overview/$locationId'
+      path: '/vpn-overview/$locationId'
+      fullPath: '/vpn-overview/$locationId'
+      preLoaderRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/user/$username': {
+      id: '/_authorized/_default/user/$username'
       path: '/user/$username'
       fullPath: '/user/$username'
-      preLoaderRoute: typeof AuthorizedUserUsernameRouteImport
-      parentRoute: typeof AuthorizedRoute
+      preLoaderRoute: typeof AuthorizedDefaultUserUsernameRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
     }
   }
 }
 
+interface AuthorizedDefaultRouteChildren {
+  AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
+  AuthorizedDefaultLocationsRoute: typeof AuthorizedDefaultLocationsRoute
+  AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
+  AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
+  AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
+  AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
+  AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
+  AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
+  AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
+}
+
+const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
+  AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
+  AuthorizedDefaultLocationsRoute: AuthorizedDefaultLocationsRoute,
+  AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
+  AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
+  AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
+  AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
+  AuthorizedDefaultUserUsernameRoute: AuthorizedDefaultUserUsernameRoute,
+  AuthorizedDefaultVpnOverviewLocationIdRoute:
+    AuthorizedDefaultVpnOverviewLocationIdRoute,
+  AuthorizedDefaultVpnOverviewIndexRoute:
+    AuthorizedDefaultVpnOverviewIndexRoute,
+}
+
+const AuthorizedDefaultRouteWithChildren =
+  AuthorizedDefaultRoute._addFileChildren(AuthorizedDefaultRouteChildren)
+
 interface AuthorizedRouteChildren {
-  AuthorizedGroupsRoute: typeof AuthorizedGroupsRoute
-  AuthorizedLocationsRoute: typeof AuthorizedLocationsRoute
-  AuthorizedNetworkDevicesRoute: typeof AuthorizedNetworkDevicesRoute
-  AuthorizedOpenidRoute: typeof AuthorizedOpenidRoute
-  AuthorizedUsersRoute: typeof AuthorizedUsersRoute
-  AuthorizedWebhooksRoute: typeof AuthorizedWebhooksRoute
-  AuthorizedUserUsernameRoute: typeof AuthorizedUserUsernameRoute
-  AuthorizedVpnOverviewLocationIdRoute: typeof AuthorizedVpnOverviewLocationIdRoute
-  AuthorizedVpnOverviewIndexRoute: typeof AuthorizedVpnOverviewIndexRoute
+  AuthorizedDefaultRoute: typeof AuthorizedDefaultRouteWithChildren
+  AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
-  AuthorizedGroupsRoute: AuthorizedGroupsRoute,
-  AuthorizedLocationsRoute: AuthorizedLocationsRoute,
-  AuthorizedNetworkDevicesRoute: AuthorizedNetworkDevicesRoute,
-  AuthorizedOpenidRoute: AuthorizedOpenidRoute,
-  AuthorizedUsersRoute: AuthorizedUsersRoute,
-  AuthorizedWebhooksRoute: AuthorizedWebhooksRoute,
-  AuthorizedUserUsernameRoute: AuthorizedUserUsernameRoute,
-  AuthorizedVpnOverviewLocationIdRoute: AuthorizedVpnOverviewLocationIdRoute,
-  AuthorizedVpnOverviewIndexRoute: AuthorizedVpnOverviewIndexRoute,
+  AuthorizedDefaultRoute: AuthorizedDefaultRouteWithChildren,
+  AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(

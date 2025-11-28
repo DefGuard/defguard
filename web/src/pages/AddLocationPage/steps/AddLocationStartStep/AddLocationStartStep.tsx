@@ -1,0 +1,117 @@
+import z from 'zod';
+import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../../paraglide/messages';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { useAppForm } from '../../../../shared/defguard-ui/form';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { formChangeLogic } from '../../../../shared/form';
+import { validateIpList } from '../../../../shared/validators';
+import { AddLocationPageStep } from '../../types';
+import { useAddLocationStore } from '../../useAddLocationStore';
+
+const formSchema = z.object({
+  name: z.string(m.form_error_required()).min(1, m.form_error_required()),
+  address: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required())
+    .refine((value) => validateIpList(value, ',', true), m.form_error_invalid()),
+  endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+  allowed_ips: z.string(m.form_error_required()).trim(),
+});
+
+type FormFields = z.infer<typeof formSchema>;
+
+export const AddLocationStartStep = () => {
+  const defaultValues = useAddLocationStore(
+    useShallow(
+      (s): FormFields => ({
+        address: s.address,
+        allowed_ips: s.allowed_ips,
+        endpoint: s.endpoint,
+        name: s.name,
+        port: s.port,
+      }),
+    ),
+  );
+
+  const form = useAppForm({
+    defaultValues,
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: formSchema,
+      onChange: formSchema,
+    },
+    onSubmit: ({ value }) => {
+      useAddLocationStore.setState({
+        ...value,
+        activeStep: AddLocationPageStep.VpnNetwork,
+      });
+    },
+  });
+
+  return (
+    <WizardCard id="add-location-start-step">
+      <form
+        onSubmit={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppForm>
+          <form.AppField name="name">
+            {(field) => <field.FormInput required label={'Location name'} />}
+          </form.AppField>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <DescriptionBlock title="Gateway address">
+            <p>
+              {
+                'The VPN network will be derived from this address (e.g., 10.10.10.1/24 → 10.10.10.0/24). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
+              }
+            </p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="address">
+            {(field) => (
+              <field.FormInput required label={'Gateway VPN IP address and netmask'} />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="endpoint">
+            {(field) => (
+              <field.FormInput required label={'Gateway IP address or domain name'} />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="port">
+            {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
+          </form.AppField>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <DescriptionBlock title={`Allowed IP's`}>
+            <p>
+              {'List of addresses/masks that should be routed through the VPN network.'}
+            </p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="allowed_ips">
+            {(field) => <field.FormInput required label={'Allowed IPs'} />}
+          </form.AppField>
+          <ModalControls
+            submitProps={{
+              text: m.controls_continue(),
+              onClick: () => {
+                form.handleSubmit();
+              },
+            }}
+          />
+        </form.AppForm>
+      </form>
+    </WizardCard>
+  );
+};
