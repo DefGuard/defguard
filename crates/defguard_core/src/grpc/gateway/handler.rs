@@ -8,7 +8,10 @@ use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
 use sqlx::PgPool;
 use tokio::{
-    sync::mpsc::{self, Sender, UnboundedSender},
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender},
+    },
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -28,7 +31,7 @@ use crate::{
 };
 
 /// One instance per connected Gateway.
-pub(super) struct GatewayHandler {
+pub(crate) struct GatewayHandler {
     endpoint: Endpoint,
     gateway: Gateway<Id>,
     message_id: AtomicU64,
@@ -38,7 +41,7 @@ pub(super) struct GatewayHandler {
 }
 
 impl GatewayHandler {
-    pub(super) fn new(
+    pub(crate) fn new(
         gateway: Gateway<Id>,
         tls_config: Option<ClientTlsConfig>,
         pool: PgPool,
@@ -193,7 +196,7 @@ impl GatewayHandler {
     }
 
     /// Connect to Gateway and handle its messages through gRPC.
-    pub(super) async fn handle_connection(&mut self) -> ! {
+    pub(crate) async fn handle_connection(&mut self) -> ! {
         let uri = self.endpoint.uri();
         loop {
             #[cfg(not(test))]

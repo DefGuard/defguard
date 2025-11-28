@@ -23,8 +23,8 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
 use sqlx::{
-    FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as, query_scalar,
+    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
+    query_scalar,
 };
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;

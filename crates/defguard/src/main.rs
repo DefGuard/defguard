@@ -24,7 +24,7 @@ use defguard_core::{
     grpc::{
         WorkerState,
         gateway::{client_state::ClientMap, map::GatewayMap},
-        run_grpc_bidi_stream, run_grpc_server,
+        run_grpc_bidi_stream, run_grpc_gateway_stream, run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
@@ -153,6 +153,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
+        res = run_grpc_gateway_stream(
+            pool.clone(),
+            wireguard_tx.clone(),
+            mail_tx.clone()
+        ) => error!("Gateway gRPC stream returned early: {res:?}"),
         res = run_grpc_bidi_stream(
             pool.clone(),
             wireguard_tx.clone(),
