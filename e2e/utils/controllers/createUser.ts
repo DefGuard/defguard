@@ -16,9 +16,10 @@ export const createUser = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.users);
+  await page.goto(routes.base + routes.identity.users);
   await page.getByTestId('add-user').click();
-  const formElement = page.getByTestId('add-user-form');
+  await page.getByTestId('add-user-manually').click();
+  const formElement = page.locator('[id="add-user-modal"]');
   await formElement.waitFor({ state: 'visible' });
   await formElement.getByTestId('field-username').fill(user.username);
   await formElement.getByTestId('field-password').fill(user.password);
@@ -26,7 +27,7 @@ export const createUser = async (
   await formElement.getByTestId('field-last_name').fill(user.lastName);
   await formElement.getByTestId('field-email').fill(user.mail);
   await formElement.getByTestId('field-phone').fill(user.phone);
-  await formElement.locator('button[type="submit"]').click();
+  await formElement.getByTestId('add-user-submit').click();
   await formElement.waitFor({ state: 'hidden', timeout: 2000 });
   if (groups) {
     groups = groups.map((g) => g.toLocaleLowerCase());

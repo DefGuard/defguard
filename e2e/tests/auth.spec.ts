@@ -26,16 +26,19 @@ test.describe('Test user authentication', () => {
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
-    await waitForRoute(page, routes.admin.wizard);
-    expect(page.url()).toBe(routes.base + routes.admin.wizard);
+    expect(page.url()).toBe(
+      routes.base + routes.profile + defaultUserAdmin.username + '?tab=details',
+    );
   });
 
   test('Create user and login as him', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    // await waitForRoute(page, routes.me);
+    expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 
   test('Login with admin user TOTP', async ({ page, browser }) => {

@@ -143,6 +143,7 @@ export const LoginMainPage = () => {
           <Button
             text="Sign in"
             type="submit"
+            testId="sign-in"
             variant="primary"
             size="big"
             loading={form.state.isSubmitting}

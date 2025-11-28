@@ -15,13 +15,12 @@ type AuthInfo = User | Pick<User, 'username' | 'password'>;
 export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
-  await page.getByTestId('login-form-username').fill(userInfo.username);
-  await page.getByTestId('login-form-password').fill(userInfo.password);
-  const responsePromise = page.waitForResponse('**/auth');
-  await page.getByTestId('login-form-submit').click();
+  await page.getByTestId('field-username').fill(userInfo.username);
+  await page.getByTestId('field-password').fill(userInfo.password);
+  const responsePromise = page.waitForResponse('**/user/' + userInfo.username);
+  await page.getByTestId('sign-in').click();
   const response = await responsePromise;
   expect([200, 201].includes(response.status())).toBeTruthy();
-  await waitForPromise(2000);
 };
 
 export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {

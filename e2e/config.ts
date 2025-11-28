@@ -29,6 +29,11 @@ export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
 export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
+  profile: '/user/',
+  identity: {
+    users: '/users',
+    groups: '/groups',
+  },
   consent: '/consent',
   addDevice: '/add-device',
   auth: {

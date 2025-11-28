@@ -375,6 +375,7 @@ export const UsersTable = ({ users }: Props) => {
         <Button
           iconLeft="add-user"
           text={m.users_add()}
+          testId="add-user"
           onClick={() => {
             useAddUserModal.getState().open({
               reservedEmails,
