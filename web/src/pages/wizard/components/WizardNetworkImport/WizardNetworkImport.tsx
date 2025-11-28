@@ -27,7 +27,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import type { ImportNetworkRequest } from '../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { titleCase } from '../../../../shared/utils/titleCase';
-import { validateIpOrDomain } from '../../../../shared/validators';
+import { Validate } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface FormInputs extends Omit<ImportNetworkRequest, 'allowed_groups'> {
@@ -70,7 +70,12 @@ export const WizardNetworkImport = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
+          .refine((val) => {
+            if (val.split(',').length > 1) {
+              return false; // for now we can only accept one gateway address
+            }
+            return Validate.IPv4(val) || Validate.IPv6(val) || Validate.Domain(val);
+          }, LL.form.error.endpoint()),
         fileName: z.string().trim().min(1, LL.form.error.required()),
         config: z.string().trim().min(1, LL.form.error.required()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),

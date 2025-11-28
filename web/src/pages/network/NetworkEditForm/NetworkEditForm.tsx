@@ -31,11 +31,7 @@ import {
 } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../shared/validators';
+import { Validate } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -124,23 +120,47 @@ export const NetworkEditForm = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((value) => {
-            return validateIpList(value, ',', true);
+          .refine((val) => {
+            for (let address of val.split(',')) {
+              if (!(Validate.CIDRv4(address) || Validate.CIDRv6(address))) {
+                return false;
+              }
+            }
+            return true;
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine(
-            (val) => validateIpOrDomain(val, false, true),
-            LL.form.error.endpoint(),
-          ),
+          .refine((val) => {
+            if (val.split(',').length > 1) {
+              return false; // for now we can only accept one gateway address
+            }
+            return Validate.IPv4(val) || Validate.IPv6(val) || Validate.Domain(val);
+          }, LL.form.error.endpoint()),
         port: z
           .number({
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        allowed_ips: z.string(),
+        allowed_ips: z
+          .string()
+          .trim()
+          .refine((val) => {
+            for (let address of val.split(',')) {
+              if (
+                !(
+                  Validate.CIDRv4(address) ||
+                  Validate.IPv4(address) ||
+                  Validate.CIDRv6(address) ||
+                  Validate.IPv6(address)
+                )
+              ) {
+                return false;
+              }
+            }
+            return true;
+          }, LL.form.error.address()),
         dns: z
           .string()
           .trim()
@@ -149,8 +169,8 @@ export const NetworkEditForm = () => {
             if (val === '' || !val) {
               return true;
             }
-            return validateIpOrDomainList(val, ',', false, true);
-          }, LL.form.error.allowedIps()),
+            return Validate.IPv4(val) || Validate.IPv6(val);
+          }, LL.form.error.address()),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
