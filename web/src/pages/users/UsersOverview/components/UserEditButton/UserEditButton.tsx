@@ -47,6 +47,7 @@ export const UserEditButton = ({ user }: Props) => {
           key="disable-mfa"
           text={LL.usersOverview.list.editButton.disableMfa()}
           onClick={() => openDisableMfaModal(user)}
+          data-testid="disable-mfa-button"
           styleVariant={EditButtonOptionStyleVariant.WARNING}
         />
       )}

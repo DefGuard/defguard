@@ -197,6 +197,7 @@ export const UsersOverview = () => {
               styleVariant={ButtonStyleVariant.PRIMARY}
               text="Assign group to selected users"
               onClick={() => openGroupsAssign(selectedUsers)}
+              data-testid="group-bulk-assign"
             />
           )}
           {breakpoint === 'desktop' && (

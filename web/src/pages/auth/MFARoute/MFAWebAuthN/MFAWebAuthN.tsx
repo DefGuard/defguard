@@ -73,6 +73,7 @@ export const MFAWebAuthN = () => {
         onClick={() => mfaStart()}
         size={ButtonSize.LARGE}
         styleVariant={ButtonStyleVariant.PRIMARY}
+        data-testid="use-security-key"
       />
     </>
   );
