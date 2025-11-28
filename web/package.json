@@ -14,7 +14,10 @@
     "typesafe-i18n": "typesafe-i18n",
     "vite": "vite",
     "prettier": "prettier",
-    "biome": "biome"
+    "biome": "biome",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest"
   },
   "browserslist": {
     "production": [
@@ -128,6 +131,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react-swc": "^4.2.2",
+    "@vitest/ui": "^4.0.14",
     "autoprefixer": "^10.4.22",
     "concurrently": "^9.2.1",
     "dotenv": "^17.2.3",
@@ -140,6 +144,7 @@
     "type-fest": "^4.41.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.2",
-    "vite-plugin-package-version": "^1.1.0"
+    "vite-plugin-package-version": "^1.1.0",
+    "vitest": "^4.0.14"
   }
 }
