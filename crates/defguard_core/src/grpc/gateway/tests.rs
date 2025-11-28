@@ -9,11 +9,9 @@ use tokio::{
     sync::{broadcast, mpsc::unbounded_channel},
 };
 use tokio_stream::wrappers::UnixListenerStream;
-use tonic::{transport::Server, Request, Response, Status, Streaming};
+use tonic::{Request, Response, Status, Streaming, transport::Server};
 
 use super::*;
-
-pub(super) static TONIC_SOCKET: &str = "tonic.sock";
 
 struct FakeGateway;
 

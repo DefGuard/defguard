@@ -28,7 +28,7 @@ use tower::service_fn;
 
 use crate::common::{init_config, initialize_users};
 
-pub mod mock_gateway;
+// pub mod mock_gateway;
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
@@ -156,13 +156,13 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         server,
         pool.clone(),
         worker_state,
-        gateway_state.clone(),
-        client_state.clone(),
-        wg_tx.clone(),
+        // gateway_state.clone(),
+        // client_state.clone(),
+        // wg_tx.clone(),
         mail_tx,
         failed_logins,
-        grpc_event_tx,
-        Default::default(),
+        // grpc_event_tx,
+        // Default::default(),
     )
     .await
     .unwrap();

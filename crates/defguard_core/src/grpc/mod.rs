@@ -680,13 +680,13 @@ pub async fn run_grpc_server(
         server,
         pool,
         worker_state,
-        gateway_state,
-        client_state,
-        wireguard_tx,
-        mail_tx,
+        // gateway_state,
+        // client_state,
+        // wireguard_tx,
+        // mail_tx,
         failed_logins,
-        grpc_event_tx,
-        incompatible_components,
+        // grpc_event_tx,
+        // incompatible_components,
     )
     .await?;
 
@@ -707,13 +707,13 @@ pub async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
+    // gateway_state: Arc<Mutex<GatewayMap>>,
+    // client_state: Arc<Mutex<ClientMap>>,
+    // wireguard_tx: Sender<GatewayEvent>,
+    // mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    // grpc_event_tx: UnboundedSender<GrpcEvent>,
+    // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 

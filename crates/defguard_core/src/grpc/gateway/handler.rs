@@ -27,7 +27,7 @@ use crate::{
     handlers::mail::send_gateway_disconnected_email,
 };
 
-/// One instance per connected gateway.
+/// One instance per connected Gateway.
 pub(super) struct GatewayHandler {
     endpoint: Endpoint,
     gateway: Gateway<Id>,
@@ -202,7 +202,7 @@ impl GatewayHandler {
             let channel = self.endpoint.connect_with_connector_lazy(tower::service_fn(
                 |_: tonic::transport::Uri| async {
                     Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                        tokio::net::UnixStream::connect(super::tests::TONIC_SOCKET).await?,
+                        tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
                     ))
                 },
             ));

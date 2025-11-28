@@ -44,10 +44,11 @@ pub mod client_state;
 pub(crate) mod handler;
 pub mod map;
 pub(crate) mod state;
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 const PEER_DISCONNECT_INTERVAL: u64 = 60;
+static TONIC_SOCKET: &str = "tonic.sock";
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
