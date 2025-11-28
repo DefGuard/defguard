@@ -1,11 +1,11 @@
 import ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 import {
+  domainPattern,
+  domainWithPortPattern,
   ipv4Pattern,
   ipv4WithCIDRPattern,
   ipv4WithPortPattern,
-  domainPattern,
-  domainWithPortPattern,
   patternValidWireguardKey,
 } from './patterns';
 
@@ -26,7 +26,7 @@ export const validateWireguardPublicKey = (props: {
 
 export const Validate = {
   IPv4: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (!ipv4Pattern.test(ip)) {
         return false;
       }
@@ -37,11 +37,11 @@ export const Validate = {
     return true;
   },
   IPv4withPort: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (!ipv4WithPortPattern.test(ip)) {
         return false;
       }
-      let addr = ip.split(':');
+      const addr = ip.split(':');
       if (!ipaddr.IPv4.isValid(addr[0]) || !Validate.Port(addr[1])) {
         return false;
       }
@@ -49,7 +49,7 @@ export const Validate = {
     return true;
   },
   IPv6: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (!ipaddr.IPv6.isValid(ip)) {
         return false;
       }
@@ -57,11 +57,11 @@ export const Validate = {
     return true;
   },
   IPv6withPort: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (ip.includes(']')) {
-        let address = ip.split(']');
-        let ipv6 = address[0];
-        let port = address[1];
+        const address = ip.split(']');
+        const ipv6 = address[0];
+        const port = address[1];
         if (!ipaddr.IPv6.isValid(ipv6)) {
           return false;
         }
@@ -74,7 +74,7 @@ export const Validate = {
     return true;
   },
   CIDRv4: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (!ipv4WithCIDRPattern.test(ip)) {
         return false;
       }
@@ -88,7 +88,7 @@ export const Validate = {
     return true;
   },
   CIDRv6: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (ip.endsWith('/0')) {
         return false;
       }
@@ -99,7 +99,7 @@ export const Validate = {
     return true;
   },
   Domain: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
+    for (const ip of address.replace(' ', '').split(splitWith)) {
       if (!domainPattern.test(ip)) {
         return false;
       }
@@ -107,10 +107,10 @@ export const Validate = {
     return true;
   },
   DomainWithPort: (address: string, splitWith = ','): boolean => {
-    for (let ip of address.replace(' ', '').split(splitWith)) {
-      let splitted = ip.split(':');
-      let domain = splitted[0];
-      let port = splitted[1];
+    for (const ip of address.replace(' ', '').split(splitWith)) {
+      const splitted = ip.split(':');
+      const domain = splitted[0];
+      const port = splitted[1];
       console.log(domainWithPortPattern.test(domain));
 
       if (!Validate.Port(port)) {

@@ -121,7 +121,7 @@ export const NetworkEditForm = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine((val) => {
-            for (let address of val.split(',')) {
+            for (const address of val.split(',')) {
               if (!(Validate.CIDRv4(address) || Validate.CIDRv6(address))) {
                 return false;
               }
@@ -147,7 +147,7 @@ export const NetworkEditForm = () => {
           .string()
           .trim()
           .refine((val) => {
-            for (let address of val.split(',')) {
+            for (const address of val.split(',')) {
               if (
                 !(
                   Validate.CIDRv4(address) ||
