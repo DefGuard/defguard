@@ -80,7 +80,10 @@ impl GatewayHandler {
     }
 
     /// Send network and VPN configuration to Gateway.
-    async fn send_configuration(&self, tx: &UnboundedSender<CoreResponse>) -> Result<(), Status> {
+    async fn send_configuration(
+        &self,
+        tx: &UnboundedSender<CoreResponse>,
+    ) -> Result<WireguardNetwork<Id>, Status> {
         debug!("Sending configuration to Gateway");
         let network_id = self.gateway.network_id;
         // let hostname = Self::get_gateway_hostname(request.metadata())?;
@@ -146,7 +149,7 @@ impl GatewayHandler {
         match tx.send(req) {
             Ok(()) => {
                 info!("Configuration sent to {}, network {network}", self.gateway);
-                Ok(())
+                Ok(network)
             }
             Err(err) => {
                 error!("Failed to send configuration sent to {}", self.gateway);
@@ -360,13 +363,32 @@ impl GatewayHandler {
 
                                 // Send network configuration to Gateway.
                                 match self.send_configuration(&tx).await {
-                                    Ok(()) => {
+                                    Ok(network) => {
                                         info!("Sent configuration to {}", self.gateway);
                                         config_sent = true;
                                         let _ = self
                                             .gateway
                                             .touch_connected(&self.pool, config_request.hostname)
                                             .await;
+                                        let guh = super::GatewayUpdatesHandler::new(
+                                            self.gateway.network_id,
+                                            network,
+                                            self
+                                                .gateway
+                                                .hostname
+                                                .as_ref()
+                                                .cloned()
+                                                .unwrap_or_default()
+                                                .clone(),
+                                            self.events_tx.subscribe(),
+                                            tx.clone(),
+                                        );
+                                        // tokio::spawn(super::handle_events(
+                                        //     network,
+                                        //     // self.gateway.hostname.unwrap_or_default().clone(),
+                                        //     tx.clone(),
+                                        //     self.events_tx.subscribe(),
+                                        // ));
                                     }
                                     Err(err) => {
                                         error!(
@@ -375,26 +397,6 @@ impl GatewayHandler {
                                         );
                                     }
                                 }
-
-                                // Start observing configuration changes.
-                                let Ok(Some(network)) = WireguardNetwork::find_by_id(
-                                    &self.pool,
-                                    self.gateway.network_id,
-                                )
-                                .await
-                                else {
-                                    error!(
-                                        "Failed to fetch network ID {} from the database",
-                                        self.gateway.network_id
-                                    );
-                                    continue;
-                                };
-                                // tokio::spawn(super::handle_events(
-                                //     network,
-                                //     self.gateway.hostname.unwrap_or_default().clone(),
-                                //     tx.clone(),
-                                //     self.events_tx.subscribe(),
-                                // ));
                             }
                             Some(core_request::Payload::PeerStats(peer_stats)) => {
                                 if !config_sent {
@@ -408,7 +410,7 @@ impl GatewayHandler {
 
                                 let public_key = peer_stats.public_key.clone();
 
-                                // fetch device from DB
+                                // Fetch device from database.
                                 // TODO: fetch only when device has changed and use client state
                                 // otherwise
                                 let Ok(Some(device)) = self.fetch_device_from_db(&public_key).await
@@ -561,7 +563,7 @@ impl GatewayHandler {
                         };
                     }
                     Err(err) => {
-                        error!("Disconnected from gateway at {uri}, error: {err}");
+                        error!("Disconnected from Gateway at {uri}, error: {err}");
                         // Important: call this funtion before setting disconnection time.
                         self.send_disconnect_notification().await;
                         let _ = self.gateway.touch_disconnected(&self.pool).await;
