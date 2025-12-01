@@ -115,7 +115,7 @@ export const SmtpSettingsForm = () => {
             if (val === '' || !val) {
               return true;
             }
-            return Validate.IPv4(val) || Validate.IPv6(val);
+            return validateList(val, [Validate.IPv4, Validate.IPv6]);
           }, LL.form.error.address()),
         smtp_port: z
           .number({

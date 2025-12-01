@@ -26,7 +26,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { LocationMfaMode, ServiceLocationMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import { Validate } from '../../../../shared/validators';
+import { Validate, validateList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -108,12 +108,7 @@ export const WizardNetworkConfiguration = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine((val) => {
-            for (const address of val.split(',')) {
-              if (!(Validate.CIDRv4(address) || Validate.CIDRv6(address))) {
-                return false;
-              }
-            }
-            return true;
+            return validateList(val, [Validate.CIDRv4, Validate.CIDRv6]);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
@@ -123,7 +118,7 @@ export const WizardNetworkConfiguration = () => {
             if (val.split(',').length > 1) {
               return false; // for now we can only accept one gateway address
             }
-            return Validate.IPv4(val) || Validate.IPv6(val) || Validate.Domain(val);
+            return validateList(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]);
           }, LL.form.error.endpoint()),
         port: z
           .number({
@@ -135,19 +130,12 @@ export const WizardNetworkConfiguration = () => {
           .string()
           .trim()
           .refine((val) => {
-            for (const address of val.split(',')) {
-              if (
-                !(
-                  Validate.CIDRv4(address) ||
-                  Validate.IPv4(address) ||
-                  Validate.CIDRv6(address) ||
-                  Validate.IPv6(address)
-                )
-              ) {
-                return false;
-              }
-            }
-            return true;
+            return validateList(val, [
+              Validate.CIDRv4,
+              Validate.IPv4,
+              Validate.CIDRv6,
+              Validate.IPv6,
+            ]);
           }, LL.form.error.address()),
         dns: z
           .string()
@@ -157,7 +145,7 @@ export const WizardNetworkConfiguration = () => {
             if (val === '' || !val) {
               return true;
             }
-            return Validate.IPv4(val) || Validate.IPv6(val);
+            return validateList(val, [Validate.IPv4, Validate.IPv6]);
           }, LL.form.error.address()),
         allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
