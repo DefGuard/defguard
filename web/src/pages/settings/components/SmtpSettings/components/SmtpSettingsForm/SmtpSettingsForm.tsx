@@ -27,7 +27,7 @@ import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import type { SettingsSMTP } from '../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
-import { Validate } from '../../../../../../shared/validators';
+import { validateList, Validate } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 import { SmtpTestModal } from '../SmtpTest/SmtpTestModal';
 import { useSmtpTestModal } from '../SmtpTest/useSmtpTestModal';

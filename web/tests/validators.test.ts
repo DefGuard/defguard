@@ -10,11 +10,6 @@ describe('Validate.IPv4', () => {
     expect(Validate.IPv4('0.0.0.0')).toBe(true);
   });
 
-  it('should accept multiple comma-separated IPv4 addresses', () => {
-    expect(Validate.IPv4('192.168.1.1,10.0.0.1')).toBe(true);
-    expect(Validate.IPv4('192.168.1.1, 10.0.0.1, 172.16.0.1')).toBe(true);
-  });
-
   it('should reject invalid IPv4 addresses', () => {
     expect(Validate.IPv4('1')).toBe(false);
     expect(Validate.IPv4('256.1.1.1')).toBe(false);
@@ -35,10 +30,6 @@ describe('Validate.IPv4withPort', () => {
     expect(Validate.IPv4withPort('10.0.0.1:80')).toBe(true);
     expect(Validate.IPv4withPort('127.0.0.1:5051')).toBe(true);
     expect(Validate.IPv4withPort('192.168.1.1:65535')).toBe(true);
-  });
-
-  it('should accept multiple comma-separated IPv4 with ports', () => {
-    expect(Validate.IPv4withPort('192.168.1.1:8080,10.0.0.1:80')).toBe(true);
   });
 
   it('should reject IPv4 without port', () => {
@@ -64,10 +55,6 @@ describe('Validate.IPv6', () => {
     expect(Validate.IPv6('::')).toBe(true);
     expect(Validate.IPv6('2001:0db8:0000:0000:0000:0000:0000:0001')).toBe(true);
     expect(Validate.IPv6('fe80::1')).toBe(true);
-  });
-
-  it('should accept multiple comma-separated IPv6 addresses', () => {
-    expect(Validate.IPv6('2001:db8::1,::1')).toBe(true);
   });
 
   it('should reject invalid IPv6 addresses', () => {
@@ -106,10 +93,6 @@ describe('Validate.CIDRv4', () => {
     expect(Validate.CIDRv4('172.16.0.0/12')).toBe(true);
     expect(Validate.CIDRv4('192.168.1.1/32')).toBe(true);
     expect(Validate.CIDRv4('192.168.1.0/1')).toBe(true);
-  });
-
-  it('should accept multiple comma-separated CIDR blocks', () => {
-    expect(Validate.CIDRv4('192.168.1.0/24,10.0.0.0/8')).toBe(true);
   });
 
   it('should reject CIDR with /0 mask', () => {
@@ -157,10 +140,6 @@ describe('Validate.Domain', () => {
     expect(Validate.Domain('sub.example.com')).toBe(true);
     expect(Validate.Domain('my-domain.co.uk')).toBe(true);
     expect(Validate.Domain('test123.example.org')).toBe(true);
-  });
-
-  it('should accept multiple comma-separated domains', () => {
-    expect(Validate.Domain('example.com,test.org')).toBe(true);
   });
 
   it('should reject domains with port', () => {
