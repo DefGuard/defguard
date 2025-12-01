@@ -117,7 +117,8 @@ impl ClientMap {
         stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
-            "VPN client {} with public key {public_key} connected to location {location_id} through gateway {gateway_hostname}",
+            "VPN client {} with public key {public_key} connected to location {location_id} \
+            through Gateway {gateway_hostname}",
             device.name
         );
 

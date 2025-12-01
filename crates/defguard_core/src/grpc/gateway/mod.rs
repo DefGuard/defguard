@@ -1,40 +1,30 @@
 use std::{
-    net::{IpAddr, SocketAddr},
-    pin::Pin,
-    sync::{Arc, Mutex, MutexGuard},
-    task::{Context, Poll},
+    net::IpAddr,
+    sync::{Arc, Mutex},
 };
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use client_state::ClientMap;
 use defguard_common::db::{Id, NoId};
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
-    gateway::{
-        Configuration, ConfigurationRequest, CoreResponse, Peer, PeerStats, Update, UpdateType,
-        core_response, update,
-    },
+    gateway::{Configuration, Peer, PeerStats, Update, update},
 };
 use defguard_version::version_info_from_metadata;
 use semver::Version;
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::{
-    sync::{
-        broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, Receiver, UnboundedSender, error::SendError},
-    },
-    task::JoinHandle,
-    time::{Duration, interval},
+use tokio::sync::{
+    broadcast::{Receiver as BroadcastReceiver, Sender},
+    mpsc::{self, UnboundedSender, error::SendError},
 };
-use tokio_stream::Stream;
-use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
+use tonic::{Code, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
     db::{
-        Device, GatewayEvent, User,
+        GatewayEvent,
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
     events::{GrpcEvent, GrpcRequestContext},
@@ -164,86 +154,6 @@ impl GatewayServer {
         }
     }
 
-    pub fn get_client_state_guard(&self) -> Result<MutexGuard<'_, ClientMap>, GatewayServerError> {
-        let client_state = self
-            .client_state
-            .lock()
-            .map_err(|_| GatewayServerError::ClientStateMutexError)?;
-        debug!("Current VPN client state map: {client_state:?}");
-        Ok(client_state)
-    }
-
-    fn emit_event(&self, event: GrpcEvent) -> Result<(), GatewayServerError> {
-        Ok(self.grpc_event_tx.send(event)?)
-    }
-
-    /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
-    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Option<Device<Id>>, Status> {
-        let device = Device::find_by_pubkey(&self.pool, public_key)
-            .await
-            .map_err(|err| {
-                error!("Failed to retrieve device with public key {public_key}: {err}",);
-                Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve device with public key {public_key}: {err}",),
-                )
-            })?;
-
-        Ok(device)
-    }
-
-    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
-    async fn fetch_location_from_db(
-        &self,
-        location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, Status> {
-        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
-            Ok(Some(location)) => location,
-            Ok(None) => {
-                error!("Location {location_id} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Location {location_id} not found"),
-                ));
-            }
-            Err(err) => {
-                error!("Failed to retrieve location {location_id}: {err}",);
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve location {location_id}: {err}",),
-                ));
-            }
-        };
-        Ok(location)
-    }
-
-    /// Helper method to fetch `User` info from DB and return appropriate errors
-    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
-        let user = match User::find_by_id(&self.pool, user_id).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                error!("User {user_id} assigned to device with public key {public_key} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("User assigned to device with public key {public_key} not found"),
-                ));
-            }
-            Err(err) => {
-                error!(
-                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
-                );
-                return Err(Status::new(
-                    Code::Internal,
-                    format!(
-                        "Failed to retrieve user for device with public key {public_key}: {err}",
-                    ),
-                ));
-            }
-        };
-
-        Ok(user)
-    }
-
     /// Utility function extracting metadata fields during gRPC communication.
     fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
         let (version, _info) = version_info_from_metadata(metadata);
@@ -292,166 +202,163 @@ impl WireguardPeerStats {
     }
 }
 
-/*
+// /// Process received Gateway events
+// ///
+// /// Main gRPC server uses a shared channel for broadcasting all Gateway events,
+// /// so the handler must determine if an event is relevant for the network being serviced.
+// async fn handle_events(
+//     mut current_network: WireguardNetwork<Id>,
+//     tx: UnboundedSender<CoreResponse>,
+//     mut events_rx: BroadcastReceiver<GatewayEvent>,
+// ) {
+//     info!("Starting update stream network {current_network}");
+//     while let Some(event) = events_rx.recv().await {
+//         debug!("Received networking state update event: {event:?}");
+//         let (update_type, update) = match event {
+//             GatewayEvent::NetworkCreated(network, _fixme) => {
+//                 if network.id != current_network.id {
+//                     continue;
+//                 }
+//                 (
+//                     UpdateType::Create,
+//                     update::Update::Network(Configuration {
+//                         name: network.name.clone(),
+//                         prvkey: network.prvkey.clone(),
+//                         addresses: network.address.to_string(),
+//                         port: network.port as u32,
+//                         peers: Vec::new(),
+//                     }),
+//                 )
+//             }
+//             GatewayEvent::NetworkModified(network, peers, _fixme) => {
+//                 if network.id != current_network.id {
+//                     continue;
+//                 }
+//                 // update stored network data
+//                 current_network = network.clone();
+//                 (
+//                     UpdateType::Modify,
+//                     update::Update::Network(Configuration {
+//                         name: network.name,
+//                         prvkey: network.prvkey,
+//                         addresses: network.address.to_string(),
+//                         port: network.port as u32,
+//                         peers,
+//                     }),
+//                 )
+//             }
+//             GatewayEvent::NetworkDeleted(network_id, network_name) => {
+//                 if network_id != current_network.id {
+//                     continue;
+//                 }
+//                 (
+//                     UpdateType::Delete,
+//                     update::Update::Network(Configuration {
+//                         name: network_name.to_string(),
+//                         prvkey: String::new(),
+//                         addresses: Vec::new(),
+//                         port: 0,
+//                         peers: Vec::new(),
+//                         firewall_config: None,
+//                     }),
+//                 )
+//             }
+//             GatewayEvent::DeviceCreated(device) => {
+//                 // check if a peer has to be added in the current network
+//                 match device
+//                     .network_info
+//                     .iter()
+//                     .find(|info| info.network_id == current_network.id)
+//                 {
+//                     Some(network_info) => {
+//                         if current_network.mfa_enabled && !network_info.is_authorized {
+//                             debug!(
+//                                 "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
+//                                 device.device.name, current_network.name
+//                             );
+//                             continue;
+//                         };
+//                         let peer = Peer {
+//                             pubkey: device.device.wireguard_pubkey,
+//                             allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+//                             preshared_key: network_info.preshared_key.clone(),
+//                             keepalive_interval: Some(current_network.keepalive_interval as u32),
+//                         };
+//                         (UpdateType::Create, update::Update::Peer(peer))
+//                     }
+//                     None => continue,
+//                 }
+//             }
+//             GatewayEvent::DeviceModified(device) => {
+//                 // check if a peer has to be updated in the current network
+//                 match device
+//                     .network_info
+//                     .iter()
+//                     .find(|info| info.network_id == current_network.id)
+//                 {
+//                     Some(network_info) => {
+//                         if current_network.mfa_enabled && !network_info.is_authorized {
+//                             debug!(
+//                                 "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
+//                                 device.device.name, current_network.name
+//                             );
+//                             continue;
+//                         };
+//                         let peer = Peer {
+//                             pubkey: device.device.wireguard_pubkey,
+//                             allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+//                             preshared_key: network_info.preshared_key.clone(),
+//                             keepalive_interval: Some(current_network.keepalive_interval as u32),
+//                         };
+//                         (UpdateType::Modify, update::Update::Peer(peer))
+//                     }
+//                     None => continue,
+//                 }
+//             }
+//             GatewayEvent::DeviceDeleted(device) => {
+//                 // check if a peer has to be updated in the current network
+//                 match device
+//                     .network_info
+//                     .iter()
+//                     .find(|info| info.network_id == current_network.id)
+//                 {
+//                     Some(_) => (
+//                         UpdateType::Delete,
+//                         update::Update::Peer(Peer {
+//                             pubkey: device.device.wireguard_pubkey,
+//                             allowed_ips: Vec::new(),
+//                             preshared_key: None,
+//                             keepalive_interval: None,
+//                         }),
+//                     ),
+//                     None => continue,
+//                 }
+//             }
+//             GatewayEvent::FirewallConfigChanged(_fixme, _) => (),
+//             GatewayEvent::FirewallDisabled(_id) => (),
+//         };
 
-/// Process received Gateway events
-///
-/// Main gRPC server uses a shared channel for broadcasting all Gateway events,
-/// so the handler must determine if an event is relevant for the network being serviced.
-async fn handle_events(
-    mut current_network: WireguardNetwork<Id>,
-    tx: UnboundedSender<CoreResponse>,
-    mut events_rx: Receiver<GatewayEvent>,
-) {
-    info!("Starting update stream network {current_network}");
-    while let Some(event) = events_rx.recv().await {
-        debug!("Received networking state update event: {event:?}");
-        let (update_type, update) = match event {
-            GatewayEvent::NetworkCreated(network, _fixme) => {
-                if network.id != current_network.id {
-                    continue;
-                }
-                (
-                    UpdateType::Create,
-                    update::Update::Network(Configuration {
-                        name: network.name.clone(),
-                        prvkey: network.prvkey.clone(),
-                        addresses: network.address.to_string(),
-                        port: network.port as u32,
-                        peers: Vec::new(),
-                    }),
-                )
-            }
-            GatewayEvent::NetworkModified(network, peers, _fixme) => {
-                if network.id != current_network.id {
-                    continue;
-                }
-                // update stored network data
-                current_network = network.clone();
-                (
-                    UpdateType::Modify,
-                    update::Update::Network(Configuration {
-                        name: network.name,
-                        prvkey: network.prvkey,
-                        addresses: network.address.to_string(),
-                        port: network.port as u32,
-                        peers,
-                    }),
-                )
-            }
-            GatewayEvent::NetworkDeleted(network_id, network_name) => {
-                if network_id != current_network.id {
-                    continue;
-                }
-                (
-                    UpdateType::Delete,
-                    update::Update::Network(Configuration {
-                        name: network_name.to_string(),
-                        prvkey: String::new(),
-                        addresses: Vec::new(),
-                        port: 0,
-                        peers: Vec::new(),
-                        firewall_config: None,
-                    }),
-                )
-            }
-            GatewayEvent::DeviceCreated(device) => {
-                // check if a peer has to be added in the current network
-                match device
-                    .network_info
-                    .iter()
-                    .find(|info| info.network_id == current_network.id)
-                {
-                    Some(network_info) => {
-                        if current_network.mfa_enabled && !network_info.is_authorized {
-                            debug!(
-                                "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, current_network.name
-                            );
-                            continue;
-                        };
-                        let peer = Peer {
-                            pubkey: device.device.wireguard_pubkey,
-                            allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                            preshared_key: network_info.preshared_key.clone(),
-                            keepalive_interval: Some(current_network.keepalive_interval as u32),
-                        };
-                        (UpdateType::Create, update::Update::Peer(peer))
-                    }
-                    None => continue,
-                }
-            }
-            GatewayEvent::DeviceModified(device) => {
-                // check if a peer has to be updated in the current network
-                match device
-                    .network_info
-                    .iter()
-                    .find(|info| info.network_id == current_network.id)
-                {
-                    Some(network_info) => {
-                        if current_network.mfa_enabled && !network_info.is_authorized {
-                            debug!(
-                                "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
-                                device.device.name, current_network.name
-                            );
-                            continue;
-                        };
-                        let peer = Peer {
-                            pubkey: device.device.wireguard_pubkey,
-                            allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
-                            preshared_key: network_info.preshared_key.clone(),
-                            keepalive_interval: Some(current_network.keepalive_interval as u32),
-                        };
-                        (UpdateType::Modify, update::Update::Peer(peer))
-                    }
-                    None => continue,
-                }
-            }
-            GatewayEvent::DeviceDeleted(device) => {
-                // check if a peer has to be updated in the current network
-                match device
-                    .network_info
-                    .iter()
-                    .find(|info| info.network_id == current_network.id)
-                {
-                    Some(_) => (
-                        UpdateType::Delete,
-                        update::Update::Peer(Peer {
-                            pubkey: device.device.wireguard_pubkey,
-                            allowed_ips: Vec::new(),
-                            preshared_key: None,
-                            keepalive_interval: None,
-                        }),
-                    ),
-                    None => continue,
-                }
-            }
-            GatewayEvent::FirewallConfigChanged(_fixme, _) => (),
-            GatewayEvent::FirewallDisabled(_id) => (),
-        };
-
-        let req = CoreResponse {
-            id: 0,
-            payload: Some(core_response::Payload::Update(Update {
-                update_type: update_type as i32,
-                update: Some(update),
-            })),
-        };
-        if let Err(err) = tx.send(req) {
-            error!(
-                "Failed to send network update, network {current_network}, update type: {}, error: \
-                {err}",
-                update_type.as_str_name()
-            );
-            break;
-        }
-        debug!(
-            "Network update sent for network {current_network}, update type: {}",
-            update_type.as_str_name()
-        );
-    }
-}
-*/
+//         let req = CoreResponse {
+//             id: 0,
+//             payload: Some(core_response::Payload::Update(Update {
+//                 update_type: update_type as i32,
+//                 update: Some(update),
+//             })),
+//         };
+//         if let Err(err) = tx.send(req) {
+//             error!(
+//                 "Failed to send network update, network {current_network}, update type: {}, error: \
+//                 {err}",
+//                 update_type.as_str_name()
+//             );
+//             break;
+//         }
+//         debug!(
+//             "Network update sent for network {current_network}, update type: {}",
+//             update_type.as_str_name()
+//         );
+//     }
+// }
 
 /// Helper struct for handling gateway events
 struct GatewayUpdatesHandler {
@@ -479,7 +386,7 @@ impl GatewayUpdatesHandler {
         }
     }
 
-    /// Process incoming gateway events
+    /// Process incoming Gateway events
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
     /// so the handler must determine if an event is relevant for the network being serviced
@@ -797,58 +704,14 @@ impl GatewayUpdatesHandler {
     }
 }
 
-pub struct GatewayUpdatesStream {
-    task_handle: JoinHandle<()>,
-    rx: Receiver<Result<Update, Status>>,
-    network_id: Id,
-    gateway_hostname: String,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    pool: PgPool,
-}
-
-impl GatewayUpdatesStream {
-    #[must_use]
-    pub fn new(
-        task_handle: JoinHandle<()>,
-        rx: Receiver<Result<Update, Status>>,
-        network_id: Id,
-        gateway_hostname: String,
-        gateway_state: Arc<Mutex<GatewayMap>>,
-        pool: PgPool,
-    ) -> Self {
-        Self {
-            task_handle,
-            rx,
-            network_id,
-            gateway_hostname,
-            gateway_state,
-            pool,
-        }
-    }
-}
-
-impl Stream for GatewayUpdatesStream {
-    type Item = Result<Update, Status>;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.rx).poll_recv(cx)
-    }
-}
-
-impl Drop for GatewayUpdatesStream {
-    fn drop(&mut self) {
-        info!("Client disconnected");
-        // terminate update task
-        self.task_handle.abort();
-        // update gateway state
-        // TODO: possibly use a oneshot channel instead
-        self.gateway_state
-            .lock()
-            .unwrap()
-            .disconnect_gateway(self.network_id, self.gateway_hostname.clone(), &self.pool)
-            .expect("Unable to disconnect gateway.");
-    }
-}
+// pub struct GatewayUpdatesStream {
+//     task_handle: JoinHandle<()>,
+//     rx: Receiver<Result<Update, Status>>,
+//     network_id: Id,
+//     gateway_hostname: String,
+//     gateway_state: Arc<Mutex<GatewayMap>>,
+//     pool: PgPool,
+// }
 
 // #[tonic::async_trait]
 // impl gateway_service_server::GatewayService for GatewayServer {
@@ -871,7 +734,7 @@ impl Drop for GatewayUpdatesStream {
 //         //     version = version.to_string(), info);
 //         // let _guard = span.enter();
 //         loop {
-//             // Wait for a message or update client map at least once a mninute, if no messages are
+//             // Wait for a message or update client map at least once a minute, if no messages are
 //             // received.
 //             let stats_update = tokio::select! {
 //                 message = stream.message() => {

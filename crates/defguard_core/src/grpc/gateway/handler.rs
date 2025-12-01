@@ -1,8 +1,13 @@
 use std::{
+    net::SocketAddr,
     str::FromStr,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
+use chrono::{TimeDelta, Utc};
 use defguard_common::{auth::claims::Claims, db::Id};
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
@@ -23,10 +28,10 @@ use tonic::{
 use crate::{
     ClaimsType,
     db::{
-        Device, GatewayEvent, WireguardNetwork,
+        Device, GatewayEvent, User, WireguardNetwork,
         models::{gateway::Gateway, wireguard_peer_stats::WireguardPeerStats},
     },
-    grpc::TEN_SECS,
+    grpc::{ClientMap, GrpcEvent, TEN_SECS, gateway::GrpcRequestContext},
     handlers::mail::send_gateway_disconnected_email,
 };
 
@@ -36,8 +41,10 @@ pub(crate) struct GatewayHandler {
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
+    client_state: Arc<Mutex<ClientMap>>,
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
 impl GatewayHandler {
@@ -45,8 +52,10 @@ impl GatewayHandler {
         gateway: Gateway<Id>,
         tls_config: Option<ClientTlsConfig>,
         pool: PgPool,
+        client_state: Arc<Mutex<ClientMap>>,
         events_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        grpc_event_tx: UnboundedSender<GrpcEvent>,
     ) -> Result<Self, tonic::transport::Error> {
         let endpoint = Endpoint::from_shared(gateway.url.to_string())?
             .http2_keep_alive_interval(TEN_SECS)
@@ -63,8 +72,10 @@ impl GatewayHandler {
             gateway,
             message_id: AtomicU64::new(0),
             pool,
+            client_state,
             events_tx,
             mail_tx,
+            grpc_event_tx,
         })
     }
 
@@ -195,6 +206,79 @@ impl GatewayHandler {
         };
     }
 
+    /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
+    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Option<Device<Id>>, Status> {
+        let device = Device::find_by_pubkey(&self.pool, public_key)
+            .await
+            .map_err(|err| {
+                error!("Failed to retrieve device with public key {public_key}: {err}",);
+                Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve device with public key {public_key}: {err}",),
+                )
+            })?;
+
+        Ok(device)
+    }
+
+    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
+    async fn fetch_location_from_db(
+        &self,
+        location_id: Id,
+    ) -> Result<WireguardNetwork<Id>, Status> {
+        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
+            Ok(Some(location)) => location,
+            Ok(None) => {
+                error!("Location {location_id} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Location {location_id} not found"),
+                ));
+            }
+            Err(err) => {
+                error!("Failed to retrieve location {location_id}: {err}",);
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve location {location_id}: {err}",),
+                ));
+            }
+        };
+        Ok(location)
+    }
+
+    /// Helper method to fetch `User` info from DB and return appropriate errors
+    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
+        let user = match User::find_by_id(&self.pool, user_id).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                error!("User {user_id} assigned to device with public key {public_key} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("User assigned to device with public key {public_key} not found"),
+                ));
+            }
+            Err(err) => {
+                error!(
+                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
+                );
+                return Err(Status::new(
+                    Code::Internal,
+                    format!(
+                        "Failed to retrieve user for device with public key {public_key}: {err}",
+                    ),
+                ));
+            }
+        };
+
+        Ok(user)
+    }
+
+    fn emit_event(&self, event: GrpcEvent) {
+        if self.grpc_event_tx.send(event).is_err() {
+            warn!("Failed to send gRPC event");
+        }
+    }
+
     /// Connect to Gateway and handle its messages through gRPC.
     pub(crate) async fn handle_connection(&mut self) -> ! {
         let uri = self.endpoint.uri();
@@ -229,11 +313,11 @@ impl GatewayHandler {
             'message: loop {
                 match resp_stream.message().await {
                     Ok(None) => {
-                        info!("stream was closed by the sender");
+                        info!("Stream was closed by the sender.");
                         break 'message;
                     }
                     Ok(Some(received)) => {
-                        info!("Received message from gateway.");
+                        info!("Received message from Gateway.");
                         debug!("Message from Gateway {uri}");
                         match received.payload {
                             Some(core_request::Payload::ConfigRequest(config_request)) => {
@@ -307,6 +391,7 @@ impl GatewayHandler {
                                 };
                                 // tokio::spawn(super::handle_events(
                                 //     network,
+                                //     self.gateway.hostname.unwrap_or_default().clone(),
                                 //     tx.clone(),
                                 //     self.events_tx.subscribe(),
                                 // ));
@@ -314,43 +399,163 @@ impl GatewayHandler {
                             Some(core_request::Payload::PeerStats(peer_stats)) => {
                                 if !config_sent {
                                     warn!(
-                                        "Ignoring peer statistics from {} because it didn't \
+                                        "Ignoring peer statistics from {} because it hasn't \
                                         authorize itself",
                                         self.gateway
                                     );
                                     continue;
                                 }
 
-                                //     let public_key = peer_stats.public_key.clone();
-                                //     let mut stats = WireguardPeerStats::from_peer_stats(
-                                //         peer_stats,
-                                //         self.gateway.network_id,
+                                let public_key = peer_stats.public_key.clone();
 
-                                //     );
-                                //     // Get device by public key and fill in stats.device_id
-                                //     match Device::find_by_pubkey(&self.pool, &public_key).await {
-                                //         Ok(Some(device)) => {
-                                //             stats.device_id = device.id;
-                                //             match stats.save(&self.pool).await {
-                                //                 Ok(_) => {
-                                //                     info!("Saved WireGuard peer stats to database.")
-                                //                 }
-                                //                 Err(err) => error!(
-                                //                     "Failed to save WireGuard peer stats to database: \
-                                //                     {err}"
-                                //                 ),
-                                //             }
-                                //         }
-                                //         Ok(None) => {
-                                //             error!("Device with public key {public_key} not found");
-                                //         }
-                                //         Err(err) => {
-                                //             error!(
-                                //                 "Failed to retrieve device with public key \
-                                //                 {public_key}: {err}",
-                                //             );
-                                //         }
-                                //     };
+                                // fetch device from DB
+                                // TODO: fetch only when device has changed and use client state
+                                // otherwise
+                                let Ok(Some(device)) = self.fetch_device_from_db(&public_key).await
+                                else {
+                                    warn!(
+                                        "Received stats update for a device which does not \
+                                        exist: {public_key}, skipping."
+                                    );
+                                    continue;
+                                };
+
+                                // copy device ID for easier reference later
+                                let device_id = device.id;
+
+                                // fetch user and location from DB for activity log
+                                // TODO: cache usernames since they don't change
+                                let Ok(user) =
+                                    self.fetch_user_from_db(device.user_id, &public_key).await
+                                else {
+                                    continue;
+                                };
+                                let Ok(location) =
+                                    self.fetch_location_from_db(self.gateway.network_id).await
+                                else {
+                                    continue;
+                                };
+
+                                // Convert stats to database storage format.
+                                let stats = WireguardPeerStats::from_peer_stats(
+                                    peer_stats,
+                                    self.gateway.network_id,
+                                    device_id,
+                                );
+
+                                // Only perform client state update if stats include an endpoint IP.
+                                // Otherwise, a peer was added to the gateway interface, but hasn't
+                                // connected yet.
+                                if let Some(endpoint) = &stats.endpoint {
+                                    // parse client endpoint IP
+                                    let Ok(socket_addr) = endpoint.clone().parse::<SocketAddr>()
+                                    else {
+                                        error!("Failed to parse VPN client endpoint");
+                                        continue;
+                                    };
+
+                                    // Perform client state operations in a dedicated block to drop
+                                    // mutex guard.
+                                    let disconnected_clients = {
+                                        // acquire lock on client state map
+                                        let mut client_map = self.client_state.lock().unwrap();
+
+                                        // update connected clients map
+                                        match client_map
+                                            .get_vpn_client(self.gateway.network_id, &public_key)
+                                        {
+                                            Some(client_state) => {
+                                                // update connected client state
+                                                client_state.update_client_state(
+                                                    device,
+                                                    socket_addr,
+                                                    stats.latest_handshake,
+                                                    stats.upload,
+                                                    stats.download,
+                                                );
+                                            }
+                                            None => {
+                                                // don't mark inactive peers as connected
+                                                if (Utc::now().naive_utc() - stats.latest_handshake)
+                                                    < TimeDelta::seconds(
+                                                        location.peer_disconnect_threshold.into(),
+                                                    )
+                                                {
+                                                    // mark new VPN client as connected
+                                                    if client_map
+                                                        .connect_vpn_client(
+                                                            self.gateway.network_id,
+                                                            // Hostname is for logging only.
+                                                            &self
+                                                                .gateway
+                                                                .hostname
+                                                                .as_ref()
+                                                                .cloned()
+                                                                .unwrap_or_default(),
+                                                            &public_key,
+                                                            &device,
+                                                            &user,
+                                                            socket_addr,
+                                                            &stats,
+                                                        )
+                                                        .is_err()
+                                                    {
+                                                        // TODO: log message
+                                                        continue;
+                                                    }
+
+                                                    // emit connection event
+                                                    let context = GrpcRequestContext::new(
+                                                        user.id,
+                                                        user.username.clone(),
+                                                        socket_addr.ip(),
+                                                        device.id,
+                                                        device.name.clone(),
+                                                        location.clone(),
+                                                    );
+                                                    self.emit_event(GrpcEvent::ClientConnected {
+                                                        context,
+                                                        location: location.clone(),
+                                                        device: device.clone(),
+                                                    });
+                                                }
+                                            }
+                                        }
+
+                                        // disconnect inactive clients
+                                        let Ok(clients) = client_map
+                                            .disconnect_inactive_vpn_clients_for_location(
+                                                &location,
+                                            )
+                                        else {
+                                            // TODO: log message
+                                            continue;
+                                        };
+                                        clients
+                                    };
+
+                                    // emit client disconnect events
+                                    for (device, context) in disconnected_clients {
+                                        self.emit_event(GrpcEvent::ClientDisconnected {
+                                            context,
+                                            location: location.clone(),
+                                            device,
+                                        });
+                                    }
+                                }
+
+                                // Save stats to database.
+                                let stats = match stats.save(&self.pool).await {
+                                    Ok(stats) => stats,
+                                    Err(err) => {
+                                        error!(
+                                            "Saving WireGuard peer stats to database failed: {err}"
+                                        );
+                                        continue;
+                                    }
+                                };
+                                info!("Saved WireGuard peer stats to database.");
+                                debug!("WireGuard peer stats: {stats:?}");
                             }
                             None => (),
                         };

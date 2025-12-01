@@ -15,7 +15,7 @@ use defguard_common::{
 use defguard_mail::Mail;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables, server::DefguardVersionLayer,
+    get_tracing_variables,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -65,7 +65,7 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
+    grpc::gateway::client_state::ClientMap,
     server_config,
     version::{
         IncompatibleComponents, IncompatibleProxyData, MIN_GATEWAY_VERSION,
@@ -556,8 +556,10 @@ const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 /// Bi-directional gRPC stream for comminication with Defguard Gateway.
 pub async fn run_grpc_gateway_stream(
     pool: PgPool,
+    client_state: Arc<Mutex<ClientMap>>,
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
     let tls_config = config.grpc_client_tls_config()?;
@@ -572,8 +574,10 @@ pub async fn run_grpc_gateway_stream(
                 gateway,
                 tls_config.clone(),
                 pool.clone(),
+                Arc::clone(&client_state),
                 events_tx.clone(),
                 mail_tx.clone(),
+                grpc_event_tx.clone(),
             )?;
             let abort_handle = tasks.spawn(async move {
                 gateway_handler.handle_connection().await;
@@ -581,8 +585,7 @@ pub async fn run_grpc_gateway_stream(
             Ok(abort_handle)
         };
 
-    let gateways = Gateway::all(&pool).await?;
-    for gateway in gateways {
+    for gateway in Gateway::all(&pool).await? {
         let id = gateway.id;
         let abort_handle = launch_gateway_handler(gateway)?;
         abort_handles.insert(id, abort_handle);
@@ -757,15 +760,9 @@ pub async fn run_grpc_bidi_stream(
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -775,19 +772,7 @@ pub async fn run_grpc_server(
         Server::builder()
     };
 
-    let router = build_grpc_service_router(
-        server,
-        pool,
-        worker_state,
-        // gateway_state,
-        // client_state,
-        // wireguard_tx,
-        // mail_tx,
-        failed_logins,
-        // grpc_event_tx,
-        // incompatible_components,
-    )
-    .await?;
+    let router = build_grpc_service_router(server, pool, worker_state, failed_logins).await?;
 
     // Run gRPC server
     let addr = SocketAddr::new(
@@ -806,12 +791,7 @@ pub async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
-    // gateway_state: Arc<Mutex<GatewayMap>>,
-    // client_state: Arc<Mutex<ClientMap>>,
-    // wireguard_tx: Sender<GatewayEvent>,
-    // mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    // grpc_event_tx: UnboundedSender<GrpcEvent>,
     // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));

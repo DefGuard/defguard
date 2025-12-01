@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    db::models::gateway::Gateway,
+    // db::models::gateway::Gateway,
     grpc::MIN_GATEWAY_VERSION,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
 };
