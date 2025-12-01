@@ -30,11 +30,12 @@ export const closeModal = <T extends ModalNameValue>(name: T) => {
   closeModalSubject.next(name);
 };
 
-type PayloadOf<N extends ModalNameValue> = Extract<ModalOpenEvent, { name: N }> extends {
-  data: infer D;
-}
-  ? D
-  : undefined;
+type PayloadOf<N extends ModalNameValue> =
+  Extract<ModalOpenEvent, { name: N }> extends {
+    data: infer D;
+  }
+    ? D
+    : undefined;
 export function openModal<N extends ModalNameValue>(
   name: N,
   ...args: PayloadOf<N> extends undefined ? [] : [PayloadOf<N>]

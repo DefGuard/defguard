@@ -1,0 +1,21 @@
+.edit-page .page-content {
+  padding: var(--spacing-3xl) var(--spacing-xl);
+
+  & > .layout-grid > .main-content {
+    grid-column: 1 / 7;
+    grid-row: 1;
+
+    & > p {
+      font: var(--t-title-h5);
+      color: var(--fg-default);
+      padding-bottom: var(--spacing-xl);
+    }
+
+    & > .card {
+      border: var(--border-1) solid var(--border-disabled);
+      border-radius: var(--radius-lg);
+      box-sizing: border-box;
+      padding: var(--spacing-xl);
+    }
+  }
+}
