@@ -8,10 +8,10 @@ import api from '../../../api/api';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../defguard-ui/form';
 import { ThemeSpacing } from '../../../defguard-ui/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../form';
+import { useAppForm } from '../../../form';
+import { formChangeLogic } from '../../../formLogic';
 import {
   closeModal,
   subscribeCloseModal,

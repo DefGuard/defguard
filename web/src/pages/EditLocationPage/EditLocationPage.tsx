@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { useMemo } from 'react';
@@ -15,11 +15,13 @@ import {
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
+import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import { formChangeLogic } from '../../shared/form';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { useAppForm } from '../../shared/form';
+import { formChangeLogic } from '../../shared/formLogic';
 import { getLocationQueryOptions } from '../../shared/query';
 import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
 
@@ -88,6 +90,18 @@ type FormFields = z.infer<typeof formSchema>;
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const navigate = useNavigate();
+
+  const { data: groupsOptions } = useQuery({
+    queryFn: api.group.getGroups,
+    queryKey: ['group'],
+    select: (resp) =>
+      resp.data.groups.map(
+        (group): SelectionSectionOption<string> => ({
+          id: group,
+          label: group,
+        }),
+      ),
+  });
 
   const { mutateAsync: editLocation } = useMutation({
     mutationFn: api.location.editLocation,
@@ -275,6 +289,21 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             }}
           </form.AppField>
         </EditPageFormSection>
+        <EditPageFormSection label="Location Access">
+          {isPresent(groupsOptions) && (
+            <form.AppField name="allowed_groups">
+              {(field) => (
+                <field.FormSelectMultiple
+                  options={groupsOptions}
+                  counterText={(count) => `+${count} groups`}
+                  editText="Edit groups"
+                  modalTitle="Select allowed groups"
+                  toggleText="All groups have access"
+                />
+              )}
+            </form.AppField>
+          )}
+        </EditPageFormSection>
         <EditPageFormSection label="Firewall">
           <form.AppField name="firewall">
             {(field) => (
@@ -328,7 +357,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                 loading: isSubmitting,
                 disabled: isDefault,
                 onClick: () => {
-                  console.log('click');
                   form.handleSubmit();
                 },
               }}

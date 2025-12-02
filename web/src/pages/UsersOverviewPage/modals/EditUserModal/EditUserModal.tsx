@@ -11,10 +11,10 @@ import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/E
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { TextStyle, ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   closeModal,
   subscribeCloseModal,

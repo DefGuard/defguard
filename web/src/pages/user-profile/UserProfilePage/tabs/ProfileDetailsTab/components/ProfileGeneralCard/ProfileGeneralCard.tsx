@@ -8,7 +8,7 @@ import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import { FormRow } from '../../../../../../../shared/components/FormRow/FormRow';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
+import { useAppForm } from '../../../../../../../shared/form';
 import {
   patternSafeUsernameCharacters,
   patternValidEmail,

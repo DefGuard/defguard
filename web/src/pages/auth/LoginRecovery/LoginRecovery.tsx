@@ -6,10 +6,10 @@ import api from '../../../shared/api/api';
 import type { ApiError } from '../../../shared/api/types';
 import { LoginPage } from '../../../shared/components/LoginPage/LoginPage';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../shared/form';
+import { useAppForm } from '../../../shared/form';
+import { formChangeLogic } from '../../../shared/formLogic';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { MfaLinks } from '../shared/MfaLinks/MfaLinks';
 

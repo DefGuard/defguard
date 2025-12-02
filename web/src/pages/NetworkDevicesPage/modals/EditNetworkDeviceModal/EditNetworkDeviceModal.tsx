@@ -17,8 +17,8 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../shared/api/api';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
 import type { SelectSingleValue } from '../../../../shared/defguard-ui/components/Select/types';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 
 const modalNameValue = ModalName.EditNetworkDevice;
 

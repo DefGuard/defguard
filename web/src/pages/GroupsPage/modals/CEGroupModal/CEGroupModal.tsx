@@ -18,10 +18,10 @@ import type { SelectionSectionOption } from '../../../../shared/components/Selec
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 
 interface ModalState extends OpenCEGroupModal {
   step: 'start' | 'users';

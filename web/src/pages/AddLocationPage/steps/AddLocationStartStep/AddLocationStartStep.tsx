@@ -6,9 +6,9 @@ import { WizardCard } from '../../../../shared/components/wizard/WizardCard/Wiza
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import { validateIpList } from '../../../../shared/validators';
 import { AddLocationPageStep } from '../../types';
 import { useAddLocationStore } from '../../useAddLocationStore';

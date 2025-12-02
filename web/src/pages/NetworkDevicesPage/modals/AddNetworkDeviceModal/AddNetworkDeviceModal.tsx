@@ -32,14 +32,14 @@ import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { useClipboard } from '../../../../shared/defguard-ui/hooks/useClipboard';
 import {
   TextStyle,
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import { patternValidWireguardKey } from '../../../../shared/patterns';
 import { downloadText } from '../../../../shared/utils/download';
 import { formatFileName } from '../../../../shared/utils/formatFileName';
