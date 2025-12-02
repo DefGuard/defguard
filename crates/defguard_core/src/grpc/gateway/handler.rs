@@ -11,6 +11,8 @@ use chrono::{TimeDelta, Utc};
 use defguard_common::{auth::claims::Claims, db::Id};
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
+use defguard_version::version_info_from_metadata;
+use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
@@ -22,6 +24,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Code, Status,
+    metadata::MetadataMap,
     transport::{ClientTlsConfig, Endpoint},
 };
 
@@ -45,6 +48,14 @@ pub(crate) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+}
+
+/// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
+struct GatewayMetadata {
+    network_id: Id,
+    hostname: String,
+    version: Version,
+    // info: String,
 }
 
 impl GatewayHandler {
@@ -79,6 +90,57 @@ impl GatewayHandler {
         })
     }
 
+    fn get_network_id(metadata: &MetadataMap) -> Result<i64, Status> {
+        match Self::get_network_id_from_metadata(metadata) {
+            Some(m) => Ok(m),
+            None => Err(Status::new(
+                Code::Internal,
+                "Network ID was not found in metadata",
+            )),
+        }
+    }
+
+    // parse network id from gateway request metadata from intercepted information from JWT token
+    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
+        if let Some(ascii_value) = metadata.get("gateway_network_id") {
+            if let Ok(slice) = ascii_value.clone().to_str() {
+                if let Ok(id) = slice.parse::<Id>() {
+                    return Some(id);
+                }
+            }
+        }
+        None
+    }
+
+    // extract gateway hostname from request headers
+    fn get_gateway_hostname(metadata: &MetadataMap) -> Result<String, Status> {
+        match metadata.get("hostname") {
+            Some(ascii_value) => {
+                let hostname = ascii_value.to_str().map_err(|_| {
+                    Status::new(
+                        Code::Internal,
+                        "Failed to parse gateway hostname from request metadata",
+                    )
+                })?;
+                Ok(hostname.into())
+            }
+            None => Err(Status::new(
+                Code::Internal,
+                "Gateway hostname not found in request metadata",
+            )),
+        }
+    }
+
+    /// Utility function extracting metadata fields during gRPC communication.
+    fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
+        let (version, _info) = version_info_from_metadata(metadata);
+        Ok(GatewayMetadata {
+            network_id: Self::get_network_id(metadata)?,
+            hostname: Self::get_gateway_hostname(metadata)?,
+            version,
+        })
+    }
+
     /// Send network and VPN configuration to Gateway.
     async fn send_configuration(
         &self,
@@ -86,7 +148,6 @@ impl GatewayHandler {
     ) -> Result<WireguardNetwork<Id>, Status> {
         debug!("Sending configuration to Gateway");
         let network_id = self.gateway.network_id;
-        // let hostname = Self::get_gateway_hostname(request.metadata())?;
 
         let mut conn = self.pool.acquire().await.map_err(|err| {
             error!("Failed to acquire DB connection: {err}");
@@ -310,6 +371,15 @@ impl GatewayHandler {
             };
 
             info!("Connected to Defguard Gateway {uri}");
+            let Ok(GatewayMetadata {
+                network_id,
+                hostname,
+                ..
+                // info,
+            }) = Self::extract_metadata(response.metadata()) else {
+                continue;
+            };
+
             let mut resp_stream = response.into_inner();
             let mut config_sent = false;
 
@@ -322,6 +392,7 @@ impl GatewayHandler {
                     Ok(Some(received)) => {
                         info!("Received message from Gateway.");
                         debug!("Message from Gateway {uri}");
+
                         match received.payload {
                             Some(core_request::Payload::ConfigRequest(config_request)) => {
                                 if config_sent {
@@ -370,11 +441,10 @@ impl GatewayHandler {
                                             .gateway
                                             .touch_connected(&self.pool, config_request.hostname)
                                             .await;
-                                        let guh = super::GatewayUpdatesHandler::new(
+                                        let mut guh = super::GatewayUpdatesHandler::new(
                                             self.gateway.network_id,
                                             network,
-                                            self
-                                                .gateway
+                                            self.gateway
                                                 .hostname
                                                 .as_ref()
                                                 .cloned()
@@ -383,12 +453,9 @@ impl GatewayHandler {
                                             self.events_tx.subscribe(),
                                             tx.clone(),
                                         );
-                                        // tokio::spawn(super::handle_events(
-                                        //     network,
-                                        //     // self.gateway.hostname.unwrap_or_default().clone(),
-                                        //     tx.clone(),
-                                        //     self.events_tx.subscribe(),
-                                        // ));
+                                        tokio::spawn(async move {
+                                            guh.run().await;
+                                        });
                                     }
                                     Err(err) => {
                                         error!(
