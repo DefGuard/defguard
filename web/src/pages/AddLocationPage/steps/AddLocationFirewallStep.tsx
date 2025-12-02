@@ -1,5 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { cloneDeep, omit } from 'lodash-es';
 import { useCallback, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -13,6 +17,21 @@ type Choice = 'disable' | 'enabled-allowed' | 'enabled-denied';
 
 export const AddLocationFirewallStep = () => {
   const [state, setState] = useState<Choice>('disable');
+  const navigate = useNavigate();
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: api.location.addLocation,
+    meta: {
+      invalidate: ['network'],
+    },
+    onSuccess: () => {
+      navigate({ to: '/locations', replace: true }).then(() => {
+        setTimeout(() => {
+          useAddLocationStore.getState().reset();
+        }, 100);
+      });
+    },
+  });
 
   const saveChanges = useCallback((value: Choice) => {
     const enabled = value !== 'disable';
@@ -22,6 +41,22 @@ export const AddLocationFirewallStep = () => {
       acl_default_allow: allowed,
     });
   }, []);
+
+  const handleSubmit = () => {
+    const enabled = state !== 'disable';
+    const allowed = state === 'enabled-allowed';
+    const storageState = cloneDeep(
+      omit(useAddLocationStore.getState(), [
+        'start',
+        'reset',
+        'activeStep',
+        'locationType',
+      ]),
+    );
+    storageState.acl_enabled = enabled;
+    storageState.acl_default_allow = allowed;
+    mutate(storageState);
+  };
 
   return (
     <WizardCard>
@@ -51,21 +86,20 @@ export const AddLocationFirewallStep = () => {
       <ModalControls
         submitProps={{
           text: m.controls_continue(),
+          loading: isPending,
           onClick: () => {
-            saveChanges(state);
-            useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.Mfa,
-            });
+            handleSubmit();
           },
         }}
       >
         <Button
           variant="outlined"
           text={m.controls_back()}
+          disabled={isPending}
           onClick={() => {
             saveChanges(state);
             useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.LocationAccess,
+              activeStep: AddLocationPageStep.NetworkSettings,
             });
           }}
         />

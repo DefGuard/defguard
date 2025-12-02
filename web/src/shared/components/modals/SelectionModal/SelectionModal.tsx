@@ -3,7 +3,6 @@ import { m } from '../../../../paraglide/messages';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
 import { SelectionSection } from '../../SelectionSection/SelectionSection';
-import './style.scss';
 import type { SelectionSectionKey } from '../../SelectionSection/type';
 import { useSelectionModal } from './useSelectionModal';
 

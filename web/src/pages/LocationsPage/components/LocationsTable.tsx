@@ -28,7 +28,6 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
-import { useAddLocationStore } from '../../AddLocationPage/useAddLocationStore';
 
 type Props = {
   locations: NetworkLocation[];
@@ -65,14 +64,10 @@ export const LocationsTable = ({ locations }: Props) => {
       text: 'Add Location',
       iconLeft: 'add-location',
       onClick: () => {
-        useAddLocationStore.getState().reset();
-        navigate({
-          to: '/add-location',
-          replace: true,
-        });
+        openModal(ModalName.AddLocation);
       },
     }),
-    [navigate],
+    [],
   );
 
   const columns = useMemo(

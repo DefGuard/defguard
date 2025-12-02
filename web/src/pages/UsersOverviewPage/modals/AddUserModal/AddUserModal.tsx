@@ -244,6 +244,13 @@ const AddUserModalForm = () => {
   const reservedUsernames = useRef<string[]>(reservedUsernamesStart);
   const [assignToGroups, setAssignToGroups] = useState(false);
 
+  const { mutateAsync: addUserMutation } = useMutation({
+    mutationFn: api.user.addUser,
+    meta: {
+      invalidate: ['user'],
+    },
+  });
+
   const formSchema = useMemo(
     () =>
       z
@@ -342,7 +349,7 @@ const AddUserModalForm = () => {
         return;
       }
       const clean = removeEmptyStrings(value);
-      const { data: created } = await api.user.addUser(clean);
+      const { data: created } = await addUserMutation(clean);
       const {
         data: { groups },
       } = await api.group.getGroups();

@@ -4,6 +4,7 @@ import { LocationsTable } from './components/LocationsTable';
 import './style.scss';
 import { GatewaySetupModal } from '../../shared/components/modals/GatewaySetupModal/GatewaySetupModal';
 import { getLocationsQueryOptions } from '../../shared/query';
+import { AddLocationModal } from './modals/AddLocationModal/AddLocationModal';
 
 export const LocationsPage = () => {
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
@@ -13,6 +14,7 @@ export const LocationsPage = () => {
         <LocationsTable locations={locations} />
       </Page>
       <GatewaySetupModal />
+      <AddLocationModal />
     </>
   );
 };

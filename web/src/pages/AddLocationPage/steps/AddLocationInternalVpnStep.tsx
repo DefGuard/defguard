@@ -1,27 +1,32 @@
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
-  keepalive_interval: z
-    .number(m.form_error_required())
-    .max(65535, m.form_error_port_max()),
+  endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  allowed_ips: z.string(m.form_error_required()).trim(),
+  dns: z.string().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
-export const AddLocationNetworkStep = () => {
+export const AddLocationInternalVpnStep = () => {
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
-        keepalive_interval: s.keepalive_interval,
+        allowed_ips: s.allowed_ips,
+        dns: s.dns,
+        endpoint: s.endpoint,
       }),
     ),
   );
@@ -35,7 +40,7 @@ export const AddLocationNetworkStep = () => {
     onSubmit: ({ value }) => {
       useAddLocationStore.setState({
         ...value,
-        activeStep: AddLocationPageStep.Mfa,
+        activeStep: AddLocationPageStep.NetworkSettings,
       });
     },
   });
@@ -50,14 +55,22 @@ export const AddLocationNetworkStep = () => {
         }}
       >
         <form.AppForm>
-          <form.AppField name="keepalive_interval">
+          <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput
-                required
-                label="Keep alive interval (seconds)"
-                type="number"
-              />
+              <field.FormInput required label="Gateway VPN IP address and netmask" />
             )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <DescriptionBlock title={`Allowed IP's`}>
+            <p>{`List of addresses/masks that should be routed through the VPN network.`}</p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="allowed_ips">
+            {(field) => <field.FormInput required label={'Allowed IPs'} />}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="dns">
+            {(field) => <field.FormInput label={'DNS'} />}
           </form.AppField>
           <ModalControls
             submitProps={{

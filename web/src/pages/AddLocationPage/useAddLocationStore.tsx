@@ -10,13 +10,16 @@ import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 
 type StoreValues = {
   activeStep: AddLocationPageStepValue;
+  locationType: 'regular' | 'service';
 } & EditNetworkLocation;
 
 type StoreMethods = {
   reset: () => void;
+  start: (values?: Partial<StoreValues>) => void;
 };
 
 const defaults: StoreValues = {
+  locationType: 'regular',
   activeStep: AddLocationPageStep.Start,
   // form values
   name: '',
@@ -35,9 +38,22 @@ const defaults: StoreValues = {
 };
 
 export const useAddLocationStore = create<StoreMethods & StoreValues>()(
-  persist((set) => ({ ...defaults, reset: () => set(defaults) }), {
-    name: 'add-location-store',
-    storage: createJSONStorage(() => sessionStorage),
-    partialize: (state) => omit(state, ['reset']),
-  }),
+  persist(
+    (set) => ({
+      ...defaults,
+      reset: () => set(defaults),
+      start: (initial) => {
+        set({
+          ...defaults,
+          ...initial,
+          activeStep: AddLocationPageStep.Start,
+        });
+      },
+    }),
+    {
+      name: 'add-location-store',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => omit(state, ['reset', 'start']),
+    },
+  ),
 );

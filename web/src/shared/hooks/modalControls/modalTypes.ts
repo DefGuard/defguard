@@ -41,6 +41,7 @@ export const ModalName = {
   EditNetworkDevice: 'editNetworkDevice',
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
+  AddLocation: 'addLocation',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -130,6 +131,9 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.GatewaySetup),
     data: z.custom<OpenGatewaySetupModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.AddLocation),
   }),
 ]);
 

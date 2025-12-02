@@ -1,17 +1,17 @@
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
-import { m } from '../../../../paraglide/messages';
-import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../../shared/form';
-import { formChangeLogic } from '../../../../shared/formLogic';
-import { validateIpList } from '../../../../shared/validators';
-import { AddLocationPageStep } from '../../types';
-import { useAddLocationStore } from '../../useAddLocationStore';
+import { m } from '../../../paraglide/messages';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useAppForm } from '../../../shared/form';
+import { formChangeLogic } from '../../../shared/formLogic';
+import { validateIpList } from '../../../shared/validators';
+import { AddLocationPageStep } from '../types';
+import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
   name: z.string(m.form_error_required()).min(1, m.form_error_required()),
@@ -20,9 +20,7 @@ const formSchema = z.object({
     .trim()
     .min(1, m.form_error_required())
     .refine((value) => validateIpList(value, ',', true), m.form_error_invalid()),
-  endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-  allowed_ips: z.string(m.form_error_required()).trim(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -32,8 +30,6 @@ export const AddLocationStartStep = () => {
     useShallow(
       (s): FormFields => ({
         address: s.address,
-        allowed_ips: s.allowed_ips,
-        endpoint: s.endpoint,
         name: s.name,
         port: s.port,
       }),
@@ -50,7 +46,7 @@ export const AddLocationStartStep = () => {
     onSubmit: ({ value }) => {
       useAddLocationStore.setState({
         ...value,
-        activeStep: AddLocationPageStep.VpnNetwork,
+        activeStep: AddLocationPageStep.InternalVpnSettings,
       });
     },
   });
@@ -83,24 +79,8 @@ export const AddLocationStartStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="endpoint">
-            {(field) => (
-              <field.FormInput required label={'Gateway IP address or domain name'} />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="port">
             {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
-          </form.AppField>
-          <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title={`Allowed IP's`}>
-            <p>
-              {'List of addresses/masks that should be routed through the VPN network.'}
-            </p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="allowed_ips">
-            {(field) => <field.FormInput required label={'Allowed IPs'} />}
           </form.AppField>
           <ModalControls
             submitProps={{
