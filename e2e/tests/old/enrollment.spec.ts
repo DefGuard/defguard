@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { testsConfig, testUserTemplate } from '../config';
-import { NetworkForm, User } from '../types';
-import { apiGetUserProfile } from '../utils/api/users';
+import { testsConfig, testUserTemplate } from '../../config';
+import { NetworkForm, User } from '../../types';
+import { apiGetUserProfile } from '../../utils/api/users';
 import {
   createDevice,
   createUserEnrollment,
@@ -11,13 +11,13 @@ import {
   setPassword,
   setToken,
   validateData,
-} from '../utils/controllers/enrollment';
-import { loginBasic } from '../utils/controllers/login';
-import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
-import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
+} from '../../utils/controllers/enrollment';
+import { loginBasic } from '../../utils/controllers/login';
+import { disableUser, enableUser } from '../../utils/controllers/toggleUserState';
+import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../../utils/docker';
+import { waitForBase } from '../../utils/waitForBase';
+import { waitForPromise } from '../../utils/waitForPromise';
 
 const testNetwork: NetworkForm = {
   name: 'test network',

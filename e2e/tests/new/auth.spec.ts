@@ -1,19 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { TOTP } from 'totp-generator';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../config';
-import { User } from '../types';
-import { acceptRecovery } from '../utils/controllers/acceptRecovery';
-import { createUser } from '../utils/controllers/createUser';
-import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
-import { logout } from '../utils/controllers/logout';
-import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
-import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
-import { changePassword, changePasswordByAdmin } from '../utils/controllers/profile';
-import { disableUser } from '../utils/controllers/toggleUserState';
-import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
-import { waitForRoute } from '../utils/waitForRoute';
+import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { User } from '../../types';
+import { acceptRecovery } from '../../utils/controllers/acceptRecovery';
+import { createUser } from '../../utils/controllers/createUser';
+import { loginBasic, loginRecoveryCodes, loginTOTP } from '../../utils/controllers/login';
+import { logout } from '../../utils/controllers/logout';
+import { enableEmailMFA } from '../../utils/controllers/mfa/enableEmail';
+import { enableTOTP } from '../../utils/controllers/mfa/enableTOTP';
+import { changePassword, changePasswordByAdmin } from '../../utils/controllers/profile';
+import { disableUser } from '../../utils/controllers/toggleUserState';
+import { dockerRestart } from '../../utils/docker';
+import { waitForBase } from '../../utils/waitForBase';
+import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -26,7 +26,7 @@ test.describe('Test user authentication', () => {
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
-    expect(page.url()).toBe(
+    await expect(page.url()).toBe(
       routes.base + routes.profile + defaultUserAdmin.username + '?tab=details',
     );
   });
@@ -35,29 +35,29 @@ test.describe('Test user authentication', () => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
-    // await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(
+    await expect(page.url()).toBe(
       routes.base + routes.profile + testUser.username + '?tab=details',
     );
   });
 
-  test('Login with admin user TOTP', async ({ page, browser }) => {
+  test('Login with admin user via TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     const { secret } = await enableTOTP(browser, defaultUserAdmin);
-    await acceptRecovery(page);
     await loginTOTP(page, defaultUserAdmin, secret);
-    await page.waitForLoadState('networkidle');
-    await waitForRoute(page, routes.admin.wizard);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + defaultUserAdmin.username + '?tab=details',
+    );
   });
 
-  test('Login with user TOTP', async ({ page, browser }) => {
+  test('Login with user via TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableTOTP(browser, testUser);
     await loginTOTP(page, testUser, secret);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 
   test('Recovery code login', async ({ page, browser }) => {

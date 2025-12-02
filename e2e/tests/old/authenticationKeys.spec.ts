@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../config';
-import { AuthenticationKeyType, User } from '../types';
-import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
-import { loginBasic } from '../utils/controllers/login';
-import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
-import { waitForRoute } from '../utils/waitForRoute';
+import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
+import { AuthenticationKeyType, User } from '../../types';
+import { apiCreateUser, apiGetUserAuthKeys } from '../../utils/api/users';
+import { loginBasic } from '../../utils/controllers/login';
+import { dockerRestart } from '../../utils/docker';
+import { waitForBase } from '../../utils/waitForBase';
+import { waitForPromise } from '../../utils/waitForPromise';
+import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Authentication keys', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };

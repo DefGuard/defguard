@@ -22,20 +22,26 @@ export const enableTOTP = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.me);
-  await waitForRoute(page, routes.me);
-  await page.getByTestId('edit-user').click();
-  await page.getByTestId('edit-totp').scrollIntoViewIfNeeded();
-  await page.getByTestId('edit-totp').click();
-  await page.getByTestId('enable-totp-option').click();
-  await page.getByTestId('copy-totp').click();
-  const totpSecret = await getPageClipboard(page);
+  await page.goto(routes.base + routes.profile + user.username + '?tab=details');
+  await waitForRoute(page, routes.profile + user.username + '?tab=details');
+  const totpContainer = await page.locator('[data-testid="totp-row"]');
+
+  await totpContainer.locator('.icon-button').click();
+  await page.getByTestId('enable-totp').click();
+  const totpSecret =
+    (await page.getByTestId('totp-code').locator('p').textContent()) ?? '';
+
   const { otp: token } = TOTP.generate(totpSecret);
-  const totpForm = page.getByTestId('register-totp-form');
-  await totpForm.getByTestId('field-code').fill(token);
-  await totpForm.locator('button[type="submit"]').click();
-  await totpForm.waitFor({ state: 'hidden' });
-  const recovery = await acceptRecovery(page);
+
+  await page.getByTestId('field-code').fill(token);
+  await page.getByTestId('submit-totp').click();
+  await page.getByTestId('copy-recovery-codes').click();
+  const recoveryString = await getPageClipboard(page);
+  const recovery = recoveryString.split('\n').filter((line) => line.trim());
+
+  await page.getByTestId('confirm-code-save').click();
+  await page.getByTestId('finish-recovery-codes').click();
+
   await context.close();
   return {
     secret: totpSecret,

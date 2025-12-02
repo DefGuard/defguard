@@ -207,6 +207,7 @@ export const ProfileAuthCard = () => {
     if (!user.totp_enabled) {
       items.push({
         icon: 'check-circle',
+        testId: 'enable-totp',
         text: m.controls_enable(),
         onClick: () => {
           openModal('totpSetup');
@@ -270,6 +271,7 @@ export const ProfileAuthCard = () => {
           title={m.profile_auth_card_2fa_totp()}
           enabled={user.totp_enabled}
           menu={totpMenuItems}
+          testId='totp-row'
         />
         <Divider />
         {smtpEnabled && (

@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
-import { NetworkForm, OpenIdClient, User } from '../types';
-import { apiCreateUser, apiGetUserProfile } from '../utils/api/users';
-import { loginBasic } from '../utils/controllers/login';
-import { logout } from '../utils/controllers/logout';
-import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
-import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
-import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
-import { createDevice } from '../utils/controllers/vpn/createDevice';
-import { createNetwork } from '../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
+import { defaultUserAdmin, testsConfig, testUserTemplate } from '../../config';
+import { NetworkForm, OpenIdClient, User } from '../../types';
+import { apiCreateUser, apiGetUserProfile } from '../../utils/api/users';
+import { loginBasic } from '../../utils/controllers/login';
+import { logout } from '../../utils/controllers/logout';
+import { copyOpenIdClientIdAndSecret } from '../../utils/controllers/openid/copyClientId';
+import { createExternalProvider } from '../../utils/controllers/openid/createExternalProvider';
+import { CreateOpenIdClient } from '../../utils/controllers/openid/createOpenIdClient';
+import { createDevice } from '../../utils/controllers/vpn/createDevice';
+import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../../utils/docker';
+import { waitForBase } from '../../utils/waitForBase';
+import { waitForPromise } from '../../utils/waitForPromise';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
