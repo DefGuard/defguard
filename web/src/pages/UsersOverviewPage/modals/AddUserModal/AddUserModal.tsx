@@ -21,14 +21,14 @@ import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import {
   TextStyle,
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import { useApp } from '../../../../shared/hooks/useApp';
 import {
   patternSafeUsernameCharacters,
@@ -246,6 +246,13 @@ const AddUserModalForm = () => {
   const reservedUsernames = useRef<string[]>(reservedUsernamesStart);
   const [assignToGroups, setAssignToGroups] = useState(false);
 
+  const { mutateAsync: addUserMutation } = useMutation({
+    mutationFn: api.user.addUser,
+    meta: {
+      invalidate: ['user'],
+    },
+  });
+
   const formSchema = useMemo(
     () =>
       z
@@ -344,7 +351,7 @@ const AddUserModalForm = () => {
         return;
       }
       const clean = removeEmptyStrings(value);
-      const { data: created } = await api.user.addUser(clean);
+      const { data: created } = await addUserMutation(clean);
       const {
         data: { groups },
       } = await api.group.getGroups();

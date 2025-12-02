@@ -15,11 +15,11 @@ import { CopyField } from '../../../../../../../shared/defguard-ui/components/Co
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../../../../../shared/defguard-ui/utils/zod';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { useAppForm } from '../../../../../../../shared/form';
+import { formChangeLogic } from '../../../../../../../shared/formLogic';
 import {
   closeModal,
   openModal,

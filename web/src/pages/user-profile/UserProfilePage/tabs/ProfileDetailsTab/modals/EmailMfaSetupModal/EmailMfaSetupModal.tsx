@@ -2,7 +2,7 @@ import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
+import { useAppForm } from '../../../../../../../shared/form';
 import {
   closeModal,
   openModal,
@@ -21,7 +21,7 @@ import { Button } from '../../../../../../../shared/defguard-ui/components/Butto
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { formChangeLogic } from '../../../../../../../shared/formLogic';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
 const modalName = ModalName.EmailMfaSetup;

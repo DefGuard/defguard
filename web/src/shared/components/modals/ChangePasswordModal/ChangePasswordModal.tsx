@@ -11,9 +11,9 @@ import { Icon } from '../../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../../defguard-ui/components/Icon/icon-types';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm, withForm } from '../../../defguard-ui/form';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../form';
+import { useAppForm, withForm } from '../../../form';
+import { formChangeLogic } from '../../../formLogic';
 import {
   closeModal,
   subscribeCloseModal,

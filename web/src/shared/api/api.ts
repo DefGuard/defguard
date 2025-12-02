@@ -30,6 +30,7 @@ import type {
   EditGroupRequest,
   EditNetworkDeviceRequest,
   EditNetworkLocation,
+  EditNetworkLocationRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
   GatewayStatus,
@@ -245,6 +246,7 @@ const api = {
       }),
   },
   location: {
+    deleteLocation: (locationId: number) => client.delete(`/network/${locationId}`),
     getLocationsSummary: (from?: number) =>
       client.get<LocationStats>(`/network/stats`, {
         params: {
@@ -276,6 +278,8 @@ const api = {
         },
       }),
     addLocation: (data: EditNetworkLocation) => client.post('/network', data),
+    editLocation: ({ id, data }: EditNetworkLocationRequest) =>
+      client.put(`/network/${id}`, data),
   },
   device: {
     addDevice: ({ username, ...data }: AddDeviceRequest) =>

@@ -26,9 +26,9 @@ import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Che
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { formChangeLogic } from '../../../../shared/form';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 
 const modalNameValue = ModalName.CEOpenIdClient;
 

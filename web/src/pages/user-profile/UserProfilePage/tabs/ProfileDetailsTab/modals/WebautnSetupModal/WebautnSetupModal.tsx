@@ -2,8 +2,8 @@ import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { useAppForm } from '../../../../../../../shared/form';
+import { formChangeLogic } from '../../../../../../../shared/formLogic';
 import {
   closeModal,
   openModal,

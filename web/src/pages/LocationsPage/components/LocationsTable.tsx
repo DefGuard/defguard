@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -7,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import type { NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -15,14 +17,17 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
+import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { tableEditColumnSize } from '../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
-import { useAddLocationStore } from '../../AddLocationPage/useAddLocationStore';
 
 type Props = {
   locations: NetworkLocation[];
@@ -35,6 +40,13 @@ const columnHelper = createColumnHelper<RowData>();
 export const LocationsTable = ({ locations }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+
+  const { mutate: deleteLocation } = useMutation({
+    mutationFn: api.location.deleteLocation,
+    meta: {
+      invalidate: ['network'],
+    },
+  });
 
   const transformedData = useMemo(() => {
     let res = locations;
@@ -52,14 +64,10 @@ export const LocationsTable = ({ locations }: Props) => {
       text: 'Add Location',
       iconLeft: 'add-location',
       onClick: () => {
-        useAddLocationStore.getState().reset();
-        navigate({
-          to: '/add-location',
-          replace: true,
-        });
+        openModal(ModalName.AddLocation);
       },
     }),
-    [navigate],
+    [],
   );
 
   const columns = useMemo(
@@ -145,14 +153,76 @@ export const LocationsTable = ({ locations }: Props) => {
           const len = value?.length ?? 0;
           return (
             <TableCell>
-              {len === 0 && <span>All groups allowed</span>}
+              {len === 0 && (
+                <Badge
+                  showIcon
+                  icon="status-available"
+                  variant="success"
+                  text="All allowed"
+                />
+              )}
               {len > 0 && <span>{info.getValue()?.join(', ')}</span>}
             </TableCell>
           );
         },
       }),
+      columnHelper.display({
+        id: 'edit',
+        size: tableEditColumnSize,
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <TableCell>
+              <IconButtonMenu
+                icon="menu"
+                menuItems={[
+                  {
+                    items: [
+                      {
+                        icon: 'edit',
+                        text: m.controls_edit(),
+                        onClick: () => {
+                          navigate({
+                            to: '/locations/$locationId/edit',
+                            params: {
+                              locationId: row.id.toString(),
+                            },
+                          });
+                        },
+                      },
+                      {
+                        icon: 'network-settings',
+                        text: 'Gateway setup',
+                        onClick: async () => {
+                          const { data } = await api.location.getGatewayToken(row.id);
+                          openModal(ModalName.GatewaySetup, {
+                            data: data,
+                            networkId: row.id,
+                          });
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    items: [
+                      {
+                        icon: 'delete',
+                        text: m.controls_delete(),
+                        variant: 'danger',
+                        onClick: () => {
+                          deleteLocation(row.id);
+                        },
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </TableCell>
+          );
+        },
+      }),
     ],
-    [],
+    [deleteLocation, navigate],
   );
 
   const table = useReactTable({

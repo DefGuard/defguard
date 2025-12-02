@@ -1,10 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { omit } from 'lodash-es';
 import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { LocationMfaMode, type NetworkLocation } from '../../../shared/api/types';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -24,25 +20,19 @@ const schema = z
 export const AddLocationMfaStep = () => {
   const [error, setError] = useState<string | null>(null);
   const [disconnect, setDisconnect] = useState<number | null>(300);
-  const navigate = useNavigate();
 
   const [choice, setChoice] = useState<NetworkLocation['location_mfa_mode']>(
     LocationMfaMode.Disabled,
   );
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: api.location.addLocation,
-    meta: {
-      invalidate: ['network'],
-    },
-    onSuccess: () => {
-      navigate({ to: '/locations', replace: true }).then(() => {
-        setTimeout(() => {
-          useAddLocationStore.getState().reset();
-        }, 100);
+  const handleSubmit = () => {
+    if (!error) {
+      useAddLocationStore.setState({
+        location_mfa_mode: choice,
+        activeStep: AddLocationPageStep.AccessControl,
       });
-    },
-  });
+    }
+  };
 
   useEffect(() => {
     if (choice === LocationMfaMode.Disabled) {
@@ -94,16 +84,8 @@ export const AddLocationMfaStep = () => {
           text: m.controls_finish(),
           disabled: isPresent(error),
           onClick: () => {
-            const storageState = omit(useAddLocationStore.getState(), [
-              'activeStep',
-              'reset',
-            ]);
-            mutate({
-              ...storageState,
-              peer_disconnect_threshold: disconnect as number,
-            });
+            handleSubmit();
           },
-          loading: isPending,
         }}
       >
         <Button

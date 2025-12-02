@@ -9,10 +9,10 @@ import { InfoBanner } from '../../../../../../../shared/defguard-ui/components/I
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../../../../../shared/defguard-ui/form';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
-import { formChangeLogic } from '../../../../../../../shared/form';
+import { useAppForm } from '../../../../../../../shared/form';
+import { formChangeLogic } from '../../../../../../../shared/formLogic';
 import {
   closeModal,
   subscribeCloseModal,

@@ -459,6 +459,11 @@ export interface EditNetworkLocation
   address: string;
 }
 
+export interface EditNetworkLocationRequest {
+  id: number;
+  data: EditNetworkLocation;
+}
+
 export interface GatewayStatus {
   connected: boolean;
   network_id: number;

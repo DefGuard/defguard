@@ -4,23 +4,12 @@ import { m } from '../../../paraglide/messages';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useAppForm } from '../../../shared/defguard-ui/form';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { formChangeLogic } from '../../../shared/form';
-import { validateIpOrDomainList } from '../../../shared/validators';
+import { useAppForm } from '../../../shared/form';
+import { formChangeLogic } from '../../../shared/formLogic';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
-  dns: z
-    .string()
-    .trim()
-    .nullable()
-    .refine((val) => {
-      if (!val) return true;
-      return validateIpOrDomainList(val, ',', false, true);
-    }),
   keepalive_interval: z
     .number(m.form_error_required())
     .max(65535, m.form_error_port_max()),
@@ -32,7 +21,6 @@ export const AddLocationNetworkStep = () => {
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
-        dns: s.dns,
         keepalive_interval: s.keepalive_interval,
       }),
     ),
@@ -47,7 +35,7 @@ export const AddLocationNetworkStep = () => {
     onSubmit: ({ value }) => {
       useAddLocationStore.setState({
         ...value,
-        activeStep: AddLocationPageStep.LocationAccess,
+        activeStep: AddLocationPageStep.Mfa,
       });
     },
   });
@@ -71,10 +59,6 @@ export const AddLocationNetworkStep = () => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="dns">
-            {(field) => <field.FormInput label="DNS" />}
-          </form.AppField>
           <ModalControls
             submitProps={{
               text: m.controls_continue(),
@@ -89,6 +73,7 @@ export const AddLocationNetworkStep = () => {
               onClick={() => {
                 useAddLocationStore.setState({
                   activeStep: AddLocationPageStep.Start,
+                  ...form.state.values,
                 });
               }}
             />
