@@ -163,6 +163,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
         <Button
           iconLeft="add-user"
           text={m.groups_add()}
+          testId="add-new-group"
           onClick={() => {
             openModal(ModalName.CreateEditGroup, {
               reservedNames,

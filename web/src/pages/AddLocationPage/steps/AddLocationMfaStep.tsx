@@ -53,18 +53,21 @@ export const AddLocationMfaStep = () => {
         active={choice === LocationMfaMode.Disabled}
         onClick={() => setChoice(LocationMfaMode.Disabled)}
         text="Do not enforce MFA"
+        testId="do-not-enforce-mfa"
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
         active={choice === LocationMfaMode.Internal}
         onClick={() => setChoice(LocationMfaMode.Internal)}
         text="Internal MFA"
+        testId="enforce-internal-mfa"
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
         active={choice === LocationMfaMode.External}
         onClick={() => setChoice(LocationMfaMode.External)}
         text="External MFA"
+        testId="enforce-external-mfa"
       />
       {choice !== LocationMfaMode.Disabled && (
         <>
@@ -82,6 +85,7 @@ export const AddLocationMfaStep = () => {
       <ModalControls
         submitProps={{
           text: m.controls_finish(),
+          testId: 'finish',
           disabled: isPresent(error),
           onClick: () => {
             handleSubmit();

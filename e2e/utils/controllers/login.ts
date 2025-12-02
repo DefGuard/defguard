@@ -22,6 +22,7 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
     page,
     routes.base + routes.profile + userInfo.username + '?tab=details',
   );
+  await waitForPromise(1000);
   expect(page.url()).toBe(
     routes.base + routes.profile + userInfo.username + '?tab=details',
   );
@@ -39,7 +40,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   const { otp: token } = TOTP.generate(totpSecret);
   await codeField.fill(token);
   await page.getByTestId('submit-totp').click();
-  await waitForPromise(2000);
+  await waitForPromise(1000);
 
   expect(page.url()).toBe(
     routes.base + routes.profile + userInfo.username + '?tab=details',

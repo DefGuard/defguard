@@ -62,6 +62,7 @@ export const AddLocationNetworkStep = () => {
           <ModalControls
             submitProps={{
               text: m.controls_continue(),
+              testId: 'continue',
               onClick: () => {
                 form.handleSubmit();
               },

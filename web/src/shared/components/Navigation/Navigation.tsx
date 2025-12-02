@@ -21,6 +21,7 @@ interface NavItemProps {
   label: string;
   icon: IconKindValue;
   link: LinkProps['to'];
+  testId?: string;
 }
 
 const navigationConfig: NavGroupProps[] = [
@@ -57,6 +58,7 @@ const navigationConfig: NavGroupProps[] = [
         icon: 'groups',
         label: m.cmp_nav_item_groups(),
         link: '/groups',
+        testId: 'groups'
       },
     ],
   },
@@ -140,9 +142,9 @@ const NavGroup = ({ items, label }: NavGroupProps) => {
   );
 };
 
-const NavItem = ({ icon, link, label }: NavItemProps) => {
+const NavItem = ({ icon, link, label,testId }: NavItemProps) => {
   return (
-    <Link to={link} className="nav-item">
+    <Link to={link} className="nav-item" data-testid={testId}>
       <Icon icon={icon} />
       <span>{label}</span>
     </Link>

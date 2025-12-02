@@ -30,6 +30,7 @@ export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
   profile: '/user/',
+  locations: '/locations',
   identity: {
     users: '/users',
     groups: '/groups',

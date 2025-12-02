@@ -63,6 +63,7 @@ export const LocationsTable = ({ locations }: Props) => {
     (): ButtonProps => ({
       text: 'Add Location',
       iconLeft: 'add-location',
+      testId: 'add-location',
       onClick: () => {
         openModal(ModalName.AddLocation);
       },

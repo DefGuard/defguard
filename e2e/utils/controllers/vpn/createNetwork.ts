@@ -5,51 +5,89 @@ import { NetworkForm } from '../../../types';
 import { waitForBase } from '../../waitForBase';
 import { loginBasic } from '../login';
 
-export const createNetwork = async (browser: Browser, network: NetworkForm) => {
+export const createRegularLocation = async (browser: Browser, network: NetworkForm) => {
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.wizard);
-  await page.getByTestId('setup-network').click();
-  const navNext = page.getByTestId('wizard-next');
-  await page.getByTestId('setup-option-manual').click();
-  await navNext.click();
+  await page.goto(routes.base + routes.locations);
+  await page.getByTestId('add-location').click();
+  await page.getByTestId('add-regular-location').click();
 
-  // fill form
-  for (const key of Object.keys(network).filter((key) => key !== 'location_mfa_mode')) {
-    const field = page.getByTestId(`field-${key}`);
-    await field.clear();
-    await field.type(network[key]);
+  await page.getByTestId('field-name').fill(network.name);
+  await page.getByTestId('field-address').fill(network.address); //TODO: Change to network.endpoint
+  await page.getByTestId('continue').click();
+
+  await page.getByTestId('field-endpoint').fill(network.address);
+
+  if (network.allowed_ips) {
+    let addresses = '';
+    for (const ip of network.allowed_ips) {
+      addresses += ip + ',';
+    }
+    addresses = addresses.slice(0, -1);
+    await page.getByTestId('field-allowed_ips').fill(addresses);
+    await page.getByTestId('continue').click();
   }
-  // select location MFA mode
+
+  await page.getByTestId('continue').click();
+
   if (network.location_mfa_mode) {
-    const mfaModeSelect = page.locator('div.location-mfa-mode-select');
-    let mode: number; // TODO: do it better
     switch (network.location_mfa_mode) {
-      case 'none':
-        mode = 0;
-        break;
       case 'internal':
-        mode = 1;
+        await page.getByTestId('enforce-internal-mfa').click();
         break;
       case 'external':
-        mode = 2;
+        await page.getByTestId('enforce-external-mfa').click();
         break;
       default:
-        mode = 0;
+        await page.getByTestId('do-not-enforce-mfa').click();
         break;
     }
-    // 0 - do not enforce mfa
-    // 1 - internal mfa
-    // 2 - external mfa
-    const mfaMode = mfaModeSelect.locator(`div.location-mfa-mode`).nth(mode);
-    await mfaMode.click();
+  }
+  await page.getByTestId('finish').click();
+
+  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+
+  await page.waitForURL('**/locations');
+
+  await expect(page.url()).toBe(routes.base + routes.locations);
+  await context.close();
+};
+
+export const createServiceLocation = async (browser: Browser, network: NetworkForm) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await waitForBase(page);
+  await loginBasic(page, defaultUserAdmin);
+  await page.goto(routes.base + routes.locations);
+  await page.getByTestId('add-location').click();
+  await page.getByTestId('add-service-location').click();
+
+  await page.getByTestId('field-name').fill(network.name);
+  await page.getByTestId('field-address').fill(network.address); //TODO: Change to network.endpoint
+  await page.getByTestId('continue').click();
+
+  await page.getByTestId('field-endpoint').fill(network.address);
+
+  if (network.allowed_ips) {
+    let addresses = '';
+    for (const ip of network.allowed_ips) {
+      addresses += ip + ',';
+    }
+    addresses = addresses.slice(0, -1);
+    await page.getByTestId('field-allowed_ips').fill(addresses);
+    await page.getByTestId('continue').click();
   }
 
-  const responseCreateNetworkPromise = page.waitForResponse('**/network');
-  await navNext.click();
-  const response = await responseCreateNetworkPromise;
-  expect(response.status()).toBe(201);
+  await page.getByTestId('continue').click();
+  await page.getByTestId('continue').click();
+
+  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+
+  await page.waitForURL('**/locations');
+  await expect(page.url()).toBe(routes.base + routes.locations);
   await context.close();
 };
