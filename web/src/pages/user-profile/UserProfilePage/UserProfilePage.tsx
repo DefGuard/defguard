@@ -1,5 +1,5 @@
 import './style.scss';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { titleCase } from 'text-case';
@@ -25,6 +25,7 @@ const defaultTab = UserProfileTab.Details;
 export const UserProfilePage = () => {
   const navigate = useNavigate();
   const authUsername = useAuth((s) => s.user?.username as string);
+  const isAdmin = useAuth((s) => s.isAdmin);
   const search = useSearch({ from: '/_authorized/_default/user/$username' });
   const activeTab = search.tab ?? defaultTab;
 
@@ -39,8 +40,8 @@ export const UserProfilePage = () => {
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
   const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
-  const { data: userApiTokens } = useSuspenseQuery(
-    getUserApiTokensQueryOptions(username),
+  const { data: userApiTokens } = useQuery(
+    getUserApiTokensQueryOptions(username, isAdmin),
   );
 
   const pageTitle = useMemo(() => {
@@ -59,7 +60,7 @@ export const UserProfilePage = () => {
     createUserProfileStore({
       profile: userProfile,
       authKeys: userAuthKeys,
-      apiTokens: userApiTokens,
+      apiTokens: userApiTokens ?? [],
     }),
   ).current;
 
@@ -94,11 +95,12 @@ export const UserProfilePage = () => {
       {
         title: m.profile_tabs_api(),
         active: activeTab === UserProfileTab.ApiTokens,
+        hidden: !isAdmin,
         onClick: () => setActiveTab(UserProfileTab.ApiTokens),
       },
     ];
     return res;
-  }, [activeTab, setActiveTab]);
+  }, [activeTab, setActiveTab, isAdmin]);
 
   const RenderActiveTab = useMemo(() => {
     switch (activeTab) {
@@ -112,6 +114,17 @@ export const UserProfilePage = () => {
         return ProfileApiTokensTab;
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'api-tokens' && !isAdmin) {
+      navigate({
+        from: '/user/$username',
+        search: {
+          tab: 'details',
+        },
+      });
+    }
+  }, [activeTab, isAdmin, navigate]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
   useEffect(() => {

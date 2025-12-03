@@ -22,5 +22,7 @@
   "users_row_menu_add_auth": "Add authentication key",
   "users_row_menu_delete": "Delete account",
   "users_row_menu_edit": "Edit details",
-  "users_row_menu_change_password": "Change password"
+  "users_row_menu_change_password": "Change password",
+  "users_row_menu_edit_groups": "Edit groups",
+  "modal_edit_user_groups_title": "Edit user groups"
 }
