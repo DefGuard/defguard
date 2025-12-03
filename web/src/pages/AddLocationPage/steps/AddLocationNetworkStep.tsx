@@ -72,7 +72,7 @@ export const AddLocationNetworkStep = () => {
               text={m.controls_back()}
               onClick={() => {
                 useAddLocationStore.setState({
-                  activeStep: AddLocationPageStep.Start,
+                  activeStep: AddLocationPageStep.InternalVpnSettings,
                   ...form.state.values,
                 });
               }}

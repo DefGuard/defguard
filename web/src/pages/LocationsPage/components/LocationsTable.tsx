@@ -24,7 +24,7 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
@@ -110,7 +110,11 @@ export const LocationsTable = ({ locations }: Props) => {
         size: 76,
         cell: (info) => (
           <TableCell className="cell-acl-enabled">
-            {info.getValue() ? <Icon icon="check-circle" /> : <Icon icon="disabled" />}
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : (
+              <Icon icon="disabled" />
+            )}
           </TableCell>
         ),
       }),
