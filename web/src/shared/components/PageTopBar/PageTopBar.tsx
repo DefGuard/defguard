@@ -15,12 +15,12 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../api/api';
-import type { User } from '../../api/types';
 import { IconButton } from '../../defguard-ui/components/IconButton/IconButton';
 import { Menu } from '../../defguard-ui/components/Menu/Menu';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
+import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { useApp } from '../../hooks/useApp';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -58,9 +58,10 @@ export const PageTopBar = ({ title, navOpen }: Props) => {
 const ProfileMenu = () => {
   const navigate = useNavigate();
   const resetAuth = useAuth((s) => s.reset);
-  const user = useAuth((s) => s.user as User);
+  const user = useAuth((s) => s.user);
 
   const menuItems = useMemo(() => {
+    if (!isPresent(user)) return [];
     const res: MenuItemsGroup[] = [
       {
         items: [
@@ -89,7 +90,7 @@ const ProfileMenu = () => {
       },
     ];
     return res;
-  }, [resetAuth, navigate, user.username]);
+  }, [resetAuth, navigate, user?.username, user]);
 
   const [isOpen, setOpen] = useState(false);
 

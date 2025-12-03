@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import type { HtmlHTMLAttributes, PropsWithChildren, Ref } from 'react';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { useApp } from '../../hooks/useApp';
+import { useAuth } from '../../hooks/useAuth';
 import { PageTopBar } from '../PageTopBar/PageTopBar';
 
 interface Props extends HtmlHTMLAttributes<HTMLDivElement>, PropsWithChildren {
@@ -14,11 +15,12 @@ interface Props extends HtmlHTMLAttributes<HTMLDivElement>, PropsWithChildren {
 export const Page = ({ title, children, className, ...containerProps }: Props) => {
   const isMatched = useMatch({ from: '/_authorized' });
   const isNavOpen = useApp((s) => s.navigationOpen && isPresent(isMatched));
+  const isAdmin = useAuth((s) => s.isAdmin);
 
   return (
     <div
       className={clsx('page', className, {
-        nav: isNavOpen,
+        nav: isNavOpen && isAdmin,
       })}
       {...containerProps}
     >

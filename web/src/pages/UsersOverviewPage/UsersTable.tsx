@@ -15,6 +15,8 @@ import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
+import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
+import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
@@ -50,6 +52,15 @@ export const UsersTable = ({ users }: Props) => {
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
+  const groupsOptions = useMemo(
+    (): SelectionSectionOption<string>[] =>
+      groups?.map((g) => ({
+        id: g.name,
+        label: g.name,
+      })) ?? [],
+    [groups?.map],
+  );
+
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
@@ -63,6 +74,25 @@ export const UsersTable = ({ users }: Props) => {
       invalidate: ['user'],
     },
   });
+
+  const { mutate: editUser } = useMutation({
+    mutationFn: api.user.editUser,
+    meta: {
+      invalidate: ['user'],
+    },
+  });
+
+  const handleEditGroups = useCallback(
+    async (user: RowData, groups: string[]) => {
+      const freshUser = (await api.user.getUser(user.username)).data.user;
+      freshUser.groups = groups;
+      editUser({
+        username: freshUser.username,
+        body: freshUser,
+      });
+    },
+    [editUser],
+  );
 
   const navigate = useNavigate({ from: '/users' });
   const [selected, setSelected] = useState<RowSelectionState>({});
@@ -210,6 +240,21 @@ export const UsersTable = ({ users }: Props) => {
                           });
                         },
                       },
+                      {
+                        text: m.users_row_menu_edit_groups(),
+                        icon: 'add-group',
+                        onClick: () => {
+                          useSelectionModal.setState({
+                            isOpen: true,
+                            options: groupsOptions,
+                            title: m.modal_edit_user_groups_title(),
+                            selected: new Set(rowData.groups),
+                            onSubmit: (selected) => {
+                              handleEditGroups(rowData, selected as string[]);
+                            },
+                          });
+                        },
+                      },
                     ],
                   },
                   {
@@ -260,7 +305,15 @@ export const UsersTable = ({ users }: Props) => {
         },
       }),
     ],
-    [navigate, reservedEmails, reservedUsernames, changeAccountActiveState, deleteUser],
+    [
+      navigate,
+      reservedEmails,
+      reservedUsernames,
+      changeAccountActiveState,
+      deleteUser,
+      groupsOptions,
+      handleEditGroups,
+    ],
   );
 
   const expandedHeader = useMemo(
