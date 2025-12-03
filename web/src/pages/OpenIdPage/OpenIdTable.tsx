@@ -57,6 +57,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
     (): ButtonProps => ({
       text: 'Add new application',
       iconLeft: 'openid',
+      testId: 'add-new-app',
       onClick: () => {
         openModal(ModalName.CEOpenIdClient, {
           reservedNames,

@@ -15,7 +15,7 @@ services:
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
-      DEFGUARD_URL: http://localhost:8000
+      DEFGUARD_URL: http://localhost:3000
       DEFGUARD_PROXY_URL: http://proxy:50051
       RUST_BACKTRACE: 1
     ports:
@@ -33,7 +33,7 @@ services:
       - "5432:5432"
 
   proxy:
-    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard-proxy:latest
     ports:
       - "8080:8080"
     environment:

@@ -4,6 +4,7 @@ import { routes } from '../../../config';
 import { EditNetworkDeviceForm, NetworkDeviceForm, User } from '../../../types';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
+import { waitForPromise } from '../../waitForPromise';
 
 export const getDeviceRow = async ({
   page,
@@ -39,7 +40,7 @@ export const doAction = async ({
   await editMenu.getByRole('button', { name: action }).click();
 };
 
-export const createNetworkDevice = async (
+export const createNetworkCLIDevice = async (
   browser: Browser,
   user: User,
   device: NetworkDeviceForm,
@@ -47,30 +48,20 @@ export const createNetworkDevice = async (
   const context = await browser.newContext();
   const page = await context.newPage();
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.admin.devices, {
+  await page.goto(routes.base + routes.network_devices, {
     waitUntil: 'networkidle',
   });
-  await page.getByRole('button', { name: 'Add new' }).click();
-  const configCard = page.locator('#add-standalone-device-modal');
-  await configCard.waitFor({ state: 'visible' });
-  // select native-wg method
-  await page.getByTestId('standalone-device-choice-card-manual').click();
-  await configCard.getByRole('button', { name: 'Next' }).click();
-  const deviceNameInput = configCard.getByTestId('field-name');
-  await deviceNameInput.fill(device.name);
-  if (device.description && device.description.length > 0) {
-    const deviceDescriptionInput = page.getByTestId('field-description');
-    await deviceDescriptionInput.fill(device.description);
+  await page.getByTestId('add-device').click();
+  await page.getByTestId('defguard-cli').click();
+  await page.getByTestId('field-name').fill(device.name);
+  if (device.description) {
+    await page.getByTestId('field-description').fill(device.description);
   }
-  if (device.pubKey && device.pubKey.length) {
-    await configCard.locator('.toggle-option').nth(1).click();
-    const devicePublicKeyInput = configCard.getByTestId('field-wireguard_pubkey');
-    await devicePublicKeyInput.fill(device.pubKey);
-  }
-  const responsePromise = page.waitForResponse('**/device/network');
-  await page.getByRole('button', { name: 'Add Device' }).click();
-  const response = await responsePromise;
-  expect(response.status()).toBe(201);
+  await page.getByTestId('submit').click();
+  await page.getByTestId('finish').click();
+  await waitForPromise(1000);
+  const deviceRow = page.locator('.virtual-row').filter({ hasText: device.name });
+  await expect(deviceRow).toContainText('Awaiting Setup');
   await context.close();
 };
 

@@ -190,6 +190,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
         submitProps={{
           text: m.modal_change_password_submit(),
           loading: isSubmitting,
+          testId: 'submit-password-change',
           onClick: () => {
             form.handleSubmit();
           },

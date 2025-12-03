@@ -73,6 +73,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       text: 'Add new device',
       iconLeft: 'add-device',
       loading: addPending,
+      testId: 'add-device',
       onClick: () => {
         openAdd();
       },
@@ -175,6 +176,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
             {
               text: 'Generate auth token',
               icon: 'token',
+              testId: 'generate-auth-token',
               onClick: async () => {
                 const { data: enrollment } = await api.network_device.startCliForDevice(
                   row.id,

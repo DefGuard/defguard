@@ -247,6 +247,7 @@ export const ProfileAuthCard = () => {
           variant="outlined"
           iconLeft="lock-open"
           text={m.profile_auth_card_password_change()}
+          testId='change-password'
           onClick={() => {
             // open admin form only if admin and is not editing self
             openModal('changePassword', {

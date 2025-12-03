@@ -5,6 +5,7 @@ import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
+import { expect } from 'playwright/test';
 
 // create user via default admin on separate context
 export const createUser = async (
@@ -30,23 +31,18 @@ export const createUser = async (
   await formElement.getByTestId('add-user-submit').click();
   await formElement.waitFor({ state: 'hidden', timeout: 2000 });
   if (groups) {
-    groups = groups.map((g) => g.toLocaleLowerCase());
-    await page.goto(routes.base + routes.admin.users + `/${user.username}`, {
-      waitUntil: 'networkidle',
-    });
-    await page.getByTestId('edit-user').click();
-    await page.waitForLoadState('networkidle');
-    await waitForPromise(2000);
-    await page.getByTestId('groups-select').locator('.select-container').click();
-    await waitForPromise(2000);
+    await page.goto(routes.base + routes.identity.users);
+    const userRow = page.locator('.virtual-row').filter({ hasText: user.username });
+    await userRow.locator('.icon-button').click();
+    await page.getByTestId('edit-groups').click();
     for (const group of groups) {
-      await page
-        .locator('.select-floating-ui')
-        .locator('.options-container')
-        .locator(`button >> span:has-text("${group}")`)
-        .click();
+      await page.locator('.item:has-text("' + group + '") .checkbox').click();
     }
-    await page.getByTestId('user-edit-save').click();
+    await page.locator('button:has-text("Submit")').click();
+
+    for (const group of groups) {
+      await expect(userRow).toContainText(group);
+    }
   }
   await context.close();
 };

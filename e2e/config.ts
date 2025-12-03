@@ -32,6 +32,7 @@ export const routes = {
   profile: '/user/',
   locations: '/locations',
   network_devices: '/network-devices',
+  openid_apps: '/openid',
   identity: {
     users: '/users',
     groups: '/groups',

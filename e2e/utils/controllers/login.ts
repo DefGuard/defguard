@@ -57,11 +57,13 @@ export const loginRecoveryCodes = async (
   await page.getByTestId('field-username').fill(userInfo.username);
   await page.getByTestId('field-password').fill(userInfo.password);
   await page.getByTestId('sign-in').click();
-  await waitForRoute(page, routes.auth.totp);
-  await page.goto(routes.base + routes.auth.recovery, {
-    waitUntil: 'networkidle',
-  });
+  await page.locator('a:has-text("Use recovery codes instead")').click();
+  await waitForPromise(1000);
   await page.getByTestId('field-code').clear();
-  await page.getByTestId('field-code').fill(code.trim(), { delay: 100 });
+  await page.getByTestId('field-code').fill(code.trim());
   await page.getByTestId('submit-recovery-code').click();
+  await waitForPromise(1000);
+  expect(page.url()).toBe(
+    routes.base + routes.profile + userInfo.username + '?tab=details',
+  );
 };

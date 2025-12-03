@@ -67,11 +67,13 @@ test.describe('Test user authentication', () => {
     if (!recoveryCodes) return;
     expect(recoveryCodes?.length > 0).toBeTruthy();
     await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 
   test('Login with Email TOTP', async ({ page, browser }) => {
+    expect(true).toBe(false); // TODO: Do it when SMTP will be available to configure on dashboard / via api
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
@@ -92,10 +94,10 @@ test.describe('Test user authentication', () => {
     await disableUser(browser, testUser);
     await page.goto(routes.base);
     await waitForRoute(page, routes.auth.login);
-    await page.getByTestId('login-form-username').fill(testUser.username);
-    await page.getByTestId('login-form-password').fill(testUser.password);
+    await page.getByTestId('field-username').fill(testUser.username);
+    await page.getByTestId('field-password').fill(testUser.password);
+    await page.getByTestId('sign-in').click();
     const responsePromise = page.waitForResponse('**/auth');
-    await page.getByTestId('login-form-submit').click();
     const response = await responsePromise;
     expect(response.status()).toBe(401);
     expect(page.url()).toBe(routes.base + routes.auth.login);
@@ -105,17 +107,20 @@ test.describe('Test user authentication', () => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
     await disableUser(browser, testUser);
     const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
-    await page.locator('a[href="/me"]').click();
+    await page.getByTestId('avatar-icon').click();
+    await page.getByTestId('logout').click();
     await responsePromise;
   });
 });
 
 test.describe('Test password change', () => {
   let testUser: User;
+  const newPassword = 'MyNewPassword1!@#$';
 
   test.beforeEach(() => {
     dockerRestart();
@@ -126,24 +131,34 @@ test.describe('Test password change', () => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
-    testUser.password = await changePassword(page, testUser.password);
+    await page.getByTestId('change-password').click();
+    await page.getByTestId('field-current').fill(testUser.password);
+    await page.getByTestId('field-password').fill(newPassword);
+    await page.getByTestId('field-repeat').fill(newPassword);
+    await page.getByTestId('submit-password-change').click();
     await logout(page);
+    testUser.password = newPassword;
     await loginBasic(page, testUser);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 
   test('Change user password by admin', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, defaultUserAdmin);
-    const profileURL = routes.base + routes.admin.users + '/' + testUser.username;
-    await page.goto(profileURL);
-    await waitForRoute(page, profileURL);
-    testUser.password = await changePasswordByAdmin(page);
+    await page.goto(routes.base + routes.identity.users);
+    const userRow = page.locator('.virtual-row').filter({ hasText: testUser.username });
+    await userRow.locator('.icon-button').click();
+    await page.getByTestId('change-password').click();
+    await page.getByTestId('field-password').fill(newPassword);
+    await page.getByTestId('submit-password-change').click();
     await logout(page);
+    testUser.password = newPassword;
     await loginBasic(page, testUser);
-    await waitForRoute(page, routes.me);
-    expect(page.url()).toBe(routes.base + routes.me);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 });
