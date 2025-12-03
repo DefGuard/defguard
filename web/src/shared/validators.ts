@@ -111,30 +111,68 @@ export const Validate = {
     }
     return 0 < parsed && parsed <= 65535;
   },
-} as const;
-
-export const validateList = (
-  value: string,
-  validators: Array<(val: string) => boolean>,
-  splitWith = ',',
-): boolean => {
-  const items = value.replaceAll(' ', '').split(splitWith);
-
-  for (const item of items) {
-    let valid = false;
-    for (const validator of validators) {
-      if (validator(item)) {
-        valid = true;
-        break;
-      }
+  Empty: (val: string): boolean => {
+    if (val === '' || !val) {
+      return true;
     }
-    if (!valid) {
+    return false;
+  },
+  any: (
+    value: string | undefined,
+    validators: Array<(val: string) => boolean>,
+    max: number = 0,
+    splitWith = ',',
+  ): boolean => {
+    if (!value) {
+      return true;
+    }
+    const items = value.replaceAll(' ', '').split(splitWith);
+
+    if (max !== 0 && items.length > max) {
       return false;
     }
-  }
 
-  return true;
-};
+    for (const item of items) {
+      let valid = false;
+      for (const validator of validators) {
+        if (validator(item)) {
+          valid = true;
+          break;
+        }
+      }
+      if (!valid) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+  all: (
+    value: string | undefined,
+    validators: Array<(val: string) => boolean>,
+    max: number = 0,
+    splitWith = ',',
+  ): boolean => {
+    if (!value) {
+      return true;
+    }
+    const items = value.replaceAll(' ', '').split(splitWith);
+
+    if (max !== 0 && items.length > max) {
+      return false;
+    }
+
+    for (const item of items) {
+      for (const validator of validators) {
+        if (!validator(item)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  },
+} as const;
 
 export const numericString = (val: string) => /^\d+$/.test(val);
 

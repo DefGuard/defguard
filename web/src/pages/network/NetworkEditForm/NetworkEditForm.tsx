@@ -31,7 +31,7 @@ import {
 } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import { Validate, validateList } from '../../../shared/validators';
+import { Validate } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -121,18 +121,17 @@ export const NetworkEditForm = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine((val) => {
-            return validateList(val, [Validate.CIDRv4, Validate.CIDRv6]);
+            return Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6]);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((val) => {
-            if (val.split(',').length > 1) {
-              return false; // for now we can only accept one gateway address
-            }
-            return validateList(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]);
-          }, LL.form.error.endpoint()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], 1),
+            LL.form.error.endpoint(),
+          ),
         port: z
           .number({
             invalid_type_error: LL.form.error.required(),
@@ -141,24 +140,26 @@ export const NetworkEditForm = () => {
         allowed_ips: z
           .string()
           .trim()
-          .refine((val) => {
-            return validateList(val, [
-              Validate.CIDRv4,
-              Validate.IPv4,
-              Validate.CIDRv6,
-              Validate.IPv6,
-            ]);
-          }, LL.form.error.address()),
+          .optional()
+          .refine(
+            (val) =>
+              Validate.any(val, [
+                Validate.CIDRv4,
+                Validate.IPv4,
+                Validate.CIDRv6,
+                Validate.IPv6,
+                Validate.Empty,
+              ]),
+            LL.form.error.address(),
+          ),
         dns: z
           .string()
           .trim()
           .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateList(val, [Validate.IPv4, Validate.IPv6]);
-          }, LL.form.error.address()),
+          .refine(
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty]),
+            LL.form.error.address(),
+          ),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({

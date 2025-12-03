@@ -27,7 +27,7 @@ import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import type { SettingsSMTP } from '../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
-import { Validate, validateList } from '../../../../../../shared/validators';
+import { Validate } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 import { SmtpTestModal } from '../SmtpTest/SmtpTestModal';
 import { useSmtpTestModal } from '../SmtpTest/useSmtpTestModal';
@@ -111,12 +111,10 @@ export const SmtpSettingsForm = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateList(val, [Validate.IPv4, Validate.IPv6]);
-          }, LL.form.error.address()),
+          .refine(
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], 1),
+            LL.form.error.address(),
+          ),
         smtp_port: z
           .number({
             invalid_type_error: LL.form.error.required(),
