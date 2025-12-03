@@ -28,7 +28,7 @@ use tower::service_fn;
 
 use crate::common::{init_config, initialize_users};
 
-// pub mod mock_gateway;
+pub mod mock_gateway;
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,

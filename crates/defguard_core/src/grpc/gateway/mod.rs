@@ -32,17 +32,17 @@ pub mod client_state;
 pub(crate) mod handler;
 pub mod map;
 pub(crate) mod state;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
-const PEER_DISCONNECT_INTERVAL: u64 = 60;
+#[cfg(test)]
 pub(super) static TONIC_SOCKET: &str = "tonic.sock";
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
 /// If you want to use it inside the API context, use [`crate::AppState::send_wireguard_event`] instead
 pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending the following WireGuard event to the gateway: {event:?}");
+    debug!("Sending the following WireGuard event to Defguard Gateway: {event:?}");
     if let Err(err) = wg_tx.send(event) {
         error!("Error sending WireGuard event {err}");
     }

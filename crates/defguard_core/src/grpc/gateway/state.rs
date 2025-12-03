@@ -13,7 +13,6 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    // db::models::gateway::Gateway,
     grpc::MIN_GATEWAY_VERSION,
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
 };
@@ -37,19 +36,6 @@ pub struct GatewayState {
 }
 
 impl GatewayState {
-    // pub(crate) fn from_gateway(gateway: &Gateway<Id>, network_name: &str) -> Self {
-    //     Self {
-    //         id: gateway.id,
-    //         connected: gateway.is_connected(),
-    //         network_id: gateway.network_id,
-    //         network_name: network_name.to_owned(),
-    //         name: None, // TODO: remove
-    //         hostname: gateway.hostname.clone().unwrap_or_default(),
-    //         connected_at: gateway.connected_at,
-    //         disconnected_at: gateway.disconnected_at,
-    //     }
-    // }
-
     #[must_use]
     pub fn new<S: Into<String>>(
         network_id: Id,
