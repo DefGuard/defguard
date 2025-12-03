@@ -171,7 +171,7 @@ export type ModifyNetworkRequest = {
     Network,
     'gateways' | 'connected' | 'id' | 'connected_at' | 'allowed_ips'
   > & {
-    allowed_ips: string;
+    allowed_ips?: string;
   };
 };
 
