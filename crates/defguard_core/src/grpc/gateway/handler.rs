@@ -90,17 +90,7 @@ impl GatewayHandler {
         })
     }
 
-    fn get_network_id(metadata: &MetadataMap) -> Result<i64, Status> {
-        match Self::get_network_id_from_metadata(metadata) {
-            Some(m) => Ok(m),
-            None => Err(Status::new(
-                Code::Internal,
-                "Network ID was not found in metadata",
-            )),
-        }
-    }
-
-    // parse network id from gateway request metadata from intercepted information from JWT token
+    // Parse network ID from Gateway request metadata from intercepted information from JWT token.
     fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
         if let Some(ascii_value) = metadata.get("gateway_network_id") {
             if let Ok(slice) = ascii_value.clone().to_str() {
@@ -112,30 +102,28 @@ impl GatewayHandler {
         None
     }
 
-    // extract gateway hostname from request headers
-    fn get_gateway_hostname(metadata: &MetadataMap) -> Result<String, Status> {
+    // Extract Gateway hostname from request headers.
+    fn get_gateway_hostname(metadata: &MetadataMap) -> Option<String> {
         match metadata.get("hostname") {
             Some(ascii_value) => {
-                let hostname = ascii_value.to_str().map_err(|_| {
-                    Status::new(
-                        Code::Internal,
-                        "Failed to parse gateway hostname from request metadata",
-                    )
-                })?;
-                Ok(hostname.into())
+                let Ok(hostname) = ascii_value.to_str() else {
+                    error!("Failed to parse Gateway hostname from request metadata");
+                    return None;
+                };
+                Some(hostname.into())
             }
-            None => Err(Status::new(
-                Code::Internal,
-                "Gateway hostname not found in request metadata",
-            )),
+            None => {
+                error!("Gateway hostname not found in request metadata");
+                None
+            }
         }
     }
 
     /// Utility function extracting metadata fields during gRPC communication.
-    fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
+    fn extract_metadata(metadata: &MetadataMap) -> Option<GatewayMetadata> {
         let (version, _info) = version_info_from_metadata(metadata);
-        Ok(GatewayMetadata {
-            network_id: Self::get_network_id(metadata)?,
+        Some(GatewayMetadata {
+            network_id: 0, // FIXME: not needed; was Self::get_network_id_from_metadata(metadata)?,
             hostname: Self::get_gateway_hostname(metadata)?,
             version,
         })
@@ -364,21 +352,20 @@ impl GatewayHandler {
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
                 Err(err) => {
-                    error!("Failed to connect to gateway {uri}, retrying: {err}");
+                    error!("Failed to connect to Gateway {uri}, retrying: {err}");
                     sleep(TEN_SECS).await;
                     continue;
                 }
             };
 
             info!("Connected to Defguard Gateway {uri}");
-            let Ok(GatewayMetadata {
-                network_id,
-                hostname,
-                ..
-                // info,
-            }) = Self::extract_metadata(response.metadata()) else {
-                continue;
-            };
+            // Metadata isn't needed in reversed communication. TODO: remove, but only check version.
+            // let Some(GatewayMetadata {
+            //     hostname,
+            // }) = Self::extract_metadata(response.metadata()) else {
+            //     error!("Failed to extract metadata");
+            //     continue;
+            // };
 
             let mut resp_stream = response.into_inner();
             let mut config_sent = false;
