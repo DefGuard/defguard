@@ -301,6 +301,7 @@ export const NetworkEditForm = () => {
         id: selectedNetworkId,
         network: {
           ...values,
+          allowed_ips: values.allowed_ips || '',
         },
       });
     }
