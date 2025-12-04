@@ -1,6 +1,9 @@
 name: E2E tests
 
 on:
+  push:
+    branches:
+      - validators_fix
   workflow_call:
 
 permissions:
