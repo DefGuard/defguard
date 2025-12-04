@@ -28,6 +28,7 @@ import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorize
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
+import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_authorized/_default/settings/index'
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
@@ -130,6 +131,12 @@ const AuthorizedDefaultVpnOverviewIndexRoute =
     path: '/vpn-overview/',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsIndexRoute =
+  AuthorizedDefaultSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsIndexRoute =
   AuthorizedDefaultLocationsIndexRouteImport.update({
     id: '/locations/',
@@ -175,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
@@ -198,6 +206,7 @@ export interface FileRoutesByTo {
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
+    | '/settings'
     | '/vpn-overview'
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
+    | '/settings'
     | '/vpn-overview'
     | '/locations/$locationId/edit'
   id:
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
+    | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
     | '/_authorized/_default/locations/$locationId/edit'
   fileRoutesById: FileRoutesById
@@ -446,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultVpnOverviewIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/': {
+      id: '/_authorized/_default/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
@@ -486,6 +506,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
+  AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
@@ -500,6 +521,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
   AuthorizedDefaultLocationsIndexRoute: AuthorizedDefaultLocationsIndexRoute,
+  AuthorizedDefaultSettingsIndexRoute: AuthorizedDefaultSettingsIndexRoute,
   AuthorizedDefaultVpnOverviewIndexRoute:
     AuthorizedDefaultVpnOverviewIndexRoute,
   AuthorizedDefaultLocationsLocationIdEditRoute:
