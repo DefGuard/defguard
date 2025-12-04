@@ -117,7 +117,7 @@ export const WizardNetworkConfiguration = () => {
           .min(1, LL.form.error.required())
           .refine(
             (val) =>
-              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], 1),
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], true),
             LL.form.error.endpoint(),
           ),
         port: z
@@ -131,13 +131,17 @@ export const WizardNetworkConfiguration = () => {
           .trim()
           .refine(
             (val) =>
-              Validate.any(val, [
-                Validate.CIDRv4,
-                Validate.IPv4,
-                Validate.CIDRv6,
-                Validate.IPv6,
-                Validate.Empty,
-              ]),
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
             LL.form.error.address(),
           ),
         dns: z
@@ -145,7 +149,8 @@ export const WizardNetworkConfiguration = () => {
           .trim()
           .optional()
           .refine(
-            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty]),
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
             LL.form.error.address(),
           ),
         allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),

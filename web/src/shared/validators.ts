@@ -7,6 +7,7 @@ import {
   ipv4WithPortPattern,
   patternValidWireguardKey,
 } from './patterns';
+import { BlobOptions } from 'buffer';
 
 export const validateWireguardPublicKey = (props: {
   requiredError: string;
@@ -120,7 +121,7 @@ export const Validate = {
   any: (
     value: string | undefined,
     validators: Array<(val: string) => boolean>,
-    max: number = 0,
+    allowList: boolean = false,
     splitWith = ',',
   ): boolean => {
     if (!value) {
@@ -128,7 +129,7 @@ export const Validate = {
     }
     const items = value.replaceAll(' ', '').split(splitWith);
 
-    if (max !== 0 && items.length > max) {
+    if (items.length > 1 && !allowList) {
       return false;
     }
 
@@ -150,7 +151,7 @@ export const Validate = {
   all: (
     value: string | undefined,
     validators: Array<(val: string) => boolean>,
-    max: number = 0,
+    allowList: boolean = false,
     splitWith = ',',
   ): boolean => {
     if (!value) {
@@ -158,10 +159,9 @@ export const Validate = {
     }
     const items = value.replaceAll(' ', '').split(splitWith);
 
-    if (max !== 0 && items.length > max) {
+    if (items.length > 1 && !allowList) {
       return false;
     }
-
     for (const item of items) {
       for (const validator of validators) {
         if (!validator(item)) {

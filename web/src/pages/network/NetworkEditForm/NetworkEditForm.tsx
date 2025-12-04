@@ -121,15 +121,14 @@ export const NetworkEditForm = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine((val) => {
-            return Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6]);
+            return Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) =>
-              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], 1),
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
             LL.form.error.endpoint(),
           ),
         port: z
@@ -143,13 +142,17 @@ export const NetworkEditForm = () => {
           .optional()
           .refine(
             (val) =>
-              Validate.any(val, [
-                Validate.CIDRv4,
-                Validate.IPv4,
-                Validate.CIDRv6,
-                Validate.IPv6,
-                Validate.Empty,
-              ]),
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
             LL.form.error.address(),
           ),
         dns: z
@@ -157,7 +160,8 @@ export const NetworkEditForm = () => {
           .trim()
           .optional()
           .refine(
-            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty]),
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
             LL.form.error.address(),
           ),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),

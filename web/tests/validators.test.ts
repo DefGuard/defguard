@@ -199,3 +199,103 @@ describe('Validate.Port', () => {
     expect(Validate.Port('-1')).toBe(false);
   });
 });
+
+describe('Validate.any', () => {
+  it('should accept single valid value matching any validator', () => {
+    expect(Validate.any('192.168.1.1', [Validate.IPv4, Validate.IPv6])).toBe(true);
+    expect(Validate.any('2001:db8::1', [Validate.IPv4, Validate.IPv6])).toBe(true);
+    expect(Validate.any('example.com', [Validate.Domain, Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject single value not matching any validator', () => {
+    expect(Validate.any('invalid', [Validate.IPv4, Validate.IPv6])).toBe(false);
+    expect(Validate.any('256.1.1.1', [Validate.IPv4, Validate.IPv6])).toBe(false);
+  });
+
+  it('should reject multiple values when allowList is false (default)', () => {
+    expect(Validate.any('192.168.1.1,10.0.0.1', [Validate.IPv4])).toBe(false);
+    expect(Validate.any('example.com,test.com', [Validate.Domain])).toBe(false);
+  });
+
+  it('should accept multiple valid values when allowList is true', () => {
+    expect(Validate.any('192.168.1.1,10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(
+      Validate.any('192.168.1.1,2001:db8::1', [Validate.IPv4, Validate.IPv6], true),
+    ).toBe(true);
+    expect(Validate.any('example.com,test.org', [Validate.Domain], true)).toBe(true);
+  });
+
+  it('should reject list with any invalid value when allowList is true', () => {
+    expect(Validate.any('192.168.1.1,invalid', [Validate.IPv4], true)).toBe(false);
+    expect(Validate.any('192.168.1.1,256.1.1.1', [Validate.IPv4], true)).toBe(false);
+  });
+
+  it('should handle mixed valid values with allowList', () => {
+    expect(
+      Validate.any(
+        '192.168.1.1,2001:db8::1,10.0.0.1',
+        [Validate.IPv4, Validate.IPv6],
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      Validate.any('example.com,192.168.1.1', [Validate.Domain, Validate.IPv4], true),
+    ).toBe(true);
+  });
+
+  it('should handle custom split character', () => {
+    expect(Validate.any('192.168.1.1;10.0.0.1', [Validate.IPv4], true, ';')).toBe(true);
+    expect(Validate.any('192.168.1.1|10.0.0.1', [Validate.IPv4], true, '|')).toBe(true);
+  });
+
+  it('should handle whitespace in list', () => {
+    expect(Validate.any('192.168.1.1, 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(Validate.any('192.168.1.1 , 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+  });
+
+  it('should accept empty string with Empty validator in list', () => {
+    expect(Validate.any('', [Validate.IPv4, Validate.Empty], true)).toBe(true);
+  });
+});
+
+describe('Validate.all', () => {
+  it('should accept single value matching all validators', () => {
+    expect(Validate.all('192.168.1.1', [Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject single value not matching all validators', () => {
+    expect(Validate.all('192.168.1.1', [Validate.IPv4, Validate.IPv6])).toBe(false);
+    expect(Validate.all('invalid', [Validate.IPv4])).toBe(false);
+  });
+
+  it('should accept empty string or undefined', () => {
+    expect(Validate.all('', [Validate.IPv4])).toBe(true);
+    expect(Validate.all(undefined, [Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject multiple values when allowList is false (default)', () => {
+    expect(Validate.all('192.168.1.1,10.0.0.1', [Validate.IPv4])).toBe(false);
+  });
+
+  it('should accept multiple valid values when allowList is true', () => {
+    expect(Validate.all('192.168.1.1,10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(Validate.all('example.com,test.org', [Validate.Domain], true)).toBe(true);
+  });
+
+  it('should reject if any value does not match all validators when allowList is true', () => {
+    expect(Validate.all('192.168.1.1,invalid', [Validate.IPv4], true)).toBe(false);
+    expect(Validate.all('192.168.1.1,256.1.1.1', [Validate.IPv4], true)).toBe(false);
+  });
+
+  it('should handle custom split character', () => {
+    expect(Validate.all('192.168.1.1;10.0.0.1', [Validate.IPv4], true, ';')).toBe(true);
+    expect(Validate.all('192.168.1.1|10.0.0.1', [Validate.IPv4], true, '|')).toBe(true);
+  });
+
+  it('should handle whitespace in list', () => {
+    expect(Validate.all('192.168.1.1, 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(
+      Validate.all('192.168.1.1 , 10.0.0.1 , 172.16.0.1', [Validate.IPv4], true),
+    ).toBe(true);
+  });
+});

@@ -71,8 +71,7 @@ export const WizardNetworkImport = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) =>
-              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], 1),
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
             LL.form.error.endpoint(),
           ),
         fileName: z.string().trim().min(1, LL.form.error.required()),
