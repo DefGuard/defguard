@@ -112,7 +112,13 @@ export const SmtpSettingsForm = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty]),
+            (val) =>
+              Validate.any(val, [
+                Validate.IPv4,
+                Validate.IPv6,
+                Validate.Domain,
+                Validate.Empty,
+              ]),
             LL.form.error.address(),
           ),
         smtp_port: z
