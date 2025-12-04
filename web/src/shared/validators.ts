@@ -7,7 +7,6 @@ import {
   ipv4WithPortPattern,
   patternValidWireguardKey,
 } from './patterns';
-import { BlobOptions } from 'buffer';
 
 export const validateWireguardPublicKey = (props: {
   requiredError: string;
