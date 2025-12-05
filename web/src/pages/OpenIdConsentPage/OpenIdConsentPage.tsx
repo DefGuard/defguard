@@ -46,7 +46,11 @@ export const OpenIdConsentPage = () => {
         )}
       </ul>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <Button text={m.controls_accept()} onClick={() => handleClick(true)} />
+      <Button
+        text={m.controls_accept()}
+        testId="accept-openid"
+        onClick={() => handleClick(true)}
+      />
       <SizedBox height={ThemeSpacing.Md} />
       <Button
         variant="critical"

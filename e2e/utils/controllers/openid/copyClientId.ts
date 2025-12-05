@@ -10,9 +10,10 @@ export const copyOpenIdClientId = async (browser: Browser, clientId: number) => 
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.openid, { waitUntil: 'networkidle' });
-  await page.getByTestId(`edit-openid-client-${clientId}`).click();
-  await page.getByTestId('copy-openid-client-id').click();
+  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'networkidle' });
+  const deviceRow = page.locator('.virtual-row').nth(clientId - 1);
+  await deviceRow.locator('.icon-button').click();
+  await page.getByTestId('copy-id').click();
   const id = await getPageClipboard(page);
   return id;
 };

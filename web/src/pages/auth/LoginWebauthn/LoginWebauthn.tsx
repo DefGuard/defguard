@@ -39,6 +39,7 @@ export const LoginWebauthn = () => {
         variant="primary"
         text={m.login_mfa_passkey_button()}
         onClick={() => mutate()}
+        testId="login-with-passkey"
         loading={isPending}
       />
       <MfaLinks />

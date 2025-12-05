@@ -15,7 +15,8 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('add-regular-location').click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.address); //TODO: Change to network.endpoint
+  await page.getByTestId('field-address').fill(network.endpoint + '/24'); //FIXME: after frontend is fixed remove "/24"
+  await page.getByTestId('field-port').fill(network.port);
   await page.getByTestId('continue').click();
 
   await page.getByTestId('field-endpoint').fill(network.address);
@@ -66,7 +67,9 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('add-service-location').click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.address); //TODO: Change to network.endpoint
+  await page.getByTestId('field-address').fill(network.endpoint + '/24'); //FIXME: after frontend is fixed remove "/24"
+  await page.getByTestId('field-port').fill(network.port);
+
   await page.getByTestId('continue').click();
 
   await page.getByTestId('field-endpoint').fill(network.address);

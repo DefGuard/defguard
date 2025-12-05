@@ -57,28 +57,17 @@ export const apiCreateUsersBulk = async (page: Page, users: User[]): Promise<voi
 
 export const apiCreateUser = async (page: Page, user: User): Promise<void> => {
   const url = testsConfig.CORE_BASE_URL + '/user';
-  await page.evaluate(
-    async ({ user, url }) => {
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access-control-allow-origin': '*',
-        },
-        body: JSON.stringify({
-          username: user.username,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          email: user.mail,
-          phone: user.phone,
-          password: user.password,
-        }),
-      };
-      await fetch(url, options);
+  await page.request.post(url, {
+    data: {
+      username: user.username,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.mail,
+      phone: user.phone,
+      password: user.password,
     },
-    {
-      user,
-      url,
+    headers: {
+      'Content-Type': 'application/json',
     },
-  );
+  });
 };

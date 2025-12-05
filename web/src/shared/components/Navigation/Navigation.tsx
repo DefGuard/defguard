@@ -58,7 +58,7 @@ const navigationConfig: NavGroupProps[] = [
         icon: 'groups',
         label: m.cmp_nav_item_groups(),
         link: '/groups',
-        testId: 'groups'
+        testId: 'groups',
       },
     ],
   },
@@ -142,7 +142,7 @@ const NavGroup = ({ items, label }: NavGroupProps) => {
   );
 };
 
-const NavItem = ({ icon, link, label,testId }: NavItemProps) => {
+const NavItem = ({ icon, link, label, testId }: NavItemProps) => {
   return (
     <Link to={link} className="nav-item" data-testid={testId}>
       <Icon icon={icon} />

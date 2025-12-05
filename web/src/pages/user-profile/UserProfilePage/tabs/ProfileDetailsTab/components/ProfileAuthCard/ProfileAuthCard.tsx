@@ -180,6 +180,7 @@ export const ProfileAuthCard = () => {
     items.push({
       text: m.profile_auth_card_add_passkey(),
       icon: 'plus-circle',
+      testId: 'add-passkey',
       onClick: () => openModal(ModalName.WebauthnSetup),
     });
     if (securityKeys.length) {
@@ -247,7 +248,7 @@ export const ProfileAuthCard = () => {
           variant="outlined"
           iconLeft="lock-open"
           text={m.profile_auth_card_password_change()}
-          testId='change-password'
+          testId="change-password"
           onClick={() => {
             // open admin form only if admin and is not editing self
             openModal('changePassword', {
@@ -272,7 +273,7 @@ export const ProfileAuthCard = () => {
           title={m.profile_auth_card_2fa_totp()}
           enabled={user.totp_enabled}
           menu={totpMenuItems}
-          testId='totp-row'
+          testId="totp-row"
         />
         <Divider />
         {smtpEnabled && (
@@ -295,6 +296,7 @@ export const ProfileAuthCard = () => {
           enabled={securityKeys.length > 0}
           isDefault={user.mfa_method === 'Webauthn'}
           menu={webauthnMenuItems}
+          testId="passkeys-row"
         />
         {securityKeys.length > 0 && (
           <div className="webauthn-keys">

@@ -65,7 +65,12 @@ const ModalContent = ({ enrollment }: ModalData) => {
         Command Line Client.
       </AppText>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <CopyField data-testid='copy-field' label="Command" text={command} copyTooltip={m.misc_clipboard_copy()} />
+      <CopyField
+        data-testid="copy-field"
+        label="Command"
+        text={command}
+        copyTooltip={m.misc_clipboard_copy()}
+      />
       <ModalControls
         submitProps={{
           text: m.controls_close(),

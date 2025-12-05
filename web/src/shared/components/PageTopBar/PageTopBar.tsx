@@ -128,7 +128,11 @@ const ProfileMenu = () => {
 
   return (
     <>
-      <Avatar data-testid='avatar-icon' ref={refs.setReference} {...getReferenceProps()} />
+      <Avatar
+        data-testid="avatar-icon"
+        ref={refs.setReference}
+        {...getReferenceProps()}
+      />
       {isOpen && (
         <Menu
           ref={refs.setFloating}

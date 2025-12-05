@@ -14,6 +14,7 @@ import { disableUser } from '../../utils/controllers/toggleUserState';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { waitForRoute } from '../../utils/waitForRoute';
+import { enableSecurityKey } from '../../utils/controllers/mfa/enableSecurityKey';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -116,6 +117,54 @@ test.describe('Test user authentication', () => {
     await page.getByTestId('avatar-icon').click();
     await page.getByTestId('logout').click();
     await responsePromise;
+  });
+
+  test('Create user and log in with security key', async ({ page, browser, context }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    const { credentialId, rpId, privateKey, userHandle } = await enableSecurityKey(
+      browser,
+      testUser,
+      'key_name',
+    );
+    await page.goto(routes.base);
+    await waitForRoute(page, routes.auth.login);
+    await page.getByTestId('field-username').fill(testUser.username);
+    await page.getByTestId('field-password').fill(testUser.password);
+    await page.getByTestId('sign-in').click();
+    await page.waitForTimeout(1000);
+
+    const authenticator = await context.newCDPSession(page);
+    await authenticator.send('WebAuthn.enable');
+    const { authenticatorId: loginAuthenticatorId } = await authenticator.send(
+      'WebAuthn.addVirtualAuthenticator',
+      {
+        options: {
+          protocol: 'ctap2',
+          transport: 'usb',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+        },
+      },
+    );
+
+    await authenticator.send('WebAuthn.addCredential', {
+      authenticatorId: loginAuthenticatorId,
+      credential: {
+        credentialId,
+        isResidentCredential: true,
+        rpId,
+        privateKey,
+        userHandle,
+        signCount: 1,
+      },
+    });
+    await page.getByTestId('login-with-passkey').click();
+    await page.waitForTimeout(2000);
+    await expect(page.url()).toBe(
+      routes.base + routes.profile + testUser.username + '?tab=details',
+    );
   });
 });
 

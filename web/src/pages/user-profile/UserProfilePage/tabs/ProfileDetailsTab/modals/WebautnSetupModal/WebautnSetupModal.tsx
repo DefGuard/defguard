@@ -131,6 +131,7 @@ const ModalContent = () => {
           onClick: () => closeModal(modalNameKey),
         }}
         submitProps={{
+          testId: 'submit',
           text: m.controls_submit(),
           onClick: () => form.handleSubmit(),
           loading: isSubmitting,
