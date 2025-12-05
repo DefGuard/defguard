@@ -9,6 +9,7 @@ type Values = {
   isAuthenticated: boolean;
   user?: User;
   mfaLogin?: LoginMfaResponse;
+  consentData?: unknown;
 };
 
 type Methods = {
