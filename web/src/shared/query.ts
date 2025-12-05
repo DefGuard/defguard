@@ -107,3 +107,9 @@ export const getWebhooksQueryOptions = queryOptions({
   queryKey: ['webhook'],
   select: (resp) => resp.data,
 });
+
+export const getSettingsQueryOptions = queryOptions({
+  queryFn: api.settings.getSettings,
+  queryKey: ['settings'],
+  select: (resp) => resp.data,
+});

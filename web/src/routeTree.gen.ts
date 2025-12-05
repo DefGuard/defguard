@@ -32,6 +32,7 @@ import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_au
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
+import { Route as AuthorizedDefaultSettingsSmtpRouteImport } from './routes/_authorized/_default/settings/smtp'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
 const ConsentRoute = ConsentRouteImport.update({
@@ -155,6 +156,12 @@ const AuthorizedDefaultUserUsernameRoute =
     path: '/user/$username',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsSmtpRoute =
+  AuthorizedDefaultSettingsSmtpRouteImport.update({
+    id: '/settings/smtp',
+    path: '/settings/smtp',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
   AuthorizedDefaultLocationsLocationIdEditRouteImport.update({
     id: '/locations/$locationId/edit',
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
@@ -203,6 +211,7 @@ export interface FileRoutesByTo {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
@@ -230,6 +239,7 @@ export interface FileRoutesById {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_authorized/_default/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
@@ -306,6 +318,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_authorized/_default/settings/smtp'
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
@@ -487,6 +500,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultUserUsernameRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/smtp': {
+      id: '/_authorized/_default/settings/smtp'
+      path: '/settings/smtp'
+      fullPath: '/settings/smtp'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsSmtpRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/$locationId/edit': {
       id: '/_authorized/_default/locations/$locationId/edit'
       path: '/locations/$locationId/edit'
@@ -503,6 +523,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
+  AuthorizedDefaultSettingsSmtpRoute: typeof AuthorizedDefaultSettingsSmtpRoute
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
@@ -517,6 +538,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
+  AuthorizedDefaultSettingsSmtpRoute: AuthorizedDefaultSettingsSmtpRoute,
   AuthorizedDefaultUserUsernameRoute: AuthorizedDefaultUserUsernameRoute,
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,

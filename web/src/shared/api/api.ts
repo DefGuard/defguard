@@ -50,6 +50,8 @@ import type {
   OpenIdClient,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  Settings,
+  SettingsEnterprise,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
   TotpInitResponse,
@@ -310,6 +312,14 @@ const api = {
         device,
       };
     },
+  },
+  settings: {
+    getSettings: () => client.get<Settings>('/settings'),
+    editSettings: (data: Settings) => client.put('/settings', data),
+    patchSettings: (data: Partial<Settings>) => client.patch('/settings', data),
+    getEnterpriseSettings: () => client.get<SettingsEnterprise>('/settings_enterprise'),
+    patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
+      client.patch('/settings_enterprise', data),
   },
 } as const;
 
