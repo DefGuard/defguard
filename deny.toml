@@ -110,34 +110,34 @@ confidence-threshold = 0.8
 # aren't accepted for every possible crate as with the normal allow list
 exceptions = [
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_common" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_core" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_mail" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_proto" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_web_ui" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_event_router" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_event_logger" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_version" },
     { allow = [
-        "AGPL-3.0-only",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "model_derive" },
 ]
 

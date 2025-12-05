@@ -1,0 +1,37 @@
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - "release/**"
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+  pull_request:
+    branches:
+      - main
+      - dev
+      - "release/**"
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+
+jobs:
+  test-web:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: install deps
+        working-directory: ./web
+        run: |
+          npm i -g npm pnpm
+          pnpm i --frozen-lockfile
+      - name: Run tests
+        working-directory: ./web
+        run: pnpm run test

@@ -26,11 +26,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { LocationMfaMode, ServiceLocationMode } from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../../shared/validators';
+import { Validate } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -111,15 +107,17 @@ export const WizardNetworkConfiguration = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((value) => {
-            return validateIpList(value, ',', true);
-          }, LL.form.error.addressNetmask()),
+          .refine(
+            (val) => Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6]),
+            LL.form.error.addressNetmask(),
+          ),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => validateIpOrDomain(val, false, true),
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], true),
             LL.form.error.endpoint(),
           ),
         port: z
@@ -128,17 +126,33 @@ export const WizardNetworkConfiguration = () => {
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
-        allowed_ips: z.string().trim(),
+        allowed_ips: z
+          .string()
+          .trim()
+          .refine(
+            (val) =>
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
+            LL.form.error.address(),
+          ),
         dns: z
           .string()
           .trim()
           .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpOrDomainList(val, ',', true);
-          }, LL.form.error.allowedIps()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
+            LL.form.error.address(),
+          ),
         allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
