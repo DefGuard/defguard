@@ -4,18 +4,24 @@ import { cloneDeep, omit } from 'lodash-es';
 import { useCallback, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useLocationsPageStore } from '../../LocationsPage/hooks/useLocationsPage';
+import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 type Choice = 'disable' | 'enabled-allowed' | 'enabled-denied';
 
 export const AddLocationFirewallStep = () => {
+  const [showGateway, setShowGateway] = useState(false);
   const [state, setState] = useState<Choice>('disable');
   const navigate = useNavigate();
 
@@ -24,7 +30,12 @@ export const AddLocationFirewallStep = () => {
     meta: {
       invalidate: ['network'],
     },
-    onSuccess: () => {
+    onSuccess: ({ data }) => {
+      if (showGateway) {
+        useLocationsPageStore.setState({
+          networkGatewayStartup: data.id,
+        });
+      }
       navigate({ to: '/locations', replace: true }).then(() => {
         setTimeout(() => {
           useAddLocationStore.getState().reset();
@@ -83,9 +94,23 @@ export const AddLocationFirewallStep = () => {
         }}
         text="All traffic not explicitly allowed by an ACL rule will be blocked."
       />
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <ActionCard
+        imageSrc={actionCardImage}
+        title="Activate location by setting up gateway"
+        subtitle="To activate your location, you must add at least one gateway connection. You can do this immediately after creation or later in the location settings."
+      >
+        <Checkbox
+          text="Run the gateway activation wizard once the location is created"
+          active={showGateway}
+          onClick={() => {
+            setShowGateway((s) => !s);
+          }}
+        />
+      </ActionCard>
       <ModalControls
         submitProps={{
-          text: m.controls_continue(),
+          text: 'Create location',
           loading: isPending,
           onClick: () => {
             handleSubmit();
@@ -99,7 +124,7 @@ export const AddLocationFirewallStep = () => {
           onClick={() => {
             saveChanges(state);
             useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.NetworkSettings,
+              activeStep: AddLocationPageStep.AccessControl,
             });
           }}
         />

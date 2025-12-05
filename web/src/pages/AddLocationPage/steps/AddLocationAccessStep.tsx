@@ -55,7 +55,16 @@ export const AddLocationAccessStep = () => {
           },
         }}
       >
-        <Button variant="outlined" text={m.controls_back()} />
+        <Button
+          variant="outlined"
+          text={m.controls_back()}
+          onClick={() => {
+            saveChanges(selected);
+            useAddLocationStore.setState({
+              activeStep: AddLocationPageStep.Mfa,
+            });
+          }}
+        />
       </ModalControls>
     </WizardCard>
   );

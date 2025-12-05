@@ -9,6 +9,7 @@ import { NavLogo } from './assets/NavLogo';
 import './style.scss';
 import { Link, type LinkProps } from '@tanstack/react-router';
 import { Fold } from '../../defguard-ui/components/Fold/Fold';
+import { useTheme } from '../../hooks/theme/useTheme';
 
 interface NavGroupProps {
   id: string;
@@ -86,6 +87,18 @@ const navigationConfig: NavGroupProps[] = [
       },
     ],
   },
+  {
+    id: 'admin',
+    label: m.cmp_nav_group_admin(),
+    items: [
+      {
+        id: 'settings',
+        icon: 'settings',
+        label: m.cmp_nav_item_settings(),
+        link: '/settings',
+      },
+    ],
+  },
 ];
 
 export const Navigation = () => {
@@ -113,7 +126,9 @@ export const Navigation = () => {
           <NavGroup key={group.id} {...group} />
         ))}
       </div>
-      <div className="bottom"></div>
+      <div className="bottom">
+        <NavControls />
+      </div>
     </div>
   );
 };
@@ -148,5 +163,24 @@ const NavItem = ({ icon, link, label, testId }: NavItemProps) => {
       <Icon icon={icon} />
       <span>{label}</span>
     </Link>
+  );
+};
+
+const NavControls = () => {
+  const { theme, changeTheme } = useTheme();
+
+  return (
+    <div className="nav-controls">
+      <IconButton
+        icon={theme === 'light' ? 'light-theme' : 'dark-theme'}
+        onClick={() => {
+          if (theme === 'light') {
+            changeTheme('dark');
+          } else {
+            changeTheme('light');
+          }
+        }}
+      />
+    </div>
   );
 };

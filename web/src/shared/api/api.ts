@@ -277,7 +277,8 @@ const api = {
             : undefined,
         },
       }),
-    addLocation: (data: EditNetworkLocation) => client.post('/network', data),
+    addLocation: (data: EditNetworkLocation) =>
+      client.post<NetworkLocation>('/network', data),
     editLocation: ({ id, data }: EditNetworkLocationRequest) =>
       client.put(`/network/${id}`, data),
   },

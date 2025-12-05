@@ -97,7 +97,7 @@ export const AddLocationMfaStep = () => {
           text={m.controls_back()}
           onClick={() => {
             useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.Firewall,
+              activeStep: AddLocationPageStep.NetworkSettings,
               peer_disconnect_threshold: disconnect ?? 300,
               location_mfa_mode: choice,
             });

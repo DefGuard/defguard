@@ -19,7 +19,7 @@ const formSchema = z.object({
     .string(m.form_error_required())
     .trim()
     .min(1, m.form_error_required())
-    .refine((value) => validateIpList(value, ',', true), m.form_error_invalid()),
+    .refine((value) => validateIpList(value, ',', false), m.form_error_invalid()),
   port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
 });
 
@@ -68,15 +68,13 @@ export const AddLocationStartStep = () => {
           <DescriptionBlock title="Gateway address">
             <p>
               {
-                'The VPN network will be derived from this address (e.g., 10.10.10.1/24 → 10.10.10.0/24). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
+                'The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
               }
             </p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="address">
-            {(field) => (
-              <field.FormInput required label={'Gateway VPN IP address and netmask'} />
-            )}
+            {(field) => <field.FormInput required label={'Gateway VPN IP address'} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="port">

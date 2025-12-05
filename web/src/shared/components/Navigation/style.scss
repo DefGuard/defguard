@@ -42,7 +42,17 @@
   }
 
   & > .bottom {
+    width: 100%;
     margin-top: auto;
+    box-sizing: border-box;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    flex: none;
+    border-top: var(--border-1) solid var(--border-disabled);
+    column-gap: var(--spacing-md);
   }
 }
 
