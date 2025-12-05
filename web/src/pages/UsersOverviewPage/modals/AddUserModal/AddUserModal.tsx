@@ -214,7 +214,7 @@ const EnrollmentChoice = () => {
         image="self-enrollment"
         title={m.modal_add_user_choice_enroll_title()}
         content={m.modal_add_user_choice_enroll_content()}
-        testId="add-user-self-enrollment"
+        data-testid="add-user-self-enrollment"
         onClick={() => {
           useAddUserModal.setState({
             step: 'user',
