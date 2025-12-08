@@ -12,6 +12,7 @@ use crate::{
         models::{
             ModelError,
             group::{Group, Permission},
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
@@ -1035,6 +1036,23 @@ impl WireguardNetwork<Id> {
             result.rows_affected(),
         );
         Ok(())
+    }
+
+    /// Fetch all active VPN client sessions
+    pub async fn get_active_vpn_sessions<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<VpnClientSession<Id>>, SqlxError> {
+        query_as!(
+            VpnClientSession,
+            "SELECT id, location_id, user_id, device_id, \
+            created_at, connected_at, disconnected_at, mfa, state \"state: VpnClientSessionState\" \
+            FROM vpn_client_session \
+            WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 

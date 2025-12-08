@@ -4,9 +4,10 @@ use sqlx::Type;
 
 use crate::db::{Id, NoId};
 
-#[derive(Type)]
+#[derive(Default, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
 pub enum VpnClientSessionState {
+    #[default]
     New,
     Connected,
     Disconnected,
@@ -25,5 +26,6 @@ pub struct VpnClientSession<I = NoId> {
     pub connected_at: NaiveDateTime,
     pub disconnected_at: NaiveDateTime,
     pub mfa: bool,
+    #[model(enum)]
     pub state: VpnClientSessionState,
 }
