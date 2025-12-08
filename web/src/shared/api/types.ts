@@ -628,3 +628,64 @@ export type Settings = SettingsBranding &
   SettingsOpenID &
   SettingsEnrollment &
   SettingsSMTP;
+
+export interface OpenIdProviderSettings {
+  create_account: boolean;
+  username_handling: OpenIdProviderUsernameHandlingValue;
+}
+
+export const DirectorySyncBehavior = {
+  Keep: 'keep',
+  Disable: 'disable',
+  Delete: 'delete',
+} as const;
+
+export type DirectorySyncBehaviorValue =
+  (typeof DirectorySyncBehavior)[keyof typeof DirectorySyncBehavior];
+
+export const DirectorySyncTarget = {
+  All: 'all',
+  Users: 'users',
+  Groups: 'groups',
+} as const;
+
+export type DirectorySyncTargetValue =
+  (typeof DirectorySyncTarget)[keyof typeof DirectorySyncTarget];
+
+export const OpenIdProviderUsernameHandling = {
+  RemoveForbidden: 'RemoveForbidden',
+  ReplaceForbidden: 'ReplaceForbidden',
+  PruneEmailDomain: 'PruneEmailDomain',
+} as const;
+
+export type OpenIdProviderUsernameHandlingValue =
+  (typeof OpenIdProviderUsernameHandling)[keyof typeof OpenIdProviderUsernameHandling];
+
+export interface OpenIdProvider {
+  id: number;
+  name: string;
+  base_url: string;
+  client_id: string;
+  client_secret: string;
+  display_name: string;
+  google_service_account_key?: string;
+  google_service_account_email?: string;
+  admin_email?: string;
+  directory_sync_enabled: boolean;
+  directory_sync_interval: number;
+  directory_sync_user_behavior: DirectorySyncBehaviorValue;
+  directory_sync_admin_behavior: DirectorySyncBehaviorValue;
+  directory_sync_target: DirectorySyncTargetValue;
+  okta_private_jwk?: string;
+  okta_dirsync_client_id?: string;
+  directory_sync_group_match?: string;
+}
+
+export interface OpenIdProviders {
+  settings: OpenIdProviderSettings;
+  provider: OpenIdProvider | null;
+}
+
+export type OpenIdProvidersResponse = OpenIdProviders | undefined;
+
+export type AddOpenIdProvider = Omit<OpenIdProvider, 'id'> & OpenIdProviderSettings;

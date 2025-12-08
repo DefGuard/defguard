@@ -12,6 +12,7 @@ import type {
   AddNetworkDeviceRequest,
   AddNetworkDeviceResponse,
   AddOpenIdClient,
+  AddOpenIdProvider,
   AddUserRequest,
   AddUsersToGroupsRequest,
   AddWebhookRequest,
@@ -48,6 +49,8 @@ import type {
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
+  OpenIdProvider,
+  OpenIdProvidersResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   Settings,
@@ -320,6 +323,13 @@ const api = {
     getEnterpriseSettings: () => client.get<SettingsEnterprise>('/settings_enterprise'),
     patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
       client.patch('/settings_enterprise', data),
+  },
+  openIdProvider: {
+    getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
+    addOpenIdProvider: (data: AddOpenIdProvider) => client.post('/openid/provider', data),
+    deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
+    editOpenIdProvider: (data: OpenIdProvider) =>
+      client.put(`/openid/provider/${data.name}`, data),
   },
 } as const;
 

@@ -187,7 +187,6 @@ const Content = ({ settings }: { settings: Settings }) => {
             )}
           </form.AppField>
         </EvenSplit>
-        <SizedBox height={ThemeSpacing.Xl2} />
         <form.Subscribe
           selector={(s) => ({
             isDefaultValue: s.isDefaultValue || s.isPristine,

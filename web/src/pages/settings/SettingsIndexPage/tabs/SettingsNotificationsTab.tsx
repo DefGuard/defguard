@@ -15,11 +15,13 @@ export const SettingsNotificationsTab = () => {
         />
       </Link>
       <SizedBox height={ThemeSpacing.Xl} />
-      <SectionSelect
-        image="gateway-notifications"
-        title="Gateway notifications"
-        content="Manage how and when your gateway sends notifications. Configure alert types, delivery methods, and recipients to stay informed about important events. "
-      />
+      <Link to="/settings/gateway-notifications">
+        <SectionSelect
+          image="gateway-notifications"
+          title="Gateway notifications"
+          content="Manage how and when your gateway sends notifications. Configure alert types, delivery methods, and recipients to stay informed about important events. "
+        />
+      </Link>
     </SettingsLayout>
   );
 };
