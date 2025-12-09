@@ -8,10 +8,10 @@ use std::{
 };
 
 use chrono::{TimeDelta, Utc};
-use defguard_common::{auth::claims::Claims, db::Id};
+use defguard_common::{VERSION, auth::claims::Claims, db::Id};
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
-use defguard_version::version_info_from_metadata;
+use defguard_version::{client::ClientVersionInterceptor, version_info_from_metadata};
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -347,7 +347,10 @@ impl GatewayHandler {
             ));
 
             debug!("Connecting to Gateway {uri}");
-            let mut client = gateway_client::GatewayClient::new(channel);
+            let interceptor = ClientVersionInterceptor::new(
+                Version::parse(VERSION).expect("failed to parse self version"),
+            );
+            let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
