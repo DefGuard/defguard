@@ -484,7 +484,7 @@ impl ClientMfaServer {
             }
             MfaMethod::Totp => {
                 let code = if let Some(code) = request.code {
-                    code.to_string()
+                    code.clone()
                 } else {
                     error!("TOTP code not provided in request");
                     self.emit_event(BidiStreamEvent {
@@ -518,7 +518,7 @@ impl ClientMfaServer {
             }
             MfaMethod::Email => {
                 let code = if let Some(code) = request.code {
-                    code.to_string()
+                    code.clone()
                 } else {
                     error!("Email MFA code not provided in request");
                     self.emit_event(BidiStreamEvent {

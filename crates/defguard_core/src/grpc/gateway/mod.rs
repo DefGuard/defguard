@@ -1,31 +1,23 @@
-use std::{
-    net::IpAddr,
-    sync::{Arc, Mutex},
-};
+use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
-use client_state::ClientMap;
 use defguard_common::db::{Id, NoId};
-use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
     gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update},
 };
-use sqlx::PgPool;
-use thiserror::Error;
 use tokio::sync::{
     broadcast::{Receiver as BroadcastReceiver, Sender},
-    mpsc::{UnboundedSender, error::SendError},
+    mpsc::UnboundedSender,
 };
 use tonic::{Code, Status};
 
-use self::map::GatewayMap;
 use crate::{
     db::{
         GatewayEvent,
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
     },
-    events::{GrpcEvent, GrpcRequestContext},
+    events::GrpcRequestContext,
 };
 
 pub mod client_state;
@@ -52,34 +44,10 @@ pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
 ///
 /// If you want to use it inside the API context, use [`crate::AppState::send_multiple_wireguard_events`] instead
 pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
-    debug!("Sending {} wireguard events", events.len());
+    debug!("Sending {} WireGuard events", events.len());
     for event in events {
         send_wireguard_event(event, wg_tx);
     }
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, Error)]
-pub enum GatewayServerError {
-    #[error("Failed to acquire lock on VPN client state map")]
-    ClientStateMutexError,
-    #[error("gRPC event channel error: {0}")]
-    GrpcEventChannelError(#[from] SendError<GrpcEvent>),
-}
-
-impl From<GatewayServerError> for Status {
-    fn from(value: GatewayServerError) -> Self {
-        Self::new(Code::Internal, value.to_string())
-    }
-}
-
-pub struct GatewayServer {
-    pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
 fn gen_config(
@@ -199,7 +167,8 @@ impl GatewayUpdatesHandler {
                         Some(network_info) => {
                             if self.network.mfa_enabled() && !network_info.is_authorized {
                                 debug!(
-                                    "Created WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    "Created WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
                                     device.device.name, self.network.name
                                 );
                                 continue;
@@ -234,7 +203,8 @@ impl GatewayUpdatesHandler {
                         Some(network_info) => {
                             if self.network.mfa_enabled() && !network_info.is_authorized {
                                 debug!(
-                                    "Modified WireGuard device {} is not authorized to connect to MFA enabled location {}",
+                                    "Modified WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
                                     device.device.name, self.network.name
                                 );
                                 continue;
@@ -457,63 +427,3 @@ impl GatewayUpdatesHandler {
         Ok(())
     }
 }
-
-// #[tonic::async_trait]
-// impl gateway_service_server::GatewayService for GatewayServer {
-//     type UpdatesStream = GatewayUpdatesStream;
-//
-//     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
-//         // FIXME: tracing causes looping messages, like `INFO gateway_config:gateway_stats:...`.
-//         // let span = tracing::info_span!("gateway_updates", component = %DefguardComponent::Gateway,
-//         //     version = version.to_string(), info);
-//         // let _guard = span.enter();
-
-//         let Some(network) = WireguardNetwork::find_by_id(&self.pool, network_id)
-//             .await
-//             .map_err(|_| {
-//                 error!("Failed to fetch network {network_id} from the database");
-//                 Status::new(
-//                     Code::Internal,
-//                     format!("Failed to retrieve network {network_id} from the database"),
-//                 )
-//             })?
-//         else {
-//             return Err(Status::new(
-//                 Code::Internal,
-//                 format!("Network with id {network_id} not found"),
-//             ));
-//         };
-
-//         info!("New client connected to updates stream: {hostname}, network {network}",);
-
-//         let (tx, rx) = mpsc::channel(4);
-//         let events_rx = self.wireguard_tx.subscribe();
-//         let mut state = self.gateway_state.lock().unwrap();
-//         state
-//             .connect_gateway(network_id, &hostname, &self.pool)
-//             .map_err(|err| {
-//                 error!("Failed to connect gateway on network {network_id}: {err}");
-//                 Status::new(
-//                     Code::Internal,
-//                     format!("Failed to connect gateway on network {network_id}"),
-//                 )
-//             })?;
-
-//         // clone here before moving into a closure
-//         let gateway_hostname = hostname.clone();
-//         let handle = tokio::spawn(async move {
-//             let mut update_handler =
-//                 GatewayUpdatesHandler::new(network_id, network, gateway_hostname, events_rx, tx);
-//             update_handler.run().await;
-//         });
-
-//         Ok(Response::new(GatewayUpdatesStream::new(
-//             handle,
-//             rx,
-//             network_id,
-//             hostname,
-//             Arc::clone(&self.gateway_state),
-//             self.pool.clone(),
-//         )))
-//     }
-// }

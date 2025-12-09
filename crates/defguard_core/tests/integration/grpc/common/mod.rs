@@ -156,13 +156,8 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         server,
         pool.clone(),
         worker_state,
-        // gateway_state.clone(),
-        // client_state.clone(),
-        // wg_tx.clone(),
         mail_tx,
         failed_logins,
-        // grpc_event_tx,
-        // Default::default(),
     )
     .await
     .unwrap();

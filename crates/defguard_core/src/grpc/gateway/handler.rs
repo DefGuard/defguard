@@ -11,7 +11,7 @@ use chrono::{TimeDelta, Utc};
 use defguard_common::{VERSION, auth::claims::Claims, db::Id};
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
-use defguard_version::{client::ClientVersionInterceptor, version_info_from_metadata};
+use defguard_version::client::ClientVersionInterceptor;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -50,14 +50,6 @@ pub(crate) struct GatewayHandler {
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
-/// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
-struct GatewayMetadata {
-    network_id: Id,
-    hostname: String,
-    version: Version,
-    // info: String,
-}
-
 impl GatewayHandler {
     pub(crate) fn new(
         gateway: Gateway<Id>,
@@ -68,7 +60,7 @@ impl GatewayHandler {
         mail_tx: UnboundedSender<Mail>,
         grpc_event_tx: UnboundedSender<GrpcEvent>,
     ) -> Result<Self, tonic::transport::Error> {
-        let endpoint = Endpoint::from_shared(gateway.url.to_string())?
+        let endpoint = Endpoint::from_shared(gateway.url.clone())?
             .http2_keep_alive_interval(TEN_SECS)
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
@@ -104,29 +96,16 @@ impl GatewayHandler {
 
     // Extract Gateway hostname from request headers.
     fn get_gateway_hostname(metadata: &MetadataMap) -> Option<String> {
-        match metadata.get("hostname") {
-            Some(ascii_value) => {
-                let Ok(hostname) = ascii_value.to_str() else {
-                    error!("Failed to parse Gateway hostname from request metadata");
-                    return None;
-                };
-                Some(hostname.into())
-            }
-            None => {
-                error!("Gateway hostname not found in request metadata");
-                None
-            }
+        if let Some(ascii_value) = metadata.get("hostname") {
+            let Ok(hostname) = ascii_value.to_str() else {
+                error!("Failed to parse Gateway hostname from request metadata");
+                return None;
+            };
+            Some(hostname.into())
+        } else {
+            error!("Gateway hostname not found in request metadata");
+            None
         }
-    }
-
-    /// Utility function extracting metadata fields during gRPC communication.
-    fn extract_metadata(metadata: &MetadataMap) -> Option<GatewayMetadata> {
-        let (version, _info) = version_info_from_metadata(metadata);
-        Some(GatewayMetadata {
-            network_id: 0, // FIXME: not needed; was Self::get_network_id_from_metadata(metadata)?,
-            hostname: Self::get_gateway_hostname(metadata)?,
-            version,
-        })
     }
 
     /// Send network and VPN configuration to Gateway.
@@ -179,7 +158,7 @@ impl GatewayHandler {
 
         let maybe_firewall_config =
             network
-                .try_get_firewall_config(&mut *conn)
+                .try_get_firewall_config(&mut conn)
                 .await
                 .map_err(|err| {
                     error!("Failed to generate firewall config for network {network_id}: {err}");
@@ -255,7 +234,7 @@ impl GatewayHandler {
                 "{} disconnected. Email notification not sent.",
                 self.gateway
             );
-        };
+        }
     }
 
     /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
@@ -360,15 +339,7 @@ impl GatewayHandler {
                     continue;
                 }
             };
-
             info!("Connected to Defguard Gateway {uri}");
-            // Metadata isn't needed in reversed communication. TODO: remove, but only check version.
-            // let Some(GatewayMetadata {
-            //     hostname,
-            // }) = Self::extract_metadata(response.metadata()) else {
-            //     error!("Failed to extract metadata");
-            //     continue;
-            // };
 
             let mut resp_stream = response.into_inner();
             let mut config_sent = false;
@@ -431,20 +402,19 @@ impl GatewayHandler {
                                             .gateway
                                             .touch_connected(&self.pool, config_request.hostname)
                                             .await;
-                                        let mut guh = super::GatewayUpdatesHandler::new(
+                                        let mut updates_handler = super::GatewayUpdatesHandler::new(
                                             self.gateway.network_id,
                                             network,
                                             self.gateway
                                                 .hostname
-                                                .as_ref()
-                                                .cloned()
+                                                .clone()
                                                 .unwrap_or_default()
                                                 .clone(),
                                             self.events_tx.subscribe(),
                                             tx.clone(),
                                         );
                                         tokio::spawn(async move {
-                                            guh.run().await;
+                                            updates_handler.run().await;
                                         });
                                     }
                                     Err(err) => {
@@ -548,8 +518,7 @@ impl GatewayHandler {
                                                             &self
                                                                 .gateway
                                                                 .hostname
-                                                                .as_ref()
-                                                                .cloned()
+                                                                .clone()
                                                                 .unwrap_or_default(),
                                                             &public_key,
                                                             &device,
@@ -617,7 +586,7 @@ impl GatewayHandler {
                                 debug!("WireGuard peer stats: {stats:?}");
                             }
                             None => (),
-                        };
+                        }
                     }
                     Err(err) => {
                         error!("Disconnected from Gateway at {uri}, error: {err}");
