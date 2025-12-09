@@ -16,6 +16,8 @@ on:
       - "*.md"
       - "LICENSE"
 
+permissions:
+  contents: read
 jobs:
   test-web:
     runs-on:
