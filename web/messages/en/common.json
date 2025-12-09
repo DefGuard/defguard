@@ -10,6 +10,7 @@
   "misc_secret": "Secret",
   "misc_active": "Active",
   "misc_disabled": "Disabled",
+  "controls_connect": "Connect",
   "controls_search": "Search",
   "controls_accept": "Accept",
   "controls_dont_allow": "Don't allow",

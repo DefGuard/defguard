@@ -36,6 +36,7 @@ import { Route as AuthorizedDefaultSettingsSmtpRouteImport } from './routes/_aut
 import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultSettingsOpenidIndexRouteImport } from './routes/_authorized/_default/settings/openid/index'
 import { Route as AuthorizedDefaultSettingsOpenidGeneralRouteImport } from './routes/_authorized/_default/settings/openid/general'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
@@ -184,6 +185,12 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsOpenidIndexRoute =
+  AuthorizedDefaultSettingsOpenidIndexRouteImport.update({
+    id: '/settings/openid/',
+    path: '/settings/openid/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultSettingsOpenidGeneralRoute =
   AuthorizedDefaultSettingsOpenidGeneralRouteImport.update({
     id: '/settings/openid/general',
@@ -225,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
   '/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/settings/openid': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -254,6 +262,7 @@ export interface FileRoutesByTo {
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
   '/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/settings/openid': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -286,6 +295,7 @@ export interface FileRoutesById {
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
   '/_authorized/_default/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/_authorized/_default/settings/openid/': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/vpn-overview'
     | '/locations/$locationId/edit'
     | '/settings/openid/general'
+    | '/settings/openid'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/vpn-overview'
     | '/locations/$locationId/edit'
     | '/settings/openid/general'
+    | '/settings/openid'
   id:
     | '__root__'
     | '/'
@@ -377,6 +389,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/vpn-overview/'
     | '/_authorized/_default/locations/$locationId/edit'
     | '/_authorized/_default/settings/openid/general'
+    | '/_authorized/_default/settings/openid/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/openid/': {
+      id: '/_authorized/_default/settings/openid/'
+      path: '/settings/openid'
+      fullPath: '/settings/openid'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsOpenidIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/settings/openid/general': {
       id: '/_authorized/_default/settings/openid/general'
       path: '/settings/openid/general'
@@ -614,6 +634,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
   AuthorizedDefaultSettingsOpenidGeneralRoute: typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  AuthorizedDefaultSettingsOpenidIndexRoute: typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
@@ -639,6 +660,8 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultLocationsLocationIdEditRoute,
   AuthorizedDefaultSettingsOpenidGeneralRoute:
     AuthorizedDefaultSettingsOpenidGeneralRoute,
+  AuthorizedDefaultSettingsOpenidIndexRoute:
+    AuthorizedDefaultSettingsOpenidIndexRoute,
 }
 
 const AuthorizedDefaultRouteWithChildren =

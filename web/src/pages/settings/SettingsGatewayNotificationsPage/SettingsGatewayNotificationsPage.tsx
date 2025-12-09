@@ -155,6 +155,9 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                   text={m.controls_save_changes()}
                   disabled={isDefault}
                   loading={isSubmitting}
+                  onClick={() => {
+                    form.handleSubmit();
+                  }}
                 />
               </div>
             </Controls>

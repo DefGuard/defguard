@@ -15,11 +15,13 @@ export const SettingsOpenIdTab = () => {
         />
       </Link>
       <SizedBox height={ThemeSize.Xl} />
-      <SectionSelect
-        image="id-providers"
-        title="External OpenID settings"
-        content="Manage how users interact with the Defguard client. Control device management permissions, configuration access, and traffic routing options."
-      />
+      <Link to="/settings/openid">
+        <SectionSelect
+          image="id-providers"
+          title="External OpenID settings"
+          content="Manage how users interact with the Defguard client. Control device management permissions, configuration access, and traffic routing options."
+        />
+      </Link>
     </SettingsLayout>
   );
 };
