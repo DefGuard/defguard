@@ -1,13 +1,14 @@
+use defguard_common::{
+    db::{Id, NoId},
+    random::gen_alphanumeric,
+};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
+use super::NewOpenIDClient;
 use crate::db::OAuth2Token;
 
-use super::NewOpenIDClient;
-use defguard_common::db::{Id, NoId};
-use defguard_common::random::gen_alphanumeric;
-
-#[derive(Clone, Debug, Deserialize, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct OAuth2Client<I = NoId> {
     pub id: I,
     pub client_id: String, // unique

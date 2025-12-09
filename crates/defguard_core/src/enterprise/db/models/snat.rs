@@ -1,14 +1,14 @@
 use std::net::IpAddr;
 
+use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query_as};
 use utoipa::ToSchema;
 
 use crate::enterprise::snat::error::UserSnatBindingError;
-use defguard_common::db::{Id, NoId};
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 #[table(user_snat_binding)]
 pub struct UserSnatBinding<I = NoId> {
     pub id: I,

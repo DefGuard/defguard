@@ -1,11 +1,9 @@
 use std::{
     collections::hash_map::HashMap,
     fs::read_to_string,
-    time::{Duration, Instant},
-};
-use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, RwLock},
+    time::{Duration, Instant},
 };
 
 use axum::http::Uri;
@@ -15,10 +13,9 @@ use defguard_common::{
     db::{Id, models::Settings},
 };
 use defguard_mail::Mail;
-use defguard_version::server::DefguardVersionLayer;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables,
+    get_tracing_variables, server::DefguardVersionLayer,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -40,22 +37,23 @@ use tonic::{
 };
 use tower::ServiceBuilder;
 
-use self::gateway::GatewayServer;
 use self::{
     auth::AuthServer, client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
-    password_reset::PasswordResetServer,
+    gateway::GatewayServer, interceptor::JwtInterceptor, password_reset::PasswordResetServer,
+    worker::WorkerServer,
 };
-use self::{interceptor::JwtInterceptor, worker::WorkerServer};
-use crate::db::GatewayEvent;
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        AppEvent,
+        AppEvent, GatewayEvent,
         models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
@@ -74,6 +72,7 @@ static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 mod auth;
 pub(crate) mod client_mfa;
+pub mod client_version;
 pub mod enrollment;
 pub mod gateway;
 mod interceptor;
@@ -239,7 +238,11 @@ async fn handle_proxy_message_loop(
                     }
                     // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                     Some(core_request::Payload::ExistingDevice(request)) => {
-                        match context.enrollment_server.get_network_info(request).await {
+                        match context
+                            .enrollment_server
+                            .get_network_info(request, received.device_info)
+                            .await
+                        {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::DeviceConfig(response_payload))
                             }
@@ -350,7 +353,11 @@ async fn handle_proxy_message_loop(
                     }
                     // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
                     Some(core_request::Payload::InstanceInfo(request)) => {
-                        match context.polling_server.info(request).await {
+                        match context
+                            .polling_server
+                            .info(request, received.device_info)
+                            .await
+                        {
                             Ok(response_payload) => {
                                 Some(core_response::Payload::InstanceInfo(response_payload))
                             }
@@ -381,48 +388,57 @@ async fn handle_proxy_message_loop(
                             }))
                         } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
                             if let Some(provider) = OpenIdProvider::get_current(&pool).await? {
-                                if let Ok((_client_id, client)) =
-                                    make_oidc_client(redirect_url, &provider).await
-                                {
-                                    let mut authorize_url_builder = client
-                                        .authorize_url(
-                                            CoreAuthenticationFlow::AuthorizationCode,
-                                            || build_state(request.state),
-                                            Nonce::new_random,
-                                        )
-                                        .add_scope(Scope::new("email".to_string()))
-                                        .add_scope(Scope::new("profile".to_string()));
+                                match make_oidc_client(redirect_url, &provider).await {
+                                    Ok((_client_id, client)) => {
+                                        let mut authorize_url_builder = client
+                                            .authorize_url(
+                                                CoreAuthenticationFlow::AuthorizationCode,
+                                                || build_state(request.state),
+                                                Nonce::new_random,
+                                            )
+                                            .add_scope(Scope::new("email".to_string()))
+                                            .add_scope(Scope::new("profile".to_string()));
 
-                                    if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-                                        .iter()
-                                        .all(|p| p.eq_ignore_ascii_case(&provider.name))
-                                    {
-                                        authorize_url_builder = authorize_url_builder.add_prompt(
-                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                        );
+                                        if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                            .iter()
+                                            .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                        {
+                                            authorize_url_builder = authorize_url_builder
+                                                .add_prompt(
+                                                openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                            );
+                                        }
+                                        let (url, csrf_token, nonce) = authorize_url_builder.url();
+
+                                        Some(core_response::Payload::AuthInfo(AuthInfoResponse {
+                                            url: url.into(),
+                                            csrf_token: csrf_token.secret().to_owned(),
+                                            nonce: nonce.secret().to_owned(),
+                                            button_display_name: provider.display_name,
+                                        }))
                                     }
-                                    let (url, csrf_token, nonce) = authorize_url_builder.url();
-
-                                    Some(core_response::Payload::AuthInfo(AuthInfoResponse {
-                                        url: url.into(),
-                                        csrf_token: csrf_token.secret().to_owned(),
-                                        nonce: nonce.secret().to_owned(),
-                                        button_display_name: provider.display_name,
-                                    }))
-                                } else {
-                                    Some(core_response::Payload::CoreError(CoreError {
-                                        status_code: Code::Internal as i32,
-                                        message: "failed to build OIDC client".into(),
-                                    }))
+                                    Err(err) => {
+                                        error!(
+                                            "Failed to setup external OIDC provider client: {err}"
+                                        );
+                                        Some(core_response::Payload::CoreError(CoreError {
+                                            status_code: Code::Internal as i32,
+                                            message: "failed to build OIDC client".into(),
+                                        }))
+                                    }
                                 }
                             } else {
                                 error!("Failed to get current OpenID provider");
                                 Some(core_response::Payload::CoreError(CoreError {
-                                    status_code: Code::Internal as i32,
+                                    status_code: Code::NotFound as i32,
                                     message: "failed to get current OpenID provider".into(),
                                 }))
                             }
                         } else {
+                            error!(
+                                "Invalid redirect URL in authentication info request: {}",
+                                request.redirect_url
+                            );
                             Some(core_response::Payload::CoreError(CoreError {
                                 status_code: Code::Internal as i32,
                                 message: "invalid redirect URL".into(),
@@ -793,7 +809,7 @@ pub struct InstanceInfo {
     url: Url,
     proxy_url: Url,
     username: String,
-    disable_all_traffic: bool,
+    client_traffic_policy: ClientTrafficPolicy,
     enterprise_enabled: bool,
     openid_display_name: Option<String>,
 }
@@ -816,7 +832,7 @@ impl InstanceInfo {
             url: config.url.clone(),
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
-            disable_all_traffic: enterprise_settings.disable_all_traffic,
+            client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_enterprise_enabled(),
             openid_display_name,
         }
@@ -831,7 +847,11 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
             url: instance.url.to_string(),
             proxy_url: instance.proxy_url.to_string(),
             username: instance.username,
-            disable_all_traffic: instance.disable_all_traffic,
+            // Ensure backwards compatibility.
+            #[allow(deprecated)]
+            disable_all_traffic: instance.client_traffic_policy
+                == ClientTrafficPolicy::DisableAllTraffic,
+            client_traffic_policy: Some(instance.client_traffic_policy as i32),
             enterprise_enabled: instance.enterprise_enabled,
             openid_display_name: instance.openid_display_name,
         }

@@ -5,6 +5,7 @@ use axum::{
     http::StatusCode,
 };
 use defguard_mail::{Mail, templates};
+use humantime::parse_duration;
 use serde_json::json;
 
 use super::{
@@ -418,7 +419,7 @@ pub async fn start_enrollment(
         "Search for the user {} in database to get started with enrollment process.",
         username
     );
-    let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
+    let Some(mut user) = User::find_by_username(&appstate.pool, &username).await? else {
         error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
             "user {username} not found"
@@ -428,20 +429,31 @@ pub async fn start_enrollment(
     debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
+    // try to parse token expiration time if provided
     let config = server_config();
+    let token_expiration_time_seconds = match data.token_expiration_time {
+        Some(time) => parse_duration(&time)
+            .map_err(|err| {
+                error!("Failed to parse token expiration time {time}: {err}");
+                WebError::BadRequest("Failed to parse token expiration time".to_owned())
+            })?
+            .as_secs(),
+        None => config.enrollment_token_timeout.as_secs(),
+    };
+
     let enrollment_token = user
         .start_enrollment(
             &mut transaction,
             &session.user,
             data.email,
-            config.enrollment_token_timeout.as_secs(),
+            token_expiration_time_seconds,
             config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
         )
         .await?;
 
-    debug!("Try to commit transaction to save the enrollment token into the databse.");
+    debug!("Try to commit transaction to save the enrollment token into the database.");
     transaction.commit().await?;
     debug!("Transaction committed.");
 

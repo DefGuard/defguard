@@ -18,7 +18,10 @@ use thiserror::Error;
 use crate::{
     DeviceType,
     appstate::AppState,
-    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::wireguard::LocationMfaMode},
+    db::{
+        Device, GatewayEvent, Group, User, WireguardNetwork,
+        models::wireguard::{LocationMfaMode, ServiceLocationMode},
+    },
     enterprise::{
         firewall::FirewallError,
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
@@ -906,7 +909,8 @@ impl AclRule<Id> {
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+                service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \
@@ -969,7 +973,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -995,7 +999,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -1176,7 +1180,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1198,7 +1202,7 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
             WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1237,7 +1241,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1260,7 +1264,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",

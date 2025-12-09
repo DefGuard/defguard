@@ -3,7 +3,7 @@ use std::{fmt, net::IpAddr};
 use base64::{Engine, prelude::BASE64_STANDARD};
 #[cfg(test)]
 use chrono::NaiveDate;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Timelike, Utc};
 use defguard_common::{
     csv::AsCsv,
     db::{Id, NoId, models::ModelError},
@@ -26,7 +26,10 @@ use utoipa::ToSchema;
 use super::wireguard::{
     LocationMfaMode, NetworkAddressError, WIREGUARD_MAX_HANDSHAKE, WireguardNetwork,
 };
-use crate::{KEY_LENGTH, db::User};
+use crate::{
+    KEY_LENGTH,
+    db::{User, models::wireguard::ServiceLocationMode},
+};
 
 #[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {
@@ -42,6 +45,7 @@ pub struct DeviceConfig {
     pub(crate) dns: Option<String>,
     pub(crate) keepalive_interval: i32,
     pub(crate) location_mfa_mode: LocationMfaMode,
+    pub(crate) service_location_mode: ServiceLocationMode,
 }
 
 // The type of a device:
@@ -501,7 +505,8 @@ impl WireguardNetworkDevice {
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
             connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
         )
@@ -532,12 +537,20 @@ impl Device {
         description: Option<String>,
         configured: bool,
     ) -> Self {
+        // FIXME: this is a workaround for reducing timestamp precision.
+        // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
+        // It avoids issues when comparing to objects fetched from DB.
+        let created = Utc::now().naive_utc();
+        let created = created
+            .with_nanosecond((created.nanosecond() / 1_000) * 1_000)
+            .expect("failed to truncate timestamp precision");
+
         Self {
             id: NoId,
             name,
             wireguard_pubkey,
             user_id,
-            created: Utc::now().naive_utc(),
+            created,
             device_type,
             description,
             configured,
@@ -695,6 +708,7 @@ impl Device<Id> {
             dns: network.dns.clone(),
             keepalive_interval: network.keepalive_interval,
             location_mfa_mode: network.location_mfa_mode.clone(),
+            service_location_mode: network.service_location_mode.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -728,6 +742,7 @@ impl Device<Id> {
             dns: network.dns.clone(),
             keepalive_interval: network.keepalive_interval,
             location_mfa_mode: network.location_mfa_mode.clone(),
+            service_location_mode: network.service_location_mode.clone(),
         };
 
         Ok((device_network_info, device_config))
@@ -790,6 +805,7 @@ impl Device<Id> {
                     dns: network.dns,
                     keepalive_interval: network.keepalive_interval,
                     location_mfa_mode: network.location_mfa_mode.clone(),
+                    service_location_mode: network.service_location_mode.clone(),
                 });
             }
         }
@@ -936,7 +952,8 @@ impl Device<Id> {
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
             connected_at,  keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
@@ -998,7 +1015,7 @@ impl Device<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await

@@ -11,6 +11,14 @@ use defguard_mail::{
     Mail,
     templates::{self, TemplateLocation},
 };
+use defguard_proto::proxy::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
+    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
+    ServiceLocationMode as ProtoServiceLocationMode,
+};
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
@@ -26,7 +34,7 @@ use crate::{
             device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
             polling_token::PollingToken,
-            wireguard::LocationMfaMode,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     enterprise::{
@@ -35,7 +43,10 @@ use crate::{
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
-    grpc::utils::{build_device_config_response, new_polling_token, parse_client_info},
+    grpc::{
+        client_version::ClientFeature,
+        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
+    },
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
@@ -44,13 +55,6 @@ use crate::{
     },
     headers::get_device_info,
     is_valid_phone_number, server_config,
-};
-use defguard_proto::proxy::{
-    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
 };
 
 pub(super) struct EnrollmentServer {
@@ -288,7 +292,7 @@ impl EnrollmentServer {
             })?;
 
             // Prepare event context and push the event
-            let (ip, user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+            let (ip, user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
             let context = BidiRequestContext::new(user_id, username, ip, user_agent);
             self.emit_event(context, EnrollmentEvent::EnrollmentStarted)
                 .map_err(|err| {
@@ -458,6 +462,16 @@ impl EnrollmentServer {
             )?;
         }
 
+        // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).
+        user.enrollment_pending = false;
+        user.save(&mut *transaction).await.map_err(|err| {
+            error!(
+                "Failed to unset enrollment_pending flag for user {}: {err}",
+                user.username
+            );
+            Status::internal("unexpected error")
+        })?;
+
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit transaction: {err}");
             Status::internal("unexpected error")
@@ -468,7 +482,7 @@ impl EnrollmentServer {
         info!("User {} activated", user.username);
 
         // Prepare event context and push the event
-        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentCompleted)
             .map_err(|err| {
@@ -681,6 +695,11 @@ impl EnrollmentServer {
                 None,
                 true,
             );
+            if device.name.is_empty() {
+                return Err(Status::invalid_argument(
+                    "Cannot add a new device with no name. You may be trying to add a new user device as a network device. Defguard CLI supports only network devices.",
+                ));
+            }
             let device = device.save(&mut *transaction).await.map_err(|err| {
                 error!(
                     "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
@@ -795,6 +814,16 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        // Don't send them service locations if they don't support it
+        let configs = configs
+            .into_iter()
+            .filter(|config| {
+                config.service_location_mode == ServiceLocationMode::Disabled
+                    || ClientFeature::ServiceLocations
+                        .is_supported_by_device(req_device_info.as_ref())
+            })
+            .collect::<Vec<DeviceConfig>>();
+
         let template_locations: Vec<TemplateLocation> = configs
             .iter()
             .map(|c| TemplateLocation {
@@ -843,7 +872,7 @@ impl EnrollmentServer {
         };
 
         // Prepare event context and push the event
-        let (ip, user_agent) = parse_client_info(&req_device_info).map_err(Status::internal)?;
+        let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
         self.emit_event(context, EnrollmentEvent::EnrollmentDeviceAdded { device })
             .map_err(|err| {
@@ -859,6 +888,7 @@ impl EnrollmentServer {
     pub async fn get_network_info(
         &self,
         request: ExistingDevice,
+        device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
         let token = self.validate_session(request.token.as_ref()).await?;
@@ -885,7 +915,7 @@ impl EnrollmentServer {
         }
 
         let token = new_polling_token(&self.pool, &device).await?;
-        build_device_config_response(&self.pool, device, Some(token)).await
+        build_device_config_response(&self.pool, device, Some(token), device_info).await
     }
 
     // TODO: Add events
@@ -1064,6 +1094,12 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             location_mfa_mode: Some(
                 <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(config.location_mfa_mode)
                     .into(),
+            ),
+            service_location_mode: Some(
+                <ServiceLocationMode as Into<ProtoServiceLocationMode>>::into(
+                    config.service_location_mode,
+                )
+                .into(),
             ),
         }
     }

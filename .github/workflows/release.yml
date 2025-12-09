@@ -64,7 +64,6 @@ jobs:
 
   build-binaries:
     needs: [create-release]
-
     runs-on:
       - self-hosted
       - Linux
@@ -108,7 +107,7 @@ jobs:
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.89.0
+          toolchain: 1.89.0 # "stable" causes rust-lld: error on aarch64-linux
           target: ${{ matrix.target }}
           override: true
 
@@ -173,26 +172,6 @@ jobs:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
           fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
-      - name: Run `packer init`
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        id: init
-        run: "packer init ./images/ami/core.pkr.hcl"
-
-      - name: Build AMI images for multiple regions
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        run: |
-          regions=(us-east-1 eu-west-1 ap-northeast-1 eu-central-1)
-          for region in "${regions[@]}"; do
-            echo "Building AMI for region: $region"
-            echo "Running packer validate for $region..."
-            packer validate --var "package_version=${{ env.VERSION }}" --var "region=$region" ./images/ami/core.pkr.hcl
-            echo "Building AMI image for $region..."
-            packer build -color=false -on-error=abort --var "package_version=${{ env.VERSION }}" --var "region=$region" ./images/ami/core.pkr.hcl
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
       - name: Upload DEB
         if: matrix.build == 'linux'
         uses: actions/upload-release-asset@v1.0.2
@@ -203,6 +182,20 @@ jobs:
           asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
           asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
           asset_content_type: application/octet-stream
+
+      - name: Install ruby with deb-s3
+        if: matrix.build == 'linux'
+        run: |
+          sudo apt-get install -y ruby
+          gem install deb-s3
+          echo "$(ruby -r rubygems -e 'puts Gem.user_dir')/bin" >> $GITHUB_PATH
+
+      - name: Upload DEB to apt repository
+        if: matrix.build == 'linux'
+        run: |
+          COMPONENT=$([[ "${{ github.ref_name }}" == *"-"* ]] && echo "pre-release" || echo "release") # if tag contain "-" assume it's pre-release.
+
+          deb-s3 upload -l --bucket=apt.defguard.net --access-key-id=${{ secrets.AWS_ACCESS_KEY_APT }} --secret-access-key=${{ secrets.AWS_SECRET_KEY_APT }} --s3-region=eu-north-1 --no-fail-if-exists --codename=trixie --component="$COMPONENT" defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
 
       - name: Build RPM package
         if: matrix.build == 'linux'
@@ -227,7 +220,7 @@ jobs:
         uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*' --depends openssl"
 
       - name: Upload FreeBSD
         if: matrix.build == 'freebsd'
@@ -239,3 +232,37 @@ jobs:
           asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
           asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
           asset_content_type: application/octet-stream
+
+  apt-sign:
+    needs:
+      - build-binaries
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    steps:
+      - name: Sign APT repository
+        run: |
+          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_APT }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY_APT }}
+          export AWS_REGION=eu-north-1
+          sudo apt update -y
+          sudo apt install -y awscli curl jq
+
+          for DIST in trixie; do
+            aws s3 cp s3://apt.defguard.net/dists/${DIST}/Release .
+
+            curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
+              -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
+              -F "file=@Release" \
+              -o response.json
+
+            cat response.json | jq -r '.files["Release.gpg"].content' | base64 --decode > Release.gpg
+            cat response.json | jq -r '.files.Release.content' | base64 --decode > InRelease
+
+            aws s3 cp Release.gpg s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+            aws s3 cp InRelease s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+
+          done
+          (aws s3 ls s3://apt.defguard.net/dists/ --recursive; aws s3 ls s3://apt.defguard.net/pool/ --recursive) | awk '{print "<a href=\""$4"\">"$4"</a><br>"}' > index.html
+          aws s3 cp index.html s3://apt.defguard.net/ --acl public-read

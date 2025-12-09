@@ -14,10 +14,12 @@ import { LocationMfaMode } from '../../../types';
 
 type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
+  disabled?: boolean;
 };
 
 export const FormLocationMfaModeSelect = <T extends FieldValues>({
   controller,
+  disabled = false,
 }: Props<T>) => {
   const { LL } = useI18nContext();
   const {
@@ -38,12 +40,13 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
         key: LocationMfaMode.INTERNAL,
         value: LocationMfaMode.INTERNAL,
         label: LL.components.locationMfaModeSelect.options.internal(),
+        disabled: disabled,
       },
       {
         key: LocationMfaMode.EXTERNAL,
         value: LocationMfaMode.EXTERNAL,
         label: LL.components.locationMfaModeSelect.options.external(),
-        disabled: externalMfaDisabled,
+        disabled: externalMfaDisabled || disabled,
       },
     ],
     [
@@ -51,6 +54,7 @@ export const FormLocationMfaModeSelect = <T extends FieldValues>({
       LL.components.locationMfaModeSelect.options.external,
       LL.components.locationMfaModeSelect.options.internal,
       externalMfaDisabled,
+      disabled,
     ],
   );
 

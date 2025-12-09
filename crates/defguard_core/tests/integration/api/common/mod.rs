@@ -14,7 +14,7 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, GatewayEvent, User, UserDetails},
+    db::{AppEvent, Device, GatewayEvent, User, UserDetails, WireguardNetwork},
     enterprise::license::{License, set_cached_license},
     events::ApiEvent,
     grpc::{WorkerState, gateway::map::GatewayMap},
@@ -181,7 +181,8 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
-            "location_mfa_mode": "disabled"
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
         }))
         .send()
         .await;
@@ -201,7 +202,8 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
                 "peer_disconnect_threshold": 300,
                 "acl_enabled": false,
                 "acl_default_allow": false,
-                "location_mfa_mode": "disabled"
+                "location_mfa_mode": "disabled",
+                "service_location_mode": "disabled"
         }))
         .send()
         .await;
@@ -221,7 +223,8 @@ pub(crate) fn make_network() -> Value {
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     })
 }
 
@@ -241,8 +244,27 @@ pub(crate) async fn make_client_with_db(pool: PgPool) -> (TestClient, PgPool) {
     (client, client_state.pool)
 }
 
-pub(crate) async fn authenticate_admin(client: &TestClient) {
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+pub(crate) async fn authenticate_admin(client: &mut TestClient) {
+    client.login_user("admin", "pass123").await;
+}
+
+// Helper to fetch current user state from DB by username
+pub(crate) async fn get_db_user(pool: &PgPool, username: &str) -> User<Id> {
+    User::find_by_username(pool, username)
+        .await
+        .unwrap()
+        .unwrap()
+}
+
+// Helper to fetch current location state from DB by ID
+pub(crate) async fn get_db_location(pool: &PgPool, location_id: Id) -> WireguardNetwork<Id> {
+    WireguardNetwork::find_by_id(pool, location_id)
+        .await
+        .unwrap()
+        .unwrap()
+}
+
+// Helper to fetch current user device state from DB by device ID
+pub(crate) async fn get_db_device(pool: &PgPool, device_id: Id) -> Device<Id> {
+    Device::find_by_id(pool, device_id).await.unwrap().unwrap()
 }

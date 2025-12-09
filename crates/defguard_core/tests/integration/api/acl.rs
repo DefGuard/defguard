@@ -5,7 +5,10 @@ use defguard_common::{
 use defguard_core::{
     db::{
         Device, Group, User, WireguardNetwork,
-        models::{device::DeviceType, wireguard::LocationMfaMode},
+        models::{
+            device::DeviceType,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
     },
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
@@ -137,8 +140,8 @@ fn edit_alias_data_into_api_response(
 async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     let rule = make_rule();
 
@@ -189,8 +192,8 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -230,8 +233,8 @@ async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     let alias = make_alias();
 
@@ -284,8 +287,8 @@ async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -325,8 +328,8 @@ async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     // rule
     let mut rule = make_rule();
@@ -409,8 +412,8 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     // create related objects
     // networks
@@ -427,6 +430,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         )
         .save(&pool)
         .await
@@ -541,8 +545,8 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     let rule = make_rule();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
@@ -644,8 +648,8 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
 async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     // invalid port
     let mut rule = make_rule();
@@ -677,8 +681,8 @@ async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptio
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let rule = make_rule();
 
@@ -732,8 +736,8 @@ async fn test_rule_delete_state_new(_: PgPoolOptions, options: PgConnectOptions)
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     // test NEW rule deletion
     let rule = make_rule();
@@ -751,8 +755,8 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     // create a location
     WireguardNetwork::new(
@@ -767,6 +771,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -812,8 +817,8 @@ async fn test_rule_duplication(_: PgPoolOptions, options: PgConnectOptions) {
 
     // each modification / deletion of parent rule should remove the child and create a new one
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let rule = make_rule();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
@@ -842,8 +847,8 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let rule = make_rule();
 
@@ -934,8 +939,8 @@ async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOpt
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let rule_1 = make_rule();
     let rule_2 = make_rule();
@@ -972,8 +977,8 @@ async fn test_alias_create_modify_state(_: PgPoolOptions, options: PgConnectOpti
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let alias = make_alias();
 
@@ -1012,8 +1017,8 @@ async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     // create alias
     let alias = make_alias();
@@ -1078,8 +1083,8 @@ async fn test_alias_duplication(_: PgPoolOptions, options: PgConnectOptions) {
 
     // each modification of parent alias should remove the child and create a new one
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let alias = make_alias();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
@@ -1104,8 +1109,8 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     // create new alias
     let alias = make_alias();
@@ -1165,8 +1170,8 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
     let pool = setup_pool(options).await;
 
     let config = init_config(None);
-    let client = make_client_v2(pool.clone(), config).await;
-    authenticate_admin(&client).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
 
     let alias_1 = make_alias();
     let alias_2 = make_alias();

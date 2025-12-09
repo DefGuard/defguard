@@ -29,11 +29,11 @@ impl fmt::Display for MfaMethod {
             f,
             "{}",
             match self {
-                MfaMethod::Totp => "TOTP",
-                MfaMethod::Email => "Email",
-                MfaMethod::Oidc => "OIDC",
-                MfaMethod::Biometric => "Biometric",
-                MfaMethod::MobileApprove => "MobileApprove",
+                Self::Totp => "TOTP",
+                Self::Email => "Email",
+                Self::Oidc => "OIDC",
+                Self::Biometric => "Biometric",
+                Self::MobileApprove => "MobileApprove",
             }
         )
     }
@@ -45,11 +45,11 @@ impl Serialize for MfaMethod {
         S: serde::Serializer,
     {
         match *self {
-            MfaMethod::Totp => serializer.serialize_unit_variant("MfaMethod", 0, "Totp"),
-            MfaMethod::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
-            MfaMethod::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
-            MfaMethod::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
-            MfaMethod::MobileApprove => {
+            Self::Totp => serializer.serialize_unit_variant("MfaMethod", 0, "Totp"),
+            Self::Email => serializer.serialize_unit_variant("MfaMethod", 1, "Email"),
+            Self::Oidc => serializer.serialize_unit_variant("MfaMethod", 2, "Oidc"),
+            Self::Biometric => serializer.serialize_unit_variant("MfaMethod", 3, "Biometric"),
+            Self::MobileApprove => {
                 serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
             }
         }

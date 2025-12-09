@@ -103,9 +103,9 @@ impl FromStr for DefguardComponent {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "core" => Ok(DefguardComponent::Core),
-            "proxy" => Ok(DefguardComponent::Proxy),
-            "gateway" => Ok(DefguardComponent::Gateway),
+            "core" => Ok(Self::Core),
+            "proxy" => Ok(Self::Proxy),
+            "gateway" => Ok(Self::Gateway),
             _ => Err(Self::Err::InvalidDefguardComponent(s.to_string())),
         }
     }
@@ -217,7 +217,7 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    /// Creates a new ComponentInfo with the provided version and automatically detects
+    /// Creates a new `ComponentInfo` with the provided version and automatically detects
     /// the current system information.
     ///
     /// # Arguments

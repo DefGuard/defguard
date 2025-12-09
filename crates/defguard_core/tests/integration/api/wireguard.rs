@@ -8,6 +8,7 @@ use defguard_core::{
             device::WireguardNetworkDevice,
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
             },
         },
     },
@@ -71,6 +72,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
@@ -128,8 +130,8 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _client_state) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -150,6 +152,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::External,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
 
     // create network
@@ -190,6 +193,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         directory_sync_group_match: None,
         username_handling: OpenidUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
+        prefetch_users: false,
     };
 
     let response = client
@@ -213,8 +217,8 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
 async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _client_state) = make_test_client(pool).await;
-    authenticate_admin(&client).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
 
     let mut location_data = WireguardNetworkData {
         name: "test_location".into(),
@@ -229,6 +233,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         acl_enabled: false,
         acl_default_allow: false,
         location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
     };
 
     // create network
@@ -284,6 +289,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         directory_sync_group_match: None,
         username_handling: OpenidUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
+        prefetch_users: false,
     };
 
     let response = client
@@ -489,7 +495,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     });
     let response = client.post("/api/v1/network").json(&network).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -557,7 +564,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     });
     let response = client
         .put(format!("/api/v1/network/{}", network_from_details.id))
@@ -831,4 +839,143 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device<Id>> = response.json().await;
     assert_eq!(devices.len(), 1);
+}
+
+#[sqlx::test]
+async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _client_state) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let network = json!({
+        "name": "network",
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
+    });
+    let response = client.post("/api/v1/network").json(&network).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // network details
+    let response = client.get("/api/v1/network/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network_from_details: WireguardNetwork<Id> = response.json().await;
+
+    // create devices
+    let device = json!({
+        "name": "device1",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device = json!({
+        "name": "device2",
+        "wireguard_pubkey": "ZqDlG4LQZRO9v57Sd27AHdtTLxegbMp5oVThjYrg21I=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device = json!({
+        "name": "device3",
+        "wireguard_pubkey": "o/8q3kmv5nnbrcb/7aceQWGE44a0yI707wObXRyyWGU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // try to add subnet with not enough IPs
+    let network = json!({
+        "id": network_from_details.id,
+        "name": "network",
+        "address": "10.1.1.1/24,10.2.1.1/30",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
+    });
+    let response = client
+        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .json(&network)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // try to add subnet with invalid mask
+    let network = json!({
+        "id": network_from_details.id,
+        "name": "network",
+        "address": "10.2.0.1/24,10.1.1.1/0",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
+    });
+    let response = client
+        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .json(&network)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // try to add no network
+    let network = json!({
+        "id": network_from_details.id,
+        "name": "network",
+        "address": "",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 300,
+        "acl_enabled": false,
+        "acl_default_allow": false,
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
+    });
+    let response = client
+        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .json(&network)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

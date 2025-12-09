@@ -76,8 +76,14 @@
     justify-content: flex-end;
   }
 
-  .labeled-checkbox {
-    padding-bottom: var(--spacing-s);
+  #directory-sync-settings {
+    & > .form-checkbox {
+      padding-bottom: var(--spacing-s);
+    }
+
+    .helper-row {
+      padding-bottom: var(--spacing-s);
+    }
   }
 }
 

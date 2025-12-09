@@ -1,12 +1,13 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Debug,
     time::Duration,
 };
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::Settings};
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
-use sqlx::{PgPool, error::Error as SqlxError};
+use sqlx::{PgConnection, PgPool, error::Error as SqlxError};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
@@ -20,8 +21,10 @@ use crate::{
     db::{GatewayEvent, Group, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
+        handlers::openid_login::prune_username,
         ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
     },
+    handlers::user::check_username,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -55,6 +58,8 @@ pub enum DirectorySyncError {
     NetworkUpdateError(String),
     #[error("Failed to update user state: {0}")]
     UserUpdateError(String),
+    #[error("Failed to create user: {0}")]
+    UserCreateError(String),
     #[error("Failed to find user: {0}")]
     UserNotFound(String),
     #[error(
@@ -100,6 +105,16 @@ pub struct DirectoryUser {
     pub email: String,
     // Users may be disabled/suspended in the directory
     pub active: bool,
+    // Currently only supported for Microsoft Entra
+    user_details: Option<DirectoryUserDetails>,
+}
+
+// additional user details required for user creation
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DirectoryUserDetails {
+    last_name: String,
+    first_name: String,
+    phone_number: Option<String>,
 }
 
 #[trait_variant::make(Send)]
@@ -594,71 +609,127 @@ async fn sync_all_users_state(
         .await?
         .ok_or(DirectorySyncError::NotConfigured)?;
 
+    // prepare relevant settings
     let user_behavior = settings.directory_sync_user_behavior;
     let admin_behavior = settings.directory_sync_admin_behavior;
+    let prefetch_users = settings.prefetch_users;
 
-    let emails = all_users
+    // split directory users into separate lists for active and inactive users
+    let (active_directory_users, inactive_directory_users): (Vec<_>, Vec<_>) =
+        all_users.iter().partition(|user| user.active);
+
+    // prepare a list of user emails for matching users between directory and Defguard
+    let all_directory_emails = all_users
         .iter()
         .map(|u| u.email.as_str())
         .collect::<Vec<&str>>();
-    let missing_users = User::exclude(&mut *transaction, &emails)
+
+    // setup Vecs for tracking user updates
+    let mut modified_users = Vec::new();
+    let mut deleted_users = Vec::new();
+    let mut created_users = Vec::new();
+
+    sync_inactive_directory_users(
+        &mut transaction,
+        &inactive_directory_users,
+        &mut modified_users,
+        wg_tx,
+    )
+    .await?;
+
+    sync_active_directory_users(
+        &mut transaction,
+        &active_directory_users,
+        &mut modified_users,
+    )
+    .await?;
+
+    // TODO: prefetching users is currently only supported for Microsoft Entra
+    if prefetch_users && ["Microsoft", "Test"].contains(&settings.name.as_str()) {
+        // get emails of all directory users who already exist in Defguard
+        let existing_users =
+            User::find_many_by_emails(&mut *transaction, &all_directory_emails).await?;
+        let existing_user_emails: Vec<&str> = existing_users
+            .iter()
+            .map(|user| user.email.as_str())
+            .collect();
+
+        // find all directory users not present in Defguard
+        let missing_defguard_users: Vec<_> = all_users
+            .iter()
+            .filter(|user| !existing_user_emails.contains(&user.email.as_str()))
+            .collect();
+
+        let core_settings = Settings::get_current_settings();
+
+        // create missing users
+        for directory_user in missing_defguard_users {
+            match &directory_user.user_details {
+                None => {
+                    error!(
+                        "Missing directory user details for user {directory_user:?}. Unable to create missing Defguard user."
+                    );
+                }
+                Some(details) => {
+                    debug!(
+                        "User {directory_user:?} exists in directory but not in Defguard. Creating new Defguard user.",
+                    );
+
+                    // Extract the username from the email address
+                    let email = directory_user.email.clone();
+                    let username =
+                        email
+                            .split('@')
+                            .next()
+                            .ok_or(DirectorySyncError::UserCreateError(format!(
+                                "Failed to extract username from email address {email}"
+                            )))?;
+                    let username = prune_username(username, core_settings.openid_username_handling);
+                    check_username(&username).map_err(|err| {
+                        DirectorySyncError::UserCreateError(format!(
+                            "Username {username} validation failed: {err:?}"
+                        ))
+                    })?;
+
+                    // Check if user with the same username already exists (usernames are unique).
+                    if User::find_by_username(pool, &username).await?.is_some() {
+                        return Err(DirectorySyncError::UserCreateError(format!(
+                            "User with username {username} already exists"
+                        )));
+                    }
+
+                    let mut user = User::new(
+                        username,
+                        None,
+                        details.last_name.clone(),
+                        details.first_name.clone(),
+                        directory_user.email.clone(),
+                        details.phone_number.clone(),
+                    );
+                    user.openid_sub = directory_user.id.clone();
+                    let new_user = user.save(&mut *transaction).await?;
+                    created_users.push(new_user);
+                }
+            }
+        }
+    }
+
+    // get all users present in Defguard but not in directory
+    let missing_directory_users = User::exclude(&mut *transaction, &all_directory_emails)
         .await?
         .into_iter()
         .collect::<Vec<User<Id>>>();
 
-    let disabled_users_emails = all_users
-        .iter()
-        .filter(|u| !u.active)
-        .map(|u| u.email.as_str())
-        .collect::<Vec<&str>>();
-    let users_to_disable =
-        User::find_many_by_emails(&mut *transaction, &disabled_users_emails).await?;
-
-    let enabled_users_emails = all_users
-        .iter()
-        .filter(|u| u.active)
-        .map(|u| u.email.as_str())
-        .collect::<Vec<&str>>();
-    let users_to_enable =
-        User::find_many_by_emails(&mut *transaction, &enabled_users_emails).await?;
-
-    debug!(
-        "There are {} disabled users in the directory, disabling them in Defguard...",
-        users_to_disable.len()
-    );
-
-    let mut modified_users = Vec::new();
-    let mut deleted_users = Vec::new();
-
-    for mut user in users_to_disable {
-        if user.is_active {
-            debug!(
-                "Disabling user {} because they are disabled in the directory",
-                user.email
-            );
-            user.disable(&mut transaction, wg_tx).await.map_err(|err| {
-                DirectorySyncError::UserUpdateError(format!(
-                    "Failed to disable user {} during directory synchronization: {err}",
-                    user.email
-                ))
-            })?;
-            modified_users.push(user);
-        } else {
-            debug!("User {} is already disabled, skipping", user.email);
-        }
-    }
-    debug!("Done processing disabled users");
-
     debug!(
         "There are {} users missing from the directory but present in Defguard, \
     deciding what to do next based on the following settings: user action: {}, admin action: {}",
-        missing_users.len(),
+        missing_directory_users.len(),
         user_behavior,
         admin_behavior
     );
     // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
-    for mut user in missing_users {
+    for mut user in missing_directory_users {
         if user.is_admin(&mut *transaction).await? {
             match admin_behavior {
                 DirectorySyncUserBehavior::Keep => {
@@ -770,8 +841,90 @@ async fn sync_all_users_state(
     }
     debug!("Done processing missing users");
 
+    transaction.commit().await?;
+
+    // trigger LDAP sync
+    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
+    Box::pin(ldap_update_users_state(
+        modified_users.iter_mut().collect::<Vec<_>>(),
+        pool,
+    ))
+    .await;
+    Box::pin(ldap_update_users_state(
+        created_users.iter_mut().collect::<Vec<_>>(),
+        pool,
+    ))
+    .await;
+
+    info!("Syncing all users' state with the directory done");
+
+    Ok(())
+}
+
+async fn sync_inactive_directory_users(
+    transaction: &mut PgConnection,
+    inactive_directory_users: &[&DirectoryUser],
+    modified_users: &mut Vec<User<Id>>,
+    wg_tx: &Sender<GatewayEvent>,
+) -> Result<(), DirectorySyncError> {
+    // find all active Defguard users disabled in directory
+    let disabled_users_emails = inactive_directory_users
+        .iter()
+        .map(|u| u.email.as_str())
+        .collect::<Vec<&str>>();
+    let users_to_disable: Vec<User<Id>> =
+        User::find_many_by_emails(&mut *transaction, &disabled_users_emails)
+            .await?
+            .into_iter()
+            .filter(|user| user.is_active)
+            .collect();
+
     debug!(
-        "There are {} enabled users in the directory, enabling them in Defguard if they were previously disabled",
+        "There are {} active Defguard users disabled in the directory. Disabling them in Defguard...",
+        users_to_disable.len()
+    );
+
+    for mut user in users_to_disable {
+        if user.is_active {
+            debug!(
+                "Disabling user {} because they are disabled in the directory",
+                user.email
+            );
+            user.disable(transaction, wg_tx).await.map_err(|err| {
+                DirectorySyncError::UserUpdateError(format!(
+                    "Failed to disable user {} during directory synchronization: {err}",
+                    user.email
+                ))
+            })?;
+            modified_users.push(user);
+        } else {
+            debug!("User {} is already disabled, skipping", user.email);
+        }
+    }
+    debug!("Done processing disabled directory users");
+
+    Ok(())
+}
+
+async fn sync_active_directory_users(
+    transaction: &mut PgConnection,
+    active_directory_users: &[&DirectoryUser],
+    modified_users: &mut Vec<User<Id>>,
+) -> Result<(), DirectorySyncError> {
+    // find all inactive Defguard users enabled in directory
+    let enabled_users_emails = active_directory_users
+        .iter()
+        .map(|u| u.email.as_str())
+        .collect::<Vec<&str>>();
+    let users_to_enable: Vec<User<Id>> =
+        User::find_many_by_emails(&mut *transaction, &enabled_users_emails)
+            .await?
+            .into_iter()
+            .filter(|user| !user.is_active)
+            .collect();
+
+    debug!(
+        "There are {} inactive Defguard users enabled in the directory. Enabling them in Defguard...",
         users_to_enable.len()
     );
     for mut user in users_to_enable {
@@ -787,17 +940,7 @@ async fn sync_all_users_state(
         user.save(&mut *transaction).await?;
         modified_users.push(user);
     }
-    debug!("Done processing enabled users");
-    transaction.commit().await?;
-
-    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
-    Box::pin(ldap_update_users_state(
-        modified_users.iter_mut().collect::<Vec<_>>(),
-        pool,
-    ))
-    .await;
-
-    info!("Syncing all users' state with the directory done");
+    debug!("Done processing active directory users");
 
     Ok(())
 }

@@ -27,7 +27,7 @@ import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import type { SettingsSMTP } from '../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
-import { validateIpOrDomain } from '../../../../../../shared/validators';
+import { Validate } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 import { SmtpTestModal } from '../SmtpTest/SmtpTestModal';
 import { useSmtpTestModal } from '../SmtpTest/useSmtpTestModal';
@@ -112,8 +112,14 @@ export const SmtpSettingsForm = () => {
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => (!val ? true : validateIpOrDomain(val, false, true)),
-            LL.form.error.endpoint(),
+            (val) =>
+              Validate.any(val, [
+                Validate.IPv4,
+                Validate.IPv6,
+                Validate.Domain,
+                Validate.Empty,
+              ]),
+            LL.form.error.address(),
           ),
         smtp_port: z
           .number({

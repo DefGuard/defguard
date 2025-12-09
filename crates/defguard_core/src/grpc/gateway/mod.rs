@@ -95,11 +95,22 @@ impl WireguardNetwork<Id> {
     ///
     /// Each device is marked as allowed or not allowed in a given network,
     /// which enables enforcing peer disconnect in MFA-protected networks.
+    ///
+    /// If the location is a service location, only returns peers if enterprise features are enabled.
     pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         debug!("Fetching all peers for network {}", self.id);
+
+        if self.should_prevent_service_location_usage() {
+            warn!(
+                "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
+                self.name
+            );
+            return Ok(Vec::new());
+        }
+
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?
@@ -228,25 +239,18 @@ impl GatewayServer {
         Ok(self.grpc_event_tx.send(event)?)
     }
 
-    /// Helper method to fetch `Device` info from DB and return appropriate errors
-    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Device<Id>, Status> {
-        let device = match Device::find_by_pubkey(&self.pool, public_key).await {
-            Ok(Some(device)) => device,
-            Ok(None) => {
-                error!("Device with public key {public_key} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Device with public key {public_key} not found"),
-                ));
-            }
-            Err(err) => {
+    /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
+    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Option<Device<Id>>, Status> {
+        let device = Device::find_by_pubkey(&self.pool, public_key)
+            .await
+            .map_err(|err| {
                 error!("Failed to retrieve device with public key {public_key}: {err}",);
-                return Err(Status::new(
+                Status::new(
                     Code::Internal,
                     format!("Failed to retrieve device with public key {public_key}: {err}",),
-                ));
-            }
-        };
+                )
+            })?;
+
         Ok(device)
     }
 
@@ -814,8 +818,17 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
             // fetch device from DB
             // TODO: fetch only when device has changed and use client state otherwise
-            let device = self.fetch_device_from_db(&public_key).await?;
-            // copy for easier reference later
+            let device = match self.fetch_device_from_db(&public_key).await? {
+                Some(device) => device,
+                None => {
+                    warn!(
+                        "Received stats update for a device which does not exist: {public_key}, skipping."
+                    );
+                    continue;
+                }
+            };
+
+            // copy device ID for easier reference later
             let device_id = device.id;
 
             // fetch user and location from DB for activity log

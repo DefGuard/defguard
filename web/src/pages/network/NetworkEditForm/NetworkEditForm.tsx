@@ -12,6 +12,7 @@ import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormAclDefaultPolicy } from '../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormLocationMfaModeSelect } from '../../../shared/components/Form/FormLocationMfaModeSelect/FormLocationMfaModeSelect.tsx';
+import { FormServiceLocationModeSelect } from '../../../shared/components/Form/FormServiceLocationModeSelect/FormServiceLocationModeSelect.tsx';
 import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown.tsx';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -23,14 +24,14 @@ import { useAppStore } from '../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
-import { LocationMfaMode, type Network } from '../../../shared/types';
+import {
+  LocationMfaMode,
+  type Network,
+  ServiceLocationMode,
+} from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../shared/validators';
+import { Validate } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -119,15 +120,15 @@ export const NetworkEditForm = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((value) => {
-            return validateIpList(value, ',', true);
+          .refine((val) => {
+            return Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => validateIpOrDomain(val, false, true),
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
             LL.form.error.endpoint(),
           ),
         port: z
@@ -135,17 +136,34 @@ export const NetworkEditForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        allowed_ips: z.string(),
+        allowed_ips: z
+          .string()
+          .trim()
+          .optional()
+          .refine(
+            (val) =>
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
+            LL.form.error.address(),
+          ),
         dns: z
           .string()
           .trim()
           .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpOrDomainList(val, ',', false, true);
-          }, LL.form.error.allowedIps()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
+            LL.form.error.address(),
+          ),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
@@ -161,6 +179,7 @@ export const NetworkEditForm = () => {
         acl_enabled: z.boolean(),
         acl_default_allow: z.boolean(),
         location_mfa_mode: z.nativeEnum(LocationMfaMode),
+        service_location_mode: z.nativeEnum(ServiceLocationMode),
       }),
     [LL.form.error],
   );
@@ -181,6 +200,7 @@ export const NetworkEditForm = () => {
       acl_enabled: false,
       acl_default_allow: false,
       location_mfa_mode: LocationMfaMode.DISABLED,
+      service_location_mode: ServiceLocationMode.DISABLED,
     }),
     [],
   );
@@ -237,7 +257,7 @@ export const NetworkEditForm = () => {
     return defaultValues;
   }, [defaultValues, networkToForm, networks, selectedNetworkId]);
 
-  const { control, handleSubmit, reset } = useForm<FormFields>({
+  const { control, handleSubmit, reset, setValue } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: zodResolver(zodSchema),
     mode: 'all',
@@ -257,6 +277,25 @@ export const NetworkEditForm = () => {
     () => locationMfaMode === LocationMfaMode.DISABLED,
     [locationMfaMode],
   );
+  const serviceLocationMode = useWatch({
+    control,
+    name: 'service_location_mode',
+    defaultValue: defaultFormValues.service_location_mode,
+  });
+  const serviceLocationEnabled = useMemo(
+    () => serviceLocationMode !== ServiceLocationMode.DISABLED,
+    [serviceLocationMode],
+  );
+
+  useEffect(() => {
+    if (!mfaDisabled && serviceLocationMode !== ServiceLocationMode.DISABLED) {
+      setValue('service_location_mode', ServiceLocationMode.DISABLED, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }, [mfaDisabled, serviceLocationMode, setValue]);
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     if (selectedNetworkId) {
@@ -387,7 +426,17 @@ export const NetworkEditForm = () => {
             </li>
           </ul>
         </MessageBox>
-        <FormLocationMfaModeSelect controller={{ control, name: 'location_mfa_mode' }} />
+        {serviceLocationEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>
+              {LL.networkConfiguration.form.helpers.locationMfaMode.serviceLocationWarning()}
+            </p>
+          </MessageBox>
+        )}
+        <FormLocationMfaModeSelect
+          controller={{ control, name: 'location_mfa_mode' }}
+          disabled={serviceLocationEnabled}
+        />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.peerDisconnectThreshold()}</p>
         </MessageBox>
@@ -396,6 +445,31 @@ export const NetworkEditForm = () => {
           label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
           type="number"
           disabled={mfaDisabled}
+        />
+        <DividerHeader
+          text={LL.networkConfiguration.form.sections.serviceLocation.header()}
+        />
+        <MessageBox id="service-location-mode-explain-message-box">
+          <RenderMarkdown
+            content={LL.networkConfiguration.form.helpers.serviceLocation.description()}
+          />
+          <ul>
+            <li>
+              <p>{LL.networkConfiguration.form.helpers.serviceLocation.preLogon()}</p>
+            </li>
+            <li>
+              <p>{LL.networkConfiguration.form.helpers.serviceLocation.alwaysOn()}</p>
+            </li>
+          </ul>
+        </MessageBox>
+        {!mfaDisabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+          </MessageBox>
+        )}
+        <FormServiceLocationModeSelect
+          controller={{ control, name: 'service_location_mode' }}
+          disabled={!mfaDisabled}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

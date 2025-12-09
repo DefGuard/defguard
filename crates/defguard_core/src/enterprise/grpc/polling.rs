@@ -1,4 +1,5 @@
 use defguard_common::db::Id;
+use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoResponse};
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -7,7 +8,6 @@ use crate::{
     enterprise::is_enterprise_enabled,
     grpc::utils::build_device_config_response,
 };
-use defguard_proto::proxy::{InstanceInfoRequest, InstanceInfoResponse};
 
 pub struct PollingServer {
     pool: PgPool,
@@ -47,7 +47,11 @@ impl PollingServer {
 
     /// Prepares instance info for polling requests. Enterprise only.
     #[instrument(skip_all)]
-    pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
+    pub async fn info(
+        &self,
+        request: InstanceInfoRequest,
+        device_info: Option<DeviceInfo>,
+    ) -> Result<InstanceInfoResponse, Status> {
         trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;
         let Some(device) = Device::find_by_id(&self.pool, token.device_id)
@@ -82,7 +86,8 @@ impl PollingServer {
         }
 
         // Build and return polling info.
-        let device_config = build_device_config_response(&self.pool, device, None).await?;
+        let device_config =
+            build_device_config_response(&self.pool, device, None, device_info).await?;
 
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),

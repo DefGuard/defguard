@@ -5,12 +5,11 @@ use std::{
 };
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_version::{ComponentInfo, Version, is_version_lower};
 use serde::Serialize;
 use tonic::{Status, service::Interceptor};
 
-use defguard_version::{ComponentInfo, Version, is_version_lower};
-
-const MIN_PROXY_VERSION: Version = Version::new(1, 5, 0);
+const MIN_PROXY_VERSION: Version = Version::new(1, 6, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
 static OUTDATED_COMPONENT_LIFETIME: TimeDelta = TimeDelta::hours(1);
 

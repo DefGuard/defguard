@@ -1,12 +1,13 @@
 use std::{collections::HashMap, fmt};
 
-use crate::{global_value, secret::SecretStringWrapper};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
+
+use crate::{global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 

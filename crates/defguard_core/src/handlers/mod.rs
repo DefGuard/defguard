@@ -12,11 +12,10 @@ use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
-use crate::db::Device;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{User, UserInfo, WebHook},
+    db::{Device, User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
@@ -331,6 +330,7 @@ pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
+    pub token_expiration_time: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

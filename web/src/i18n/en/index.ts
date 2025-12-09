@@ -1162,6 +1162,14 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         external: 'External MFA',
       },
     },
+    serviceLocationModeSelect: {
+      label: 'Service Location Mode',
+      options: {
+        disabled: 'Disabled',
+        prelogon: 'Pre-logon',
+        alwayson: 'Always-on',
+      },
+    },
   },
   settingsPage: {
     title: 'Settings',
@@ -1379,6 +1387,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
           enable_directory_sync: {
             label: 'Enable directory synchronization',
+          },
+          prefetch_users: {
+            label: 'Prefetch users',
+            helper: 'Fetch users from external provider and create user accounts in Defguard without waiting for them to log in',
           },
           sync_target: {
             label: 'Synchronize',
@@ -1696,15 +1708,28 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
-        disableAllTraffic: {
-          label: 'Disable the option to route all traffic through VPN',
-          helper:
-            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
-        },
         manualConfig: {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
             "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
+        },
+        clientTrafficPolicy: {
+          header: 'Client traffic policy',
+          none: {
+            label: 'None',
+            helper:
+              'None - When this option is enabled, users will be able to select all routing options.',
+          },
+          disableAllTraffic: {
+            label: 'Disable the option to route all traffic through VPN',
+            helper:
+              'Disable all traffic - When this option is enabled, users will not be able to route all traffic through the VPN.',
+          },
+          forceAllTraffic: {
+            label: 'Force the clients to route all traffic through VPN',
+            helper:
+              'Force all traffic - When this option is enabled, the users will always route all traffic through the VPN.',
+          },
         },
       },
     },
@@ -2030,6 +2055,17 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             "Internal MFA - MFA is enforced using Defguard's built-in MFA (e.g. TOTP, WebAuthn) with internal identity",
           external:
             'External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA',
+          serviceLocationWarning:
+            "Location MFA can't be used when service location mode is enabled.",
+        },
+        serviceLocation: {
+          description:
+            'Choose if this location should work as a service location. This feature is currently not supported on every platform. Consult our [documentation](https://docs.defguard.net/features/service-locations) for more details.',
+          preLogon:
+            'Pre-logon - A VPN connection to this location will be active only before the user logs in on their device. When the user completes the login, the VPN connection will be terminated.',
+          alwaysOn:
+            'Always-on - A VPN connection will always be active when the user device is on.',
+          mfaWarning: "Service locations can't be used while location MFA is enabled.",
         },
       },
       sections: {
@@ -2038,6 +2074,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         mfa: {
           header: 'Multi-Factor Authentication',
+        },
+        serviceLocation: {
+          header: 'Service location',
         },
       },
       messages: {
@@ -2081,6 +2120,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         location_mfa_mode: {
           label: 'MFA requirement',
+        },
+        service_location_mode: {
+          label: 'Service location mode',
         },
       },
       controls: {

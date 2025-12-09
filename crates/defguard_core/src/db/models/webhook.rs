@@ -1,8 +1,8 @@
+use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, FromRow, PgPool, query_as};
 
 use super::UserInfo;
-use defguard_common::db::{Id, NoId};
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -47,7 +47,7 @@ impl AppEvent {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, PartialEq)]
 pub struct WebHook<I = NoId> {
     pub id: I,
     pub url: String,

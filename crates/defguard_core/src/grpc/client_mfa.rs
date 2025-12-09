@@ -9,6 +9,11 @@ use defguard_common::{
     },
 };
 use defguard_mail::Mail;
+use defguard_proto::proxy::{
+    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
+    MfaMethod,
+};
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
@@ -27,13 +32,8 @@ use crate::{
     },
     enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::utils::parse_client_info,
+    grpc::utils::parse_client_ip_agent,
     handlers::mail::send_email_mfa_code_email,
-};
-use defguard_proto::proxy::{
-    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
-    MfaMethod,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -395,7 +395,7 @@ impl ClientMfaServer {
         } = session;
 
         // Prepare event context
-        let (ip, _user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),

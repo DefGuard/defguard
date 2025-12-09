@@ -3,6 +3,12 @@ use std::time::Duration;
 use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::models::{Settings, settings::update_current_settings},
+    global_value,
+};
 use humantime::format_duration;
 use pgp::{
     composed::{Deserializable, SignedPublicKey, StandaloneSignature},
@@ -15,12 +21,6 @@ use tokio::time::sleep;
 
 use super::limits::Counts;
 use crate::grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata};
-use defguard_common::{
-    VERSION,
-    config::server_config,
-    db::models::{Settings, settings::update_current_settings},
-    global_value,
-};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 

@@ -5,6 +5,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, MFAMethod, Settings},
 };
+use defguard_proto::proxy::MfaMethod;
 
 use crate::{
     db::{
@@ -16,14 +17,13 @@ use crate::{
         openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
 };
-use defguard_proto::proxy::MfaMethod;
 
 /// Shared context that needs to be added to every API event
 ///
 /// Mainly meant to be stored in the activity log.
 /// By design this is a duplicate of a similar struct in the `event_logger` module.
 /// This is done in order to avoid circular imports once we split the project into multiple crates.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
@@ -83,7 +83,7 @@ impl GrpcRequestContext {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ApiEventType {
     UserLogin,
     UserLoginFailed {

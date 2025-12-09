@@ -8,6 +8,11 @@ use argon2::{
     },
 };
 use axum::http::StatusCode;
+use defguard_common::{
+    config::server_config,
+    db::{Id, NoId, models::MFAMethod},
+    random::{gen_alphanumeric, gen_totp_secret},
+};
 use defguard_mail::templates::UserContext;
 use model_derive::Model;
 #[cfg(test)]
@@ -35,11 +40,6 @@ use crate::{
     enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
-};
-use defguard_common::{
-    config::server_config,
-    db::{Id, NoId, models::MFAMethod},
-    random::{gen_alphanumeric, gen_totp_secret},
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -96,6 +96,10 @@ pub struct User<I = NoId> {
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
     pub(crate) recovery_codes: Vec<String>,
+    /// Indicates that an administrator has requested an enrollment token for this user.
+    /// Uninitialized clients should then guide the user through enrollment process.
+    /// Related issue: https://github.com/DefGuard/client/issues/647.
+    pub enrollment_pending: bool,
 }
 
 // TODO: Refactor the user struct to use SecretStringWrapper instead of this
@@ -122,6 +126,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             email_mfa_secret: _,
             mfa_method,
             recovery_codes,
+            enrollment_pending,
         } = self;
 
         f.debug_struct("User")
@@ -148,6 +153,7 @@ impl<I: std::fmt::Debug> fmt::Debug for User<I> {
             .field("password_hash", &"***")
             .field("totp_secret", &"***")
             .field("email_mfa_secret", &"***")
+            .field("enrollment_pending", enrollment_pending)
             .finish()
     }
 }
@@ -201,6 +207,7 @@ impl User {
             ldap_pass_randomized: false,
             ldap_rdn: Some(username.clone()),
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
@@ -237,12 +244,17 @@ impl<I> User<I> {
         format!("{} {}", self.first_name, self.last_name)
     }
 
-    /// Check if user is enrolled.
-    /// We assume the user is enrolled if they have a password set
-    /// or they have logged in using an external OIDC.
+    /// Determines whether the user is considered enrolled.
+    ///
+    /// A user is treated as enrolled if:
+    /// - The `enrollment_pending` flag is **not** set, i.e. enrollment was not requested by an
+    ///   administrator (https://github.com/DefGuard/client/issues/647).
+    /// - They either have a password configured, have authenticated via an external OIDC provider
+    ///   or were synced from LDAP.
     #[must_use]
     pub fn is_enrolled(&self) -> bool {
-        self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
+        !self.enrollment_pending
+            && (self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap)
     }
 
     #[must_use]
@@ -675,7 +687,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -826,7 +838,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -846,7 +858,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -880,7 +892,8 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
+            ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -900,7 +913,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE openid_sub = $1",
             sub
         )
@@ -1129,8 +1142,9 @@ impl User<Id> {
             Self,
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
+            u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, \
+            enrollment_pending \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1152,7 +1166,8 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
+            ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1181,7 +1196,7 @@ impl User<Id> {
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
@@ -1227,6 +1242,7 @@ impl Distribution<User<Id>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
@@ -1267,6 +1283,7 @@ impl Distribution<User<NoId>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            enrollment_pending: false,
         }
     }
 }
@@ -1275,12 +1292,11 @@ impl Distribution<User<NoId>> for Standard {
 mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::setup_pool,
+        db::{models::settings::initialize_current_settings, setup_pool},
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use defguard_common::db::models::settings::initialize_current_settings;
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1625,5 +1641,61 @@ mod test {
         assert_eq!(users.len(), 2);
         assert_eq!(users[0].id, user1.id);
         assert_eq!(users[1].id, albus.id);
+    }
+
+    #[sqlx::test]
+    async fn test_user_is_enrolled(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = User::new(
+            "test",
+            Some("31071980"),
+            "harry",
+            "potter",
+            "harry@hogwart.edu.uk",
+            None,
+        );
+        let mut user = user.save(&pool).await.unwrap();
+
+        user.enrollment_pending = false;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+        assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+        assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+        assert!(user.is_enrolled());
+
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        user.save(&pool).await.unwrap();
+        assert!(!user.is_enrolled());
+
+        user.enrollment_pending = true;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = false;
+        user.save(&pool).await.unwrap();
+        assert!(!user.is_enrolled());
+
+        user.enrollment_pending = true;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.openid_sub = Some("sub".to_string());
+        user.from_ldap = true;
+        user.save(&pool).await.unwrap();
+        assert!(!user.is_enrolled());
     }
 }

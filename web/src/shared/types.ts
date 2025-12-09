@@ -139,6 +139,12 @@ export enum LocationMfaMode {
   EXTERNAL = 'external',
 }
 
+export enum ServiceLocationMode {
+  DISABLED = 'disabled',
+  PRELOGON = 'prelogon',
+  ALWAYSON = 'alwayson',
+}
+
 export interface Network {
   id: number;
   name: string;
@@ -156,6 +162,7 @@ export interface Network {
   acl_enabled: boolean;
   acl_default_allow: boolean;
   location_mfa_mode: LocationMfaMode;
+  service_location_mode: ServiceLocationMode;
 }
 
 export type ModifyNetworkRequest = {
@@ -164,7 +171,7 @@ export type ModifyNetworkRequest = {
     Network,
     'gateways' | 'connected' | 'id' | 'connected_at' | 'allowed_ips'
   > & {
-    allowed_ips: string;
+    allowed_ips?: string;
   };
 };
 
@@ -1114,9 +1121,15 @@ export type SettingsGatewayNotifications = {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 };
 
+export enum ClientTrafficPolicy {
+  NONE = 'none',
+  DISABLE_ALL_TRAFFIC = 'disable_all_traffic',
+  FORCE_ALL_TRAFFIC = 'force_all_traffic',
+}
+
 export type SettingsEnterprise = {
   admin_device_management: boolean;
-  disable_all_traffic: boolean;
+  client_traffic_policy: ClientTrafficPolicy;
   only_client_activation: boolean;
 };
 

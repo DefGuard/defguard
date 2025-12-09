@@ -2851,6 +2851,26 @@ type RootTranslation = {
 				external: string
 			}
 		}
+		serviceLocationModeSelect: {
+			/**
+			 * S​e​r​v​i​c​e​ ​L​o​c​a​t​i​o​n​ ​M​o​d​e
+			 */
+			label: string
+			options: {
+				/**
+				 * D​i​s​a​b​l​e​d
+				 */
+				disabled: string
+				/**
+				 * P​r​e​-​l​o​g​o​n
+				 */
+				prelogon: string
+				/**
+				 * A​l​w​a​y​s​-​o​n
+				 */
+				alwayson: string
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -3395,6 +3415,16 @@ type RootTranslation = {
 						 * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
 						 */
 						label: string
+					}
+					prefetch_users: {
+						/**
+						 * P​r​e​f​e​t​c​h​ ​u​s​e​r​s
+						 */
+						label: string
+						/**
+						 * F​e​t​c​h​ ​u​s​e​r​s​ ​f​r​o​m​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​s​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​w​i​t​h​o​u​t​ ​w​a​i​t​i​n​g​ ​f​o​r​ ​t​h​e​m​ ​t​o​ ​l​o​g​ ​i​n
+						 */
+						helper: string
 					}
 					sync_target: {
 						/**
@@ -4052,16 +4082,6 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
-				disableAllTraffic: {
-					/**
-					 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
-					 */
-					label: string
-					/**
-					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
-					 */
-					helper: string
-				}
 				manualConfig: {
 					/**
 					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
@@ -4071,6 +4091,42 @@ type RootTranslation = {
 					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
 					 */
 					helper: string
+				}
+				clientTrafficPolicy: {
+					/**
+					 * C​l​i​e​n​t​ ​t​r​a​f​f​i​c​ ​p​o​l​i​c​y
+					 */
+					header: string
+					none: {
+						/**
+						 * N​o​n​e
+						 */
+						label: string
+						/**
+						 * N​o​n​e​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​l​e​c​t​ ​a​l​l​ ​r​o​u​t​i​n​g​ ​o​p​t​i​o​n​s​.
+						 */
+						helper: string
+					}
+					disableAllTraffic: {
+						/**
+						 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+						 */
+						label: string
+						/**
+						 * D​i​s​a​b​l​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​.
+						 */
+						helper: string
+					}
+					forceAllTraffic: {
+						/**
+						 * F​o​r​c​e​ ​t​h​e​ ​c​l​i​e​n​t​s​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+						 */
+						label: string
+						/**
+						 * F​o​r​c​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​t​h​e​ ​u​s​e​r​s​ ​w​i​l​l​ ​a​l​w​a​y​s​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -4871,6 +4927,28 @@ type RootTranslation = {
 					 * E​x​t​e​r​n​a​l​ ​M​F​A​ ​-​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​ ​(​s​e​e​ ​[​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s​]​(​s​e​t​t​i​n​g​s​)​)​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​u​s​e​s​ ​e​x​t​e​r​n​a​l​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​ ​f​o​r​ ​M​F​A
 					 */
 					external: string
+					/**
+					 * L​o​c​a​t​i​o​n​ ​M​F​A​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​e​n​ ​s​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​ ​m​o​d​e​ ​i​s​ ​e​n​a​b​l​e​d​.
+					 */
+					serviceLocationWarning: string
+				}
+				serviceLocation: {
+					/**
+					 * C​h​o​o​s​e​ ​i​f​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​s​h​o​u​l​d​ ​w​o​r​k​ ​a​s​ ​a​ ​s​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​.​ ​T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​o​n​ ​e​v​e​r​y​ ​p​l​a​t​f​o​r​m​.​ ​C​o​n​s​u​l​t​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​f​e​a​t​u​r​e​s​/​s​e​r​v​i​c​e​-​l​o​c​a​t​i​o​n​s​)​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
+					 */
+					description: string
+					/**
+					 * P​r​e​-​l​o​g​o​n​ ​-​ ​A​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​c​t​i​v​e​ ​o​n​l​y​ ​b​e​f​o​r​e​ ​t​h​e​ ​u​s​e​r​ ​l​o​g​s​ ​i​n​ ​o​n​ ​t​h​e​i​r​ ​d​e​v​i​c​e​.​ ​W​h​e​n​ ​t​h​e​ ​u​s​e​r​ ​c​o​m​p​l​e​t​e​s​ ​t​h​e​ ​l​o​g​i​n​,​ ​t​h​e​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​t​e​r​m​i​n​a​t​e​d​.
+					 */
+					preLogon: string
+					/**
+					 * A​l​w​a​y​s​-​o​n​ ​-​ ​A​ ​V​P​N​ ​c​o​n​n​e​c​t​i​o​n​ ​w​i​l​l​ ​a​l​w​a​y​s​ ​b​e​ ​a​c​t​i​v​e​ ​w​h​e​n​ ​t​h​e​ ​u​s​e​r​ ​d​e​v​i​c​e​ ​i​s​ ​o​n​.
+					 */
+					alwaysOn: string
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​s​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​i​l​e​ ​l​o​c​a​t​i​o​n​ ​M​F​A​ ​i​s​ ​e​n​a​b​l​e​d​.
+					 */
+					mfaWarning: string
 				}
 			}
 			sections: {
@@ -4883,6 +4961,12 @@ type RootTranslation = {
 				mfa: {
 					/**
 					 * M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n
+					 */
+					header: string
+				}
+				serviceLocation: {
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n
 					 */
 					header: string
 				}
@@ -4971,6 +5055,12 @@ type RootTranslation = {
 				location_mfa_mode: {
 					/**
 					 * M​F​A​ ​r​e​q​u​i​r​e​m​e​n​t
+					 */
+					label: string
+				}
+				service_location_mode: {
+					/**
+					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​ ​m​o​d​e
 					 */
 					label: string
 				}
@@ -9525,6 +9615,26 @@ export type TranslationFunctions = {
 				external: () => LocalizedString
 			}
 		}
+		serviceLocationModeSelect: {
+			/**
+			 * Service Location Mode
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Disabled
+				 */
+				disabled: () => LocalizedString
+				/**
+				 * Pre-logon
+				 */
+				prelogon: () => LocalizedString
+				/**
+				 * Always-on
+				 */
+				alwayson: () => LocalizedString
+			}
+		}
 	}
 	settingsPage: {
 		/**
@@ -10066,6 +10176,16 @@ export type TranslationFunctions = {
 						 * Enable directory synchronization
 						 */
 						label: () => LocalizedString
+					}
+					prefetch_users: {
+						/**
+						 * Prefetch users
+						 */
+						label: () => LocalizedString
+						/**
+						 * Fetch users from external provider and create user accounts in Defguard without waiting for them to log in
+						 */
+						helper: () => LocalizedString
 					}
 					sync_target: {
 						/**
@@ -10719,16 +10839,6 @@ export type TranslationFunctions = {
 					 */
 					helper: () => LocalizedString
 				}
-				disableAllTraffic: {
-					/**
-					 * Disable the option to route all traffic through VPN
-					 */
-					label: () => LocalizedString
-					/**
-					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
-					 */
-					helper: () => LocalizedString
-				}
 				manualConfig: {
 					/**
 					 * Disable users' ability to manually configure WireGuard client
@@ -10738,6 +10848,42 @@ export type TranslationFunctions = {
 					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
 					 */
 					helper: () => LocalizedString
+				}
+				clientTrafficPolicy: {
+					/**
+					 * Client traffic policy
+					 */
+					header: () => LocalizedString
+					none: {
+						/**
+						 * None
+						 */
+						label: () => LocalizedString
+						/**
+						 * None - When this option is enabled, users will be able to select all routing options.
+						 */
+						helper: () => LocalizedString
+					}
+					disableAllTraffic: {
+						/**
+						 * Disable the option to route all traffic through VPN
+						 */
+						label: () => LocalizedString
+						/**
+						 * Disable all traffic - When this option is enabled, users will not be able to route all traffic through the VPN.
+						 */
+						helper: () => LocalizedString
+					}
+					forceAllTraffic: {
+						/**
+						 * Force the clients to route all traffic through VPN
+						 */
+						label: () => LocalizedString
+						/**
+						 * Force all traffic - When this option is enabled, the users will always route all traffic through the VPN.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -11526,6 +11672,28 @@ export type TranslationFunctions = {
 					 * External MFA - If configured (see [OpenID settings](settings)) this option uses external identity provider for MFA
 					 */
 					external: () => LocalizedString
+					/**
+					 * Location MFA can't be used when service location mode is enabled.
+					 */
+					serviceLocationWarning: () => LocalizedString
+				}
+				serviceLocation: {
+					/**
+					 * Choose if this location should work as a service location. This feature is currently not supported on every platform. Consult our [documentation](https://docs.defguard.net/features/service-locations) for more details.
+					 */
+					description: () => LocalizedString
+					/**
+					 * Pre-logon - A VPN connection to this location will be active only before the user logs in on their device. When the user completes the login, the VPN connection will be terminated.
+					 */
+					preLogon: () => LocalizedString
+					/**
+					 * Always-on - A VPN connection will always be active when the user device is on.
+					 */
+					alwaysOn: () => LocalizedString
+					/**
+					 * Service locations can't be used while location MFA is enabled.
+					 */
+					mfaWarning: () => LocalizedString
 				}
 			}
 			sections: {
@@ -11538,6 +11706,12 @@ export type TranslationFunctions = {
 				mfa: {
 					/**
 					 * Multi-Factor Authentication
+					 */
+					header: () => LocalizedString
+				}
+				serviceLocation: {
+					/**
+					 * Service location
 					 */
 					header: () => LocalizedString
 				}
@@ -11626,6 +11800,12 @@ export type TranslationFunctions = {
 				location_mfa_mode: {
 					/**
 					 * MFA requirement
+					 */
+					label: () => LocalizedString
+				}
+				service_location_mode: {
+					/**
+					 * Service location mode
 					 */
 					label: () => LocalizedString
 				}

@@ -1,7 +1,6 @@
+use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgPool, query_as};
-
-use defguard_common::db::{Id, NoId};
 
 #[derive(Model)]
 pub struct OAuth2AuthorizedApp<I = NoId> {

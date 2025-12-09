@@ -1032,6 +1032,22 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         contact: 'poprzez kontakt:',
       },
     },
+    locationMfaModeSelect: {
+      label: 'Wymaganie MFA',
+      options: {
+        disabled: 'Nie wymuszaj MFA',
+        internal: 'Wewnętrzne MFA',
+        external: 'Zewnętrzne MFA',
+      },
+    },
+    serviceLocationModeSelect: {
+      label: 'Tryb lokalizacji usługi',
+      options: {
+        disabled: 'Wyłączone',
+        prelogon: 'Pre-logon',
+        alwayson: 'Always-on',
+      },
+    },
   },
   settingsPage: {
     title: 'Ustawienia',
@@ -1478,16 +1494,29 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
         },
-        disableAllTraffic: {
-          label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
-          helper:
-            'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
-        },
         manualConfig: {
           label: 'Wyłącz manualną konfigurację WireGuard',
           helper:
             'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli pobrać ani wyświetlić danych do manualnej konfiguracji WireGuard. Możliwe będzie wyłącznie skonfigurowanie klienta Defguard.',
         },
+        clientTrafficPolicy: {
+          header: 'Polityka przekierowania ruchu klientów',
+          none: {
+            label: 'Brak',
+            helper:
+              'Brak - Kiedy ta opcja jest włączona, użytkownicy mogą wybrać dowolny typ przekierowania ruchu.',
+          },
+          disableAllTraffic: {
+            label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
+            helper:
+              'Zablokuj przekierowanie całego ruchu - Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN.',
+          },
+          forceAllTraffic: {
+            label: 'Wymuś przekierowanie całego ruchu przez VPN',
+            helper:
+              'Wymuś przekierowanie całego ruchu - Kiedy ta opcja jest włączona, użytkownicy będą zawsze przekierowywać cały ruch przez VPN.',
+          },
+        }
       },
     },
     gatewayNotifications: {
@@ -1784,10 +1813,45 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
         allowedGroups:
           'Domyślnie wszyscy użytkownicy będą mogli połączyć się z tą lokalizacją. Jeżeli chcesz ogranicznyć dostęp do tej lokalizacji do wybranej grupy użytkowników, wybierz ją poniżej.',
+        aclFeatureDisabled:
+          'Funkcjonalność ACL jest funkcją enterprise i przekroczyłeś limity użytkowników, urządzeń lub sieciź. Aby korzystać z tej funkcji, kup licencję enterprise lub zaktualizuj istniejącą.',
+        peerDisconnectThreshold:
+          'Klienci autoryzowani za pomocą MFA zostaną rozłączeni z lokalizacji, gdy nie zostanie wykryta żadna aktywność sieciowa między nimi a bramą VPN przez czas skonfigurowany poniżej.',
+        locationMfaMode: {
+          description:
+            'Wybierz, w jaki sposób wymuszane jest MFA podczas łączenia się z tą lokalizacją:',
+          internal:
+            'Wewnętrzne MFA - MFA jest wymuszane przy użyciu wbudowanego MFA Defguard (np. TOTP, WebAuthn) z wewnętrzną tożsamością',
+          external:
+            'Zewnętrzne MFA - Jeśli skonfigurowane (zobacz [ustawienia OpenID](settings)), ta opcja używa zewnętrznego dostawcy tożsamości do MFA',
+          serviceLocationWarning:
+            'Nie można używać MFA lokalizacji, gdy włączony jest tryb lokalizacji serwisowej.',
+        },
+        serviceLocation: {
+          description:
+            'Wybierz, czy ta lokalizacja ma działać jako lokalizacja serwisowa. Ta funkcja nie jest obecnie obsługiwana na każdej platformie. Zapoznaj się z naszą [dokumentacją](https://docs.defguard.net/features/service-locations), aby uzyskać więcej szczegółów.',
+          preLogon:
+            'Pre-logon - Połączenie VPN z tą lokalizacją będzie aktywne tylko przed zalogowaniem użytkownika na jego urządzeniu. Połączenie VPN zostanie zakończone po zalogowaniu się użytkownika.',
+          alwaysOn:
+            'Always-on - Połączenie VPN będzie zawsze aktywne, gdy urządzenie użytkownika jest włączone.',
+          mfaWarning:
+            'Nie można używać lokalizacji serwisowej, gdy włączone jest MFA lokalizacji.',
+        },
       },
       messages: {
         networkModified: 'Lokalizacja zmodyfikowana',
         networkCreated: 'Lokalizacja utworzona',
+      },
+      sections: {
+        accessControl: {
+          header: 'Kontrola dostępu i firewall',
+        },
+        mfa: {
+          header: 'Uwierzytelnianie wieloskładnikowe',
+        },
+        serviceLocation: {
+          header: 'Lokalizacja serwisowa',
+        },
       },
       fields: {
         name: {
@@ -1826,6 +1890,12 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         acl_default_allow: {
           label: 'Domyślna polityka ACL',
+        },
+        location_mfa_mode: {
+          label: 'Tryb MFA lokalizacji',
+        },
+        service_location_mode: {
+          label: 'Tryb lokalizacji serwisowej',
         },
       },
       controls: {

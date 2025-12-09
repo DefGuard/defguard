@@ -88,11 +88,13 @@ export const MethodStep = () => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: migration, checkMeLater
   useEffect(() => {
     if (networks) {
-      const options: SelectOption<number>[] = networks.map((n) => ({
-        key: n.id,
-        value: n.id,
-        label: n.name,
-      }));
+      const options: SelectOption<number>[] = networks
+        .filter((n) => n.location_mfa_mode === 'disabled')
+        .map((n) => ({
+          key: n.id,
+          value: n.id,
+          label: n.name,
+        }));
       setState({
         networks,
         networkOptions: options,
