@@ -3,6 +3,7 @@ import { SettingsLayout } from '../../../../shared/components/SettingsLayout/Set
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { higherPlanBadgeProps } from '../../shared/consts';
 
 export const SettingsGeneralTab = () => {
   return (
@@ -26,6 +27,7 @@ export const SettingsGeneralTab = () => {
           image="behavior"
           title="Client behavior"
           content="Manage how users interact with the Defguard client. Control device management permissions, configuration access, and traffic routing options."
+          badgeProps={higherPlanBadgeProps}
         />
       </Link>
     </SettingsLayout>

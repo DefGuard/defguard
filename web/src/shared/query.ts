@@ -6,6 +6,7 @@ import { updateServiceApi } from './api/update-service';
 export const getEnterpriseSettingsQueryOptions = queryOptions({
   queryFn: api.settings.getEnterpriseSettings,
   queryKey: ['settings_enterprise'],
+  select: (resp) => resp.data,
 });
 
 export const getLocationQueryOptions = (id: number) =>

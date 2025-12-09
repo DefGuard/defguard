@@ -529,10 +529,10 @@ export const LocationServiceMode = {
 export type LocationServiceModeValue =
   (typeof LocationServiceMode)[keyof typeof LocationServiceMode];
 
-const ClientTrafficPolicy = {
+export const ClientTrafficPolicy = {
   None: 'none',
   DisableAllTraffic: 'disable_all_traffic',
-  ForeAllTraffic: 'force_all_traffic',
+  ForceAllTraffic: 'force_all_traffic',
 } as const;
 
 export type ClientTrafficPolicyValue =
