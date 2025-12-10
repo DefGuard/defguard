@@ -57,6 +57,7 @@ import type {
   SettingsEnterprise,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
+  TestDirectorySyncResponse,
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
@@ -330,6 +331,8 @@ const api = {
     deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
     editOpenIdProvider: (data: OpenIdProvider) =>
       client.put(`/openid/provider/${data.name}`, data),
+    testDirectorySync: () =>
+      client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
   },
 } as const;
 

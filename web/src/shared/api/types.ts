@@ -668,17 +668,18 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret: string;
   display_name: string;
-  google_service_account_key?: string;
-  google_service_account_email?: string;
-  admin_email?: string;
   directory_sync_enabled: boolean;
   directory_sync_interval: number;
   directory_sync_user_behavior: DirectorySyncBehaviorValue;
   directory_sync_admin_behavior: DirectorySyncBehaviorValue;
   directory_sync_target: DirectorySyncTargetValue;
-  okta_private_jwk?: string;
-  okta_dirsync_client_id?: string;
-  directory_sync_group_match?: string;
+  google_service_account_key?: string | null;
+  google_service_account_email?: string | null;
+  admin_email?: string | null;
+  okta_private_jwk?: string | null;
+  okta_dirsync_client_id?: string | null;
+  directory_sync_group_match?: string | null;
+  jumpcloud_api_key?: string | null;
 }
 
 export interface OpenIdProviders {
@@ -689,3 +690,8 @@ export interface OpenIdProviders {
 export type OpenIdProvidersResponse = OpenIdProviders | undefined;
 
 export type AddOpenIdProvider = Omit<OpenIdProvider, 'id'> & OpenIdProviderSettings;
+
+export interface TestDirectorySyncResponse {
+  success: boolean;
+  message: string | null;
+}

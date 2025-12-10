@@ -3,6 +3,7 @@ import type { ExternalProviderValue } from '../../../shared/types';
 import './style.scss';
 import clsx from 'clsx';
 import { m } from '../../../../../paraglide/messages';
+import { externalProviderName } from '../../../../../shared/constants';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { Icon } from '../../../../../shared/defguard-ui/components/Icon';
 import { ThemeVariable } from '../../../../../shared/defguard-ui/types';
@@ -30,15 +31,6 @@ const providerImage: Record<ExternalProviderValue, ReactNode> = {
   zitadel: <img src={zitadel} height={28} width={28} />,
 };
 
-const providerNames: Record<ExternalProviderValue, string> = {
-  custom: 'Custom provider',
-  google: 'Google',
-  jumpCloud: 'JumpCloud',
-  microsoft: 'Microsoft',
-  okta: 'Okta',
-  zitadel: 'Zitadel',
-};
-
 const providerDescription: Record<ExternalProviderValue, string> = {
   custom:
     'Enter the required details to link your account securely and manage logins with your custom setup.',
@@ -62,7 +54,7 @@ export const ExternalProviderCard = ({
 }: Props) => {
   const name = useMemo(() => {
     if (isPresent(displayName)) return displayName;
-    return providerNames[provider];
+    return externalProviderName[provider];
   }, [displayName, provider]);
 
   return (

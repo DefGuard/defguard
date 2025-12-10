@@ -1,11 +1,11 @@
 export const AddLocationPageStep = {
-  Start: 0,
-  InternalVpnSettings: 1,
-  NetworkSettings: 2,
-  Mfa: 3,
-  ServiceLocationSettings: 3,
-  AccessControl: 4,
-  Firewall: 5,
+  Start: 'start',
+  InternalVpnSettings: 'internalVpnSettings',
+  NetworkSettings: 'networkSettings',
+  Mfa: 'mfa',
+  ServiceLocationSettings: 'serviceLocationSettings',
+  AccessControl: 'accessControl',
+  Firewall: 'firewall',
 } as const;
 
 export type AddLocationPageStepValue =

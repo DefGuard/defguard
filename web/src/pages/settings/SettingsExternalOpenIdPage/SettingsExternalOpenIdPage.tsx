@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
@@ -7,6 +7,7 @@ import { higherPlanBadgeProps } from '../shared/consts';
 import { ExternalProvider } from '../shared/types';
 import { ExternalProviderCard } from './components/ExternalProviderCard/ExternalProviderCard';
 import './style.scss';
+import { useAddExternalOpenIdStore } from '../../AddExternalOpenIdWizardPage/useAddExternalOpenIdStore';
 
 const breadcrumbs = [
   <Link
@@ -24,6 +25,7 @@ const breadcrumbs = [
 ];
 
 export const SettingsExternalOpenIdPage = () => {
+  const navigate = useNavigate();
   return (
     <Page title="Settings" id="settings-external-openid">
       <Breadcrumbs links={breadcrumbs} />
@@ -36,7 +38,18 @@ export const SettingsExternalOpenIdPage = () => {
         />
         <div className="providers">
           {Object.values(ExternalProvider).map((provider) => (
-            <ExternalProviderCard provider={provider} key={provider} onClick={() => {}} />
+            <ExternalProviderCard
+              disabled={provider === ExternalProvider.Zitadel}
+              provider={provider}
+              key={provider}
+              onClick={() => {
+                useAddExternalOpenIdStore.getState().initialize(provider);
+                navigate({
+                  to: '/add-external-openid',
+                  replace: true,
+                });
+              }}
+            />
           ))}
         </div>
       </SettingsLayout>

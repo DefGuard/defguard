@@ -5,6 +5,7 @@ import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import { CopyField } from '../../../../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { IconKind } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -98,7 +99,7 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
     return (
       <>
         <InfoBanner
-          icon="warning"
+          icon={IconKind.WarningOutlined}
           variant="warning"
           text={m.modal_add_api_token_copy_warning()}
         />

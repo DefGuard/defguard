@@ -28,6 +28,7 @@ import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppTe
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
@@ -164,7 +165,7 @@ const ManualStep = ({
       <SizedBox height={ThemeSpacing.Xl2} />
       <InfoBanner
         variant="warning"
-        icon="warning"
+        icon={IconKind.WarningOutlined}
         text={
           "Defguard doesn't store private keys. Keys are generated in your browser — only the public key is saved. Download the configuration now; the private key won't be available later."
         }
