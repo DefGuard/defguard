@@ -1281,6 +1281,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard_proxy"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "defguard_common",
+ "defguard_core",
+ "defguard_mail",
+ "defguard_proto",
+ "defguard_version",
+ "openidconnect",
+ "reqwest",
+ "semver",
+ "sqlx",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tracing",
+]
+
+[[package]]
 name = "defguard_session_manager"
 version = "0.0.0"
 dependencies = [
