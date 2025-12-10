@@ -46,7 +46,7 @@ pub(crate) fn parse_client_version_platform(
 
 /// Represents a client feature that may have minimum version and OS family requirements.
 #[derive(Debug)]
-pub(crate) enum ClientFeature {
+pub enum ClientFeature {
     ServiceLocations,
 }
 
@@ -63,7 +63,7 @@ impl ClientFeature {
         }
     }
 
-    pub(crate) fn is_supported_by_device(&self, info: Option<&DeviceInfo>) -> bool {
+    pub fn is_supported_by_device(&self, info: Option<&DeviceInfo>) -> bool {
         let (version, platform) = parse_client_version_platform(info);
 
         // No minimum version = matches all

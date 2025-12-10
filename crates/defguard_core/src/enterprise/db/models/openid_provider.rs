@@ -208,7 +208,7 @@ impl OpenIdProvider {
 }
 
 impl OpenIdProvider<Id> {
-    pub(crate) async fn find_by_name<'e, E>(
+    pub async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
     ) -> Result<Option<Self>, SqlxError>
@@ -230,7 +230,7 @@ impl OpenIdProvider<Id> {
         .await
     }
 
-    pub(crate) async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {

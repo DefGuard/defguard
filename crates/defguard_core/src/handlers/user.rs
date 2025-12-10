@@ -96,7 +96,7 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
+pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));
     }

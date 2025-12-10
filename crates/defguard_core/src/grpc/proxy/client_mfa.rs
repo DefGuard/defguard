@@ -58,7 +58,7 @@ pub(crate) struct ClientLoginSession {
     pub(crate) biometric_challenge: Option<BiometricChallenge>,
 }
 
-pub(crate) struct ClientMfaServer {
+pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -112,7 +112,7 @@ impl ClientMfaServer {
 
     /// Allows proxy to verify if token is valid and active
     #[instrument(skip_all)]
-    pub(crate) async fn validate_mfa_token(
+    pub async fn validate_mfa_token(
         &mut self,
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {

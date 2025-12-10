@@ -409,7 +409,7 @@ pub(crate) async fn test_directory_sync_connection(
 }
 
 /// Sync user groups with the directory if directory sync is enabled and configured, skip otherwise
-pub(crate) async fn sync_user_groups_if_configured(
+pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
     wg_tx: &Sender<GatewayEvent>,

@@ -29,7 +29,7 @@ use defguard_core::{
     grpc::{
         WorkerState,
         gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
-        run_grpc_bidi_stream, run_grpc_server,
+        run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
@@ -40,6 +40,7 @@ use defguard_core::{
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
+use defguard_proxy::{ProxyOrchestrator, ProxyTxSet};
 // use defguard_session_manager::run_session_manager;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
@@ -158,15 +159,14 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
+    let proxy_orchestrator =
+        ProxyOrchestrator::new(pool.clone(), proxy_tx, incompatible_components.clone());
+
     // run services
     tokio::select! {
-        res = run_grpc_bidi_stream(
-            pool.clone(),
-            wireguard_tx.clone(),
-            mail_tx.clone(),
-            bidi_event_tx,
-            Arc::clone(&incompatible_components),
-        ), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
+		res = proxy_orchestrator.run(),
+			if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),

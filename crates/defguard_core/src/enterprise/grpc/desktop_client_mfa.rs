@@ -10,7 +10,7 @@ use crate::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
-        client_mfa::{ClientLoginSession, ClientMfaServer},
+        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
         utils::parse_client_ip_agent,
     },
 };

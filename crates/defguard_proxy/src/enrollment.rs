@@ -1,15 +1,11 @@
 use std::collections::HashSet;
 
 use defguard_common::{
-    csv::AsCsv,
-    db::{
-        Id,
+    config::server_config, csv::AsCsv, db::{
         models::{
-            BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
-            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
-            settings::defaults::WELCOME_EMAIL_SUBJECT, wireguard::ServiceLocationMode,
-        },
-    },
+            device::DeviceInfo, polling_token::PollingToken, settings::defaults::WELCOME_EMAIL_SUBJECT, wireguard::ServiceLocationMode, BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User, WireguardNetwork
+        }, Id
+    }
 };
 use defguard_mail::{
     Mail,
@@ -28,9 +24,8 @@ use tokio::sync::{
 };
 use tonic::Status;
 
-use super::InstanceInfo;
-use crate::{
-    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
+use defguard_core::{
+    db::models::enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -41,7 +36,7 @@ use crate::{
     grpc::{
         client_version::ClientFeature,
         gateway::events::GatewayEvent,
-        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
+        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent}, InstanceInfo,
     },
     handlers::{
         mail::{
@@ -50,7 +45,7 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
-    is_valid_phone_number, server_config,
+    is_valid_phone_number,
 };
 
 pub(super) struct EnrollmentServer {
@@ -1055,87 +1050,13 @@ async fn initial_info_from_user(
         is_admin,
     })
 }
-impl Token {
-    // Send configured welcome email to user after finishing enrollment
-    async fn send_welcome_email(
-        &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
-        mail_tx: &UnboundedSender<Mail>,
-        user: &User<Id>,
-        settings: &Settings,
-        ip_address: &str,
-        device_info: Option<&str>,
-    ) -> Result<(), TokenError> {
-        debug!("Sending welcome mail to {}", user.username);
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: settings
-                .enrollment_welcome_email_subject
-                .clone()
-                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
-            content: self
-                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
-                .await?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        match mail_tx.send(mail) {
-            Ok(()) => {
-                info!("Sent enrollment welcome mail to {}", user.username);
-                Ok(())
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Err(TokenError::NotificationError(err.to_string()))
-            }
-        }
-    }
-
-    // Notify admin that a user has completed enrollment
-    fn send_admin_notification(
-        mail_tx: &UnboundedSender<Mail>,
-        admin: &User<Id>,
-        user: &User<Id>,
-        ip_address: &str,
-        device_info: Option<&str>,
-    ) -> Result<(), TokenError> {
-        debug!(
-            "Sending enrollment success notification for user {} to {}",
-            user.username, admin.username
-        );
-        let mail = Mail {
-            to: admin.email.clone(),
-            subject: "[defguard] User enrollment completed".into(),
-            content: templates::enrollment_admin_notification(
-                &user.clone().into(),
-                &admin.clone().into(),
-                ip_address,
-                device_info,
-            )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        match mail_tx.send(mail) {
-            Ok(()) => {
-                info!(
-                    "Sent enrollment success notification for user {} to {}",
-                    user.username, admin.username
-                );
-                Ok(())
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Err(TokenError::NotificationError(err.to_string()))
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
+			enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
             models::{
                 Settings, User,
                 settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
@@ -1146,8 +1067,6 @@ mod test {
     use defguard_mail::Mail;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::mpsc::unbounded_channel;
-
-    use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
 
     #[sqlx::test]
     async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {

@@ -13,7 +13,7 @@ mod utils;
 use license::{get_cached_license, validate_license};
 use limits::get_counts;
 
-pub(crate) fn is_enterprise_enabled() -> bool {
+pub fn is_enterprise_enabled() -> bool {
     debug!("Checking if enterprise features should be enabled");
     let counts = get_counts();
     if counts.needs_enterprise_license() {
