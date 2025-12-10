@@ -1,72 +1,41 @@
 use std::{
     collections::hash_map::HashMap,
-    fs::read_to_string,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, RwLock},
     time::{Duration, Instant},
 };
 
-use axum::http::Uri;
+use reqwest::Url;
+use serde::Serialize;
+use sqlx::PgPool;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
+use tower::ServiceBuilder;
+
 use defguard_common::{
     VERSION,
     auth::claims::ClaimsType,
     db::{Id, models::Settings},
 };
 use defguard_mail::Mail;
-use defguard_version::{
-    ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables, server::DefguardVersionLayer,
-};
-use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
-use reqwest::Url;
-use serde::Serialize;
-use sqlx::PgPool;
-use tokio::{
-    sync::{
-        broadcast::Sender,
-        mpsc::{self, UnboundedSender},
-    },
-    time::sleep,
-};
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Code, Streaming,
-    transport::{
-        Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig, server::Router,
-    },
-};
-use tower::ServiceBuilder;
+use defguard_version::{Version, server::DefguardVersionLayer};
 
 use self::{
-    auth::AuthServer,
-    gateway::GatewayServer, interceptor::JwtInterceptor,
-    worker::WorkerServer,
+    auth::AuthServer, gateway::GatewayServer, interceptor::JwtInterceptor, worker::WorkerServer,
 };
 pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{
-        AppEvent,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    },
-    enrollment_management::clear_unused_enrollment_tokens,
+    db::AppEvent,
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
-        directory_sync::sync_user_groups_if_configured,
-        grpc::polling::PollingServer,
-        handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
-        },
         is_enterprise_enabled,
-        ldap::utils::ldap_update_user_state,
     },
-    events::{BidiStreamEvent, GrpcEvent},
+    events::GrpcEvent,
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
     server_config,
-    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
+    version::IncompatibleComponents,
 };
-
-static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 mod auth;
 pub mod client_version;
@@ -87,10 +56,6 @@ pub mod proto {
 use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
     gateway::gateway_service_server::GatewayServiceServer,
-    proxy::{
-        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
-        core_response, proxy_client::ProxyClient,
-    },
     worker::worker_service_server::WorkerServiceServer,
 };
 

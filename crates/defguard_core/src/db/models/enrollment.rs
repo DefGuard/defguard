@@ -1,11 +1,18 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
-    config::server_config, db::{
-        models::{settings::defaults::WELCOME_EMAIL_SUBJECT, user::User, Settings}, Id
-    }, random::gen_alphanumeric, VERSION
+    VERSION,
+    config::server_config,
+    db::{
+        Id,
+        models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
+    },
+    random::gen_alphanumeric,
 };
-use defguard_mail::{templates::{self, safe_tera, TemplateError}, Mail};
-use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction};
+use defguard_mail::{
+    Mail,
+    templates::{self, TemplateError, safe_tera},
+};
+use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
 use tera::Context;
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
@@ -455,7 +462,6 @@ impl Token {
         }
     }
 }
-
 
 pub fn enrollment_welcome_message(settings: &Settings) -> Result<String, TokenError> {
     settings.enrollment_welcome_message.clone().ok_or_else(|| {

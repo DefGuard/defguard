@@ -28,10 +28,7 @@ use crate::{
 };
 
 // Create a new token for configuration polling.
-pub async fn new_polling_token(
-    pool: &PgPool,
-    device: &Device<Id>,
-) -> Result<String, Status> {
+pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
     debug!(
         "Making a new polling token for device {}",
         device.wireguard_pubkey

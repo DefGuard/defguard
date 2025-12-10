@@ -1,23 +1,25 @@
 use std::collections::HashSet;
 
 use defguard_common::{
-    config::server_config, csv::AsCsv, db::{
+    config::server_config,
+    csv::AsCsv,
+    db::{
+        Id,
         models::{
-            device::DeviceInfo, polling_token::PollingToken, settings::defaults::WELCOME_EMAIL_SUBJECT, wireguard::ServiceLocationMode, BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User, WireguardNetwork
-        }, Id
-    }
+            BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
+            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
+            wireguard::ServiceLocationMode,
+        },
+    },
 };
-use defguard_mail::{
-    Mail,
-    templates::{self, TemplateLocation},
-};
+use defguard_mail::{Mail, templates::TemplateLocation};
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
     EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
     NewDevice, RegisterMobileAuthRequest,
 };
-use sqlx::{PgPool, Transaction, query_scalar};
+use sqlx::{PgPool, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
@@ -25,7 +27,7 @@ use tokio::sync::{
 use tonic::Status;
 
 use defguard_core::{
-    db::models::enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
@@ -34,9 +36,10 @@ use defguard_core::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
+        InstanceInfo,
         client_version::ClientFeature,
         gateway::events::GatewayEvent,
-        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent}, InstanceInfo,
+        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
     },
     handlers::{
         mail::{
@@ -1056,7 +1059,6 @@ mod test {
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
-			enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
             models::{
                 Settings, User,
                 settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
@@ -1064,6 +1066,7 @@ mod test {
             setup_pool,
         },
     };
+    use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
     use defguard_mail::Mail;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::mpsc::unbounded_channel;

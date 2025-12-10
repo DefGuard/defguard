@@ -25,16 +25,21 @@ use tonic::{
 
 use defguard_common::{VERSION, config::server_config};
 use defguard_core::{
-    db::models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE}, enrollment_management::clear_unused_enrollment_tokens, enterprise::{
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    enrollment_management::clear_unused_enrollment_tokens,
+    enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
-            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
-    }, events::BidiStreamEvent, grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer}, version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData}
+    },
+    events::BidiStreamEvent,
+    grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer},
+    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
@@ -292,12 +297,7 @@ impl Proxy {
                         }
                         // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
                         Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                            match self
-                                .servers
-                                .client_mfa
-                                .validate_mfa_token(request)
-                                .await
-                            {
+                            match self.servers.client_mfa.validate_mfa_token(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaTokenValidation(
                                         response_payload,
@@ -311,10 +311,7 @@ impl Proxy {
                         }
                         // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                         Some(core_request::Payload::RegisterMobileAuth(request)) => {
-                            match self.servers.enrollment
-                                .register_mobile_auth(request)
-                                .await
-                            {
+                            match self.servers.enrollment.register_mobile_auth(request).await {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("Register mobile auth error {err}");
@@ -324,7 +321,9 @@ impl Proxy {
                         }
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match self.servers.enrollment
+                            match self
+                                .servers
+                                .enrollment
                                 .start_enrollment(request, received.device_info)
                                 .await
                             {
@@ -339,7 +338,9 @@ impl Proxy {
                         }
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::ActivateUser(request)) => {
-                            match self.servers.enrollment
+                            match self
+                                .servers
+                                .enrollment
                                 .activate_user(request, received.device_info)
                                 .await
                             {
@@ -352,7 +353,9 @@ impl Proxy {
                         }
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::NewDevice(request)) => {
-                            match self.servers.enrollment
+                            match self
+                                .servers
+                                .enrollment
                                 .create_device(request, received.device_info)
                                 .await
                             {
@@ -367,7 +370,9 @@ impl Proxy {
                         }
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::ExistingDevice(request)) => {
-                            match self.servers.enrollment
+                            match self
+                                .servers
+                                .enrollment
                                 .get_network_info(request, received.device_info)
                                 .await
                             {
@@ -382,7 +387,9 @@ impl Proxy {
                         }
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordResetInit(request)) => {
-                            match self.servers.password_reset
+                            match self
+                                .servers
+                                .password_reset
                                 .request_password_reset(request, received.device_info)
                                 .await
                             {
@@ -395,7 +402,9 @@ impl Proxy {
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match self.servers.password_reset
+                            match self
+                                .servers
+                                .password_reset
                                 .start_password_reset(request, received.device_info)
                                 .await
                             {
@@ -410,7 +419,9 @@ impl Proxy {
                         }
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordReset(request)) => {
-                            match self.servers.password_reset
+                            match self
+                                .servers
+                                .password_reset
                                 .reset_password(request, received.device_info)
                                 .await
                             {
@@ -423,7 +434,9 @@ impl Proxy {
                         }
                         // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
                         Some(core_request::Payload::ClientMfaStart(request)) => {
-                            match self.servers.client_mfa
+                            match self
+                                .servers
+                                .client_mfa
                                 .start_client_mfa_login(request)
                                 .await
                             {
@@ -438,7 +451,9 @@ impl Proxy {
                         }
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
-                            match self.servers.client_mfa
+                            match self
+                                .servers
+                                .client_mfa
                                 .finish_client_mfa_login(request, received.device_info)
                                 .await
                             {
