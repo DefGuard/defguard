@@ -7,7 +7,7 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use tracing::{debug, error};
 
 use crate::error::SessionManagerError;
@@ -29,8 +29,9 @@ impl SessionState {
             username: user.username.clone(),
         }
     }
-    /// Updates session state based on received peer update
-    pub(crate) fn update(&mut self, peer_stats_update: PeerStatsUpdate) {
+
+    /// Updates session stats based on received peer update
+    pub(crate) fn update_stats(&mut self, peer_stats_update: PeerStatsUpdate) {
         todo!()
     }
 }
@@ -115,7 +116,11 @@ impl LocationSessionsMap {
     }
 
     /// Checks if a session for a given peer exists already
-    pub(crate) fn try_get_peer_session(&self) -> Option<SessionState> {
+    pub(crate) fn try_get_peer_session(
+        &self,
+        location_id: Id,
+        device_id: Id,
+    ) -> Option<SessionState> {
         todo!()
     }
 
@@ -129,20 +134,66 @@ impl LocationSessionsMap {
     }
 
     /// Creates a new VPN client session, adds it to curent state and persists it in DB
-    pub(crate) fn new_session(&mut self) {
+    ///
+    /// We assume that at this point it's been checked that a session for this client does not exist yet.
+    pub(crate) async fn new_session(
+        &mut self,
+        transaction: &mut PgConnection,
+        stats_update: &PeerStatsUpdate,
+    ) -> Result<SessionState, SessionManagerError> {
+        // fetch related objects from DB
+        let location = Self::fetch_location(transaction, stats_update.location_id).await?;
+        let device = Self::fetch_device(transaction, stats_update.device_id).await?;
+        let user = Self::fetch_user(transaction, device.user_id).await?;
+
+        debug!("Adding new VPN client session for location {location}");
+
+        let connected_at = todo!();
+
+        // create a client session object and save it to DB
+        let session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            connected_at,
+            location.mfa_enabled(),
+        )
+        .save(transaction)
+        .await?;
+
+        let session_state = SessionState::new(session.id, &user);
+
         todo!()
+        // Ok(())
     }
 
     // Wrapper method which attempts to fetch User from DB and returns an error if None is found or an error occurs
-    async fn fetch_user(pool: &PgPool, user_id: Id) -> Result<User<Id>, SessionManagerError> {
-        User::find_by_id(pool, user_id)
+    async fn fetch_user<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        user_id: Id,
+    ) -> Result<User<Id>, SessionManagerError> {
+        User::find_by_id(executor, user_id)
             .await?
             .ok_or(SessionManagerError::UserDoesNotExistError(user_id))
     }
+
     // Wrapper method which attempts to fetch Device from DB and returns an error if None is found or an error occurs
-    async fn fetch_device(pool: &PgPool, device_id: Id) -> Result<Device<Id>, SessionManagerError> {
-        Device::find_by_id(pool, device_id)
+    async fn fetch_device<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        device_id: Id,
+    ) -> Result<Device<Id>, SessionManagerError> {
+        Device::find_by_id(executor, device_id)
             .await?
             .ok_or(SessionManagerError::DeviceDoesNotExistError(device_id))
+    }
+
+    // Wrapper method which attempts to fetch Device from DB and returns an error if None is found or an error occurs
+    async fn fetch_location<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+    ) -> Result<WireguardNetwork<Id>, SessionManagerError> {
+        WireguardNetwork::find_by_id(executor, location_id)
+            .await?
+            .ok_or(SessionManagerError::LocationDoesNotExistError(location_id))
     }
 }

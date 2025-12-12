@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::Type;
 
@@ -23,9 +23,38 @@ pub struct VpnClientSession<I = NoId> {
     // users can delete their device, but we want to retain sessions & stats
     pub device_id: Option<Id>,
     pub created_at: NaiveDateTime,
-    pub connected_at: NaiveDateTime,
-    pub disconnected_at: NaiveDateTime,
+    pub connected_at: Option<NaiveDateTime>,
+    pub disconnected_at: Option<NaiveDateTime>,
     pub mfa: bool,
     #[model(enum)]
     pub state: VpnClientSessionState,
+}
+
+impl VpnClientSession {
+    pub fn new(
+        location_id: Id,
+        user_id: Id,
+        device_id: Id,
+        connected_at: Option<NaiveDateTime>,
+        mfa: bool,
+    ) -> Self {
+        // determine session state
+        let state = if connected_at.is_some() {
+            VpnClientSessionState::Connected
+        } else {
+            VpnClientSessionState::New
+        };
+
+        Self {
+            id: NoId,
+            location_id,
+            user_id,
+            device_id: Some(device_id),
+            created_at: Utc::now().naive_utc(),
+            connected_at,
+            disconnected_at: None,
+            mfa,
+            state,
+        }
+    }
 }

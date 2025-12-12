@@ -17,6 +17,8 @@ pub enum SessionManagerError {
     UserDoesNotExistError(Id),
     #[error("Device with ID {0} does not exist")]
     DeviceDoesNotExistError(Id),
+    #[error("Location with ID {0} does not exist")]
+    LocationDoesNotExistError(Id),
     #[error("Session map initialization error: {0}")]
     SessionMapInitializationError(String),
 }

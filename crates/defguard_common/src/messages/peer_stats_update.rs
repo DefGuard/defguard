@@ -6,6 +6,7 @@ use crate::db::Id;
 
 /// Represents stats read from a WireGuard interface
 /// sent from a gateway
+#[derive(Debug)]
 pub struct PeerStatsUpdate {
     pub location_id: Id,
     pub device_id: Id,
