@@ -18,7 +18,6 @@ import { AddExternalProviderStep, type AddExternalProviderStepValue } from './ty
 
 type ProviderState = AddOpenIdProvider & {
   microsoftTenantId?: string | null;
-  enableDirectorySync: boolean;
 };
 
 interface StoreValues {
@@ -42,7 +41,6 @@ const defaults: StoreValues = {
     client_id: '',
     client_secret: '',
     create_account: false,
-    enableDirectorySync: false,
     microsoftTenantId: null,
     directory_sync_group_match: null,
     google_service_account_email: null,
@@ -72,7 +70,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
       ...defaults,
       reset: () => set(defaults),
       next: (data) => {
-        const { provider, activeStep } = get();
+        const { provider, activeStep, providerState } = get();
         let targetStep = activeStep;
         const canDirectorySync = SUPPORTED_SYNC_PROVIDERS.has(provider);
         switch (activeStep) {
@@ -88,12 +86,12 @@ export const useAddExternalOpenIdStore = create<Store>()(
             break;
         }
         set({
-          ...data,
           activeStep: targetStep,
+          providerState: { ...providerState, ...data },
         });
       },
       back: (data) => {
-        const { provider, activeStep } = get();
+        const { provider, activeStep, providerState } = get();
         let targetStep = activeStep;
         const canDirectorySync = SUPPORTED_SYNC_PROVIDERS.has(provider);
         switch (activeStep) {
@@ -109,8 +107,8 @@ export const useAddExternalOpenIdStore = create<Store>()(
             break;
         }
         set({
-          ...data,
           activeStep: targetStep,
+          providerState: { ...providerState, ...data },
         });
       },
       initialize: (provider) => {

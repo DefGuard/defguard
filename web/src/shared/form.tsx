@@ -1,5 +1,6 @@
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form';
 import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMultiple';
+import { FormUploadField } from './components/FormUploadField/FormUploadField';
 import { FormCheckbox } from './defguard-ui/components/form/FormCheckbox/FormCheckbox';
 import { FormInput } from './defguard-ui/components/form/FormInput/FormInput';
 import { FormInteractiveBlock } from './defguard-ui/components/form/FormInteractiveBlock/FormInteractiveBlock';
@@ -24,6 +25,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
     FormSuggestedIPInput,
     FormSelectMultiple,
     FormInteractiveBlock,
+    FormUploadField,
   },
   formComponents: {
     FormSubmitButton,

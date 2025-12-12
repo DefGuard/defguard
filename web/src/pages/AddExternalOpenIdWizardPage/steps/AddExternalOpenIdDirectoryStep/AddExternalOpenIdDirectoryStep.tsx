@@ -1,13 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
+import { cloneDeep } from 'lodash-es';
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { m } from '../../../../paraglide/messages';
-import { Controls } from '../../../../shared/components/Controls/Controls';
+import type { AddOpenIdProvider } from '../../../../shared/api/types';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Toggle } from '../../../../shared/defguard-ui/components/Toggle/Toggle';
 import {
   TextStyle,
   ThemeSpacing,
@@ -15,11 +13,13 @@ import {
 } from '../../../../shared/defguard-ui/types';
 import { validateExternalProviderWizard } from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
+import { GoogleProviderForm } from './forms/GoogleProviderForm';
 
 export const AddExternalOpenIdDirectoryStep = () => {
-  const [back, next] = useAddExternalOpenIdStore(useShallow((s) => [s.back, s.next]));
+  const provider = useAddExternalOpenIdStore((s) => s.provider);
+  const [next] = useAddExternalOpenIdStore(useShallow((s) => [s.back, s.next]));
 
-  const { mutate, isPending } = useMutation({
+  const { mutateAsync } = useMutation({
     mutationFn: validateExternalProviderWizard,
     onSuccess: (result) => {
       if (typeof result === 'boolean') {
@@ -37,6 +37,24 @@ export const AddExternalOpenIdDirectoryStep = () => {
     },
   });
 
+  const handleValidSubmit = useCallback(
+    async (value: Partial<AddOpenIdProvider>) => {
+      console.table(value);
+      const providerState = useAddExternalOpenIdStore.getState().providerState;
+      const submitValues = { ...cloneDeep(providerState), value };
+      await mutateAsync(submitValues);
+    },
+    [mutateAsync],
+  );
+
+  const formRender = useMemo(() => {
+    switch (provider) {
+      case 'google':
+        return <GoogleProviderForm onSubmit={handleValidSubmit} />;
+    }
+    return null;
+  }, [handleValidSubmit, provider]);
+
   return (
     <WizardCard id="add-external-openid-directory-step">
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
@@ -45,28 +63,7 @@ export const AddExternalOpenIdDirectoryStep = () => {
         }
       </AppText>
       <SizedBox height={ThemeSpacing.Xl} />
-      <Toggle active={false} disabled={true} label="Directory synchronization" />
-      <SizedBox height={ThemeSpacing.Xl} />
-      <Divider />
-      <Controls>
-        <Button
-          variant="outlined"
-          text={m.controls_back()}
-          onClick={() => {
-            back();
-          }}
-        />
-        <div className="right">
-          <Button
-            variant="primary"
-            text={m.controls_continue()}
-            loading={isPending}
-            onClick={() => {
-              mutate();
-            }}
-          />
-        </div>
-      </Controls>
+      {formRender}
     </WizardCard>
   );
 };

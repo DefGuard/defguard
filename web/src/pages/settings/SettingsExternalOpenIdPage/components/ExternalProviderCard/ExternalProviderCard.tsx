@@ -23,7 +23,7 @@ type Props = {
 };
 
 const providerImage: Record<ExternalProviderValue, ReactNode> = {
-  custom: <Icon size={28} icon="lock-closed" staticColor={ThemeVariable.FgAction} />,
+  custom: <Icon size={20} icon="lock-closed" staticColor={ThemeVariable.FgAction} />,
   google: <img src={google} width={32} height={32} />,
   jumpCloud: <img src={jumpcloud} height={32} width={32} />,
   microsoft: <img src={microsoft} height={28} width={28} />,
