@@ -38,6 +38,9 @@ export const AddExternalOpenIdDirectoryStep = () => {
         next();
       }
     },
+    meta: {
+      invalidate: [['settings'], ['info']],
+    },
   });
 
   const handleValidSubmit = useCallback(

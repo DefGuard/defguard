@@ -197,9 +197,9 @@ export interface ApplicationInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  external_openid_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
-  external_openid_enabled: boolean;
 }
 
 export interface WebauthnRegisterStartResponse {

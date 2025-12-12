@@ -13,11 +13,13 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
+import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { useApp } from '../../../shared/hooks/useApp';
 import { getSettingsQueryOptions } from '../../../shared/query';
 
 const breadcrumbsLinks = [
@@ -31,6 +33,7 @@ const breadcrumbsLinks = [
 
 export const SettingsGatewayNotificationsPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
+
   return (
     <Page title="Settings">
       <Breadcrumbs links={breadcrumbsLinks} />
@@ -61,6 +64,8 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
+  const smtp = useApp((s) => s.appInfo.smtp_enabled);
+  const formDisabled = !smtp;
   const defaultValues = useMemo(
     (): FormFields => ({
       gateway_disconnect_notifications_enabled:
@@ -101,12 +106,23 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
       }}
     >
       <form.AppForm>
+        {!smtp && (
+          <>
+            <InfoBanner
+              icon="info-outlined"
+              variant="warning"
+              text={'To enable notifications you must first configure SMTP.'}
+            />
+            <SizedBox height={ThemeSpacing.Xl} />
+          </>
+        )}
         <form.AppField name="gateway_disconnect_notifications_enabled">
           {(field) => (
             <field.FormInteractiveBlock
               variant="toggle"
               title="Gateway disconnect notifications"
               content="Send email notification to admin users once a gateway is disconnected"
+              disabled={formDisabled}
             />
           )}
         </form.AppField>
@@ -117,6 +133,7 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
               variant="toggle"
               title="Gateway reconnect notifications"
               content="Send email notification to admin users once a gateway is reconnected"
+              disabled={formDisabled}
             >
               <form.Subscribe
                 selector={(s) =>
@@ -124,7 +141,7 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                 }
               >
                 {(enabled) => (
-                  <Fold open={enabled}>
+                  <Fold open={enabled && !formDisabled}>
                     <SizedBox height={ThemeSpacing.Lg} />
                     <form.AppField name="gateway_disconnect_notifications_inactivity_threshold">
                       {(field) => (
@@ -132,6 +149,7 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                           required
                           label="Gateway inactive time (minutes)"
                           type="number"
+                          disabled={formDisabled}
                         />
                       )}
                     </form.AppField>

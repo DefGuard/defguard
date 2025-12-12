@@ -334,6 +334,10 @@ const api = {
     testDirectorySync: () =>
       client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
   },
+  mail: {
+    sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  info: () => client.get<ApplicationInfo>('/info'),
 } as const;
 
 export default api;

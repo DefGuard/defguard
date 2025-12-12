@@ -24,9 +24,14 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { validateIpOrDomain } from '../../../shared/validators';
+import { configuredBadge, notConfiguredBadge } from '../SettingsIndexPage/types';
+import { SendTestEmailModal } from './SendTestEmailModal';
 
 const breadcrumbsLinks = [
   <Link
@@ -45,6 +50,7 @@ const breadcrumbsLinks = [
 
 export const SettingsSmtpPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
+  const smtp = useApp((s) => s.appInfo.smtp_enabled);
 
   return (
     <Page id="settings-smtp-page" title="Settings">
@@ -54,6 +60,7 @@ export const SettingsSmtpPage = () => {
           title="SMTP Configuration"
           subtitle="Here you can configure SMTP server used to send system messages to the users."
           icon="mail"
+          badgeProps={smtp ? configuredBadge : notConfiguredBadge}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -68,6 +75,7 @@ export const SettingsSmtpPage = () => {
           </SettingsCard>
         )}
       </SettingsLayout>
+      <SendTestEmailModal />
     </Page>
   );
 };
@@ -92,6 +100,7 @@ const encryptionSelectOptions: SelectOption<SmtpEncryptionValue>[] = Object.valu
 }));
 
 const Content = ({ settings }: { settings: Settings }) => {
+  const smtpConfigured = useApp((s) => s.appInfo.smtp_enabled);
   const formSchema = useMemo(
     () =>
       z.object({
@@ -115,6 +124,18 @@ const Content = ({ settings }: { settings: Settings }) => {
 
   type FormFields = z.infer<typeof formSchema>;
 
+  const emptyValues = useMemo(
+    (): FormFields => ({
+      smtp_encryption: SmtpEncryption.StartTls,
+      smtp_password: '',
+      smtp_port: 587,
+      smtp_sender: '',
+      smtp_server: '',
+      smtp_user: '',
+    }),
+    [],
+  );
+
   const defaultValues = useMemo(
     (): FormFields => ({
       smtp_encryption: settings.smtp_encryption,
@@ -130,7 +151,17 @@ const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync: editSettings } = useMutation({
     mutationFn: api.settings.patchSettings,
     meta: {
-      invalidate: ['settings'],
+      invalidate: [['settings'], ['info']],
+    },
+  });
+
+  const { mutateAsync: deleteSmtp, isPending: deletePending } = useMutation({
+    mutationFn: () => api.settings.patchSettings(emptyValues),
+    meta: {
+      invalidate: [['settings'], ['info']],
+    },
+    onSuccess: () => {
+      form.reset(emptyValues);
     },
   });
 
@@ -195,7 +226,27 @@ const Content = ({ settings }: { settings: Settings }) => {
         >
           {({ isDefaultValue, isSubmitting }) => (
             <Controls>
+              {smtpConfigured && (
+                <Button
+                  variant="critical"
+                  text="Reset settings"
+                  loading={deletePending}
+                  onClick={() => {
+                    deleteSmtp();
+                  }}
+                />
+              )}
               <div className="right">
+                {smtpConfigured && (
+                  <Button
+                    variant="outlined"
+                    iconLeft="mail"
+                    text="Send test email"
+                    onClick={() => {
+                      openModal(ModalName.SendTestMail);
+                    }}
+                  />
+                )}
                 <Button
                   text={m.controls_save_changes()}
                   disabled={isDefaultValue}
