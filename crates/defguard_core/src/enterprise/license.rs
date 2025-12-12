@@ -20,7 +20,9 @@ use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
-use crate::grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata};
+use crate::grpc::proto::enterprise::license::{
+    LicenseKey, LicenseLimits, LicenseMetadata, LicenseTier as LicenseTierProto,
+};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
@@ -203,12 +205,19 @@ struct RefreshRequestResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum LicenseTier {
+    Business,
+    Enterprise,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct License {
     pub customer_id: String,
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
     pub limits: Option<LicenseLimits>,
     pub version_date_limit: Option<DateTime<Utc>>,
+    pub tier: LicenseTier,
 }
 
 impl License {
@@ -219,6 +228,7 @@ impl License {
         valid_until: Option<DateTime<Utc>>,
         limits: Option<LicenseLimits>,
         version_date_limit: Option<DateTime<Utc>>,
+        tier: LicenseTier,
     ) -> Self {
         Self {
             customer_id,
@@ -226,6 +236,7 @@ impl License {
             valid_until,
             limits,
             version_date_limit,
+            tier,
         }
     }
 
@@ -306,12 +317,27 @@ impl License {
                     None => None,
                 };
 
+                let license_tier = match LicenseTierProto::try_from(metadata.tier) {
+                    Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
+                    // fall back to Business tier for legacy licenses
+                    Ok(LicenseTierProto::Business) | Ok(LicenseTierProto::Unspecified) => {
+                        LicenseTier::Business
+                    }
+                    Err(err) => {
+                        error!("Failed to read license tier from license metadata: {err}");
+                        return Err(LicenseError::DecodeError(
+                            "Failed to decode license tier metadata".into(),
+                        ));
+                    }
+                };
+
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
                     metadata.limits,
                     version_date_limit,
+                    license_tier,
                 );
 
                 if license.requires_renewal() {
@@ -745,6 +771,7 @@ mod test {
             Some(Utc::now() - TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -755,11 +782,19 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License::new("test".to_string(), false, None, None, None);
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+        );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
@@ -769,6 +804,7 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -779,6 +815,7 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
@@ -796,6 +833,7 @@ mod test {
                 network_devices: Some(1),
             }),
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -811,6 +849,7 @@ mod test {
                 network_devices: Some(10),
             }),
             None,
+            LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
     }

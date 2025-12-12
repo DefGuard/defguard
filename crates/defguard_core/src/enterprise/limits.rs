@@ -208,7 +208,7 @@ mod test {
 
     use super::*;
     use crate::{
-        enterprise::license::{License, set_cached_license},
+        enterprise::license::{License, LicenseTier, set_cached_license},
         grpc::proto::enterprise::license::LicenseLimits,
     };
 
@@ -365,6 +365,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             Some(limits),
             None,
+            LicenseTier::Business,
         );
         set_cached_license(Some(license));
 
@@ -442,6 +443,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         set_cached_license(Some(license));
 
@@ -547,6 +549,7 @@ mod test {
                 network_devices: Some(2),
             }),
             None,
+            LicenseTier::Business,
         );
         let counts = Counts {
             user: 3,
@@ -568,6 +571,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         let counts = Counts {
             user: 300,
