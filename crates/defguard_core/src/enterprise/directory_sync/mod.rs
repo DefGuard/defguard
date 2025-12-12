@@ -12,7 +12,7 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 #[cfg(not(test))]
-use super::is_base_license_active;
+use super::is_business_license_active;
 use super::{
     db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
     ldap::utils::ldap_update_users_state,

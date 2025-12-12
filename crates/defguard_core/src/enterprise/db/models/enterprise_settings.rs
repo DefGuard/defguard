@@ -1,7 +1,7 @@
 use sqlx::{PgExecutor, Type, query, query_as};
 use struct_patch::Patch;
 
-use crate::enterprise::is_base_license_active;
+use crate::enterprise::is_business_license_active;
 
 #[derive(Debug, Deserialize, Patch, Serialize)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
@@ -35,7 +35,7 @@ impl EnterpriseSettings {
     {
         // avoid holding the rwlock across await, makes the future !Send
         // and therefore unusable in axum handlers
-        if is_base_license_active() {
+        if is_business_license_active() {
             let settings = query_as!(
                 Self,
                 "SELECT admin_device_management, \

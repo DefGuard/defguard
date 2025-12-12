@@ -9,7 +9,7 @@ use crate::{
     db::WireguardNetwork,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        is_base_license_active, is_enterprise_free,
+        is_business_license_active, is_enterprise_free,
         license::get_cached_license,
         limits::{LimitsExceeded, get_counts},
     },
@@ -55,7 +55,7 @@ pub(crate) async fn get_app_info(
     let external_openid_enabled = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
 
     let settings = Settings::get_current_settings();
-    let enterprise = is_base_license_active();
+    let enterprise = is_business_license_active();
     let license = get_cached_license();
     let counts = get_counts();
     let limits_exceeded = counts.get_exceeded_limits(license.as_ref());

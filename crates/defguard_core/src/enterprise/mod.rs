@@ -16,7 +16,26 @@ use limits::get_counts;
 use crate::enterprise::license::LicenseTier;
 
 /// Helper function to gate features which require a base license (Team or Business tier)
-pub(crate) fn is_base_license_active() -> bool {
+pub(crate) fn is_business_license_active() -> bool {
+    debug!("Checking if enterprise features should be enabled");
+    // get current object counts
+    let counts = get_counts();
+
+    // only check license if object count exceed free limit
+    if counts.needs_enterprise_license() {
+        debug!("User is over limit, checking his license");
+        let license = get_cached_license();
+        let validation_result = validate_license(license.as_ref(), &counts);
+        debug!("License validation result: {:?}", validation_result);
+        validation_result.is_ok()
+    } else {
+        debug!("User is not over limit, allowing enterprise features");
+        true
+    }
+}
+
+/// Helper function to gate features which require an Enterprise tier license
+pub(crate) fn is_enterprise_license_active() -> bool {
     debug!("Checking if enterprise features should be enabled");
     // get current object counts
     let counts = get_counts();

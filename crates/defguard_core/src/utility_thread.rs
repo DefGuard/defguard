@@ -13,7 +13,7 @@ use crate::{
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
-        is_base_license_active,
+        is_business_license_active,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
@@ -40,7 +40,7 @@ pub async fn run_utility_thread(
     let mut last_enterprise_status_check = Instant::now();
 
     // helper variable which stores previous enterprise features status
-    let mut enterprise_enabled = is_base_license_active();
+    let mut enterprise_enabled = is_business_license_active();
 
     let directory_sync_task = || async {
         if let Err(e) = Box::pin(
@@ -129,7 +129,7 @@ pub async fn run_utility_thread(
 
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
-            let new_enterprise_enabled = is_base_license_active();
+            let new_enterprise_enabled = is_business_license_active();
             if let Err(err) = enterprise_status_check(
                 pool,
                 wireguard_tx.clone(),
