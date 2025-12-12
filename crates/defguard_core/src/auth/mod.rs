@@ -18,7 +18,7 @@ use crate::{
         Group, OAuth2Token, Session, SessionState, User,
         models::{group::Permission, oauth2client::OAuth2Client},
     },
-    enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
+    enterprise::{db::models::api_tokens::ApiToken, is_base_license_active},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
 };
@@ -38,7 +38,7 @@ where
         let appstate = AppState::from_ref(state);
 
         // first try to authenticate by API token if one is found in header
-        if is_enterprise_enabled() {
+        if is_base_license_active() {
             let maybe_auth_header: Option<TypedHeader<Authorization<Bearer>>> =
                 <TypedHeader<_> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
                     .await

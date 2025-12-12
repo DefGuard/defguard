@@ -5,7 +5,7 @@ use tonic::Status;
 
 use crate::{
     db::{Device, User, models::polling_token::PollingToken},
-    enterprise::is_enterprise_enabled,
+    enterprise::is_base_license_active,
     grpc::utils::build_device_config_response,
 };
 
@@ -24,7 +24,7 @@ impl PollingServer {
         debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
-        if !is_enterprise_enabled() {
+        if !is_base_license_active() {
             debug!("Instance has enterprise features disabled, denying instance polling info");
             return Err(Status::failed_precondition("no valid license"));
         }

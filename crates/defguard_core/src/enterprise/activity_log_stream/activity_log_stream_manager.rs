@@ -10,7 +10,7 @@ use super::ActivityLogStreamReconfigurationNotification;
 use crate::enterprise::{
     activity_log_stream::http_stream::{HttpActivityLogStreamConfig, run_http_stream_task},
     db::models::activity_log_stream::{ActivityLogStream, ActivityLogStreamConfig},
-    is_enterprise_enabled,
+    is_base_license_active,
 };
 
 // check if enterprise features are enabled every minute
@@ -27,7 +27,7 @@ pub async fn run_activity_log_stream_manager(
     let mut enterprise_check_timer = interval(Duration::from_secs(ENTERPRISE_CHECK_PERIOD_SECS));
 
     // initialize enterprise features status
-    let mut enterprise_features_enabled = is_enterprise_enabled();
+    let mut enterprise_features_enabled = is_base_license_active();
 
     loop {
         let mut handles = JoinSet::<()>::new();
@@ -94,7 +94,7 @@ pub async fn run_activity_log_stream_manager(
                }
                _ = enterprise_check_timer.tick() => {
                     // check if enterprise features status has changed
-                    let current_enterprise_features_enabled = is_enterprise_enabled();
+                    let current_enterprise_features_enabled = is_base_license_active();
                     if current_enterprise_features_enabled != enterprise_features_enabled {
                         warn!("Activity log stream manager will reload, detected license enterprise features status has changed");
                         enterprise_features_enabled = current_enterprise_features_enabled;

@@ -18,7 +18,7 @@ use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 use self::error::LdapError;
 use crate::{
     db::{self, User},
-    enterprise::{is_enterprise_enabled, ldap::model::extract_dn_path, limits::update_counts},
+    enterprise::{is_base_license_active, ldap::model::extract_dn_path, limits::update_counts},
 };
 
 #[cfg(not(test))]
@@ -54,7 +54,7 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         return Ok(());
     }
 
-    if !is_enterprise_enabled() {
+    if !is_base_license_active() {
         info!(
             "Enterprise features are disabled, not performing LDAP sync and automatically disabling it"
         );
@@ -100,7 +100,7 @@ where
     F: Future<Output = Result<T, LdapError>>,
 {
     let settings = Settings::get_current_settings();
-    if !is_enterprise_enabled() {
+    if !is_base_license_active() {
         info!("Enterprise features are disabled, not performing LDAP operation");
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
         return Err(LdapError::EnterpriseDisabled("LDAP".to_string()));
