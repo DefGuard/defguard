@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -197,6 +197,8 @@ pub enum LicenseError {
         "License limits exceeded. To upgrade your license please contact sales<at>defguard.net"
     )]
     LicenseLimitsExceeded,
+    #[error("License tier is lower than required minimum")]
+    LicenseTierTooLow,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -204,10 +206,26 @@ struct RefreshRequestResponse {
     key: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+/// Represents license tiers
+///
+/// Field order from must be maintained to go from lowest (first) to highest (last) tier
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, PartialOrd)]
 pub enum LicenseTier {
     Business, // this corresponds to both Team & Business level in our current pricing structure
     Enterprise,
+}
+
+impl Display for LicenseTier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Business => {
+                write!(f, "Business")
+            }
+            Self::Enterprise => {
+                write!(f, "Enterprise")
+            }
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -474,6 +492,14 @@ impl License {
             self.is_expired()
         }
     }
+
+    // Checks if License tier is lower than specified minimum
+    //
+    // Ordering is implemented by the `LicenseTier` enum itself
+    #[must_use]
+    pub(crate) fn is_lower_tier(&self, minimum_tier: LicenseTier) -> bool {
+        self.tier < minimum_tier
+    }
 }
 
 /// Exchange the currently stored key for a new one from the license server.
@@ -536,9 +562,11 @@ async fn renew_license() -> Result<String, LicenseError> {
 /// 1. Does the cached license exist
 /// 2. Is the cached license past its maximum expiry date
 /// 3. Does current object count exceed license limits
+/// 4. Is the license of at least the specified tier (or higher)
 pub(crate) fn validate_license(
     license: Option<&License>,
     counts: &Counts,
+    minimum_tier: LicenseTier,
 ) -> Result<(), LicenseError> {
     debug!("Validating if the license is present, not expired and not exceeding limits...");
     match license {
@@ -548,6 +576,9 @@ pub(crate) fn validate_license(
             }
             if counts.is_over_license_limits(license) {
                 return Err(LicenseError::LicenseLimitsExceeded);
+            }
+            if license.is_lower_tier(minimum_tier) {
+                return Err(LicenseError::LicenseTierTooLow);
             }
             Ok(())
         }
@@ -761,8 +792,8 @@ mod test {
         let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
         let counts = Counts::default();
-        assert!(validate_license(Some(&license), &counts).is_err());
-        assert!(validate_license(None, &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
+        assert!(validate_license(None, &counts, LicenseTier::Business).is_err());
 
         // One day past the expiry date, non-subscription license
         let license = License::new(
@@ -773,7 +804,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // One day before the expiry date, non-subscription license
         let license = License::new(
@@ -784,7 +815,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         // No expiry date, non-subscription license
         let license = License::new(
@@ -795,7 +826,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         // One day past the maximum overdue date
         let license = License::new(
@@ -806,7 +837,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // One day before the maximum overdue date
         let license = License::new(
@@ -817,7 +848,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         let counts = Counts::new(5, 5, 5, 5);
 
@@ -835,7 +866,7 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // Below object count limits
         let license = License::new(
@@ -851,6 +882,6 @@ mod test {
             None,
             LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
     }
 }

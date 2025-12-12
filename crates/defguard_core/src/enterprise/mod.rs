@@ -17,26 +17,18 @@ use crate::enterprise::license::LicenseTier;
 
 /// Helper function to gate features which require a base license (Team or Business tier)
 pub(crate) fn is_business_license_active() -> bool {
-    debug!("Checking if enterprise features should be enabled");
-    // get current object counts
-    let counts = get_counts();
-
-    // only check license if object count exceed free limit
-    if counts.needs_enterprise_license() {
-        debug!("User is over limit, checking his license");
-        let license = get_cached_license();
-        let validation_result = validate_license(license.as_ref(), &counts);
-        debug!("License validation result: {:?}", validation_result);
-        validation_result.is_ok()
-    } else {
-        debug!("User is not over limit, allowing enterprise features");
-        true
-    }
+    is_license_tier_active(LicenseTier::Business)
 }
 
 /// Helper function to gate features which require an Enterprise tier license
 pub(crate) fn is_enterprise_license_active() -> bool {
-    debug!("Checking if enterprise features should be enabled");
+    is_license_tier_active(LicenseTier::Enterprise)
+}
+
+/// Shared logic for gating features to specific license tiers
+fn is_license_tier_active(tier: LicenseTier) -> bool {
+    debug!("Checking if features for {tier} license tier should be enabled");
+
     // get current object counts
     let counts = get_counts();
 
@@ -44,11 +36,11 @@ pub(crate) fn is_enterprise_license_active() -> bool {
     if counts.needs_enterprise_license() {
         debug!("User is over limit, checking his license");
         let license = get_cached_license();
-        let validation_result = validate_license(license.as_ref(), &counts);
+        let validation_result = validate_license(license.as_ref(), &counts, tier);
         debug!("License validation result: {:?}", validation_result);
         validation_result.is_ok()
     } else {
-        debug!("User is not over limit, allowing enterprise features");
+        debug!("User is not over limit, allowing {tier} tier features");
         true
     }
 }
@@ -60,7 +52,7 @@ pub(crate) fn is_enterprise_free() -> bool {
     debug!("Checking if enterprise features are a part of the free version");
     let counts = get_counts();
     let license = get_cached_license();
-    if validate_license(license.as_ref(), &counts).is_ok() {
+    if validate_license(license.as_ref(), &counts, LicenseTier::Business).is_ok() {
         false
     } else if counts.needs_enterprise_license() {
         debug!("User is over limit, the enterprise features are not free");
@@ -68,5 +60,13 @@ pub(crate) fn is_enterprise_free() -> bool {
     } else {
         debug!("User is not over limit, the enterprise features are free");
         true
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_feature_gates_no_license() {
+        todo!()
     }
 }
