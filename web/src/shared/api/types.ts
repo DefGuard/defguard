@@ -678,8 +678,10 @@ export interface OpenIdProvider {
   admin_email?: string | null;
   okta_private_jwk?: string | null;
   okta_dirsync_client_id?: string | null;
-  directory_sync_group_match?: string | null;
   jumpcloud_api_key?: string | null;
+  // microsoft
+  directory_sync_group_match?: string | null;
+  prefetch_users: boolean;
 }
 
 export interface OpenIdProviders {

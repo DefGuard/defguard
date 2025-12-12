@@ -28,7 +28,7 @@ interface StoreValues {
   testMessage: string | null;
 }
 
-const defaults: StoreValues = {
+export const addExternalOpenIdStoreDefaults: StoreValues = {
   provider: ExternalProvider.Custom,
   activeStep: 'client-settings',
   testResult: null,
@@ -53,6 +53,7 @@ const defaults: StoreValues = {
     directory_sync_target: DirectorySyncTarget.All,
     directory_sync_admin_behavior: DirectorySyncBehavior.Keep,
     directory_sync_user_behavior: DirectorySyncBehavior.Keep,
+    prefetch_users: false,
     username_handling: OpenIdProviderUsernameHandling.RemoveForbidden,
   },
 };
@@ -67,8 +68,8 @@ interface Store extends StoreValues {
 export const useAddExternalOpenIdStore = create<Store>()(
   persist(
     (set, get) => ({
-      ...defaults,
-      reset: () => set(defaults),
+      ...addExternalOpenIdStoreDefaults,
+      reset: () => set(addExternalOpenIdStoreDefaults),
       next: (data) => {
         const { provider, activeStep, providerState } = get();
         let targetStep = activeStep;
@@ -112,7 +113,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
         });
       },
       initialize: (provider) => {
-        const initialProviderState = defaults.providerState;
+        const initialProviderState = addExternalOpenIdStoreDefaults.providerState;
         if (provider !== ExternalProvider.Custom) {
           initialProviderState.display_name = externalProviderName[provider];
         }

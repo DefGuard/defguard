@@ -19,3 +19,26 @@ export const googleProviderSyncSchema = baseExternalProviderSyncSchema.extend({
     .mime('application/json', m.form_error_file_format()),
   admin_email: z.email(m.form_error_email()).trim().min(1, m.form_error_required()),
 });
+
+export const microsoftProviderSyncSchema = baseExternalProviderSyncSchema.extend({
+  prefetch_users: z.boolean(),
+  directory_sync_group_match: z.string().trim().nullable(),
+});
+
+export const oktaProviderSyncSchema = baseExternalProviderSyncSchema.extend({
+  okta_dirsync_client_id: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required(0)),
+  okta_private_jwk: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required()),
+});
+
+export const jumpcloudProviderSyncSchema = baseExternalProviderSyncSchema.extend({
+  jumpcloud_api_key: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required()),
+});

@@ -26,9 +26,9 @@ const userHandlingOptions: SelectOption<OpenIdProviderUsernameHandlingValue>[] =
     value: OpenIdProviderUsernameHandling.RemoveForbidden,
   },
   {
-    key: OpenIdProviderUsernameHandling.PruneEmailDomain,
-    label: 'Remove forbidden characters',
-    value: OpenIdProviderUsernameHandling.PruneEmailDomain,
+    key: OpenIdProviderUsernameHandling.ReplaceForbidden,
+    label: 'Replace forbidden characters',
+    value: OpenIdProviderUsernameHandling.ReplaceForbidden,
   },
   {
     key: OpenIdProviderUsernameHandling.PruneEmailDomain,
@@ -118,10 +118,6 @@ export const AddExternalOpenIdClientSettingsStep = () => {
     },
     onSubmit: ({ value }) => {
       nextStep(value);
-    },
-    onSubmitInvalid: ({ formApi }) => {
-      console.log('error');
-      console.log(formApi.getAllErrors());
     },
   });
 

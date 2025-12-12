@@ -14,6 +14,9 @@ import {
 import { validateExternalProviderWizard } from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
 import { GoogleProviderForm } from './forms/GoogleProviderForm';
+import { JumpcloudProviderForm } from './forms/JumpcloudProviderForm';
+import { MicrosoftProviderForm } from './forms/MicrosoftProviderForm';
+import { OktaProviderForm } from './forms/OktaProviderForm';
 
 export const AddExternalOpenIdDirectoryStep = () => {
   const provider = useAddExternalOpenIdStore((s) => s.provider);
@@ -39,7 +42,6 @@ export const AddExternalOpenIdDirectoryStep = () => {
 
   const handleValidSubmit = useCallback(
     async (value: Partial<AddOpenIdProvider>) => {
-      console.table(value);
       const providerState = useAddExternalOpenIdStore.getState().providerState;
       const submitValues = { ...cloneDeep(providerState), value };
       await mutateAsync(submitValues);
@@ -51,6 +53,12 @@ export const AddExternalOpenIdDirectoryStep = () => {
     switch (provider) {
       case 'google':
         return <GoogleProviderForm onSubmit={handleValidSubmit} />;
+      case 'microsoft':
+        return <MicrosoftProviderForm onSubmit={handleValidSubmit} />;
+      case 'okta':
+        return <OktaProviderForm onSubmit={handleValidSubmit} />;
+      case 'jumpCloud':
+        return <JumpcloudProviderForm onSubmit={handleValidSubmit} />;
     }
     return null;
   }, [handleValidSubmit, provider]);

@@ -4,7 +4,6 @@ import z from 'zod';
 import { m } from '../../../../../paraglide/messages';
 import type { AddOpenIdProvider } from '../../../../../shared/api/types';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
-import { Divider } from '../../../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -180,8 +179,6 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
             {(field) => <field.FormUploadField />}
           </form.AppField>
         </ProviderSyncToggle>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <Divider />
         <ProviderFormControls
           onBack={() => {
             handleBack();

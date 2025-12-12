@@ -155,7 +155,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log('submitted');
       const clone = cloneDeep(value);
       if (clone.location_mfa_mode !== LocationMfaMode.Disabled) {
         clone.service_location_mode = LocationServiceMode.Disabled;

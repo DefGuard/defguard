@@ -39,7 +39,7 @@ export const SettingsExternalOpenIdPage = () => {
         <div className="providers">
           {Object.values(ExternalProvider).map((provider) => (
             <ExternalProviderCard
-              disabled={provider !== ExternalProvider.Google}
+              disabled={provider === ExternalProvider.Zitadel}
               provider={provider}
               key={provider}
               onClick={() => {
