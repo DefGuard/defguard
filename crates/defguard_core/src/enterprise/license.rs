@@ -206,7 +206,7 @@ struct RefreshRequestResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LicenseTier {
-    Business,
+    Base, // this corresponds to both Team & Business level in our pricing structure
     Enterprise,
 }
 
@@ -321,7 +321,7 @@ impl License {
                     Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
                     // fall back to Business tier for legacy licenses
                     Ok(LicenseTierProto::Business) | Ok(LicenseTierProto::Unspecified) => {
-                        LicenseTier::Business
+                        LicenseTier::Base
                     }
                     Err(err) => {
                         error!("Failed to read license tier from license metadata: {err}");
@@ -771,7 +771,7 @@ mod test {
             Some(Utc::now() - TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -782,7 +782,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
@@ -793,7 +793,7 @@ mod test {
             None,
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
@@ -804,7 +804,7 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -815,7 +815,7 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
 
@@ -833,7 +833,7 @@ mod test {
                 network_devices: Some(1),
             }),
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_err());
 
@@ -849,7 +849,7 @@ mod test {
                 network_devices: Some(10),
             }),
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         assert!(validate_license(Some(&license), &counts).is_ok());
     }

@@ -10,7 +10,7 @@ message LicenseLimits {
 
 enum LicenseTier {
   LICENSE_TIER_UNSPECIFIED = 0;
-  LICENSE_TIER_BUSINESS = 1;
+  LICENSE_TIER_BASE = 1;  // this corresponds to both Team & Business level in our pricing structure
   LICENSE_TIER_ENTERPRISE = 2;
 }
 

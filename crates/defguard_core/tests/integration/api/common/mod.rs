@@ -95,7 +95,7 @@ pub(crate) async fn make_base_client(
         None,
         None,
         None,
-        LicenseTier::Business,
+        LicenseTier::Base,
     );
 
     set_cached_license(Some(license));

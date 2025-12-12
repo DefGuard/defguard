@@ -365,7 +365,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             Some(limits),
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         set_cached_license(Some(license));
 
@@ -443,7 +443,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         set_cached_license(Some(license));
 
@@ -549,7 +549,7 @@ mod test {
                 network_devices: Some(2),
             }),
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         let counts = Counts {
             user: 3,
@@ -571,7 +571,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
-            LicenseTier::Business,
+            LicenseTier::Base,
         );
         let counts = Counts {
             user: 300,

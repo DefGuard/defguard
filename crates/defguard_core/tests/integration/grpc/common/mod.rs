@@ -147,7 +147,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         None,
         None,
         None,
-        LicenseTier::Business,
+        LicenseTier::Base,
     );
 
     set_cached_license(Some(license));
