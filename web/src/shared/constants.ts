@@ -1,3 +1,8 @@
+import {
+  ExternalProvider,
+  type ExternalProviderValue,
+} from '../pages/settings/shared/types';
+
 export const externalLink = {
   defguard: {
     download: 'https://defguard.net/download',
@@ -14,3 +19,23 @@ export const externalLink = {
     },
   },
 } as const;
+
+export const externalProviderName: Record<ExternalProviderValue, string> = {
+  custom: 'Custom provider',
+  google: 'Google',
+  jumpCloud: 'JumpCloud',
+  microsoft: 'Microsoft',
+  okta: 'Okta',
+  zitadel: 'Zitadel',
+};
+
+export const SUPPORTED_SYNC_PROVIDERS: Set<ExternalProviderValue> = new Set([
+  ExternalProvider.Google,
+  ExternalProvider.Microsoft,
+  ExternalProvider.Okta,
+  ExternalProvider.JumpCloud,
+]);
+
+export const googleProviderBaseUrl = 'https://accounts.google.com';
+
+export const jumpcloudProviderBaseUrl = 'https://oauth.id.jumpcloud.com';

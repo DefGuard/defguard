@@ -3,4 +3,8 @@
   border: var(--border-1) solid var(--border-disabled);
   padding: var(--spacing-xl);
   box-sizing: border-box;
+
+  .controls {
+    padding-top: var(--spacing-2xl);
+  }
 }

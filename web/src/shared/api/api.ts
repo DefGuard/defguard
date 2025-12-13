@@ -12,6 +12,7 @@ import type {
   AddNetworkDeviceRequest,
   AddNetworkDeviceResponse,
   AddOpenIdClient,
+  AddOpenIdProvider,
   AddUserRequest,
   AddUsersToGroupsRequest,
   AddWebhookRequest,
@@ -48,10 +49,15 @@ import type {
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
+  OpenIdProvider,
+  OpenIdProvidersResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  Settings,
+  SettingsEnterprise,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
+  TestDirectorySyncResponse,
   TotpInitResponse,
   User,
   UserChangePasswordRequest,
@@ -311,6 +317,27 @@ const api = {
       };
     },
   },
+  settings: {
+    getSettings: () => client.get<Settings>('/settings'),
+    editSettings: (data: Settings) => client.put('/settings', data),
+    patchSettings: (data: Partial<Settings>) => client.patch('/settings', data),
+    getEnterpriseSettings: () => client.get<SettingsEnterprise>('/settings_enterprise'),
+    patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
+      client.patch('/settings_enterprise', data),
+  },
+  openIdProvider: {
+    getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
+    addOpenIdProvider: (data: AddOpenIdProvider) => client.post('/openid/provider', data),
+    deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
+    editOpenIdProvider: (data: OpenIdProvider) =>
+      client.put(`/openid/provider/${data.name}`, data),
+    testDirectorySync: () =>
+      client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
+  },
+  mail: {
+    sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  info: () => client.get<ApplicationInfo>('/info'),
 } as const;
 
 export default api;

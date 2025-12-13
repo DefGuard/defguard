@@ -3,6 +3,12 @@ import api from './api/api';
 import type { UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
 
+export const getEnterpriseSettingsQueryOptions = queryOptions({
+  queryFn: api.settings.getEnterpriseSettings,
+  queryKey: ['settings_enterprise'],
+  select: (resp) => resp.data,
+});
+
 export const getLocationQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.location.getLocation(id),
@@ -105,5 +111,17 @@ export const getOpenIdClientQueryOptions = queryOptions({
 export const getWebhooksQueryOptions = queryOptions({
   queryFn: api.webhook.getWebhooks,
   queryKey: ['webhook'],
+  select: (resp) => resp.data,
+});
+
+export const getSettingsQueryOptions = queryOptions({
+  queryFn: api.settings.getSettings,
+  queryKey: ['settings'],
+  select: (resp) => resp.data,
+});
+
+export const getOpenIdProvidersQueryOptions = queryOptions({
+  queryFn: api.openIdProvider.getOpenIdProvider,
+  queryKey: ['openid', 'provider'],
   select: (resp) => resp.data,
 });

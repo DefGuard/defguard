@@ -155,7 +155,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log('submitted');
       const clone = cloneDeep(value);
       if (clone.location_mfa_mode !== LocationMfaMode.Disabled) {
         clone.service_location_mode = LocationServiceMode.Disabled;
@@ -217,119 +216,126 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             )}
           </form.AppField>
         </EditPageFormSection>
-        <form.AppField
-          name="location_mfa_mode"
-          validators={{
-            onChangeListenTo: ['service_location_mode'],
-          }}
-          listeners={{
-            onChange: ({ value, fieldApi }) => {
-              const service = fieldApi.form.getFieldValue('service_location_mode');
-              if (
-                value !== LocationMfaMode.Disabled &&
-                service !== LocationServiceMode.Disabled
-              ) {
-                fieldApi.form.setFieldValue(
-                  'service_location_mode',
-                  LocationServiceMode.Disabled,
-                );
-              }
-            },
-          }}
+        <form.Subscribe
+          selector={(s) =>
+            s.values.service_location_mode !== LocationServiceMode.Disabled
+          }
         >
-          {(field) => {
-            const disabled = !(
-              field.form.getFieldValue('service_location_mode') ===
-              LocationServiceMode.Disabled
-            );
-            return (
-              <>
-                {disabled && (
-                  <InfoBanner
-                    icon="info-outlined"
-                    variant="warning"
-                    text={`You can't use MFA on any service locations. If you want to enforce MAF please select “Regular location” type`}
-                  />
-                )}
-                <EditPageFormSection label="Multi-Factor Authentication">
-                  <field.FormRadio
-                    value={LocationMfaMode.Disabled}
-                    text="Do not enforce MFA"
-                    disabled={disabled}
-                  />
-                  <SizedBox height={ThemeSpacing.Md} />
-                  <field.FormRadio
-                    value={LocationMfaMode.Internal}
-                    text="Internal MFA"
-                    disabled={disabled}
-                  />
-                  <SizedBox height={ThemeSpacing.Md} />
-                  <field.FormRadio
-                    value={LocationMfaMode.External}
-                    text="External MFA"
-                    disabled={disabled}
-                  />
-                </EditPageFormSection>
-              </>
-            );
-          }}
-        </form.AppField>
-        <form.AppField
-          name="service_location_mode"
-          validators={{ onChangeListenTo: ['location_mfa_mode'] }}
-          listeners={{
-            onChange: ({ value, fieldApi }) => {
-              const mfa = fieldApi.form.getFieldValue('location_mfa_mode');
-              if (
-                value !== LocationServiceMode.Disabled &&
-                mfa !== LocationMfaMode.Disabled
-              ) {
-                fieldApi.form.setFieldValue(
-                  'location_mfa_mode',
-                  LocationMfaMode.Disabled,
+          {(disabled) => (
+            <form.AppField
+              name="location_mfa_mode"
+              validators={{
+                onChangeListenTo: ['service_location_mode'],
+              }}
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  const service = fieldApi.form.getFieldValue('service_location_mode');
+                  if (
+                    value !== LocationMfaMode.Disabled &&
+                    service !== LocationServiceMode.Disabled
+                  ) {
+                    fieldApi.form.setFieldValue(
+                      'service_location_mode',
+                      LocationServiceMode.Disabled,
+                    );
+                  }
+                },
+              }}
+            >
+              {(field) => {
+                return (
+                  <>
+                    {disabled && (
+                      <InfoBanner
+                        icon="info-outlined"
+                        variant="warning"
+                        text={`You can't use MFA on any service locations. If you want to enforce MAF please select “Regular location” type`}
+                      />
+                    )}
+                    <EditPageFormSection label="Multi-Factor Authentication">
+                      <field.FormRadio
+                        value={LocationMfaMode.Disabled}
+                        text="Do not enforce MFA"
+                        disabled={disabled}
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationMfaMode.Internal}
+                        text="Internal MFA"
+                        disabled={disabled}
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationMfaMode.External}
+                        text="External MFA"
+                        disabled={disabled}
+                      />
+                    </EditPageFormSection>
+                  </>
                 );
-              }
-            },
-          }}
+              }}
+            </form.AppField>
+          )}
+        </form.Subscribe>
+        <form.Subscribe
+          selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
         >
-          {(field) => {
-            const disabled = !(
-              field.form.getFieldValue('location_mfa_mode') === LocationMfaMode.Disabled
-            );
-            return (
-              <>
-                {disabled && (
-                  <InfoBanner
-                    variant="warning"
-                    icon="info-outlined"
-                    text={
-                      "If your location is MFA protected, you won't be able to set is as a service location. The location must have MFA disabled in order to use service location mode.You can read more about service locations in our documentation."
-                    }
-                  />
-                )}
-                <EditPageFormSection label="Location type (Windows only)">
-                  <field.FormRadio
-                    value={LocationServiceMode.Disabled}
-                    text="Regular location"
-                    disabled={disabled}
-                  />
-                  <SizedBox height={ThemeSpacing.Md} />
-                  <field.FormRadio
-                    value={LocationServiceMode.Prelogon}
-                    text="Service location: Pre-logon"
-                    disabled={disabled}
-                  />
-                  <SizedBox height={ThemeSpacing.Md} />
-                  <field.FormRadio
-                    value={LocationServiceMode.Alwayson}
-                    text="Service location: Always on"
-                    disabled={disabled}
-                  />
-                </EditPageFormSection>
-              </>
-            );
-          }}
-        </form.AppField>
+          {(disabled) => (
+            <form.AppField
+              name="service_location_mode"
+              validators={{ onChangeListenTo: ['location_mfa_mode'] }}
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  const mfa = fieldApi.form.getFieldValue('location_mfa_mode');
+                  if (
+                    value !== LocationServiceMode.Disabled &&
+                    mfa !== LocationMfaMode.Disabled
+                  ) {
+                    fieldApi.form.setFieldValue(
+                      'location_mfa_mode',
+                      LocationMfaMode.Disabled,
+                    );
+                  }
+                },
+              }}
+            >
+              {(field) => {
+                return (
+                  <>
+                    {disabled && (
+                      <InfoBanner
+                        variant="warning"
+                        icon="info-outlined"
+                        text={
+                          "If your location is MFA protected, you won't be able to set is as a service location. The location must have MFA disabled in order to use service location mode.You can read more about service locations in our documentation."
+                        }
+                      />
+                    )}
+                    <EditPageFormSection label="Location type (Windows only)">
+                      <field.FormRadio
+                        value={LocationServiceMode.Disabled}
+                        text="Regular location"
+                        disabled={disabled}
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationServiceMode.Prelogon}
+                        text="Service location: Pre-logon"
+                        disabled={disabled}
+                      />
+                      <SizedBox height={ThemeSpacing.Md} />
+                      <field.FormRadio
+                        value={LocationServiceMode.Alwayson}
+                        text="Service location: Always on"
+                        disabled={disabled}
+                      />
+                    </EditPageFormSection>
+                  </>
+                );
+              }}
+            </form.AppField>
+          )}
+        </form.Subscribe>
         <EditPageFormSection label="Location Access">
           {isPresent(groupsOptions) && (
             <form.AppField name="allowed_groups">

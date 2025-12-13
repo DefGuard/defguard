@@ -1,0 +1,9 @@
+#settings-external-openid {
+  .settings-layout .main-content {
+    & > .providers {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-lg);
+    }
+  }
+}

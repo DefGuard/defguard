@@ -22,6 +22,7 @@ import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
+import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
 import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized/_default/users'
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
@@ -32,6 +33,12 @@ import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_au
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
+import { Route as AuthorizedDefaultSettingsSmtpRouteImport } from './routes/_authorized/_default/settings/smtp'
+import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
+import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
+import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultSettingsOpenidIndexRouteImport } from './routes/_authorized/_default/settings/openid/index'
+import { Route as AuthorizedDefaultSettingsOpenidGeneralRouteImport } from './routes/_authorized/_default/settings/openid/general'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
 const ConsentRoute = ConsentRouteImport.update({
@@ -98,6 +105,12 @@ const AuthorizedWizardAddLocationRoute =
     path: '/add-location',
     getParentRoute: () => AuthorizedRoute,
   } as any)
+const AuthorizedWizardAddExternalOpenidRoute =
+  AuthorizedWizardAddExternalOpenidRouteImport.update({
+    id: '/_wizard/add-external-openid',
+    path: '/add-external-openid',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthorizedDefaultWebhooksRoute =
   AuthorizedDefaultWebhooksRouteImport.update({
     id: '/webhooks',
@@ -155,6 +168,42 @@ const AuthorizedDefaultUserUsernameRoute =
     path: '/user/$username',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsSmtpRoute =
+  AuthorizedDefaultSettingsSmtpRouteImport.update({
+    id: '/settings/smtp',
+    path: '/settings/smtp',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsInstanceRoute =
+  AuthorizedDefaultSettingsInstanceRouteImport.update({
+    id: '/settings/instance',
+    path: '/settings/instance',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsGatewayNotificationsRoute =
+  AuthorizedDefaultSettingsGatewayNotificationsRouteImport.update({
+    id: '/settings/gateway-notifications',
+    path: '/settings/gateway-notifications',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsClientRoute =
+  AuthorizedDefaultSettingsClientRouteImport.update({
+    id: '/settings/client',
+    path: '/settings/client',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsOpenidIndexRoute =
+  AuthorizedDefaultSettingsOpenidIndexRouteImport.update({
+    id: '/settings/openid/',
+    path: '/settings/openid/',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsOpenidGeneralRoute =
+  AuthorizedDefaultSettingsOpenidGeneralRouteImport.update({
+    id: '/settings/openid/general',
+    path: '/settings/openid/general',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
   AuthorizedDefaultLocationsLocationIdEditRouteImport.update({
     id: '/locations/$locationId/edit',
@@ -174,17 +223,24 @@ export interface FileRoutesByFullPath {
   '/openid': typeof AuthorizedDefaultOpenidRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
+  '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
+  '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/settings/openid': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -198,17 +254,24 @@ export interface FileRoutesByTo {
   '/openid': typeof AuthorizedDefaultOpenidRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
+  '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
+  '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/settings/openid': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -225,17 +288,24 @@ export interface FileRoutesById {
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
   '/_authorized/_default/users': typeof AuthorizedDefaultUsersRoute
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
+  '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
+  '/_authorized/_default/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
+  '/_authorized/_default/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
   '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  '/_authorized/_default/settings/openid/general': typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  '/_authorized/_default/settings/openid/': typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -251,17 +321,24 @@ export interface FileRouteTypes {
     | '/openid'
     | '/users'
     | '/webhooks'
+    | '/add-external-openid'
     | '/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/settings/client'
+    | '/settings/gateway-notifications'
+    | '/settings/instance'
+    | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
     | '/settings'
     | '/vpn-overview'
     | '/locations/$locationId/edit'
+    | '/settings/openid/general'
+    | '/settings/openid'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -275,17 +352,24 @@ export interface FileRouteTypes {
     | '/openid'
     | '/users'
     | '/webhooks'
+    | '/add-external-openid'
     | '/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/settings/client'
+    | '/settings/gateway-notifications'
+    | '/settings/instance'
+    | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
     | '/settings'
     | '/vpn-overview'
     | '/locations/$locationId/edit'
+    | '/settings/openid/general'
+    | '/settings/openid'
   id:
     | '__root__'
     | '/'
@@ -301,17 +385,24 @@ export interface FileRouteTypes {
     | '/_authorized/_default/openid'
     | '/_authorized/_default/users'
     | '/_authorized/_default/webhooks'
+    | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_authorized/_default/settings/client'
+    | '/_authorized/_default/settings/gateway-notifications'
+    | '/_authorized/_default/settings/instance'
+    | '/_authorized/_default/settings/smtp'
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
     | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
     | '/_authorized/_default/locations/$locationId/edit'
+    | '/_authorized/_default/settings/openid/general'
+    | '/_authorized/_default/settings/openid/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -417,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedWizardAddLocationRouteImport
       parentRoute: typeof AuthorizedRoute
     }
+    '/_authorized/_wizard/add-external-openid': {
+      id: '/_authorized/_wizard/add-external-openid'
+      path: '/add-external-openid'
+      fullPath: '/add-external-openid'
+      preLoaderRoute: typeof AuthorizedWizardAddExternalOpenidRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
     '/_authorized/_default/webhooks': {
       id: '/_authorized/_default/webhooks'
       path: '/webhooks'
@@ -487,6 +585,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultUserUsernameRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/smtp': {
+      id: '/_authorized/_default/settings/smtp'
+      path: '/settings/smtp'
+      fullPath: '/settings/smtp'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsSmtpRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/instance': {
+      id: '/_authorized/_default/settings/instance'
+      path: '/settings/instance'
+      fullPath: '/settings/instance'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsInstanceRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/gateway-notifications': {
+      id: '/_authorized/_default/settings/gateway-notifications'
+      path: '/settings/gateway-notifications'
+      fullPath: '/settings/gateway-notifications'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/client': {
+      id: '/_authorized/_default/settings/client'
+      path: '/settings/client'
+      fullPath: '/settings/client'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/openid/': {
+      id: '/_authorized/_default/settings/openid/'
+      path: '/settings/openid'
+      fullPath: '/settings/openid'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsOpenidIndexRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/openid/general': {
+      id: '/_authorized/_default/settings/openid/general'
+      path: '/settings/openid/general'
+      fullPath: '/settings/openid/general'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsOpenidGeneralRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/$locationId/edit': {
       id: '/_authorized/_default/locations/$locationId/edit'
       path: '/locations/$locationId/edit'
@@ -503,12 +643,18 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
+  AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
+  AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
+  AuthorizedDefaultSettingsInstanceRoute: typeof AuthorizedDefaultSettingsInstanceRoute
+  AuthorizedDefaultSettingsSmtpRoute: typeof AuthorizedDefaultSettingsSmtpRoute
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
   AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
+  AuthorizedDefaultSettingsOpenidGeneralRoute: typeof AuthorizedDefaultSettingsOpenidGeneralRoute
+  AuthorizedDefaultSettingsOpenidIndexRoute: typeof AuthorizedDefaultSettingsOpenidIndexRoute
 }
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
@@ -517,6 +663,12 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
+  AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
+  AuthorizedDefaultSettingsGatewayNotificationsRoute:
+    AuthorizedDefaultSettingsGatewayNotificationsRoute,
+  AuthorizedDefaultSettingsInstanceRoute:
+    AuthorizedDefaultSettingsInstanceRoute,
+  AuthorizedDefaultSettingsSmtpRoute: AuthorizedDefaultSettingsSmtpRoute,
   AuthorizedDefaultUserUsernameRoute: AuthorizedDefaultUserUsernameRoute,
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
@@ -526,6 +678,10 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultVpnOverviewIndexRoute,
   AuthorizedDefaultLocationsLocationIdEditRoute:
     AuthorizedDefaultLocationsLocationIdEditRoute,
+  AuthorizedDefaultSettingsOpenidGeneralRoute:
+    AuthorizedDefaultSettingsOpenidGeneralRoute,
+  AuthorizedDefaultSettingsOpenidIndexRoute:
+    AuthorizedDefaultSettingsOpenidIndexRoute,
 }
 
 const AuthorizedDefaultRouteWithChildren =
@@ -533,11 +689,14 @@ const AuthorizedDefaultRouteWithChildren =
 
 interface AuthorizedRouteChildren {
   AuthorizedDefaultRoute: typeof AuthorizedDefaultRouteWithChildren
+  AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedDefaultRoute: AuthorizedDefaultRouteWithChildren,
+  AuthorizedWizardAddExternalOpenidRoute:
+    AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
 }
 

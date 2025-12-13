@@ -5,8 +5,6 @@ import { isPresent } from '../defguard-ui/utils/isPresent';
 import { useApp } from '../hooks/useApp';
 import { useAuth } from '../hooks/useAuth';
 
-// useApp queries
-// todo: maybe we should wrap it around _authenticated route and make it suspend queries to ensure it's present before page loads ?
 export const AppConfigProvider = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useAuth((s) => isPresent(s.user));
   const { data: appInfoResponse } = useQuery({

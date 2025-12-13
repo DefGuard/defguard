@@ -1,8 +1,8 @@
 export interface WizardPageConfig {
   title: string;
   subtitle: string;
-  activeStep: number;
-  steps: WizardPageStep[];
+  activeStep: string | number;
+  steps: WizardPageStepsConfig;
   relatedDocs?: WizardDocsLink[];
 }
 
@@ -12,7 +12,11 @@ export interface WizardDocsLink {
 }
 
 export interface WizardPageStep {
-  id: number;
+  id: number | string;
+  order: number;
   label: string;
   description?: string;
+  hidden?: boolean;
 }
+
+export type WizardPageStepsConfig = Record<string, WizardPageStep>;

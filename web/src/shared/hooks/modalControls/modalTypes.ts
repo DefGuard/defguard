@@ -19,6 +19,7 @@ import type {
 } from './types';
 
 export const ModalName = {
+  SendTestMail: 'sendTestMail',
   GatewaySetup: 'gatewaySetup',
   DisplayList: 'displayList',
   ChangePassword: 'changePassword',
@@ -134,6 +135,9 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.AddLocation),
+  }),
+  z.object({
+    name: z.literal(ModalName.SendTestMail),
   }),
 ]);
 

@@ -5,8 +5,8 @@ import clsx from 'clsx';
 import { Icon } from '../../../defguard-ui/components/Icon';
 
 interface Props {
+  activeStep: WizardPageStep;
   steps: WizardPageStep[];
-  activeStep: number;
 }
 
 export const WizardStepsCard = ({ steps, activeStep }: Props) => {
@@ -18,15 +18,15 @@ export const WizardStepsCard = ({ steps, activeStep }: Props) => {
             <li
               key={step.id}
               className={clsx({
-                muted: step.id > activeStep,
-                active: step.id === activeStep,
-                success: step.id < activeStep,
+                muted: step.order > activeStep.order,
+                active: step.id === activeStep.id,
+                success: step.order < activeStep.order,
               })}
             >
               <div className={clsx('step-indicator')}>
                 <div className="circle"></div>
-                {step.id < activeStep && <Icon icon="check" size={12} />}
-                {step.id >= activeStep && <span>{step.id + 1}</span>}
+                {step.order < activeStep.order && <Icon icon="check" size={12} />}
+                {step.order >= activeStep.order && <span>{index + 1}</span>}
               </div>
               <span>{step.label}</span>
             </li>

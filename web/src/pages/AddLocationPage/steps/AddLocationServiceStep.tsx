@@ -7,8 +7,8 @@ import {
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { RadioBlock } from '../../../shared/defguard-ui/components/RadioBlock/RadioBlock';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { AddLocationPageStep } from '../types';
@@ -25,7 +25,7 @@ export const AddLocationServiceStep = () => {
 
   return (
     <WizardCard>
-      <RadioBlock
+      <InteractiveBlock
         value={currentValue === LocationServiceMode.Prelogon}
         onClick={() => {
           handleChange(LocationServiceMode.Prelogon);
@@ -34,7 +34,7 @@ export const AddLocationServiceStep = () => {
         content="The VPN connects at system boot and disconnects after user login, useful for one-time authentication with external identity providers like Active Directory."
       />
       <SizedBox height={ThemeSpacing.Xl} />
-      <RadioBlock
+      <InteractiveBlock
         value={currentValue === LocationServiceMode.Alwayson}
         onClick={() => {
           handleChange(LocationServiceMode.Alwayson);

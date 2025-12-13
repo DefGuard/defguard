@@ -14,6 +14,7 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   const setUser = useAuth((s) => s.setUser);
   const mfa = useAuth((s) => s.mfaLogin);
   const storedUser = useAuth((s) => s.user);
+  const openIdConsentData = useAuth((s) => s.consentData);
 
   const { data: response, error } = useQuery(userMeQueryOptions);
 
@@ -58,14 +59,28 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   }, [response, setUser]);
 
   // handle automatic redirects when auth store changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Only check storedUser and authMatch
   useEffect(() => {
     if (storedUser && authMatch) {
-      navigate({
-        to: '/user/$username',
-        params: {
-          username: storedUser.username,
-        },
-      });
+      if (isPresent(openIdConsentData)) {
+        navigate({
+          to: '/consent',
+          //@ts-expect-error
+          search: openIdConsentData,
+        }).then(() => {
+          // clear this key so it doesn't cause another redirect
+          useAuth.setState({
+            consentData: undefined,
+          });
+        });
+      } else {
+        navigate({
+          to: '/user/$username',
+          params: {
+            username: storedUser.username,
+          },
+        });
+      }
     }
     if (!storedUser && !authMatch) {
       navigate({

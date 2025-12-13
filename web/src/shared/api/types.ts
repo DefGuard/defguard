@@ -197,9 +197,9 @@ export interface ApplicationInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  external_openid_enabled: boolean;
   license_info: LicenseInfo;
   ldap_info: LdapInfo;
-  external_openid_enabled: boolean;
 }
 
 export interface WebauthnRegisterStartResponse {
@@ -528,3 +528,172 @@ export const LocationServiceMode = {
 
 export type LocationServiceModeValue =
   (typeof LocationServiceMode)[keyof typeof LocationServiceMode];
+
+export const ClientTrafficPolicy = {
+  None: 'none',
+  DisableAllTraffic: 'disable_all_traffic',
+  ForceAllTraffic: 'force_all_traffic',
+} as const;
+
+export type ClientTrafficPolicyValue =
+  (typeof ClientTrafficPolicy)[keyof typeof ClientTrafficPolicy];
+
+export interface SettingsEnterprise {
+  admin_device_management: boolean;
+  client_traffic_policy: ClientTrafficPolicyValue;
+  only_client_activation: boolean;
+}
+
+export const SmtpEncryption = {
+  None: 'None',
+  StartTls: 'StartTls',
+  ImplicitTls: 'ImplicitTls',
+} as const;
+
+export type SmtpEncryptionValue = (typeof SmtpEncryption)[keyof typeof SmtpEncryption];
+
+export interface SettingsSMTP {
+  smtp_encryption: SmtpEncryptionValue;
+  smtp_server: string | null;
+  smtp_port: number | null;
+  smtp_user: string | null;
+  smtp_password: string | null;
+  smtp_sender: string | null;
+}
+
+export interface SettingsEnrollment {
+  enrollment_vpn_step_optional: boolean;
+  enrollment_welcome_message: string;
+  enrollment_welcome_email: string;
+  enrollment_welcome_email_subject: string;
+  enrollment_use_welcome_message_as_email: boolean;
+}
+export interface SettingsModules {
+  openid_enabled: boolean;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+}
+
+export interface SettingsBranding {
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+}
+
+export interface SettingsLDAP {
+  ldap_bind_password?: string;
+  ldap_bind_username?: string;
+  ldap_url?: string;
+  ldap_group_member_attr: string;
+  ldap_group_obj_class: string;
+  ldap_group_search_base: string;
+  ldap_groupname_attr: string;
+  ldap_member_attr: string;
+  ldap_user_obj_class: string;
+  ldap_user_auxiliary_obj_classes: string[];
+  ldap_user_search_base: string;
+  ldap_username_attr: string;
+  ldap_enabled: boolean;
+  ldap_sync_enabled: boolean;
+  ldap_is_authoritative: boolean;
+  ldap_use_starttls: boolean;
+  ldap_tls_verify_cert: boolean;
+  ldap_sync_interval: number;
+  ldap_uses_ad: boolean;
+  ldap_user_rdn_attr?: string;
+  ldap_sync_groups: string[];
+}
+
+export interface SettingsOpenID {
+  openid_create_account: boolean;
+}
+
+export interface SettingsLicense {
+  license: string;
+}
+
+export interface SettingsGatewayNotifications {
+  gateway_disconnect_notifications_enabled: boolean;
+  gateway_disconnect_notifications_inactivity_threshold: number;
+  gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
+}
+
+export type Settings = SettingsBranding &
+  SettingsGatewayNotifications &
+  SettingsEnterprise &
+  SettingsLDAP &
+  SettingsLicense &
+  SettingsModules &
+  SettingsOpenID &
+  SettingsEnrollment &
+  SettingsSMTP;
+
+export interface OpenIdProviderSettings {
+  create_account: boolean;
+  username_handling: OpenIdProviderUsernameHandlingValue;
+}
+
+export const DirectorySyncBehavior = {
+  Keep: 'keep',
+  Disable: 'disable',
+  Delete: 'delete',
+} as const;
+
+export type DirectorySyncBehaviorValue =
+  (typeof DirectorySyncBehavior)[keyof typeof DirectorySyncBehavior];
+
+export const DirectorySyncTarget = {
+  All: 'all',
+  Users: 'users',
+  Groups: 'groups',
+} as const;
+
+export type DirectorySyncTargetValue =
+  (typeof DirectorySyncTarget)[keyof typeof DirectorySyncTarget];
+
+export const OpenIdProviderUsernameHandling = {
+  RemoveForbidden: 'RemoveForbidden',
+  ReplaceForbidden: 'ReplaceForbidden',
+  PruneEmailDomain: 'PruneEmailDomain',
+} as const;
+
+export type OpenIdProviderUsernameHandlingValue =
+  (typeof OpenIdProviderUsernameHandling)[keyof typeof OpenIdProviderUsernameHandling];
+
+export interface OpenIdProvider {
+  id: number;
+  name: string;
+  base_url: string;
+  client_id: string;
+  client_secret: string;
+  display_name: string;
+  directory_sync_enabled: boolean;
+  directory_sync_interval: number;
+  directory_sync_user_behavior: DirectorySyncBehaviorValue;
+  directory_sync_admin_behavior: DirectorySyncBehaviorValue;
+  directory_sync_target: DirectorySyncTargetValue;
+  google_service_account_key?: string | null;
+  google_service_account_email?: string | null;
+  admin_email?: string | null;
+  okta_private_jwk?: string | null;
+  okta_dirsync_client_id?: string | null;
+  jumpcloud_api_key?: string | null;
+  // microsoft
+  directory_sync_group_match?: string | null;
+  prefetch_users: boolean;
+}
+
+export interface OpenIdProviders {
+  settings: OpenIdProviderSettings;
+  provider: OpenIdProvider | null;
+}
+
+export type OpenIdProvidersResponse = OpenIdProviders | undefined;
+
+export type AddOpenIdProvider = Omit<OpenIdProvider, 'id'> & OpenIdProviderSettings;
+
+export interface TestDirectorySyncResponse {
+  success: boolean;
+  message: string | null;
+}
