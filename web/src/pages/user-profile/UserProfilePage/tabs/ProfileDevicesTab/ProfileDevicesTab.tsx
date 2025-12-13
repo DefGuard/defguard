@@ -23,6 +23,7 @@ export const ProfileDevicesTab = () => {
         <ProfileTabHeader title={m.profile_devices_title()}>
           <Button
             iconLeft="add-device"
+            testId="add-device"
             text={m.profile_devices_add_new()}
             onClick={() => {
               useAddUserDeviceModal.getState().open({

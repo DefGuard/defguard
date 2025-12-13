@@ -104,6 +104,7 @@ export const ProfileAuthCard = () => {
     const items: MenuItemProps[] = [];
     if (!user.email_mfa_enabled) {
       items.push({
+        testId: 'enable-email',
         text: m.controls_enable(),
         icon: 'check-circle',
         onClick: () => openModal('emailMfaSetup'),
@@ -285,6 +286,7 @@ export const ProfileAuthCard = () => {
               enabled={user.email_mfa_enabled}
               isDefault={user.mfa_method === 'Email'}
               menu={emailMenuItems}
+              testId="email-codes-row"
             />
             <Divider />
           </>

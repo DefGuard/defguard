@@ -155,6 +155,7 @@ export const AddDeviceModalManualSetupStep = () => {
       </form>
       <ModalControls
         cancelProps={{
+          testId: 'cancel',
           text: m.controls_cancel(),
           disabled: form.state.isSubmitting,
           onClick: () => {
@@ -162,6 +163,7 @@ export const AddDeviceModalManualSetupStep = () => {
           },
         }}
         submitProps={{
+          testId: 'continue',
           text: m.controls_continue(),
           loading: form.state.isSubmitting,
           onClick: () => {

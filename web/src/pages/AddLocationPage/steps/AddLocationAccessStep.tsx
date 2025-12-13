@@ -47,6 +47,7 @@ export const AddLocationAccessStep = () => {
       <ModalControls
         submitProps={{
           text: m.controls_continue(),
+          testId: 'acl-continue',
           onClick: () => {
             saveChanges(selected);
             useAddLocationStore.setState({

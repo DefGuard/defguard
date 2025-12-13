@@ -20,11 +20,11 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await page.getByTestId('sign-in').click();
   await waitForRoute(
     page,
-    routes.base + routes.profile + userInfo.username + '?tab=details',
+    routes.base + routes.profile + userInfo.username + routes.tab.details,
   );
   await waitForPromise(1000);
   expect(page.url()).toBe(
-    routes.base + routes.profile + userInfo.username + '?tab=details',
+    routes.base + routes.profile + userInfo.username + routes.tab.details,
   );
 };
 
@@ -43,7 +43,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   await waitForPromise(1000);
 
   expect(page.url()).toBe(
-    routes.base + routes.profile + userInfo.username + '?tab=details',
+    routes.base + routes.profile + userInfo.username + routes.tab.details,
   );
 };
 
@@ -64,6 +64,6 @@ export const loginRecoveryCodes = async (
   await page.getByTestId('submit-recovery-code').click();
   await waitForPromise(1000);
   expect(page.url()).toBe(
-    routes.base + routes.profile + userInfo.username + '?tab=details',
+    routes.base + routes.profile + userInfo.username + routes.tab.details,
   );
 };

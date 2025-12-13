@@ -28,7 +28,7 @@ test.describe('Test user authentication', () => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + defaultUserAdmin.username + '?tab=details',
+      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.details,
     );
   });
 
@@ -37,7 +37,7 @@ test.describe('Test user authentication', () => {
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 
@@ -47,7 +47,7 @@ test.describe('Test user authentication', () => {
     const { secret } = await enableTOTP(browser, defaultUserAdmin);
     await loginTOTP(page, defaultUserAdmin, secret);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + defaultUserAdmin.username + '?tab=details',
+      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.details,
     );
   });
 
@@ -57,7 +57,7 @@ test.describe('Test user authentication', () => {
     const { secret } = await enableTOTP(browser, testUser);
     await loginTOTP(page, testUser, secret);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 
@@ -70,16 +70,16 @@ test.describe('Test user authentication', () => {
     expect(recoveryCodes?.length > 0).toBeTruthy();
     await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 
   test('Login with Email TOTP', async ({ page, browser }) => {
-    expect(true).toBe(false); // TODO: Do it when SMTP will be available to configure on dashboard / via api
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
     await loginBasic(page, testUser);
+    expect(true).toBe(false); // TODO: not implemented in frontend. fix later
     await page.goto(routes.base + routes.auth.email);
     const { otp: code } = TOTP.generate(secret, {
       digits: 6,
@@ -110,7 +110,7 @@ test.describe('Test user authentication', () => {
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
     expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
     await disableUser(browser, testUser);
     const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
@@ -163,7 +163,7 @@ test.describe('Test user authentication', () => {
     await page.getByTestId('login-with-passkey').click();
     await page.waitForTimeout(2000);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 });
@@ -190,7 +190,7 @@ test.describe('Test password change', () => {
     testUser.password = newPassword;
     await loginBasic(page, testUser);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 
@@ -208,7 +208,53 @@ test.describe('Test password change', () => {
     testUser.password = newPassword;
     await loginBasic(page, testUser);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
+  });
+});
+
+test.describe('API tokens management', () => {
+  let testUser: User;
+  let token_name = 'test token name';
+  test.beforeEach(() => {
+    dockerRestart();
+    testUser = { ...testUserTemplate, username: 'test' };
+  });
+  test('Add API token as default admin', async ({ page, browser }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.api_tokens,
+    );
+    await page.getByTestId('add-token').click();
+    await page.getByTestId('field-name').fill(token_name);
+    await page.getByTestId('submit').click();
+    const api_token = await page.getByTestId('copy-field').textContent();
+    await page.getByTestId('close').click();
+
+    const row = page.locator('.table-row-container').filter({ hasText: token_name });
+    await row.locator('.icon-button').click();
+    await page.getByTestId('delete').click();
+    await expect(row).not.toBeVisible();
+    expect(api_token).toBeDefined();
+  });
+  test('Add API token as new user with admin privileges', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser, ['admin']);
+    await loginBasic(page, testUser);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.api_tokens,
+    );
+    await page.getByTestId('add-token').click();
+    await page.getByTestId('field-name').fill(token_name);
+    await page.getByTestId('submit').click();
+    const api_token = await page.getByTestId('copy-field').textContent();
+    await page.getByTestId('close').click();
+
+    const row = page.locator('.table-row-container').filter({ hasText: token_name });
+    await row.locator('.icon-button').click();
+    await page.getByTestId('delete').click();
+    await expect(row).not.toBeVisible();
+    expect(api_token).toBeDefined();
   });
 });

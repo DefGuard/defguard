@@ -26,16 +26,13 @@ export const copyOpenIdClientIdAndSecret = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.openid, { waitUntil: 'networkidle' });
-  await page
-    .locator('div')
-    .filter({
-      hasText: new RegExp(`^${clientName}$`),
-    })
-    .click();
-  await page.getByTestId('copy-client-id').click();
+  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'networkidle' });
+  const deviceRow = page.locator('.virtual-row').filter({ hasText: clientName });
+  await deviceRow.locator('.icon-button').click();
+  await page.getByTestId('copy-id').click();
   const id = await getPageClipboard(page);
-  await page.locator('.variant-copy').nth(1).click();
+  await deviceRow.locator('.icon-button').click();
+  await page.getByTestId('copy-secret').click();
   const secret = await getPageClipboard(page);
   await context.close();
   return [id, secret];

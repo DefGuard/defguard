@@ -1,3 +1,4 @@
+import { table } from 'console';
 import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
@@ -30,9 +31,16 @@ export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
   profile: '/user/',
+  tab: {
+    details: '?tab=details',
+    devices: '?tab=devices',
+    authentication_keys: '?tab=auth-keys',
+    api_tokens: '?tab=api-tokens',
+  },
   locations: '/locations',
   network_devices: '/network-devices',
   openid_apps: '/openid',
+  webhooks: '/webhooks',
   identity: {
     users: '/users',
     groups: '/groups',
@@ -44,6 +52,11 @@ export const routes = {
     totp: '/auth/mfa/totp',
     recovery: '/auth/mfa/recovery',
     email: '/auth/mfa/email',
+  },
+  settings: {
+    base: '/settings',
+    smtp: '/settings/smtp',
+    openid: '/settings/openid',
   },
   admin: {
     wizard: '/admin/wizard',

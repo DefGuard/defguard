@@ -15,7 +15,7 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('add-regular-location').click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.endpoint + '/24'); //FIXME: after frontend is fixed remove "/24"
+  await page.getByTestId('field-address').fill(network.endpoint);
   await page.getByTestId('field-port').fill(network.port);
   await page.getByTestId('continue').click();
 
@@ -48,8 +48,8 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   }
   await page.getByTestId('finish').click();
 
-  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
-  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+  await page.getByTestId('acl-continue').click();
+  await page.getByTestId('create-location').click();
 
   await page.waitForURL('**/locations');
 
@@ -67,7 +67,7 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('add-service-location').click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.endpoint + '/24'); //FIXME: after frontend is fixed remove "/24"
+  await page.getByTestId('field-address').fill(network.endpoint);
   await page.getByTestId('field-port').fill(network.port);
 
   await page.getByTestId('continue').click();
@@ -86,9 +86,8 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
 
   await page.getByTestId('continue').click();
   await page.getByTestId('continue').click();
-
-  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
-  await page.locator('button:has-text("Continue")').click(); // TODO: add testid
+  await page.getByTestId('acl-continue').click();
+  await page.getByTestId('create-location').click();
 
   await page.waitForURL('**/locations');
   await expect(page.url()).toBe(routes.base + routes.locations);

@@ -76,6 +76,7 @@ export const ProfileApiTokensTable = () => {
                     items: [
                       {
                         icon: 'edit',
+                        testId: 'edit',
                         text: m.controls_rename(),
                         onClick: () => {
                           openModal(ModalName.RenameApiToken, {
@@ -87,6 +88,7 @@ export const ProfileApiTokensTable = () => {
                       },
                       {
                         icon: 'delete',
+                        testId: 'delete',
                         variant: 'danger',
                         text: m.controls_delete(),
                         onClick: () => {

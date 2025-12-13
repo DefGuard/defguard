@@ -45,6 +45,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     (): ButtonProps => ({
       text: m.webhooks_add(),
       iconLeft: 'webhooks',
+      testId: 'add-new-webhook',
       onClick: () => {
         openModal(ModalName.CEWebhook, {});
       },
@@ -98,6 +99,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
                 {
                   text: m.controls_edit(),
                   icon: 'edit',
+                  testId: 'edit',
                   onClick: () => {
                     openModal(ModalName.CEWebhook, {
                       webhook: row,
@@ -107,6 +109,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
                 {
                   text: row.enabled ? m.controls_disable() : m.controls_enable(),
                   icon: row.enabled ? 'disabled' : 'check-circle',
+                  testId: 'change-state',
                   onClick: () => {
                     toggleWebhook({
                       enabled: !row.enabled,
@@ -121,6 +124,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
                 {
                   text: m.controls_delete(),
                   icon: 'delete',
+                  testId: 'delete',
                   variant: 'danger',
                   onClick: () => {
                     deleteWebhook(row.id);

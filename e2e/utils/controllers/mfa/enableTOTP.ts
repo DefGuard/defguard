@@ -22,8 +22,8 @@ export const enableTOTP = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.profile + user.username + '?tab=details');
-  await waitForRoute(page, routes.profile + user.username + '?tab=details');
+  await page.goto(routes.base + routes.profile + user.username + routes.tab.details);
+  await waitForRoute(page, routes.profile + user.username + routes.tab.details);
   const totpContainer = await page.locator('[data-testid="totp-row"]');
 
   await totpContainer.locator('.icon-button').click();

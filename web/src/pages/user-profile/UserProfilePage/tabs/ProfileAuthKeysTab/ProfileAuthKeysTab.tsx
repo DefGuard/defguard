@@ -25,6 +25,7 @@ export const ProfileAuthKeysTab = () => {
           subtitle={m.profile_auth_keys_no_data_subtitle()}
           primaryAction={{
             iconLeft: 'key',
+            testId: 'add-new-key',
             text: m.profile_auth_keys_no_data_cta(),
             onClick: () => {
               openModal(ModalName.AddAuthKey, {

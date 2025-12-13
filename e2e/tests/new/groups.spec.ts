@@ -42,7 +42,7 @@ test.describe('Test groups', () => {
     await createUser(browser, testUser, ['test_group2']);
     await loginBasic(page, testUser);
     await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + '?tab=details',
+      routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });
 });

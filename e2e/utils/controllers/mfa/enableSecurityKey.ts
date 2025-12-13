@@ -22,9 +22,7 @@ export const enableSecurityKey = async (
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, user);
-
   await page.goto(routes.base + routes.profile);
-
   await page.getByTestId('passkeys-row').locator('.icon-button').click();
   await page.getByTestId('add-passkey').click();
   await page.getByTestId('field-name').fill(keyName);

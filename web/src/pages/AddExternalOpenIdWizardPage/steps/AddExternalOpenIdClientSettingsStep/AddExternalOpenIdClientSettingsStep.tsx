@@ -202,6 +202,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                   <Button
                     variant="primary"
                     text={m.controls_continue()}
+                    testId="continue"
                     loading={isSubmitting}
                     onClick={() => {
                       form.handleSubmit();

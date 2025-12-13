@@ -18,11 +18,12 @@ export const apiGetUserProfile = async (
   username: string,
 ): Promise<ApiUserProfile> => {
   const url = testsConfig.CORE_BASE_URL + '/user/' + username;
-  const userProfile = await page.evaluate(async (url) => {
-    return await fetch(url, {
-      method: 'GET',
-    }).then((res) => res.json());
-  }, url);
+  const response = await page.request.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const userProfile = await response.json();
   return userProfile;
 };
 
@@ -41,11 +42,12 @@ export const apiGetUserAuthKeys = async (
   username: string,
 ): Promise<ApiUserAuthKey[]> => {
   const url = testsConfig.CORE_BASE_URL + `/user/${username}/auth_key`;
-  const userData = await page.evaluate(async (url) => {
-    return await fetch(url, {
-      method: 'GET',
-    }).then((res) => res.json());
-  }, url);
+  const response = await page.request.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const userData = await response.json();
   return userData;
 };
 
