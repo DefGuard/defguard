@@ -3,7 +3,6 @@ import { Browser } from 'playwright';
 import { routes } from '../../../config';
 import { User } from '../../../types';
 import { waitForBase } from '../../waitForBase';
-import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
 
 export type EnableSecurityKeyResult = {

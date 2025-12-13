@@ -2,7 +2,6 @@ import { Browser, expect } from '@playwright/test';
 
 import { routes } from '../../../config';
 import { DeviceForm, User } from '../../../types';
-import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
 
 export const createDevice = async (browser: Browser, user: User, device: DeviceForm) => {

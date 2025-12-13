@@ -411,6 +411,7 @@ export const UsersTable = ({ users }: Props) => {
             variant="outlined"
             text="Assign to a group"
             iconLeft="add-group"
+            testId="bulk-assign"
             onClick={() => {
               const selected = table
                 .getSelectedRowModel()

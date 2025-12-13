@@ -78,8 +78,8 @@ test.describe('Test user authentication', () => {
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableEmailMFA(browser, testUser);
+
     await loginBasic(page, testUser);
-    expect(true).toBe(false); // TODO: not implemented in frontend. fix later
     await page.goto(routes.base + routes.auth.email);
     const { otp: code } = TOTP.generate(secret, {
       digits: 6,

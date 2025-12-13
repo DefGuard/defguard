@@ -1,22 +1,22 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { NetworkForm, User } from '../../types';
-import { apiCreateUser } from '../../utils/api/users';
-import { loginBasic } from '../../utils/controllers/login';
-import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
+import { defaultUserAdmin, routes, testUserTemplate } from '../../../config';
+import { NetworkForm, User } from '../../../types';
+import { apiCreateUser } from '../../../utils/api/users';
+import { loginBasic } from '../../../utils/controllers/login';
+import { createRegularLocation } from '../../../utils/controllers/vpn/createNetwork';
 import {
   createNetworkCLIDevice,
   doAction,
   editNetworkDevice,
   getDeviceRow,
   startNetworkDeviceEnrollment,
-} from '../../utils/controllers/vpn/createNetworkDevice';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForRoute } from '../../utils/waitForRoute';
-import { createUser } from '../../utils/controllers/createUser';
-import { waitForPromise } from '../../utils/waitForPromise';
+} from '../../../utils/controllers/vpn/createNetworkDevice';
+import { dockerRestart } from '../../../utils/docker';
+import { waitForBase } from '../../../utils/waitForBase';
+import { waitForRoute } from '../../../utils/waitForRoute';
+import { createUser } from '../../../utils/controllers/createUser';
+import { waitForPromise } from '../../../utils/waitForPromise';
 
 const testKeys = {
   private: '4K1BwtDCd0XUwq6WThkrQ4/DQ4vIpyEki5aIokqx21c=',
@@ -41,7 +41,7 @@ test.describe('Network devices', () => {
     // wait for fronted
     await waitForBase(page);
     // prepare test network
-    await createNetwork(browser, testNetwork);
+    await createRegularLocation(browser, testNetwork);
     // make test user
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);

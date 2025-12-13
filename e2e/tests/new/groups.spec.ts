@@ -7,6 +7,7 @@ import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
 import { createGroup } from '../../utils/controllers/groups';
 import { waitForPromise } from '../../utils/waitForPromise';
+import { apiCreateUser } from '../../utils/api/users';
 
 test.describe('Test groups', () => {
   test.beforeEach(() => dockerRestart());
@@ -44,5 +45,40 @@ test.describe('Test groups', () => {
     await expect(page.url()).toBe(
       routes.base + routes.profile + testUser.username + routes.tab.details,
     );
+  });
+  test('Bulk assign users to new group', async ({ page, browser }) => {
+    const testUser = { ...testUserTemplate, username: 'testuserfirst' };
+    const testUser2 = { ...testUserTemplate, username: 'testusersecond' };
+    const group_name = 'test_group2';
+    testUser2.mail = 'test2@test.com';
+    testUser2.phone = '9087654321';
+
+    await waitForBase(page);
+    await createGroup(browser, group_name);
+    await loginBasic(page, defaultUserAdmin);
+
+    await apiCreateUser(page, testUser);
+    await apiCreateUser(page, testUser2);
+    await page.goto(routes.base + routes.identity.users);
+    const firstUser = await page
+      .locator('.virtual-row')
+      .filter({ hasText: testUser.username });
+    await firstUser.locator('.checkbox').click();
+    const secondUser = await page
+      .locator('.virtual-row')
+      .filter({ hasText: testUser2.username });
+    await secondUser.locator('.checkbox').click();
+    await page.getByTestId('bulk-assign').click();
+    await page
+      .locator('.modal')
+      .locator('.checkbox')
+      .filter({ hasText: group_name })
+      .click();
+    await page.getByTestId('submit').click();
+    await waitForPromise(2000);
+    await page.goto(routes.base + routes.identity.users);
+
+    await expect(firstUser).toContainText(group_name);
+    await expect(secondUser).toContainText(group_name);
   });
 });

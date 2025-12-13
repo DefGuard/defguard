@@ -3,19 +3,19 @@ import * as fs from 'fs';
 import lodash from 'lodash';
 import path from 'path';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { NetworkForm } from '../../types';
+import { defaultUserAdmin, routes, testUserTemplate } from '../../../config';
+import { NetworkForm } from '../../../types';
 import {
   apiCreateUsersBulk,
   apiGetUserProfile,
   apiGetUsers,
-} from '../../utils/api/users';
-import { loginBasic } from '../../utils/controllers/login';
-import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
-import { waitForRoute } from '../../utils/waitForRoute';
+} from '../../../utils/api/users';
+import { loginBasic } from '../../../utils/controllers/login';
+import { createRegularLocation } from '../../../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../../../utils/docker';
+import { waitForBase } from '../../../utils/waitForBase';
+import { waitForPromise } from '../../../utils/waitForPromise';
+import { waitForRoute } from '../../../utils/waitForRoute';
 
 test.describe('Setup VPN (wizard) ', () => {
   test.beforeAll(() => {
@@ -103,6 +103,6 @@ test.describe('Setup VPN (wizard) ', () => {
       endpoint: '127.0.0.1',
       port: '5055',
     };
-    await createNetwork(browser, network);
+    await createRegularLocation(browser, network);
   });
 });

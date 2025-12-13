@@ -27,7 +27,10 @@ export const setupSMTP = async (browser: Browser) => {
   await page.getByTestId('field-smtp_user').fill('testuser');
   await page.getByTestId('field-smtp_password').fill('test');
   await page.getByTestId('field-smtp_sender').fill('test@test.com');
-  await page.getByTestId('save-changes').click();
+  const saveButton = await page.getByTestId('save-changes');
+  if (await saveButton.isEnabled()) {
+    await saveButton.click();
+  }
   await waitForPromise(1000);
   await logout(page);
   await context.close();

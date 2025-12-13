@@ -85,7 +85,7 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   }
 
   await page.getByTestId('continue').click();
-  await page.getByTestId('continue').click();
+  await page.getByTestId('finish').click();
   await page.getByTestId('acl-continue').click();
   await page.getByTestId('create-location').click();
 
