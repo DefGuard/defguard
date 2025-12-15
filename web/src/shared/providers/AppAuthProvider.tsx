@@ -10,6 +10,7 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const authMatch = useMemo(() => pathname.startsWith('/auth'), [pathname]);
+  const consentMatch = useMemo(() => pathname.startsWith('/consent'), [pathname]);
 
   const setUser = useAuth((s) => s.setUser);
   const mfa = useAuth((s) => s.mfaLogin);
@@ -67,6 +68,7 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
   // handle automatic redirects when auth store changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only check storedUser and authMatch
   useEffect(() => {
+    if (consentMatch) return;
     if (storedUser && authMatch) {
       if (isPresent(openIdConsentData)) {
         navigate({
@@ -94,7 +96,7 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
         replace: true,
       });
     }
-  }, [authMatch, navigate, storedUser]);
+  }, [authMatch, navigate, storedUser, consentMatch]);
 
   return <>{children}</>;
 };

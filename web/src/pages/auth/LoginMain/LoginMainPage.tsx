@@ -19,8 +19,8 @@ import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
 import { useAuth } from '../../../shared/hooks/useAuth';
 
 const formSchema = z.object({
-  username: z.string().trim().min(1, m.form_error_required()),
-  password: z.string().trim().min(1, m.form_error_required()),
+  username: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  password: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -49,18 +49,28 @@ export const LoginMainPage = () => {
       if (tooManyAttempts) return;
       try {
         const { data } = await mutateAsync(value);
-
+        const openIdConsent = useAuth.getState().consentData;
         // @ts-expect-error
         // biome-ignore lint/complexity/useLiteralKeys: needed
         if (data['user'] !== undefined) {
           const basicResponse = data as LoginResponseBasic;
           setAuthStore(basicResponse.user);
-          navigate({
-            to: '/user/$username',
-            params: {
-              username: basicResponse.user?.username as string,
-            },
-          });
+          if (openIdConsent) {
+            navigate({
+              to: '/consent',
+              // @ts-expect-error
+              search: openIdConsent,
+              replace: true,
+            });
+          } else {
+            navigate({
+              to: '/user/$username',
+              params: {
+                username: basicResponse.user?.username as string,
+              },
+              replace: true,
+            });
+          }
         } else {
           const mfa = data as LoginMfaResponse;
           useAuth.setState({
