@@ -24,7 +24,9 @@ export const SettingsExternalOpenIdPage = () => {
   });
 
   const visibleProviders = useMemo(() => {
-    const res = Object.values(ExternalProvider);
+    const res = Object.values(ExternalProvider).filter(
+      (p) => p !== ExternalProvider.Zitadel,
+    );
     if (activeProvider) {
       return res.filter((p) => p !== activeProvider.name);
     }
@@ -47,7 +49,6 @@ export const SettingsExternalOpenIdPage = () => {
             edit
             provider={activeProvider.name as ExternalProviderValue}
             displayName={activeProvider.display_name}
-            disabled={false}
             onClick={() => {
               navigate({ to: '/settings/edit-openid' });
             }}
@@ -68,7 +69,7 @@ export const SettingsExternalOpenIdPage = () => {
       <div className="providers">
         {visibleProviders.map((provider) => (
           <ExternalProviderCard
-            disabled={provider === ExternalProvider.Zitadel || isPresent(activeProvider)}
+            disabled={isPresent(activeProvider)}
             provider={provider}
             key={provider}
             onClick={() => {

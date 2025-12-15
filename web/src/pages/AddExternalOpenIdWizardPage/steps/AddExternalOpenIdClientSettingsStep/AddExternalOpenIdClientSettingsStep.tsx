@@ -16,6 +16,7 @@ import {
   type ExternalProviderValue,
 } from '../../../settings/shared/types';
 import {
+  formatMicrosoftBaseUrl,
   providerUsernameHandlingOptions,
   validateExternalProviderWizard,
 } from '../../consts';
@@ -26,9 +27,6 @@ const baseUrlHidden: Set<ExternalProviderValue> = new Set([
   ExternalProvider.Microsoft,
   ExternalProvider.Google,
 ]);
-
-const formatMicrosoftBaseUrl = (tenantId: string) =>
-  `https://login.microsoftonline.com/${tenantId}/v2.0`;
 
 export const AddExternalOpenIdClientSettingsStep = () => {
   const storeData = useAddExternalOpenIdStore((s) => s.providerState);

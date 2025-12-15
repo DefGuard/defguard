@@ -6,7 +6,12 @@ import type { AddOpenIdProvider } from '../../../shared/api/types';
 import { EditPage } from '../../../shared/components/EditPage/EditPage';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getExternalProviderQueryOptions } from '../../../shared/query';
+import { ExternalProvider } from '../shared/types';
+import { EditCustomProviderForm } from './form/EditCustomProviderForm';
 import { EditGoogleProviderForm } from './form/EditGoogleProviderForm';
+import { EditJumpCloudProviderForm } from './form/EditJumpCloudProviderForm';
+import { EditMicrosoftProviderForm } from './form/EditMicrosoftProviderForm';
+import { EditOktaProviderForm } from './form/EditOktaProviderForm';
 
 const breadcrumbs = [
   <Link
@@ -71,8 +76,48 @@ export const SettingsEditOpenIdProviderPage = () => {
       formTitle={'Edit external OpenID provider'}
       links={breadcrumbs}
     >
-      {formData.name === 'google' && (
+      {formData.name === ExternalProvider.Google && (
         <EditGoogleProviderForm
+          onSubmit={handleSubmit}
+          provider={formData}
+          onDelete={() => {
+            deleteProvider(formData.name);
+          }}
+          loading={deletePending}
+        />
+      )}
+      {formData.name === ExternalProvider.Microsoft && (
+        <EditMicrosoftProviderForm
+          onSubmit={handleSubmit}
+          provider={formData}
+          onDelete={() => {
+            deleteProvider(formData.name);
+          }}
+          loading={deletePending}
+        />
+      )}
+      {formData.name === ExternalProvider.Okta && (
+        <EditOktaProviderForm
+          onSubmit={handleSubmit}
+          provider={formData}
+          onDelete={() => {
+            deleteProvider(formData.name);
+          }}
+          loading={deletePending}
+        />
+      )}
+      {formData.name === ExternalProvider.JumpCloud && (
+        <EditJumpCloudProviderForm
+          onSubmit={handleSubmit}
+          provider={formData}
+          onDelete={() => {
+            deleteProvider(formData.name);
+          }}
+          loading={deletePending}
+        />
+      )}
+      {formData.name === ExternalProvider.Custom && (
+        <EditCustomProviderForm
           onSubmit={handleSubmit}
           provider={formData}
           onDelete={() => {

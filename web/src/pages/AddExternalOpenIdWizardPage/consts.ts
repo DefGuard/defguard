@@ -93,3 +93,6 @@ export const providerUsernameHandlingOptions: SelectOption<OpenIdProviderUsernam
       value: OpenIdProviderUsernameHandling.PruneEmailDomain,
     },
   ];
+
+export const formatMicrosoftBaseUrl = (tenantId: string) =>
+  `https://login.microsoftonline.com/${tenantId}/v2.0`;
