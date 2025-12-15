@@ -45,6 +45,12 @@ export const AppAuthProvider = ({ children }: PropsWithChildren) => {
             replace: true,
           });
           break;
+        case 'Email':
+          navigate({
+            to: '/auth/mfa/email',
+            replace: true,
+          });
+          break;
         default:
           throw new Error('Unimplemented Factor');
       }

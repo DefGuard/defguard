@@ -204,7 +204,7 @@ const api = {
           client.post<EnableMfaMethodResponse>('/auth/email', {
             code,
           }),
-        disable: () => client.delete('/auth/delete'),
+        disable: () => client.delete('/auth/email'),
         resend: () => client.get('/auth/email'),
         verify: (code: string) =>
           client.post<MfaCompleteResponse>('/auth/email/verify', { code }),
