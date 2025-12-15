@@ -85,7 +85,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       text: 'Add device',
       variant: 'primary',
       iconLeft: 'add-device',
-      disabled: info.network_present,
+      disabled: !info.network_present,
       onClick: () => {
         useAddUserDeviceModal.getState().open({
           devices,

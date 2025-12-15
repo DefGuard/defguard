@@ -1,5 +1,10 @@
 #profile-devices-tab {
+  .table-top {
+    padding-top: var(--spacing-3xl);
+  }
+
   .flexible-empty-state,
+  .table-top,
   .table {
     grid-column: 1 / 13;
   }
