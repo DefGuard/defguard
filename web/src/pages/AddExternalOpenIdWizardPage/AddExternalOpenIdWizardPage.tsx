@@ -5,15 +5,14 @@ import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage
 import { externalProviderName, SUPPORTED_SYNC_PROVIDERS } from '../../shared/constants';
 import { AddExternalOpenIdClientSettingsStep } from './steps/AddExternalOpenIdClientSettingsStep/AddExternalOpenIdClientSettingsStep';
 import { AddExternalOpenIdDirectoryStep } from './steps/AddExternalOpenIdDirectoryStep/AddExternalOpenIdDirectoryStep';
+import { AddExternalOpenIdValidationStep } from './steps/AddExternalOpenIdValidationStep/AddExternalOpenIdValidationStep';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 import { useAddExternalOpenIdStore } from './useAddExternalOpenIdStore';
-
-const Empty = () => null;
 
 const steps: Record<AddExternalProviderStepValue, ReactNode> = {
   'client-settings': <AddExternalOpenIdClientSettingsStep />,
   'directory-sync': <AddExternalOpenIdDirectoryStep />,
-  validation: <Empty />,
+  validation: <AddExternalOpenIdValidationStep />,
 };
 
 export const AddExternalOpenIdWizardPage = () => {

@@ -1,8 +1,8 @@
+import { useMutation } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../../paraglide/messages';
-import type { AddOpenIdProvider } from '../../../../../shared/api/types';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -102,18 +102,24 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
     },
   });
 
-  const handleBack = useCallback(async () => {
-    const values = form.state.values;
-    const toStore: Partial<AddOpenIdProvider> = omit(values, [
-      'google_service_account_file',
-    ]);
-    const fileData = await keyFileToObject(values.google_service_account_file);
-    back({
-      ...toStore,
+  const toStore = useCallback(async (state: FormFields) => {
+    const fileData = await keyFileToObject(state.google_service_account_file);
+    return {
+      ...omit(state, ['google_service_account_file']),
       google_service_account_key: fileData?.private_key ?? null,
       google_service_account_email: fileData?.client_email ?? null,
-    });
-  }, [form, back]);
+    };
+  }, []);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: async () => {
+      return onSubmit(await toStore(form.state.values));
+    },
+  });
+
+  const handleBack = useCallback(async () => {
+    back(await toStore(form.state.values));
+  }, [form.state.values, back, toStore]);
 
   return (
     <form
@@ -180,8 +186,10 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
-          onBack={() => {
-            handleBack();
+          loading={isPending}
+          onBack={handleBack}
+          onNext={() => {
+            mutate();
           }}
         />
       </form.AppForm>

@@ -114,6 +114,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
       },
       initialize: (provider) => {
         const initialProviderState = addExternalOpenIdStoreDefaults.providerState;
+        initialProviderState.name = provider;
         if (provider !== ExternalProvider.Custom) {
           initialProviderState.display_name = externalProviderName[provider];
         }
