@@ -752,6 +752,9 @@ mod test {
         assert_eq!(limits.users, 10);
         assert_eq!(limits.devices, 100);
         assert_eq!(limits.locations, 5);
+
+        // pre-1.6 license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -770,6 +773,9 @@ mod test {
 
         // legacy license is unlimited
         assert!(license.limits.is_none());
+
+        // legacy license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -785,6 +791,9 @@ mod test {
             license.valid_until.unwrap(),
             Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
+
+        // pre-1.6 license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -883,5 +892,20 @@ mod test {
             LicenseTier::Business,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
+    }
+
+    #[test]
+    fn test_license_tiers() {
+        let legacy_license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9EMAAoJEKiEbAECmoSE/0kEAIb18pVTEYWQo0w6813nShJqi7++Uo/fX4pxaAzEiG9r5HGpZSbsceCarMiK1rBr93HOIMeDRsbZmJBA/MAYGi32uXgzLE8fGSd4lcUPAbpvlj7KNvQNH6sMelzQVw+AJVY+IASqO84nfy92taEVagbLqIwl/eSQUnehJBS+B5/z";
+        let legacy_license = License::from_base64(legacy_license).unwrap();
+        assert_eq!(legacy_license.tier, LicenseTier::Business);
+
+        let business_license = "Ci4KJGEyYjE1M2MzLWYwZmEtNGUzNC05ZThkLWY0Nzk1NTA4OWMwNRiI7KTKBjABErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7iAAKCRCohGwBApqEhHdaA/0QqDNiryYSzWTEayBMwEBE6KAxTEtwRzXOxQxsnULjbQMol/SRjqfu8iwlI4IeBQP3CuAR9kglewvwg3osXDldIns46W/cDBd0jxANebLY9SPz0JS6pStMnSzhZ6rFW5ns3nCz86EOyAA9npx0/qxHCbtT6Qzi//5JYQe6VvvCmw==";
+        let business_license = License::from_base64(business_license).unwrap();
+        assert_eq!(business_license.tier, LicenseTier::Business);
+
+        let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
+        let enterprise_license = License::from_base64(enterprise_license).unwrap();
+        assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
     }
 }
