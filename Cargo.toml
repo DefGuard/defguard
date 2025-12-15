@@ -17,6 +17,7 @@ defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
 defguard_mail = { path = "./crates/defguard_mail", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
+defguard_session_manager = { path = "./crates/defguard_session_manager", version = "0.0.0" }
 defguard_version = { path = "./crates/defguard_version", version = "0.0.0" }
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
 defguard_certs = { path = "./crates/defguard_certs", version = "0.0.0" }

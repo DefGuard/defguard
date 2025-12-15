@@ -1126,6 +1126,7 @@ dependencies = [
  "defguard_event_logger",
  "defguard_event_router",
  "defguard_mail",
+ "defguard_session_manager",
  "defguard_version",
  "dotenvy",
  "secrecy",
@@ -1149,8 +1150,11 @@ name = "defguard_common"
 version = "1.6.0"
 dependencies = [
  "anyhow",
+ "argon2",
+ "base32",
  "base64 0.22.1",
  "chrono",
+ "claims",
  "clap",
  "ed25519-dalek",
  "humantime",
@@ -1164,14 +1168,18 @@ dependencies = [
  "rsa",
  "secrecy",
  "serde",
+ "serde_cbor_2 0.12.0-dev",
  "sqlx",
  "struct-patch",
  "thiserror 2.0.17",
  "tonic",
+ "totp-lite",
  "tracing",
  "utoipa",
  "uuid",
  "vergen-git2",
+ "webauthn-rs",
+ "x25519-dalek",
 ]
 
 [[package]]
@@ -1303,11 +1311,21 @@ dependencies = [
 name = "defguard_proto"
 version = "0.0.0"
 dependencies = [
+ "defguard_common",
  "prost",
  "serde",
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
+]
+
+[[package]]
+name = "defguard_session_manager"
+version = "0.0.0"
+dependencies = [
+ "defguard_common",
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]

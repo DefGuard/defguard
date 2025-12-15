@@ -4,12 +4,12 @@ use axum::http::Uri;
 use defguard_common::db::models::settings::initialize_current_settings;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent},
+    db::AppEvent,
     enterprise::license::{License, set_cached_license},
     events::GrpcEvent,
     grpc::{
         WorkerState, build_grpc_service_router,
-        gateway::{client_state::ClientMap, map::GatewayMap},
+        gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
     },
 };
 use defguard_mail::Mail;

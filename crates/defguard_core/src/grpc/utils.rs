@@ -2,7 +2,15 @@ use std::{net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            polling_token::PollingToken,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+    },
 };
 use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
@@ -13,18 +21,10 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    db::{
-        Device, User,
-        models::{
-            device::{DeviceType, WireguardNetworkDevice},
-            polling_token::PollingToken,
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
-        },
-    },
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::client_version::ClientFeature,
+    grpc::{client_version::ClientFeature, gateway::should_prevent_service_location_usage},
 };
 
 // Create a new token for configuration polling.
@@ -179,7 +179,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if network.should_prevent_service_location_usage() {
+            if should_prevent_service_location_usage(&network) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
                     network.name

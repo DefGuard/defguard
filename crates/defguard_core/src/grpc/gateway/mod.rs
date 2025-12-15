@@ -7,7 +7,13 @@ use std::{
 
 use chrono::{DateTime, TimeDelta, Utc};
 use client_state::ClientMap;
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, User, WireguardNetwork, wireguard::ServiceLocationMode,
+        wireguard_peer_stats::WireguardPeerStats,
+    },
+};
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -18,7 +24,7 @@ use defguard_proto::{
 };
 use defguard_version::version_info_from_metadata;
 use semver::Version;
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -33,14 +39,14 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    db::{
-        Device, GatewayEvent, User,
-        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
-    },
+    enterprise::{firewall::try_get_location_firewall_config, is_enterprise_enabled},
     events::{GrpcEvent, GrpcRequestContext},
+    grpc::gateway::events::GatewayEvent,
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 
 pub mod client_state;
+pub mod events;
 pub mod map;
 pub(crate) mod state;
 
@@ -63,6 +69,32 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     debug!("Sending {} wireguard events", events.len());
     for event in events {
         send_wireguard_event(event, wg_tx);
+    }
+}
+
+/// Helper used to convert peer stats coming from gRPC client
+/// into an internal representation
+fn protos_into_internal_stats(
+    proto_stats: PeerStats,
+    location_id: Id,
+    device_id: Id,
+) -> WireguardPeerStats {
+    let endpoint = match proto_stats.endpoint {
+        endpoint if endpoint.is_empty() => None,
+        _ => Some(proto_stats.endpoint),
+    };
+    WireguardPeerStats {
+        id: NoId,
+        network: location_id,
+        endpoint,
+        device_id,
+        collected_at: Utc::now().naive_utc(),
+        upload: proto_stats.upload as i64,
+        download: proto_stats.download as i64,
+        latest_handshake: DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
+            .unwrap_or_default()
+            .naive_utc(),
+        allowed_ips: Some(proto_stats.allowed_ips),
     }
 }
 
@@ -90,68 +122,11 @@ pub struct GatewayServer {
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
-impl WireguardNetwork<Id> {
-    /// Get a list of all allowed peers
-    ///
-    /// Each device is marked as allowed or not allowed in a given network,
-    /// which enables enforcing peer disconnect in MFA-protected networks.
-    ///
-    /// If the location is a service location, only returns peers if enterprise features are enabled.
-    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        debug!("Fetching all peers for network {}", self.id);
-
-        if self.should_prevent_service_location_usage() {
-            warn!(
-                "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
-                self.name
-            );
-            return Ok(Vec::new());
-        }
-
-        let rows = query!(
-            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                -- TODO possible to not use ARRAY-unnest here?
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ips) AS ip
-                ) \"allowed_ips!: Vec<String>\" \
-            FROM wireguard_network_device wnd \
-            JOIN device d ON wnd.device_id = d.id \
-            JOIN \"user\" u ON d.user_id = u.id \
-            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
-            AND d.configured = true \
-            AND u.is_active = true \
-            ORDER BY d.id ASC",
-            self.id,
-            self.mfa_enabled()
-        )
-        .fetch_all(executor)
-        .await?;
-
-        // keepalive has to be added manually because Postgres
-        // doesn't support unsigned integers
-        let result = rows
-            .into_iter()
-            .map(|row| Peer {
-                pubkey: row.pubkey,
-                allowed_ips: row.allowed_ips,
-                // Don't send preshared key if MFA is not enabled, it can't be used and may
-                // cause issues with clients connecting if they expect no preshared key
-                // e.g. when you disable MFA on a location
-                preshared_key: if self.mfa_enabled() {
-                    row.preshared_key
-                } else {
-                    None
-                },
-                keepalive_interval: Some(self.keepalive_interval as u32),
-            })
-            .collect();
-
-        Ok(result)
-    }
+/// If this location is marked as a service location, checks if all requirements are met for it to function:
+/// - Enterprise is enabled
+#[must_use]
+pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
+    location.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
 }
 
 /// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
@@ -329,28 +304,6 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
-    }
-}
-
-impl WireguardPeerStats {
-    fn from_peer_stats(stats: PeerStats, network_id: Id, device_id: Id) -> Self {
-        let endpoint = match stats.endpoint {
-            endpoint if endpoint.is_empty() => None,
-            _ => Some(stats.endpoint),
-        };
-        Self {
-            id: NoId,
-            network: network_id,
-            endpoint,
-            device_id,
-            collected_at: Utc::now().naive_utc(),
-            upload: stats.upload as i64,
-            download: stats.download as i64,
-            latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
-                .unwrap_or_default()
-                .naive_utc(),
-            allowed_ips: Some(stats.allowed_ips),
-        }
     }
 }
 
@@ -837,7 +790,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             let location = self.fetch_location_from_db(network_id).await?;
 
             // convert stats to DB storage format
-            let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
+            let stats = protos_into_internal_stats(peer_stats, network_id, device_id);
 
             // only perform client state update if stats include an endpoint IP
             // otherwise a peer was added to the gateway interface
@@ -993,24 +946,29 @@ impl gateway_service_server::GatewayService for GatewayServer {
             error!("Failed to save updated network {network_id} in the database, status: {err}");
         }
 
-        let peers = network.get_peers(&mut *conn).await.map_err(|error| {
-            error!("Failed to fetch peers from the database for network {network_id}: {error}",);
-            Status::new(
-                Code::Internal,
-                format!("Failed to retrieve peers from the database for network: {network_id}"),
-            )
-        })?;
-        let maybe_firewall_config =
-            network
-                .try_get_firewall_config(&mut conn)
+        let peers =
+            get_location_allowed_peers(&network, &mut *conn)
                 .await
-                .map_err(|err| {
-                    error!("Failed to generate firewall config for network {network_id}: {err}");
+                .map_err(|error| {
+                    error!(
+                        "Failed to fetch peers from the database for network {network_id}: {error}",
+                    );
                     Status::new(
                         Code::Internal,
-                        format!("Failed to generate firewall config for network: {network_id}"),
+                        format!(
+                            "Failed to retrieve peers from the database for network: {network_id}"
+                        ),
                     )
                 })?;
+        let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn)
+            .await
+            .map_err(|err| {
+                error!("Failed to generate firewall config for network {network_id}: {err}");
+                Status::new(
+                    Code::Internal,
+                    format!("Failed to generate firewall config for network: {network_id}"),
+                )
+            })?;
 
         info!("Configuration sent to gateway client, network {network}.");
 

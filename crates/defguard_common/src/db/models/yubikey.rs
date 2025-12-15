@@ -1,5 +1,6 @@
-use defguard_common::db::{Id, NoId};
+use crate::db::{Id, NoId};
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
 
 #[derive(Deserialize, Model, Serialize)]

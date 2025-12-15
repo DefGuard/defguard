@@ -1,15 +1,16 @@
 use defguard_common::{
     config::DefGuardConfig,
-    db::{Id, models::settings::initialize_current_settings},
-};
-use defguard_core::{
     db::{
-        Device, Group, User, WireguardNetwork,
+        Id,
         models::{
-            device::DeviceType,
+            Device, DeviceType, User, WireguardNetwork,
+            group::Group,
+            settings::initialize_current_settings,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
+};
+use defguard_core::{
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},

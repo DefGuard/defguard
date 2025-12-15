@@ -1,11 +1,10 @@
 use std::ops::Bound;
 
-use defguard_common::db::setup_pool;
+use defguard_common::{db::setup_pool, utils::parse_address_list};
 use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::handlers::wireguard::parse_address_list;
 
 #[sqlx::test]
 async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {

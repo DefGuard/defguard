@@ -4,14 +4,16 @@ use axum::{
     extract::{Extension, Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::auth::claims::{Claims, ClaimsType};
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    db::models::User,
+};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::User,
     error::WebError,
     grpc::WorkerState,
 };

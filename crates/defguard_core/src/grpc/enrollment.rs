@@ -4,7 +4,11 @@ use defguard_common::{
     csv::AsCsv,
     db::{
         Id,
-        models::{BiometricAuth, MFAMethod, Settings, settings::defaults::WELCOME_EMAIL_SUBJECT},
+        models::{
+            BiometricAuth, Device, DeviceConfig, DeviceType, MFAMethod, Settings, User,
+            WireguardNetwork, device::DeviceInfo, polling_token::PollingToken,
+            settings::defaults::WELCOME_EMAIL_SUBJECT, wireguard::ServiceLocationMode,
+        },
     },
 };
 use defguard_mail::{
@@ -13,11 +17,9 @@ use defguard_mail::{
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-    LocationMfaMode as ProtoLocationMfaMode, MfaMethod, NewDevice, RegisterMobileAuthRequest,
-    ServiceLocationMode as ProtoServiceLocationMode,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
+    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
+    NewDevice, RegisterMobileAuthRequest,
 };
 use sqlx::{PgPool, Transaction, query_scalar};
 use tokio::sync::{
@@ -28,23 +30,17 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    db::{
-        Device, GatewayEvent, User, WireguardNetwork,
-        models::{
-            device::{DeviceConfig, DeviceInfo, DeviceType},
-            enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
-            polling_token::PollingToken,
-            wireguard::{LocationMfaMode, ServiceLocationMode},
-        },
-    },
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        firewall::try_get_location_firewall_config,
         ldap::utils::ldap_add_user,
         limits::update_counts,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
         client_version::ClientFeature,
+        gateway::events::GatewayEvent,
         utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
     },
     handlers::{
@@ -741,13 +737,13 @@ impl EnrollmentServer {
                     Status::internal("unexpected error")
                 })?
             {
-                if let Some(firewall_config) = location
-                    .try_get_firewall_config(&mut transaction)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get firewall config for location {location}: {err}",);
-                        Status::internal("unexpected error")
-                    })?
+                if let Some(firewall_config) =
+                    try_get_location_firewall_config(&location, &mut transaction)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to get firewall config for location {location}: {err}",);
+                            Status::internal("unexpected error")
+                        })?
                 {
                     debug!(
                         "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",
@@ -1039,16 +1035,6 @@ impl EnrollmentServer {
     }
 }
 
-impl From<User<Id>> for AdminInfo {
-    fn from(admin: User<Id>) -> Self {
-        Self {
-            name: format!("{} {}", admin.first_name, admin.last_name),
-            phone_number: admin.phone,
-            email: admin.email,
-        }
-    }
-}
-
 async fn initial_info_from_user(
     pool: &PgPool,
     user: User<Id>,
@@ -1069,49 +1055,6 @@ async fn initial_info_from_user(
         is_admin,
     })
 }
-
-impl From<DeviceConfig> for ProtoDeviceConfig {
-    fn from(config: DeviceConfig) -> Self {
-        // DEPRECATED(1.5): superseeded by location_mfa_mode
-        let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
-        Self {
-            network_id: config.network_id,
-            network_name: config.network_name,
-            config: config.config,
-            endpoint: config.endpoint,
-            assigned_ip: config.address.as_csv(),
-            pubkey: config.pubkey,
-            allowed_ips: config.allowed_ips.as_csv(),
-            dns: config.dns,
-            keepalive_interval: config.keepalive_interval,
-            #[allow(deprecated)]
-            mfa_enabled,
-            location_mfa_mode: Some(
-                <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(config.location_mfa_mode)
-                    .into(),
-            ),
-            service_location_mode: Some(
-                <ServiceLocationMode as Into<ProtoServiceLocationMode>>::into(
-                    config.service_location_mode,
-                )
-                .into(),
-            ),
-        }
-    }
-}
-
-impl From<Device<Id>> for ProtoDevice {
-    fn from(device: Device<Id>) -> Self {
-        Self {
-            id: device.id,
-            name: device.name,
-            pubkey: device.wireguard_pubkey,
-            user_id: device.user_id,
-            created_at: device.created.and_utc().timestamp(),
-        }
-    }
-}
-
 impl Token {
     // Send configured welcome email to user after finishing enrollment
     async fn send_welcome_email(
@@ -1194,7 +1137,7 @@ mod test {
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
             models::{
-                Settings,
+                Settings, User,
                 settings::{defaults::WELCOME_EMAIL_SUBJECT, initialize_current_settings},
             },
             setup_pool,
@@ -1204,10 +1147,7 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::mpsc::unbounded_channel;
 
-    use crate::db::{
-        User,
-        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    };
+    use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
 
     #[sqlx::test]
     async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
