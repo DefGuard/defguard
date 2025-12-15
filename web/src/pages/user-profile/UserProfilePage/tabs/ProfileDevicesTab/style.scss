@@ -1,7 +1,10 @@
 #profile-devices-tab {
-  & > .table {
+  .flexible-empty-state,
+  .table {
     grid-column: 1 / 13;
+  }
 
+  & > .table {
     .table-cell .icon[data-kind='location'] {
       path {
         fill: var(--fg-success);
