@@ -208,7 +208,7 @@ struct RefreshRequestResponse {
 
 /// Represents license tiers
 ///
-/// Field order from must be maintained to go from lowest (first) to highest (last) tier
+/// Variant order must be maintained to go from lowest (first) to highest (last) tier
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, PartialOrd)]
 pub enum LicenseTier {
     Business, // this corresponds to both Team & Business level in our current pricing structure
