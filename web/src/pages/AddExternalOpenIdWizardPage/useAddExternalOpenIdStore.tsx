@@ -34,7 +34,7 @@ export const addExternalOpenIdStoreDefaults: StoreValues = {
   testResult: null,
   testMessage: null,
   providerState: {
-    name: '',
+    name: ExternalProvider.Custom,
     display_name: '',
     admin_email: '',
     base_url: '',

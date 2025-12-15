@@ -2,15 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
-import {
-  OpenIdProviderUsernameHandling,
-  type OpenIdProviderUsernameHandlingValue,
-} from '../../../../shared/api/types';
+import { OpenIdProviderUsernameHandling } from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { SUPPORTED_SYNC_PROVIDERS } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import type { SelectOption } from '../../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -19,26 +15,11 @@ import {
   ExternalProvider,
   type ExternalProviderValue,
 } from '../../../settings/shared/types';
-import { validateExternalProviderWizard } from '../../consts';
+import {
+  providerUsernameHandlingOptions,
+  validateExternalProviderWizard,
+} from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
-
-const userHandlingOptions: SelectOption<OpenIdProviderUsernameHandlingValue>[] = [
-  {
-    key: OpenIdProviderUsernameHandling.RemoveForbidden,
-    label: 'Remove forbidden characters',
-    value: OpenIdProviderUsernameHandling.RemoveForbidden,
-  },
-  {
-    key: OpenIdProviderUsernameHandling.ReplaceForbidden,
-    label: 'Replace forbidden characters',
-    value: OpenIdProviderUsernameHandling.ReplaceForbidden,
-  },
-  {
-    key: OpenIdProviderUsernameHandling.PruneEmailDomain,
-    label: 'Prune email domain',
-    value: OpenIdProviderUsernameHandling.PruneEmailDomain,
-  },
-];
 
 const baseUrlHidden: Set<ExternalProviderValue> = new Set([
   ExternalProvider.JumpCloud,
@@ -204,7 +185,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           <form.AppField name="username_handling">
             {(field) => (
               <field.FormSelect
-                options={userHandlingOptions}
+                options={providerUsernameHandlingOptions}
                 required
                 label="Username handling"
               />

@@ -1,3 +1,5 @@
+import type { ExternalProviderValue } from '../../pages/settings/shared/types';
+
 export interface GatewayTokenResponse {
   grpc_url: string;
   token: string;
@@ -663,7 +665,7 @@ export type OpenIdProviderUsernameHandlingValue =
 
 export interface OpenIdProvider {
   id: number;
-  name: string;
+  name: ExternalProviderValue;
   base_url: string;
   client_id: string;
   client_secret: string;

@@ -5,9 +5,9 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabProps } from '../../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { SettingsExternalOpenIdPage } from '../SettingsExternalOpenIdPage/SettingsExternalOpenIdPage';
 import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
-import { SettingsOpenIdTab } from './tabs/SettingsOpenIdTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
 
 const ActivityTab = () => null;
@@ -16,7 +16,7 @@ const LicenseTab = () => null;
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
   notifications: <SettingsNotificationsTab />,
-  openid: <SettingsOpenIdTab />,
+  openid: <SettingsExternalOpenIdPage />,
   activity: <ActivityTab />,
   license: <LicenseTab />,
 };

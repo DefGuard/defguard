@@ -3,6 +3,12 @@ import api from './api/api';
 import type { UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
 
+export const getExternalProviderQueryOptions = queryOptions({
+  queryFn: api.openIdProvider.getOpenIdProvider,
+  queryKey: ['openid', 'provider'],
+  select: (resp) => resp.data,
+});
+
 export const getEnterpriseSettingsQueryOptions = queryOptions({
   queryFn: api.settings.getEnterpriseSettings,
   queryKey: ['settings_enterprise'],

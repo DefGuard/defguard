@@ -49,7 +49,6 @@ import type {
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
-  OpenIdProvider,
   OpenIdProvidersResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
@@ -329,7 +328,7 @@ const api = {
     getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
     addOpenIdProvider: (data: AddOpenIdProvider) => client.post('/openid/provider', data),
     deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
-    editOpenIdProvider: (data: OpenIdProvider) =>
+    editOpenIdProvider: (data: AddOpenIdProvider) =>
       client.put(`/openid/provider/${data.name}`, data),
     testDirectorySync: () =>
       client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
