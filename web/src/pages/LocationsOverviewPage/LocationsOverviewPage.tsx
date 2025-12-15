@@ -57,7 +57,13 @@ export const LocationsOverviewPage = () => {
         <ul>
           {isPresent(allStats) && (
             <li>
-              <OverviewCard statsPeriod={period} data={allStats} expanded={true}>
+              <OverviewCard
+                statsPeriod={period}
+                data={allStats}
+                expanded={true}
+                emptyStateTitle={`No data.`}
+                emptyStateSubtitle={`Connect to any location to view summary statistics.`}
+              >
                 <div className="summary-top">
                   <p>All locations summary</p>
                 </div>

@@ -105,30 +105,45 @@ type OverviewCardProps = {
   data: LocationStats;
   expanded: boolean;
   statsPeriod: number;
+  emptyStateTitle?: string;
+  emptyStateSubtitle?: string;
 } & PropsWithChildren;
 
 export const OverviewCard = ({
   data: stats,
   statsPeriod,
   children,
+  emptyStateSubtitle,
+  emptyStateTitle,
   expanded = false,
 }: OverviewCardProps) => {
+  const dataEmpty = useMemo(() => {
+    if (!isPresent(stats)) return false;
+    return (
+      stats.upload === 0 && stats.download === 0 && stats.transfer_series.length === 0
+    );
+  }, [stats]);
   return (
     <div className="location-overview-card">
       {children}
       <Fold open={expanded}>
         {isPresent(children) && <Divider spacing={ThemeSpacing.Md} />}
-        {!isPresent(stats) && (
-          <>
-            <SizedBox height={ThemeSpacing.Xl2} />
-            <EmptyState
-              title={`This location doesn't have any data.`}
-              subtitle={`The data for this location will be shown once the location is connected.`}
-            />
-            <SizedBox height={ThemeSpacing.Xl2} />
-          </>
-        )}
-        {isPresent(stats) && <Stats stats={stats} period={statsPeriod} />}
+        {!isPresent(stats) ||
+          (dataEmpty && (
+            <>
+              <SizedBox height={ThemeSpacing.Xl2} />
+              <EmptyState
+                icon="dashboard"
+                title={emptyStateTitle ?? `This location doesn't have any data.`}
+                subtitle={
+                  emptyStateSubtitle ??
+                  `The data for this location will be shown once the location is connected.`
+                }
+              />
+              <SizedBox height={ThemeSpacing.Xl2} />
+            </>
+          ))}
+        {isPresent(stats) && !dataEmpty && <Stats stats={stats} period={statsPeriod} />}
       </Fold>
     </div>
   );
