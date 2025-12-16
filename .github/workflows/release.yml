@@ -23,7 +23,6 @@ jobs:
     uses: ./.github/workflows/build-docker.yml
     with:
       tags: |
-        type=raw,value=latest
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
         type=sha
