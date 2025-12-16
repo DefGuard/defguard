@@ -105,7 +105,7 @@ const EnrollmentStep = () => {
 
   const form = useAppForm({
     defaultValues: {
-      email: user.email,
+      email: user?.email ?? '',
     },
     validationLogic: formChangeLogic,
     validators: {

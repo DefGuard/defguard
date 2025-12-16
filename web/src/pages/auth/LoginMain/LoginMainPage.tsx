@@ -8,11 +8,9 @@ import { useAppForm } from '../../../shared/form';
 import './style.scss';
 import { revalidateLogic } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import api from '../../../shared/api/api';
-import type { LoginMfaResponse, LoginResponseBasic } from '../../../shared/api/types';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
@@ -33,8 +31,7 @@ const defaults: FormFields = {
 export const LoginMainPage = () => {
   const [tooManyAttempts, setTooManyAttempts] = useState(false);
   const attemptsTimeoutRef = useRef<number | null>(null);
-  const setAuthStore = useAuth((s) => s.setUser);
-  const navigate = useNavigate();
+
   const form = useAppForm({
     defaultValues: defaults,
     validationLogic: revalidateLogic({
@@ -49,34 +46,7 @@ export const LoginMainPage = () => {
       if (tooManyAttempts) return;
       try {
         const { data } = await mutateAsync(value);
-        const openIdConsent = useAuth.getState().consentData;
-        // @ts-expect-error
-        // biome-ignore lint/complexity/useLiteralKeys: needed
-        if (data['user'] !== undefined) {
-          const basicResponse = data as LoginResponseBasic;
-          setAuthStore(basicResponse.user);
-          if (openIdConsent) {
-            navigate({
-              to: '/consent',
-              // @ts-expect-error
-              search: openIdConsent,
-              replace: true,
-            });
-          } else {
-            navigate({
-              to: '/user/$username',
-              params: {
-                username: basicResponse.user?.username as string,
-              },
-              replace: true,
-            });
-          }
-        } else {
-          const mfa = data as LoginMfaResponse;
-          useAuth.setState({
-            mfaLogin: mfa,
-          });
-        }
+        useAuth.getState().authSubject.next(data);
       } catch (_) {}
     },
   });

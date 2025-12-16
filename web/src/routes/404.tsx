@@ -6,13 +6,20 @@ export const Route = createFileRoute('/404')({
   beforeLoad: () => {
     const state = useAuth.getState();
     if (state.isAuthenticated && isPresent(state.user)) {
-      throw redirect({
-        to: '/user/$username',
-        params: {
-          username: state.user?.username,
-        },
-        replace: true,
-      });
+      if (state.user.is_admin) {
+        throw redirect({
+          to: '/vpn-overview',
+          replace: true,
+        });
+      } else {
+        throw redirect({
+          to: '/user/$username',
+          params: {
+            username: state.user?.username,
+          },
+          replace: true,
+        });
+      }
     } else {
       throw redirect({ to: '/auth/login', replace: true });
     }

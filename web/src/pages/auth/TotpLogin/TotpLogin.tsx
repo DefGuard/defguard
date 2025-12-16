@@ -29,7 +29,7 @@ export const TotpLogin = () => {
       invalidate: [['me']],
     },
     onSuccess: (response) => {
-      useAuth.getState().setUser(response.data.user);
+      useAuth.getState().authSubject.next(response.data);
     },
     onError: (e: AxiosError<ApiError>) => {
       const respCode = e.response?.status;

@@ -1,6 +1,8 @@
+import { omit } from 'lodash-es';
+import { Subject } from 'rxjs';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { LoginMfaResponse, User } from '../api/types';
+import type { LoginMfaResponse, LoginResponse, User } from '../api/types';
 
 type Store = Values & Methods;
 
@@ -10,6 +12,7 @@ type Values = {
   user?: User;
   mfaLogin?: LoginMfaResponse;
   consentData?: unknown;
+  authSubject: Subject<LoginResponse>;
 };
 
 type Methods = {
@@ -22,6 +25,7 @@ const defaults: Values = {
   isAuthenticated: false,
   user: undefined,
   mfaLogin: undefined,
+  authSubject: new Subject(),
 };
 
 export const useAuth = create<Store>()(
@@ -46,6 +50,7 @@ export const useAuth = create<Store>()(
       name: 'auth-store',
       version: 1,
       storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => omit(state, ['setUser', 'reset', 'authSubject']),
     },
   ),
 );
