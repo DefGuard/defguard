@@ -338,7 +338,7 @@ impl License {
                 let license_tier = match LicenseTierProto::try_from(metadata.tier) {
                     Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
                     // fall back to Business tier for legacy licenses
-                    Ok(LicenseTierProto::Business) | Ok(LicenseTierProto::Unspecified) => {
+                    Ok(LicenseTierProto::Business | LicenseTierProto::Unspecified) => {
                         LicenseTier::Business
                     }
                     Err(err) => {
