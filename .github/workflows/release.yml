@@ -26,6 +26,9 @@ jobs:
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
         type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
   build-docker-prerelease:
     # Only build tags with -, like v1.0.0-alpha
