@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::read_to_string,
     sync::{Arc, RwLock},
     time::Duration,
@@ -23,7 +24,7 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
-use defguard_common::{VERSION, config::server_config};
+use defguard_common::{VERSION, config::server_config, db::Id};
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enrollment_management::clear_unused_enrollment_tokens,
@@ -61,12 +62,66 @@ extern crate tracing;
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
+#[derive(Default)]
+struct ProxyRouter {
+    response_map: HashMap<String, Vec<UnboundedSender<CoreResponse>>>,
+}
+
+impl ProxyRouter {
+    /// Records the proxy sender associated with a request that expects a routed response.
+    pub(crate) fn register_request(
+        &mut self,
+        request: &CoreRequest,
+        sender: &UnboundedSender<CoreResponse>,
+    ) {
+        match &request.payload {
+            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
+            // so it can send the preshared key.
+            // Corresponds to the `core_response::Payload::ClientMfaFinish(response)` response.
+            // https://github.com/DefGuard/defguard/issues/1700
+            Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
+                error!("### Registering ClientMfaTokenValidation request");
+                self.response_map
+                    .insert(request.token.clone(), vec![sender.clone()]);
+            }
+            Some(core_request::Payload::ClientMfaFinish(request)) => {
+                error!("### Registering ClientMfaFinish request");
+                if let Some(senders) = self.response_map.get_mut(&request.token) {
+                    senders.push(sender.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Determines whether the given `CoreResponse` must be routed to a specific proxy instance.
+    pub(crate) fn route_response(
+        &mut self,
+        response: &CoreResponse,
+    ) -> Option<Vec<UnboundedSender<CoreResponse>>> {
+        match &response.payload {
+            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
+            // so it can send the preshared key.
+            // Corresponds to the `core_request::Payload::ClientMfaTokenValidation(request)` request.
+            // https://github.com/DefGuard/defguard/issues/1700
+            Some(core_response::Payload::ClientMfaFinish(response)) => {
+                if let Some(ref token) = response.token {
+                    error!("### Routing ClientMfaFinish response");
+                    return self.response_map.remove(token);
+                }
+            }
+            _ => {}
+        }
+        None
+    }
+}
+
 /// TODO(jck) rustdoc, list orchestrator's responsibilities
 pub struct ProxyOrchestrator {
     pool: PgPool,
-    proxies: Vec<Proxy>,
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    router: Arc<RwLock<ProxyRouter>>,
 }
 
 impl ProxyOrchestrator {
@@ -77,32 +132,37 @@ impl ProxyOrchestrator {
     ) -> Self {
         Self {
             pool,
-            proxies: Vec::new(),
             tx,
             incompatible_components,
+            router: Default::default(),
         }
     }
 
     /// TODO(jck) Retrieves proxies from the db and runs them
     // TODO(jck) consider new error type
-    pub async fn run(mut self) -> Result<(), anyhow::Error> {
+    pub async fn run(self) -> Result<(), anyhow::Error> {
         // TODO(jck) retrieve proxies from db
-        let mut proxies = vec![
+        let proxies = vec![
             Proxy::new(
+                1,
                 self.pool.clone(),
                 Uri::from_static("http://localhost:50051"),
                 self.tx.clone(),
             )?,
             Proxy::new(
+                2,
                 self.pool.clone(),
                 Uri::from_static("http://localhost:50052"),
                 self.tx.clone(),
             )?,
         ];
-        self.proxies.append(&mut proxies);
         let mut tasks = JoinSet::<Result<(), anyhow::Error>>::new();
-        for proxy in self.proxies {
-            tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
+        for proxy in proxies {
+            tasks.spawn(proxy.run(
+                self.tx.clone(),
+                self.incompatible_components.clone(),
+                self.router.clone(),
+            ));
         }
         // TODO(jck) handle empty proxies vec somewhere earlier
         while let Some(result) = tasks.join_next().await {
@@ -141,6 +201,7 @@ impl ProxyTxSet {
 
 /// Groups all proxy GRPC servers
 struct Proxy {
+    id: Id,
     pool: PgPool,
     /// Proxy server gRPC URI
     endpoint: Endpoint,
@@ -149,8 +210,8 @@ struct Proxy {
 }
 
 impl Proxy {
-    // TODO(jck) better error
-    pub fn new(pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, anyhow::Error> {
+    // TODO(jck) more specific error
+    pub fn new(id: Id, pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, anyhow::Error> {
         let endpoint = Endpoint::from(uri);
 
         // Set endpoint keep-alive to avoid connectivity issues in proxied deployments.
@@ -173,6 +234,7 @@ impl Proxy {
         let servers = ProxyServerSet::new(pool.clone(), tx);
 
         Ok(Self {
+            id,
             pool,
             endpoint,
             servers,
@@ -183,6 +245,7 @@ impl Proxy {
         mut self,
         tx_set: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        router: Arc<RwLock<ProxyRouter>>,
     ) -> Result<(), anyhow::Error> {
         loop {
             debug!("Connecting to proxy at {}", self.endpoint.uri());
@@ -240,7 +303,8 @@ impl Proxy {
 
             info!("Connected to proxy at {}", self.endpoint.uri());
             let mut resp_stream = response.into_inner();
-            self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
+            // TODO(jck) store router in the Proxy struct
+            self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream, &router)
                 .await?;
         }
     }
@@ -250,6 +314,7 @@ impl Proxy {
         tx: UnboundedSender<CoreResponse>,
         wireguard_tx: Sender<GatewayEvent>,
         resp_stream: &mut Streaming<CoreRequest>,
+        router: &Arc<RwLock<ProxyRouter>>,
     ) -> Result<(), anyhow::Error> {
         let pool = self.pool.clone();
         'message: loop {
@@ -260,6 +325,7 @@ impl Proxy {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
+                    router.write().unwrap().register_request(&received, &tx);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -672,11 +738,18 @@ impl Proxy {
                         // Reply without payload.
                         None => None,
                     };
+
                     let req = CoreResponse {
                         id: received.id,
                         payload,
                     };
-                    tx.send(req).unwrap();
+                    if let Some(txs) = router.write().unwrap().route_response(&req) {
+                        for tx in txs {
+                            let _ = tx.send(req.clone());
+                        }
+                    } else {
+                        let _ = tx.send(req);
+                    };
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.endpoint.uri());
