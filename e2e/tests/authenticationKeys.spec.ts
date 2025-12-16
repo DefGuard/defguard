@@ -1,18 +1,17 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { AuthenticationKeyType, User } from '../../types';
-import { apiCreateUser, apiGetUserAuthKeys } from '../../utils/api/users';
-import { loginBasic } from '../../utils/controllers/login';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
-import { waitForRoute } from '../../utils/waitForRoute';
+import { defaultUserAdmin, routes, testUserTemplate } from '../config';
+import { AuthenticationKeyType, User } from '../types';
+import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
+import { loginBasic } from '../utils/controllers/login';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Authentication keys', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
   const testSshKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCG+jXb1VHl8Xvxwz1fFFteFX6+4fdOWgWxEA3++p64/s6iHJ3p6jUBc+4cVJg+p7/YKlYGJfxLT3/nrDPTuJ7l/RzbFrqM424KuA+/ZXCa6pDRmB7K+kjSi1I28HokQEL972yhbrkmfqjfPyPHk8RQX3Uw2f6WsQBWvBPMA9pveN6bh6scC5z9VKIoTKHK76RJxkrN7x59EsF1NyJo6jQDOhiBrVS/z3nUhWm05J7AtJn/r0SCZi0K8bXR2zkArr+hodY2WFwYCvsEp+VFTL+O/16enCK8MMz8xbXYVDuiXo7U/cC7s1dmGWsmkmjTVSs2x0KirmgnVwrbdmi0BtEpK5hLLCRFze33kb1VkgFx2kKbEsMJw9qqC7X9t5xTFqR/WVAOBuwCMyUPxF9rqWx0KGy4Y5aqkNwgviOtAKLbNhHx2ToN2/UMaB8KYY+nlb9Y1aOWTebx3T84MrLwE1Vfbd5qJq99ZWFrcvN6I2xQCyHa1zGgMraeKCwqbu39H7BMKTNeTvfXCR/SoVhFpteT/kiX2Hmufufq4feNnlfcFnLVvFRzEQFxDi7+hMrm87dMci58HQu9QIij80qjZtQaXqgjuyxUCx0hCBM4oFUE3rTfJYX7HzTB83Ugqumu3qv8s0aToXQLXFGN6Hkw+IOBupWZFIfy33JAd5az0+r8rQ== `;
-  const testPgpKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+  const testGPGKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: Keybase OpenPGP v1.0.0
 
 xo0EZdcYugEEAO7b3DjbnGMVLHuAaYNuBnQ9ilfzWqidqLF3P+y7bpyQkFA8Rx3M
@@ -44,48 +43,44 @@ ajY8ozCCcZ+QDGRFVB7sVl/39qsQDQgWTGCdwqwxEZeFskDhCfvtk3j7lW9NinaM
 QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
 =VWAR
 -----END PGP PUBLIC KEY BLOCK-----`;
+  const key_name = 'test key name';
 
   test.beforeEach(async ({ page }) => {
     dockerRestart();
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
-    const url = routes.base + routes.admin.users + '/' + testUser.username;
+    const url = routes.base + routes.profile + testUser.username + routes.tab.details;
     await page.goto(url);
     await waitForRoute(page, url);
   });
 
   test('Add authentication key (SSH)', async ({ page }) => {
-    await page.getByTestId('add-authentication-key-button').click();
-    await page.locator('#add-authentication-key-modal').waitFor({
-      state: 'visible',
-    });
-    const modal = page.locator('#add-authentication-key-modal');
-    await modal.getByRole('button', { name: 'SSH', exact: true }).click();
-    const form = modal.locator('form');
-    await form.getByTestId('field-title').fill('test ssh');
-    await form.getByTestId('field-keyValue').fill(testSshKey);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
+    );
+    await page.getByTestId('add-new-key').click();
+    await page.locator('#add-auth-key-modal').waitFor({ state: 'visible' });
+    await page.locator('.box-track').click();
+    const options = await page.locator('.select-floating');
+    await options.locator('.select-option').filter({ hasText: 'SSH' }).click();
+    if (await options.isVisible()) {
+      await options.click();
+    }
+    await page.getByTestId('field-name').fill(key_name);
+    await page.getByTestId('field-key').fill(testSshKey);
+    await page.getByTestId('add-key').click();
     const responsePromise = page.waitForResponse('**/auth_key');
-    await modal.locator('button[type="submit"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(201);
     const profileKeys = await apiGetUserAuthKeys(page, testUser.username);
     expect(profileKeys.length).toBe(1);
-    expect(profileKeys[0].name).toBe('test ssh');
+    expect(profileKeys[0].name).toBe(key_name);
     expect(profileKeys[0].key_type).toBe(AuthenticationKeyType.SSH);
-    // check if it can be deleted
+    const row = page.locator('.table-row-container').filter({ hasText: key_name });
+    await row.locator('.icon-button').click();
+    await page.getByTestId('delete-key').click();
     const deletePromise = page.waitForResponse('**/auth_key');
-    const card = page.locator('.authentication-key-item');
-    card.waitFor({
-      state: 'visible',
-    });
-    await waitForPromise(1000);
-    await card.locator('.edit-button').click();
-    await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
-    await page
-      .locator('.modal-content')
-      .getByRole('button', { name: 'Delete', exact: true })
-      .click();
     const deleteResponse = await deletePromise;
     expect(deleteResponse.status()).toBe(200);
     const afterDeleteKeys = await apiGetUserAuthKeys(page, testUser.username);
@@ -93,34 +88,31 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
   });
 
   test('Add authentication key (GPG)', async ({ page }) => {
-    await page.getByTestId('add-authentication-key-button').click();
-    await page.locator('#add-authentication-key-modal').waitFor({
-      state: 'visible',
-    });
-    const modal = page.locator('#add-authentication-key-modal');
-    await modal.getByRole('button', { name: 'GPG', exact: true }).click();
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
+    );
+    await page.getByTestId('add-new-key').click();
+    await page.locator('#add-auth-key-modal').waitFor({ state: 'visible' });
+    await page.locator('.box-track').click();
+    const options = await page.locator('.select-floating');
+    await options.locator('.select-option').filter({ hasText: 'GPG' }).click();
+    if (await options.isVisible()) {
+      await options.click();
+    }
+    await page.getByTestId('field-name').fill(key_name);
+    await page.getByTestId('field-key').fill(testGPGKey);
+    await page.getByTestId('add-key').click();
     const responsePromise = page.waitForResponse('**/auth_key');
-    const form = modal.locator('form');
-    await form.getByTestId('field-title').fill('test pgp');
-    await form.getByTestId('field-keyValue').fill(testPgpKey);
-    await modal.locator('button[type="submit"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(201);
     const profileKeys = await apiGetUserAuthKeys(page, testUser.username);
     expect(profileKeys.length).toBe(1);
-    expect(profileKeys[0].name).toBe('test pgp');
+    expect(profileKeys[0].name).toBe(key_name);
     expect(profileKeys[0].key_type).toBe(AuthenticationKeyType.GPG);
-    // check if it can be deleted
+    const row = page.locator('.table-row-container').filter({ hasText: key_name });
+    await row.locator('.icon-button').click();
+    await page.getByTestId('delete-key').click();
     const deletePromise = page.waitForResponse('**/auth_key');
-    const card = page.locator('.authentication-key-item');
-    await waitForPromise(200);
-    await card.locator('.edit-button').click();
-    await waitForPromise(200);
-    await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
-    await page
-      .locator('.modal-content')
-      .getByRole('button', { name: 'Delete', exact: true })
-      .click();
     const deleteResponse = await deletePromise;
     expect(deleteResponse.status()).toBe(200);
     const afterDeleteKeys = await apiGetUserAuthKeys(page, testUser.username);

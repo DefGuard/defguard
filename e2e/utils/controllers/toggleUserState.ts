@@ -1,10 +1,10 @@
 import { Browser } from 'playwright';
+import { expect } from 'playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { loginBasic } from './login';
-import { expect } from 'playwright/test';
 
 export const enableUser = async (browser: Browser, user: User): Promise<void> => {
   const context = await browser.newContext();

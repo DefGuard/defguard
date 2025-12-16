@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { NetworkForm, User } from '../../types';
-import { apiCreateUser, apiGetUserProfile } from '../../utils/api/users';
-import { loginBasic } from '../../utils/controllers/login';
-import { createDevice } from '../../utils/controllers/vpn/createDevice';
-import { createRegularLocation } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
+import { defaultUserAdmin, routes, testUserTemplate } from '../config';
+import { NetworkForm, User } from '../types';
+import { apiCreateUser, apiGetUserProfile } from '../utils/api/users';
+import { loginBasic } from '../utils/controllers/login';
+import { createDevice } from '../utils/controllers/vpn/createDevice';
+import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
 
 const testKeys = {
   private: '4K1BwtDCd0XUwq6WThkrQ4/DQ4vIpyEki5aIokqx21c=',

@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test';
 
-import { testsConfig, testUserTemplate } from '../../config';
-import { User } from '../../types';
-import { createUser } from '../../utils/controllers/createUser';
-import { loginBasic } from '../../utils/controllers/login';
-import { logout } from '../../utils/controllers/logout';
+import { testsConfig, testUserTemplate } from '../config';
+import { User } from '../types';
+import { createUser } from '../utils/controllers/createUser';
+import { loginBasic } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
 import {
   selectPasswordReset,
   setEmail,
   setPassword,
-} from '../../utils/controllers/passwordReset';
-import { disableUser } from '../../utils/controllers/toggleUserState';
-import { getPasswordResetToken } from '../../utils/db/getPasswordResetToken';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
+} from '../utils/controllers/passwordReset';
+import { disableUser } from '../utils/controllers/toggleUserState';
+import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForPromise } from '../utils/waitForPromise';
 
 const newPassword = '!7(8o3aN8RoF';
 

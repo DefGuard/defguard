@@ -1,20 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { TOTP } from 'totp-generator';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { User } from '../../types';
-import { acceptRecovery } from '../../utils/controllers/acceptRecovery';
-import { createUser } from '../../utils/controllers/createUser';
-import { loginBasic, loginRecoveryCodes, loginTOTP } from '../../utils/controllers/login';
-import { logout } from '../../utils/controllers/logout';
-import { enableEmailMFA } from '../../utils/controllers/mfa/enableEmail';
-import { enableTOTP } from '../../utils/controllers/mfa/enableTOTP';
-import { changePassword, changePasswordByAdmin } from '../../utils/controllers/profile';
-import { disableUser } from '../../utils/controllers/toggleUserState';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForRoute } from '../../utils/waitForRoute';
-import { enableSecurityKey } from '../../utils/controllers/mfa/enableSecurityKey';
+import { defaultUserAdmin, routes, testUserTemplate } from '../config';
+import { User } from '../types';
+import { createUser } from '../utils/controllers/createUser';
+import { loginBasic, loginRecoveryCodes, loginTOTP } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
+import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
+import { enableSecurityKey } from '../utils/controllers/mfa/enableSecurityKey';
+import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
+import { disableUser } from '../utils/controllers/toggleUserState';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -215,12 +213,12 @@ test.describe('Test password change', () => {
 
 test.describe('API tokens management', () => {
   let testUser: User;
-  let token_name = 'test token name';
+  const token_name = 'test token name';
   test.beforeEach(() => {
     dockerRestart();
     testUser = { ...testUserTemplate, username: 'test' };
   });
-  test('Add API token as default admin', async ({ page, browser }) => {
+  test('Add API token as default admin', async ({ page }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(

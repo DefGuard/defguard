@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes } from '../../config';
-import { loginBasic } from '../../utils/controllers/login';
-import { createWebhook } from '../../utils/controllers/webhook';
-import { dockerRestart } from '../../utils/docker';
-import { waitForPromise } from '../../utils/waitForPromise';
+import { defaultUserAdmin, routes } from '../config';
+import { loginBasic } from '../utils/controllers/login';
+import { createWebhook } from '../utils/controllers/webhook';
+import { dockerRestart } from '../utils/docker';
+import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test webhooks', () => {
   test.beforeEach(() => {

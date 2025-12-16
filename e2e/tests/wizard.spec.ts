@@ -1,13 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../../config';
-import { NetworkForm } from '../../types';
+import { NetworkForm } from '../types';
 import {
   createRegularLocation,
   createServiceLocation,
-} from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
+} from '../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
 
 test.describe('Setup VPN (wizard) ', () => {
   test.beforeAll(() => {

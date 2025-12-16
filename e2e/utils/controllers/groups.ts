@@ -1,4 +1,5 @@
-import { Browser, expect, Page } from 'playwright/test';
+import { Browser, expect } from 'playwright/test';
+
 import { defaultUserAdmin } from '../../config';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';

@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../../config';
-import { NetworkForm, OpenIdClient, User } from '../../types';
-import { apiCreateUser } from '../../utils/api/users';
-import { loginBasic } from '../../utils/controllers/login';
-import { logout } from '../../utils/controllers/logout';
-import { copyOpenIdClientIdAndSecret } from '../../utils/controllers/openid/copyClientId';
-import { createExternalProvider } from '../../utils/controllers/openid/createExternalProvider';
-import { CreateOpenIdClient } from '../../utils/controllers/openid/createOpenIdClient';
-import { createNetwork } from '../../utils/controllers/vpn/createNetwork';
-import { dockerRestart } from '../../utils/docker';
-import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
-import { waitForRoute } from '../../utils/waitForRoute';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
+import { NetworkForm, OpenIdClient, User } from '../types';
+import { apiCreateUser } from '../utils/api/users';
+import { loginBasic } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
+import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
+import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
+import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
+import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
+import { dockerRestart } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -29,6 +29,7 @@ test.describe('External OIDC.', () => {
   const testNetwork: NetworkForm = {
     name: 'test network',
     address: '10.10.10.1/24',
+    allowed_ips: ['1.2.3.4'],
     endpoint: '127.0.0.1',
     port: '5055',
   };
@@ -46,7 +47,7 @@ test.describe('External OIDC.', () => {
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
     await logout(page);
-    await createNetwork(browser, testNetwork);
+    await createRegularLocation(browser, testNetwork);
     await context.close();
   });
 

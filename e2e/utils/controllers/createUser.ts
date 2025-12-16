@@ -1,11 +1,10 @@
 import { Browser } from 'playwright';
+import { expect } from 'playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
-import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
-import { expect } from 'playwright/test';
 
 // create user via default admin on separate context
 export const createUser = async (

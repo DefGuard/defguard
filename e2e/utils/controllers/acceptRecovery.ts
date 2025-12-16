@@ -1,6 +1,5 @@
 import { Page } from 'playwright';
 
-import { routes } from '../../config';
 import { getPageClipboard } from '../getPageClipboard';
 import { waitForPromise } from '../waitForPromise';
 
