@@ -40,7 +40,7 @@ use super::{
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    enterprise::{firewall::FirewallError, is_enterprise_enabled},
+    enterprise::{firewall::FirewallError, is_enterprise_license_active},
     grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
 };
@@ -1335,7 +1335,8 @@ impl WireguardNetwork<Id> {
     /// - Enterprise is enabled
     #[must_use]
     pub fn should_prevent_service_location_usage(&self) -> bool {
-        self.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
+        self.service_location_mode != ServiceLocationMode::Disabled
+            && !is_enterprise_license_active()
     }
 }
 

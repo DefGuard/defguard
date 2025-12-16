@@ -4949,6 +4949,10 @@ type RootTranslation = {
 					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​s​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​i​l​e​ ​l​o​c​a​t​i​o​n​ ​M​F​A​ ​i​s​ ​e​n​a​b​l​e​d​.
 					 */
 					mfaWarning: string
+					/**
+					 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​r​e​q​u​i​r​e​s​ ​a​n​ ​E​n​t​e​r​p​r​i​s​e​-​t​i​e​r​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​a​r​e​ ​i​n​t​e​r​e​s​t​e​d​ ​i​n​ ​u​s​i​n​g​ ​i​t​,​ ​p​l​e​a​s​e​ ​c​o​n​t​a​c​t​ ​o​u​r​ ​s​a​l​e​s​ ​t​e​a​m​ ​a​t​:​ ​s​a​l​e​s​@​d​e​f​g​u​a​r​d​.​n​e​t
+					 */
+					enterpriseTierWarning: string
 				}
 			}
 			sections: {
@@ -11694,6 +11698,10 @@ export type TranslationFunctions = {
 					 * Service locations can't be used while location MFA is enabled.
 					 */
 					mfaWarning: () => LocalizedString
+					/**
+					 * This feature requires an Enterprise-tier license. If you are interested in using it, please contact our sales team at: sales@defguard.net
+					 */
+					enterpriseTierWarning: () => LocalizedString
 				}
 			}
 			sections: {
