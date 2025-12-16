@@ -10,11 +10,8 @@ export const createExternalProvider = async (browser: Browser, client: OpenIdCli
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.settings.openid);
-  const customProviderCard = page
-    .locator('.external-provider-card')
-    .filter({ hasText: 'Custom provider' });
-  await customProviderCard.getByTestId('connect').click();
+  await page.goto(routes.base + routes.settings.tab.openid);
+  await page.getByTestId('connect-custom').click();
 
   await page.getByTestId('field-base_url').fill('http://localhost:8000/');
   await page.getByTestId('field-client_id').fill(client.clientID || '');

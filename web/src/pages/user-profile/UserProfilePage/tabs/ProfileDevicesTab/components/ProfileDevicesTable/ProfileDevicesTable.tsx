@@ -84,6 +84,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     (): ButtonProps => ({
       text: 'Add device',
       variant: 'primary',
+      testId: 'add-device',
       iconLeft: 'add-device',
       disabled: !info.network_present,
       onClick: () => {

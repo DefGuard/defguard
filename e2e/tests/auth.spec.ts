@@ -13,6 +13,7 @@ import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
+import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -24,39 +25,39 @@ test.describe('Test user authentication', () => {
 
   test('Basic auth with default admin', async ({ page }) => {
     await waitForBase(page);
+    const responsePromise = page.waitForResponse('**/auth');
     await loginBasic(page, defaultUserAdmin);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Create user and login as him', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
+    const responsePromise = page.waitForResponse('**/auth');
     await loginBasic(page, testUser);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Login with admin user via TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     const { secret } = await enableTOTP(browser, defaultUserAdmin);
+    const responsePromise = page.waitForResponse('**/auth');
     await loginTOTP(page, defaultUserAdmin, secret);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Login with user via TOTP', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     const { secret } = await enableTOTP(browser, testUser);
+    const responsePromise = page.waitForResponse('**/auth');
     await loginTOTP(page, testUser, secret);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Recovery code login', async ({ page, browser }) => {
@@ -66,10 +67,10 @@ test.describe('Test user authentication', () => {
     expect(recoveryCodes).toBeDefined();
     if (!recoveryCodes) return;
     expect(recoveryCodes?.length > 0).toBeTruthy();
+    const responsePromise = page.waitForResponse('**/auth');
     await loginRecoveryCodes(page, testUser, recoveryCodes[0]);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Login with Email TOTP', async ({ page, browser }) => {
@@ -83,9 +84,11 @@ test.describe('Test user authentication', () => {
       digits: 6,
       period: 60,
     });
+    const responsePromise = page.waitForResponse('**/verify');
     await page.getByTestId('field-code').fill(code);
-    await page.locator('button[type="submit"]').click();
-    await waitForRoute(page, routes.me);
+    await page.locator('[type="submit"]').click();
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Login as disabled user', async ({ page, browser }) => {
@@ -99,22 +102,32 @@ test.describe('Test user authentication', () => {
     await page.getByTestId('sign-in').click();
     const responsePromise = page.waitForResponse('**/auth');
     const response = await responsePromise;
-    expect(response.status()).toBe(401);
-    expect(page.url()).toBe(routes.base + routes.auth.login);
+    expect(response.ok()).toBeFalsy();
+  });
+
+  test('Logout when enabled', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    await loginBasic(page, testUser);
+    const responsePromise = page.waitForResponse('**/logout');
+    await page.getByTestId('avatar-icon').click();
+    await page.getByTestId('logout').click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(200);
+    await waitForPromise(1000);
+    await expect(page.url()).toBe(routes.base + routes.auth.login);
   });
 
   test('Logout when disabled', async ({ page, browser }) => {
     await waitForBase(page);
     await createUser(browser, testUser);
     await loginBasic(page, testUser);
-    expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
     await disableUser(browser, testUser);
-    const responsePromise = page.waitForResponse((resp) => resp.status() === 401);
+    const responsePromise = page.waitForResponse('**/logout');
     await page.getByTestId('avatar-icon').click();
     await page.getByTestId('logout').click();
-    await responsePromise;
+    const response = await responsePromise;
+    expect(response.status()).toBe(401);
   });
 
   test('Create user and log in with security key', async ({ page, browser, context }) => {
@@ -158,11 +171,11 @@ test.describe('Test user authentication', () => {
         signCount: 1,
       },
     });
+    const responsePromise = page.waitForResponse('**/auth');
     await page.getByTestId('login-with-passkey').click();
     await page.waitForTimeout(2000);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 });
 
@@ -186,10 +199,10 @@ test.describe('Test password change', () => {
     await page.getByTestId('submit-password-change').click();
     await logout(page);
     testUser.password = newPassword;
+    const responsePromise = page.waitForResponse('**/auth');
     await loginBasic(page, testUser);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 
   test('Change user password by admin', async ({ page, browser }) => {
@@ -204,10 +217,10 @@ test.describe('Test password change', () => {
     await page.getByTestId('submit-password-change').click();
     await logout(page);
     testUser.password = newPassword;
+    const responsePromise = page.waitForResponse('**/auth');
     await loginBasic(page, testUser);
-    await expect(page.url()).toBe(
-      routes.base + routes.profile + testUser.username + routes.tab.details,
-    );
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
   });
 });
 

@@ -57,6 +57,9 @@ export const routes = {
     base: '/settings',
     smtp: '/settings/smtp',
     openid: '/settings/openid',
+    tab: {
+      openid: '/settings?tab=openid',
+    },
   },
   admin: {
     wizard: '/admin/wizard',
