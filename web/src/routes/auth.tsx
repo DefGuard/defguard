@@ -7,7 +7,7 @@ import { useAuth } from '../shared/hooks/useAuth';
 
 const basicSchema = z.object({
   url: z.string().nullable().optional(),
-  user: z.custom<User>(),
+  user: z.custom<User>().nonoptional(),
 });
 
 const mfaSchema = z.object({
@@ -46,8 +46,9 @@ function RouteComponent() {
   useEffect(() => {
     const sub = loginSubject.subscribe((state) => {
       const authState = useAuth.getState();
-      const basicResponse = basicSchema.safeParse(state).data;
-      if (isPresent(basicResponse)) {
+      const basicResult = basicSchema.safeParse(state);
+      const basicResponse = basicResult.data;
+      if (isPresent(basicResponse) && basicResult.success) {
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);
           return;
@@ -60,8 +61,10 @@ function RouteComponent() {
           navigateToAuthorized(basicResponse.user);
         }
       }
-      const mfaResponse = mfaSchema.safeParse(state).data;
-      if (isPresent(mfaResponse)) {
+      const mfaSchemaResult = mfaSchema.safeParse(state);
+      const mfaResponse = mfaSchemaResult.data;
+      if (isPresent(mfaResponse) && mfaSchemaResult.success) {
+        useAuth.setState({ mfaLogin: mfaResponse });
         switch (mfaResponse.mfa_method) {
           case 'none':
             console.error('Cannot login with MFA on a user with no MFA set');
