@@ -80,12 +80,10 @@ impl ProxyRouter {
             // Corresponds to the `core_response::Payload::ClientMfaFinish(response)` response.
             // https://github.com/DefGuard/defguard/issues/1700
             Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                error!("### Registering ClientMfaTokenValidation request");
                 self.response_map
                     .insert(request.token.clone(), vec![sender.clone()]);
             }
             Some(core_request::Payload::ClientMfaFinish(request)) => {
-                error!("### Registering ClientMfaFinish request");
                 if let Some(senders) = self.response_map.get_mut(&request.token) {
                     senders.push(sender.clone());
                 }
@@ -106,7 +104,6 @@ impl ProxyRouter {
             // https://github.com/DefGuard/defguard/issues/1700
             Some(core_response::Payload::ClientMfaFinish(response)) => {
                 if let Some(ref token) = response.token {
-                    error!("### Routing ClientMfaFinish response");
                     return self.response_map.remove(token);
                 }
             }
