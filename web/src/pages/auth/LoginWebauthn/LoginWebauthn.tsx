@@ -21,7 +21,7 @@ export const LoginWebauthn = () => {
     if (navigatorData != null) {
       const requestData = (navigatorData as PublicKeyCredential).toJSON();
       const response = await api.auth.mfa.webauthn.login.finish(requestData);
-      useAuth.getState().setUser(response.data.user);
+      useAuth.getState().authSubject.next(response.data);
     }
   }, []);
 

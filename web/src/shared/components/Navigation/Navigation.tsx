@@ -64,6 +64,18 @@ const navigationConfig: NavGroupProps[] = [
     ],
   },
   {
+    id: 'firewall',
+    label: m.cmp_nav_group_firewall(),
+    items: [
+      {
+        id: 'firewall',
+        icon: 'access-settings',
+        label: m.cmp_nav_item_aliases(),
+        link: '/acl/aliases',
+      },
+    ],
+  },
+  {
     id: 'integrations',
     label: m.cmp_nav_group_integrations(),
     items: [

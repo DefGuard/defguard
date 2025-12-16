@@ -27,8 +27,7 @@ export const LoginRecovery = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.auth.mfa.recovery,
     onSuccess: ({ data }) => {
-      const user = data.user;
-      useAuth.getState().setUser(user);
+      useAuth.getState().authSubject.next(data);
     },
     onError: (e: AxiosError<ApiError>) => {
       const code = e.response?.status;

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ConsentRouteImport } from './routes/consent'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as IndexRouteImport } from './routes/index'
@@ -38,11 +39,17 @@ import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
 const ConsentRoute = ConsentRouteImport.update({
   id: '/consent',
   path: '/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthorizedRoute = AuthorizedRouteImport.update({
@@ -60,19 +67,19 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
-  id: '/auth/',
-  path: '/auth/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthMfaRoute = AuthMfaRouteImport.update({
-  id: '/auth/mfa',
-  path: '/auth/mfa',
-  getParentRoute: () => rootRouteImport,
+  id: '/mfa',
+  path: '/mfa',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
   id: '/_default',
@@ -197,6 +204,12 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclAliasesRoute =
+  AuthorizedDefaultAclAliasesRouteImport.update({
+    id: '/acl/aliases',
+    path: '/acl/aliases',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
   AuthorizedDefaultLocationsLocationIdEditRouteImport.update({
     id: '/locations/$locationId/edit',
@@ -207,10 +220,11 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
-  '/auth': typeof AuthIndexRoute
+  '/auth/': typeof AuthIndexRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
@@ -222,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -252,6 +267,7 @@ export interface FileRoutesByTo {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -269,6 +285,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
@@ -285,6 +302,7 @@ export interface FileRoutesById {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -302,10 +320,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/404'
+    | '/auth'
     | '/consent'
     | '/auth/login'
     | '/auth/mfa'
-    | '/auth'
+    | '/auth/'
     | '/groups'
     | '/network-devices'
     | '/openid'
@@ -317,6 +336,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/acl/aliases'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -347,6 +367,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/acl/aliases'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -363,6 +384,7 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/_authorized'
+    | '/auth'
     | '/consent'
     | '/_authorized/_default'
     | '/auth/login'
@@ -379,6 +401,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_authorized/_default/acl/aliases'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
@@ -396,10 +419,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthMfaRoute: typeof AuthMfaRouteWithChildren
-  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -409,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/consent'
       fullPath: '/consent'
       preLoaderRoute: typeof ConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authorized': {
@@ -434,24 +462,24 @@ declare module '@tanstack/react-router' {
     }
     '/auth/': {
       id: '/auth/'
-      path: '/auth'
-      fullPath: '/auth'
+      path: '/'
+      fullPath: '/auth/'
       preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/auth/mfa': {
       id: '/auth/mfa'
-      path: '/auth/mfa'
+      path: '/mfa'
       fullPath: '/auth/mfa'
       preLoaderRoute: typeof AuthMfaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/auth/login': {
       id: '/auth/login'
-      path: '/auth/login'
+      path: '/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authorized/_default': {
       id: '/_authorized/_default'
@@ -607,6 +635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/aliases': {
+      id: '/_authorized/_default/acl/aliases'
+      path: '/acl/aliases'
+      fullPath: '/acl/aliases'
+      preLoaderRoute: typeof AuthorizedDefaultAclAliasesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/locations/$locationId/edit': {
       id: '/_authorized/_default/locations/$locationId/edit'
       path: '/locations/$locationId/edit'
@@ -623,6 +658,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
+  AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -642,6 +678,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
+  AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
@@ -698,14 +735,26 @@ const AuthMfaRouteChildren: AuthMfaRouteChildren = {
 const AuthMfaRouteWithChildren =
   AuthMfaRoute._addFileChildren(AuthMfaRouteChildren)
 
+interface AuthRouteChildren {
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthMfaRoute: typeof AuthMfaRouteWithChildren
+  AuthIndexRoute: typeof AuthIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoginRoute: AuthLoginRoute,
+  AuthMfaRoute: AuthMfaRouteWithChildren,
+  AuthIndexRoute: AuthIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
-  AuthLoginRoute: AuthLoginRoute,
-  AuthMfaRoute: AuthMfaRouteWithChildren,
-  AuthIndexRoute: AuthIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
