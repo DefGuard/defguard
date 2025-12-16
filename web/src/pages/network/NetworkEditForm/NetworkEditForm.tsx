@@ -54,11 +54,14 @@ export const NetworkEditForm = () => {
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
-  const [licenseEnabled, licenseTier, isFreeLicense] = useAppStore((s) => [
-    s.appInfo?.license_info.enterprise,
-    s.appInfo?.license_info.tier,
-    s.appInfo?.license_info.is_enterprise_free,
-  ]);
+  const [licenseEnabled, licenseTier, isFreeLicense] = useAppStore(
+    (s) => [
+      s.appInfo?.license_info.enterprise,
+      s.appInfo?.license_info.tier,
+      s.appInfo?.license_info.is_enterprise_free,
+    ],
+    shallow,
+  );
   const enterpriseLicenseEnabled = useMemo(
     () => Boolean(isFreeLicense || licenseTier === LicenseTier.ENTERPRISE),
     [licenseTier, isFreeLicense],
