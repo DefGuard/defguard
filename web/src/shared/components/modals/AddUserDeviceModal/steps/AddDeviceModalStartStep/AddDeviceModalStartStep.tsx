@@ -57,7 +57,6 @@ export const AddDeviceModalStartStep = () => {
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />
       <FoldButton
-        testId="show-advanced-options"
         open={advancedOpen}
         onChange={setAdvancedOpen}
         textClose={m.modal_add_user_device_hide_advanced()}

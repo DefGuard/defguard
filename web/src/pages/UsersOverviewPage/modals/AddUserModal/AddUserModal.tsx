@@ -150,12 +150,14 @@ const EnrollmentStep = () => {
       <CopyField
         copyTooltip={m.misc_clipboard_copy()}
         label={m.modal_add_user_enrollment_form_label_url()}
+        data-testid="activation-url-field"
         text={enrollResponse.enrollment_url}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <CopyField
         label={m.modal_add_user_enrollment_form_label_token()}
         copyTooltip={m.misc_clipboard_copy()}
+        data-testid="activation-token-field"
         text={enrollResponse.enrollment_token}
       />
       {appInfo.smtp_enabled && (

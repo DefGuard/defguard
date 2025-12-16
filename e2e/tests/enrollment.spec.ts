@@ -23,6 +23,7 @@ const testNetwork: NetworkForm = {
   name: 'test network',
   address: '10.10.10.1/24',
   endpoint: '127.0.0.1',
+  allowed_ips: ['127.1.5.1'],
   port: '5055',
 };
 
