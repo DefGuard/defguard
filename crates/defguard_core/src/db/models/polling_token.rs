@@ -4,7 +4,7 @@ use defguard_common::{
     random::gen_alphanumeric,
 };
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
+use sqlx::{PgExecutor, query_as};
 
 // Token used for polling requests.
 #[derive(Clone, Debug, Model)]
@@ -28,18 +28,21 @@ impl PollingToken {
 }
 
 impl PollingToken<Id> {
-    pub async fn find(pool: &PgPool, token: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find<'e, E>(executor: E, token: &str) -> Result<Option<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id, token, device_id, created_at \
             FROM pollingtoken WHERE token = $1",
             token
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
-    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> Result<(), SqlxError>
+    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {

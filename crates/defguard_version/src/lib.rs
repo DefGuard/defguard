@@ -62,7 +62,7 @@
 
 use std::{cmp::Ordering, fmt, str::FromStr};
 
-use ::tracing::{error, warn};
+use ::tracing::warn;
 pub use semver::{BuildMetadata, Error as SemverError, Prerelease, Version};
 use serde::Serialize;
 use thiserror::Error;

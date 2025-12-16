@@ -23,7 +23,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, map::GatewayMap},
+        gateway::{client_state::ClientMap, map::GatewayMap, run_grpc_gateway_stream},
         run_grpc_bidi_stream, run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
@@ -153,6 +153,13 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
+        res = run_grpc_gateway_stream(
+            pool.clone(),
+            client_state,
+            wireguard_tx.clone(),
+            mail_tx.clone(),
+            grpc_event_tx,
+        ) => error!("Gateway gRPC stream returned early: {res:?}"),
         res = run_grpc_bidi_stream(
             pool.clone(),
             wireguard_tx.clone(),
@@ -163,15 +170,9 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),
-            Arc::clone(&gateway_state),
-            client_state,
-            wireguard_tx.clone(),
-            mail_tx.clone(),
             grpc_cert,
             grpc_key,
             failed_logins.clone(),
-            grpc_event_tx,
-            Arc::clone(&incompatible_components),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,

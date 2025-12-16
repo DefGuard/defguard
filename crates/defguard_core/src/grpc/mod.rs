@@ -15,7 +15,7 @@ use defguard_common::{
 use defguard_mail::Mail;
 use defguard_version::{
     ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables, server::DefguardVersionLayer,
+    get_tracing_variables,
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -35,14 +35,11 @@ use tonic::{
         Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig, server::Router,
     },
 };
-use tower::ServiceBuilder;
 
 use self::{
     auth::AuthServer, client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
-    gateway::GatewayServer, interceptor::JwtInterceptor, password_reset::PasswordResetServer,
-    worker::WorkerServer,
+    interceptor::JwtInterceptor, password_reset::PasswordResetServer, worker::WorkerServer,
 };
-pub use crate::version::MIN_GATEWAY_VERSION;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
@@ -63,9 +60,12 @@ use crate::{
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
-    grpc::gateway::{client_state::ClientMap, map::GatewayMap},
+    grpc::gateway::client_state::ClientMap,
     server_config,
-    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
+    version::{
+        IncompatibleComponents, IncompatibleProxyData, MIN_GATEWAY_VERSION,
+        is_proxy_version_supported,
+    },
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -90,7 +90,6 @@ pub mod proto {
 
 use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
-    gateway::gateway_service_server::GatewayServiceServer,
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
         core_response, proxy_client::ProxyClient,
@@ -659,15 +658,9 @@ pub async fn run_grpc_bidi_stream(
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -677,19 +670,7 @@ pub async fn run_grpc_server(
         Server::builder()
     };
 
-    let router = build_grpc_service_router(
-        server,
-        pool,
-        worker_state,
-        gateway_state,
-        client_state,
-        wireguard_tx,
-        mail_tx,
-        failed_logins,
-        grpc_event_tx,
-        incompatible_components,
-    )
-    .await?;
+    let router = build_grpc_service_router(server, pool, worker_state, failed_logins).await?;
 
     // Run gRPC server
     let addr = SocketAddr::new(
@@ -708,13 +689,8 @@ pub async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-    incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
 
@@ -734,31 +710,31 @@ pub async fn build_grpc_service_router(
         .add_service(health_service)
         .add_service(auth_service);
 
-    let router = {
-        use crate::version::GatewayVersionInterceptor;
+    // let router = {
+    //     use crate::version::GatewayVersionInterceptor;
 
-        let gateway_service = GatewayServiceServer::new(GatewayServer::new(
-            pool,
-            gateway_state,
-            client_state,
-            wireguard_tx,
-            mail_tx,
-            grpc_event_tx,
-        ));
+    //     let gateway_service = GatewayServiceServer::new(GatewayServer::new(
+    //         pool,
+    //         gateway_state,
+    //         client_state,
+    //         wireguard_tx,
+    //         mail_tx,
+    //         grpc_event_tx,
+    //     ));
 
-        let own_version = Version::parse(VERSION)?;
-        router.add_service(
-            ServiceBuilder::new()
-                .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
-                    ClaimsType::Gateway,
-                )))
-                .layer(tonic::service::InterceptorLayer::new(
-                    GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
-                ))
-                .layer(DefguardVersionLayer::new(own_version))
-                .service(gateway_service),
-        )
-    };
+    //     let own_version = Version::parse(VERSION)?;
+    //     router.add_service(
+    //         ServiceBuilder::new()
+    //             .layer(tonic::service::InterceptorLayer::new(JwtInterceptor::new(
+    //                 ClaimsType::Gateway,
+    //             )))
+    //             .layer(tonic::service::InterceptorLayer::new(
+    //                 GatewayVersionInterceptor::new(MIN_GATEWAY_VERSION, incompatible_components),
+    //             ))
+    //             .layer(DefguardVersionLayer::new(own_version))
+    //             .service(gateway_service),
+    //     )
+    // };
 
     let router = router.add_service(worker_service);
 

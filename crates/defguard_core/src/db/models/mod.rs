@@ -1,6 +1,7 @@
 pub mod activity_log;
 pub mod device;
 pub mod enrollment;
+pub mod gateway;
 pub mod group;
 pub mod oauth2authorizedapp;
 pub mod oauth2client;

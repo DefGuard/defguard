@@ -45,3 +45,18 @@ pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
         .expect("Cannot run database migrations.");
     pool
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum TriggerOperation {
+    Insert,
+    Update,
+    Delete,
+}
+
+#[derive(Deserialize)]
+pub struct ChangeNotification<T> {
+    pub operation: TriggerOperation,
+    pub old: Option<T>,
+    pub new: Option<T>,
+}

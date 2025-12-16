@@ -21,7 +21,7 @@ use defguard_core::{
 };
 use defguard_proto::{
     enterprise::firewall::FirewallPolicy,
-    gateway::{Configuration, PeerStats, StatsUpdate, Update, stats_update::Payload, update},
+    gateway::{Configuration, PeerStats, Update, stats_update::Payload, update},
 };
 use semver::Version;
 use sqlx::{

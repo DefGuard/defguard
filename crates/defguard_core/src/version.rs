@@ -10,7 +10,7 @@ use serde::Serialize;
 use tonic::{Status, service::Interceptor};
 
 const MIN_PROXY_VERSION: Version = Version::new(1, 6, 0);
-pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 5, 0);
+pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 6, 0);
 static OUTDATED_COMPONENT_LIFETIME: TimeDelta = TimeDelta::hours(1);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
@@ -110,7 +110,7 @@ impl Interceptor for GatewayVersionInterceptor {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Default, Clone, Serialize)]
 pub struct IncompatibleComponents {
     pub gateways: HashSet<IncompatibleGatewayData>,
     pub proxy: Option<IncompatibleProxyData>,
@@ -204,7 +204,7 @@ impl IncompatibleComponents {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
@@ -261,7 +261,7 @@ impl IncompatibleGatewayData {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct IncompatibleProxyData {
     pub version: Option<Version>,
     created: NaiveDateTime,

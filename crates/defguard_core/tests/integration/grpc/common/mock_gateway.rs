@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use defguard_core::grpc::{AUTHORIZATION_HEADER, HOSTNAME_HEADER};
 use defguard_proto::gateway::{
-    Configuration, ConfigurationRequest, StatsUpdate, Update,
-    gateway_service_client::GatewayServiceClient,
+    Configuration, ConfigurationRequest, Update,
+
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use tokio::{
