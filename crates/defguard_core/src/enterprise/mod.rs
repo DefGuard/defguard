@@ -69,7 +69,7 @@ mod test {
 
     use crate::{
         enterprise::{
-            is_business_license_active, is_enterprise_license_active,
+            is_business_license_active, is_enterprise_free, is_enterprise_license_active,
             license::{License, LicenseTier, set_cached_license},
             limits::{Counts, set_counts},
         },
@@ -86,6 +86,7 @@ mod test {
 
         assert!(is_business_license_active());
         assert!(is_enterprise_license_active());
+        assert!(is_enterprise_free());
 
         // exceed free limits
         let counts = Counts::new(1, 1, 5, 1);
@@ -93,6 +94,7 @@ mod test {
 
         assert!(!is_business_license_active());
         assert!(!is_enterprise_license_active());
+        assert!(!is_enterprise_free());
     }
 
     #[test]
@@ -125,6 +127,7 @@ mod test {
 
         assert!(is_business_license_active());
         assert!(!is_enterprise_license_active());
+        assert!(!is_enterprise_free());
 
         // set Enterprise license
         let users_limit = 15;
@@ -150,5 +153,6 @@ mod test {
 
         assert!(is_business_license_active());
         assert!(is_enterprise_license_active());
+        assert!(!is_enterprise_free());
     }
 }
