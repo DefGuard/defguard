@@ -186,36 +186,16 @@ const ModalContent = ({ webhook }: ModalData) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="webhooks">
           <form.AppField name="on_user_created">
-            {(field) => (
-              <field.FormCheckbox
-                data-testid="on-user-created"
-                text={m.cmp_webhook_event_user_add()}
-              />
-            )}
+            {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_add()} />}
           </form.AppField>
           <form.AppField name="on_user_modified">
-            {(field) => (
-              <field.FormCheckbox
-                data-testid="on-user-modified"
-                text={m.cmp_webhook_event_user_edit()}
-              />
-            )}
+            {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_edit()} />}
           </form.AppField>
           <form.AppField name="on_user_deleted">
-            {(field) => (
-              <field.FormCheckbox
-                data-testid="on-user-deleted"
-                text={m.cmp_webhook_event_user_delete()}
-              />
-            )}
+            {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_delete()} />}
           </form.AppField>
           <form.AppField name="on_hwkey_provision">
-            {(field) => (
-              <field.FormCheckbox
-                data-testid="on-hwkey-provision"
-                text={m.cmp_webhook_event_user_hw()}
-              />
-            )}
+            {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_hw()} />}
           </form.AppField>
         </div>
         <ModalControls
