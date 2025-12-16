@@ -23,7 +23,11 @@ import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { LocationMfaMode, ServiceLocationMode } from '../../../../shared/types.ts';
+import {
+  LicenseTier,
+  LocationMfaMode,
+  ServiceLocationMode,
+} from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import { Validate } from '../../../../shared/validators';
@@ -45,7 +49,15 @@ export const WizardNetworkConfiguration = () => {
   );
 
   const wizardNetworkConfiguration = useWizardStore((state) => state.manualNetworkConfig);
-  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const [licenseEnabled, licenseTier, isFreeLicense] = useAppStore((s) => [
+    s.appInfo?.license_info.enterprise,
+    s.appInfo?.license_info.tier,
+    s.appInfo?.license_info.is_enterprise_free,
+  ]);
+  const enterpriseLicenseEnabled = useMemo(
+    () => Boolean(isFreeLicense || licenseTier === LicenseTier.ENTERPRISE),
+    [licenseTier, isFreeLicense],
+  );
 
   const toaster = useToaster();
   const { LL } = useI18nContext();
@@ -290,7 +302,7 @@ export const WizardNetworkConfiguration = () => {
             displayValue: titleCase(group),
           })}
         />
-        {!enterpriseEnabled && (
+        {!licenseEnabled && (
           <MessageBox type={MessageBoxType.WARNING}>
             <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
           </MessageBox>
@@ -338,14 +350,22 @@ export const WizardNetworkConfiguration = () => {
           type="number"
           disabled={mfaDisabled}
         />
-        {!mfaDisabled && (
+        {!enterpriseLicenseEnabled ? (
           <MessageBox type={MessageBoxType.WARNING}>
-            <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            <p>
+              {LL.networkConfiguration.form.helpers.serviceLocation.enterpriseTierWarning()}
+            </p>
           </MessageBox>
+        ) : (
+          !mfaDisabled && (
+            <MessageBox type={MessageBoxType.WARNING}>
+              <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            </MessageBox>
+          )
         )}
         <FormServiceLocationModeSelect
           controller={{ control, name: 'service_location_mode' }}
-          disabled={!mfaDisabled}
+          disabled={!enterpriseLicenseEnabled || !mfaDisabled}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>
