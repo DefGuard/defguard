@@ -1148,6 +1148,7 @@ export type EnterpriseInfo = {
   subscription: boolean;
   // iso utc date
   valid_until: string;
+  tier: string;
 };
 
 export interface Webhook {

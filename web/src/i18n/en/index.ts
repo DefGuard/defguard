@@ -1575,6 +1575,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           validUntil: {
             label: 'Valid until',
           },
+          licenseTier: {
+            label: 'License tier',
+          },
         },
       },
     },

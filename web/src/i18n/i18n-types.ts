@@ -3813,6 +3813,12 @@ type RootTranslation = {
 						 */
 						label: string
 					}
+					licenseTier: {
+						/**
+						 * L​i​c​e​n​s​e​ ​t​i​e​r
+						 */
+						label: string
+					}
 				}
 			}
 		}
@@ -10572,6 +10578,12 @@ export type TranslationFunctions = {
 					validUntil: {
 						/**
 						 * Valid until
+						 */
+						label: () => LocalizedString
+					}
+					licenseTier: {
+						/**
+						 * License tier
 						 */
 						label: () => LocalizedString
 					}
