@@ -75,7 +75,7 @@ export const ExternalProviderCard = ({
           {!edit && (
             <Button
               variant="primary"
-              testId={'connect-' + provider}
+              testId={`connect-${provider}`}
               text={m.controls_connect()}
               onClick={onClick}
               disabled={disabled}
