@@ -5,15 +5,14 @@ import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage
 import { externalProviderName, SUPPORTED_SYNC_PROVIDERS } from '../../shared/constants';
 import { AddExternalOpenIdClientSettingsStep } from './steps/AddExternalOpenIdClientSettingsStep/AddExternalOpenIdClientSettingsStep';
 import { AddExternalOpenIdDirectoryStep } from './steps/AddExternalOpenIdDirectoryStep/AddExternalOpenIdDirectoryStep';
+import { AddExternalOpenIdValidationStep } from './steps/AddExternalOpenIdValidationStep/AddExternalOpenIdValidationStep';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 import { useAddExternalOpenIdStore } from './useAddExternalOpenIdStore';
-
-const Empty = () => null;
 
 const steps: Record<AddExternalProviderStepValue, ReactNode> = {
   'client-settings': <AddExternalOpenIdClientSettingsStep />,
   'directory-sync': <AddExternalOpenIdDirectoryStep />,
-  validation: <Empty />,
+  validation: <AddExternalOpenIdValidationStep />,
 };
 
 export const AddExternalOpenIdWizardPage = () => {
@@ -58,7 +57,10 @@ export const AddExternalOpenIdWizardPage = () => {
       subtitle="Configure the OpenID client settings with values provided by your external OpenID provider."
       onClose={() => {
         navigate({
-          to: '/settings/openid',
+          to: '/settings',
+          search: {
+            tab: 'openid',
+          },
           replace: true,
         }).then(() => {
           useAddExternalOpenIdStore.getState().reset();

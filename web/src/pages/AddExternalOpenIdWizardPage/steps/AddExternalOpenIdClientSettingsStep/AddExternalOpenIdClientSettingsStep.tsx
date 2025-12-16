@@ -1,14 +1,12 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
-import {
-  OpenIdProviderUsernameHandling,
-  type OpenIdProviderUsernameHandlingValue,
-} from '../../../../shared/api/types';
+import { OpenIdProviderUsernameHandling } from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { SUPPORTED_SYNC_PROVIDERS } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import type { SelectOption } from '../../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -17,25 +15,12 @@ import {
   ExternalProvider,
   type ExternalProviderValue,
 } from '../../../settings/shared/types';
+import {
+  formatMicrosoftBaseUrl,
+  providerUsernameHandlingOptions,
+  validateExternalProviderWizard,
+} from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
-
-const userHandlingOptions: SelectOption<OpenIdProviderUsernameHandlingValue>[] = [
-  {
-    key: OpenIdProviderUsernameHandling.RemoveForbidden,
-    label: 'Remove forbidden characters',
-    value: OpenIdProviderUsernameHandling.RemoveForbidden,
-  },
-  {
-    key: OpenIdProviderUsernameHandling.ReplaceForbidden,
-    label: 'Replace forbidden characters',
-    value: OpenIdProviderUsernameHandling.ReplaceForbidden,
-  },
-  {
-    key: OpenIdProviderUsernameHandling.PruneEmailDomain,
-    label: 'Prune email domain',
-    value: OpenIdProviderUsernameHandling.PruneEmailDomain,
-  },
-];
 
 const baseUrlHidden: Set<ExternalProviderValue> = new Set([
   ExternalProvider.JumpCloud,
@@ -43,19 +28,36 @@ const baseUrlHidden: Set<ExternalProviderValue> = new Set([
   ExternalProvider.Google,
 ]);
 
-const formatMicrosoftBaseUrl = (tenantId: string) =>
-  `https://login.microsoftonline.com/${tenantId}/v2.0`;
-
 export const AddExternalOpenIdClientSettingsStep = () => {
   const storeData = useAddExternalOpenIdStore((s) => s.providerState);
   const provider = useAddExternalOpenIdStore((s) => s.provider);
-  const nextStep = useAddExternalOpenIdStore((s) => s.next);
+  const next = useAddExternalOpenIdStore((s) => s.next);
+
+  const { mutateAsync } = useMutation({
+    mutationFn: validateExternalProviderWizard,
+    onSuccess: (result) => {
+      if (typeof result === 'boolean') {
+        useAddExternalOpenIdStore.setState({
+          testResult: result,
+        });
+        next();
+      } else {
+        useAddExternalOpenIdStore.setState({
+          testResult: result.success,
+          testMessage: result.message,
+        });
+        next();
+      }
+    },
+    meta: {
+      invalidate: [['settings'], ['info'], ['openid', 'provider']],
+    },
+  });
 
   const formSchema = useMemo(
     () =>
       z
         .object({
-          name: z.string(),
           base_url: z.url(m.form_error_invalid()).trim().min(1, m.form_error_required()),
           client_id: z
             .string(m.form_error_required())
@@ -97,7 +99,6 @@ export const AddExternalOpenIdClientSettingsStep = () => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      name: storeData.name,
       base_url: storeData.base_url,
       client_id: storeData.client_id,
       client_secret: storeData.client_secret,
@@ -116,8 +117,16 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: ({ value }) => {
-      nextStep(value);
+    onSubmit: async ({ value }) => {
+      if (SUPPORTED_SYNC_PROVIDERS.has(provider)) {
+        next(value);
+      } else {
+        const storeState = useAddExternalOpenIdStore.getState().providerState;
+        await mutateAsync({
+          ...storeState,
+          ...value,
+        });
+      }
     },
   });
 
@@ -174,7 +183,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           <form.AppField name="username_handling">
             {(field) => (
               <field.FormSelect
-                options={userHandlingOptions}
+                options={providerUsernameHandlingOptions}
                 required
                 label="Username handling"
               />

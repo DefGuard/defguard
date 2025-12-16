@@ -15,7 +15,7 @@ import { TableValuesListCell } from '../../../shared/components/TableValuesListC
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
-import { EmptyState } from '../../../shared/defguard-ui/components/EmptyState/EmptyState';
+import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
@@ -262,7 +262,7 @@ export const LocationsTable = ({ locations }: Props) => {
           </TableTop>
           {transformedData.length > 0 && <TableBody table={table} />}
           {transformedData.length === 0 && (
-            <EmptyState
+            <EmptyStateFlexible
               icon="search"
               title={m.search_empty_common_title()}
               subtitle={m.search_empty_common_subtitle()}
@@ -271,7 +271,7 @@ export const LocationsTable = ({ locations }: Props) => {
         </>
       )}
       {locations.length === 0 && (
-        <EmptyState
+        <EmptyStateFlexible
           title="No locations found"
           subtitle="Click button below to add one."
           primaryAction={addButtonProps}

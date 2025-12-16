@@ -92,7 +92,10 @@ export const AddExternalOpenIdValidationStep = () => {
             disabled={!result || isPending}
             onClick={() => {
               navigate({
-                to: '/settings/openid',
+                to: '/settings',
+                search: {
+                  tab: 'openid',
+                },
                 replace: true,
               }).then(() => {
                 setTimeout(() => {

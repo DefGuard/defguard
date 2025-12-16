@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
@@ -20,6 +21,10 @@ type FormFields = z.infer<typeof microsoftProviderSyncSchema>;
 export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
   const providerState = useAddExternalOpenIdStore((s) => s.providerState);
   const back = useAddExternalOpenIdStore((s) => s.back);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: onSubmit,
+  });
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -106,8 +111,12 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
+          loading={isPending}
           onBack={() => {
             back(form.state.values);
+          }}
+          onNext={() => {
+            mutate(form.state.values);
           }}
         />
       </form.AppForm>

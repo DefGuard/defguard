@@ -6,6 +6,8 @@ import {
   type DirectorySyncBehaviorValue,
   DirectorySyncTarget,
   type DirectorySyncTargetValue,
+  OpenIdProviderUsernameHandling,
+  type OpenIdProviderUsernameHandlingValue,
   type TestDirectorySyncResponse,
 } from '../../shared/api/types';
 import type { SelectOption } from '../../shared/defguard-ui/components/Select/types';
@@ -72,3 +74,25 @@ export const directorySyncTargetOptions: SelectOption<DirectorySyncTargetValue>[
     label: directorySyncTargetName[DirectorySyncTarget.Groups],
   },
 ];
+
+export const providerUsernameHandlingOptions: SelectOption<OpenIdProviderUsernameHandlingValue>[] =
+  [
+    {
+      key: OpenIdProviderUsernameHandling.RemoveForbidden,
+      label: 'Remove forbidden characters',
+      value: OpenIdProviderUsernameHandling.RemoveForbidden,
+    },
+    {
+      key: OpenIdProviderUsernameHandling.ReplaceForbidden,
+      label: 'Replace forbidden characters',
+      value: OpenIdProviderUsernameHandling.ReplaceForbidden,
+    },
+    {
+      key: OpenIdProviderUsernameHandling.PruneEmailDomain,
+      label: 'Prune email domain',
+      value: OpenIdProviderUsernameHandling.PruneEmailDomain,
+    },
+  ];
+
+export const formatMicrosoftBaseUrl = (tenantId: string) =>
+  `https://login.microsoftonline.com/${tenantId}/v2.0`;

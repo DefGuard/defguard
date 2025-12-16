@@ -1,5 +1,7 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -19,7 +21,11 @@ type FormFields = z.infer<typeof jumpcloudProviderSyncSchema>;
 
 export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
   const providerState = useAddExternalOpenIdStore((s) => s.providerState);
-  const back = useAddExternalOpenIdStore((s) => s.back);
+  const [back] = useAddExternalOpenIdStore(useShallow((s) => [s.back]));
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: onSubmit,
+  });
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -103,8 +109,12 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
+          loading={isPending}
           onBack={() => {
             back(form.state.values);
+          }}
+          onNext={() => {
+            mutate(form.state.values);
           }}
         />
       </form.AppForm>

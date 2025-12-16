@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { cloneDeep } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import type { AddOpenIdProvider } from '../../../../shared/api/types';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
@@ -20,7 +19,7 @@ import { OktaProviderForm } from './forms/OktaProviderForm';
 
 export const AddExternalOpenIdDirectoryStep = () => {
   const provider = useAddExternalOpenIdStore((s) => s.provider);
-  const [next] = useAddExternalOpenIdStore(useShallow((s) => [s.back, s.next]));
+  const next = useAddExternalOpenIdStore((s) => s.next);
 
   const { mutateAsync } = useMutation({
     mutationFn: validateExternalProviderWizard,
@@ -39,7 +38,7 @@ export const AddExternalOpenIdDirectoryStep = () => {
       }
     },
     meta: {
-      invalidate: [['settings'], ['info']],
+      invalidate: [['settings'], ['info'], ['openid', 'provider']],
     },
   });
 

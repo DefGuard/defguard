@@ -191,7 +191,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => <field.FormInput required label="Server Address" />}
           </form.AppField>
           <form.AppField name="smtp_port">
-            {(field) => <field.FormInput required label="Server port" />}
+            {(field) => <field.FormInput required label="Server port" type="number" />}
           </form.AppField>
         </EvenSplit>
         <SizedBox height={ThemeSpacing.Xl} />

@@ -1,8 +1,8 @@
+import { useMutation } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
-import z from 'zod';
+import type z from 'zod';
 import { m } from '../../../../../paraglide/messages';
-import type { AddOpenIdProvider } from '../../../../../shared/api/types';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -17,40 +17,14 @@ import {
 import { useAddExternalOpenIdStore } from '../../../useAddExternalOpenIdStore';
 import { ProviderFormControls } from '../ProviderFormControls';
 import { ProviderSyncToggle } from '../ProviderSyncToggle';
-import { googleProviderSyncSchema } from './schemas';
+import {
+  googleProviderSyncSchema,
+  parseGoogleKeyFile,
+  providerToGoogleKeyFile,
+} from './schemas';
 import type { ProviderFormProps } from './types';
 
 type FormFields = z.infer<typeof googleProviderSyncSchema>;
-
-const fileSchema = z.object({
-  private_key: z.string().trim().min(1),
-  client_email: z.string().trim().min(1),
-});
-
-type AccountFileObject = z.infer<typeof fileSchema>;
-
-const keyFileToObject = async (value: File): Promise<AccountFileObject | null> => {
-  try {
-    const obj = JSON.parse(await value.text());
-    const result = fileSchema.safeParse(obj);
-    if (result.success) {
-      return result.data;
-    }
-  } catch (_) {
-    return null;
-  }
-  return null;
-};
-
-const providerStateToFile = (key?: string | null, email?: string | null): File | null => {
-  if (!isPresent(key) || !isPresent(email)) return null;
-
-  const obj: AccountFileObject = {
-    client_email: email,
-    private_key: key,
-  };
-  return new File([JSON.stringify(obj)], 'Account key', { type: 'application/json' });
-};
 
 export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
   const storeValues = useAddExternalOpenIdStore((s) => s.providerState);
@@ -63,8 +37,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
       directory_sync_interval: storeValues.directory_sync_interval,
       directory_sync_target: storeValues.directory_sync_target,
       directory_sync_user_behavior: storeValues.directory_sync_user_behavior,
-      //@ts-expect-error
-      google_service_account_file: providerStateToFile(
+      google_service_account_file: providerToGoogleKeyFile(
         storeValues.google_service_account_key,
         storeValues.google_service_account_email,
       ),
@@ -80,7 +53,9 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
       onChange: googleProviderSyncSchema,
     },
     onSubmit: async ({ value, formApi }) => {
-      const fileData = await keyFileToObject(value.google_service_account_file);
+      const fileData = await parseGoogleKeyFile(
+        value.google_service_account_file as File,
+      );
       if (isPresent(fileData)) {
         await onSubmit({
           ...value,
@@ -102,18 +77,24 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
     },
   });
 
-  const handleBack = useCallback(async () => {
-    const values = form.state.values;
-    const toStore: Partial<AddOpenIdProvider> = omit(values, [
-      'google_service_account_file',
-    ]);
-    const fileData = await keyFileToObject(values.google_service_account_file);
-    back({
-      ...toStore,
+  const toStore = useCallback(async (state: FormFields) => {
+    const fileData = await parseGoogleKeyFile(state.google_service_account_file as File);
+    return {
+      ...omit(state, ['google_service_account_file']),
       google_service_account_key: fileData?.private_key ?? null,
       google_service_account_email: fileData?.client_email ?? null,
-    });
-  }, [form, back]);
+    };
+  }, []);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: async () => {
+      return onSubmit(await toStore(form.state.values));
+    },
+  });
+
+  const handleBack = useCallback(async () => {
+    back(await toStore(form.state.values));
+  }, [form.state.values, back, toStore]);
 
   return (
     <form
@@ -180,8 +161,10 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls
-          onBack={() => {
-            handleBack();
+          loading={isPending}
+          onBack={handleBack}
+          onNext={() => {
+            mutate();
           }}
         />
       </form.AppForm>

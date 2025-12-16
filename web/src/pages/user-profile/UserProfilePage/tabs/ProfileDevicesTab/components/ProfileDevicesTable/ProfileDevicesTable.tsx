@@ -13,7 +13,11 @@ import { type CSSProperties, useCallback, useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import type { UserDevice } from '../../../../../../../shared/api/types';
+import { useAddUserDeviceModal } from '../../../../../../../shared/components/modals/AddUserDeviceModal/store/useAddUserDeviceModal';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
+import type { ButtonProps } from '../../../../../../../shared/defguard-ui/components/Button/types';
+import { EmptyStateFlexible } from '../../../../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/components/Menu/types';
@@ -21,9 +25,11 @@ import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/com
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
+import { TableTop } from '../../../../../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
+import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { displayDate } from '../../../../../../../shared/utils/displayDate';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
@@ -67,9 +73,28 @@ export const ProfileDevicesTable = () => {
 const columnHelper = createColumnHelper<RowData>();
 
 const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
-  const username = useUserProfile((s) => s.user.username);
+  const info = useApp((s) => s.appInfo);
+  const devices = useUserProfile((s) => s.devices);
+  const user = useUserProfile((s) => s.user);
+  const username = user.username;
 
   const reservedNames = useMemo(() => rowData.map((row) => row.name), [rowData]);
+
+  const addDeviceProps = useMemo(
+    (): ButtonProps => ({
+      text: 'Add device',
+      variant: 'primary',
+      iconLeft: 'add-device',
+      disabled: !info.network_present,
+      onClick: () => {
+        useAddUserDeviceModal.getState().open({
+          devices,
+          user,
+        });
+      },
+    }),
+    [devices, user, info.network_present],
+  );
 
   const { mutate: deleteDevice } = useMutation({
     mutationFn: api.device.deleteDevice,
@@ -262,10 +287,26 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   });
 
   return (
-    <TableBody
-      table={table}
-      renderExpandedRow={renderExpandedRow}
-      expandedHeaders={expandedRowHeaders}
-    />
+    <>
+      {rowData.length === 0 && (
+        <EmptyStateFlexible
+          title="No devices"
+          subtitle="To add new device click the button below."
+          primaryAction={addDeviceProps}
+        />
+      )}
+      {rowData.length > 0 && (
+        <>
+          <TableTop text="All devices">
+            <Button {...addDeviceProps} />
+          </TableTop>
+          <TableBody
+            table={table}
+            renderExpandedRow={renderExpandedRow}
+            expandedHeaders={expandedRowHeaders}
+          />
+        </>
+      )}
+    </>
   );
 };
