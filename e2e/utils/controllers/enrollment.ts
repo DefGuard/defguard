@@ -1,6 +1,6 @@
 import { Browser, expect, Page } from '@playwright/test';
 
-import { defaultUserAdmin, routes } from '../../config';
+import { defaultUserAdmin, routes, testsConfig } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { waitForPromise } from '../waitForPromise';
@@ -21,19 +21,22 @@ export const createUserEnrollment = async (
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
-  await page.goto(routes.base + routes.auth.login);
+  await page.goto(testsConfig.BASE_URL);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.users);
+
+  await page.goto(routes.base + routes.identity.users);
   await page.getByTestId('add-user').click();
-  const formElement = page.getByTestId('add-user-form');
+  await page.getByTestId('add-user-self-enrollment').click();
+  const formElement = page.locator('[id="add-user-modal"]');
   await formElement.waitFor({ state: 'visible' });
   await formElement.getByTestId('field-username').fill(user.username);
   await formElement.getByTestId('field-first_name').fill(user.firstName);
   await formElement.getByTestId('field-last_name').fill(user.lastName);
   await formElement.getByTestId('field-email').fill(user.mail);
   await formElement.getByTestId('field-phone').fill(user.phone);
-  await formElement.getByTestId('field-enable_enrollment').click();
-  await formElement.locator('button[type="submit"]').click();
+  await formElement.getByTestId('add-user-submit').click();
+  await formElement.waitFor({ state: 'hidden', timeout: 2000 });
+  await context.close();
   waitForPromise(2000);
   const modalElement = page.locator('#add-user-modal');
   const enrollmentForm = modalElement.getByTestId('start-enrollment-form');

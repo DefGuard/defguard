@@ -104,6 +104,7 @@ export const ProfileAuthCard = () => {
     const items: MenuItemProps[] = [];
     if (!user.email_mfa_enabled) {
       items.push({
+        testId: 'enable-email',
         text: m.controls_enable(),
         icon: 'check-circle',
         onClick: () => openModal('emailMfaSetup'),
@@ -180,6 +181,7 @@ export const ProfileAuthCard = () => {
     items.push({
       text: m.profile_auth_card_add_passkey(),
       icon: 'plus-circle',
+      testId: 'add-passkey',
       onClick: () => openModal(ModalName.WebauthnSetup),
     });
     if (securityKeys.length) {
@@ -207,6 +209,7 @@ export const ProfileAuthCard = () => {
     if (!user.totp_enabled) {
       items.push({
         icon: 'check-circle',
+        testId: 'enable-totp',
         text: m.controls_enable(),
         onClick: () => {
           openModal('totpSetup');
@@ -246,6 +249,7 @@ export const ProfileAuthCard = () => {
           variant="outlined"
           iconLeft="lock-open"
           text={m.profile_auth_card_password_change()}
+          testId="change-password"
           onClick={() => {
             // open admin form only if admin and is not editing self
             openModal('changePassword', {
@@ -270,6 +274,7 @@ export const ProfileAuthCard = () => {
           title={m.profile_auth_card_2fa_totp()}
           enabled={user.totp_enabled}
           menu={totpMenuItems}
+          testId="totp-row"
         />
         <Divider />
         {smtpEnabled && (
@@ -281,6 +286,7 @@ export const ProfileAuthCard = () => {
               enabled={user.email_mfa_enabled}
               isDefault={user.mfa_method === 'Email'}
               menu={emailMenuItems}
+              testId="email-codes-row"
             />
             <Divider />
           </>
@@ -292,6 +298,7 @@ export const ProfileAuthCard = () => {
           enabled={securityKeys.length > 0}
           isDefault={user.mfa_method === 'Webauthn'}
           menu={webauthnMenuItems}
+          testId="passkeys-row"
         />
         {securityKeys.length > 0 && (
           <div className="webauthn-keys">

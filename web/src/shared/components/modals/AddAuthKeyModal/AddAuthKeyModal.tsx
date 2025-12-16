@@ -158,6 +158,7 @@ const ModalContent = ({ username }: { username: string }) => {
       <ModalControls
         cancelProps={{
           text: m.controls_cancel(),
+          testId: 'cancel',
           disabled: isSubmitting,
           onClick: () => {
             closeModal(modalNameKey);
@@ -165,6 +166,7 @@ const ModalContent = ({ username }: { username: string }) => {
         }}
         submitProps={{
           text: m.modal_add_auth_key_submit(),
+          testId: 'add-key',
           loading: isSubmitting,
           onClick: () => {
             form.handleSubmit();

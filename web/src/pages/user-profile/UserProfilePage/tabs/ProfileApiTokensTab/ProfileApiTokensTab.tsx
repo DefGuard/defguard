@@ -24,6 +24,7 @@ export const ProfileApiTokensTab = () => {
           subtitle={m.profile_api_empty_subtitle()}
           primaryAction={{
             iconLeft: 'add-token',
+            testId: 'add-token',
             text: m.profile_api_add(),
             onClick: () => {
               openModal(ModalName.AddApiToken, {

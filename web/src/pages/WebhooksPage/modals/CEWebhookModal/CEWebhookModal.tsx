@@ -207,6 +207,7 @@ const ModalContent = ({ webhook }: ModalData) => {
             },
           }}
           submitProps={{
+            testId: 'submit',
             text: isEdit ? m.controls_save_changes() : m.controls_submit(),
             loading: isSubmitting,
             onClick: () => {

@@ -1,10 +1,9 @@
 import { expect, Page, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../config';
+import { routes, testUserTemplate } from '../config';
 import { OpenIdClient, User } from '../types';
-import { apiCreateUser } from '../utils/api/users';
+import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginTOTP } from '../utils/controllers/login';
-import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { copyOpenIdClientId } from '../utils/controllers/openid/copyClientId';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
@@ -29,11 +28,7 @@ test.describe('Authorize OpenID client.', () => {
     dockerRestart();
     await CreateOpenIdClient(browser, client);
     client.clientID = await copyOpenIdClientId(browser, 1);
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await loginBasic(page, defaultUserAdmin);
-    await apiCreateUser(page, testUser);
-    context.close();
+    await createUser(browser, testUser);
   });
 
   test('Authorize when session is active.', async ({ page }) => {
@@ -42,7 +37,7 @@ test.describe('Authorize OpenID client.', () => {
     await loginBasic(page, testUser);
     await fillAndSubmitOpenIDDebugger(page, client);
     await page.waitForURL(routes.base + routes.consent + '**');
-    await page.getByTestId('openid-allow').click();
+    await page.getByTestId('accept-openid').click();
     await page.waitForURL('https://oidcdebugger.com/**');
     await waitForPromise(2000);
     const headerMessage = await page
@@ -50,12 +45,11 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    await page.goto(routes.base + routes.me, {
+    await page.goto(routes.base + routes.profile, {
       waitUntil: 'networkidle',
     });
-    await waitForRoute(page, routes.me);
-    await page.getByTestId('authorized-apps').getByRole('button').click();
-    await logout(page);
+    // await page.getByTestId('authorized-apps').getByRole('button').click();
+    // await logout(page); //TODO: add this after openid apps will be shown in ui
   });
 
   test('Authorize when session is not active', async ({ page }) => {
@@ -65,7 +59,7 @@ test.describe('Authorize OpenID client.', () => {
     await waitForRoute(page, routes.auth.login);
     await loginBasic(page, testUser);
     await page.waitForURL(routes.base + routes.consent + '**');
-    await page.getByTestId('openid-allow').click();
+    await page.getByTestId('accept-openid').click();
     await page.waitForURL('https://oidcdebugger.com/**');
     await waitForPromise(2000);
     const headerMessage = await page
@@ -73,12 +67,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    await page.goto(routes.base + routes.me, {
-      waitUntil: 'networkidle',
-    });
-    await waitForRoute(page, routes.me);
-    await page.getByTestId('authorized-apps').getByRole('button').click();
-    await logout(page);
+    // await page.goto(routes.base + routes.me, {
+    //   waitUntil: 'networkidle',
+    // });
+    // await waitForRoute(page, routes.me);
+    // await page.getByTestId('authorized-apps').getByRole('button').click();
+    // await logout(page); //TODO: add this after openid apps will be shown in ui
   });
 
   test('Authorize when session is not active and MFA is enabled', async ({
@@ -91,7 +85,7 @@ test.describe('Authorize OpenID client.', () => {
     await fillAndSubmitOpenIDDebugger(page, client);
     await loginTOTP(page, testUser, secret);
     await page.waitForURL(routes.base + routes.consent + '**');
-    await page.getByTestId('openid-allow').click();
+    await page.getByTestId('accept-openid').click();
     await page.waitForURL('https://oidcdebugger.com/**');
     await waitForPromise(2000);
     const headerMessage = await page
@@ -99,12 +93,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    await page.goto(routes.base + routes.me, {
-      waitUntil: 'networkidle',
-    });
-    await waitForRoute(page, routes.me);
-    await page.getByTestId('authorized-apps').getByRole('button').click();
-    await logout(page);
+    // await page.goto(routes.base + routes.me, {
+    //   waitUntil: 'networkidle',
+    // });
+    // await waitForRoute(page, routes.me);
+    // await page.getByTestId('authorized-apps').getByRole('button').click();
+    // await logout(page); //TODO: add this after openid apps will be shown in ui
   });
 });
 

@@ -230,6 +230,7 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
                 <button
                   type="button"
                   className="add-url"
+                  data-testid="add-url"
                   onClick={() => {
                     field.pushValue('', {
                       dontValidate: true,
@@ -255,6 +256,7 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
               key={scope}
               active={scopes.has(scope)}
               text={getScopeLabel(scope)}
+              testId={`field-scope-${getScopeLabel(scope).toLowerCase()}`}
               onClick={() => {
                 toggleScope(scope);
               }}
@@ -273,6 +275,7 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
             text: isPresent(openIdClient)
               ? m.controls_save_changes()
               : m.controls_submit(),
+            testId: 'save-settings',
             loading: isSubmitting,
             onClick: () => {
               form.handleSubmit();

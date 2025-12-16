@@ -144,6 +144,7 @@ const ModalContent = () => {
             <SizedBox height={ThemeSpacing.Sm} />
             <CopyField
               text={totpInitResponse.data.secret}
+              data-testid="totp-code"
               copyTooltip={m.misc_clipboard_copy()}
             />
           </div>
@@ -169,7 +170,7 @@ const ModalContent = () => {
           }}
         >
           <form.AppForm>
-            <form.AppField name="code">
+            <form.AppField name="code" data-testid="field-code">
               {(field) => <field.FormInput label={m.form_label_auth_code()} required />}
             </form.AppField>
           </form.AppForm>
@@ -186,6 +187,7 @@ const ModalContent = () => {
         submitProps={{
           loading: isSubmitting,
           text: m.controls_verify_code(),
+          testId: 'submit-totp',
           onClick: () => form.handleSubmit(),
         }}
       />

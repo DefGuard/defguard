@@ -221,6 +221,7 @@ export const UsersTable = ({ users }: Props) => {
                       {
                         text: m.users_row_menu_change_password(),
                         icon: 'lock-open',
+                        testId: 'change-password',
                         onClick: () => {
                           openModal(ModalName.ChangePassword, {
                             adminForm: true,
@@ -243,6 +244,7 @@ export const UsersTable = ({ users }: Props) => {
                       {
                         text: m.users_row_menu_edit_groups(),
                         icon: 'add-group',
+                        testId: 'edit-groups',
                         onClick: () => {
                           useSelectionModal.setState({
                             isOpen: true,
@@ -277,6 +279,7 @@ export const UsersTable = ({ users }: Props) => {
                           ? m.users_row_menu_disable()
                           : m.users_row_menu_enable(),
                         icon: rowData.is_active ? 'disabled' : 'check-circle',
+                        testId: 'change-account-status',
                         onClick: () => {
                           changeAccountActiveState({
                             active: !rowData.is_active,
@@ -408,6 +411,7 @@ export const UsersTable = ({ users }: Props) => {
             variant="outlined"
             text="Assign to a group"
             iconLeft="add-group"
+            testId="bulk-assign"
             onClick={() => {
               const selected = table
                 .getSelectedRowModel()
@@ -428,6 +432,7 @@ export const UsersTable = ({ users }: Props) => {
         <Button
           iconLeft="add-user"
           text={m.users_add()}
+          testId="add-user"
           onClick={() => {
             useAddUserModal.getState().open({
               reservedEmails,

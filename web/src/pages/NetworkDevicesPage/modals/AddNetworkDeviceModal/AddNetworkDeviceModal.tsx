@@ -178,6 +178,7 @@ const ManualStep = ({
           variant="outlined"
           text="Download config file"
           iconLeft="download"
+          testId="download-config"
           onClick={() => {
             downloadText(config, formatFileName(manualDevice.device.name), 'conf');
           }}
@@ -186,6 +187,7 @@ const ManualStep = ({
           variant="outlined"
           text={m.controls_copy_clipboard()}
           iconLeft="copy"
+          testId="copy-config"
           onClick={() => {
             writeToClipboard(config);
           }}
@@ -193,6 +195,7 @@ const ManualStep = ({
       </div>
       <ModalControls
         submitProps={{
+          testId: 'finish',
           text: m.controls_finish(),
           onClick: () => {
             closeModal(modalNameValue);
@@ -217,6 +220,7 @@ const CliStep = ({ data }: { data: StartEnrollmentResponse }) => {
       <CopyField label="Command" text={command} copyTooltip={m.misc_clipboard_copy()} />
       <ModalControls
         submitProps={{
+          testId: 'finish',
           text: m.controls_finish(),
           onClick: () => {
             closeModal(modalNameValue);
@@ -243,6 +247,7 @@ const ChoiceStep = ({ setModalState }: StepProps) => {
       <SectionSelect
         image="device-clc"
         title="Defguard Command Line Client"
+        data-testid="defguard-cli"
         content="When using Defguard CLI your device will be automatically configured."
         onClick={() => {
           handleSelect(true);
@@ -252,6 +257,7 @@ const ChoiceStep = ({ setModalState }: StepProps) => {
       <SectionSelect
         image="wireguard-device"
         title="Manual WireGuard Client"
+        data-testid="wireguard-client"
         content="If your device doesn't support our CLI, you can generate a WireGuard config and set it up manually — but future location updates must be applied manually."
         onClick={() => {
           handleSelect(false);
@@ -504,6 +510,7 @@ const FormStep = ({
         <ModalControls
           cancelProps={{
             disabled: isSubmitting,
+            testId: 'cancel',
             text: m.controls_cancel(),
             onClick: () => {
               closeModal(modalNameValue);
@@ -511,6 +518,7 @@ const FormStep = ({
           }}
           submitProps={{
             text: m.controls_submit(),
+            testId: 'submit',
             loading: isSubmitting,
             onClick: () => {
               form.handleSubmit();

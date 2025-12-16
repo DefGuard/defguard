@@ -155,6 +155,7 @@ const ModalContent = () => {
           },
         }}
         submitProps={{
+          testId: 'submit',
           text: m.controls_submit(),
           loading: isSubmitting,
           onClick: () => {

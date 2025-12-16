@@ -110,6 +110,7 @@ export const AddLocationFirewallStep = () => {
       </ActionCard>
       <ModalControls
         submitProps={{
+          testId: 'create-location',
           text: 'Create location',
           loading: isPending,
           onClick: () => {

@@ -181,6 +181,7 @@ export const ProfileAuthKeysTable = () => {
                 },
                 {
                   icon: 'delete',
+                  testId: 'delete-key',
                   variant: 'danger',
                   text: m.controls_delete(),
                   onClick: () => {

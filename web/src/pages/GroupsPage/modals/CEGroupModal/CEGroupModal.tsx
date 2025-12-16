@@ -148,6 +148,7 @@ const UsersStep = ({ users, startForm, groupInfo, isEdit, setModalState }: StepP
         }}
         submitProps={{
           text: isEdit ? m.controls_save_changes() : m.controls_submit(),
+          testId: 'submit',
           loading: addPending || editPending,
           onClick: () => {
             handleSubmit();
@@ -240,6 +241,7 @@ const StartStep = ({ reservedNames, setModalState, groupInfo, startForm }: StepP
         }}
         submitProps={{
           text: m.controls_next(),
+          testId: 'next',
           onClick: () => {
             form.handleSubmit();
           },

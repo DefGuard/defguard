@@ -35,6 +35,7 @@ export const AddDeviceModalStartStep = () => {
   return (
     <div id="add-device-start-step">
       <div
+        data-testid="client-device"
         className="option"
         role="button"
         onClick={() => {
@@ -56,6 +57,7 @@ export const AddDeviceModalStartStep = () => {
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />
       <FoldButton
+        testId="show-advanced-options"
         open={advancedOpen}
         onChange={setAdvancedOpen}
         textClose={m.modal_add_user_device_hide_advanced()}
@@ -64,6 +66,7 @@ export const AddDeviceModalStartStep = () => {
       <Fold open={advancedOpen}>
         <SizedBox height={ThemeSpacing.Md} />
         <div
+          data-testid="client-manual"
           className="option"
           role="button"
           onClick={() => {

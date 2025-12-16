@@ -107,10 +107,12 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
         <CopyField
           copyTooltip={m.misc_clipboard_copy()}
           text={token}
+          data-testid="copy-field"
           label={m.modal_add_api_token_copy_copy_label()}
         />
         <ModalControls
           submitProps={{
+            testId: 'close',
             text: m.controls_close(),
             onClick: () => {
               closeModal(modalNameKey);
@@ -138,6 +140,7 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
       </form>
       <ModalControls
         cancelProps={{
+          testId: 'cancel',
           disabled: isSubmitting,
           text: m.controls_cancel(),
           onClick: () => {
@@ -145,6 +148,7 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
           },
         }}
         submitProps={{
+          testId: 'submit',
           text: m.controls_submit(),
           loading: isSubmitting,
           onClick: () => {

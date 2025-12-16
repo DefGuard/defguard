@@ -72,7 +72,11 @@ export const LoginRecovery = () => {
               <field.FormInput size="lg" label={m.login_mfa_recovery_label()} />
             )}
           </form.AppField>
-          <form.FormSubmitButton size="big" text={m.controls_submit()} />
+          <form.FormSubmitButton
+            size="big"
+            testId="submit-recovery-code"
+            text={m.controls_submit()}
+          />
         </form.AppForm>
       </form>
       <SizedBox height={ThemeSpacing.Xl5} />

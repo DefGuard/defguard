@@ -84,6 +84,7 @@ const ModalContent = ({ groups, users }: ModalData) => {
         }}
         submitProps={{
           text: m.controls_submit(),
+          testId: 'submit',
           loading: isPending,
           onClick: () => {
             const selected = Array.from(selection);

@@ -43,6 +43,7 @@ const ModalContent = () => {
         image="location"
         content="Set up your location manually by defining all configuration parameters yourself."
         title="Regular location"
+        data-testid="add-regular-location"
         onClick={() => {
           useAddLocationStore.getState().start();
           navigate({
@@ -55,6 +56,7 @@ const ModalContent = () => {
         image="service-location"
         content="Service locations are a special kind of locations that allow establishing automatic VPN connections on system boot."
         title="Service location (Windows only)"
+        data-testid="add-service-location"
         onClick={() => {
           useAddLocationStore.getState().start({
             locationType: 'service',

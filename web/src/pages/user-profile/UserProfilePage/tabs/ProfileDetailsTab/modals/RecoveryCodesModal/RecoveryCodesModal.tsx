@@ -96,6 +96,7 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
           iconLeft="copy"
           variant="outlined"
           text={m.controls_copy_clipboard()}
+          testId="copy-recovery-codes"
           onClick={() => {
             void writeToClipboard(codes.join('\n'));
           }}
@@ -106,6 +107,7 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
         <Checkbox
           active={confirmed}
           text={m.modal_recovery_codes_download_confirm()}
+          testId="confirm-code-save"
           error={confirmError ? m.modal_recovery_codes_error() : undefined}
           onClick={() => {
             setConfirmed((s) => !s);
@@ -115,6 +117,7 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
         <Button
           variant="primary"
           text={m.controls_complete()}
+          testId="finish-recovery-codes"
           loading={isPending}
           onClick={() => {
             if (!confirmed) {

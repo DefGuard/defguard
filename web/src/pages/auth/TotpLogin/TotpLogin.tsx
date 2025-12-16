@@ -71,7 +71,11 @@ export const TotpLogin = () => {
           <form.AppField name="code">
             {(field) => <field.FormInput size="lg" label={m.form_label_auth_code()} />}
           </form.AppField>
-          <form.FormSubmitButton size="big" text={m.controls_submit()} />
+          <form.FormSubmitButton
+            testId="submit-totp"
+            size="big"
+            text={m.controls_submit()}
+          />
         </form.AppForm>
       </form>
       <MfaLinks />

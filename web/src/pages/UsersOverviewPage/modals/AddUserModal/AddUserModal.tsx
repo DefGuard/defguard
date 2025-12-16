@@ -214,6 +214,7 @@ const EnrollmentChoice = () => {
         image="self-enrollment"
         title={m.modal_add_user_choice_enroll_title()}
         content={m.modal_add_user_choice_enroll_content()}
+        data-testid="add-user-self-enrollment"
         onClick={() => {
           useAddUserModal.setState({
             step: 'user',
@@ -226,6 +227,7 @@ const EnrollmentChoice = () => {
         image="manual-user"
         title={m.modal_add_user_choice_manual_title()}
         content={m.modal_add_user_choice_manual_content()}
+        data-testid="add-user-manually"
         onClick={() => {
           useAddUserModal.setState({
             step: 'user',
@@ -393,10 +395,22 @@ const AddUserModalForm = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <EvenSplit parts={2}>
             <form.AppField name="username">
-              {(field) => <field.FormInput required label={m.form_label_username()} />}
+              {(field) => (
+                <field.FormInput
+                  data-testid="field-username"
+                  required
+                  label={m.form_label_username()}
+                />
+              )}
             </form.AppField>
             <form.AppField name="email">
-              {(field) => <field.FormInput required label={m.form_label_email()} />}
+              {(field) => (
+                <field.FormInput
+                  data-testid="field-email"
+                  required
+                  label={m.form_label_email()}
+                />
+              )}
             </form.AppField>
           </EvenSplit>
           {!enrollmentEnabled && (
@@ -419,15 +433,29 @@ const AddUserModalForm = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <EvenSplit>
             <form.AppField name="first_name">
-              {(field) => <field.FormInput required label={m.form_label_first_name()} />}
+              {(field) => (
+                <field.FormInput
+                  data-testid="field-first_name"
+                  required
+                  label={m.form_label_first_name()}
+                />
+              )}
             </form.AppField>
             <form.AppField name="last_name">
-              {(field) => <field.FormInput required label={m.form_label_last_name()} />}
+              {(field) => (
+                <field.FormInput
+                  data-testid="field-last_name"
+                  required
+                  label={m.form_label_last_name()}
+                />
+              )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="phone">
-            {(field) => <field.FormInput label={m.form_label_phone()} />}
+            {(field) => (
+              <field.FormInput data-testid="field-phone" label={m.form_label_phone()} />
+            )}
           </form.AppField>
         </form.AppForm>
       </form>
@@ -448,6 +476,7 @@ const AddUserModalForm = () => {
         submitProps={{
           text: m.modal_add_user_submit(),
           loading: isSubmitting,
+          testId: 'add-user-submit',
           onClick: () => {
             form.handleSubmit();
           },

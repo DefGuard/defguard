@@ -47,6 +47,7 @@ export const AddLocationServiceStep = () => {
       <ModalControls
         submitProps={{
           text: m.controls_continue(),
+          testId: 'continue',
           onClick: () => {
             useAddLocationStore.setState({
               activeStep: AddLocationPageStep.AccessControl,

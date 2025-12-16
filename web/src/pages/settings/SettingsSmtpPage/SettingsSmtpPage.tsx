@@ -248,6 +248,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                   />
                 )}
                 <Button
+                  testId="save-changes"
                   text={m.controls_save_changes()}
                   disabled={isDefaultValue}
                   loading={isSubmitting}

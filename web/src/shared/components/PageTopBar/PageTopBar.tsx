@@ -68,6 +68,7 @@ const ProfileMenu = () => {
           {
             text: 'Profile',
             icon: 'profile',
+            testId: 'profile',
             onClick: () => {
               navigate({
                 to: '/user/$username',
@@ -80,6 +81,7 @@ const ProfileMenu = () => {
           {
             text: m.controls_logout(),
             icon: 'logout',
+            testId: 'logout',
             onClick: () => {
               api.auth.logout().then(() => {
                 resetAuth();
@@ -126,7 +128,11 @@ const ProfileMenu = () => {
 
   return (
     <>
-      <Avatar ref={refs.setReference} {...getReferenceProps()} />
+      <Avatar
+        data-testid="avatar-icon"
+        ref={refs.setReference}
+        {...getReferenceProps()}
+      />
       {isOpen && (
         <Menu
           ref={refs.setFloating}

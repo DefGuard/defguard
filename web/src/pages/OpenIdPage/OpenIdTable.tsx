@@ -57,6 +57,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
     (): ButtonProps => ({
       text: 'Add new application',
       iconLeft: 'openid',
+      testId: 'add-new-app',
       onClick: () => {
         openModal(ModalName.CEOpenIdClient, {
           reservedNames,
@@ -116,6 +117,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
                 {
                   icon: 'activity-notes',
                   text: m.openid_edit_copy_id(),
+                  testId: 'copy-id',
                   onClick: () => {
                     writeToClipboard(row.client_id);
                   },
@@ -123,6 +125,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
                 {
                   icon: 'copy',
                   text: m.openid_edit_copy_secret(),
+                  testId: 'copy-secret',
                   onClick: () => {
                     writeToClipboard(row.client_secret);
                   },
