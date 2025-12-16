@@ -10,7 +10,7 @@ use axum::http::Uri;
 use defguard_common::{
     VERSION,
     auth::claims::ClaimsType,
-    db::{ChangeNotification, Id, TriggerOperation, models::Settings},
+    db::{Id, models::Settings},
 };
 use defguard_mail::Mail;
 use defguard_version::{
@@ -20,13 +20,12 @@ use defguard_version::{
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use serde::Serialize;
-use sqlx::{PgPool, postgres::PgListener};
+use sqlx::PgPool;
 use tokio::{
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
     },
-    task::{AbortHandle, JoinSet},
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -39,17 +38,13 @@ use tonic::{
 
 use self::{
     auth::AuthServer, client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
-    gateway::handler::GatewayHandler, interceptor::JwtInterceptor,
-    password_reset::PasswordResetServer, worker::WorkerServer,
+    interceptor::JwtInterceptor, password_reset::PasswordResetServer, worker::WorkerServer,
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
         AppEvent, GatewayEvent,
-        models::{
-            enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-            gateway::Gateway,
-        },
+        models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     },
     enterprise::{
         db::models::{
@@ -546,103 +541,6 @@ async fn handle_proxy_message_loop(
                 break 'message;
             }
         }
-    }
-
-    Ok(())
-}
-
-const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
-
-/// Bi-directional gRPC stream for comminication with Defguard Gateway.
-pub async fn run_grpc_gateway_stream(
-    pool: PgPool,
-    client_state: Arc<Mutex<ClientMap>>,
-    events_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-) -> Result<(), anyhow::Error> {
-    let config = server_config();
-    let tls_config = config.grpc_client_tls_config()?;
-
-    let mut abort_handles = HashMap::new();
-
-    let mut tasks = JoinSet::new();
-    // Helper closure to launch `GatewayHandler`.
-    let mut launch_gateway_handler =
-        |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
-            let mut gateway_handler = GatewayHandler::new(
-                gateway,
-                tls_config.clone(),
-                pool.clone(),
-                Arc::clone(&client_state),
-                events_tx.clone(),
-                mail_tx.clone(),
-                grpc_event_tx.clone(),
-            )?;
-            let abort_handle = tasks.spawn(async move {
-                gateway_handler.handle_connection().await;
-            });
-            Ok(abort_handle)
-        };
-
-    for gateway in Gateway::all(&pool).await? {
-        let id = gateway.id;
-        let abort_handle = launch_gateway_handler(gateway)?;
-        abort_handles.insert(id, abort_handle);
-    }
-
-    // Observe gateway URL changes.
-    let mut listener = PgListener::connect_with(&pool).await?;
-    listener.listen(GATEWAY_TABLE_TRIGGER).await?;
-    while let Ok(notification) = listener.recv().await {
-        let payload = notification.payload();
-        match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
-            Ok(gateway_notification) => match gateway_notification.operation {
-                TriggerOperation::Insert => {
-                    if let Some(new) = gateway_notification.new {
-                        let id = new.id;
-                        let abort_handle = launch_gateway_handler(new)?;
-                        abort_handles.insert(id, abort_handle);
-                    }
-                }
-                TriggerOperation::Update => {
-                    if let (Some(old), Some(new)) =
-                        (gateway_notification.old, gateway_notification.new)
-                    {
-                        if old.url == new.url {
-                            debug!(
-                                "Gateway URL didn't change. Keeping the current gateway handler"
-                            );
-                        } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!("Aborting connection to {old}, it has changed in the database");
-                            abort_handle.abort();
-                            let id = new.id;
-                            let abort_handle = launch_gateway_handler(new)?;
-                            abort_handles.insert(id, abort_handle);
-                        } else {
-                            warn!("Cannot find {old} on the list of connected gateways");
-                        }
-                    }
-                }
-                TriggerOperation::Delete => {
-                    if let Some(old) = gateway_notification.old {
-                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!(
-                                "Aborting connection to {old}, it has disappeard from the database"
-                            );
-                            abort_handle.abort();
-                        } else {
-                            warn!("Cannot find {old} on the list of connected gateways");
-                        }
-                    }
-                }
-            },
-            Err(err) => error!("Failed to de-serialize database notification object: {err}"),
-        }
-    }
-
-    while let Some(Ok(_result)) = tasks.join_next().await {
-        debug!("Gateway gRPC task has ended");
     }
 
     Ok(())

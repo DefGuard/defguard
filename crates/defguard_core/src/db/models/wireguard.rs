@@ -41,7 +41,7 @@ use super::{
 };
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_enabled},
-    grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
+    grpc::gateway::send_multiple_wireguard_events,
     wg_config::ImportedDevice,
 };
 
@@ -1449,7 +1449,7 @@ pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
     pub connected: bool,
-    pub gateways: Vec<GatewayState>,
+    // pub gateways: Vec<GatewayState>,
     pub allowed_groups: Vec<String>,
 }
 
