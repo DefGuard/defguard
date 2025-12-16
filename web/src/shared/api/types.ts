@@ -699,3 +699,61 @@ export interface TestDirectorySyncResponse {
   success: boolean;
   message: string | null;
 }
+
+export const AclStatus = {
+  New: 'New',
+  Applied: 'Applied',
+  Modified: 'Modified',
+  Deleted: 'Deleted',
+  Expired: 'Expired',
+} as const;
+
+export type AclStatusValue = (typeof AclStatus)[keyof typeof AclStatus];
+
+export const AclAliasStatus = {
+  Applied: AclStatus.Applied,
+  Modified: AclStatus.Modified,
+} as const;
+
+export type AclAliasStatusValue = (typeof AclAliasStatus)[keyof typeof AclAliasStatus];
+
+export const AclDeploymentState = {
+  Applied: AclStatus.Applied,
+  Modified: AclStatus.Modified,
+} as const;
+
+export type AclDeploymentStateValue =
+  (typeof AclDeploymentState)[keyof typeof AclDeploymentState];
+
+export const AclProtocol = {
+  TCP: 6,
+  UDP: 17,
+  ICMP: 1,
+} as const;
+
+export type AclProtocolValue = (typeof AclProtocol)[keyof typeof AclProtocol];
+
+export const AclKind = {
+  Destination: 'Destination',
+  Component: 'Component',
+} as const;
+
+export type AclKindValue = (typeof AclKind)[keyof typeof AclKind];
+
+export const AclAliasKind = {
+  Destination: AclKind.Destination,
+  Component: AclKind.Component,
+} as const;
+
+export type AclAliasKindValue = (typeof AclAliasKind)[keyof typeof AclAliasKind];
+
+export interface AclAlias {
+  id: number;
+  name: string;
+  kind: AclAliasKindValue;
+  state: AclAliasStatusValue;
+  destination: string;
+  ports: string;
+  protocols: AclProtocolValue[];
+  rules: number[];
+}

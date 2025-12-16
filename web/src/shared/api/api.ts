@@ -3,6 +3,7 @@ import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
+  AclAlias,
   AddApiTokenRequest,
   AddApiTokenResponse,
   AddAuthKeyRequest,
@@ -335,6 +336,13 @@ const api = {
   },
   mail: {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  acl: {
+    alias: {
+      getAliases: () => client.get<AclAlias[]>('/acl/alias'),
+      getAlias: (aliasId: number | string) =>
+        client.get<AclAlias>(`/acl/alias/${aliasId}`),
+    },
   },
   info: () => client.get<ApplicationInfo>('/info'),
 } as const;

@@ -1,0 +1,6 @@
+#aliases-page .page-content {
+  & > .tabs {
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-3xl);
+  }
+}
