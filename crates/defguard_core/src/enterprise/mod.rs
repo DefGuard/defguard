@@ -33,7 +33,7 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
     let counts = get_counts();
 
     // only check license if object count exceed free limit
-    if counts.needs_enterprise_license() {
+    if counts.needs_paid_license() {
         debug!("User is over limit, checking his license");
         let license = get_cached_license();
         let validation_result = validate_license(license.as_ref(), &counts, tier);
@@ -54,7 +54,7 @@ pub(crate) fn is_enterprise_free() -> bool {
     let license = get_cached_license();
     if validate_license(license.as_ref(), &counts, LicenseTier::Business).is_ok() {
         false
-    } else if counts.needs_enterprise_license() {
+    } else if counts.needs_paid_license() {
         debug!("User is over limit, the enterprise features are not free");
         false
     } else {

@@ -137,9 +137,9 @@ impl Counts {
         }
     }
 
-    /// Checks if current object count exceeds default limits
-    pub(crate) fn needs_enterprise_license(&self) -> bool {
-        debug!("Checking if current object counts ({self:?}) exceed default limits");
+    /// Checks if current object count exceeds default free tier limits
+    pub(crate) fn needs_paid_license(&self) -> bool {
+        debug!("Checking if current object counts ({self:?}) exceed default free tier limits");
         self.user > DEFAULT_USERS_LIMIT
             || self.user_device > DEFAULT_DEVICES_LIMIT
             || self.location > DEFAULT_LOCATIONS_LIMIT
