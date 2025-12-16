@@ -2066,6 +2066,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           alwaysOn:
             'Always-on - A VPN connection will always be active when the user device is on.',
           mfaWarning: "Service locations can't be used while location MFA is enabled.",
+          enterpriseTierWarning: "This feature requires an Enterprise-tier license. If you are interested in using it, please contact our sales team at: sales@defguard.net"
         },
       },
       sections: {
