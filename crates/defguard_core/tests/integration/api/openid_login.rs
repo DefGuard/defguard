@@ -5,7 +5,7 @@ use defguard_core::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
-        license::{License, set_cached_license},
+        license::{License, LicenseTier, set_cached_license},
     },
     handlers::Auth,
 };
@@ -93,6 +93,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         Some(Utc::now() - Duration::days(1)),
         None,
         None,
+        LicenseTier::Business,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;

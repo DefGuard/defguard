@@ -9,6 +9,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &["src/enterprise/proto/license.proto"],
             &["src/enterprise/proto"],
         )?;
-    println!("cargo:rerun-if-changed=src/enterprise");
+    println!("cargo:rerun-if-changed=src/enterprise/proto");
     Ok(())
 }

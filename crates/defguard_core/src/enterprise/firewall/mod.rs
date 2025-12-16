@@ -23,7 +23,7 @@ use crate::{
     db::{Device, User, WireguardNetwork},
     enterprise::{
         db::models::{acl::AliasKind, snat::UserSnatBinding},
-        is_enterprise_enabled,
+        is_business_license_active,
     },
 };
 
@@ -903,7 +903,7 @@ impl WireguardNetwork<Id> {
         conn: &mut PgConnection,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
         // do a license check
-        if !is_enterprise_enabled() {
+        if !is_business_license_active() {
             debug!(
                 "Enterprise features are disabled, skipping generating firewall config for \
                 location {self}"

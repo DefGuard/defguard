@@ -59,7 +59,7 @@ use crate::{
         handlers::openid_login::{
             SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
-        is_enterprise_enabled,
+        is_business_license_active,
         ldap::utils::ldap_update_user_state,
     },
     events::{BidiStreamEvent, GrpcEvent},
@@ -380,7 +380,7 @@ async fn handle_proxy_message_loop(
                         }
                     }
                     Some(core_request::Payload::AuthInfo(request)) => {
-                        if !is_enterprise_enabled() {
+                        if !is_business_license_active() {
                             warn!("Enterprise license required");
                             Some(core_response::Payload::CoreError(CoreError {
                                 status_code: Code::FailedPrecondition as i32,
@@ -833,7 +833,7 @@ impl InstanceInfo {
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
             client_traffic_policy: enterprise_settings.client_traffic_policy,
-            enterprise_enabled: is_enterprise_enabled(),
+            enterprise_enabled: is_business_license_active(),
             openid_display_name,
         }
     }

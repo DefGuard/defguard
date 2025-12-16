@@ -1433,9 +1433,15 @@ export type LicenseLimits = {
   wireguard_network: boolean;
 };
 
+export enum LicenseTier {
+  BUSINESS = 'Business',
+  ENTERPRISE = 'Enterprise',
+}
+
 export type LicenseInfo = {
   enterprise: boolean;
   limits_exceeded: LicenseLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
+  tier?: LicenseTier;
 };

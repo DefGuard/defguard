@@ -18,7 +18,7 @@ pub struct Counts {
     user: u32,
     user_device: u32,
     network_device: u32,
-    wireguard_network: u32,
+    location: u32,
 }
 
 global_value!(COUNTS, Counts, Counts::default(), set_counts, get_counts);
@@ -52,7 +52,7 @@ pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(
             .network_devices
             .try_into()
             .expect("device count should never be negative"),
-        wireguard_network: result
+        location: result
             .wireguard_networks
             .try_into()
             .expect("network count should never be negative"),
@@ -77,22 +77,17 @@ impl Counts {
         Self {
             user: 0,
             user_device: 0,
-            wireguard_network: 0,
+            location: 0,
             network_device: 0,
         }
     }
 
     #[cfg(test)]
-    pub(crate) fn new(
-        user: u32,
-        user_device: u32,
-        wireguard_network: u32,
-        network_device: u32,
-    ) -> Self {
+    pub(crate) fn new(user: u32, user_device: u32, location: u32, network_device: u32) -> Self {
         Self {
             user,
             user_device,
-            wireguard_network,
+            location,
             network_device,
         }
     }
@@ -114,7 +109,7 @@ impl Counts {
             debug!("Cached license not found. Using default limits for validation...");
             self.user > DEFAULT_USERS_LIMIT
                 || self.user_device > DEFAULT_DEVICES_LIMIT
-                || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
+                || self.location > DEFAULT_LOCATIONS_LIMIT
                 || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
         }
     }
@@ -135,19 +130,19 @@ impl Counts {
             Some(limits) => {
                 self.user > limits.users
                     || self.is_over_device_limit(limits)
-                    || self.wireguard_network > limits.locations
+                    || self.location > limits.locations
             }
             // unlimited license
             None => false,
         }
     }
 
-    /// Checks if current object count exceeds default limits
-    pub(crate) fn needs_enterprise_license(&self) -> bool {
-        debug!("Checking if current object counts ({self:?}) exceed default limits");
+    /// Checks if current object count exceeds default free tier limits
+    pub(crate) fn needs_paid_license(&self) -> bool {
+        debug!("Checking if current object counts ({self:?}) exceed default free tier limits");
         self.user > DEFAULT_USERS_LIMIT
             || self.user_device > DEFAULT_DEVICES_LIMIT
-            || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
+            || self.location > DEFAULT_LOCATIONS_LIMIT
             || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
     }
 
@@ -161,7 +156,7 @@ impl Counts {
                     } else {
                         self.user_device + self.network_device > limits.devices
                     },
-                    wireguard_network: self.wireguard_network > limits.locations,
+                    wireguard_network: self.location > limits.locations,
                     network_device: match limits.network_devices {
                         Some(devices) => self.network_device > devices,
                         None => false,
@@ -179,7 +174,7 @@ impl Counts {
             LimitsExceeded {
                 user: self.user > DEFAULT_DEVICES_LIMIT,
                 device: self.user_device > DEFAULT_DEVICES_LIMIT,
-                wireguard_network: self.wireguard_network > DEFAULT_LOCATIONS_LIMIT,
+                wireguard_network: self.location > DEFAULT_LOCATIONS_LIMIT,
                 network_device: self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT,
             }
         }
@@ -208,7 +203,7 @@ mod test {
 
     use super::*;
     use crate::{
-        enterprise::license::{License, set_cached_license},
+        enterprise::license::{License, LicenseTier, set_cached_license},
         grpc::proto::enterprise::license::LicenseLimits,
     };
 
@@ -223,7 +218,7 @@ mod test {
         let counts = Counts {
             user: 5,
             user_device: 15,
-            wireguard_network: 3,
+            location: 3,
             network_device: 6,
         };
         assert!(counts.is_over_device_limit(&limits));
@@ -231,7 +226,7 @@ mod test {
         let counts = Counts {
             user: 5,
             user_device: 10,
-            wireguard_network: 3,
+            location: 3,
             network_device: 5,
         };
         assert!(!counts.is_over_device_limit(&limits));
@@ -246,7 +241,7 @@ mod test {
         let counts = Counts {
             user: 5,
             user_device: 15,
-            wireguard_network: 3,
+            location: 3,
             network_device: 6,
         };
         assert!(!counts.is_over_device_limit(&limits));
@@ -254,7 +249,7 @@ mod test {
         let counts = Counts {
             user: 5,
             user_device: 15,
-            wireguard_network: 3,
+            location: 3,
             network_device: 11,
         };
         assert!(counts.is_over_device_limit(&limits));
@@ -265,7 +260,7 @@ mod test {
         let counts = Counts {
             user: 1,
             user_device: 2,
-            wireguard_network: 3,
+            location: 3,
             network_device: 4,
         };
 
@@ -275,7 +270,7 @@ mod test {
 
         assert_eq!(counts.user, 1);
         assert_eq!(counts.user_device, 2);
-        assert_eq!(counts.wireguard_network, 3);
+        assert_eq!(counts.location, 3);
     }
 
     #[test]
@@ -285,7 +280,7 @@ mod test {
             let counts = Counts {
                 user: DEFAULT_USERS_LIMIT + 1,
                 user_device: 1,
-                wireguard_network: 1,
+                location: 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -298,7 +293,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 user_device: DEFAULT_DEVICES_LIMIT + 1,
-                wireguard_network: 1,
+                location: 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -311,7 +306,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 user_device: 1,
-                wireguard_network: DEFAULT_LOCATIONS_LIMIT + 1,
+                location: DEFAULT_LOCATIONS_LIMIT + 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -324,7 +319,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 user_device: 1,
-                wireguard_network: 1,
+                location: 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -337,7 +332,7 @@ mod test {
             let counts = Counts {
                 user: DEFAULT_USERS_LIMIT + 1,
                 user_device: DEFAULT_DEVICES_LIMIT,
-                wireguard_network: DEFAULT_LOCATIONS_LIMIT,
+                location: DEFAULT_LOCATIONS_LIMIT,
                 network_device: 1,
             };
             set_counts(counts);
@@ -365,6 +360,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             Some(limits),
             None,
+            LicenseTier::Business,
         );
         set_cached_license(Some(license));
 
@@ -373,7 +369,7 @@ mod test {
             let counts = Counts {
                 user: users_limit + 1,
                 user_device: 1,
-                wireguard_network: 1,
+                location: 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -386,7 +382,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 user_device: devices_limit + 1,
-                wireguard_network: 1,
+                location: 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -399,7 +395,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 user_device: 1,
-                wireguard_network: locations_limit + 1,
+                location: locations_limit + 1,
                 network_device: 1,
             };
             set_counts(counts);
@@ -412,7 +408,7 @@ mod test {
             let counts = Counts {
                 user: users_limit,
                 user_device: devices_limit,
-                wireguard_network: locations_limit,
+                location: locations_limit,
                 network_device: network_devices_limit,
             };
             set_counts(counts);
@@ -425,7 +421,7 @@ mod test {
             let counts = Counts {
                 user: users_limit + 1,
                 user_device: devices_limit + 1,
-                wireguard_network: locations_limit + 1,
+                location: locations_limit + 1,
                 network_device: network_devices_limit + 1,
             };
             set_counts(counts);
@@ -442,6 +438,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         set_cached_license(Some(license));
 
@@ -450,7 +447,7 @@ mod test {
             let counts = Counts {
                 user: u32::MAX,
                 user_device: u32::MAX,
-                wireguard_network: u32::MAX,
+                location: u32::MAX,
                 network_device: u32::MAX,
             };
             set_counts(counts);
@@ -469,7 +466,7 @@ mod test {
         let counts = Counts {
             user: exceed_user,
             user_device: 0,
-            wireguard_network: 0,
+            location: 0,
             network_device: 0,
         };
         set_counts(counts);
@@ -483,7 +480,7 @@ mod test {
         let counts = Counts {
             user: 0,
             user_device: exceed_device,
-            wireguard_network: 0,
+            location: 0,
             network_device: 0,
         };
         set_counts(counts);
@@ -497,7 +494,7 @@ mod test {
         let counts = Counts {
             user: 0,
             user_device: 0,
-            wireguard_network: exceed_wireguard_network,
+            location: exceed_wireguard_network,
             network_device: 0,
         };
         set_counts(counts);
@@ -510,7 +507,7 @@ mod test {
         let counts = Counts {
             user: 0,
             user_device: 0,
-            wireguard_network: 0,
+            location: 0,
             network_device: exceed_network_device,
         };
 
@@ -525,7 +522,7 @@ mod test {
         let counts = Counts {
             user: 0,
             user_device: 0,
-            wireguard_network: 0,
+            location: 0,
             network_device: 0,
         };
         set_counts(counts);
@@ -547,11 +544,12 @@ mod test {
                 network_devices: Some(2),
             }),
             None,
+            LicenseTier::Business,
         );
         let counts = Counts {
             user: 3,
             user_device: 3,
-            wireguard_network: 3,
+            location: 3,
             network_device: 3,
         };
         set_counts(counts);
@@ -568,11 +566,12 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
         let counts = Counts {
             user: 300,
             user_device: 300,
-            wireguard_network: 300,
+            location: 300,
             network_device: 300,
         };
         set_counts(counts);
