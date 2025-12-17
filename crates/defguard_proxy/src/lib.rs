@@ -180,7 +180,6 @@ impl ProxyOrchestrator {
         for proxy in proxies {
             tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
         }
-        // TODO(jck) handle empty proxies vec somewhere earlier
         while let Some(result) = tasks.join_next().await {
             match result {
                 Ok(Ok(())) => error!("Proxy task returned prematurely"),
