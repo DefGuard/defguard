@@ -17,7 +17,7 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, Device, GatewayEvent, User, UserDetails, WireguardNetwork},
+    db::AppEvent,
     enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
     grpc::{
