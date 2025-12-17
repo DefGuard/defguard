@@ -135,6 +135,9 @@ exceptions = [
     ], crate = "defguard_event_logger" },
     { allow = [
         "AGPL-3.0-only", "AGPL-3.0-or-later",
+    ], crate = "defguard_proxy" },
+    { allow = [
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
     ], crate = "defguard_session_manager" },
     { allow = [
         "AGPL-3.0-only", "AGPL-3.0-or-later",
