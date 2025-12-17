@@ -109,6 +109,12 @@ export const LicenseSettings = ({
                     : '-'}
                 </p>
               </div>
+              <div>
+                <Label>
+                  {LL.settingsPage.license.licenseInfo.fields.licenseTier.label()}
+                </Label>
+                <p>{enterpriseInfo.tier || '-'}</p>
+              </div>
             </div>
           ) : (
             <p id="no-license">

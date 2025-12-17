@@ -28,7 +28,7 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},
     handlers::mail::send_email_mfa_code_email,
@@ -257,7 +257,7 @@ impl ClientMfaServer {
                 })?;
             }
             MfaMethod::Oidc => {
-                if !is_enterprise_enabled() {
+                if !is_business_license_active() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
                     return Err(Status::invalid_argument(
                         "selected MFA method not available",

@@ -3,3 +3,4 @@
 --description "Defguard Core service"
 --url "https://defguard.net/"
 --maintainer "Defguard"
+--config-files /etc/defguard/core.conf

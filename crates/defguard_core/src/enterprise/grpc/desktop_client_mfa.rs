@@ -6,7 +6,7 @@ use tonic::Status;
 use crate::{
     enterprise::{
         handlers::openid_login::{extract_state_data, user_from_claims},
-        is_enterprise_enabled,
+        is_business_license_active,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
@@ -23,7 +23,7 @@ impl ClientMfaServer {
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Received OIDC MFA authentication request: {request:?}");
-        if !is_enterprise_enabled() {
+        if !is_business_license_active() {
             error!("OIDC MFA method requires enterprise feature to be enabled");
             return Err(Status::invalid_argument("OIDC MFA method is not supported"));
         }

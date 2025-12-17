@@ -3813,6 +3813,12 @@ type RootTranslation = {
 						 */
 						label: string
 					}
+					licenseTier: {
+						/**
+						 * L​i​c​e​n​s​e​ ​t​i​e​r
+						 */
+						label: string
+					}
 				}
 			}
 		}
@@ -4082,16 +4088,6 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
-				disableAllTraffic: {
-					/**
-					 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
-					 */
-					label: string
-					/**
-					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
-					 */
-					helper: string
-				}
 				manualConfig: {
 					/**
 					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
@@ -4101,6 +4097,42 @@ type RootTranslation = {
 					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
 					 */
 					helper: string
+				}
+				clientTrafficPolicy: {
+					/**
+					 * C​l​i​e​n​t​ ​t​r​a​f​f​i​c​ ​p​o​l​i​c​y
+					 */
+					header: string
+					none: {
+						/**
+						 * N​o​n​e
+						 */
+						label: string
+						/**
+						 * N​o​n​e​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​l​e​c​t​ ​a​l​l​ ​r​o​u​t​i​n​g​ ​o​p​t​i​o​n​s​.
+						 */
+						helper: string
+					}
+					disableAllTraffic: {
+						/**
+						 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+						 */
+						label: string
+						/**
+						 * D​i​s​a​b​l​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​.
+						 */
+						helper: string
+					}
+					forceAllTraffic: {
+						/**
+						 * F​o​r​c​e​ ​t​h​e​ ​c​l​i​e​n​t​s​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+						 */
+						label: string
+						/**
+						 * F​o​r​c​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​-​ ​W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​t​h​e​ ​u​s​e​r​s​ ​w​i​l​l​ ​a​l​w​a​y​s​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -4923,6 +4955,10 @@ type RootTranslation = {
 					 * S​e​r​v​i​c​e​ ​l​o​c​a​t​i​o​n​s​ ​c​a​n​'​t​ ​b​e​ ​u​s​e​d​ ​w​h​i​l​e​ ​l​o​c​a​t​i​o​n​ ​M​F​A​ ​i​s​ ​e​n​a​b​l​e​d​.
 					 */
 					mfaWarning: string
+					/**
+					 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​r​e​q​u​i​r​e​s​ ​a​n​ ​E​n​t​e​r​p​r​i​s​e​-​t​i​e​r​ ​l​i​c​e​n​s​e​.​ ​I​f​ ​y​o​u​ ​a​r​e​ ​i​n​t​e​r​e​s​t​e​d​ ​i​n​ ​u​s​i​n​g​ ​i​t​,​ ​p​l​e​a​s​e​ ​c​o​n​t​a​c​t​ ​o​u​r​ ​s​a​l​e​s​ ​t​e​a​m​ ​a​t​:​ ​s​a​l​e​s​@​d​e​f​g​u​a​r​d​.​n​e​t
+					 */
+					enterpriseTierWarning: string
 				}
 			}
 			sections: {
@@ -10545,6 +10581,12 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 					}
+					licenseTier: {
+						/**
+						 * License tier
+						 */
+						label: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -10813,16 +10855,6 @@ export type TranslationFunctions = {
 					 */
 					helper: () => LocalizedString
 				}
-				disableAllTraffic: {
-					/**
-					 * Disable the option to route all traffic through VPN
-					 */
-					label: () => LocalizedString
-					/**
-					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
-					 */
-					helper: () => LocalizedString
-				}
 				manualConfig: {
 					/**
 					 * Disable users' ability to manually configure WireGuard client
@@ -10832,6 +10864,42 @@ export type TranslationFunctions = {
 					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
 					 */
 					helper: () => LocalizedString
+				}
+				clientTrafficPolicy: {
+					/**
+					 * Client traffic policy
+					 */
+					header: () => LocalizedString
+					none: {
+						/**
+						 * None
+						 */
+						label: () => LocalizedString
+						/**
+						 * None - When this option is enabled, users will be able to select all routing options.
+						 */
+						helper: () => LocalizedString
+					}
+					disableAllTraffic: {
+						/**
+						 * Disable the option to route all traffic through VPN
+						 */
+						label: () => LocalizedString
+						/**
+						 * Disable all traffic - When this option is enabled, users will not be able to route all traffic through the VPN.
+						 */
+						helper: () => LocalizedString
+					}
+					forceAllTraffic: {
+						/**
+						 * Force the clients to route all traffic through VPN
+						 */
+						label: () => LocalizedString
+						/**
+						 * Force all traffic - When this option is enabled, the users will always route all traffic through the VPN.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -11642,6 +11710,10 @@ export type TranslationFunctions = {
 					 * Service locations can't be used while location MFA is enabled.
 					 */
 					mfaWarning: () => LocalizedString
+					/**
+					 * This feature requires an Enterprise-tier license. If you are interested in using it, please contact our sales team at: sales@defguard.net
+					 */
+					enterpriseTierWarning: () => LocalizedString
 				}
 			}
 			sections: {
