@@ -26,21 +26,16 @@ use tonic::{
 
 use defguard_common::{VERSION, config::server_config, db::Id};
 use defguard_core::{
-    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    db::models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE},
     enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured,
-        grpc::polling::PollingServer,
-        handlers::openid_login::{
-            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
-        },
-        is_enterprise_enabled,
-        ldap::utils::ldap_update_user_state,
+        db::models::openid_provider::OpenIdProvider, directory_sync::sync_user_groups_if_configured, grpc::polling::PollingServer, handlers::openid_login::{
+            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+        }, is_business_license_active, ldap::utils::ldap_update_user_state
     },
     events::BidiStreamEvent,
     grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer},
-    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
+    version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData},
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
@@ -583,7 +578,7 @@ impl Proxy {
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if !is_enterprise_enabled() {
+                            if !is_business_license_active() {
                                 warn!("Enterprise license required");
                                 Some(core_response::Payload::CoreError(CoreError {
                                     status_code: Code::FailedPrecondition as i32,

@@ -14,12 +14,12 @@ use sqlx::{PgConnection, PgPool, error::Error as SqlxError};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
-#[cfg(not(test))]
-use super::is_enterprise_enabled;
 use super::{
     db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
     ldap::utils::ldap_update_users_state,
 };
+#[cfg(not(test))]
+use crate::enterprise::is_business_license_active;
 use crate::{
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
@@ -390,7 +390,7 @@ pub(crate) async fn test_directory_sync_connection(
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
-    if !is_enterprise_enabled() {
+    if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping testing directory sync connection");
         return Ok(());
     }
@@ -415,7 +415,7 @@ pub async fn sync_user_groups_if_configured(
     wg_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
-    if !is_enterprise_enabled() {
+    if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping syncing user groups");
         return Ok(());
     }
@@ -975,7 +975,7 @@ pub(crate) async fn do_directory_sync(
     wireguard_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
-    if !is_enterprise_enabled() {
+    if !is_business_license_active() {
         debug!("Enterprise is not enabled, skipping performing directory sync");
         return Ok(());
     }
