@@ -161,7 +161,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
     let proxy_orchestrator =
-        ProxyOrchestrator::new(pool.clone(), proxy_tx, incompatible_components.clone());
+        ProxyOrchestrator::new(pool.clone(), proxy_tx, Arc::clone(&incompatible_components));
 
     // run services
     tokio::select! {
