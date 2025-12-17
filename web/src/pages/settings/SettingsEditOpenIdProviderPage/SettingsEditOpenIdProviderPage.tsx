@@ -73,8 +73,10 @@ export const SettingsEditOpenIdProviderPage = () => {
     <EditPage
       id="edit-openid-provider-page"
       pageTitle={'Settings'}
-      formTitle={'Edit external OpenID provider'}
       links={breadcrumbs}
+      headerProps={{
+        title: 'Edit external OpenID provider',
+      }}
     >
       {formData.name === ExternalProvider.Google && (
         <EditGoogleProviderForm

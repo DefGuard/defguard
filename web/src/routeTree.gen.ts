@@ -39,7 +39,9 @@ import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
 import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
+import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
 const ConsentRoute = ConsentRouteImport.update({
@@ -204,10 +206,22 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclEditAliasRoute =
+  AuthorizedDefaultAclEditAliasRouteImport.update({
+    id: '/acl/edit-alias',
+    path: '/acl/edit-alias',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclAliasesRoute =
   AuthorizedDefaultAclAliasesRouteImport.update({
     id: '/acl/aliases',
     path: '/acl/aliases',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultAclAddAliasRoute =
+  AuthorizedDefaultAclAddAliasRouteImport.update({
+    id: '/acl/add-alias',
+    path: '/acl/add-alias',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultLocationsLocationIdEditRoute =
@@ -236,7 +250,9 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -267,7 +283,9 @@ export interface FileRoutesByTo {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -302,7 +320,9 @@ export interface FileRoutesById {
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -336,7 +356,9 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/acl/add-alias'
     | '/acl/aliases'
+    | '/acl/edit-alias'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -367,7 +389,9 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/acl/add-alias'
     | '/acl/aliases'
+    | '/acl/edit-alias'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -401,7 +425,9 @@ export interface FileRouteTypes {
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_authorized/_default/acl/add-alias'
     | '/_authorized/_default/acl/aliases'
+    | '/_authorized/_default/acl/edit-alias'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
@@ -635,11 +661,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/edit-alias': {
+      id: '/_authorized/_default/acl/edit-alias'
+      path: '/acl/edit-alias'
+      fullPath: '/acl/edit-alias'
+      preLoaderRoute: typeof AuthorizedDefaultAclEditAliasRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/aliases': {
       id: '/_authorized/_default/acl/aliases'
       path: '/acl/aliases'
       fullPath: '/acl/aliases'
       preLoaderRoute: typeof AuthorizedDefaultAclAliasesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/acl/add-alias': {
+      id: '/_authorized/_default/acl/add-alias'
+      path: '/acl/add-alias'
+      fullPath: '/acl/add-alias'
+      preLoaderRoute: typeof AuthorizedDefaultAclAddAliasRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/locations/$locationId/edit': {
@@ -658,7 +698,9 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
+  AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
   AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
+  AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -678,7 +720,9 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
+  AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
   AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
+  AuthorizedDefaultAclEditAliasRoute: AuthorizedDefaultAclEditAliasRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,

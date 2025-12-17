@@ -9,11 +9,19 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
-  endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  address: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required())
+    .refine(
+      (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
+      m.form_error_invalid(),
+    ),
   allowed_ips: z.string(m.form_error_required()).trim(),
   dns: z.string().nullable(),
 });
@@ -26,7 +34,7 @@ export const AddLocationInternalVpnStep = () => {
       (s): FormFields => ({
         allowed_ips: s.allowed_ips,
         dns: s.dns,
-        endpoint: s.endpoint,
+        address: s.address,
       }),
     ),
   );
@@ -55,7 +63,15 @@ export const AddLocationInternalVpnStep = () => {
         }}
       >
         <form.AppForm>
-          <form.AppField name="endpoint">
+          <DescriptionBlock title="Gateway address">
+            <p>
+              {
+                'The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
+              }
+            </p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="address">
             {(field) => (
               <field.FormInput required label="Gateway VPN IP address and netmask" />
             )}

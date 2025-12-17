@@ -699,3 +699,100 @@ export interface TestDirectorySyncResponse {
   success: boolean;
   message: string | null;
 }
+
+export const AclStatus = {
+  New: 'New',
+  Applied: 'Applied',
+  Modified: 'Modified',
+  Deleted: 'Deleted',
+  Expired: 'Expired',
+} as const;
+
+export type AclStatusValue = (typeof AclStatus)[keyof typeof AclStatus];
+
+export const AclAliasStatus = {
+  Applied: AclStatus.Applied,
+  Modified: AclStatus.Modified,
+} as const;
+
+export type AclAliasStatusValue = (typeof AclAliasStatus)[keyof typeof AclAliasStatus];
+
+export const AclDeploymentState = {
+  Applied: AclStatus.Applied,
+  Modified: AclStatus.Modified,
+} as const;
+
+export type AclDeploymentStateValue =
+  (typeof AclDeploymentState)[keyof typeof AclDeploymentState];
+
+export const AclProtocol = {
+  TCP: 6,
+  UDP: 17,
+  ICMP: 1,
+} as const;
+
+export type AclProtocolValue = (typeof AclProtocol)[keyof typeof AclProtocol];
+
+export const AclProtocolName: Record<AclProtocolValue, string> = {
+  '1': 'ICMP',
+  '6': 'TCP',
+  '17': 'UDP',
+};
+
+export const AclKind = {
+  Destination: 'Destination',
+  Component: 'Component',
+} as const;
+
+export type AclKindValue = (typeof AclKind)[keyof typeof AclKind];
+
+export const AclAliasKind = {
+  Destination: AclKind.Destination,
+  Component: AclKind.Component,
+} as const;
+
+export type AclAliasKindValue = (typeof AclAliasKind)[keyof typeof AclAliasKind];
+
+export interface AclAlias {
+  id: number;
+  name: string;
+  kind: AclAliasKindValue;
+  state: AclAliasStatusValue;
+  destination: string;
+  ports: string;
+  protocols: AclProtocolValue[];
+  rules: number[];
+}
+
+export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
+
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;
+
+export interface AclRule {
+  id: number;
+  state: AclStatusValue;
+  name: string;
+  all_networks: boolean;
+  allow_all_users: boolean;
+  deny_all_users: boolean;
+  allow_all_network_devices: boolean;
+  deny_all_network_devices: boolean;
+  networks: number[];
+  enabled: boolean;
+  allowed_users: number[];
+  denied_users: number[];
+  allowed_groups: number[];
+  denied_groups: number[];
+  allowed_devices: number[];
+  denied_devices: number[];
+  destination: string;
+  aliases: number[];
+  ports: string;
+  protocols: number[];
+  expires: string | null;
+  parent_id: number | null;
+}
+
+export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+
+export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;

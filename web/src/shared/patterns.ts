@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-escape */
+
 export const patternNoSpecialChars = /^\w+$/;
 
 export const patternDigitOrLowercase = /^[0-9a-z]+$/g;
@@ -61,9 +63,14 @@ export const patternValidUrl = new RegExp(
     '$',
   'i',
 );
+export const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+export const ipv4WithPortPattern = /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/;
+export const ipv4WithCIDRPattern = /^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/;
+export const domainPattern =
+  /^(?:(?:(?:[A-Za-z-]+):\/{1,3})?(?:[A-Za-z0-9])(?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*(?:\.[A-Za-z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3}))$/;
 
-export const patternValidDomain =
-  /^(?:(?:(?:[A-Za-z-]+):\/{1,3})?(?:[A-Za-z0-9])(?:[A-Za-z0-9\-.]){1,61}(?:\.[A-Za-z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3}))(?::[0-9]{1,5})?$/;
+export const domainWithPortPattern =
+  /^(?:(?:(?:[A-Za-z-]+):\/{1,3})?(?:[A-Za-z0-9])(?:[A-Za-z0-9\-.]){1,61}(?:\.[A-Za-z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3})):[0-9]{1,5}$/;
 
 export const patternSafeUsernameCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]*$/;
 

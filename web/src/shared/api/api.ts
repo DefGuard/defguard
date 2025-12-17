@@ -3,6 +3,10 @@ import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
+  AclAlias,
+  AclRule,
+  AddAclAliasRequest,
+  AddAclRuleRequest,
   AddApiTokenRequest,
   AddApiTokenResponse,
   AddAuthKeyRequest,
@@ -28,6 +32,8 @@ import type {
   DeleteAuthKeyRequest,
   DeleteGatewayRequest,
   Device,
+  EditAclAliasRequest,
+  EditAclRuleRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
   EditNetworkLocation,
@@ -335,6 +341,31 @@ const api = {
   },
   mail: {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  acl: {
+    alias: {
+      getAliases: () => client.get<AclAlias[]>('/acl/alias'),
+      getAlias: (aliasId: number | string) =>
+        client.get<AclAlias>(`/acl/alias/${aliasId}`),
+      addAlias: (data: AddAclAliasRequest) => client.post(`/acl/alias`, data),
+      editAlias: (data: EditAclAliasRequest) => client.put(`/acl/alias/${data.id}`, data),
+      deleteAlias: (aliasId: number | string) => client.delete(`/acl/alias/${aliasId}`),
+      applyAliases: (aliases: number[]) =>
+        client.put(`/acl/alias/apply`, {
+          aliases,
+        }),
+    },
+    rule: {
+      getRules: () => client.get<AclRule[]>(`/acl/rule`),
+      getRule: (ruleId: number | string) => client.get<AclRule[]>(`/acl/rule/${ruleId}`),
+      addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
+      editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`),
+      applyRules: (rules: number[]) =>
+        client.put(`/acl/rule/apply`, {
+          rules,
+        }),
+      deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
+    },
   },
   info: () => client.get<ApplicationInfo>('/info'),
 } as const;
