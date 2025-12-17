@@ -24,18 +24,23 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
-use defguard_common::{VERSION, config::server_config, db::Id};
+use defguard_common::{VERSION, config::server_config};
 use defguard_core::{
-    db::models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE},
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider, directory_sync::sync_user_groups_if_configured, grpc::polling::PollingServer, handlers::openid_login::{
-            build_state, make_oidc_client, user_from_claims, SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-        }, is_business_license_active, ldap::utils::ldap_update_user_state
+        db::models::openid_provider::OpenIdProvider,
+        directory_sync::sync_user_groups_if_configured,
+        grpc::polling::PollingServer,
+        handlers::openid_login::{
+            SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
+        },
+        is_business_license_active,
+        ldap::utils::ldap_update_user_state,
     },
     events::BidiStreamEvent,
     grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer},
-    version::{is_proxy_version_supported, IncompatibleComponents, IncompatibleProxyData},
+    version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
@@ -92,6 +97,7 @@ impl ProxyRouter {
         &mut self,
         response: &CoreResponse,
     ) -> Option<Vec<UnboundedSender<CoreResponse>>> {
+        #[allow(clippy::single_match)]
         match &response.payload {
             // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
             // so it can send the preshared key.
@@ -136,13 +142,11 @@ impl ProxyOrchestrator {
         // TODO(jck) retrieve proxies from db
         let proxies = vec![
             Proxy::new(
-                1,
                 self.pool.clone(),
                 Uri::from_static("http://localhost:50051"),
                 self.tx.clone(),
             )?,
             Proxy::new(
-                2,
                 self.pool.clone(),
                 Uri::from_static("http://localhost:50052"),
                 self.tx.clone(),
@@ -193,7 +197,6 @@ impl ProxyTxSet {
 
 /// Groups all proxy GRPC servers
 struct Proxy {
-    id: Id,
     pool: PgPool,
     /// Proxy server gRPC URI
     endpoint: Endpoint,
@@ -203,7 +206,7 @@ struct Proxy {
 
 impl Proxy {
     // TODO(jck) more specific error
-    pub fn new(id: Id, pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, anyhow::Error> {
+    pub fn new(pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, anyhow::Error> {
         let endpoint = Endpoint::from(uri);
 
         // Set endpoint keep-alive to avoid connectivity issues in proxied deployments.
@@ -226,7 +229,6 @@ impl Proxy {
         let servers = ProxyServerSet::new(pool.clone(), tx);
 
         Ok(Self {
-            id,
             pool,
             endpoint,
             servers,

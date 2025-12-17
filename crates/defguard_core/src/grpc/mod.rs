@@ -28,8 +28,10 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
-        db::models::enterprise_settings::ClientTrafficPolicy,
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
         is_business_license_active,
     },
     events::GrpcEvent,

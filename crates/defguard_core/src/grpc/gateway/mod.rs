@@ -19,7 +19,7 @@ use defguard_proto::{
     enterprise::firewall::FirewallConfig,
     gateway::{
         Configuration, ConfigurationRequest, Peer, PeerStats, StatsUpdate, Update,
-        gateway_service_server, update, stats_update
+        gateway_service_server, stats_update, update,
     },
 };
 use defguard_version::version_info_from_metadata;
