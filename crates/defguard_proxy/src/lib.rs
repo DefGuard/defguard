@@ -80,6 +80,8 @@ pub enum ProxyError {
     TokenError(#[from] TokenError),
 }
 
+/// Maintains routing state for proxy-specific responses by associating
+/// correlation tokens with the proxy senders that should receive them.
 #[derive(Default)]
 struct ProxyRouter {
     response_map: HashMap<String, Vec<UnboundedSender<CoreResponse>>>,
@@ -132,7 +134,12 @@ impl ProxyRouter {
     }
 }
 
-/// TODO(jck) rustdoc, list orchestrator's responsibilities
+/// Coordinates communication between the Core and multiple proxy instances.
+///
+/// Responsibilities include:
+/// - instantiating and supervising proxy connections,
+/// - routing responses to the appropriate proxy based on correlation state,
+/// - providing shared infrastructure (database access, outbound channels),
 pub struct ProxyOrchestrator {
     pool: PgPool,
     tx: ProxyTxSet,
@@ -154,6 +161,10 @@ impl ProxyOrchestrator {
         }
     }
 
+    /// Spawns and supervises asynchronous tasks for all configured proxies.
+    ///
+    /// Each proxy runs in its own task and shares Core-side infrastructure
+    /// such as routing state and compatibility tracking.
     pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
         // TODO retrieve proxies from db
         let Some(url) = url else {
@@ -184,6 +195,8 @@ impl ProxyOrchestrator {
     }
 }
 
+/// Shared set of outbound channels that proxy instances use to forward
+/// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct ProxyTxSet {
     wireguard: Sender<GatewayEvent>,
@@ -205,13 +218,19 @@ impl ProxyTxSet {
     }
 }
 
-/// Groups all proxy GRPC servers
+/// Represents a single Core - Proxy connection.
+///
+/// A `Proxy` is responsible for establishing and maintaining a gRPC
+/// bidirectional stream to one proxy instance, handling incoming requests
+/// from that proxy, and forwarding responses back through the same stream.
+/// Each `Proxy` runs independently and is supervised by the
+/// `ProxyOrchestrator`.
 struct Proxy {
     pool: PgPool,
     /// Proxy server gRPC URI
     endpoint: Endpoint,
     /// gRPC servers
-    servers: ProxyServerSet,
+    services: ProxyServices,
 }
 
 impl Proxy {
@@ -239,15 +258,20 @@ impl Proxy {
         };
 
         // Instantiate gRPC servers.
-        let servers = ProxyServerSet::new(pool.clone(), tx);
+        let servers = ProxyServices::new(pool.clone(), tx);
 
         Ok(Self {
             pool,
             endpoint,
-            servers,
+            services: servers,
         })
     }
 
+    /// Establishes and maintains a gRPC bidirectional stream to the proxy.
+    ///
+    /// The proxy connection is retried on failure, compatibility is checked
+    /// on each successful connection, and incoming messages are handled
+    /// until the stream is closed.
     pub(crate) async fn run(
         mut self,
         tx_set: ProxyTxSet,
@@ -316,6 +340,12 @@ impl Proxy {
         }
     }
 
+    /// Processes incoming requests from the proxy over an active gRPC stream.
+    ///
+    /// This loop receives `CoreRequest` messages from the proxy, dispatches
+    /// them to the appropriate Core-side handlers, and sends corresponding
+    /// `CoreResponse` messages back through the stream. Certain requests may
+    /// also register routing state for future responses.
     async fn message_loop(
         &mut self,
         tx: UnboundedSender<CoreResponse>,
@@ -337,7 +367,7 @@ impl Proxy {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .register_code_mfa_start(request)
                                 .await
@@ -354,7 +384,7 @@ impl Proxy {
                         // rpc CodeMfaSetupFinish return (CodeMfaSetupFinishResponse)
                         Some(core_request::Payload::CodeMfaSetupFinish(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .register_code_mfa_finish(request)
                                 .await
@@ -370,7 +400,7 @@ impl Proxy {
                         }
                         // rpc ClientMfaTokenValidation return (ClientMfaTokenValidationResponse)
                         Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                            match self.servers.client_mfa.validate_mfa_token(request).await {
+                            match self.services.client_mfa.validate_mfa_token(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::ClientMfaTokenValidation(
                                         response_payload,
@@ -384,7 +414,7 @@ impl Proxy {
                         }
                         // rpc RegisterMobileAuth (RegisterMobileAuthRequest) return (google.protobuf.Empty)
                         Some(core_request::Payload::RegisterMobileAuth(request)) => {
-                            match self.servers.enrollment.register_mobile_auth(request).await {
+                            match self.services.enrollment.register_mobile_auth(request).await {
                                 Ok(()) => Some(core_response::Payload::Empty(())),
                                 Err(err) => {
                                     error!("Register mobile auth error {err}");
@@ -395,7 +425,7 @@ impl Proxy {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .start_enrollment(request, received.device_info)
                                 .await
@@ -412,7 +442,7 @@ impl Proxy {
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::ActivateUser(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .activate_user(request, received.device_info)
                                 .await
@@ -427,7 +457,7 @@ impl Proxy {
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::NewDevice(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .create_device(request, received.device_info)
                                 .await
@@ -444,7 +474,7 @@ impl Proxy {
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::ExistingDevice(request)) => {
                             match self
-                                .servers
+                                .services
                                 .enrollment
                                 .get_network_info(request, received.device_info)
                                 .await
@@ -461,7 +491,7 @@ impl Proxy {
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordResetInit(request)) => {
                             match self
-                                .servers
+                                .services
                                 .password_reset
                                 .request_password_reset(request, received.device_info)
                                 .await
@@ -476,7 +506,7 @@ impl Proxy {
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
                             match self
-                                .servers
+                                .services
                                 .password_reset
                                 .start_password_reset(request, received.device_info)
                                 .await
@@ -493,7 +523,7 @@ impl Proxy {
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordReset(request)) => {
                             match self
-                                .servers
+                                .services
                                 .password_reset
                                 .reset_password(request, received.device_info)
                                 .await
@@ -508,7 +538,7 @@ impl Proxy {
                         // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
                         Some(core_request::Payload::ClientMfaStart(request)) => {
                             match self
-                                .servers
+                                .services
                                 .client_mfa
                                 .start_client_mfa_login(request)
                                 .await
@@ -525,7 +555,7 @@ impl Proxy {
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
                             match self
-                                .servers
+                                .services
                                 .client_mfa
                                 .finish_client_mfa_login(request, received.device_info)
                                 .await
@@ -551,7 +581,7 @@ impl Proxy {
                         }
                         Some(core_request::Payload::ClientMfaOidcAuthenticate(request)) => {
                             match self
-                                .servers
+                                .services
                                 .client_mfa
                                 .auth_mfa_session_with_oidc(request, received.device_info)
                                 .await
@@ -566,7 +596,7 @@ impl Proxy {
                         // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
                         Some(core_request::Payload::InstanceInfo(request)) => {
                             match self
-                                .servers
+                                .services
                                 .polling
                                 .info(request, received.device_info)
                                 .await
@@ -771,14 +801,20 @@ impl Proxy {
     }
 }
 
-struct ProxyServerSet {
+/// Groups Core-side service handlers used to process requests originating
+/// from a proxy instance.
+///
+/// Each `ProxyServices` instance is owned by a single `Proxy` and provides
+/// the concrete handlers for enrollment, authentication, and polling-related
+/// requests received over the gRPC bidirectional stream.
+struct ProxyServices {
     enrollment: EnrollmentServer,
     password_reset: PasswordResetServer,
     client_mfa: ClientMfaServer,
     polling: PollingServer,
 }
 
-impl ProxyServerSet {
+impl ProxyServices {
     pub fn new(pool: PgPool, tx: ProxyTxSet) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
