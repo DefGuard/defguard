@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -6,9 +7,13 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
+import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
+import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -22,10 +27,26 @@ type Props = {
 };
 
 export const AliasTable = ({ data: rowData }: Props) => {
+  const navigate = useNavigate();
+
   const { data: rules } = useQuery({
     queryFn: api.acl.rule.getRules,
     queryKey: ['acl', 'rule'],
     select: (resp) => resp.data,
+  });
+
+  const { mutate: deleteAlias } = useMutation({
+    mutationFn: api.acl.alias.deleteAlias,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
+
+  const { mutate: applyAliases } = useMutation({
+    mutationFn: api.acl.alias.applyAliases,
+    meta: {
+      invalidate: ['acl', 'alias'],
+    },
   });
 
   const columns = useMemo(
@@ -90,8 +111,56 @@ export const AliasTable = ({ data: rowData }: Props) => {
           return <TableValuesListCell values={inRules} />;
         },
       }),
+      columnHelper.display({
+        id: 'edit',
+        enableSorting: false,
+        size: tableEditColumnSize,
+        cell: (info) => {
+          const row = info.row.original;
+          const menuItems: MenuItemsGroup[] = [
+            {
+              items: [
+                {
+                  text: m.controls_edit(),
+                  icon: 'edit',
+                  onClick: () => {
+                    navigate({
+                      to: '/acl/edit-alias',
+                      search: {
+                        alias: row.id,
+                      },
+                    });
+                  },
+                },
+                {
+                  text: m.controls_delete(),
+                  icon: 'delete',
+                  variant: 'danger',
+                  onClick: () => {
+                    deleteAlias(row.id);
+                  },
+                },
+              ],
+            },
+          ];
+          if (row.state === 'Modified') {
+            menuItems[0].items.splice(1, 0, {
+              text: 'Deploy',
+              icon: 'deploy',
+              onClick: () => {
+                applyAliases([row.id]);
+              },
+            });
+          }
+          return (
+            <TableCell>
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
+            </TableCell>
+          );
+        },
+      }),
     ],
-    [rules],
+    [rules, applyAliases, deleteAlias, navigate],
   );
 
   const table = useReactTable({

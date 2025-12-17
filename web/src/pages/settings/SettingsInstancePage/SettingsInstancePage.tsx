@@ -123,6 +123,10 @@ const Content = ({ settings }: { settings: Settings }) => {
                 text={m.controls_save_changes()}
                 disabled={isDefault}
                 loading={isSubmitting}
+                type="submit"
+                onClick={() => {
+                  form.handleSubmit();
+                }}
               />
             </div>
           </Controls>

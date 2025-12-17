@@ -63,7 +63,7 @@ export const CEAliasPage = ({ alias }: Props) => {
         subtitle: `ACL alias functionality allows administrators to create reusable elements which can then be used when defining a destination in multiple ACL rules. You must define at least one element in the alias settings.`,
       }}
     >
-      <FormContent />
+      <FormContent alias={alias} />
     </EditPage>
   );
 };
