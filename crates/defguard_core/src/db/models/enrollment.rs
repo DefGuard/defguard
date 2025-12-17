@@ -384,10 +384,7 @@ impl Token {
             device_info,
         )?)
     }
-}
 
-// TODO(jck) move this somewhere else?
-impl Token {
     // Send configured welcome email to user after finishing enrollment
     pub async fn send_welcome_email(
         &self,
