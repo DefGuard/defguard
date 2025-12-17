@@ -39,7 +39,7 @@ use tonic::{Code, Request, Response, Status, metadata::MetadataMap};
 
 use self::map::GatewayMap;
 use crate::{
-    enterprise::{firewall::try_get_location_firewall_config, is_enterprise_enabled},
+    enterprise::{firewall::try_get_location_firewall_config, is_enterprise_license_active},
     events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::events::GatewayEvent,
     location_management::allowed_peers::get_location_allowed_peers,
@@ -126,7 +126,7 @@ pub struct GatewayServer {
 /// - Enterprise is enabled
 #[must_use]
 pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
-    location.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_enabled()
+    location.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_license_active()
 }
 
 /// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.

@@ -12,6 +12,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
+import { ClientTrafficPolicySelect } from './TrafficPolicySelect/TrafficPolicySelect';
 
 export const EnterpriseForm = () => {
   const { LL } = useI18nContext();
@@ -77,17 +78,10 @@ export const EnterpriseForm = () => {
           </Helper>
         </div>
         <div className="helper-row">
-          <LabeledCheckbox
-            disabled={isLoading}
-            label={LL.settingsPage.enterprise.fields.disableAllTraffic.label()}
-            value={settings.disable_all_traffic}
-            onChange={() =>
-              mutate({ disable_all_traffic: !settings.disable_all_traffic })
-            }
+          <ClientTrafficPolicySelect
+            onChange={(value) => mutate({ client_traffic_policy: value })}
+            fieldValue={settings.client_traffic_policy}
           />
-          <Helper>
-            {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
-          </Helper>
         </div>
       </div>
     </section>

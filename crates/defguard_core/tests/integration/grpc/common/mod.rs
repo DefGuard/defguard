@@ -5,7 +5,8 @@ use defguard_common::db::models::settings::initialize_current_settings;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    enterprise::license::{License, set_cached_license},
+    db::{AppEvent, GatewayEvent},
+    enterprise::license::{License, LicenseTier, set_cached_license},
     events::GrpcEvent,
     grpc::{
         WorkerState, build_grpc_service_router,
@@ -147,6 +148,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         None,
         None,
         None,
+        LicenseTier::Business,
     );
 
     set_cached_license(Some(license));

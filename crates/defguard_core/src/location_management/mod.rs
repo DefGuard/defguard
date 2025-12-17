@@ -3,14 +3,9 @@ use std::{collections::HashMap, net::IpAddr};
 use defguard_common::{
     csv::AsCsv,
     db::{
-        Id,
         models::{
-            Device, DeviceNetworkInfo, DeviceType, ModelError, WireguardNetwork,
-            WireguardNetworkError,
-            device::{DeviceInfo, WireguardNetworkDevice},
-            user::User,
-            wireguard::MappedDevice,
-        },
+            device::{DeviceInfo, WireguardNetworkDevice}, user::User, wireguard::MappedDevice, Device, DeviceNetworkInfo, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError
+        }, Id
     },
 };
 use sqlx::PgConnection;
@@ -18,7 +13,7 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::firewall::{FirewallError, try_get_location_firewall_config},
+    enterprise::firewall::{try_get_location_firewall_config, FirewallError},
     grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events},
     wg_config::ImportedDevice,
 };

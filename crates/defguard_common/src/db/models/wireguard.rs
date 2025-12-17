@@ -1035,7 +1035,8 @@ impl WireguardNetwork<Id> {
             result.rows_affected(),
         );
         Ok(())
-    }
+	}
+
 }
 
 // [`IpNetwork`] does not implement [`Default`]

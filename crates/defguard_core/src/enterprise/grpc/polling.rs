@@ -6,7 +6,10 @@ use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoRespons
 use sqlx::PgPool;
 use tonic::Status;
 
-use crate::{enterprise::is_enterprise_enabled, grpc::utils::build_device_config_response};
+use crate::{
+    enterprise::is_business_license_active,
+    grpc::utils::build_device_config_response,
+};
 
 pub struct PollingServer {
     pool: PgPool,
@@ -23,7 +26,7 @@ impl PollingServer {
         debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
-        if !is_enterprise_enabled() {
+        if !is_business_license_active() {
             debug!("Instance has enterprise features disabled, denying instance polling info");
             return Err(Status::failed_precondition("no valid license"));
         }

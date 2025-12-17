@@ -22,7 +22,7 @@ use defguard_common::db::{
 
 use crate::{
     appstate::AppState,
-    enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
+    enterprise::{db::models::api_tokens::ApiToken, is_business_license_active},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
 };
@@ -40,7 +40,7 @@ where
         let appstate = AppState::from_ref(state);
 
         // first try to authenticate by API token if one is found in header
-        if is_enterprise_enabled() {
+        if is_business_license_active() {
             let maybe_auth_header: Option<TypedHeader<Authorization<Bearer>>> =
                 <TypedHeader<_> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
                     .await

@@ -1575,6 +1575,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           validUntil: {
             label: 'Valid until',
           },
+          licenseTier: {
+            label: 'License tier',
+          },
         },
       },
     },
@@ -1708,15 +1711,28 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
-        disableAllTraffic: {
-          label: 'Disable the option to route all traffic through VPN',
-          helper:
-            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
-        },
         manualConfig: {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
             "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
+        },
+        clientTrafficPolicy: {
+          header: 'Client traffic policy',
+          none: {
+            label: 'None',
+            helper:
+              'None - When this option is enabled, users will be able to select all routing options.',
+          },
+          disableAllTraffic: {
+            label: 'Disable the option to route all traffic through VPN',
+            helper:
+              'Disable all traffic - When this option is enabled, users will not be able to route all traffic through the VPN.',
+          },
+          forceAllTraffic: {
+            label: 'Force the clients to route all traffic through VPN',
+            helper:
+              'Force all traffic - When this option is enabled, the users will always route all traffic through the VPN.',
+          },
         },
       },
     },
@@ -2053,6 +2069,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           alwaysOn:
             'Always-on - A VPN connection will always be active when the user device is on.',
           mfaWarning: "Service locations can't be used while location MFA is enabled.",
+          enterpriseTierWarning: "This feature requires an Enterprise-tier license. If you are interested in using it, please contact our sales team at: sales@defguard.net"
         },
       },
       sections: {

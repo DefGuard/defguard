@@ -1,16 +1,16 @@
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, Type, query, query_as};
 use struct_patch::Patch;
 
-use crate::enterprise::is_enterprise_enabled;
+use crate::enterprise::is_business_license_active;
 
 #[derive(Debug, Deserialize, Patch, Serialize)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct EnterpriseSettings {
-    // If true, only admins can manage devices
+    /// If true, only admins can manage devices
     pub admin_device_management: bool,
-    // If true, the option to route all traffic through the vpn is disabled in the client
-    pub disable_all_traffic: bool,
-    // If true, manual WireGuard setup is disabled
+    /// Describes allowed routing options for clients connecting to the instance.
+    pub client_traffic_policy: ClientTrafficPolicy,
+    /// If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
 }
 
@@ -20,8 +20,8 @@ impl Default for EnterpriseSettings {
     fn default() -> Self {
         Self {
             admin_device_management: false,
-            disable_all_traffic: false,
             only_client_activation: false,
+            client_traffic_policy: ClientTrafficPolicy::default(),
         }
     }
 }
@@ -35,11 +35,12 @@ impl EnterpriseSettings {
     {
         // avoid holding the rwlock across await, makes the future !Send
         // and therefore unusable in axum handlers
-        if is_enterprise_enabled() {
+        if is_business_license_active() {
             let settings = query_as!(
                 Self,
                 "SELECT admin_device_management, \
-                disable_all_traffic, only_client_activation \
+				client_traffic_policy \"client_traffic_policy: ClientTrafficPolicy\", \
+				only_client_activation \
                 FROM \"enterprisesettings\" WHERE id = 1",
             )
             .fetch_optional(executor)
@@ -57,11 +58,11 @@ impl EnterpriseSettings {
         query!(
             "UPDATE \"enterprisesettings\" SET \
             admin_device_management = $1, \
-            disable_all_traffic = $2, \
+			client_traffic_policy = $2, \
             only_client_activation = $3 \
             WHERE id = 1",
             self.admin_device_management,
-            self.disable_all_traffic,
+            self.client_traffic_policy as ClientTrafficPolicy,
             self.only_client_activation,
         )
         .execute(executor)
@@ -69,4 +70,18 @@ impl EnterpriseSettings {
 
         Ok(())
     }
+}
+
+/// Describes allowed traffic options for clients connecting to the instance.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default, Copy)]
+#[sqlx(type_name = "client_traffic_policy", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ClientTrafficPolicy {
+    /// No restrictions
+    #[default]
+    None,
+    /// Clients are not allowed to route all traffic through the VPN.
+    DisableAllTraffic,
+    /// Clients are forced to route all traffic through the VPN.
+    ForceAllTraffic,
 }
