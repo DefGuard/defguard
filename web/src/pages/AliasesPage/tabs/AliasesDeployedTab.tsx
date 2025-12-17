@@ -1,9 +1,11 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { m } from '../../../paraglide/messages';
 import type { AclAlias } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { AliasTable } from '../AliasTable';
 
@@ -14,6 +16,7 @@ type Props = {
 export const AliasesDeployedTab = ({ aliases }: Props) => {
   const isEmpty = aliases.length === 0;
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -26,6 +29,18 @@ export const AliasesDeployedTab = ({ aliases }: Props) => {
     }),
     [navigate],
   );
+
+  const distilledAliases = useMemo(() => {
+    let res = aliases;
+    if (search?.length) {
+      res = res.filter((alias) =>
+        alias.name.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+    return res;
+  }, [aliases, search]);
+
+  const visibleEmpty = distilledAliases.length === 0;
 
   return (
     <>
@@ -40,9 +55,23 @@ export const AliasesDeployedTab = ({ aliases }: Props) => {
       {!isEmpty && (
         <>
           <TableTop text="Deployed aliases">
+            <Search
+              placeholder={m.controls_search()}
+              initialValue={search}
+              onChange={(search) => {
+                setSearch(search);
+              }}
+            />
             <Button {...addButtonProps} />
           </TableTop>
-          <AliasTable data={aliases} />
+          {!visibleEmpty && <AliasTable data={aliases} />}
+          {visibleEmpty && (
+            <EmptyStateFlexible
+              icon="search"
+              title="No aliases found."
+              subtitle="Try different search."
+            />
+          )}
         </>
       )}
     </>
