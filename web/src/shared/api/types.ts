@@ -767,3 +767,32 @@ export interface AclAlias {
 export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
 
 export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;
+
+export interface AclRule {
+  id: number;
+  state: AclStatusValue;
+  name: string;
+  all_networks: boolean;
+  allow_all_users: boolean;
+  deny_all_users: boolean;
+  allow_all_network_devices: boolean;
+  deny_all_network_devices: boolean;
+  networks: number[];
+  enabled: boolean;
+  allowed_users: number[];
+  denied_users: number[];
+  allowed_groups: number[];
+  denied_groups: number[];
+  allowed_devices: number[];
+  denied_devices: number[];
+  destination: string;
+  aliases: number[];
+  ports: string;
+  protocols: number[];
+  expires: string | null;
+  parent_id: number | null;
+}
+
+export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+
+export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;

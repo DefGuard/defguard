@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -5,10 +6,12 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 
 type RowData = AclAlias;
 
@@ -19,6 +22,12 @@ type Props = {
 };
 
 export const AliasTable = ({ data: rowData }: Props) => {
+  const { data: rules } = useQuery({
+    queryFn: api.acl.rule.getRules,
+    queryKey: ['acl', 'rule'],
+    select: (resp) => resp.data,
+  });
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -35,7 +44,7 @@ export const AliasTable = ({ data: rowData }: Props) => {
         ),
       }),
       columnHelper.accessor('destination', {
-        header: '',
+        header: 'IP4/6 CIDR range address',
         enableSorting: false,
         size: 430,
         cell: (info) => {
@@ -70,16 +79,19 @@ export const AliasTable = ({ data: rowData }: Props) => {
         header: 'Used in rules',
         size: 400,
         enableSorting: false,
-        cell: () => {
-          return (
-            <TableCell>
-              <span>Placeholder</span>
-            </TableCell>
-          );
+        cell: (info) => {
+          const value = info.getValue();
+          let inRules: string[] = [];
+          if (isPresent(rules)) {
+            inRules = rules
+              .filter((rule) => value.includes(rule.id))
+              .map((rule) => rule.name);
+          }
+          return <TableValuesListCell values={inRules} />;
         },
       }),
     ],
-    [],
+    [rules],
   );
 
   const table = useReactTable({
