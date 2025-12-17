@@ -1,11 +1,8 @@
 import ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 import { m } from '../paraglide/messages';
-import {
-  patternStrictIpV4,
-  patternValidDomain,
-  patternValidWireguardKey,
-} from './patterns';
+import { patternStrictIpV4, patternValidWireguardKey } from './patterns';
+import { Validate } from './validate';
 
 export const validateWireguardPublicKey = () =>
   z
@@ -29,7 +26,7 @@ export const validateIpOrDomain = (
   if (!hasLetter || hasColon) {
     return (allowIPv6 && validateIPv6(val, allowMask)) || validateIPv4(val, allowMask);
   } else {
-    return patternValidDomain.test(val);
+    return Validate.Domain(val);
   }
 };
 
@@ -60,7 +57,7 @@ export const validateIpOrDomainList = (
   for (const value of split) {
     if (
       !validateIPv4(value, allowMasks) &&
-      !patternValidDomain.test(value) &&
+      !Validate.Domain(value) &&
       (!allowIPv6 || !validateIPv6(value, allowMasks))
     ) {
       return false;

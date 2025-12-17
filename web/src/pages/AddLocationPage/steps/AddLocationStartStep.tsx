@@ -9,17 +9,20 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { validateIpList } from '../../../shared/validators';
+import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
   name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-  address: z
+  endpoint: z
     .string(m.form_error_required())
     .trim()
     .min(1, m.form_error_required())
-    .refine((value) => validateIpList(value, ',', false), m.form_error_invalid()),
+    .refine(
+      (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
+      m.form_error_invalid(),
+    ),
   port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
 });
 
@@ -29,7 +32,7 @@ export const AddLocationStartStep = () => {
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
-        address: s.address,
+        endpoint: s.endpoint,
         name: s.name,
         port: s.port,
       }),
@@ -65,16 +68,14 @@ export const AddLocationStartStep = () => {
             {(field) => <field.FormInput required label={'Location name'} />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Gateway address">
-            <p>
-              {
-                'The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
-              }
-            </p>
+          <DescriptionBlock title="Gateway public address">
+            <p>{`Used by VPN users to connect.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="address">
-            {(field) => <field.FormInput required label={'Gateway VPN IP address'} />}
+          <form.AppField name="endpoint">
+            {(field) => (
+              <field.FormInput required label={'Gateway VPN IP address or domain name'} />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="port">
