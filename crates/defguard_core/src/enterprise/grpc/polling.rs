@@ -6,10 +6,7 @@ use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoRespons
 use sqlx::PgPool;
 use tonic::Status;
 
-use crate::{
-    enterprise::is_business_license_active,
-    grpc::utils::build_device_config_response,
-};
+use crate::{enterprise::is_business_license_active, grpc::utils::build_device_config_response};
 
 pub struct PollingServer {
     pool: PgPool,

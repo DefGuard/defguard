@@ -4,7 +4,6 @@ use axum::http::Uri;
 use defguard_common::db::models::settings::initialize_current_settings;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::AppEvent,
     db::{AppEvent, GatewayEvent},
     enterprise::license::{License, LicenseTier, set_cached_license},
     events::GrpcEvent,

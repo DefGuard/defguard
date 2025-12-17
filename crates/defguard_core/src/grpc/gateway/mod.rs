@@ -126,7 +126,8 @@ pub struct GatewayServer {
 /// - Enterprise is enabled
 #[must_use]
 pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
-    location.service_location_mode != ServiceLocationMode::Disabled && !is_enterprise_license_active()
+    location.service_location_mode != ServiceLocationMode::Disabled
+        && !is_enterprise_license_active()
 }
 
 /// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.

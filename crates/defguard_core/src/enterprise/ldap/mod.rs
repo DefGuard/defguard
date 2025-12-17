@@ -18,14 +18,12 @@ use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
 use self::error::LdapError;
 use crate::enterprise::{
+    is_business_license_active,
     ldap::model::{
         extract_dn_path, ldap_sync_allowed_for_user, user_as_ldap_attrs, user_as_ldap_mod,
         user_from_searchentry,
     },
     limits::update_counts,
-};
-use crate::{
-    enterprise::{is_business_license_active},
 };
 
 #[cfg(not(test))]
