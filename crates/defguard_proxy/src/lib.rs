@@ -174,14 +174,11 @@ impl ProxyOrchestrator {
             self.pool.clone(),
             Uri::from_str(url)?,
             self.tx.clone(),
+            Arc::clone(&self.router),
         )?];
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
-            tasks.spawn(proxy.run(
-                self.tx.clone(),
-                self.incompatible_components.clone(),
-                self.router.clone(),
-            ));
+            tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
         }
         // TODO(jck) handle empty proxies vec somewhere earlier
         while let Some(result) = tasks.join_next().await {
@@ -231,11 +228,17 @@ struct Proxy {
     endpoint: Endpoint,
     /// gRPC servers
     services: ProxyServices,
+    /// Router shared between proxies and the orchestrator
+    router: Arc<RwLock<ProxyRouter>>,
 }
 
 impl Proxy {
-    // TODO(jck) more specific error
-    pub fn new(pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, ProxyError> {
+    pub fn new(
+        pool: PgPool,
+        uri: Uri,
+        tx: ProxyTxSet,
+        router: Arc<RwLock<ProxyRouter>>,
+    ) -> Result<Self, ProxyError> {
         let endpoint = Endpoint::from(uri);
 
         // Set endpoint keep-alive to avoid connectivity issues in proxied deployments.
@@ -258,12 +261,13 @@ impl Proxy {
         };
 
         // Instantiate gRPC servers.
-        let servers = ProxyServices::new(pool.clone(), tx);
+        let services = ProxyServices::new(pool.clone(), tx);
 
         Ok(Self {
             pool,
             endpoint,
-            services: servers,
+            router,
+            services,
         })
     }
 
@@ -276,7 +280,6 @@ impl Proxy {
         mut self,
         tx_set: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-        router: Arc<RwLock<ProxyRouter>>,
     ) -> Result<(), ProxyError> {
         loop {
             debug!("Connecting to proxy at {}", self.endpoint.uri());
@@ -334,8 +337,7 @@ impl Proxy {
 
             info!("Connected to proxy at {}", self.endpoint.uri());
             let mut resp_stream = response.into_inner();
-            // TODO(jck) store router in the Proxy struct
-            self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream, &router)
+            self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
         }
     }
@@ -351,7 +353,6 @@ impl Proxy {
         tx: UnboundedSender<CoreResponse>,
         wireguard_tx: Sender<GatewayEvent>,
         resp_stream: &mut Streaming<CoreRequest>,
-        router: &Arc<RwLock<ProxyRouter>>,
     ) -> Result<(), ProxyError> {
         let pool = self.pool.clone();
         'message: loop {
@@ -362,7 +363,10 @@ impl Proxy {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
-                    router.write().unwrap().register_request(&received, &tx);
+                    self.router
+                        .write()
+                        .unwrap()
+                        .register_request(&received, &tx);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -780,7 +784,7 @@ impl Proxy {
                         id: received.id,
                         payload,
                     };
-                    if let Some(txs) = router.write().unwrap().route_response(&req) {
+                    if let Some(txs) = self.router.write().unwrap().route_response(&req) {
                         for tx in txs {
                             let _ = tx.send(req.clone());
                         }
