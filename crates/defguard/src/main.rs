@@ -165,8 +165,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        res = proxy_orchestrator.run(),
-            if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
+        res = proxy_orchestrator.run(&config.proxy_url) => error!("ProxyOrchestrator returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),

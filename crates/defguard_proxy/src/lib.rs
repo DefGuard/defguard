@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs::read_to_string,
+    str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -10,6 +11,7 @@ use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlo
 use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
+use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::Sender,
@@ -26,7 +28,7 @@ use tonic::{
 
 use defguard_common::{VERSION, config::server_config};
 use defguard_core::{
-    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
@@ -61,6 +63,22 @@ extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
+
+#[derive(Error, Debug)]
+pub enum ProxyError {
+    #[error(transparent)]
+    InvalidUriError(#[from] axum::http::uri::InvalidUri),
+    #[error("Failed to read CA certificate: {0}")]
+    CaCertReadError(std::io::Error),
+    #[error(transparent)]
+    TonicError(#[from] tonic::transport::Error),
+    #[error(transparent)]
+    SemverError(#[from] semver::Error),
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
+    #[error(transparent)]
+    TokenError(#[from] TokenError),
+}
 
 #[derive(Default)]
 struct ProxyRouter {
@@ -136,23 +154,17 @@ impl ProxyOrchestrator {
         }
     }
 
-    /// TODO(jck) Retrieves proxies from the db and runs them
-    // TODO(jck) consider new error type
-    pub async fn run(self) -> Result<(), anyhow::Error> {
-        // TODO(jck) retrieve proxies from db
-        let proxies = vec![
-            Proxy::new(
-                self.pool.clone(),
-                Uri::from_static("http://localhost:50051"),
-                self.tx.clone(),
-            )?,
-            Proxy::new(
-                self.pool.clone(),
-                Uri::from_static("http://localhost:50052"),
-                self.tx.clone(),
-            )?,
-        ];
-        let mut tasks = JoinSet::<Result<(), anyhow::Error>>::new();
+    pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
+        // TODO retrieve proxies from db
+        let Some(url) = url else {
+            return Ok(());
+        };
+        let proxies = vec![Proxy::new(
+            self.pool.clone(),
+            Uri::from_str(url)?,
+            self.tx.clone(),
+        )?];
+        let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
             tasks.spawn(proxy.run(
                 self.tx.clone(),
@@ -163,13 +175,11 @@ impl ProxyOrchestrator {
         // TODO(jck) handle empty proxies vec somewhere earlier
         while let Some(result) = tasks.join_next().await {
             match result {
-                // TODO(jck) add proxy id/name to the error log
                 Ok(Ok(())) => error!("Proxy task returned prematurely"),
                 Ok(Err(err)) => error!("Proxy task returned with error: {err}"),
                 Err(err) => error!("Proxy task execution failed: {err}"),
             }
         }
-
         Ok(())
     }
 }
@@ -206,7 +216,7 @@ struct Proxy {
 
 impl Proxy {
     // TODO(jck) more specific error
-    pub fn new(pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, anyhow::Error> {
+    pub fn new(pool: PgPool, uri: Uri, tx: ProxyTxSet) -> Result<Self, ProxyError> {
         let endpoint = Endpoint::from(uri);
 
         // Set endpoint keep-alive to avoid connectivity issues in proxied deployments.
@@ -218,7 +228,10 @@ impl Proxy {
         // Setup certs.
         let config = server_config();
         let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
-            let ca = read_to_string(ca)?;
+            let ca = read_to_string(ca).map_err(|err| {
+                error!("Failed to read CA certificate: {err:?}");
+                ProxyError::CaCertReadError(err)
+            })?;
             let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
             endpoint.tls_config(tls)?
         } else {
@@ -240,7 +253,7 @@ impl Proxy {
         tx_set: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         router: Arc<RwLock<ProxyRouter>>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), ProxyError> {
         loop {
             debug!("Connecting to proxy at {}", self.endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
@@ -309,7 +322,7 @@ impl Proxy {
         wireguard_tx: Sender<GatewayEvent>,
         resp_stream: &mut Streaming<CoreRequest>,
         router: &Arc<RwLock<ProxyRouter>>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), ProxyError> {
         let pool = self.pool.clone();
         'message: loop {
             match resp_stream.message().await {
