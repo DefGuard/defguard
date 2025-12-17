@@ -733,6 +733,12 @@ export const AclProtocol = {
 
 export type AclProtocolValue = (typeof AclProtocol)[keyof typeof AclProtocol];
 
+export const AclProtocolName: Record<AclProtocolValue, string> = {
+  '1': 'ICMP',
+  '6': 'TCP',
+  '17': 'UDP',
+};
+
 export const AclKind = {
   Destination: 'Destination',
   Component: 'Component',
@@ -757,3 +763,7 @@ export interface AclAlias {
   protocols: AclProtocolValue[];
   rules: number[];
 }
+
+export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
+
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;

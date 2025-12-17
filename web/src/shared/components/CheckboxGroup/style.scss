@@ -1,0 +1,7 @@
+.checkbox-group {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spacing-2xl) var(--spacing-2xl);
+}

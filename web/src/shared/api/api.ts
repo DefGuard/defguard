@@ -4,6 +4,7 @@ import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
   AclAlias,
+  AddAclAliasRequest,
   AddApiTokenRequest,
   AddApiTokenResponse,
   AddAuthKeyRequest,
@@ -29,6 +30,7 @@ import type {
   DeleteAuthKeyRequest,
   DeleteGatewayRequest,
   Device,
+  EditAclAliasRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
   EditNetworkLocation,
@@ -342,6 +344,8 @@ const api = {
       getAliases: () => client.get<AclAlias[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>
         client.get<AclAlias>(`/acl/alias/${aliasId}`),
+      addAlias: (data: AddAclAliasRequest) => client.post(`/acl/alias`, data),
+      editAlias: (data: EditAclAliasRequest) => client.put(`/acl/alias/${data.id}`, data),
     },
   },
   info: () => client.get<ApplicationInfo>('/info'),

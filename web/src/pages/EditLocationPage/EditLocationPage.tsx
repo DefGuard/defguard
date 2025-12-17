@@ -35,7 +35,9 @@ export const EditLocationPage = () => {
     <EditPage
       id="edit-location-page"
       pageTitle="Locations"
-      formTitle={`Edit ${location.name} location`}
+      headerProps={{
+        title: `Edit ${location.name} location`,
+      }}
     >
       <EditLocationForm location={location} />
     </EditPage>
