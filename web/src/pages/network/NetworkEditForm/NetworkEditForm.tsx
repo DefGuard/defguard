@@ -25,17 +25,14 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import {
+  LicenseTier,
   LocationMfaMode,
   type Network,
   ServiceLocationMode,
 } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../shared/validators';
+import { Validate } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -57,7 +54,18 @@ export const NetworkEditForm = () => {
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
-  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const [licenseEnabled, licenseTier, isFreeLicense] = useAppStore(
+    (s) => [
+      s.appInfo?.license_info.enterprise,
+      s.appInfo?.license_info.tier,
+      s.appInfo?.license_info.is_enterprise_free,
+    ],
+    shallow,
+  );
+  const enterpriseLicenseEnabled = useMemo(
+    () => Boolean(isFreeLicense || licenseTier === LicenseTier.ENTERPRISE),
+    [licenseTier, isFreeLicense],
+  );
 
   const { mutate } = useMutation({
     mutationFn: editNetwork,
@@ -124,15 +132,15 @@ export const NetworkEditForm = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((value) => {
-            return validateIpList(value, ',', true);
+          .refine((val) => {
+            return Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => validateIpOrDomain(val, false, true),
+            (val) => Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
             LL.form.error.endpoint(),
           ),
         port: z
@@ -140,17 +148,34 @@ export const NetworkEditForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        allowed_ips: z.string(),
+        allowed_ips: z
+          .string()
+          .trim()
+          .optional()
+          .refine(
+            (val) =>
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
+            LL.form.error.address(),
+          ),
         dns: z
           .string()
           .trim()
           .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpOrDomainList(val, ',', false, true);
-          }, LL.form.error.allowedIps()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
+            LL.form.error.address(),
+          ),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
@@ -384,7 +409,7 @@ export const NetworkEditForm = () => {
             displayValue: titleCase(val),
           })}
         />
-        {!enterpriseEnabled && (
+        {!licenseEnabled && (
           <MessageBox type={MessageBoxType.WARNING}>
             <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
           </MessageBox>
@@ -393,7 +418,7 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'acl_enabled' }}
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
-          disabled={!enterpriseEnabled}
+          disabled={!licenseEnabled}
         />
         <FormAclDefaultPolicy
           disabled={!fieldAclEnabled}
@@ -449,14 +474,22 @@ export const NetworkEditForm = () => {
             </li>
           </ul>
         </MessageBox>
-        {!mfaDisabled && (
+        {!enterpriseLicenseEnabled ? (
           <MessageBox type={MessageBoxType.WARNING}>
-            <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            <p>
+              {LL.networkConfiguration.form.helpers.serviceLocation.enterpriseTierWarning()}
+            </p>
           </MessageBox>
+        ) : (
+          !mfaDisabled && (
+            <MessageBox type={MessageBoxType.WARNING}>
+              <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            </MessageBox>
+          )
         )}
         <FormServiceLocationModeSelect
           controller={{ control, name: 'service_location_mode' }}
-          disabled={!mfaDisabled}
+          disabled={!enterpriseLicenseEnabled || !mfaDisabled}
         />
         <button type="submit" className="hidden" ref={submitRef}></button>
       </form>

@@ -1,5 +1,8 @@
 use axum::http::StatusCode;
-use defguard_common::db::models::{ModelError, settings::SettingsValidationError};
+use defguard_common::db::models::{
+    DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
+    user::UserError,
+};
 use defguard_mail::templates::TemplateError;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
@@ -8,13 +11,14 @@ use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
-    db::models::{device::DeviceError, enrollment::TokenError, wireguard::WireguardNetworkError},
+    db::models::enrollment::TokenError,
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
     grpc::gateway::map::GatewayMapError,
+    location_management::LocationManagementError,
 };
 
 /// Represents kinds of error that occurred
@@ -149,7 +153,6 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
             | WireguardNetworkError::DeviceNotAllowed(_)
-            | WireguardNetworkError::FirewallError(_)
             | WireguardNetworkError::TokenError(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
@@ -185,6 +188,32 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
+        }
+    }
+}
+
+impl From<UserError> for WebError {
+    fn from(err: UserError) -> Self {
+        error!("{}", err);
+        match err {
+            UserError::InvalidMfaState { username: _ } | UserError::DbError(_) => {
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            UserError::EmailMfaError(msg) => WebError::EmailMfa(msg),
+        }
+    }
+}
+
+impl From<LocationManagementError> for WebError {
+    fn from(err: LocationManagementError) -> Self {
+        error!("{}", err);
+        match err {
+            LocationManagementError::FirewallError(firewall_error) => firewall_error.into(),
+            LocationManagementError::DbError(error) => error.into(),
+            LocationManagementError::WireguardNetworkError(wireguard_network_error) => {
+                wireguard_network_error.into()
+            }
+            LocationManagementError::ModelError(model_error) => model_error.into(),
         }
     }
 }

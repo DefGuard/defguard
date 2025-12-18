@@ -20,8 +20,8 @@
 use std::sync::Arc;
 
 use defguard_core::{
-    db::GatewayEvent,
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    grpc::gateway::events::GatewayEvent,
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_mail::Mail;

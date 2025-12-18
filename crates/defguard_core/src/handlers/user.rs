@@ -4,9 +4,21 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            BiometricAuth, OAuth2AuthorizedApp, User, WebAuthn, device::UserDevice,
+            user::SecurityKey,
+        },
+    },
+    types::{group_diff::GroupDiff, user_info::UserInfo},
+};
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
 use serde_json::json;
+use sqlx::{Error as SqlxError, PgPool};
+use utoipa::ToSchema;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
@@ -17,24 +29,26 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
-        models::{
-            GroupDiff,
-            enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
-        },
+        AppEvent,
+        models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
+    enrollment_management::{start_desktop_configuration, start_user_enrollment},
     enterprise::{
         db::models::api_tokens::ApiToken,
         handlers::CanManageDevices,
-        ldap::utils::{
-            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-            ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+        ldap::{
+            model::{ldap_sync_allowed_for_user, maybe_update_rdn},
+            utils::{
+                ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+                ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+            },
         },
         limits::update_counts,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     is_valid_phone_number, server_config,
+    user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
 };
 
 /// The maximum length for the commonName (CN) attribute in LDAP schemas is commonly set to 64
@@ -82,7 +96,7 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
+pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));
     }
@@ -105,6 +119,35 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         ));
     }
     Ok(())
+}
+
+// Full user info with related objects
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+pub struct UserDetails {
+    pub user: UserInfo,
+    #[serde(default)]
+    pub devices: Vec<UserDevice>,
+    pub biometric_enabled_devices: Vec<i64>,
+    #[serde(default)]
+    pub security_keys: Vec<SecurityKey>,
+}
+
+impl UserDetails {
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+        let devices = user.user_devices(pool).await?;
+        let security_keys = user.security_keys(pool).await?;
+        let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
+            .await?
+            .iter()
+            .map(|a| a.device_id)
+            .collect::<Vec<_>>();
+        Ok(Self {
+            user: UserInfo::from_user(pool, user).await?,
+            devices,
+            security_keys,
+            biometric_enabled_devices,
+        })
+    }
 }
 
 /// List of all users
@@ -441,17 +484,17 @@ pub async fn start_enrollment(
         None => config.enrollment_token_timeout.as_secs(),
     };
 
-    let enrollment_token = user
-        .start_enrollment(
-            &mut transaction,
-            &session.user,
-            data.email,
-            token_expiration_time_seconds,
-            config.enrollment_url.clone(),
-            data.send_enrollment_notification,
-            appstate.mail_tx.clone(),
-        )
-        .await?;
+    let enrollment_token = start_user_enrollment(
+        &mut user,
+        &mut transaction,
+        &session.user,
+        data.email,
+        token_expiration_time_seconds,
+        config.enrollment_url.clone(),
+        data.send_enrollment_notification,
+        appstate.mail_tx.clone(),
+    )
+    .await?;
 
     debug!("Try to commit transaction to save the enrollment token into the database.");
     transaction.commit().await?;
@@ -544,18 +587,18 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
     let config = server_config();
-    let desktop_configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &session.user,
-            Some(email),
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            data.send_enrollment_notification,
-            appstate.mail_tx.clone(),
-            None,
-        )
-        .await?;
+    let desktop_configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &session.user,
+        Some(email),
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        data.send_enrollment_notification,
+        appstate.mail_tx.clone(),
+        None,
+    )
+    .await?;
 
     debug!("Try to submit transaction to save the desktop configuration token into the databse.");
     transaction.commit().await?;
@@ -700,7 +743,7 @@ pub async fn modify_user(
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
-    let ldap_sync_allowed = user.ldap_sync_allowed(&mut *transaction).await?;
+    let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &mut *transaction).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
@@ -742,8 +785,7 @@ pub async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            user.sync_allowed_devices(&mut transaction, &appstate.wireguard_tx)
-                .await?;
+            sync_allowed_user_devices(&user, &mut transaction, &appstate.wireguard_tx).await?;
         }
 
         // remove API tokens when deactivating a user
@@ -766,7 +808,7 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
-    user.maybe_update_rdn();
+    maybe_update_rdn(&mut user);
     user.save(&appstate.pool).await?;
 
     Box::pin(ldap_update_user_state(&mut user, &appstate.pool)).await;
@@ -874,13 +916,12 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let user_for_ldap = if user.ldap_sync_allowed(&mut *transaction).await? {
+        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
             Some(user.clone().as_noid())
         } else {
             None
         };
-        user.clone()
-            .delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
+        delete_user_and_cleanup_devices(user.clone(), &mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));

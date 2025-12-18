@@ -13,9 +13,12 @@ use axum_extra::{
     },
     headers::UserAgent,
 };
-use defguard_common::db::{
-    Id,
-    models::{MFAMethod, Settings},
+use defguard_common::{
+    db::{
+        Id,
+        models::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, WebAuthn},
+    },
+    types::user_info::UserInfo,
 };
 use defguard_mail::Mail;
 use serde_json::json;
@@ -33,10 +36,9 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{
-        SessionInfo,
+        SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    db::{MFAInfo, Session, SessionState, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -298,7 +300,7 @@ pub(crate) async fn authenticate(
 /// Logout - forget the session cookie.
 pub async fn logout(
     cookies: CookieJar,
-    session: Session,
+    SessionExtractor(session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -330,7 +332,7 @@ pub async fn logout(
 /// Enable MFA
 pub async fn mfa_enable(
     cookies: CookieJar,
-    _session: Session,
+    SessionExtractor(_session): SessionExtractor,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -497,7 +499,10 @@ pub async fn webauthn_finish(
 }
 
 /// Start WebAuthn authentication
-pub async fn webauthn_start(mut session: Session, State(appstate): State<AppState>) -> ApiResult {
+pub async fn webauthn_start(
+    SessionExtractor(mut session): SessionExtractor,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
 
     match appstate.webauthn.start_passkey_authentication(&passkeys) {
@@ -517,7 +522,7 @@ pub async fn webauthn_start(mut session: Session, State(appstate): State<AppStat
 /// Finish WebAuthn authentication
 pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
-    mut session: Session,
+    SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -688,7 +693,7 @@ pub async fn totp_disable(
 /// Validate one-time passcode
 pub async fn totp_code(
     private_cookies: PrivateCookieJar,
-    mut session: Session,
+    SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -855,7 +860,7 @@ pub async fn email_mfa_disable(
 
 /// Send email code to user
 pub async fn request_email_mfa_code(
-    session: Session,
+    SessionExtractor(session): SessionExtractor,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
@@ -875,7 +880,7 @@ pub async fn request_email_mfa_code(
 /// Validate email MFA code
 pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
-    mut session: Session,
+    SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -968,7 +973,7 @@ pub async fn email_mfa_code(
 /// Authenticate with a recovery code.
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
-    mut session: Session,
+    SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,

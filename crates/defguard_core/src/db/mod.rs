@@ -1,15 +1,3 @@
 pub mod models;
 
-pub use models::{
-    MFAInfo, UserDetails, UserInfo,
-    device::{AddDevice, Device},
-    group::Group,
-    oauth2authorizedapp::OAuth2AuthorizedApp,
-    oauth2token::OAuth2Token,
-    session::{Session, SessionState},
-    user::User,
-    webauthn::WebAuthn,
-    webhook::{AppEvent, HWKeyUserData, WebHook},
-    wireguard::{GatewayEvent, WireguardNetwork},
-    yubikey::YubiKey,
-};
+pub use models::webhook::{AppEvent, HWKeyUserData, WebHook};

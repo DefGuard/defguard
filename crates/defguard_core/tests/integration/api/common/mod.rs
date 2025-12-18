@@ -9,16 +9,22 @@ pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
     config::DefGuardConfig,
-    db::{Id, NoId, models::settings::initialize_current_settings},
+    db::{
+        Id, NoId,
+        models::{Device, User, WireguardNetwork, settings::initialize_current_settings},
+    },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, Device, GatewayEvent, User, UserDetails, WireguardNetwork},
-    enterprise::license::{License, set_cached_license},
+    db::AppEvent,
+    enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
-    grpc::{WorkerState, gateway::map::GatewayMap},
-    handlers::Auth,
+    grpc::{
+        WorkerState,
+        gateway::{events::GatewayEvent, map::GatewayMap},
+    },
+    handlers::{Auth, user::UserDetails},
 };
 use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
@@ -95,6 +101,7 @@ pub(crate) async fn make_base_client(
         None,
         None,
         None,
+        LicenseTier::Business,
     );
 
     set_cached_license(Some(license));

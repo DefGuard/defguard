@@ -13,17 +13,34 @@ mod utils;
 use license::{get_cached_license, validate_license};
 use limits::get_counts;
 
-pub(crate) fn is_enterprise_enabled() -> bool {
-    debug!("Checking if enterprise features should be enabled");
+use crate::enterprise::license::LicenseTier;
+
+/// Helper function to gate features which require a base license (Team or Business tier)
+pub fn is_business_license_active() -> bool {
+    is_license_tier_active(LicenseTier::Business)
+}
+
+/// Helper function to gate features which require an Enterprise tier license
+pub fn is_enterprise_license_active() -> bool {
+    is_license_tier_active(LicenseTier::Enterprise)
+}
+
+/// Shared logic for gating features to specific license tiers
+fn is_license_tier_active(tier: LicenseTier) -> bool {
+    debug!("Checking if features for {tier} license tier should be enabled");
+
+    // get current object counts
     let counts = get_counts();
-    if counts.needs_enterprise_license() {
+
+    // only check license if object count exceed free limit
+    if counts.needs_paid_license() {
         debug!("User is over limit, checking his license");
         let license = get_cached_license();
-        let validation_result = validate_license(license.as_ref(), &counts);
+        let validation_result = validate_license(license.as_ref(), &counts, tier);
         debug!("License validation result: {:?}", validation_result);
         validation_result.is_ok()
     } else {
-        debug!("User is not over limit, allowing enterprise features");
+        debug!("User is not over limit, allowing {tier} tier features");
         true
     }
 }
@@ -35,13 +52,107 @@ pub(crate) fn is_enterprise_free() -> bool {
     debug!("Checking if enterprise features are a part of the free version");
     let counts = get_counts();
     let license = get_cached_license();
-    if validate_license(license.as_ref(), &counts).is_ok() {
+    if validate_license(license.as_ref(), &counts, LicenseTier::Business).is_ok() {
         false
-    } else if counts.needs_enterprise_license() {
+    } else if counts.needs_paid_license() {
         debug!("User is over limit, the enterprise features are not free");
         false
     } else {
         debug!("User is not over limit, the enterprise features are free");
         true
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use chrono::{TimeDelta, Utc};
+
+    use crate::{
+        enterprise::{
+            is_business_license_active, is_enterprise_free, is_enterprise_license_active,
+            license::{License, LicenseTier, set_cached_license},
+            limits::{Counts, set_counts},
+        },
+        grpc::proto::enterprise::license::LicenseLimits,
+    };
+
+    #[test]
+    fn test_feature_gates_no_license() {
+        set_cached_license(None);
+
+        // free limits are not exceeded
+        let counts = Counts::new(1, 1, 1, 1);
+        set_counts(counts);
+
+        assert!(is_business_license_active());
+        assert!(is_enterprise_license_active());
+        assert!(is_enterprise_free());
+
+        // exceed free limits
+        let counts = Counts::new(1, 1, 5, 1);
+        set_counts(counts);
+
+        assert!(!is_business_license_active());
+        assert!(!is_enterprise_license_active());
+        assert!(!is_enterprise_free());
+    }
+
+    #[test]
+    fn test_feature_gates_with_license() {
+        // exceed free limits
+        let counts = Counts::new(1, 1, 5, 1);
+        set_counts(counts);
+
+        // set Business license
+        let users_limit = 15;
+        let devices_limit = 35;
+        let locations_limit = 5;
+        let network_devices_limit = 10;
+
+        let limits = LicenseLimits {
+            users: users_limit,
+            devices: devices_limit,
+            locations: locations_limit,
+            network_devices: Some(network_devices_limit),
+        };
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            Some(limits),
+            None,
+            LicenseTier::Business,
+        );
+        set_cached_license(Some(license));
+
+        assert!(is_business_license_active());
+        assert!(!is_enterprise_license_active());
+        assert!(!is_enterprise_free());
+
+        // set Enterprise license
+        let users_limit = 15;
+        let devices_limit = 35;
+        let locations_limit = 5;
+        let network_devices_limit = 10;
+
+        let limits = LicenseLimits {
+            users: users_limit,
+            devices: devices_limit,
+            locations: locations_limit,
+            network_devices: Some(network_devices_limit),
+        };
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            Some(limits),
+            None,
+            LicenseTier::Enterprise,
+        );
+        set_cached_license(Some(license));
+
+        assert!(is_business_license_active());
+        assert!(is_enterprise_license_active());
+        assert!(!is_enterprise_free());
     }
 }

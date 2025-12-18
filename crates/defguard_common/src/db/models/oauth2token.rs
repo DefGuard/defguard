@@ -1,5 +1,5 @@
+use crate::{config::server_config, db::Id, random::gen_alphanumeric};
 use chrono::{TimeDelta, Utc};
-use defguard_common::{config::server_config, db::Id, random::gen_alphanumeric};
 use sqlx::{Error as SqlxError, PgPool, query, query_as};
 
 pub struct OAuth2Token {

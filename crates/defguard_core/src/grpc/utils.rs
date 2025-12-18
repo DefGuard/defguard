@@ -2,7 +2,15 @@ use std::{net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            polling_token::PollingToken,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+    },
 };
 use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
@@ -13,25 +21,14 @@ use tonic::Status;
 
 use super::InstanceInfo;
 use crate::{
-    db::{
-        Device, User,
-        models::{
-            device::{DeviceType, WireguardNetworkDevice},
-            polling_token::PollingToken,
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
-        },
-    },
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::client_version::ClientFeature,
+    grpc::{client_version::ClientFeature, gateway::should_prevent_service_location_usage},
 };
 
 // Create a new token for configuration polling.
-pub(crate) async fn new_polling_token(
-    pool: &PgPool,
-    device: &Device<Id>,
-) -> Result<String, Status> {
+pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
     debug!(
         "Making a new polling token for device {}",
         device.wireguard_pubkey
@@ -69,7 +66,7 @@ pub(crate) async fn new_polling_token(
     Ok(new_token.token)
 }
 
-pub(crate) async fn build_device_config_response(
+pub async fn build_device_config_response(
     pool: &PgPool,
     device: Device<Id>,
     token: Option<String>,
@@ -179,7 +176,7 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if network.should_prevent_service_location_usage() {
+            if should_prevent_service_location_usage(&network) {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
                     network.name
@@ -251,7 +248,7 @@ pub(crate) async fn build_device_config_response(
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
-pub(crate) fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
+pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
     let Some(info) = info else {
         error!("Missing DeviceInfo in proxy request");
         return Err("missing device info".to_string());

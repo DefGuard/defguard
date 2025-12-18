@@ -5,7 +5,7 @@ use axum::{
 };
 use defguard_common::db::{
     Id,
-    models::{AuthenticationKey, AuthenticationKeyType},
+    models::{AuthenticationKey, AuthenticationKeyType, User, group::Group},
 };
 use serde_json::json;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
@@ -15,7 +15,6 @@ use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Group, User},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };

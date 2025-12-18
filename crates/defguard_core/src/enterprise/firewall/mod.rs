@@ -3,7 +3,10 @@ use std::{
     ops::RangeInclusive,
 };
 
-use defguard_common::db::{Id, models::ModelError};
+use defguard_common::db::{
+    Id,
+    models::{Device, ModelError, WireguardNetwork, user::User},
+};
 use defguard_proto::enterprise::firewall::{
     FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpRange, IpVersion, Port,
     PortRange as PortRangeProto, SnatBinding as SnatBindingProto, ip_address::Address,
@@ -19,12 +22,9 @@ use super::{
     },
     utils::merge_ranges,
 };
-use crate::{
-    db::{Device, User, WireguardNetwork},
-    enterprise::{
-        db::models::{acl::AliasKind, snat::UserSnatBinding},
-        is_enterprise_enabled,
-    },
+use crate::enterprise::{
+    db::models::{acl::AliasKind, snat::UserSnatBinding},
+    is_business_license_active,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -863,16 +863,15 @@ async fn generate_user_snat_bindings_for_location(
     Ok(bindings)
 }
 
-impl WireguardNetwork<Id> {
-    /// Fetches all active ACL rules for a given location.
-    /// Filters out rules which are disabled, expired or have not been deployed yet.
-    pub(crate) async fn get_active_acl_rules(
-        &self,
-        conn: &mut PgConnection,
-    ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
-        debug!("Fetching active ACL rules for location {self}");
-        let rules: Vec<AclRule<Id>> = query_as(
-            "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
+/// Fetches all active ACL rules for a given location.
+/// Filters out rules which are disabled, expired or have not been deployed yet.
+pub(crate) async fn get_location_active_acl_rules(
+    location: &WireguardNetwork<Id>,
+    conn: &mut PgConnection,
+) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
+    debug!("Fetching active ACL rules for location {location}");
+    let rules: Vec<AclRule<Id>> = query_as(
+        "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
             allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
             expires, enabled, parent_id, state \
             FROM aclrule a \
@@ -881,65 +880,67 @@ impl WireguardNetwork<Id> {
             WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
             AND state = 'applied'::aclrule_state \
             AND (expires IS NULL OR expires > NOW())",
-        )
-        .bind(self.id)
-        .fetch_all(&mut *conn)
-        .await?;
-        debug!("Found {} active ACL rules for location {self}", rules.len());
+    )
+    .bind(location.id)
+    .fetch_all(&mut *conn)
+    .await?;
+    debug!(
+        "Found {} active ACL rules for location {location}",
+        rules.len()
+    );
 
-        // convert to `AclRuleInfo`
-        let mut rules_info = Vec::new();
-        for rule in rules {
-            let rule_info = rule.to_info(&mut *conn).await?;
-            rules_info.push(rule_info);
-        }
-        Ok(rules_info)
+    // convert to `AclRuleInfo`
+    let mut rules_info = Vec::new();
+    for rule in rules {
+        let rule_info = rule.to_info(&mut *conn).await?;
+        rules_info.push(rule_info);
+    }
+    Ok(rules_info)
+}
+
+/// Prepares firewall configuration for Gateway based on location config and ACLs.
+/// Returns `None` if firewall management is disabled for a given location.
+pub async fn try_get_location_firewall_config(
+    location: &WireguardNetwork<Id>,
+    conn: &mut PgConnection,
+) -> Result<Option<FirewallConfig>, FirewallError> {
+    // do a license check
+    if !is_business_license_active() {
+        debug!(
+            "Enterprise features are disabled, skipping generating firewall config for \
+                location {location}"
+        );
+        return Ok(None);
     }
 
-    /// Prepares firewall configuration for Gateway based on location config and ACLs.
-    /// Returns `None` if firewall management is disabled for a given location.
-    pub async fn try_get_firewall_config(
-        &self,
-        conn: &mut PgConnection,
-    ) -> Result<Option<FirewallConfig>, FirewallError> {
-        // do a license check
-        if !is_enterprise_enabled() {
-            debug!(
-                "Enterprise features are disabled, skipping generating firewall config for \
-                location {self}"
-            );
-            return Ok(None);
-        }
-
-        // check if ACLs are enabled
-        if !self.acl_enabled {
-            debug!(
-                "ACL rules are disabled for location {self}, skipping generating firewall config"
-            );
-            return Ok(None);
-        }
-
-        info!("Generating firewall config for location {self}");
-        // fetch all active ACLs for location
-        let location_acls = self.get_active_acl_rules(&mut *conn).await?;
-
-        let default_policy = if self.acl_default_allow {
-            FirewallPolicy::Allow
-        } else {
-            FirewallPolicy::Deny
-        };
-        let firewall_rules =
-            generate_firewall_rules_from_acls(self.id, location_acls, &mut *conn).await?;
-        let snat_bindings = generate_user_snat_bindings_for_location(self.id, &mut *conn).await?;
-        let firewall_config = FirewallConfig {
-            default_policy: default_policy.into(),
-            rules: firewall_rules,
-            snat_bindings,
-        };
-
-        debug!("Firewall config generated for location {self}: {firewall_config:?}");
-        Ok(Some(firewall_config))
+    // check if ACLs are enabled
+    if !location.acl_enabled {
+        debug!(
+            "ACL rules are disabled for location {location}, skipping generating firewall config"
+        );
+        return Ok(None);
     }
+
+    info!("Generating firewall config for location {location}");
+    // fetch all active ACLs for location
+    let location_acls = get_location_active_acl_rules(location, &mut *conn).await?;
+
+    let default_policy = if location.acl_default_allow {
+        FirewallPolicy::Allow
+    } else {
+        FirewallPolicy::Deny
+    };
+    let firewall_rules =
+        generate_firewall_rules_from_acls(location.id, location_acls, &mut *conn).await?;
+    let snat_bindings = generate_user_snat_bindings_for_location(location.id, &mut *conn).await?;
+    let firewall_config = FirewallConfig {
+        default_policy: default_policy.into(),
+        rules: firewall_rules,
+        snat_bindings,
+    };
+
+    debug!("Firewall config generated for location {location}: {firewall_config:?}");
+    Ok(Some(firewall_config))
 }
 
 #[cfg(test)]

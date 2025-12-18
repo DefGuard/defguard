@@ -1,6 +1,7 @@
 use chrono::Duration;
+use defguard_common::db::models::User;
 use defguard_core::{
-    db::{User, models::enrollment::Token},
+    db::models::enrollment::Token,
     handlers::{AddUserData, Auth},
 };
 use reqwest::StatusCode;

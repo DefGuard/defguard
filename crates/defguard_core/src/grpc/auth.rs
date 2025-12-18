@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use defguard_common::auth::claims::{Claims, ClaimsType};
+use defguard_common::{
+    auth::claims::{Claims, ClaimsType},
+    db::models::User,
+};
 use defguard_proto::auth::{AuthenticateRequest, AuthenticateResponse, auth_service_server};
 use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
@@ -8,7 +11,6 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     auth::failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
-    db::User,
     server_config,
 };
 

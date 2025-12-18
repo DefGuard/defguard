@@ -2,16 +2,16 @@ use std::{collections::HashMap, fmt::Display};
 
 use defguard_common::{
     VERSION,
-    db::{Id, models::Settings},
+    db::{
+        Id,
+        models::{Settings, User, WireguardNetwork, device::WireguardNetworkDevice},
+    },
 };
 use serde::Serialize;
 use serde_json::{Value, json, value::to_value};
 use sqlx::PgPool;
 
-use crate::{
-    db::{User, WireguardNetwork, models::device::WireguardNetworkDevice},
-    server_config,
-};
+use crate::server_config;
 
 /// Unwraps the result returning a JSON representation of value or error
 fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Value {

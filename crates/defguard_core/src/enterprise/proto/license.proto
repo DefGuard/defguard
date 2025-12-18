@@ -8,12 +8,19 @@ message LicenseLimits {
     optional uint32 network_devices = 4;
 }
 
+enum LicenseTier {
+  LICENSE_TIER_UNSPECIFIED = 0;
+  LICENSE_TIER_BUSINESS = 1;
+  LICENSE_TIER_ENTERPRISE = 2;
+}
+
 message LicenseMetadata {
     string customer_id = 1;
     bool subscription = 2;
     optional int64 valid_until = 3;
     LicenseLimits limits = 4;
     optional int64 version_date_limit = 5;
+    LicenseTier tier = 6;
 }
 
 message LicenseKey {

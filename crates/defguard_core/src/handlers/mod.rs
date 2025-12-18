@@ -6,7 +6,13 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{TypedHeader, headers::UserAgent};
-use defguard_common::db::{Id, NoId};
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{Device, User},
+    },
+    types::user_info::UserInfo,
+};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -15,7 +21,7 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{Device, User, UserInfo, WebHook},
+    db::WebHook,
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
@@ -26,16 +32,16 @@ pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
-pub(crate) mod mail;
+pub mod mail;
 pub mod network_devices;
-pub(crate) mod openid_clients;
+pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
 pub(crate) mod updates;
-pub(crate) mod user;
+pub mod user;
 pub(crate) mod webhooks;
 pub mod wireguard;
 pub mod worker;

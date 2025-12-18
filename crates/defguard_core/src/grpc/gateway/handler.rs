@@ -8,9 +8,9 @@ use std::{
 };
 
 use chrono::{TimeDelta, Utc};
-use defguard_common::{VERSION, auth::claims::Claims, db::Id};
+use defguard_common::{VERSION, auth::claims::Claims, db::{Id, models::wireguard_peer_stats::WireguardPeerStats}};
 use defguard_mail::Mail;
-use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
+use defguard_proto::gateway::{CoreResponse, PeerStats, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
 use semver::Version;
 use sqlx::PgPool;
@@ -37,6 +37,26 @@ use crate::{
     grpc::{ClientMap, GrpcEvent, TEN_SECS, gateway::GrpcRequestContext},
     handlers::mail::send_gateway_disconnected_email,
 };
+
+fn peer_stats_from_proto(stats: PeerStats, network_id: Id, device_id: Id) -> WireguardPeerStats {
+	let endpoint = match stats.endpoint {
+		endpoint if endpoint.is_empty() => None,
+		_ => Some(stats.endpoint),
+	};
+	WireguardPeerStats {
+		id: NoId,
+		network: network_id,
+		endpoint,
+		device_id,
+		collected_at: Utc::now().naive_utc(),
+		upload: stats.upload as i64,
+		download: stats.download as i64,
+		latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
+			.unwrap_or_default()
+			.naive_utc(),
+		allowed_ips: Some(stats.allowed_ips),
+	}
+}
 
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {
@@ -466,7 +486,7 @@ impl GatewayHandler {
                                 };
 
                                 // Convert stats to database storage format.
-                                let stats = WireguardPeerStats::from_peer_stats(
+                                let stats = peer_stats_from_proto(
                                     peer_stats,
                                     self.gateway.network_id,
                                     device_id,

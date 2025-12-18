@@ -1,16 +1,15 @@
 use std::net::IpAddr;
 
-use defguard_core::{
-    db::{
-        Device, GatewayEvent, WireguardNetwork,
-        models::{
-            device::{DeviceType, UserDevice},
-            wireguard::{
-                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-                ServiceLocationMode,
-            },
-        },
+use defguard_common::db::models::{
+    Device, DeviceType, WireguardNetwork,
+    device::UserDevice,
+    wireguard::{
+        DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+        ServiceLocationMode,
     },
+};
+use defguard_core::{
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, wireguard::ImportedNetworkData},
 };
 use matches::assert_matches;

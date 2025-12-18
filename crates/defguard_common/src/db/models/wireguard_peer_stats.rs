@@ -1,11 +1,13 @@
 use std::time::Duration;
 
+use crate::db::{Id, NoId};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{Id, NoId};
 use humantime::format_duration;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
+use tracing::{debug, info};
 
 #[derive(Debug, Deserialize, Model, Serialize)]
 #[table(wireguard_peer_stats)]
@@ -30,7 +32,7 @@ impl WireguardPeerStats {
     /// This is done to prevent unnecessary table growth.
     /// At least one record is retained for each device and network combination,
     /// even when older than set threshold.
-    pub(crate) async fn purge_old_stats(
+    pub async fn purge_old_stats(
         pool: &PgPool,
         stats_purge_threshold: Duration,
     ) -> Result<(), sqlx::Error> {
@@ -110,7 +112,7 @@ impl WireguardPeerStats {
 }
 
 impl WireguardPeerStats<Id> {
-    pub(crate) async fn fetch_latest(
+    pub async fn fetch_latest(
         conn: &PgPool,
         device_id: Id,
         network_id: Id,
@@ -135,7 +137,7 @@ impl WireguardPeerStats<Id> {
     /// Remove port part from `endpoint`.
     /// IPv4: a.b.c.d:p -> a.b.c.d
     /// IPv6: [x::y:z]:p -> x::y:z
-    pub(crate) fn endpoint_without_port(&self) -> Option<String> {
+    pub fn endpoint_without_port(&self) -> Option<String> {
         self.endpoint.as_ref().and_then(|endpoint| {
             let mut addr = endpoint.rsplit_once(':')?.0;
             // Strip square brackets.
@@ -149,7 +151,7 @@ impl WireguardPeerStats<Id> {
 
     /// Returns a `Vec` of `allowed_ips` without a CIDR mask.
     /// Non-parsable addresses are omitted.
-    pub(crate) fn trim_allowed_ips(&self) -> Vec<String> {
+    pub fn trim_allowed_ips(&self) -> Vec<String> {
         let Some(allowed_ips) = &self.allowed_ips else {
             return Vec::new();
         };

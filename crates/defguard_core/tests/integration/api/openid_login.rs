@@ -1,13 +1,15 @@
 use chrono::{Duration, Utc};
-use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
+use defguard_common::db::{
+    Id,
+    models::{oauth2client::OAuth2Client, settings::OpenidUsernameHandling},
+};
 use defguard_core::{
-    db::models::{NewOpenIDClient, oauth2client::OAuth2Client},
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
-        license::{License, set_cached_license},
+        license::{License, LicenseTier, set_cached_license},
     },
-    handlers::Auth,
+    handlers::{Auth, openid_clients::NewOpenIDClient},
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
@@ -93,6 +95,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         Some(Utc::now() - Duration::days(1)),
         None,
         None,
+        LicenseTier::Business,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;

@@ -14,7 +14,7 @@ pub const MIN_GATEWAY_VERSION: Version = Version::new(1, 6, 0);
 static OUTDATED_COMPONENT_LIFETIME: TimeDelta = TimeDelta::hours(1);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
-pub(crate) fn is_proxy_version_supported(version: Option<&Version>) -> bool {
+pub fn is_proxy_version_supported(version: Option<&Version>) -> bool {
     let Some(version) = version else {
         error!(
             "Missing proxy component version information. This most likely means that proxy \

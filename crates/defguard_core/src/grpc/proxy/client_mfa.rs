@@ -5,8 +5,13 @@ use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{
         Id,
-        models::{BiometricAuth, BiometricChallenge},
+        models::{
+            BiometricAuth, BiometricChallenge, Device, DeviceNetworkInfo, User, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::LocationMfaMode,
+        },
     },
+    types::user_info::UserInfo,
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
@@ -23,16 +28,9 @@ use tokio::sync::{
 use tonic::{Code, Status};
 
 use crate::{
-    db::{
-        Device, GatewayEvent, User, UserInfo, WireguardNetwork,
-        models::{
-            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-            wireguard::LocationMfaMode,
-        },
-    },
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled},
+    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::utils::parse_client_ip_agent,
+    grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},
     handlers::mail::send_email_mfa_code_email,
 };
 
@@ -60,7 +58,7 @@ pub(crate) struct ClientLoginSession {
     pub(crate) biometric_challenge: Option<BiometricChallenge>,
 }
 
-pub(crate) struct ClientMfaServer {
+pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -114,7 +112,7 @@ impl ClientMfaServer {
 
     /// Allows proxy to verify if token is valid and active
     #[instrument(skip_all)]
-    pub(crate) async fn validate_mfa_token(
+    pub async fn validate_mfa_token(
         &mut self,
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
@@ -259,7 +257,7 @@ impl ClientMfaServer {
                 })?;
             }
             MfaMethod::Oidc => {
-                if !is_enterprise_enabled() {
+                if !is_business_license_active() {
                     error!("OIDC MFA method requires enterprise feature to be enabled");
                     return Err(Status::invalid_argument(
                         "selected MFA method not available",

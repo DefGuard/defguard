@@ -13,7 +13,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, settings::OpenidUsernameHandling},
+        models::{Settings, settings::OpenidUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -31,12 +31,11 @@ static CSRF_COOKIE_NAME: &str = "csrf";
 static NONCE_COOKIE_NAME: &str = "nonce";
 // The select_account prompt is not supported by all providers, most notably not by JumpCloud.
 // Currently it's only enabled for Google, as it was tested to work there.
-pub(crate) const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
+pub const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::User,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
@@ -127,7 +126,7 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
 
 /// Build a state with optional embedded data. Useful for passing additional information around the
 /// authentication flow.
-pub(crate) fn build_state(state_data: Option<String>) -> CsrfToken {
+pub fn build_state(state_data: Option<String>) -> CsrfToken {
     let csrf_token = CsrfToken::new_random();
     if let Some(data) = state_data {
         let combined = format!("{}.{data}", csrf_token.secret());
@@ -156,7 +155,7 @@ pub(crate) fn extract_state_data(state: &str) -> Option<String> {
 
 /// Build OpenID Connect client.
 /// `url`: redirect/callback URL
-pub(crate) async fn make_oidc_client(
+pub async fn make_oidc_client(
     url: Url,
     provider: &OpenIdProvider<Id>,
 ) -> Result<
@@ -187,7 +186,7 @@ pub(crate) async fn make_oidc_client(
 }
 
 /// Get or create `User` from OpenID claims.
-pub(crate) async fn user_from_claims(
+pub async fn user_from_claims(
     pool: &PgPool,
     nonce: Nonce,
     code: AuthorizationCode,

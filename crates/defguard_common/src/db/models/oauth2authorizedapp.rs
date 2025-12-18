@@ -1,4 +1,4 @@
-use defguard_common::db::{Id, NoId};
+use crate::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgPool, query_as};
 

@@ -171,7 +171,7 @@ export type ModifyNetworkRequest = {
     Network,
     'gateways' | 'connected' | 'id' | 'connected_at' | 'allowed_ips'
   > & {
-    allowed_ips: string;
+    allowed_ips?: string;
   };
 };
 
@@ -1148,6 +1148,7 @@ export type EnterpriseInfo = {
   subscription: boolean;
   // iso utc date
   valid_until: string;
+  tier: string;
 };
 
 export interface Webhook {
@@ -1433,9 +1434,15 @@ export type LicenseLimits = {
   wireguard_network: boolean;
 };
 
+export enum LicenseTier {
+  BUSINESS = 'Business',
+  ENTERPRISE = 'Enterprise',
+}
+
 export type LicenseInfo = {
   enterprise: boolean;
   limits_exceeded: LicenseLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
+  tier?: LicenseTier;
 };
