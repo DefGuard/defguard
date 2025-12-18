@@ -7,11 +7,13 @@ import { ThemeSize, ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import './style.scss';
 import { revalidateLogic } from '@tanstack/react-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../shared/api/api';
+import type { OpenIdAuthInfo } from '../../../shared/api/types';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
+import { OIDCButton } from '../../../shared/defguard-ui/components/SSOButton/OIDCButton';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -31,6 +33,13 @@ const defaults: FormFields = {
 export const LoginMainPage = () => {
   const [tooManyAttempts, setTooManyAttempts] = useState(false);
   const attemptsTimeoutRef = useRef<number | null>(null);
+
+  const { data: openIdAuthInfo } = useQuery({
+    queryFn: api.openid.authInfo,
+    queryKey: ['openid', 'auth_info'],
+    select: (resp) => resp.data,
+    retry: false,
+  });
 
   const form = useAppForm({
     defaultValues: defaults,
@@ -130,8 +139,25 @@ export const LoginMainPage = () => {
             disabled={tooManyAttempts}
           />
           <p className="forgot">{m.login_main_forgot()}</p>
+          {isPresent(openIdAuthInfo) && (
+            <>
+              <SizedBox height={ThemeSpacing.Xl4} />
+              <LoginWithExternalProvider {...openIdAuthInfo} />
+            </>
+          )}
         </form>
       </form.AppForm>
     </LoginPage>
   );
+};
+
+const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
+  const text = useMemo(() => {
+    if (data.button_display_name) {
+      return `Sign in with ${data.button_display_name}`;
+    }
+    return `Sign in with external provider`;
+  }, [data.button_display_name]);
+
+  return <OIDCButton url={data.url} text={text} />;
 };

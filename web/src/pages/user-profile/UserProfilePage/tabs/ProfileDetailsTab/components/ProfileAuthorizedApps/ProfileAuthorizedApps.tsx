@@ -23,9 +23,7 @@ export const ProfileAuthorizedApps = ({
       {isPresent(authorizedApps) && (
         <div className="apps">
           {authorizedApps.map((app) => (
-            <>
-              <AuthorizedApp data={app} key={app.oauth2client_id} />
-            </>
+            <AuthorizedApp data={app} key={app.oauth2client_id} />
           ))}
         </div>
       )}

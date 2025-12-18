@@ -499,8 +499,8 @@ export interface LocationStatsRequest {
 }
 
 export interface DeleteGatewayRequest {
-  networkId: number;
-  gatewayId: number;
+  networkId: number | string;
+  gatewayId: number | string;
 }
 
 export interface DeviceStats {
@@ -796,3 +796,8 @@ export interface AclRule {
 export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
 
 export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+
+export interface OpenIdAuthInfo {
+  url: string;
+  button_display_name?: string | null;
+}

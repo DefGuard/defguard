@@ -68,7 +68,13 @@ const navigationConfig: NavGroupProps[] = [
     label: m.cmp_nav_group_firewall(),
     items: [
       {
-        id: 'firewall',
+        id: 'rules',
+        icon: 'rules',
+        label: m.cmp_nav_item_rules(),
+        link: '/acl/rules',
+      },
+      {
+        id: 'aliases',
         icon: 'access-settings',
         label: m.cmp_nav_item_aliases(),
         link: '/acl/aliases',

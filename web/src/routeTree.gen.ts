@@ -39,6 +39,7 @@ import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
 import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
@@ -206,6 +207,12 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclRulesRoute =
+  AuthorizedDefaultAclRulesRouteImport.update({
+    id: '/acl/rules',
+    path: '/acl/rules',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclEditAliasRoute =
   AuthorizedDefaultAclEditAliasRouteImport.update({
     id: '/acl/edit-alias',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -286,6 +294,7 @@ export interface FileRoutesByTo {
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -323,6 +332,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/acl/add-alias'
     | '/acl/aliases'
     | '/acl/edit-alias'
+    | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -392,6 +403,7 @@ export interface FileRouteTypes {
     | '/acl/add-alias'
     | '/acl/aliases'
     | '/acl/edit-alias'
+    | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -428,6 +440,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/add-alias'
     | '/_authorized/_default/acl/aliases'
     | '/_authorized/_default/acl/edit-alias'
+    | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
@@ -661,6 +674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/rules': {
+      id: '/_authorized/_default/acl/rules'
+      path: '/acl/rules'
+      fullPath: '/acl/rules'
+      preLoaderRoute: typeof AuthorizedDefaultAclRulesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/edit-alias': {
       id: '/_authorized/_default/acl/edit-alias'
       path: '/acl/edit-alias'
@@ -701,6 +721,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
   AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
+  AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -723,6 +744,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
   AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
   AuthorizedDefaultAclEditAliasRoute: AuthorizedDefaultAclEditAliasRoute,
+  AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,

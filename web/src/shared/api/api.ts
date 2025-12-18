@@ -54,6 +54,7 @@ import type {
   MfaCompleteResponse,
   NetworkDevice,
   NetworkLocation,
+  OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
   RenameApiTokenRequest,
@@ -89,6 +90,9 @@ const api = {
       });
     }
     return res;
+  },
+  openid: {
+    authInfo: () => client.get<OpenIdAuthInfo>(`/openid/auth_info`),
   },
   openIdClient: {
     getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
