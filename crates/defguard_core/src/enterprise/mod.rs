@@ -16,12 +16,12 @@ use limits::get_counts;
 use crate::enterprise::license::LicenseTier;
 
 /// Helper function to gate features which require a base license (Team or Business tier)
-pub(crate) fn is_business_license_active() -> bool {
+pub fn is_business_license_active() -> bool {
     is_license_tier_active(LicenseTier::Business)
 }
 
 /// Helper function to gate features which require an Enterprise tier license
-pub(crate) fn is_enterprise_license_active() -> bool {
+pub fn is_enterprise_license_active() -> bool {
     is_license_tier_active(LicenseTier::Enterprise)
 }
 
