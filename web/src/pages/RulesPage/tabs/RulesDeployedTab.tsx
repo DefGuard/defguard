@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import type { AclRule } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -12,6 +13,7 @@ type Props = {
 
 export const RulesDeployedTab = ({ rules }: Props) => {
   const isEmpty = rules.length === 0;
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
 
@@ -20,8 +22,11 @@ export const RulesDeployedTab = ({ rules }: Props) => {
       variant: 'primary',
       text: 'Create new rule',
       iconLeft: 'add-rule',
+      onClick: () => {
+        navigate({ to: '/acl/add-rule' });
+      },
     }),
-    [],
+    [navigate],
   );
 
   const visibleRules = useMemo(() => {

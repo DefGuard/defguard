@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import api from '../../shared/api/api';
 import { AclStatus } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -8,6 +7,7 @@ import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { getRulesQueryOptions } from '../../shared/query';
 import { RulesDeployedTab } from './tabs/RulesDeployedTab';
 import { RulesPendingTab } from './tabs/RulesPendingTab';
 import { RulesPageTab, type RulesPageTabValue } from './types';
@@ -35,11 +35,7 @@ export const RulesPage = () => {
     [activeTab],
   );
 
-  const { data: rules } = useQuery({
-    queryFn: api.acl.rule.getRules,
-    queryKey: ['acl', 'rule'],
-    select: (resp) => resp.data,
-  });
+  const { data: rules } = useQuery(getRulesQueryOptions);
 
   const deployed = useMemo(() => {
     if (isPresent(rules)) {

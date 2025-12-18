@@ -42,6 +42,7 @@ import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_a
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
 import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
+import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
@@ -225,6 +226,12 @@ const AuthorizedDefaultAclAliasesRoute =
     path: '/acl/aliases',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclAddRuleRoute =
+  AuthorizedDefaultAclAddRuleRouteImport.update({
+    id: '/acl/add-rule',
+    path: '/acl/add-rule',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclAddAliasRoute =
   AuthorizedDefaultAclAddAliasRouteImport.update({
     id: '/acl/add-alias',
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
@@ -292,6 +300,7 @@ export interface FileRoutesByTo {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
@@ -330,6 +339,7 @@ export interface FileRoutesById {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/_authorized/_default/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/acl/add-alias'
+    | '/acl/add-rule'
     | '/acl/aliases'
     | '/acl/edit-alias'
     | '/acl/rules'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/acl/add-alias'
+    | '/acl/add-rule'
     | '/acl/aliases'
     | '/acl/edit-alias'
     | '/acl/rules'
@@ -438,6 +450,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/_authorized/_default/acl/add-alias'
+    | '/_authorized/_default/acl/add-rule'
     | '/_authorized/_default/acl/aliases'
     | '/_authorized/_default/acl/edit-alias'
     | '/_authorized/_default/acl/rules'
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclAliasesRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/add-rule': {
+      id: '/_authorized/_default/acl/add-rule'
+      path: '/acl/add-rule'
+      fullPath: '/acl/add-rule'
+      preLoaderRoute: typeof AuthorizedDefaultAclAddRuleRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/add-alias': {
       id: '/_authorized/_default/acl/add-alias'
       path: '/acl/add-alias'
@@ -719,6 +739,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
+  AuthorizedDefaultAclAddRuleRoute: typeof AuthorizedDefaultAclAddRuleRoute
   AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
@@ -742,6 +763,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
+  AuthorizedDefaultAclAddRuleRoute: AuthorizedDefaultAclAddRuleRoute,
   AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
   AuthorizedDefaultAclEditAliasRoute: AuthorizedDefaultAclEditAliasRoute,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
