@@ -13,7 +13,9 @@ use defguard_common::{
             Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             wireguard::{
-                DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode, WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow, networks_stats
+                DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
+                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
+                WireguardUserStatsRow, networks_stats,
             },
         },
     },
