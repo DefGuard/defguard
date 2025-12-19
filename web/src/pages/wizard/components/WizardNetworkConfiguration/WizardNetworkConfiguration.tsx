@@ -23,14 +23,14 @@ import { useAppStore } from '../../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { LocationMfaMode, ServiceLocationMode } from '../../../../shared/types.ts';
+import {
+  LicenseTier,
+  LocationMfaMode,
+  ServiceLocationMode,
+} from '../../../../shared/types.ts';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import {
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../../shared/validators';
+import { Validate } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 import { DividerHeader } from './components/DividerHeader.tsx';
 
@@ -49,7 +49,18 @@ export const WizardNetworkConfiguration = () => {
   );
 
   const wizardNetworkConfiguration = useWizardStore((state) => state.manualNetworkConfig);
-  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const [licenseEnabled, licenseTier, isFreeLicense] = useAppStore(
+    (s) => [
+      s.appInfo?.license_info.enterprise,
+      s.appInfo?.license_info.tier,
+      s.appInfo?.license_info.is_enterprise_free,
+    ],
+    shallow,
+  );
+  const enterpriseLicenseEnabled = useMemo(
+    () => Boolean(isFreeLicense || licenseTier === LicenseTier.ENTERPRISE),
+    [licenseTier, isFreeLicense],
+  );
 
   const toaster = useToaster();
   const { LL } = useI18nContext();
@@ -111,31 +122,52 @@ export const WizardNetworkConfiguration = () => {
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((value) => {
-            return validateIpList(value, ',', true);
-          }, LL.form.error.addressNetmask()),
+          .refine(
+            (val) => Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6]),
+            LL.form.error.addressNetmask(),
+          ),
         endpoint: z
           .string()
           .trim()
           .min(1, LL.form.error.required())
-          .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Domain], true),
+            LL.form.error.endpoint(),
+          ),
         port: z
           .number({
             invalid_type_error: LL.form.error.invalid(),
           })
           .max(65535, LL.form.error.portMax())
           .nonnegative(),
-        allowed_ips: z.string().trim(),
+        allowed_ips: z
+          .string()
+          .trim()
+          .refine(
+            (val) =>
+              Validate.any(
+                val,
+                [
+                  Validate.CIDRv4,
+                  Validate.IPv4,
+                  Validate.CIDRv6,
+                  Validate.IPv6,
+                  Validate.Empty,
+                ],
+                true,
+              ),
+            LL.form.error.address(),
+          ),
         dns: z
           .string()
           .trim()
           .optional()
-          .refine((val) => {
-            if (val === '' || !val) {
-              return true;
-            }
-            return validateIpOrDomainList(val, ',', true);
-          }, LL.form.error.allowedIps()),
+          .refine(
+            (val) =>
+              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
+            LL.form.error.address(),
+          ),
         allowed_groups: z.array(z.string().trim().min(1, LL.form.error.minimumLength())),
         keepalive_interval: z
           .number({
@@ -273,7 +305,7 @@ export const WizardNetworkConfiguration = () => {
             displayValue: titleCase(group),
           })}
         />
-        {!enterpriseEnabled && (
+        {!licenseEnabled && (
           <MessageBox type={MessageBoxType.WARNING}>
             <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
           </MessageBox>
@@ -321,14 +353,22 @@ export const WizardNetworkConfiguration = () => {
           type="number"
           disabled={mfaDisabled}
         />
-        {!mfaDisabled && (
+        {!enterpriseLicenseEnabled ? (
           <MessageBox type={MessageBoxType.WARNING}>
-            <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            <p>
+              {LL.networkConfiguration.form.helpers.serviceLocation.enterpriseTierWarning()}
+            </p>
           </MessageBox>
+        ) : (
+          !mfaDisabled && (
+            <MessageBox type={MessageBoxType.WARNING}>
+              <p>{LL.networkConfiguration.form.helpers.serviceLocation.mfaWarning()}</p>
+            </MessageBox>
+          )
         )}
         <FormServiceLocationModeSelect
           controller={{ control, name: 'service_location_mode' }}
-          disabled={!mfaDisabled}
+          disabled={!enterpriseLicenseEnabled || !mfaDisabled}
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

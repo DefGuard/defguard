@@ -17,7 +17,7 @@ use axum::{
 };
 
 use super::{
-    db::models::enterprise_settings::EnterpriseSettings, is_enterprise_enabled,
+    db::models::enterprise_settings::EnterpriseSettings, is_business_license_active,
     license::get_cached_license,
 };
 use crate::{appstate::AppState, error::WebError};
@@ -37,7 +37,7 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if is_enterprise_enabled() {
+        if is_business_license_active() {
             Ok(LicenseInfo { valid: true })
         } else {
             Err(WebError::Forbidden(
@@ -57,7 +57,8 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
                 "expired": license.is_max_overdue(),
-                "limits_exceeded": counts.is_over_license_limits(license)
+                "limits_exceeded": counts.is_over_license_limits(license),
+                "tier": license.tier
             }
         )
     });

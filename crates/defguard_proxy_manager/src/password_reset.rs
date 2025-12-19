@@ -1,4 +1,4 @@
-use defguard_common::db::models::User;
+use defguard_common::{config::server_config, db::models::User};
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
-use crate::{
+use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::ldap::utils::ldap_change_password,
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
@@ -18,7 +18,6 @@ use crate::{
         user::check_password_strength,
     },
     headers::get_device_info,
-    server_config,
 };
 
 pub(super) struct PasswordResetServer {

@@ -1127,6 +1127,7 @@ dependencies = [
  "defguard_event_logger",
  "defguard_event_router",
  "defguard_mail",
+ "defguard_proxy_manager",
  "defguard_session_manager",
  "defguard_version",
  "dotenvy",
@@ -1320,6 +1321,29 @@ dependencies = [
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
+]
+
+[[package]]
+name = "defguard_proxy_manager"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "defguard_common",
+ "defguard_core",
+ "defguard_mail",
+ "defguard_proto",
+ "defguard_version",
+ "openidconnect",
+ "reqwest",
+ "semver",
+ "sqlx",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tracing",
 ]
 
 [[package]]

@@ -28,10 +28,7 @@ use crate::{
 };
 
 // Create a new token for configuration polling.
-pub(crate) async fn new_polling_token(
-    pool: &PgPool,
-    device: &Device<Id>,
-) -> Result<String, Status> {
+pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
     debug!(
         "Making a new polling token for device {}",
         device.wireguard_pubkey
@@ -69,7 +66,7 @@ pub(crate) async fn new_polling_token(
     Ok(new_token.token)
 }
 
-pub(crate) async fn build_device_config_response(
+pub async fn build_device_config_response(
     pool: &PgPool,
     device: Device<Id>,
     token: Option<String>,
@@ -251,7 +248,7 @@ pub(crate) async fn build_device_config_response(
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
-pub(crate) fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
+pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
     let Some(info) = info else {
         error!("Missing DeviceInfo in proxy request");
         return Err("missing device info".to_string());

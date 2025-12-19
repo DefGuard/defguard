@@ -939,7 +939,7 @@ pub async fn init_vpn_location(
     Ok(token)
 }
 
-pub(crate) fn is_valid_phone_number(number: &str) -> bool {
+pub fn is_valid_phone_number(number: &str) -> bool {
     PHONE_NUMBER_REGEX.is_match(number)
 }
 

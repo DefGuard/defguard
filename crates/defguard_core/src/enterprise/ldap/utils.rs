@@ -57,7 +57,7 @@ pub(crate) async fn login_through_ldap(
 }
 
 /// Convenience wrapper around [`ldap_update_users_state`] to update a single user.
-pub(crate) async fn ldap_update_user_state(user: &mut User<Id>, pool: &PgPool) {
+pub async fn ldap_update_user_state(user: &mut User<Id>, pool: &PgPool) {
     let vec = vec![user];
     Box::pin(ldap_update_users_state(vec, pool)).await;
 }
@@ -77,7 +77,7 @@ pub(crate) async fn ldap_update_users_state(users: Vec<&mut User<Id>>, pool: &Pg
 /// This will set the `ldap_pass_randomized` field to `true` in the user.
 ///
 /// If the user already exists, the creation will be skipped.
-pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
+pub async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Creating user {user} in LDAP");
         if !ldap_sync_allowed_for_user(user, pool).await? {
@@ -273,7 +273,7 @@ pub(crate) async fn ldap_remove_users_from_groups(
     .await;
 }
 
-pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &PgPool) {
+pub async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {user} in LDAP");
         if !ldap_sync_allowed_for_user(user, pool).await? {

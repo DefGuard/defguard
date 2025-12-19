@@ -32,7 +32,7 @@ pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
-pub(crate) mod mail;
+pub mod mail;
 pub mod network_devices;
 pub mod openid_clients;
 pub mod openid_flow;

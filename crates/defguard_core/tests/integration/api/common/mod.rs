@@ -18,7 +18,7 @@ use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
-    enterprise::license::{License, set_cached_license},
+    enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
     grpc::{
         WorkerState,
@@ -101,6 +101,7 @@ pub(crate) async fn make_base_client(
         None,
         None,
         None,
+        LicenseTier::Business,
     );
 
     set_cached_license(Some(license));

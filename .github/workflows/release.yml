@@ -23,10 +23,12 @@ jobs:
     uses: ./.github/workflows/build-docker.yml
     with:
       tags: |
-        type=raw,value=latest
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
         type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
   build-docker-prerelease:
     # Only build tags with -, like v1.0.0-alpha
