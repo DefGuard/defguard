@@ -63,8 +63,7 @@ pulldown-cmark = "0.13"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
-# 0.21.2 causes config parsing errors
-rust-ini = "=0.21.1"
+rust-ini = "0.21"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }

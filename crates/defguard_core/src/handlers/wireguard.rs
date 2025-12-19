@@ -1,12 +1,6 @@
-use std::{
-    collections::HashSet,
-    net::IpAddr,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashSet, net::IpAddr, str::FromStr};
 
 use axum::{
-    Extension,
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
@@ -20,8 +14,8 @@ use defguard_common::{
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             wireguard::{
                 DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
-                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
-                networks_stats,
+                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
+                WireguardUserStatsRow, networks_stats,
             },
         },
     },
@@ -32,7 +26,6 @@ use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 use crate::{
@@ -46,7 +39,7 @@ use crate::{
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::{events::GatewayEvent, map::GatewayMap, state::GatewayState},
+    grpc::gateway::events::GatewayEvent,
     handlers::mail::send_new_device_added_email,
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
@@ -55,15 +48,6 @@ use crate::{
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
-
-#[derive(Serialize, ToSchema)]
-pub struct WireguardNetworkInfo {
-    #[serde(flatten)]
-    pub network: WireguardNetwork<Id>,
-    pub connected: bool,
-    pub gateways: Vec<GatewayState>,
-    pub allowed_groups: Vec<String>,
-}
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
@@ -439,11 +423,7 @@ pub(crate) async fn delete_network(
         ("api_token" = [])
     )
 )]
-pub(crate) async fn list_networks(
-    _role: AdminRole,
-    State(appstate): State<AppState>,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
-) -> ApiResult {
+pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;
@@ -452,13 +432,10 @@ pub(crate) async fn list_networks(
         let network_id = network.id;
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
         {
-            let gateway_state = gateway_state
-                .lock()
-                .expect("Failed to acquire gateway state lock");
             network_info.push(WireguardNetworkInfo {
                 network,
-                connected: gateway_state.connected(network_id),
-                gateways: gateway_state.get_network_gateway_status(network_id),
+                connected: false, // FIXME: was: gateway_state.connected(network_id),
+                // gateways: gateway_state.get_network_gateway_status(network_id),
                 allowed_groups,
             });
         }
@@ -498,20 +475,16 @@ pub(crate) async fn network_details(
     Path(network_id): Path<i64>,
     _role: AdminRole,
     State(appstate): State<AppState>,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying network details for network {network_id}");
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id).await?;
     let response = match network {
         Some(network) => {
             let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
-            let gateway_state = gateway_state
-                .lock()
-                .expect("Failed to acquire gateway state lock");
             let network_info = WireguardNetworkInfo {
                 network,
-                connected: gateway_state.connected(network_id),
-                gateways: gateway_state.get_network_gateway_status(network_id),
+                connected: false, // FIXME: was: gateway_state.connected(network_id),
+                // gateways: gateway_state.get_network_gateway_status(network_id),
                 allowed_groups,
             };
             ApiResponse {
@@ -533,56 +506,47 @@ pub(crate) async fn network_details(
 ///
 /// # Returns
 /// Returns `Vec<GatewayState>` for requested network
-pub(crate) async fn gateway_status(
-    Path(network_id): Path<i64>,
-    _role: AdminRole,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
-) -> ApiResult {
+pub(crate) async fn gateway_status(Path(network_id): Path<i64>, _role: AdminRole) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
-    let gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
+
+    // TODO: fetch gateways from db
+
     debug!("Displayed gateway status for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(gateway_state.get_network_gateway_status(network_id)),
-        status: StatusCode::OK,
-    })
+    // Ok(ApiResponse {
+    //     json: json!(gateway_state.get_network_gateway_status(network_id)),
+    //     status: StatusCode::OK,
+    // })
+    Ok(ApiResponse::default())
 }
 
 /// Returns state of gateways for all networks
 ///
 /// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork`
-pub(crate) async fn all_gateways_status(
-    _role: AdminRole,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
-) -> ApiResult {
+pub(crate) async fn all_gateways_status(_role: AdminRole) -> ApiResult {
     debug!("Displaying gateways status for all networks.");
-    let gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
-    let flattened = (*gateway_state).as_flattened();
-    Ok(ApiResponse {
-        json: json!(flattened),
-        status: StatusCode::OK,
-    })
+
+    // let flattened = (*gateway_state).as_flattened();
+    // Ok(ApiResponse {
+    //     json: json!(flattened),
+    //     status: StatusCode::OK,
+    // })
+    Ok(ApiResponse::default())
 }
 
 pub(crate) async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(i64, String)>,
     _role: AdminRole,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Removing gateway {gateway_id} in network {network_id}");
-    let mut gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
 
-    gateway_state.remove_gateway(
-        network_id,
-        Uuid::from_str(&gateway_id)
-            .map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
-    )?;
+    // TODO: fetch gateways from db
+
+    // gateway_state.remove_gateway(
+    //     network_id,
+    //     Uuid::from_str(&gateway_id)
+    //         .map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
+    // )?;
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 

@@ -898,7 +898,7 @@ pub(crate) async fn get_location_active_acl_rules(
     Ok(rules_info)
 }
 
-/// Prepares firewall configuration for a gateway based on location config and ACLs
+/// Prepares firewall configuration for Gateway based on location config and ACLs.
 /// Returns `None` if firewall management is disabled for a given location.
 pub async fn try_get_location_firewall_config(
     location: &WireguardNetwork<Id>,

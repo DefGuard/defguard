@@ -1,4 +1,4 @@
-use std::{net::IpAddr, sync::OnceLock};
+use std::{fs::read_to_string, io, net::IpAddr, sync::OnceLock};
 
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
@@ -13,6 +13,7 @@ use rsa::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
+use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -65,9 +66,11 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
+    // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
+    #[arg(long, env = "DEFGUARD_GRPC_CA")]
+    pub grpc_ca: Option<String>,
     #[arg(long, env = "DEFGUARD_GRPC_CERT")]
     pub grpc_cert: Option<String>,
-
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
@@ -297,6 +300,25 @@ impl DefGuardConfig {
             path_segments.extend(&["auth", "callback"]);
         }
         url
+    }
+
+    /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
+    pub fn grpc_client_tls_config(&self) -> Result<Option<ClientTlsConfig>, io::Error> {
+        if self.grpc_ca.is_none() && (self.grpc_cert.is_none() || self.grpc_key.is_none()) {
+            return Ok(None);
+        }
+        let mut tls = ClientTlsConfig::new();
+        if let (Some(cert_path), Some(key_path)) = (&self.grpc_cert, &self.grpc_key) {
+            let cert = read_to_string(cert_path)?;
+            let key = read_to_string(key_path)?;
+            tls = tls.identity(Identity::from_pem(cert, key));
+        }
+        if let Some(ca_path) = &self.grpc_ca {
+            let ca = read_to_string(ca_path)?;
+            tls = tls.ca_certificate(Certificate::from_pem(ca));
+        }
+
+        Ok(Some(tls))
     }
 }
 
