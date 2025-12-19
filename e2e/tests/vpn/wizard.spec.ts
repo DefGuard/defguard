@@ -44,7 +44,7 @@ test.describe('Setup VPN (wizard) ', () => {
     await page.getByTestId('setup-option-import').click();
     await navNext.click();
     await page.getByTestId('field-name').fill('test network');
-    await page.getByTestId('field-endpoint').fill('127.0.0.1:5051');
+    await page.getByTestId('field-endpoint').fill('127.0.0.1');
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByTestId('upload-config').click();
     const responseImportConfigPromise = page.waitForResponse('**/import');

@@ -4,14 +4,18 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, user::User},
+        models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
     },
     random::gen_alphanumeric,
 };
-use defguard_mail::templates::{self, TemplateError, safe_tera};
-use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, query, query_as};
+use defguard_mail::{
+    Mail,
+    templates::{self, TemplateError, safe_tera},
+};
+use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
 use tera::Context;
 use thiserror::Error;
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -379,6 +383,80 @@ impl Token {
             Some(ip_address),
             device_info,
         )?)
+    }
+
+    // Send configured welcome email to user after finishing enrollment
+    pub async fn send_welcome_email(
+        &self,
+        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        mail_tx: &UnboundedSender<Mail>,
+        user: &User<Id>,
+        settings: &Settings,
+        ip_address: &str,
+        device_info: Option<&str>,
+    ) -> Result<(), TokenError> {
+        debug!("Sending welcome mail to {}", user.username);
+        let mail = Mail {
+            to: user.email.clone(),
+            subject: settings
+                .enrollment_welcome_email_subject
+                .clone()
+                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
+            content: self
+                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
+                .await?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(()) => {
+                info!("Sent enrollment welcome mail to {}", user.username);
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(TokenError::NotificationError(err.to_string()))
+            }
+        }
+    }
+
+    // Notify admin that a user has completed enrollment
+    pub fn send_admin_notification(
+        mail_tx: &UnboundedSender<Mail>,
+        admin: &User<Id>,
+        user: &User<Id>,
+        ip_address: &str,
+        device_info: Option<&str>,
+    ) -> Result<(), TokenError> {
+        debug!(
+            "Sending enrollment success notification for user {} to {}",
+            user.username, admin.username
+        );
+        let mail = Mail {
+            to: admin.email.clone(),
+            subject: "[defguard] User enrollment completed".into(),
+            content: templates::enrollment_admin_notification(
+                &user.clone().into(),
+                &admin.clone().into(),
+                ip_address,
+                device_info,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        match mail_tx.send(mail) {
+            Ok(()) => {
+                info!(
+                    "Sent enrollment success notification for user {} to {}",
+                    user.username, admin.username
+                );
+                Ok(())
+            }
+            Err(err) => {
+                error!("Error sending welcome mail: {err}");
+                Err(TokenError::NotificationError(err.to_string()))
+            }
+        }
     }
 }
 

@@ -42,7 +42,7 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        is_enterprise_enabled,
+        is_business_license_active,
         limits::update_counts,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -119,7 +119,7 @@ impl WireguardNetworkData {
         // if external MFA was chosen verify if enterprise features are enabled
         // and external OpenID provider is configured
         if self.location_mfa_mode == LocationMfaMode::External {
-            if !is_enterprise_enabled() {
+            if !is_business_license_active() {
                 error!(
                     "Unable to create location with external MFA. External OpenID provider is not configured"
                 );
