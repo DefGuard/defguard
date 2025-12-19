@@ -1,12 +1,10 @@
 use std::{
     collections::HashMap,
-    fs::read_to_string,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
 
-use axum::http::Uri;
 use defguard_certs::der_to_pem;
 use defguard_common::{VERSION, config::server_config, db::models::Settings};
 use defguard_core::{
@@ -375,7 +373,8 @@ impl Proxy {
     pub async fn perform_initial_setup(&self) -> Result<(), ProxyError> {
         let endpoint = self.endpoint(false)?;
 
-        let mut client = ProxyClient::new(endpoint.connect_lazy());
+        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+        let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let hostname = self.url.host_str().unwrap_or("localhost");
 
         'connection: loop {
