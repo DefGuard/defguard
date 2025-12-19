@@ -131,6 +131,9 @@ export const aclDestinationValidator = (LL: TranslationFunctions) =>
 
         if (!ipaddr.isValid(start) || !ipaddr.isValid(end)) return false;
 
+        // reject when both addresses are equal
+        if (start === end) return false;
+
         const startAddr = ipaddr.parse(start);
         const endAddr = ipaddr.parse(end);
 
@@ -138,8 +141,13 @@ export const aclDestinationValidator = (LL: TranslationFunctions) =>
         if (startAddr.kind() !== endAddr.kind()) return false;
 
         // reject invalid order in ranges
-        if (startAddr.toByteArray().join('.') > endAddr.toByteArray().join('.')) {
-          return false;
+        const startBytes = startAddr.toByteArray();
+        const endBytes = endAddr.toByteArray();
+
+        for (let i = 0; i < startBytes.length; i++) {
+          if (startBytes[i] > endBytes[i]) {
+            return false;
+          }
         }
       } else {
         if (!isValidIpOrCidr(entry)) return false;
