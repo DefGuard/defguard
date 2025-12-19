@@ -1330,6 +1330,7 @@ dependencies = [
  "anyhow",
  "axum",
  "chrono",
+ "defguard_certs",
  "defguard_common",
  "defguard_core",
  "defguard_mail",

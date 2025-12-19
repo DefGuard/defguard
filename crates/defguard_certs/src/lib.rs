@@ -81,7 +81,7 @@ impl CertificateAuthority<'_> {
     }
 
     pub fn cert_pem(&self) -> Result<String, CertificateError> {
-        der_to_pem(self.cert_der.as_ref(), &PemLabel::Certificate)
+        der_to_pem(self.cert_der.as_ref(), PemLabel::Certificate)
     }
 
     #[must_use]
@@ -131,6 +131,7 @@ impl Csr<'_> {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum PemLabel {
     Certificate,
     PrivateKey,
@@ -148,7 +149,7 @@ impl PemLabel {
     }
 }
 
-pub fn der_to_pem(der: &[u8], label: &PemLabel) -> Result<String, CertificateError> {
+pub fn der_to_pem(der: &[u8], label: PemLabel) -> Result<String, CertificateError> {
     let b64 = BASE64_STANDARD.encode(der);
     let pem_string = format!(
         "-----BEGIN {}-----\n{}\n-----END {}-----",
@@ -165,7 +166,7 @@ pub fn der_to_pem(der: &[u8], label: &PemLabel) -> Result<String, CertificateErr
 }
 
 pub fn cert_der_to_pem(cert_der: &[u8]) -> Result<String, CertificateError> {
-    der_to_pem(cert_der, &PemLabel::Certificate)
+    der_to_pem(cert_der, PemLabel::Certificate)
 }
 
 pub fn generate_key_pair() -> Result<KeyPair, CertificateError> {
@@ -241,7 +242,7 @@ mod tests {
 
         // chunking: make sure lines are 64 chars except last
         let data = vec![0u8; 200];
-        let pem = der_to_pem(&data, &PemLabel::PublicKey).unwrap();
+        let pem = der_to_pem(&data, PemLabel::PublicKey).unwrap();
         assert!(pem.starts_with("-----BEGIN PUBLIC KEY-----"));
         assert!(pem.ends_with("-----END PUBLIC KEY-----"));
         let inner_lines: Vec<&str> = pem
