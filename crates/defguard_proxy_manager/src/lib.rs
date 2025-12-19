@@ -168,6 +168,7 @@ impl ProxyOrchestrator {
     pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
         // TODO retrieve proxies from db
         let Some(url) = url else {
+            tokio::time::sleep(Duration::MAX).await;
             return Ok(());
         };
         let proxies = vec![Proxy::new(
