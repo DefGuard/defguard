@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Validate } from '../src/shared/validators';
+import { aclDestinationValidator } from '../src/pages/acl/validators';
 
 describe('Validate.IPv4', () => {
   it('should accept valid IPv4 addresses', () => {
@@ -297,5 +298,157 @@ describe('Validate.all', () => {
     expect(
       Validate.all('192.168.1.1 , 10.0.0.1 , 172.16.0.1', [Validate.IPv4], true),
     ).toBe(true);
+  });
+});
+
+const mockLL = {
+  form: {
+    error: {
+      invalid: () => 'Invalid value',
+    },
+  },
+} as any;
+
+describe('aclDestinationValidator', () => {
+  const schema = aclDestinationValidator(mockLL);
+
+  // Helper function to test validator
+  const isValid = (value: string): boolean => {
+    try {
+      schema.parse(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  describe('Single IP addresses', () => {
+    it('should accept valid IPv4 address', () => {
+      expect(isValid('192.168.1.1')).toBe(true);
+      expect(isValid('10.0.0.1')).toBe(true);
+      expect(isValid('172.16.0.1')).toBe(true);
+    });
+
+    it('should accept valid IPv6 address', () => {
+      expect(isValid('2001:db8::1')).toBe(true);
+      expect(isValid('::1')).toBe(true);
+      expect(isValid('fe80::1')).toBe(true);
+    });
+
+    it('should accept empty string', () => {
+      expect(isValid('')).toBe(true);
+    });
+
+    it('should reject invalid IP address', () => {
+      expect(isValid('256.1.1.1')).toBe(false);
+      expect(isValid('invalid')).toBe(false);
+      expect(isValid('192.168.1')).toBe(false);
+    });
+  });
+
+  describe('CIDR notation', () => {
+    it('should accept valid IPv4 CIDR', () => {
+      expect(isValid('192.168.1.0/24')).toBe(true);
+      expect(isValid('10.0.0.0/8')).toBe(true);
+      expect(isValid('172.16.0.0/16')).toBe(true);
+    });
+
+    it('should accept valid IPv6 CIDR', () => {
+      expect(isValid('2001:db8::/32')).toBe(true);
+      expect(isValid('fe80::/10')).toBe(true);
+    });
+
+    it('should reject invalid CIDR', () => {
+      expect(isValid('192.168.1.0/33')).toBe(false);
+      expect(isValid('256.1.1.1/24')).toBe(false);
+    });
+  });
+
+  describe('IP ranges', () => {
+    it('should accept valid IPv4 range', () => {
+      expect(isValid('192.168.1.1-192.168.1.10')).toBe(true);
+      expect(isValid('10.0.0.1-10.0.0.100')).toBe(true);
+    });
+
+    it('should accept IPv4 range where end is larger than start', () => {
+      expect(isValid('10.1.80.2-10.1.80.10')).toBe(true);
+      expect(isValid('192.168.1.9-192.168.1.100')).toBe(true);
+      expect(isValid('10.0.0.99-10.0.0.100')).toBe(true);
+    });
+
+    it('should accept valid IPv6 range', () => {
+      expect(isValid('2001:db8::1-2001:db8::10')).toBe(true);
+      expect(isValid('::1-::ffff')).toBe(true);
+    });
+
+    it('should accept range with whitespace', () => {
+      expect(isValid('192.168.1.1 - 192.168.1.10')).toBe(true);
+    });
+
+    it('should reject range where start equals end', () => {
+      expect(isValid('192.168.1.1-192.168.1.1')).toBe(false);
+      expect(isValid('2001:db8::1-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range where start > end', () => {
+      expect(isValid('192.168.1.10-192.168.1.1')).toBe(false);
+      expect(isValid('10.1.80.10-10.1.80.2')).toBe(false);
+      expect(isValid('2001:db8::10-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range with CIDR notation', () => {
+      expect(isValid('192.168.1.0/24-192.168.1.10')).toBe(false);
+      expect(isValid('192.168.1.1-192.168.1.0/24')).toBe(false);
+    });
+
+    it('should reject range with mixed IP versions', () => {
+      expect(isValid('192.168.1.1-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range with invalid IP addresses', () => {
+      expect(isValid('256.1.1.1-192.168.1.10')).toBe(false);
+      expect(isValid('192.168.1.1-256.1.1.1')).toBe(false);
+      expect(isValid('invalid-192.168.1.10')).toBe(false);
+    });
+  });
+
+  describe('Multiple entries (comma-separated)', () => {
+    it('should accept multiple valid IPv4 addresses', () => {
+      expect(isValid('192.168.1.1,10.0.0.1')).toBe(true);
+      expect(isValid('192.168.1.1,10.0.0.1,172.16.0.1')).toBe(true);
+    });
+
+    it('should accept multiple valid IPv6 addresses', () => {
+      expect(isValid('2001:db8::1,fe80::1')).toBe(true);
+    });
+
+    it('should accept mix of IPs, CIDR and ranges', () => {
+      expect(isValid('192.168.1.1,10.0.0.0/8,172.16.1.1-172.16.1.10')).toBe(true);
+      expect(isValid('192.168.1.1,192.168.1.0/24,192.168.2.1-192.168.2.10')).toBe(true);
+    });
+
+    it('should accept entries with whitespace', () => {
+      expect(isValid('192.168.1.1, 10.0.0.1, 172.16.0.1')).toBe(true);
+      expect(isValid('192.168.1.1 , 10.0.0.1')).toBe(true);
+    });
+
+    it('should reject if any entry is invalid', () => {
+      expect(isValid('192.168.1.1,invalid')).toBe(false);
+      expect(isValid('192.168.1.1,256.1.1.1')).toBe(false);
+      expect(isValid('192.168.1.1,10.0.0.1-10.0.0.0')).toBe(false);
+    });
+  });
+
+  it('should handle IPv4 boundary values in ranges', () => {
+    expect(isValid('0.0.0.1-0.0.0.255')).toBe(true);
+    expect(isValid('255.255.255.0-255.255.255.255')).toBe(true);
+  });
+
+  it('should correctly compare multi-digit octets', () => {
+    expect(isValid('10.1.80.2-10.1.80.8')).toBe(true);
+    expect(isValid('10.1.80.2-10.1.80.10')).toBe(true);
+    expect(isValid('192.168.1.9-192.168.1.10')).toBe(true);
+    expect(isValid('192.168.1.99-192.168.1.100')).toBe(true);
+    expect(isValid('10.10.10.10-10.10.10.100')).toBe(true);
   });
 });
