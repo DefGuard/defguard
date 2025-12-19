@@ -8,9 +8,18 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta, Utc};
-use defguard_common::{VERSION, auth::claims::Claims, db::{Id, NoId, models::{WireguardNetwork, wireguard_peer_stats::WireguardPeerStats}}};
+use defguard_common::{
+    VERSION,
+    auth::claims::Claims,
+    db::{
+        Id, NoId,
+        models::{Device, User, WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+    },
+};
 use defguard_mail::Mail;
-use defguard_proto::gateway::{CoreResponse, PeerStats, core_request, core_response, gateway_client};
+use defguard_proto::gateway::{
+    CoreResponse, PeerStats, core_request, core_response, gateway_client,
+};
 use defguard_version::client::ClientVersionInterceptor;
 use semver::Version;
 use sqlx::PgPool;
@@ -31,28 +40,32 @@ use tonic::{
 use crate::{
     ClaimsType,
     db::models::gateway::Gateway,
-    grpc::{ClientMap, GrpcEvent, TEN_SECS, gateway::{GrpcRequestContext, events::GatewayEvent}},
+    enterprise::firewall::try_get_location_firewall_config,
+    grpc::{
+        ClientMap, GrpcEvent, TEN_SECS,
+        gateway::{GrpcRequestContext, events::GatewayEvent, get_peers},
+    },
     handlers::mail::send_gateway_disconnected_email,
 };
 
 fn peer_stats_from_proto(stats: PeerStats, network_id: Id, device_id: Id) -> WireguardPeerStats {
-	let endpoint = match stats.endpoint {
-		endpoint if endpoint.is_empty() => None,
-		_ => Some(stats.endpoint),
-	};
-	WireguardPeerStats {
-		id: NoId,
-		network: network_id,
-		endpoint,
-		device_id,
-		collected_at: Utc::now().naive_utc(),
-		upload: stats.upload as i64,
-		download: stats.download as i64,
-		latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
-			.unwrap_or_default()
-			.naive_utc(),
-		allowed_ips: Some(stats.allowed_ips),
-	}
+    let endpoint = match stats.endpoint {
+        endpoint if endpoint.is_empty() => None,
+        _ => Some(stats.endpoint),
+    };
+    WireguardPeerStats {
+        id: NoId,
+        network: network_id,
+        endpoint,
+        device_id,
+        collected_at: Utc::now().naive_utc(),
+        upload: stats.upload as i64,
+        download: stats.download as i64,
+        latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
+            .unwrap_or_default()
+            .naive_utc(),
+        allowed_ips: Some(stats.allowed_ips),
+    }
 }
 
 /// One instance per connected Gateway.
@@ -165,7 +178,7 @@ impl GatewayHandler {
             );
         }
 
-        let peers = network.get_peers(&self.pool).await.map_err(|error| {
+        let peers = get_peers(&network, &self.pool).await.map_err(|error| {
             error!("Failed to fetch peers from the database for network {network_id}: {error}",);
             Status::new(
                 Code::Internal,
@@ -173,17 +186,15 @@ impl GatewayHandler {
             )
         })?;
 
-        let maybe_firewall_config =
-            network
-                .try_get_firewall_config(&mut conn)
-                .await
-                .map_err(|err| {
-                    error!("Failed to generate firewall config for network {network_id}: {err}");
-                    Status::new(
-                        Code::Internal,
-                        format!("Failed to generate firewall config for network: {network_id}"),
-                    )
-                })?;
+        let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn)
+            .await
+            .map_err(|err| {
+                error!("Failed to generate firewall config for network {network_id}: {err}");
+                Status::new(
+                    Code::Internal,
+                    format!("Failed to generate firewall config for network: {network_id}"),
+                )
+            })?;
         let payload = Some(core_response::Payload::Config(super::gen_config(
             &network,
             peers,

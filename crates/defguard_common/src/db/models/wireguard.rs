@@ -5,6 +5,25 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
+use base64::prelude::{BASE64_STANDARD, Engine};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
+use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
+use model_derive::Model;
+use rand::rngs::OsRng;
+use serde::{Deserialize, Serialize};
+use sqlx::{
+    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
+    query_scalar,
+};
+use thiserror::Error;
+use tracing::{debug, info};
+use utoipa::ToSchema;
+use x25519_dalek::{PublicKey, StaticSecret};
+
+use super::{
+    device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
+    user::User,
+};
 use crate::{
     auth::claims::{Claims, ClaimsType},
     db::{
@@ -17,30 +36,11 @@ use crate::{
     },
     types::user_info::UserInfo,
 };
-use base64::prelude::{BASE64_STANDARD, Engine};
-use chrono::{NaiveDateTime, TimeDelta, Utc};
-use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
-use model_derive::Model;
-use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
-use sqlx::{
-    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
-    query_scalar,
-};
-use thiserror::Error;
-use tracing::{debug, info, warn};
-use utoipa::ToSchema;
-use x25519_dalek::{PublicKey, StaticSecret};
-
-use super::{
-    device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
-    user::User,
-};
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 
-// Used in process of importing network from wireguard config
+// Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: Id,
@@ -535,68 +535,6 @@ impl WireguardNetwork<Id> {
         .await?;
 
         Ok(connected_at)
-    }
-
-    /// Get a list of all allowed peers
-    ///
-    /// Each device is marked as allowed or not allowed in a given network,
-    /// which enables enforcing peer disconnect in MFA-protected networks.
-    ///
-    /// If the location is a service location, only returns peers if enterprise features are enabled.
-    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        debug!("Fetching all peers for network {}", self.id);
-
-        if self.should_prevent_service_location_usage() {
-            warn!(
-                "Tried to use service location {} with disabled enterprise features. No clients will be allowed to connect.",
-                self.name
-            );
-            return Ok(Vec::new());
-        }
-
-        let rows = query!(
-            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                -- TODO possible to not use ARRAY-unnest here?
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ips) AS ip
-                ) \"allowed_ips!: Vec<String>\" \
-            FROM wireguard_network_device wnd \
-            JOIN device d ON wnd.device_id = d.id \
-            JOIN \"user\" u ON d.user_id = u.id \
-            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
-            AND d.configured = true \
-            AND u.is_active = true \
-            ORDER BY d.id ASC",
-            self.id,
-            self.mfa_enabled()
-        )
-        .fetch_all(executor)
-        .await?;
-
-        // keepalive has to be added manually because Postgres
-        // doesn't support unsigned integers
-        let result = rows
-            .into_iter()
-            .map(|row| Peer {
-                pubkey: row.pubkey,
-                allowed_ips: row.allowed_ips,
-                // Don't send preshared key if MFA is not enabled, it can't be used and may
-                // cause issues with clients connecting if they expect no preshared key
-                // e.g. when you disable MFA on a location
-                preshared_key: if self.mfa_enabled() {
-                    row.preshared_key
-                } else {
-                    None
-                },
-                keepalive_interval: Some(self.keepalive_interval as u32),
-            })
-            .collect();
-
-        Ok(result)
     }
 
     /// Update `connected_at` to the current time and save it to the database.

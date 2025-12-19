@@ -8,33 +8,15 @@ use std::{
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-use tower::ServiceBuilder;
 
 use defguard_common::{
-    VERSION,
     auth::claims::ClaimsType,
     db::{Id, models::Settings},
 };
-use defguard_mail::Mail;
-use defguard_version::{
-    ComponentInfo, DefguardComponent, Version, client::ClientVersionInterceptor,
-    get_tracing_variables,
-};
-use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Code, Streaming,
-    transport::{
-        Certificate, ClientTlsConfig, Endpoint,
-    },
-};
 
-use self::{
-    auth::AuthServer,
-    interceptor::JwtInterceptor, worker::WorkerServer,
-};
+use self::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
@@ -45,13 +27,10 @@ use crate::{
         },
         is_business_license_active,
     },
-    events::{BidiStreamEvent, GrpcEvent},
+    events::GrpcEvent,
     grpc::gateway::client_state::ClientMap,
     server_config,
-    version::{
-        IncompatibleComponents, IncompatibleProxyData, MIN_GATEWAY_VERSION,
-        is_proxy_version_supported,
-    },
+    version::MIN_GATEWAY_VERSION,
 };
 
 mod auth;
@@ -72,11 +51,6 @@ pub mod proto {
 
 use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
-    proxy::{
-        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
-        core_response, proxy_client::ProxyClient,
-    },
-    gateway::gateway_service_server::GatewayServiceServer,
     worker::worker_service_server::WorkerServiceServer,
 };
 

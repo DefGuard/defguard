@@ -28,8 +28,10 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, map::GatewayMap, run_grpc_gateway_stream},
-        run_grpc_bidi_stream, run_grpc_server,
+        gateway::{
+            client_state::ClientMap, events::GatewayEvent, map::GatewayMap, run_grpc_gateway_stream,
+        },
+        run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
@@ -173,13 +175,6 @@ async fn main() -> Result<(), anyhow::Error> {
             mail_tx.clone(),
             grpc_event_tx,
         ) => error!("Gateway gRPC stream returned early: {res:?}"),
-        res = run_grpc_bidi_stream(
-            pool.clone(),
-            wireguard_tx.clone(),
-            mail_tx.clone(),
-            bidi_event_tx,
-            Arc::clone(&incompatible_components),
-        ), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),
