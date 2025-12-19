@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+base64.workspace = true
 rcgen.workspace = true
 serde.workspace = true
 sqlx.workspace = true

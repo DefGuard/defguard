@@ -90,8 +90,9 @@ use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
     gateway::gateway_service_server::GatewayServiceServer,
     proxy::{
-        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
-        core_response, proxy_client::ProxyClient,
+        AuthCallbackResponse, AuthInfoResponse, CertResponse, CoreError, CoreRequest, CoreResponse,
+        CsrRequest, Done, ProxySetupRequest, ProxySetupResponse, core_request, core_response,
+        proxy_client::ProxyClient, proxy_setup_request,
     },
     worker::worker_service_server::WorkerServiceServer,
 };
@@ -545,6 +546,105 @@ async fn handle_proxy_message_loop(
     Ok(())
 }
 
+pub async fn perform_initial_proxy_setup(
+    ca: &defguard_certs::CertificateAuthority<'_>,
+) -> Result<(), anyhow::Error> {
+    let config = server_config();
+
+    let mut url = Url::parse(config.proxy_url.as_deref().unwrap())?;
+
+    if url.scheme() != "http" {
+        url.set_scheme("http").unwrap();
+    }
+
+    println!("Connecting to proxy at {}", url);
+
+    let hostname = url.host_str().unwrap_or("localhost");
+
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
+    let endpoint = endpoint
+        .http2_keep_alive_interval(TEN_SECS)
+        .tcp_keepalive(Some(TEN_SECS))
+        .keep_alive_while_idle(true);
+    let mut client = ProxyClient::new(endpoint.connect_lazy());
+
+    'connection: loop {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let mut stream = match client.proxy_setup(UnboundedReceiverStream::new(rx)).await {
+            Ok(response) => response.into_inner(),
+            Err(err) => {
+                error!(
+                    "Failed to connect to proxy @ {}, retrying in 10s: {}",
+                    endpoint.uri(),
+                    err
+                );
+                sleep(TEN_SECS).await;
+                continue 'connection;
+            }
+        };
+        tx.send(ProxySetupResponse {
+            payload: Some(
+                defguard_proto::proxy::proxy_setup_response::Payload::InitialSetupInfo(
+                    defguard_proto::proxy::InitialSetupInfo {
+                        cert_hostname: hostname.to_string(),
+                    },
+                ),
+            ),
+        })?;
+
+        'message: loop {
+            match stream.message().await {
+                Ok(Some(req)) => match req.payload {
+                    Some(proxy_setup_request::Payload::CsrRequest(CsrRequest { csr_der })) => {
+                        match defguard_certs::Csr::from_der(&csr_der) {
+                            Ok(csr) => match ca.sign_csr(&csr) {
+                                Ok(cert) => {
+                                    let response = CertResponse {
+                                        cert_der: cert.der().to_vec(),
+                                    };
+                                    tx.send(ProxySetupResponse { payload: Some(
+                                                defguard_proto::proxy::proxy_setup_response::Payload::CertResponse(response)
+                                            ) })?;
+                                    info!("Signed CSR and sent certificate to proxy");
+                                }
+                                Err(err) => {
+                                    error!("Failed to sign CSR: {err}");
+                                }
+                            },
+                            Err(err) => {
+                                error!("Failed to parse CSR: {err}");
+                            }
+                        }
+                    }
+                    Some(proxy_setup_request::Payload::Done(Done {})) => {
+                        info!("Proxy setup completed");
+                        tx.send(ProxySetupResponse {
+                            payload: Some(
+                                defguard_proto::proxy::proxy_setup_response::Payload::Done(Done {}),
+                            ),
+                        })?;
+                        break 'connection;
+                    }
+                    _ => {
+                        error!("Expected CertRequest from proxy during setup");
+                        continue;
+                    }
+                },
+                Ok(None) => {
+                    error!("Proxy setup stream closed unexpectedly");
+                    break;
+                }
+                Err(err) => {
+                    error!("Failed to receive CSR request from proxy: {err}");
+                    break;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Bi-directional gRPC stream for communication with Defguard Proxy.
 #[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
@@ -568,21 +668,49 @@ pub async fn run_grpc_bidi_stream(
     let mut client_mfa_server =
         ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone(), bidi_event_tx);
     let mut polling_server = PollingServer::new(pool.clone());
+    let settings = Settings::get_current_settings();
+    let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
+        anyhow::anyhow!("CA certificate DER not found in settings for proxy gRPC bidi stream")
+    })?;
+    let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
+        anyhow::anyhow!("CA key pair DER not found in settings for proxy gRPC bidi stream")
+    })?;
 
-    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
-    let endpoint = endpoint
-        .http2_keep_alive_interval(TEN_SECS)
-        .tcp_keepalive(Some(TEN_SECS))
-        .keep_alive_while_idle(true);
-    let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
-        let ca = read_to_string(ca)?;
-        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
-        endpoint.tls_config(tls)?
-    } else {
-        endpoint.tls_config(ClientTlsConfig::new().with_enabled_roots())?
-    };
+    let ca =
+        defguard_certs::CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_pair)?;
+    let cert_pem = ca.cert_pem()?;
 
     loop {
+        if let Err(err) = perform_initial_proxy_setup(&ca).await {
+            error!("Failed to perform initial proxy setup: {err}");
+        }
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        let mut url = Url::parse(config.proxy_url.as_deref().unwrap())?;
+        if url.scheme() != "https" {
+            url.set_scheme("https").unwrap();
+        }
+
+        println!("Connecting to proxy at {}", url);
+
+        let endpoint = Endpoint::from_shared(url.to_string())?;
+
+        let endpoint = endpoint
+            .http2_keep_alive_interval(TEN_SECS)
+            .tcp_keepalive(Some(TEN_SECS))
+            .keep_alive_while_idle(true);
+        // let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
+        //     let ca = read_to_string(ca)?;
+        //     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        //     endpoint.tls_config(tls)?
+        // } else {
+        //     endpoint.tls_config(ClientTlsConfig::new().with_enabled_roots())?
+        // };
+
+        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
+        let endpoint = endpoint.tls_config(tls)?;
+
         debug!("Connecting to proxy at {}", endpoint.uri());
         let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
         let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
@@ -637,7 +765,8 @@ pub async fn run_grpc_bidi_stream(
 
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
-        handle_proxy_message_loop(ProxyMessageLoopContext {
+
+        let context = ProxyMessageLoopContext {
             pool: pool.clone(),
             tx,
             wireguard_tx: wireguard_tx.clone(),
@@ -647,8 +776,8 @@ pub async fn run_grpc_bidi_stream(
             client_mfa_server: &mut client_mfa_server,
             polling_server: &mut polling_server,
             endpoint_uri: endpoint.uri(),
-        })
-        .await?;
+        };
+        handle_proxy_message_loop(context).await?;
     }
 }
 

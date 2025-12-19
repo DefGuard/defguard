@@ -1121,6 +1121,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "defguard_certs",
  "defguard_common",
  "defguard_core",
  "defguard_event_logger",
@@ -1138,6 +1139,7 @@ dependencies = [
 name = "defguard_certs"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
  "rcgen",
  "rustls-pki-types",
  "serde",
@@ -1197,6 +1199,7 @@ dependencies = [
  "bytes",
  "chrono",
  "claims",
+ "defguard_certs",
  "defguard_common",
  "defguard_mail",
  "defguard_proto",
