@@ -142,9 +142,9 @@ impl LocationSessionsMap {
         stats_update: &PeerStatsUpdate,
     ) -> Result<SessionState, SessionManagerError> {
         // fetch related objects from DB
-        let location = Self::fetch_location(transaction, stats_update.location_id).await?;
-        let device = Self::fetch_device(transaction, stats_update.device_id).await?;
-        let user = Self::fetch_user(transaction, device.user_id).await?;
+        let location = Self::fetch_location(&mut *transaction, stats_update.location_id).await?;
+        let device = Self::fetch_device(&mut *transaction, stats_update.device_id).await?;
+        let user = Self::fetch_user(&mut *transaction, device.user_id).await?;
 
         debug!("Adding new VPN client session for location {location}");
 
