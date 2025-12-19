@@ -7,8 +7,8 @@ use std::{
     },
 };
 
-use chrono::{TimeDelta, Utc};
-use defguard_common::{VERSION, auth::claims::Claims, db::{Id, models::wireguard_peer_stats::WireguardPeerStats}};
+use chrono::{DateTime, TimeDelta, Utc};
+use defguard_common::{VERSION, auth::claims::Claims, db::{Id, NoId, models::{WireguardNetwork, wireguard_peer_stats::WireguardPeerStats}}};
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, PeerStats, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
@@ -30,11 +30,8 @@ use tonic::{
 
 use crate::{
     ClaimsType,
-    db::{
-        Device, GatewayEvent, User, WireguardNetwork,
-        models::{gateway::Gateway, wireguard_peer_stats::WireguardPeerStats},
-    },
-    grpc::{ClientMap, GrpcEvent, TEN_SECS, gateway::GrpcRequestContext},
+    db::models::gateway::Gateway,
+    grpc::{ClientMap, GrpcEvent, TEN_SECS, gateway::{GrpcRequestContext, events::GatewayEvent}},
     handlers::mail::send_gateway_disconnected_email,
 };
 

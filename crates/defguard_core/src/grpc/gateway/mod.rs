@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, mpsc::Receiver}, thread::JoinHandle,
 };
 
 use chrono::{DateTime, TimeDelta, Utc};
@@ -17,7 +17,7 @@ models::{
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, Peer, PeerStats, Update, update}, proxy::{CoreResponse, core_response},
+    gateway::{Configuration, ConfigurationRequest, CoreResponse, Peer, PeerStats, Update, core_response, update},
 };
 use sqlx::{PgPool, postgres::PgListener};
 use defguard_version::version_info_from_metadata;
@@ -26,11 +26,11 @@ use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::UnboundedSender,
+        mpsc::{self, UnboundedSender},
     },
     task::{AbortHandle, JoinSet},
 };
-use tonic::{Code, Status, metadata::MetadataMap};
+use tonic::{Request, Response, Code, Status, metadata::MetadataMap};
 
 use crate::{
     db::{
