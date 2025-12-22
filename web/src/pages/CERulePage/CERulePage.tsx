@@ -1,20 +1,34 @@
+import { useQuery } from '@tanstack/react-query';
 import { intersection } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
+import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
+import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
+import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import {
+  getAliasesQueryOptions,
+  getGroupsInfoQueryOptions,
+  getNetworkDevicesQueryOptions,
+  getUsersQueryOptions,
+} from '../../shared/query';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 
 export const CERulePage = () => {
@@ -34,6 +48,66 @@ export const CERulePage = () => {
 };
 
 const Content = () => {
+  const { data: users } = useQuery(getUsersQueryOptions);
+
+  const usersOptions = useMemo(() => {
+    if (isPresent(users)) {
+      return users.map(
+        (user): SelectionSectionOption<number> => ({
+          id: user.id,
+          label: user.username,
+          meta: user,
+          searchFields: [user.username, user.email, user.first_name, user.last_name],
+        }),
+        [],
+      );
+    }
+  }, [users]);
+
+  const { data: aliases } = useQuery(getAliasesQueryOptions);
+
+  const aliasesOptions = useMemo(() => {
+    if (isPresent(aliases)) {
+      return aliases.map(
+        (alias): SelectionSectionOption<number> => ({
+          id: alias.id,
+          label: alias.name,
+          meta: alias,
+        }),
+        [],
+      );
+    }
+  }, [aliases]);
+
+  const { data: groups } = useQuery(getGroupsInfoQueryOptions);
+  const groupsOptions = useMemo(() => {
+    if (isPresent(groups)) {
+      return groups.map(
+        (group): SelectionSectionOption<string> => ({
+          id: group.name,
+          label: group.name,
+          meta: group,
+        }),
+      );
+    }
+  }, [groups]);
+
+  const { data: networkDevices } = useQuery(getNetworkDevicesQueryOptions);
+  const networkDevicesOptions = useMemo(() => {
+    if (isPresent(networkDevices)) {
+      return networkDevices.map(
+        (device): SelectionSectionOption<number> => ({
+          id: device.id,
+          label: device.name,
+          meta: device,
+        }),
+      );
+    }
+  }, [networkDevices]);
+
+  const [restrictionsPresent, setRestrictionsPresent] = useState(false);
+  const [manualDestination, setManualDestination] = useState(false);
+
   const formSchema = useMemo(
     () =>
       z
@@ -212,7 +286,88 @@ const Content = () => {
             <p>{`Manually configure destinations parameters for this rule.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Checkbox disabled active={false} text="Add manual destination settings" />
+          <Checkbox
+            text="Add manual destination settings"
+            active={manualDestination}
+            onClick={() => {
+              setManualDestination((s) => !s);
+            }}
+          />
+          <Fold open={manualDestination}>
+            <SizedBox height={ThemeSpacing.Xl2} />
+            <Card>
+              {isPresent(aliasesOptions) && aliasesOptions.length === 0 && (
+                <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
+              )}
+              {isPresent(aliasesOptions) && aliasesOptions.length > 0 && (
+                <>
+                  <DescriptionBlock title="Aliases">
+                    <p>{`Aliases can optionally define some or all of the manual destination settings. They are combined with the values you specify to form the final destination for firewall rule generation.`}</p>
+                  </DescriptionBlock>
+                  <SizedBox height={ThemeSpacing.Lg} />
+                  <form.AppField name="aliases">
+                    {(field) => (
+                      <>
+                        <ButtonsGroup>
+                          <Button
+                            variant="outlined"
+                            text="Apply aliases"
+                            disabled={aliasesOptions?.length === 0}
+                            onClick={() => {
+                              useSelectionModal.setState({
+                                isOpen: true,
+                                onSubmit: (selected) => {
+                                  field.handleChange(selected as number[]);
+                                },
+                                options: aliasesOptions,
+                                selected: new Set(field.state.value),
+                                title: 'Select Aliases',
+                              });
+                            }}
+                          />
+                        </ButtonsGroup>
+                        <SizedBox height={ThemeSpacing.Xl} />
+                        {isPresent(aliasesOptions) &&
+                          aliasesOptions
+                            .filter((alias) => field.state.value.includes(alias.id))
+                            .map((option) => (
+                              <Chip size="sm" text={option.label} key={option.id} />
+                            ))}
+                      </>
+                    )}
+                  </form.AppField>
+                </>
+              )}
+              <Divider spacing={ThemeSpacing.Xl} />
+              <DescriptionBlock title="Addresses/Ranges">
+                <p>
+                  {`Define the IP addresses or ranges that form the destination of this ACL rule.`}
+                </p>
+              </DescriptionBlock>
+              <form.AppField name="networks">
+                {(field) => (
+                  <field.FormInput label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
+                )}
+              </form.AppField>
+              <Divider spacing={ThemeSpacing.Xl} />
+              <DescriptionBlock title="Ports">
+                <p>
+                  {`You may specify the exact ports accessible to users in this location.`}
+                </p>
+              </DescriptionBlock>
+              <form.AppField name="ports">
+                {(field) => (
+                  <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
+                )}
+              </form.AppField>
+              <Divider spacing={ThemeSpacing.Xl} />
+              <DescriptionBlock title="Protocols">
+                <p>
+                  {`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}
+                </p>
+              </DescriptionBlock>
+            </Card>
+          </Fold>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="enrollment">
@@ -222,11 +377,47 @@ const Content = () => {
             <p>{`Define who should be granted access. Only the entities you list here will be allowed through.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle disabled active label="All users have access" />
+          {isPresent(usersOptions) && (
+            <form.AppField name="allowed_users">
+              {(field) => (
+                <field.FormSelectMultiple
+                  toggleText="All users have access"
+                  counterText={(counter) => `Users ${counter}`}
+                  editText={`Edit users`}
+                  modalTitle="Select allowed users"
+                  options={usersOptions}
+                />
+              )}
+            </form.AppField>
+          )}
           <Divider spacing={ThemeSpacing.Lg} />
-          <Toggle disabled active label="All groups have access" />
+          {isPresent(groupsOptions) && (
+            <form.AppField name="allowed_groups">
+              {(field) => (
+                <field.FormSelectMultiple
+                  options={groupsOptions}
+                  counterText={(counter) => `Groups ${counter}`}
+                  editText="Edit groups"
+                  modalTitle="Select allowed groups"
+                  toggleText="All groups have access"
+                />
+              )}
+            </form.AppField>
+          )}
           <Divider spacing={ThemeSpacing.Lg} />
-          <Toggle disabled active label="All network devices have access" />
+          {isPresent(networkDevicesOptions) && (
+            <form.AppField name="allowed_devices">
+              {(field) => (
+                <field.FormSelectMultiple
+                  options={networkDevicesOptions}
+                  counterText={(counter) => `Devices ${counter}`}
+                  editText="Edit devices"
+                  modalTitle="Select allowed devices"
+                  toggleText="All network devices have access"
+                />
+              )}
+            </form.AppField>
+          )}
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="lock-closed">
@@ -236,11 +427,63 @@ const Content = () => {
             <p>{`If needed, you may exclude specific users, groups, or devices from accessing this location.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Checkbox active={false} disabled text="Add restriction settings" />
+          <Checkbox
+            active={restrictionsPresent}
+            onClick={() => {
+              setRestrictionsPresent((s) => !s);
+            }}
+            text="Add restriction settings"
+          />
+          <Fold open={restrictionsPresent}>
+            <SizedBox height={ThemeSpacing.Xl2} />
+            {isPresent(usersOptions) && (
+              <form.AppField name="denied_users">
+                {(field) => (
+                  <field.FormSelectMultiple
+                    toggleText="Exclude specific users"
+                    counterText={(counter) => `Users ${counter}`}
+                    editText={`Edit users`}
+                    modalTitle="Select restricted users"
+                    options={usersOptions}
+                  />
+                )}
+              </form.AppField>
+            )}
+            <Divider spacing={ThemeSpacing.Lg} />
+            {isPresent(groupsOptions) && (
+              <form.AppField name="denied_groups">
+                {(field) => (
+                  <field.FormSelectMultiple
+                    options={groupsOptions}
+                    counterText={(counter) => `Groups ${counter}`}
+                    editText="Edit groups"
+                    modalTitle="Select restricted groups"
+                    toggleText="Exclude specific groups"
+                  />
+                )}
+              </form.AppField>
+            )}
+            <Divider spacing={ThemeSpacing.Lg} />
+            {isPresent(networkDevicesOptions) && (
+              <form.AppField name="denied_groups">
+                {(field) => (
+                  <field.FormSelectMultiple
+                    options={networkDevicesOptions}
+                    counterText={(counter) => `Devices ${counter}`}
+                    editText="Edit devices"
+                    modalTitle="Select restricted devices"
+                    toggleText="Exclude specific network devices"
+                  />
+                )}
+              </form.AppField>
+            )}
+          </Fold>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <Controls>
-          <Toggle label="Enable rule" active disabled />
+          <form.AppField name="enabled">
+            {(field) => <field.FormToggle label="Enable rule" />}
+          </form.AppField>
           <div className="right">
             <Button text="Create rule" disabled />
           </div>

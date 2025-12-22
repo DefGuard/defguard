@@ -25,6 +25,10 @@
         border-radius: var(--spacing-lg);
         box-sizing: border-box;
 
+        &:not(.variant-custom) {
+          background-color: var(--bg-white);
+        }
+
         &.variant-custom {
           background-color: var(--bg-action-muted);
         }

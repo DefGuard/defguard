@@ -137,3 +137,9 @@ export const getRulesQueryOptions = queryOptions({
   queryKey: ['acl', 'rule'],
   select: (resp) => resp.data,
 });
+
+export const getAliasesQueryOptions = queryOptions({
+  queryFn: api.acl.alias.getAliases,
+  queryKey: ['acl', 'alias'],
+  select: (resp) => resp.data,
+});
