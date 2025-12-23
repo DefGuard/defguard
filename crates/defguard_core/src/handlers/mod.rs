@@ -68,9 +68,6 @@ impl ApiResponse {
 impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> ApiResponse {
         match web_error {
-            WebError::Deserialization(msg) => {
-                ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
-            }
             WebError::ObjectNotFound(msg) => {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
@@ -88,11 +85,9 @@ impl From<WebError> for ApiResponse {
             }
             WebError::DbError(_)
             | WebError::Grpc(_)
-            | WebError::Ldap(_)
             | WebError::WebauthnRegistration(_)
             | WebError::Serialization(_)
             | WebError::ModelError(_)
-            | WebError::ServerConfigMissing
             | WebError::EmailMfa(_)
             | WebError::ClientIpError
             | WebError::FirewallError(_)
@@ -164,8 +159,7 @@ impl From<WebError> for ApiResponse {
                 json!({ "msg": "Too many login attempts" }),
                 StatusCode::TOO_MANY_REQUESTS,
             ),
-            WebError::IncorrectUsername(msg)
-            | WebError::PubkeyValidation(msg)
+            WebError::PubkeyValidation(msg)
             | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
