@@ -1308,6 +1308,7 @@ dependencies = [
 name = "defguard_session_manager"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "defguard_common",
  "sqlx",
  "thiserror 2.0.17",

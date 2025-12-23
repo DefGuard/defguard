@@ -1,12 +1,12 @@
 use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool, types::chrono::NaiveDateTime};
 use tokio::{
     sync::mpsc::UnboundedReceiver,
     time::{Duration, interval},
 };
 use tracing::{debug, error, info, trace, warn};
 
-use crate::{error::SessionManagerError, session_state::LocationSessionsMap};
+use crate::{error::SessionManagerError, session_state::ActiveSessionsMap};
 
 pub mod error;
 pub mod session_state;
@@ -53,17 +53,17 @@ pub async fn run_session_manager(
 
 struct SessionManager {
     pool: PgPool,
-    active_sessions: LocationSessionsMap,
+    // active_sessions: LocationSessionsMap,
 }
 
 impl SessionManager {
     async fn new(pool: PgPool) -> Result<Self, SessionManagerError> {
         // initialize active sessions state based on DB content
-        let active_sessions = LocationSessionsMap::initialize_from_db(&pool).await?;
+        // let active_sessions = LocationSessionsMap::initialize_from_db(&pool).await?;
 
         Ok(Self {
             pool,
-            active_sessions,
+            // active_sessions,
         })
     }
 
@@ -80,9 +80,12 @@ impl SessionManager {
         // begin DB transaction
         let mut transaction = self.pool.begin().await?;
 
+        // initialize session map
+        let mut active_sessions = ActiveSessionsMap::new();
+
         for message in messages {
             if let Err(err) = self
-                .process_single_message(&mut *transaction, message)
+                .process_single_message(&mut *transaction, &mut active_sessions, message)
                 .await
             {
                 error!("Failed to process peer stats update: {err}");
@@ -101,30 +104,32 @@ impl SessionManager {
     async fn process_single_message(
         &mut self,
         transaction: &mut PgConnection,
+        active_sessions: &mut ActiveSessionsMap,
         message: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
         trace!("Processing peer stats update: {message:?}");
 
         // check if a session exists already for a given peer
-        // and create one if necessary
-        let mut session = match self
-            .active_sessions
+        // and attempt to add one if necessary
+        let maybe_session = match active_sessions
             .try_get_peer_session(message.location_id, message.device_id)
         {
-            Some(session) => session,
+            Some(session) => Some(session),
             None => {
                 debug!(
                     "No active session found for device {} in location {}. Creating a new session",
                     message.device_id, message.location_id
                 );
-                self.active_sessions
-                    .new_session(transaction, &message)
+                active_sessions
+                    .try_add_new_session(transaction, &message)
                     .await?
             }
         };
 
-        // update session stats
-        session.update_stats(message);
+        if let Some(mut session) = maybe_session {
+            // update session stats
+            session.update_stats(message)?;
+        };
 
         trace!("Finished processing peer stats update");
         Ok(())

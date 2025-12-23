@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 defguard_common.workspace = true
+chrono.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
