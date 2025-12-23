@@ -17,7 +17,6 @@ use crate::{
         firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
     },
     events::ApiEvent,
-    grpc::gateway::map::GatewayMapError,
     location_management::LocationManagementError,
 };
 
@@ -129,19 +128,6 @@ impl From<DeviceError> for WebError {
     }
 }
 
-impl From<GatewayMapError> for WebError {
-    fn from(error: GatewayMapError) -> Self {
-        match error {
-            GatewayMapError::NotFound(_, _)
-            | GatewayMapError::NetworkNotFound(_)
-            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
-            GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
-            GatewayMapError::ConfigError => Self::ServerConfigMissing,
-            GatewayMapError::SettingsError => Self::DbError(error.to_string()),
-        }
-    }
-}
-
 impl From<WireguardNetworkError> for WebError {
     fn from(error: WireguardNetworkError) -> Self {
         match error {
@@ -160,7 +146,7 @@ impl From<WireguardNetworkError> for WebError {
 
 impl From<TokenError> for WebError {
     fn from(err: TokenError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         match err {
             TokenError::DbError(msg) => WebError::DbError(msg.to_string()),
             TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {

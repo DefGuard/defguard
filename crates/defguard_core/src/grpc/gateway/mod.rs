@@ -38,15 +38,12 @@ use crate::{
     db::models::gateway::Gateway,
     enterprise::is_enterprise_license_active,
     events::{GrpcEvent, GrpcRequestContext},
-    grpc::gateway::{
-        client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler, map::GatewayMap,
-    },
+    grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
 pub mod client_state;
 pub mod events;
 pub(crate) mod handler;
-pub mod map;
 pub(crate) mod state;
 #[cfg(test)]
 mod tests;
@@ -117,7 +114,6 @@ impl From<GatewayServerError> for Status {
 
 pub struct GatewayServer {
     pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -213,7 +209,6 @@ impl GatewayServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        gateway_state: Arc<Mutex<GatewayMap>>,
         client_state: Arc<Mutex<ClientMap>>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -221,7 +216,6 @@ impl GatewayServer {
     ) -> Self {
         Self {
             pool,
-            gateway_state,
             client_state,
             wireguard_tx,
             mail_tx,
@@ -821,7 +815,6 @@ pub struct GatewayUpdatesStream {
     rx: Receiver<Result<Update, Status>>,
     network_id: Id,
     gateway_hostname: String,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
 }
 
@@ -832,7 +825,6 @@ impl GatewayUpdatesStream {
         rx: Receiver<Result<Update, Status>>,
         network_id: Id,
         gateway_hostname: String,
-        gateway_state: Arc<Mutex<GatewayMap>>,
         pool: PgPool,
     ) -> Self {
         Self {
@@ -840,7 +832,6 @@ impl GatewayUpdatesStream {
             rx,
             network_id,
             gateway_hostname,
-            gateway_state,
             pool,
         }
     }

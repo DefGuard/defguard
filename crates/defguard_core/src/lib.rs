@@ -101,7 +101,7 @@ use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    grpc::{WorkerState, gateway::map::GatewayMap},
+    grpc::WorkerState,
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -348,7 +348,6 @@ pub fn build_webapp(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -641,8 +640,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
             )
-            .route("/outdated", get(outdated_components))
-            .layer(Extension(gateway_state)),
+            .route("/outdated", get(outdated_components)),
     );
 
     let webapp = webapp.nest(
@@ -694,7 +692,6 @@ pub fn build_webapp(
 #[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -710,7 +707,6 @@ pub async fn run_web_server(
         wireguard_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         failed_logins,
         event_tx,

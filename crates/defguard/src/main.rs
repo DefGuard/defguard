@@ -28,9 +28,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{
-            client_state::ClientMap, events::GatewayEvent, map::GatewayMap, run_grpc_gateway_stream,
-        },
+        gateway::{client_state::ClientMap, events::GatewayEvent, run_grpc_gateway_stream},
         run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
@@ -118,7 +116,6 @@ async fn main() -> Result<(), anyhow::Error> {
     // let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<WireguardPeerStats>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
@@ -184,7 +181,6 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,
-            gateway_state,
             webhook_tx,
             webhook_rx,
             wireguard_tx.clone(),
