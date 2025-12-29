@@ -1,3 +1,4 @@
+import './style.scss';
 import clsx from 'clsx';
 import type { HTMLProps, PropsWithChildren } from 'react';
 

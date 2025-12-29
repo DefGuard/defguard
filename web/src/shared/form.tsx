@@ -8,6 +8,7 @@ import { FormRadio } from './defguard-ui/components/form/FormRadio/FormRadio';
 import { FormSelect } from './defguard-ui/components/form/FormSelect/FormSelect';
 import { FormSubmitButton } from './defguard-ui/components/form/FormSubmitButton/FormSubmitButton';
 import { FormSuggestedIPInput } from './defguard-ui/components/form/FormSuggestedIPInput/FormSuggestedIPInput';
+import { FormTextarea } from './defguard-ui/components/form/FormTextarea/FormTextarea';
 import { FormToggle } from './defguard-ui/components/form/FormToggle/FormToggle';
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
@@ -17,6 +18,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
   fieldContext,
   formContext,
   fieldComponents: {
+    FormTextarea,
     FormInput,
     FormSelect,
     FormCheckbox,

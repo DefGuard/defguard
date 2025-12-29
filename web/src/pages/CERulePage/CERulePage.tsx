@@ -1,8 +1,10 @@
+import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { intersection } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import { AclProtocol, AclProtocolName } from '../../shared/api/types';
 import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
@@ -30,6 +32,9 @@ import {
   getUsersQueryOptions,
 } from '../../shared/query';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
+import aliasesEmptyImage from './assets/aliases-empty-icon.png';
+
+const availableProtocols = Object.keys(AclProtocol) as Array<keyof typeof AclProtocol>;
 
 export const CERulePage = () => {
   return (
@@ -48,6 +53,10 @@ export const CERulePage = () => {
 };
 
 const Content = () => {
+  const [destinationAllAddresses, setDestinationAllAddresses] = useState<boolean>(true);
+  const [destinationAllPorts, setDestinationAllPorts] = useState<boolean>(true);
+  const [destinationAllProtocols, setDestinationAllProtocols] = useState<boolean>(true);
+
   const { data: users } = useQuery(getUsersQueryOptions);
 
   const usersOptions = useMemo(() => {
@@ -128,7 +137,7 @@ const Content = () => {
           allowed_devices: z.number().array(),
           denied_devices: z.number().array(),
           aliases: z.number().array(),
-          protocols: z.number().array(),
+          protocols: z.set(z.number()),
           destination: aclDestinationValidator,
           ports: aclPortsValidator,
         })
@@ -231,7 +240,7 @@ const Content = () => {
       denied_groups: [],
       denied_users: [],
       networks: [],
-      protocols: [],
+      protocols: new Set(),
       all_networks: false,
       allow_all_users: false,
       allow_all_network_devices: false,
@@ -297,7 +306,12 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Xl2} />
             <Card>
               {isPresent(aliasesOptions) && aliasesOptions.length === 0 && (
-                <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
+                <div className="no-aliases-block">
+                  <div className="icon-box">
+                    <img src={aliasesEmptyImage} height={40} />
+                  </div>
+                  <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
+                </div>
               )}
               {isPresent(aliasesOptions) && aliasesOptions.length > 0 && (
                 <>
@@ -344,28 +358,72 @@ const Content = () => {
                   {`Define the IP addresses or ranges that form the destination of this ACL rule.`}
                 </p>
               </DescriptionBlock>
-              <form.AppField name="networks">
-                {(field) => (
-                  <field.FormInput label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
-                )}
-              </form.AppField>
+              <SizedBox height={ThemeSpacing.Xl} />
+              <Toggle
+                active={destinationAllAddresses}
+                onClick={() => {
+                  setDestinationAllAddresses((s) => !s);
+                }}
+                label="Any IP Address"
+              />
+              <Fold open={!destinationAllAddresses}>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="destination">
+                  {(field) => (
+                    <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
+                  )}
+                </form.AppField>
+              </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Ports">
                 <p>
                   {`You may specify the exact ports accessible to users in this location.`}
                 </p>
               </DescriptionBlock>
-              <form.AppField name="ports">
-                {(field) => (
-                  <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
-                )}
-              </form.AppField>
+              <SizedBox height={ThemeSpacing.Xl} />
+              <Toggle
+                label="All ports"
+                active={destinationAllPorts}
+                onClick={() => {
+                  setDestinationAllPorts((s) => !s);
+                }}
+              />
+              <Fold open={!destinationAllPorts}>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="ports">
+                  {(field) => (
+                    <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
+                  )}
+                </form.AppField>
+              </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Protocols">
                 <p>
                   {`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}
                 </p>
               </DescriptionBlock>
+              <SizedBox height={ThemeSpacing.Xl} />
+              <Toggle
+                label="All protocols"
+                active={destinationAllProtocols}
+                onClick={() => {
+                  setDestinationAllProtocols((s) => !s);
+                }}
+              />
+              <Fold open={!destinationAllProtocols}>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <div className="protocols-selection">
+                  {availableProtocols.map((protocolKey) => {
+                    const value = AclProtocol[protocolKey];
+                    const name = AclProtocolName[value];
+                    return (
+                      <form.AppField name="protocols" key={protocolKey}>
+                        {(field) => <field.FormCheckbox value={value} text={name} />}
+                      </form.AppField>
+                    );
+                  })}
+                </div>
+              </Fold>
             </Card>
           </Fold>
         </MarkedSection>
