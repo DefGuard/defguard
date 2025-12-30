@@ -11,7 +11,7 @@ use defguard_common::{
     db::{
         ChangeNotification, Id, NoId, TriggerOperation,
         models::{
-            Device, User, WireguardNetwork, wireguard::ServiceLocationMode,
+            Device, User, WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode,
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
@@ -35,7 +35,6 @@ use tokio::{
 use tonic::{Code, Status, metadata::MetadataMap};
 
 use crate::{
-    db::models::gateway::Gateway,
     enterprise::is_enterprise_license_active,
     events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
@@ -44,7 +43,6 @@ use crate::{
 pub mod client_state;
 pub mod events;
 pub(crate) mod handler;
-pub(crate) mod state;
 #[cfg(test)]
 mod tests;
 

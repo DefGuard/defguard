@@ -1,4 +1,8 @@
-use std::{collections::HashSet, net::IpAddr, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    net::IpAddr,
+    str::FromStr,
+};
 
 use axum::{
     extract::{Json, Path, Query, State},
@@ -12,6 +16,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
+            gateway::Gateway,
             wireguard::{
                 DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
                 WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
@@ -429,16 +434,14 @@ pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppSt
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     for network in networks {
-        let network_id = network.id;
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
-        {
-            network_info.push(WireguardNetworkInfo {
-                network,
-                connected: false, // FIXME: was: gateway_state.connected(network_id),
-                // gateways: gateway_state.get_network_gateway_status(network_id),
-                allowed_groups,
-            });
-        }
+        let gateways = Gateway::find_by_network_id(&appstate.pool, network.id).await?;
+        network_info.push(WireguardNetworkInfo {
+            network,
+            connected: false, // FIXME: was: gateway_state.connected(network_id),
+            gateways,
+            allowed_groups,
+        });
     }
     debug!("Listed WireGuard networks");
 
@@ -481,10 +484,11 @@ pub(crate) async fn network_details(
     let response = match network {
         Some(network) => {
             let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
+            let gateways = Gateway::find_by_network_id(&appstate.pool, network_id).await?;
             let network_info = WireguardNetworkInfo {
                 network,
                 connected: false, // FIXME: was: gateway_state.connected(network_id),
-                // gateways: gateway_state.get_network_gateway_status(network_id),
+                gateways,
                 allowed_groups,
             };
             ApiResponse {
@@ -505,48 +509,56 @@ pub(crate) async fn network_details(
 /// Returns state of gateways in a given network
 ///
 /// # Returns
-/// Returns `Vec<GatewayState>` for requested network
-pub(crate) async fn gateway_status(Path(network_id): Path<i64>, _role: AdminRole) -> ApiResult {
+/// Returns `Vec<Gateway>` for requested network.
+pub(crate) async fn gateway_status(
+    Path(network_id): Path<i64>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
 
-    // TODO: fetch gateways from db
+    let gateways = Gateway::find_by_network_id(&appstate.pool, network_id).await?;
 
     debug!("Displayed gateway status for network {network_id}");
 
-    // Ok(ApiResponse {
-    //     json: json!(gateway_state.get_network_gateway_status(network_id)),
-    //     status: StatusCode::OK,
-    // })
-    Ok(ApiResponse::default())
+    Ok(ApiResponse {
+        json: json!(gateways),
+        status: StatusCode::OK,
+    })
 }
 
 /// Returns state of gateways for all networks
 ///
-/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork`
-pub(crate) async fn all_gateways_status(_role: AdminRole) -> ApiResult {
+/// Returns current state of gateways as `HashMap<Id, Vec<Gateway<Id>>>` where key is ID of
+/// `WireguardNetwork`.
+pub(crate) async fn all_gateways_status(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     debug!("Displaying gateways status for all networks.");
 
-    // let flattened = (*gateway_state).as_flattened();
-    // Ok(ApiResponse {
-    //     json: json!(flattened),
-    //     status: StatusCode::OK,
-    // })
-    Ok(ApiResponse::default())
+    let mut map = HashMap::new();
+    let gateways = Gateway::all(&appstate.pool).await?;
+    for gateway in gateways {
+        let entry: &mut Vec<Gateway<Id>> = map.entry(gateway.network_id).or_default();
+        entry.push(gateway);
+    }
+
+    Ok(ApiResponse {
+        json: json!(map),
+        status: StatusCode::OK,
+    })
 }
 
+/// Remove gateway from database.
 pub(crate) async fn remove_gateway(
-    Path((network_id, gateway_id)): Path<(i64, String)>,
+    Path((network_id, gateway_id)): Path<(Id, Id)>,
     _role: AdminRole,
+    State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("Removing gateway {gateway_id} in network {network_id}");
 
-    // TODO: fetch gateways from db
-
-    // gateway_state.remove_gateway(
-    //     network_id,
-    //     Uuid::from_str(&gateway_id)
-    //         .map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
-    // )?;
+    Gateway::delete_by_id(&appstate.pool, gateway_id, network_id).await?;
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 

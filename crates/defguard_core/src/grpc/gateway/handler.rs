@@ -13,7 +13,10 @@ use defguard_common::{
     auth::claims::Claims,
     db::{
         Id, NoId,
-        models::{Device, User, WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+        models::{
+            Device, User, WireguardNetwork, gateway::Gateway,
+            wireguard_peer_stats::WireguardPeerStats,
+        },
     },
 };
 use defguard_mail::Mail;
@@ -39,7 +42,6 @@ use tonic::{
 
 use crate::{
     ClaimsType,
-    db::models::gateway::Gateway,
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
