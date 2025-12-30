@@ -15,7 +15,7 @@ import {
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
-import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
@@ -98,7 +98,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     queryKey: ['group'],
     select: (resp) =>
       resp.data.groups.map(
-        (group): SelectionSectionOption<string> => ({
+        (group): SelectionOption<string> => ({
           id: group,
           label: group,
         }),

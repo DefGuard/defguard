@@ -1,6 +1,6 @@
-export type SelectionSectionKey = string | number;
+export type SelectionKey = string | number;
 
-export type SelectionSectionOption<T> = {
+export type SelectionOption<T> = {
   id: T;
   label: string;
   meta?: unknown;
@@ -8,10 +8,10 @@ export type SelectionSectionOption<T> = {
   searchFields?: string[];
 };
 
-export interface SelectionSectionProps<T extends SelectionSectionKey> {
+export interface SelectionSectionProps<T extends SelectionKey> {
   selection: Set<T>;
   onChange: (value: Set<T>) => void;
-  options: SelectionSectionOption<T>[];
+  options: SelectionOption<T>[];
   itemHeight?: number;
   itemGap?: number;
   className?: string;

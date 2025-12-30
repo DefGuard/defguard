@@ -1,10 +1,7 @@
-import type {
-  SelectionSectionKey,
-  SelectionSectionOption,
-} from '../SelectionSection/type';
+import type { SelectionKey, SelectionOption } from '../SelectionSection/type';
 
-export type SelectMultipleProps<T extends SelectionSectionKey> = {
-  options: SelectionSectionOption<T>[];
+export type SelectMultipleProps<T extends SelectionKey> = {
+  options: SelectionOption<T>[];
   selected: Set<T>;
   modalTitle: string;
   editText: string;

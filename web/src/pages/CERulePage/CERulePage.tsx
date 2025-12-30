@@ -10,7 +10,7 @@ import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
@@ -62,7 +62,7 @@ const Content = () => {
   const usersOptions = useMemo(() => {
     if (isPresent(users)) {
       return users.map(
-        (user): SelectionSectionOption<number> => ({
+        (user): SelectionOption<number> => ({
           id: user.id,
           label: user.username,
           meta: user,
@@ -78,7 +78,7 @@ const Content = () => {
   const aliasesOptions = useMemo(() => {
     if (isPresent(aliases)) {
       return aliases.map(
-        (alias): SelectionSectionOption<number> => ({
+        (alias): SelectionOption<number> => ({
           id: alias.id,
           label: alias.name,
           meta: alias,
@@ -92,7 +92,7 @@ const Content = () => {
   const groupsOptions = useMemo(() => {
     if (isPresent(groups)) {
       return groups.map(
-        (group): SelectionSectionOption<string> => ({
+        (group): SelectionOption<string> => ({
           id: group.name,
           label: group.name,
           meta: group,
@@ -105,7 +105,7 @@ const Content = () => {
   const networkDevicesOptions = useMemo(() => {
     if (isPresent(networkDevices)) {
       return networkDevices.map(
-        (device): SelectionSectionOption<number> => ({
+        (device): SelectionOption<number> => ({
           id: device.id,
           label: device.name,
           meta: device,

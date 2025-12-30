@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionSectionOption } from '../../../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
@@ -63,7 +63,7 @@ const ModalContent = ({ groups, users }: ModalData) => {
   });
 
   const options = useMemo(
-    (): SelectionSectionOption<string>[] =>
+    (): SelectionOption<string>[] =>
       groups.map((g) => ({
         id: g.name,
         label: g.name,

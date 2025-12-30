@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
+  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
+  getFilteredRowModel,
   getSortedRowModel,
   type Row,
   type RowSelectionState,
@@ -16,7 +18,7 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
@@ -49,11 +51,12 @@ export const UsersTable = ({ users }: Props) => {
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
   const [search, setSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
   const groupsOptions = useMemo(
-    (): SelectionSectionOption<string>[] =>
+    (): SelectionOption<string>[] =>
       groups?.map((g) => ({
         id: g.name,
         label: g.name,
@@ -175,6 +178,17 @@ export const UsersTable = ({ users }: Props) => {
         header: m.users_col_groups(),
         size: 370,
         enableSorting: false,
+        enableColumnFilter: isPresent(groups),
+        filterFn: 'arrIncludesSome',
+        meta: {
+          filterOptions:
+            groups?.map(
+              (group): SelectionOption<string> => ({
+                id: group.name,
+                label: group.name,
+              }),
+            ) ?? [],
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue().join(', ')}</span>
@@ -316,6 +330,7 @@ export const UsersTable = ({ users }: Props) => {
       deleteUser,
       groupsOptions,
       handleEditGroups,
+      groups,
     ],
   );
 
@@ -391,11 +406,14 @@ export const UsersTable = ({ users }: Props) => {
     },
     state: {
       rowSelection: selected,
+      columnFilters: columnFilters,
     },
     columns,
     data: transformedData,
     enableRowSelection: true,
     enableExpanding: true,
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setSelected,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
@@ -465,11 +483,13 @@ export const UsersTable = ({ users }: Props) => {
           }}
         />
       )}
-      <TableBody
-        table={table}
-        renderExpandedRow={renderExpanded}
-        expandedHeaders={expandedHeader}
-      />
+      {transformedData.length > 0 && (
+        <TableBody
+          table={table}
+          renderExpandedRow={renderExpanded}
+          expandedHeaders={expandedHeader}
+        />
+      )}
     </>
   );
 };

@@ -14,7 +14,7 @@ import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from
 import api from '../../../../shared/api/api';
 import type { CreateGroupRequest, User } from '../../../../shared/api/types';
 import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionSectionOption } from '../../../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -84,7 +84,7 @@ interface StepProps extends ModalState {
   setModalState: Dispatch<SetStateAction<ModalState | null>>;
 }
 
-const userToOption = (user: User): SelectionSectionOption<string> => ({
+const userToOption = (user: User): SelectionOption<string> => ({
   id: user.username,
   label: `${user.first_name} ${user.last_name}`,
 });

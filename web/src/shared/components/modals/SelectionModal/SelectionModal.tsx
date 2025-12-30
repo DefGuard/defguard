@@ -3,7 +3,7 @@ import { m } from '../../../../paraglide/messages';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
 import { SelectionSection } from '../../SelectionSection/SelectionSection';
-import type { SelectionSectionKey } from '../../SelectionSection/type';
+import type { SelectionKey } from '../../SelectionSection/type';
 import { useSelectionModal } from './useSelectionModal';
 
 export const SelectionModal = () => {
@@ -38,7 +38,7 @@ const ModalContent = () => {
   const initialSelected = useSelectionModal((s) => s.selected);
 
   const [internalSelection, setInternalSelection] =
-    useState<Set<SelectionSectionKey>>(initialSelected);
+    useState<Set<SelectionKey>>(initialSelected);
 
   return (
     <>
