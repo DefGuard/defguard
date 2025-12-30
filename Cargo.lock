@@ -1102,7 +1102,6 @@ dependencies = [
  "defguard_event_router",
  "defguard_mail",
  "defguard_proxy_manager",
- "defguard_session_manager",
  "defguard_version",
  "dotenvy",
  "secrecy",
@@ -1153,7 +1152,6 @@ version = "0.0.0"
 dependencies = [
  "ammonia",
  "anyhow",
- "argon2",
  "axum",
  "axum-client-ip",
  "axum-extra",
@@ -1190,7 +1188,6 @@ dependencies = [
  "secrecy",
  "semver",
  "serde",
- "serde_cbor_2",
  "serde_json",
  "serde_qs",
  "serde_urlencoded",
@@ -1288,9 +1285,7 @@ dependencies = [
 name = "defguard_proxy_manager"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "axum",
- "chrono",
  "defguard_common",
  "defguard_core",
  "defguard_mail",

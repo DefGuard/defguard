@@ -110,12 +110,11 @@ tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
-uaparser = "0.6"
 # openapi
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
-webauthn-authenticator-rs = { version = "0.5" }
+webauthn-authenticator-rs = "0.5"
 webauthn-rs = { version = "0.5", features = [
     "danger-allow-state-serialisation",
 ] }
