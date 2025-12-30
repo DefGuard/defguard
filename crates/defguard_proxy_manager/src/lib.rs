@@ -174,7 +174,7 @@ impl ProxyOrchestrator {
         let proxies = vec![Proxy::new(
             self.pool.clone(),
             Uri::from_str(url)?,
-            self.tx.clone(),
+            &self.tx,
             Arc::clone(&self.router),
         )?];
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
@@ -237,7 +237,7 @@ impl Proxy {
     pub fn new(
         pool: PgPool,
         uri: Uri,
-        tx: ProxyTxSet,
+        tx: &ProxyTxSet,
         router: Arc<RwLock<ProxyRouter>>,
     ) -> Result<Self, ProxyError> {
         let endpoint = Endpoint::from(uri);
@@ -262,7 +262,7 @@ impl Proxy {
         };
 
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, &tx);
+        let services = ProxyServices::new(&pool, tx);
 
         Ok(Self {
             pool,

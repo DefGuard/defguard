@@ -301,15 +301,14 @@ pub(crate) async fn modify_network(
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
-    network.service_location_mode = match data.location_mfa_mode {
-        LocationMfaMode::Disabled => data.service_location_mode,
-        _ => {
-            warn!(
-                "Disabling service location mode for location {} because location MFA is enabled",
-                network.name
-            );
-            ServiceLocationMode::Disabled
-        }
+    network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
+        data.service_location_mode
+    } else {
+        warn!(
+            "Disabling service location mode for location {} because location MFA is enabled",
+            network.name
+        );
+        ServiceLocationMode::Disabled
     };
     network.location_mfa_mode = data.location_mfa_mode;
 

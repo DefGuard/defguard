@@ -30,7 +30,6 @@ use crate::{
     events::GrpcEvent,
     grpc::gateway::client_state::ClientMap,
     server_config,
-    version::MIN_GATEWAY_VERSION,
 };
 
 mod auth;
