@@ -143,7 +143,7 @@ where
 {
     debug!("Fetching all peers for network {}", location.id);
 
-    if should_prevent_service_location_usage(&location) {
+    if should_prevent_service_location_usage(location) {
         warn!(
             "Tried to use service location {} with disabled enterprise features. No clients \
             will be allowed to connect.",
@@ -508,7 +508,6 @@ impl GatewayUpdatesHandler {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
                         self.send_network_update(&network, Vec::new(), None, 0)
-                            .await
                     } else {
                         Ok(())
                     }
@@ -520,9 +519,8 @@ impl GatewayUpdatesHandler {
                     maybe_firewall_config,
                 ) => {
                     if network_id == self.network_id {
-                        let result = self
-                            .send_network_update(&network, peers, maybe_firewall_config, 1)
-                            .await;
+                        let result =
+                            self.send_network_update(&network, peers, maybe_firewall_config, 1);
                         // update stored network data
                         self.network = network;
                         result
@@ -532,7 +530,7 @@ impl GatewayUpdatesHandler {
                 }
                 GatewayEvent::NetworkDeleted(network_id, network_name) => {
                     if network_id == self.network_id {
-                        self.send_network_delete(&network_name).await
+                        self.send_network_delete(&network_name)
                     } else {
                         Ok(())
                     }
@@ -568,7 +566,6 @@ impl GatewayUpdatesHandler {
                                 },
                                 0,
                             )
-                            .await
                         }
                         None => Ok(()),
                     }
@@ -604,7 +601,6 @@ impl GatewayUpdatesHandler {
                                 },
                                 1,
                             )
-                            .await
                         }
                         None => Ok(()),
                     }
@@ -616,20 +612,20 @@ impl GatewayUpdatesHandler {
                         .iter()
                         .find(|info| info.network_id == self.network_id)
                     {
-                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
+                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
                         None => Ok(()),
                     }
                 }
                 GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
                     if location_id == self.network_id {
-                        self.send_firewall_update(firewall_config).await
+                        self.send_firewall_update(firewall_config)
                     } else {
                         Ok(())
                     }
                 }
                 GatewayEvent::FirewallDisabled(location_id) => {
                     if location_id == self.network_id {
-                        self.send_firewall_disable().await
+                        self.send_firewall_disable()
                     } else {
                         Ok(())
                     }
@@ -646,7 +642,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Sends updated network configuration
-    async fn send_network_update(
+    fn send_network_update(
         &self,
         network: &WireguardNetwork<Id>,
         peers: Vec<Peer>,
@@ -681,7 +677,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Sends delete network command to gateway
-    async fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
+    fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
         debug!(
             "Sending network delete command for network {}",
             self.network
@@ -712,7 +708,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send update peer command to gateway
-    async fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
+    fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
         debug!("Sending peer update for network {}", self.network);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
@@ -722,7 +718,8 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send peer update for network {}, update type: {update_type} ({}), error: {err}",
+                "Failed to send peer update for network {}, update type: {update_type} ({}), \
+                error: {err}",
                 self.network,
                 if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
@@ -734,7 +731,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send delete peer command to gateway
-    async fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
+    fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
         debug!("Sending peer delete for network {}", self.network);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
@@ -749,7 +746,8 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 (DELETE), error: {err}",
+                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 \
+                (DELETE), error: {err}",
                 self.network,
             );
             error!(msg);
@@ -760,7 +758,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send firewall config update command to gateway
-    async fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
+    fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
         debug!(
             "Sending firewall config update for network {} with config {firewall_config:?}",
             self.network
@@ -784,7 +782,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send firewall disable command to gateway
-    async fn send_firewall_disable(&self) -> Result<(), Status> {
+    fn send_firewall_disable(&self) -> Result<(), Status> {
         debug!(
             "Sending firewall disable command for network {}",
             self.network

@@ -173,8 +173,8 @@ pub async fn make_oidc_client(
     WebError,
 > {
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
-    let client_id = ClientId::new(provider.client_id.to_string());
-    let client_secret = ClientSecret::new(provider.client_secret.to_string());
+    let client_id = ClientId::new(provider.client_id.clone());
+    let client_secret = ClientSecret::new(provider.client_secret.clone());
     let core_client = CoreClient::from_provider_metadata(
         provider_metadata,
         client_id.clone(),
@@ -442,7 +442,7 @@ pub async fn user_from_claims(
                 };
 
                 let mut user = User::new(
-                    username.to_string(),
+                    username.clone(),
                     None,
                     family_name.to_string(),
                     given_name.to_string(),
