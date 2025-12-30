@@ -132,21 +132,21 @@ impl WireguardNetworkData {
     }
 }
 
-// Used in process of importing network from WireGuard config
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MappedDevices {
-    pub devices: Vec<MappedDevice>,
+// Used in process of importing network from WireGuard config.
+#[derive(Deserialize)]
+pub(crate) struct MappedDevices {
+    devices: Vec<MappedDevice>,
 }
 
 #[derive(Deserialize)]
-pub struct ImportNetworkData {
-    pub name: String,
-    pub endpoint: String,
-    pub config: String,
-    pub allowed_groups: Vec<String>,
+pub(crate) struct ImportNetworkData {
+    name: String,
+    endpoint: String,
+    config: String,
+    allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
@@ -549,7 +549,33 @@ pub(crate) async fn all_gateways_status(
     })
 }
 
-/// Remove gateway from database.
+#[derive(Deserialize)]
+pub(crate) struct AddGateway {
+    url: String,
+}
+
+/// Add gateway.
+pub(crate) async fn add_gateway(
+    Path(network_id): Path<Id>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Json(data): Json<AddGateway>,
+) -> ApiResult {
+    debug!("Adding gateway");
+
+    let gateway = Gateway::new(network_id, data.url)
+        .save(&appstate.pool)
+        .await?;
+
+    info!("Added gateway");
+
+    Ok(ApiResponse {
+        json: json!(gateway),
+        status: StatusCode::CREATED,
+    })
+}
+
+/// Remove gateway.
 pub(crate) async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(Id, Id)>,
     _role: AdminRole,
@@ -676,7 +702,7 @@ pub(crate) async fn add_user_devices(
 
 // assign IPs and generate configs for each network
 #[derive(Serialize, ToSchema)]
-pub struct AddDeviceResult {
+pub(crate) struct AddDeviceResult {
     configs: Vec<DeviceConfig>,
     device: Device<Id>,
 }
@@ -1368,7 +1394,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
 }
 
 #[derive(Deserialize)]
-pub struct QueryFrom {
+pub(crate) struct QueryFrom {
     from: Option<String>,
 }
 
@@ -1383,9 +1409,9 @@ impl QueryFrom {
 }
 
 #[derive(Serialize)]
-pub struct DevicesStatsResponse {
-    pub user_devices: Vec<WireguardUserStatsRow>,
-    pub network_devices: Vec<WireguardDeviceStatsRow>,
+pub(crate) struct DevicesStatsResponse {
+    user_devices: Vec<WireguardUserStatsRow>,
+    network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
 /// Returns network statistics for users and their devices

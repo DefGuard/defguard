@@ -150,8 +150,8 @@ use self::{
     },
 };
 use crate::{
-    grpc::gateway::events::GatewayEvent, location_management::sync_location_allowed_devices,
-    version::IncompatibleComponents,
+    grpc::gateway::events::GatewayEvent, handlers::wireguard::add_gateway,
+    location_management::sync_location_allowed_devices, version::IncompatibleComponents,
 };
 
 pub mod appstate;
@@ -620,6 +620,7 @@ pub fn build_webapp(
                     .get(network_details),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
+            .route("/network/{network_id}/gateways", post(add_gateway))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
                 delete(remove_gateway),
