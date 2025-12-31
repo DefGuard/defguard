@@ -118,6 +118,7 @@ export const UsersTable = ({ users }: Props) => {
         header: m.users_col_name(),
         enableSorting: true,
         sortingFn: 'text',
+        minSize: 250,
         meta: {
           flex: true,
         },
@@ -139,6 +140,7 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('is_active', {
         header: m.users_col_status(),
         size: 100,
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -152,6 +154,7 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('username', {
         header: m.users_col_login(),
         size: 170,
+        minSize: 100,
         enableSorting: true,
         sortingFn: 'text',
         cell: (info) => (
@@ -162,6 +165,7 @@ export const UsersTable = ({ users }: Props) => {
       }),
       columnHelper.accessor('phone', {
         size: 175,
+        minSize: 175,
         header: m.users_col_phone(),
         enableSorting: false,
         cell: (info) => {
@@ -177,6 +181,7 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
         size: 370,
+        minSize: 200,
         enableSorting: false,
         enableColumnFilter: isPresent(groups),
         filterFn: 'arrIncludesSome',
@@ -197,6 +202,8 @@ export const UsersTable = ({ users }: Props) => {
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
+        size: 150,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -412,6 +419,7 @@ export const UsersTable = ({ users }: Props) => {
     data: transformedData,
     enableRowSelection: true,
     enableExpanding: true,
+    columnResizeMode: 'onChange',
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setSelected,
