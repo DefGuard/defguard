@@ -85,6 +85,16 @@ impl VpnClientSession<Id> {
         &self,
         executor: E,
     ) -> Result<Option<VpnSessionStats<Id>>, SqlxError> {
-        unimplemented!()
+        query_as!(
+            VpnSessionStats,
+            "SELECT id, session_id, collected_at, latest_handshake, endpoint, \
+            	total_upload, total_download, upload_diff, download_diff
+        	FROM vpn_session_stats \
+        	WHERE session_id = $1 \
+        	ORDER BY collected_at DESC LIMIT 1",
+            self.id
+        )
+        .fetch_optional(executor)
+        .await
     }
 }

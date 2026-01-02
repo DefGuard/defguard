@@ -15,10 +15,7 @@ use tower::ServiceBuilder;
 use defguard_common::{
     VERSION,
     auth::claims::ClaimsType,
-    db::{
-        Id,
-        models::{Settings, wireguard_peer_stats::WireguardPeerStats},
-    },
+    db::{Id, models::Settings},
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_mail::Mail;
