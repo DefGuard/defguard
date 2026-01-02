@@ -553,6 +553,8 @@ impl Proxy {
                     }
                 }
             }
+
+            sleep(Duration::from_secs(1)).await;
         }
 
         Ok(())
