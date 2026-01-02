@@ -2,16 +2,12 @@ use std::fmt;
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use serde::{
-    Deserialize,
-    ser::{Serialize, SerializeStruct, Serializer},
-};
+use serde::Deserialize;
 use sqlx::{PgExecutor, query, query_as};
-use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Deserialize, Model, ToSchema)]
+#[derive(Deserialize, Model)]
 pub struct Gateway<I = NoId> {
     pub id: I,
     pub network_id: Id,
@@ -19,26 +15,6 @@ pub struct Gateway<I = NoId> {
     pub hostname: Option<String>,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-}
-
-/// Implement `Serialize` to accomodate `connected`.
-impl<I> Serialize for Gateway<I> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Gateway", 6)?;
-
-        state.serialize_field("network_id", &self.network_id)?;
-        state.serialize_field("url", &self.url)?;
-        state.serialize_field("hostname", &self.hostname)?;
-        state.serialize_field("connected_at", &self.connected_at)?;
-        state.serialize_field("disconnected_at", &self.disconnected_at)?;
-        // Transient
-        state.serialize_field("connected", &self.is_connected())?;
-
-        state.end()
-    }
 }
 
 impl<I> Gateway<I> {

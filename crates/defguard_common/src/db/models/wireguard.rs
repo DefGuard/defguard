@@ -23,7 +23,6 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{
     ModelError,
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
-    gateway::Gateway,
     group::{Group, Permission},
     user::User,
     wireguard_peer_stats::WireguardPeerStats,
@@ -1076,15 +1075,6 @@ impl Default for WireguardNetwork {
             service_location_mode: ServiceLocationMode::default(),
         }
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct WireguardNetworkInfo {
-    #[serde(flatten)]
-    pub network: WireguardNetwork<Id>,
-    pub connected: bool,
-    pub gateways: Vec<Gateway<Id>>,
-    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq)]

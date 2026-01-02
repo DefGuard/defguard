@@ -19,8 +19,8 @@ use defguard_common::{
             gateway::Gateway,
             wireguard::{
                 DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
-                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
-                WireguardUserStatsRow, networks_stats,
+                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
+                networks_stats,
             },
         },
     },
@@ -53,6 +53,41 @@ use crate::{
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
+
+#[derive(Serialize, ToSchema)]
+pub(crate) struct GatewayInfo {
+    id: Id,
+    network_id: Id,
+    url: String,
+    hostname: Option<String>,
+    connected_at: Option<NaiveDateTime>,
+    disconnected_at: Option<NaiveDateTime>,
+    connected: bool,
+}
+
+impl From<Gateway<Id>> for GatewayInfo {
+    fn from(gateway: Gateway<Id>) -> Self {
+        let connected = gateway.is_connected();
+        Self {
+            id: gateway.id,
+            network_id: gateway.network_id,
+            url: gateway.url,
+            hostname: gateway.hostname,
+            connected_at: gateway.connected_at,
+            disconnected_at: gateway.disconnected_at,
+            connected,
+        }
+    }
+}
+
+#[derive(Serialize, ToSchema)]
+pub(crate) struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    network: WireguardNetwork<Id>,
+    connected: bool,
+    gateways: Vec<GatewayInfo>,
+    allowed_groups: Vec<String>,
+}
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
@@ -438,7 +473,7 @@ pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppSt
         network_info.push(WireguardNetworkInfo {
             network,
             connected: false, // FIXME: was: gateway_state.connected(network_id),
-            gateways,
+            gateways: gateways.into_iter().map(Into::into).collect(),
             allowed_groups,
         });
     }
@@ -487,7 +522,7 @@ pub(crate) async fn network_details(
             let network_info = WireguardNetworkInfo {
                 network,
                 connected: false, // FIXME: was: gateway_state.connected(network_id),
-                gateways,
+                gateways: gateways.into_iter().map(Into::into).collect(),
                 allowed_groups,
             };
             ApiResponse {
@@ -516,7 +551,11 @@ pub(crate) async fn gateway_status(
 ) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
 
-    let gateways = Gateway::find_by_network_id(&appstate.pool, network_id).await?;
+    let gateways = Gateway::find_by_network_id(&appstate.pool, network_id)
+        .await?
+        .into_iter()
+        .map(GatewayInfo::from)
+        .collect::<Vec<_>>();
 
     debug!("Displayed gateway status for network {network_id}");
 
@@ -528,7 +567,7 @@ pub(crate) async fn gateway_status(
 
 /// Returns state of gateways for all networks
 ///
-/// Returns current state of gateways as `HashMap<Id, Vec<Gateway<Id>>>` where key is ID of
+/// Returns current state of gateways as `HashMap<Id, Vec<GatewayInfo>>` where key is ID of
 /// `WireguardNetwork`.
 pub(crate) async fn all_gateways_status(
     _role: AdminRole,
@@ -539,8 +578,8 @@ pub(crate) async fn all_gateways_status(
     let mut map = HashMap::new();
     let gateways = Gateway::all(&appstate.pool).await?;
     for gateway in gateways {
-        let entry: &mut Vec<Gateway<Id>> = map.entry(gateway.network_id).or_default();
-        entry.push(gateway);
+        let entry: &mut Vec<GatewayInfo> = map.entry(gateway.network_id).or_default();
+        entry.push(gateway.into());
     }
 
     Ok(ApiResponse {
@@ -561,16 +600,16 @@ pub(crate) async fn add_gateway(
     State(appstate): State<AppState>,
     Json(data): Json<GatewayData>,
 ) -> ApiResult {
-    debug!("Adding gateway");
+    debug!("Adding gateway in network {network_id}");
 
     let gateway = Gateway::new(network_id, data.url)
         .save(&appstate.pool)
         .await?;
 
-    info!("Added gateway");
+    info!("Added gateway in network {network_id}");
 
     Ok(ApiResponse {
-        json: json!(gateway),
+        json: json!(GatewayInfo::from(gateway)),
         status: StatusCode::CREATED,
     })
 }
@@ -582,7 +621,7 @@ pub(crate) async fn change_gateway(
     State(appstate): State<AppState>,
     Json(data): Json<GatewayData>,
 ) -> ApiResult {
-    debug!("Changing gateway");
+    debug!("Changing gateway {gateway_id} in network {network_id}");
 
     if let Some(mut gateway) = Gateway::find_by_id(&appstate.pool, gateway_id).await? {
         if gateway.network_id == network_id {
@@ -590,11 +629,13 @@ pub(crate) async fn change_gateway(
             gateway.save(&appstate.pool).await?;
             info!("Changed gateway");
             return Ok(ApiResponse {
-                json: json!(gateway),
+                json: json!(GatewayInfo::from(gateway)),
                 status: StatusCode::OK,
             });
         }
     }
+
+    info!("Changed gateway {gateway_id} in network {network_id}");
 
     Ok(ApiResponse {
         json: Value::Null,
