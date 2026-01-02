@@ -11,8 +11,8 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use sqlx::{PgConnection, PgPool, types::chrono::Utc};
-use tracing::{debug, error, warn};
+use sqlx::{PgConnection, types::chrono::Utc};
+use tracing::{debug, warn};
 
 use crate::error::SessionManagerError;
 
@@ -150,73 +150,12 @@ impl ActiveSessionsMap {
             devices: HashMap::new(),
         }
     }
-
-    /// Helper to insert into inner map
-    fn insert(&mut self, key: Id, session_map: SessionMap) -> Option<SessionMap> {
-        self.sessions.insert(key, session_map)
-    }
 }
 
 impl ActiveSessionsMap {
-    /// Fetch current active sessions for all locations from DB
-    /// and initialize session map
-    // pub(crate) async fn initialize_from_db(pool: &PgPool) -> Result<Self, SessionManagerError> {
-    //     debug!("Initializing active sessions map from DB");
-
-    //     // initialize empty map
-    //     let mut active_sessions = LocationSessionsMap(HashMap::new());
-
-    //     // fetch all locations
-    //     let locations = WireguardNetwork::all(pool).await?;
-
-    //     // get active sessions for all locations
-    //     for location in locations {
-    //         // fetch active sessions from DB
-    //         let location_sessions = location.get_active_vpn_sessions(pool).await?;
-
-    //         // initialize empty session map for a given location
-    //         let mut location_session_map = SessionMap(HashMap::new());
-
-    //         // insert sessions into map
-    //         for session in location_sessions {
-    //             // we can unwrap here since active session must have a device ID
-    //             let device_id = session
-    //                 .device_id
-    //                 .expect("Active session must have device_id");
-
-    //             let device = Self::fetch_device(pool, device_id).await?;
-
-    //             let user = Self::fetch_user(pool, session.user_id).await?;
-
-    //             let session_state = SessionState::new(session.id, &user);
-
-    //             if let Some(existing_session) =
-    //                 location_session_map.insert(device_id, session_state)
-    //             {
-    //                 error!(
-    //                     "Found duplicate active session for device {device} in location {location}"
-    //                 );
-    //                 return Err(SessionManagerError::MultipleActiveSessionsError {
-    //                     location_name: location.name,
-    //                     username: existing_session.username,
-    //                     device_name: device.name,
-    //                 });
-    //             };
-    //         }
-
-    //         if let Some(_) = active_sessions.insert(location.id, location_session_map) {
-    //             let msg = format!(
-    //                 "Active sessions for location {location} have already been initialized"
-    //             );
-    //             error!("{msg}");
-    //             return Err(SessionManagerError::SessionMapInitializationError(msg));
-    //         };
-    //     }
-
-    //     Ok(active_sessions)
-    // }
-
     /// Checks if a session for a given peer exists already
+    ///
+    /// First we check current map, then try the DB.
     pub(crate) async fn try_get_peer_session(
         &mut self,
         transaction: &mut PgConnection,
@@ -252,11 +191,6 @@ impl ActiveSessionsMap {
                 Ok(session_map.0.get_mut(&device_id))
             }
         }
-    }
-
-    /// Checks if any sessions need to be marked as disconnected
-    pub(crate) fn update_session_status(&mut self) {
-        todo!()
     }
 
     /// Attempts to create a new VPN client session, add it to curent state and persists it in DB

@@ -1,5 +1,5 @@
 use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
-use sqlx::{PgConnection, PgPool, types::chrono::NaiveDateTime};
+use sqlx::{PgConnection, PgPool};
 use tokio::{
     sync::mpsc::UnboundedReceiver,
     time::{Duration, interval},
