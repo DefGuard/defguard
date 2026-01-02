@@ -21,3 +21,28 @@ pub struct VpnSessionStats<I = NoId> {
     // download since last stats update
     pub download_diff: i64,
 }
+
+impl VpnSessionStats {
+    pub fn new(
+        session_id: Id,
+        collected_at: NaiveDateTime,
+        latest_handshake: NaiveDateTime,
+        endpoint: String,
+        total_upload: i64,
+        total_download: i64,
+        upload_diff: i64,
+        download_diff: i64,
+    ) -> Self {
+        Self {
+            id: NoId,
+            session_id,
+            collected_at,
+            latest_handshake,
+            endpoint,
+            total_upload,
+            total_download,
+            upload_diff,
+            download_diff,
+        }
+    }
+}

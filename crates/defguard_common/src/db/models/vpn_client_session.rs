@@ -1,8 +1,8 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::Type;
+use sqlx::{Error as SqlxError, Type, query_as};
 
-use crate::db::{Id, NoId};
+use crate::db::{Id, NoId, models::vpn_session_stats::VpnSessionStats};
 
 #[derive(Default, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
@@ -56,5 +56,35 @@ impl VpnClientSession {
             mfa,
             state,
         }
+    }
+}
+
+impl VpnClientSession<Id> {
+    /// Tries to fetch the latest active session for a given location and device
+    ///
+    /// A session is considered active if it's state is `New` or `Connected`
+    pub async fn try_get_active_session<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+        device_id: Id,
+    ) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
+	            mfa, state \"state: VpnClientSessionState\" \
+			FROM vpn_client_session \
+			WHERE location_id = $1 AND device_id = $2",
+            location_id,
+            device_id
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
+    pub async fn try_get_latest_stats<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Option<VpnSessionStats<Id>>, SqlxError> {
+        unimplemented!()
     }
 }

@@ -112,7 +112,8 @@ impl SessionManager {
         // check if a session exists already for a given peer
         // and attempt to add one if necessary
         let maybe_session = match active_sessions
-            .try_get_peer_session(message.location_id, message.device_id)
+            .try_get_peer_session(transaction, message.location_id, message.device_id)
+            .await?
         {
             Some(session) => Some(session),
             None => {
@@ -126,9 +127,9 @@ impl SessionManager {
             }
         };
 
-        if let Some(mut session) = maybe_session {
+        if let Some(session) = maybe_session {
             // update session stats
-            session.update_stats(message)?;
+            session.update_stats(transaction, message).await?;
         };
 
         trace!("Finished processing peer stats update");

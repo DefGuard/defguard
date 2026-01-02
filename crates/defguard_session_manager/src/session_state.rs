@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use chrono::TimeDelta;
+use chrono::{NaiveDateTime, TimeDelta};
 use defguard_common::{
     db::{
         Id,
-        models::{Device, User, WireguardNetwork, vpn_client_session::VpnClientSession},
+        models::{
+            Device, User, WireguardNetwork, vpn_client_session::VpnClientSession,
+            vpn_session_stats::VpnSessionStats,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -13,12 +16,40 @@ use tracing::{debug, error, warn};
 
 use crate::error::SessionManagerError;
 
+struct LastStatsUpdate {
+    collected_at: NaiveDateTime,
+    latest_handshake: NaiveDateTime,
+    total_upload: i64,
+    total_download: i64,
+}
+
+impl LastStatsUpdate {
+    /// Checks if the next peer stats update is valid.
+    ///
+    /// This includes following checks:
+    /// - new update was collected after previous
+    /// - transfer values are not decreased
+    fn validate_update(&self, new_update: &PeerStatsUpdate) -> Result<(), SessionManagerError> {
+        todo!()
+    }
+}
+
+impl From<VpnSessionStats<Id>> for LastStatsUpdate {
+    fn from(value: VpnSessionStats<Id>) -> Self {
+        Self {
+            collected_at: value.collected_at,
+            latest_handshake: value.latest_handshake,
+            total_upload: value.total_upload,
+            total_download: value.total_download,
+        }
+    }
+}
+
 /// State of a specific VPN client session
 pub(crate) struct SessionState {
     session_id: Id,
     user_id: Id,
-    username: String,
-    last_stats_update: Option<PeerStatsUpdate>,
+    last_stats_update: Option<LastStatsUpdate>,
 }
 
 impl SessionState {
@@ -27,23 +58,58 @@ impl SessionState {
             session_id,
             last_stats_update: None,
             user_id: user.id,
-            username: user.username.clone(),
         }
     }
 
     /// Updates session stats based on received peer update
-    pub(crate) fn update_stats(
+    pub(crate) async fn update_stats(
         &mut self,
+        transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
-        // get previous stats
-        todo!();
+        // get previous stats if available and calculate transfer change
+        let (upload_diff, download_diff) = match &self.last_stats_update {
+            Some(last_stats_update) => {
+                // validate current update against latest value
+                last_stats_update.validate_update(&peer_stats_update)?;
 
-        // calculate transfer change
-        todo!();
+                // calculate transfer change
+                (
+                    peer_stats_update.upload as i64 - last_stats_update.total_upload,
+                    peer_stats_update.download as i64 - last_stats_update.total_download,
+                )
+            }
+            None => (0, 0),
+        };
+
+        let vpn_session_stats = VpnSessionStats::new(
+            self.session_id,
+            peer_stats_update.collected_at,
+            peer_stats_update.latest_handshake,
+            peer_stats_update.endpoint.to_string(),
+            peer_stats_update.upload as i64,
+            peer_stats_update.download as i64,
+            upload_diff,
+            download_diff,
+        );
 
         // store stats update in DB
-        todo!();
+        let stats = vpn_session_stats.save(transaction).await?;
+
+        // update latest stats
+        self.last_stats_update = Some(LastStatsUpdate::from(stats));
+
+        Ok(())
+    }
+}
+
+impl From<&VpnClientSession<Id>> for SessionState {
+    fn from(value: &VpnClientSession<Id>) -> Self {
+        Self {
+            session_id: value.id,
+            user_id: value.user_id,
+            last_stats_update: None,
+        }
     }
 }
 
@@ -151,14 +217,41 @@ impl ActiveSessionsMap {
     // }
 
     /// Checks if a session for a given peer exists already
-    pub(crate) fn try_get_peer_session(
+    pub(crate) async fn try_get_peer_session(
         &mut self,
+        transaction: &mut PgConnection,
         location_id: Id,
         device_id: Id,
-    ) -> Option<&mut SessionState> {
-        self.sessions
-            .get_mut(&location_id)
-            .map(|session_map| session_map.0.get_mut(&device_id))?
+    ) -> Result<Option<&mut SessionState>, SessionManagerError> {
+        // try to get session from current map
+        let session_map = self.get_or_create_location_session_map(location_id);
+        if session_map.0.contains_key(&device_id) {
+            return Ok(session_map.0.get_mut(&device_id));
+        }
+
+        // session not found in current map, try to fetch from DB
+        let maybe_db_session =
+            VpnClientSession::try_get_active_session(&mut *transaction, location_id, device_id)
+                .await?;
+
+        match maybe_db_session {
+            None => Ok(None),
+            Some(db_session) => {
+                let mut session_state = SessionState::from(&db_session);
+
+                // try to fetch latest available stats for a given session
+                if let Some(latest_stats) = db_session.try_get_latest_stats(transaction).await? {
+                    session_state.last_stats_update = Some(LastStatsUpdate::from(latest_stats));
+                };
+
+                // put session state in map
+                let maybe_existing_session = session_map.insert(device_id, session_state);
+                // if a session exists already there was an error in earlier logic
+                assert!(maybe_existing_session.is_none());
+
+                Ok(session_map.0.get_mut(&device_id))
+            }
+        }
     }
 
     /// Checks if any sessions need to be marked as disconnected
