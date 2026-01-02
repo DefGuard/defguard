@@ -87,6 +87,10 @@ pub enum ProxyError {
     UrlError(String),
     #[error("Proxy setup error: {0}")]
     SetupError(#[from] tokio::sync::mpsc::error::SendError<ProxySetupResponse>),
+    #[error(transparent)]
+    Transport(#[from] tonic::Status),
+    #[error("Connection timeout: {0}")]
+    ConnectionTimeout(String),
 }
 
 /// Maintains routing state for proxy-specific responses by associating
@@ -298,13 +302,26 @@ impl Proxy {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Result<(), ProxyError> {
         loop {
-            if let Err(err) = self.perform_initial_setup().await {
-                error!("Failed to perform initial proxy setup: {err}");
+            // Probe endpoint for HTTPS availability before performing initial setup
+            match self.is_https_configured().await {
+                Ok(true) => {
+                    // HTTPS already present - skip initial setup
+                }
+                Ok(false) => {
+                    // HTTPS not configured - try to perform initial setup
+                    if let Err(err) = self.perform_initial_setup().await {
+                        error!("Failed to perform initial proxy setup: {err}");
+                    }
+                    // Wait a bit before establishing proper connection, reconnecting too fast will often result in an
+                    // error since proxy may have not restarted the server yet.
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                }
+                Err(err) => {
+                    error!("Failed to probe proxy endpoint: {err}, retrying in 10s");
+                    sleep(TEN_SECS).await;
+                    continue;
+                }
             }
-
-            // Wait a bit before reconnecting, reconnecting too fast will often result in an
-            // error since proxy may have not restarted the server yet.
-            tokio::time::sleep(Duration::from_secs(1)).await;
 
             let endpoint = self.endpoint(true)?;
 
@@ -364,6 +381,69 @@ impl Proxy {
             let mut resp_stream = response.into_inner();
             self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
+        }
+    }
+
+    /// Probe the endpoint to check if HTTPS is available.
+    /// Returns Ok(true) if HTTPS is configured and working.
+    /// Returns Ok(false) if there's a protocol/TLS error (HTTPS not configured).
+    /// Returns Err for other errors like timeouts or network issues.
+    async fn is_https_configured(&self) -> Result<bool, ProxyError> {
+        let endpoint = self.endpoint(true)?;
+        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+        let (tx, rx) = mpsc::unbounded_channel();
+        let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
+
+        match tokio::time::timeout(
+            Duration::from_secs(10),
+            client.proxy_setup(UnboundedReceiverStream::new(rx)),
+        )
+        .await
+        {
+            Ok(Ok(_)) => {
+                info!("Proxy endpoint is already using HTTPS, skipping initial setup");
+                let _ = tx.send(ProxySetupResponse {
+                    payload: Some(defguard_proto::proxy::proxy_setup_response::Payload::Done(
+                        Done {},
+                    )),
+                });
+                Ok(true)
+            }
+            Ok(Err(err)) => {
+                let http_endpoint = self.endpoint(false)?;
+                let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+                let (tx, rx) = mpsc::unbounded_channel();
+                let mut client =
+                    ProxyClient::with_interceptor(http_endpoint.connect_lazy(), interceptor);
+
+                match tokio::time::timeout(
+                    Duration::from_secs(10),
+                    client.proxy_setup(UnboundedReceiverStream::new(rx)),
+                )
+                .await
+                {
+                    // HTTP works = HTTPS not configured
+                    Ok(Ok(_)) => {
+                        info!("Proxy endpoint is available via HTTP, HTTPS not configured");
+                        let _ = tx.send(ProxySetupResponse {
+                            payload: Some(
+                                defguard_proto::proxy::proxy_setup_response::Payload::Done(Done {}),
+                            ),
+                        });
+                        Ok(false)
+                    }
+                    Ok(Err(_)) => {
+                        // gRPC errors should be propagated
+                        Err(ProxyError::Transport(err))
+                    }
+                    Err(_) => Err(ProxyError::ConnectionTimeout(
+                        "Timeout while probing HTTP endpoint".to_string(),
+                    )),
+                }
+            }
+            Err(_) => Err(ProxyError::ConnectionTimeout(
+                "Timeout while probing HTTPS endpoint".to_string(),
+            )),
         }
     }
 
