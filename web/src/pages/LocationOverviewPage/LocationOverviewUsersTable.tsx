@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { orderBy, sumBy } from 'lodash-es';
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { DeviceStats, LocationUserDeviceStats } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
@@ -170,14 +170,13 @@ export const LocationOverviewUsersTable = ({ data }: Props) => {
   );
 
   const renderExpansionRow = useCallback(
-    (row: Row<RowData>, rowStyles: CSSProperties, isLast = false) =>
+    (row: Row<RowData>, isLast = false) =>
       row.original.devices.map((device) => (
         <TableRowContainer
           className={clsx({
             last: isLast,
           })}
           key={device.id}
-          style={rowStyles}
         >
           <TableCell alignContent="center" noPadding>
             <Icon icon="enter" />

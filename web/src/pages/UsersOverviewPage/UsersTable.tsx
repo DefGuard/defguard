@@ -13,7 +13,7 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
@@ -29,6 +29,7 @@ import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableFlexCell } from '../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -355,7 +356,7 @@ export const UsersTable = ({ users }: Props) => {
   );
 
   const renderExpanded = useCallback(
-    (row: Row<RowData>, rowStyles: CSSProperties, isLast = false) =>
+    (row: Row<RowData>, isLast = false) =>
       row.original.devices.map((device) => {
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
@@ -374,7 +375,7 @@ export const UsersTable = ({ users }: Props) => {
           <TableRowContainer
             className={clsx({ last: isLast })}
             key={device.id}
-            style={rowStyles}
+            assignColumnSizing
           >
             <TableCell empty />
             <TableCell alignContent="center" noPadding>
@@ -396,6 +397,7 @@ export const UsersTable = ({ users }: Props) => {
             </TableCell>
             <TableCell empty />
             <TableCell empty />
+            <TableFlexCell />
           </TableRowContainer>
         );
       }),
