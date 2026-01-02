@@ -5,6 +5,25 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
+use base64::prelude::{BASE64_STANDARD, Engine};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
+use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
+use model_derive::Model;
+use rand::rngs::OsRng;
+use serde::{Deserialize, Serialize};
+use sqlx::{
+    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
+    query_scalar,
+};
+use thiserror::Error;
+use tracing::{debug, info};
+use utoipa::ToSchema;
+use x25519_dalek::{PublicKey, StaticSecret};
+
+use super::{
+    device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
+    user::User,
+};
 use crate::{
     auth::claims::{Claims, ClaimsType},
     db::{
@@ -17,30 +36,11 @@ use crate::{
     },
     types::user_info::UserInfo,
 };
-use base64::prelude::{BASE64_STANDARD, Engine};
-use chrono::{NaiveDateTime, TimeDelta, Utc};
-use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
-use model_derive::Model;
-use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
-use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as, query_scalar,
-};
-use thiserror::Error;
-use tracing::{debug, info};
-use utoipa::ToSchema;
-use x25519_dalek::{PublicKey, StaticSecret};
-
-use super::{
-    device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
-    user::User,
-};
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 
-// Used in process of importing network from wireguard config
+// Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: Id,
@@ -505,13 +505,15 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
         device_id: Id,
-    ) -> Result<Option<NaiveDateTime>, SqlxError> {
+    ) -> Result<Option<NaiveDateTime>, sqlx::Error> {
         // Find a first handshake gap longer than WIREGUARD_MAX_HANDSHAKE.
         // We assume that this gap indicates a time when the device was not connected.
         // So, the handshake after this gap is the moment the last connection was established.
-        // If no such gap is found, the device may be connected from the beginning, return the first handshake in this case.
+        // If no such gap is found, the device may be connected from the beginning, return the first
+        // handshake in this case.
         let connected_at = query_scalar!(
-            "WITH stats AS (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
+            "WITH stats AS \
+            (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
             SELECT \
                 COALESCE( \
                     ( \
@@ -535,6 +537,23 @@ impl WireguardNetwork<Id> {
         Ok(connected_at)
     }
 
+    /// Update `connected_at` to the current time and save it to the database.
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.connected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE wireguard_network SET connected_at = $2 WHERE name = $1",
+            self.name,
+            self.connected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
     /// Retrieves stats for specified devices
     pub(crate) async fn device_stats(
         &self,
@@ -542,7 +561,7 @@ impl WireguardNetwork<Id> {
         devices: &[Device<Id>],
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
@@ -607,7 +626,7 @@ impl WireguardNetwork<Id> {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
         let oldest_handshake = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
@@ -633,7 +652,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardUserStatsRow>, sqlx::Error> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         // Retrieve data series for all active devices and assign them to users
         let device_stats = self
@@ -647,7 +666,7 @@ impl WireguardNetwork<Id> {
         for u in user_map {
             let user = User::find_by_id(conn, u.0)
                 .await?
-                .ok_or(SqlxError::RowNotFound)?;
+                .ok_or(sqlx::Error::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
                 user: UserInfo::from_user(conn, &user).await?,
                 devices: u.1.clone(),
@@ -662,7 +681,7 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    ) -> Result<WireguardNetworkActivityStats, sqlx::Error> {
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -686,7 +705,7 @@ impl WireguardNetwork<Id> {
     async fn current_activity(
         &self,
         conn: &PgPool,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    ) -> Result<WireguardNetworkActivityStats, sqlx::Error> {
         let from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
@@ -714,7 +733,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardStatsRow>, sqlx::Error> {
         let stats = query_as!(
             WireguardStatsRow,
             "SELECT \
@@ -742,7 +761,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<WireguardNetworkStats, SqlxError> {
+    ) -> Result<WireguardNetworkStats, sqlx::Error> {
         let total_activity = self.total_activity(conn, from).await?;
         let current_activity = self.current_activity(conn).await?;
         let transfer_series = self.transfer_series(conn, from, aggregation).await?;
@@ -763,7 +782,7 @@ impl WireguardNetwork<Id> {
         &self,
         executor: E,
         device_type: DeviceType,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
+    ) -> Result<Vec<Device<Id>>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
@@ -1062,6 +1081,15 @@ impl Default for WireguardNetwork {
     }
 }
 
+#[derive(Serialize, ToSchema)]
+pub struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    pub network: WireguardNetwork<Id>,
+    pub connected: bool,
+    // pub gateways: Vec<GatewayState>,
+    pub allowed_groups: Vec<String>,
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
@@ -1122,7 +1150,7 @@ pub async fn networks_stats(
     conn: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
-) -> Result<WireguardNetworkStats, SqlxError> {
+) -> Result<WireguardNetworkStats, sqlx::Error> {
     let total_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
