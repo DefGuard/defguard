@@ -108,12 +108,9 @@ fn try_protos_into_stats_message(
     location_id: Id,
     device_id: Id,
 ) -> Option<PeerStatsUpdate> {
-    let endpoint = todo!();
     // try to parse endpoint
-    // let endpoint = match proto_stats.endpoint {
-    //     endpoint if endpoint.is_empty() => None,
-    //     _ => Some(proto_stats.endpoint),
-    // };
+    let endpoint = proto_stats.endpoint.parse().ok()?;
+
     let latest_handshake = DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
         .unwrap_or_default()
         .naive_utc();
