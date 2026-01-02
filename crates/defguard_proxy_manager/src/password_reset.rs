@@ -109,7 +109,7 @@ impl PasswordResetServer {
 
         let email = request.email;
 
-        let user = User::find_by_email(&self.pool, email.to_string().as_str())
+        let user = User::find_by_email(&self.pool, email.clone().as_str())
             .await
             .map_err(|_| {
                 error!("Failed to fetch user by email: {email}");

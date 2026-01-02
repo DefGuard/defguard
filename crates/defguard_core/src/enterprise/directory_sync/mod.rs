@@ -713,7 +713,7 @@ async fn sync_all_users_state(
                         directory_user.email.clone(),
                         details.phone_number.clone(),
                     );
-                    user.openid_sub = directory_user.id.clone();
+                    user.openid_sub.clone_from(&directory_user.id);
                     let new_user = user.save(&mut *transaction).await?;
                     created_users.push(new_user);
                 }

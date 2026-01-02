@@ -308,11 +308,16 @@ user_agent_parsers:
   - regex: (Ecosia) android@(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)
     family_replacement: Ecosia Android
   - regex: (VivoBrowser)\/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)
-  - regex: (HiBrowser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)
+  - regex: (H[Ii]Browser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: HiBrowser
+  - regex: (bdhonorbrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: Honor Browser
   - regex: (weibo)__(\d+)\.(\d+)\.(\d+)
     family_replacement: Weibo
   - regex: (WeiboliteiOS|WeiboIntliOS)
     family_replacement: Weibo
+  - regex: (PHX)/(\d+)\.(\d+)
+    family_replacement: Phoenix Browser
   - regex: Version/.{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
     family_replacement: Chrome Mobile WebView
   - regex: ; wv\).{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
@@ -395,6 +400,12 @@ user_agent_parsers:
     family_replacement: JiSu Browser
   - regex: (Wolvic)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Wolvic Browser
+  - regex: (HeyTapBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: HeyTap Browser
+  - regex: (Thano)/(\d+)\.(\d+)
+    family_replacement: SmartTV WebBrowser
+  - regex: (MicroMessenger)/(\d+)\.(\d+)\.(\d+)\.(\d+)
+    family_replacement: WeChat Browser
   - regex: (Slack_SSB)/(\d+)\.(\d+)\.(\d+)
     family_replacement: Slack Desktop Client
   - regex: (HipChat)/?(\d+|)

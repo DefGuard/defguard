@@ -561,7 +561,7 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
                 }
                 _ => {
                     error!("Failed to parse ports string: \"{ports}\"");
-                    return Err(AclError::InvalidPortsFormat(ports.to_string()));
+                    return Err(AclError::InvalidPortsFormat(ports.clone()));
                 }
             }
         }

@@ -157,7 +157,7 @@ impl ProxyOrchestrator {
             pool,
             tx,
             incompatible_components,
-            router: Default::default(),
+            router: Arc::default(),
         }
     }
 
@@ -174,7 +174,7 @@ impl ProxyOrchestrator {
         let proxies = vec![Proxy::new(
             self.pool.clone(),
             Uri::from_str(url)?,
-            self.tx.clone(),
+            &self.tx,
             Arc::clone(&self.router),
         )?];
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
@@ -202,6 +202,7 @@ pub struct ProxyTxSet {
 }
 
 impl ProxyTxSet {
+    #[must_use]
     pub fn new(
         wireguard: Sender<GatewayEvent>,
         mail: UnboundedSender<Mail>,
@@ -236,7 +237,7 @@ impl Proxy {
     pub fn new(
         pool: PgPool,
         uri: Uri,
-        tx: ProxyTxSet,
+        tx: &ProxyTxSet,
         router: Arc<RwLock<ProxyRouter>>,
     ) -> Result<Self, ProxyError> {
         let endpoint = Endpoint::from(uri);
@@ -261,13 +262,13 @@ impl Proxy {
         };
 
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(pool.clone(), tx);
+        let services = ProxyServices::new(&pool, tx);
 
         Ok(Self {
             pool,
             endpoint,
-            router,
             services,
+            router,
         })
     }
 
@@ -790,7 +791,7 @@ impl Proxy {
                         }
                     } else {
                         let _ = tx.send(req);
-                    };
+                    }
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.endpoint.uri());
@@ -819,7 +820,7 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(pool: PgPool, tx: ProxyTxSet) -> Self {
+    pub fn new(pool: &PgPool, tx: &ProxyTxSet) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),

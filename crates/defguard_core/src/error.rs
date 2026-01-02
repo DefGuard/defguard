@@ -4,7 +4,6 @@ use defguard_common::db::models::{
     user::UserError,
 };
 use defguard_mail::templates::TemplateError;
-use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use utoipa::ToSchema;
@@ -14,10 +13,9 @@ use crate::{
     db::models::enrollment::TokenError,
     enterprise::{
         activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
-        firewall::FirewallError, ldap::error::LdapError, license::LicenseError,
+        firewall::FirewallError, license::LicenseError,
     },
     events::ApiEvent,
-    grpc::gateway::map::GatewayMapError,
     location_management::LocationManagementError,
 };
 
@@ -26,22 +24,16 @@ use crate::{
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
-    #[error("LDAP error: {0}")]
-    Ldap(String),
     #[error("Webauthn registration error: {0}")]
     WebauthnRegistration(String),
     #[error("Email MFA error: {0}")]
     EmailMfa(String),
-    #[error("Incorrect username: {0}")]
-    IncorrectUsername(String),
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
     #[error("Object already exists: {0}")]
     ObjectAlreadyExists(String),
     #[error("Serialization error: {0}")]
     Serialization(String),
-    #[error("Deserialization error: {0}")]
-    Deserialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
     #[error("Authentication error")]
@@ -67,8 +59,6 @@ pub enum WebError {
     #[error(transparent)]
     #[schema(value_type=Object)]
     TemplateError(#[from] TemplateError),
-    #[error("Server config missing")]
-    ServerConfigMissing,
     #[error("License error: {0}")]
     #[schema(value_type=Object)]
     LicenseError(#[from] LicenseError),
@@ -100,14 +90,8 @@ impl From<StatusCode> for WebError {
     }
 }
 
-impl From<LdapError> for WebError {
-    fn from(error: LdapError) -> Self {
-        Self::Ldap(error.to_string())
-    }
-}
-
-impl From<SqlxError> for WebError {
-    fn from(error: SqlxError) -> Self {
+impl From<sqlx::Error> for WebError {
+    fn from(error: sqlx::Error) -> Self {
         Self::DbError(error.to_string())
     }
 }
@@ -125,19 +109,6 @@ impl From<DeviceError> for WebError {
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
             DeviceError::NetworkIpAssignmentError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
-        }
-    }
-}
-
-impl From<GatewayMapError> for WebError {
-    fn from(error: GatewayMapError) -> Self {
-        match error {
-            GatewayMapError::NotFound(_, _)
-            | GatewayMapError::NetworkNotFound(_)
-            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
-            GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
-            GatewayMapError::ConfigError => Self::ServerConfigMissing,
-            GatewayMapError::SettingsError => Self::DbError(error.to_string()),
         }
     }
 }
@@ -160,7 +131,7 @@ impl From<WireguardNetworkError> for WebError {
 
 impl From<TokenError> for WebError {
     fn from(err: TokenError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         match err {
             TokenError::DbError(msg) => WebError::DbError(msg.to_string()),
             TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
@@ -194,7 +165,7 @@ impl From<SettingsValidationError> for WebError {
 
 impl From<UserError> for WebError {
     fn from(err: UserError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         match err {
             UserError::InvalidMfaState { username: _ } | UserError::DbError(_) => {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
@@ -206,7 +177,7 @@ impl From<UserError> for WebError {
 
 impl From<LocationManagementError> for WebError {
     fn from(err: LocationManagementError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         match err {
             LocationManagementError::FirewallError(firewall_error) => firewall_error.into(),
             LocationManagementError::DbError(error) => error.into(),
