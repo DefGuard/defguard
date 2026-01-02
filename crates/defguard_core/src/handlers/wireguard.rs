@@ -550,16 +550,16 @@ pub(crate) async fn all_gateways_status(
 }
 
 #[derive(Deserialize)]
-pub(crate) struct AddGateway {
+pub(crate) struct GatewayData {
     url: String,
 }
 
-/// Add gateway.
+/// Add gateway (POST).
 pub(crate) async fn add_gateway(
     Path(network_id): Path<Id>,
     _role: AdminRole,
     State(appstate): State<AppState>,
-    Json(data): Json<AddGateway>,
+    Json(data): Json<GatewayData>,
 ) -> ApiResult {
     debug!("Adding gateway");
 
@@ -575,7 +575,34 @@ pub(crate) async fn add_gateway(
     })
 }
 
-/// Remove gateway.
+/// Change gateway (PUT).
+pub(crate) async fn change_gateway(
+    Path((network_id, gateway_id)): Path<(Id, Id)>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Json(data): Json<GatewayData>,
+) -> ApiResult {
+    debug!("Changing gateway");
+
+    if let Some(mut gateway) = Gateway::find_by_id(&appstate.pool, gateway_id).await? {
+        if gateway.network_id == network_id {
+            gateway.url = data.url;
+            gateway.save(&appstate.pool).await?;
+            info!("Changed gateway");
+            return Ok(ApiResponse {
+                json: json!(gateway),
+                status: StatusCode::OK,
+            });
+        }
+    }
+
+    Ok(ApiResponse {
+        json: Value::Null,
+        status: StatusCode::NOT_FOUND,
+    })
+}
+
+/// Remove gateway (DELETE).
 pub(crate) async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(Id, Id)>,
     _role: AdminRole,

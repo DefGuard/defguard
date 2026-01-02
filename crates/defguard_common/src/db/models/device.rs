@@ -560,14 +560,8 @@ impl Device<Id> {
         wireguard_network_device: &WireguardNetworkDevice,
     ) -> String {
         let dns = match &network.dns {
-            Some(dns) => {
-                if dns.is_empty() {
-                    String::new()
-                } else {
-                    format!("DNS = {dns}")
-                }
-            }
-            None => String::new(),
+            Some(dns) if !dns.is_empty() => format!("DNS = {dns}"),
+            _ => String::new(),
         };
 
         let allowed_ips = if network.allowed_ips.is_empty() {
