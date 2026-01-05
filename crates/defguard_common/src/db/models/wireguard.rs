@@ -670,12 +670,12 @@ impl WireguardNetwork<Id> {
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-                FROM vpn_client_session s \
-                LEFT JOIN device d ON d.id = s.device_id \
-                WHERE s.location_id = $1 AND (s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $2))",
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.location_id = $1 AND (s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $2))",
             self.id,
             from,
         )
@@ -685,24 +685,21 @@ impl WireguardNetwork<Id> {
         Ok(activity_stats)
     }
 
-    /// Retrieves currently connected users
+    /// Retrieves currently connected sessions stats
     async fn current_activity(
         &self,
         conn: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-                FROM wireguard_peer_stats s \
-                JOIN device d ON d.id = s.device_id \
-                LEFT JOIN \"user\" u ON u.id = d.user_id \
-                WHERE latest_handshake >= $1 AND s.network = $2",
-            from,
-            self.id
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.location_id = $1 AND s.state = 'connected'",
+            self.id,
         )
         .fetch_one(conn)
         .await?;
@@ -722,9 +719,10 @@ impl WireguardNetwork<Id> {
             WireguardStatsRow,
             "SELECT \
                 date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
-            FROM wireguard_peer_stats_view \
-            WHERE collected_at >= $2 AND network = $3 \
+                cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
+            FROM vpn_session_stats \
+            JOIN vpn_client_session s ON session_id = s.id \
+            WHERE collected_at >= $2 AND s.location_id = $3 \
             GROUP BY 1 \
             ORDER BY 1 \
             LIMIT $4",
