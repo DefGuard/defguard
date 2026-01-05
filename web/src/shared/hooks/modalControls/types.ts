@@ -91,3 +91,7 @@ export interface OpenGatewaySetupModal {
   networkId: number;
   data: GatewayTokenResponse;
 }
+
+export interface OpenLicenseModal {
+  license?: string | null;
+}

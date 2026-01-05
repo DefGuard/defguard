@@ -1,0 +1,57 @@
+#license-plans {
+  header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+
+    & > a {
+      margin-left: auto;
+    }
+  }
+
+  .license-item {
+    & > .track {
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      grid-template-rows: 1fr;
+      column-gap: var(--spacing-xl);
+
+      .image-track {
+        display: flex;
+        flex-flow: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        overflow: hidden;
+
+        img {
+          width: 100%;
+        }
+      }
+
+      & > .content {
+        display: flex;
+        flex-flow: column;
+        row-gap: var(--spacing-xs);
+
+        .top {
+          width: 100%;
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          justify-content: flex-start;
+          column-gap: var(--spacing-md);
+
+          .title {
+            font: var(--t-body-primary-500);
+            color: var(--fg-default);
+          }
+        }
+
+        .description {
+          font: var(--t-body-sm-400);
+          color: var(--fg-muted);
+        }
+      }
+    }
+  }
+}

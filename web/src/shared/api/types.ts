@@ -176,6 +176,7 @@ export interface MfaFinishResponse {
 
 export interface ApiError {
   msg?: string;
+  message?: string;
 }
 
 export interface LicenseLimits {
@@ -189,6 +190,7 @@ export interface LicenseInfo {
   limits_exceeded: LicenseLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
+  tier?: string | null;
 }
 export interface LdapInfo {
   enabled: boolean;

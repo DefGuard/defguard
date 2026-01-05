@@ -13,12 +13,14 @@ import type {
   OpenEditNetworkDeviceModal,
   OpenEditUserModal,
   OpenGatewaySetupModal,
+  OpenLicenseModal,
   OpenNetworkDeviceConfigModal,
   OpenNetworkDeviceTokenModal,
   OpenRenameApiTokenModal,
 } from './types';
 
 export const ModalName = {
+  License: 'license',
   SendTestMail: 'sendTestMail',
   GatewaySetup: 'gatewaySetup',
   DisplayList: 'displayList',
@@ -138,6 +140,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),
+  }),
+  z.object({
+    name: z.literal(ModalName.License),
+    data: z.custom<OpenLicenseModal>(),
   }),
 ]);
 
