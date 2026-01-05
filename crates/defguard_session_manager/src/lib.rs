@@ -85,7 +85,7 @@ impl SessionManager {
 
         for message in messages {
             if let Err(err) = self
-                .process_single_message(&mut *transaction, &mut active_sessions, message)
+                .process_single_message(&mut transaction, &mut active_sessions, message)
                 .await
             {
                 error!("Failed to process peer stats update: {err}");

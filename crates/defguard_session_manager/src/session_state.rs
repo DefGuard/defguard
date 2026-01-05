@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 
 use chrono::{NaiveDateTime, TimeDelta};
 use defguard_common::{
@@ -67,11 +67,11 @@ pub(crate) struct SessionState {
 }
 
 impl SessionState {
-    fn new(session_id: Id, user: &User<Id>) -> Self {
+    fn new(session_id: Id, user_id: Id) -> Self {
         Self {
             session_id,
             last_stats_update: None,
-            user_id: user.id,
+            user_id,
         }
     }
 
@@ -218,66 +218,60 @@ impl ActiveSessionsMap {
     ) -> Result<Option<&mut SessionState>, SessionManagerError> {
         // fetch location
         let location_id = stats_update.location_id;
-        let location = self.get_location(&mut *transaction, location_id).await?;
+        // wrap in block to avoid multiple mutable borrows
+        let (location_name, mfa_enabled) = {
+            let location = self.get_location(&mut *transaction, location_id).await?;
+            // check if a given peer is considered active and should be added to active sessions
+            if Utc::now().naive_utc() - stats_update.latest_handshake
+                > TimeDelta::seconds(location.peer_disconnect_threshold.into())
+            {
+                warn!(
+                    "Received peer stats update for an inactive peer. Skipping creating a new session..."
+                );
+                return Ok(None);
+            };
 
-        // check if a given peer is considered active and should be added to active sessions
-        if Utc::now().naive_utc() - stats_update.latest_handshake
-            > TimeDelta::seconds(location.peer_disconnect_threshold.into())
-        {
-            warn!(
-                "Received peer stats update for an inactive peer. Skipping creating a new session..."
-            );
-            return Ok(None);
-        }
+            (location.name.clone(), location.mfa_enabled())
+        };
 
         // fetch other related objects from DB
         let device_id = stats_update.device_id;
-        let device = self.get_device(&mut *transaction, device_id).await?;
-        let user = self.get_user(&mut *transaction, device.user_id).await?;
+        // wrap in block to avoid multiple mutable borrows
+        let user_id = { self.get_device(&mut *transaction, device_id).await?.user_id };
+        let user = self.get_user(&mut *transaction, user_id).await?;
 
-        debug!("Adding new VPN client session for location {location}");
+        debug!("Adding new VPN client session for location {location_name}");
 
         // create a client session object and save it to DB
         let session = VpnClientSession::new(
-            location.id,
+            location_id,
             user.id,
-            device.id,
+            device_id,
             Some(stats_update.latest_handshake),
-            location.mfa_enabled(),
+            mfa_enabled,
         )
         .save(transaction)
         .await?;
 
         // add to session map
-        let session_state = SessionState::new(session.id, &user);
+        let session_state = SessionState::new(session.id, user.id);
         let session_map = self.get_or_create_location_session_map(location_id);
         let maybe_existing_session = session_map.insert(device_id, session_state);
         // if a session exists already there was an error in earlier logic
         assert!(maybe_existing_session.is_none());
 
-        Ok(Some(
-            session_map
-                .0
-                .get_mut(&device_id)
-                .expect("Session has just been created"),
-        ))
+        Ok(session_map.0.get_mut(&device_id))
     }
 
     fn get_or_create_location_session_map(&mut self, location_id: Id) -> &mut SessionMap {
         // check if location is already present in session map
-        if self.sessions.contains_key(&location_id) {
-            self.sessions
-                .get_mut(&location_id)
-                .expect("Location session map must exist")
-        } else {
-            debug!("Session map for location {location_id} not found. Initializing a new map.");
-            let new_session_map = SessionMap::new();
-            let maybe_existing_map = self.sessions.insert(location_id, new_session_map);
-            // if a map exists already there was an error in earlier logic
-            assert!(maybe_existing_map.is_none());
-            self.sessions
-                .get_mut(&location_id)
-                .expect("Location session map has just been created")
+        match self.sessions.entry(location_id) {
+            Entry::Occupied(occupied_entry) => occupied_entry.into_mut(),
+            Entry::Vacant(vacant_entry) => {
+                debug!("Session map for location {location_id} not found. Initializing a new map.");
+                let new_session_map = SessionMap::new();
+                vacant_entry.insert(new_session_map)
+            }
         }
     }
 
@@ -287,27 +281,22 @@ impl ActiveSessionsMap {
         &mut self,
         executor: E,
         user_id: Id,
-    ) -> Result<User<Id>, SessionManagerError> {
+    ) -> Result<&User<Id>, SessionManagerError> {
         // first try to find user in object cache
-        let user = if self.users.contains_key(&user_id) {
-            self.users
-                .get(&user_id)
-                .expect("User must exist in object cache")
-        } else {
-            debug!("User {user_id} not found in object cache. Trying to fetch from DB.");
-            let user = User::find_by_id(executor, user_id)
-                .await?
-                .ok_or(SessionManagerError::LocationDoesNotExistError(user_id))?;
-            // update object cache
-            self.users.insert(user_id, user);
-            self.users
-                .get(&user_id)
-                .expect("User must exist in object cache")
+        let user_entry = match self.users.entry(user_id) {
+            Entry::Occupied(occupied_entry) => occupied_entry,
+            Entry::Vacant(vacant_entry) => {
+                debug!("User {user_id} not found in object cache. Trying to fetch from DB.");
+                let user = User::find_by_id(executor, user_id)
+                    .await?
+                    .ok_or(SessionManagerError::UserDoesNotExistError(user_id))?;
+                // update object cache
+                vacant_entry.insert_entry(user)
+            }
         };
 
-        // TODO: figure out a way to avoid multiple mutable borrows
-        // and return a reference instead of cloning
-        Ok(user.clone())
+        // return reference to the map itself
+        Ok(user_entry.into_mut())
     }
 
     // Helper method which checks if Device is already cached,
@@ -316,27 +305,22 @@ impl ActiveSessionsMap {
         &mut self,
         executor: E,
         device_id: Id,
-    ) -> Result<Device<Id>, SessionManagerError> {
+    ) -> Result<&Device<Id>, SessionManagerError> {
         // first try to find device in object cache
-        let device = if self.devices.contains_key(&device_id) {
-            self.devices
-                .get(&device_id)
-                .expect("Device must exist in object cache")
-        } else {
-            debug!("Device {device_id} not found in object cache. Trying to fetch from DB.");
-            let device = Device::find_by_id(executor, device_id)
-                .await?
-                .ok_or(SessionManagerError::DeviceDoesNotExistError(device_id))?;
-            // update object cache
-            self.devices.insert(device_id, device);
-            self.devices
-                .get(&device_id)
-                .expect("Device must exist in object cache")
+        let device_entry = match self.devices.entry(device_id) {
+            Entry::Occupied(occupied_entry) => occupied_entry,
+            Entry::Vacant(vacant_entry) => {
+                debug!("Device {device_id} not found in object cache. Trying to fetch from DB.");
+                let device = Device::find_by_id(executor, device_id)
+                    .await?
+                    .ok_or(SessionManagerError::DeviceDoesNotExistError(device_id))?;
+                // update object cache
+                vacant_entry.insert_entry(device)
+            }
         };
 
-        // TODO: figure out a way to avoid multiple mutable borrows
-        // and return a reference instead of cloning
-        Ok(device.clone())
+        // return reference to the map itself
+        Ok(device_entry.into_mut())
     }
 
     // Helper method which checks if Location is already cached,
@@ -345,26 +329,23 @@ impl ActiveSessionsMap {
         &mut self,
         executor: E,
         location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, SessionManagerError> {
+    ) -> Result<&WireguardNetwork<Id>, SessionManagerError> {
         // first try to find location in object cache
-        let location = if self.locations.contains_key(&location_id) {
-            self.locations
-                .get(&location_id)
-                .expect("Location must exist in object cache")
-        } else {
-            debug!("Location {location_id} not found in object cache. Trying to fetch from DB.");
-            let location = WireguardNetwork::find_by_id(executor, location_id)
-                .await?
-                .ok_or(SessionManagerError::LocationDoesNotExistError(location_id))?;
-            // update object cache
-            self.locations.insert(location_id, location);
-            self.locations
-                .get(&location_id)
-                .expect("Location must exist in object cache")
+        let location_entry = match self.locations.entry(location_id) {
+            Entry::Occupied(occupied_entry) => occupied_entry,
+            Entry::Vacant(vacant_entry) => {
+                debug!(
+                    "Location {location_id} not found in object cache. Trying to fetch from DB."
+                );
+                let location = WireguardNetwork::find_by_id(executor, location_id)
+                    .await?
+                    .ok_or(SessionManagerError::LocationDoesNotExistError(location_id))?;
+                // update object cache
+                vacant_entry.insert_entry(location)
+            }
         };
 
-        // TODO: figure out a way to avoid multiple mutable borrows
-        // and return a reference instead of cloning
-        Ok(location.clone())
+        // return reference to the map itself
+        Ok(location_entry.into_mut())
     }
 }
