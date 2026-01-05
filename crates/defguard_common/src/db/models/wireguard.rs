@@ -664,10 +664,10 @@ impl WireguardNetwork<Id> {
     /// or it was disconnected at some point within the specified time window.
     async fn total_activity(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let activity_stats = query_as!(
+        let total_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
@@ -679,18 +679,18 @@ impl WireguardNetwork<Id> {
             self.id,
             from,
         )
-        .fetch_one(conn)
+        .fetch_one(pool)
         .await?;
 
-        Ok(activity_stats)
+        Ok(total_activity)
     }
 
     /// Retrieves currently connected sessions stats
     async fn current_activity(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let activity_stats = query_as!(
+        let current_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
@@ -701,17 +701,17 @@ impl WireguardNetwork<Id> {
             WHERE s.location_id = $1 AND s.state = 'connected'",
             self.id,
         )
-        .fetch_one(conn)
+        .fetch_one(pool)
         .await?;
 
-        Ok(activity_stats)
+        Ok(current_activity)
     }
 
     /// Retrieves network upload & download time series since `from` timestamp
     /// using `aggregation` (hour/minute) aggregation level
     async fn transfer_series(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardStatsRow>, SqlxError> {
@@ -731,7 +731,7 @@ impl WireguardNetwork<Id> {
             self.id,
             PEER_STATS_LIMIT,
         )
-        .fetch_all(conn)
+        .fetch_all(pool)
         .await?;
 
         Ok(stats)
@@ -740,13 +740,13 @@ impl WireguardNetwork<Id> {
     /// Retrieves network stats
     pub async fn network_stats(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<WireguardNetworkStats, SqlxError> {
-        let total_activity = self.total_activity(conn, from).await?;
-        let current_activity = self.current_activity(conn).await?;
-        let transfer_series = self.transfer_series(conn, from, aggregation).await?;
+        let total_activity = self.total_activity(pool, from).await?;
+        let current_activity = self.current_activity(pool).await?;
+        let transfer_series = self.transfer_series(pool, from, aggregation).await?;
         Ok(WireguardNetworkStats {
             active_users: total_activity.active_users,
             active_network_devices: total_activity.active_network_devices,
@@ -1137,45 +1137,47 @@ pub struct WireguardNetworkStats {
 }
 
 pub async fn networks_stats(
-    conn: &PgPool,
+    pool: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
 ) -> Result<WireguardNetworkStats, SqlxError> {
+    // get all active users/devices within specified time window
     let total_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $1)",
         from
     )
-    .fetch_one(conn)
+    .fetch_one(pool)
     .await?;
-    let current_activity_from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
+
+    // get all currently active users/devices
     let current_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
-        current_activity_from
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.state = 'connected'",
     )
-    .fetch_one(conn)
+    .fetch_one(pool)
     .await?;
+
+    // get transfer series for specified time window
     let transfer_series = query_as!(
         WireguardStatsRow,
-        "SELECT \
+            "SELECT \
                 date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
-            FROM wireguard_peer_stats_view \
+                cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
+            FROM vpn_session_stats \
+            JOIN vpn_client_session s ON session_id = s.id \
             WHERE collected_at >= $2 \
             GROUP BY 1 \
             ORDER BY 1 \
@@ -1184,7 +1186,7 @@ pub async fn networks_stats(
         from,
         PEER_STATS_LIMIT,
     )
-    .fetch_all(conn)
+    .fetch_all(pool)
     .await?;
     Ok(WireguardNetworkStats {
         current_active_users: current_activity.active_users,
