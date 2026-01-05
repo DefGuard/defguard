@@ -86,6 +86,12 @@ const navigationConfig: NavGroupProps[] = [
     label: m.cmp_nav_group_integrations(),
     items: [
       {
+        id: 'activity_log',
+        icon: 'activity',
+        label: m.cmp_nav_item_activity_log(),
+        link: '/activity',
+      },
+      {
         id: 'network_devices',
         icon: 'devices',
         label: m.cmp_nav_item_network_devices(),

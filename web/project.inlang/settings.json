@@ -18,7 +18,8 @@
       "./messages/{locale}/users.json",
       "./messages/{locale}/webhooks.json",
       "./messages/{locale}/groups.json",
-      "./messages/{locale}/openid.json"
+      "./messages/{locale}/openid.json",
+      "./messages/{locale}/activity.json"
     ]
   }
 }

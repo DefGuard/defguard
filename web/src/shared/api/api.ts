@@ -5,6 +5,8 @@ import { client } from './api-client';
 import type {
   AclAlias,
   AclRule,
+  ActivityLogEvent,
+  ActivityLogRequestParams,
   AddAclAliasRequest,
   AddAclRuleRequest,
   AddApiTokenRequest,
@@ -57,6 +59,7 @@ import type {
   OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
+  PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   Settings,
@@ -371,6 +374,12 @@ const api = {
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
     },
   },
+  getActivityLog: (data?: ActivityLogRequestParams) =>
+    client
+      .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {
+        params: data,
+      })
+      .then((resp) => resp.data),
   info: () => client.get<ApplicationInfo>('/info'),
 } as const;
 
