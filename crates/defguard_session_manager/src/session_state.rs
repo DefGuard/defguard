@@ -141,6 +141,7 @@ impl SessionMap {
     }
 }
 
+// TODO(mwojcik): handle multiple gateways per location
 /// Helper struct to hold session maps for all locations and object cache to avoid repeated DB queries
 ///
 /// Since we want to support HA core deployments this structure
