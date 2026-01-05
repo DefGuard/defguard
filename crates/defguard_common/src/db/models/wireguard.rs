@@ -659,6 +659,9 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves total active users/devices since `from` timestamp
+    ///
+    /// A user/device is considered active if a session is currently connected
+    /// or it was disconnected at some point within the specified time window.
     async fn total_activity(
         &self,
         conn: &PgPool,
@@ -667,15 +670,14 @@ impl WireguardNetwork<Id> {
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
                     COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
                     COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-                FROM wireguard_peer_stats s \
-                JOIN device d ON d.id = s.device_id \
-                LEFT JOIN \"user\" u ON u.id = d.user_id \
-                WHERE latest_handshake >= $1 AND s.network = $2",
-            from,
+                FROM vpn_client_session s \
+                LEFT JOIN device d ON d.id = s.device_id \
+                WHERE s.location_id = $1 AND (s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $2))",
             self.id,
+            from,
         )
         .fetch_one(conn)
         .await?;
