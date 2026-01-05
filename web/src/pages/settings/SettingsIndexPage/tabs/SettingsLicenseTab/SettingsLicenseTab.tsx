@@ -49,7 +49,7 @@ const licenses: Array<LicenseItemData> = [
     title: 'Business',
     imageSrc: businessImage,
     description: `Advanced protection, shared access controls, and centralized billing. Ideal for small to medium teams.`,
-    badges: [{ text: 'Most popular', variant: BadgeVariant.Neutral }],
+    badges: [{ text: 'Most popular', variant: BadgeVariant.Plan }],
   },
   {
     title: 'Enterprise',

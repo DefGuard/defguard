@@ -78,7 +78,7 @@ export const LocationOverviewCard = ({
             <p>{location.name}</p>
           </div>
           <div className="right">
-            <GatewaysStatusBadge data={location.gateways} showDetails />
+            <GatewaysStatusBadge data={location.gateways ?? []} showDetails />
             <Divider orientation="vertical" spacing={ThemeSpacing.Lg} />
             <Button
               text="Details"
