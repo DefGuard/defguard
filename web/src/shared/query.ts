@@ -131,3 +131,15 @@ export const getOpenIdProvidersQueryOptions = queryOptions({
   queryKey: ['openid', 'provider'],
   select: (resp) => resp.data,
 });
+
+export const getRulesQueryOptions = queryOptions({
+  queryFn: api.acl.rule.getRules,
+  queryKey: ['acl', 'rule'],
+  select: (resp) => resp.data,
+});
+
+export const getAliasesQueryOptions = queryOptions({
+  queryFn: api.acl.alias.getAliases,
+  queryKey: ['acl', 'alias'],
+  select: (resp) => resp.data,
+});

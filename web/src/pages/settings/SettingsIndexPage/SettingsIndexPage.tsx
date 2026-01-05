@@ -7,18 +7,18 @@ import type { TabProps } from '../../../shared/defguard-ui/components/Tabs/types
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { SettingsExternalOpenIdPage } from '../SettingsExternalOpenIdPage/SettingsExternalOpenIdPage';
 import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
+import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
 
 const ActivityTab = () => null;
-const LicenseTab = () => null;
 
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
   notifications: <SettingsNotificationsTab />,
   openid: <SettingsExternalOpenIdPage />,
   activity: <ActivityTab />,
-  license: <LicenseTab />,
+  license: <SettingsLicenseTab />,
 };
 
 const tabToTitle = (tab: SettingsTabValue): string => {

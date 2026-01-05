@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import orderBy from 'lodash-es/orderBy';
-import { type CSSProperties, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import type { UserDevice } from '../../../../../../../shared/api/types';
@@ -210,7 +210,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   );
 
   const renderExpandedRow = useCallback(
-    (row: Row<RowData>, rowStyles: CSSProperties, isLast = false) => (
+    (row: Row<RowData>, isLast = false) => (
       <>
         {row.original.networks.map((network) => (
           <TableRowContainer
@@ -218,7 +218,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
               last: isLast,
             })}
             key={network.network_id}
-            style={rowStyles}
           >
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />

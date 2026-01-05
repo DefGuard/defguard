@@ -24,13 +24,11 @@ export const baseExternalProviderSyncSchema = z.object({
 });
 
 export const googleProviderSyncSchema = baseExternalProviderSyncSchema.extend({
+  admin_email: z.email(m.form_error_email()).trim().min(1, m.form_error_required()),
   google_service_account_file: z
     .file(m.form_error_required())
-    .min(1, m.form_error_required())
     .mime('application/json', m.form_error_file_format())
-    .nullable()
-    .refine((val) => val === null, m.form_error_required()),
-  admin_email: z.email(m.form_error_email()).trim().min(1, m.form_error_required()),
+    .nullable(),
 });
 
 export const microsoftProviderSyncSchema = baseExternalProviderSyncSchema.extend({

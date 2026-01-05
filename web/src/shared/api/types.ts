@@ -1,4 +1,8 @@
 import type { ExternalProviderValue } from '../../pages/settings/shared/types';
+import type {
+  ActivityLogEventTypeValue,
+  ActivityLogModuleValue,
+} from './activity-log-types';
 
 export interface GatewayTokenResponse {
   grpc_url: string;
@@ -176,6 +180,7 @@ export interface MfaFinishResponse {
 
 export interface ApiError {
   msg?: string;
+  message?: string;
 }
 
 export interface LicenseLimits {
@@ -189,6 +194,7 @@ export interface LicenseInfo {
   limits_exceeded: LicenseLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
+  tier?: string | null;
 }
 export interface LdapInfo {
   enabled: boolean;
@@ -499,8 +505,8 @@ export interface LocationStatsRequest {
 }
 
 export interface DeleteGatewayRequest {
-  networkId: number;
-  gatewayId: number;
+  networkId: number | string;
+  gatewayId: number | string;
 }
 
 export interface DeviceStats {
@@ -796,3 +802,73 @@ export interface AclRule {
 export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
 
 export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+
+export interface OpenIdAuthInfo {
+  url: string;
+  button_display_name?: string | null;
+}
+
+export interface ActivityLogEvent {
+  id: number;
+  timestamp: string;
+  user_id: number;
+  username: string;
+  location?: string;
+  ip: string;
+  event: ActivityLogEventTypeValue;
+  module: ActivityLogModuleValue;
+  device: string;
+  description?: string;
+}
+
+export type ActivityLogSortKey =
+  | 'timestamp'
+  | 'username'
+  | 'location'
+  | 'ip'
+  | 'event'
+  | 'module'
+  | 'device';
+
+export interface PaginationParams {
+  page?: number;
+}
+
+export interface PaginationMeta {
+  current_page: number;
+  page_size: number;
+  total_items: number;
+  total_pagers: number;
+  next_page: number | null;
+}
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: PaginationMeta;
+};
+
+export type RequestSortParams<T> = {
+  sort_by?: keyof T;
+  sort_order?: SortDirectionValue;
+};
+
+export const SortDirection = {
+  ASC: 'asc',
+  DESC: 'desc',
+} as const;
+
+export type SortDirectionValue = (typeof SortDirection)[keyof typeof SortDirection];
+
+export interface ActivityLogFilters {
+  from: string;
+  until: string;
+  username: string[];
+  location: string[];
+  event: ActivityLogEventTypeValue[];
+  module: ActivityLogModuleValue[];
+  search: string;
+}
+
+export type ActivityLogRequestParams = Partial<ActivityLogFilters> &
+  RequestSortParams<ActivityLogSortKey> &
+  PaginationParams;

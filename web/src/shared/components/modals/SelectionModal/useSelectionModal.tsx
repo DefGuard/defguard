@@ -1,15 +1,12 @@
 import { create } from 'zustand';
-import type {
-  SelectionSectionKey,
-  SelectionSectionOption,
-} from '../../SelectionSection/type';
+import type { SelectionKey, SelectionOption } from '../../SelectionSection/type';
 
 interface StoreValues {
   title: string;
-  options: SelectionSectionOption<SelectionSectionKey>[];
+  options: SelectionOption<SelectionKey>[];
   selected: Set<number> | Set<string>;
   isOpen: boolean;
-  onSubmit?: (values: Array<SelectionSectionKey>) => void;
+  onSubmit?: (values: Array<SelectionKey>) => void;
 }
 
 const defaultValues: StoreValues = {

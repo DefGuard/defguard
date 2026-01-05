@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { SelectionSection } from '../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionSectionOption } from '../../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -24,7 +24,7 @@ export const AddLocationAccessStep = () => {
   const selectionOptions = useMemo(() => {
     if (!groups) return [];
     return groups.map(
-      (group): SelectionSectionOption<string> => ({
+      (group): SelectionOption<string> => ({
         id: group,
         label: group,
       }),

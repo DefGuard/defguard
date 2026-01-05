@@ -26,6 +26,7 @@
   "cmp_nav_item_locations": "Locations",
   "cmp_nav_item_overview": "VPN Overview",
   "cmp_nav_item_settings": "Settings",
+  "cmp_nav_item_activity_log": "Activity log",
   "cmp_webhook_event_user_delete": "User deleted",
   "cmp_webhook_event_user_add": "New user created",
   "cmp_webhook_event_user_edit": "User modified",
@@ -34,5 +35,7 @@
   "cmp_file_upload_unknown_name": "Unknown filename",
   "cmp_sync_behavior_target_all": "All",
   "cmp_sync_behavior_target_users": "Users",
-  "cmp_sync_behavior_target_groups": "Groups"
+  "cmp_sync_behavior_target_groups": "Groups",
+  "cmp_copy_button": "Copy to clipboard",
+  "cmp_copy_button_tooltip": "Content copied to clipboard."
 }

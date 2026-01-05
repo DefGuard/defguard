@@ -10,14 +10,10 @@ import { Search } from '../../defguard-ui/components/Search/Search';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../defguard-ui/types';
-import type {
-  SelectionSectionKey,
-  SelectionSectionOption,
-  SelectionSectionProps,
-} from './type';
+import type { SelectionKey, SelectionOption, SelectionSectionProps } from './type';
 
 //TODO: virtualize items
-export const SelectionSection = <T extends SelectionSectionKey>({
+export const SelectionSection = <T extends SelectionKey>({
   onChange,
   options,
   selection,
@@ -60,7 +56,7 @@ export const SelectionSection = <T extends SelectionSectionKey>({
   }, [selection.size, onChange, options]);
 
   const handleSelect = useCallback(
-    (option: SelectionSectionOption<T>, selected: boolean, selection: Set<T>) => {
+    (option: SelectionOption<T>, selected: boolean, selection: Set<T>) => {
       const clone = new Set(selection);
       if (selected) {
         clone.delete(option.id);

@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
+  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
+  getFilteredRowModel,
   getSortedRowModel,
   type Row,
   type RowSelectionState,
@@ -11,12 +13,12 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionSectionOption } from '../../shared/components/SelectionSection/type';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
@@ -27,6 +29,7 @@ import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableFlexCell } from '../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
@@ -49,11 +52,12 @@ export const UsersTable = ({ users }: Props) => {
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
   const [search, setSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
   const groupsOptions = useMemo(
-    (): SelectionSectionOption<string>[] =>
+    (): SelectionOption<string>[] =>
       groups?.map((g) => ({
         id: g.name,
         label: g.name,
@@ -115,6 +119,7 @@ export const UsersTable = ({ users }: Props) => {
         header: m.users_col_name(),
         enableSorting: true,
         sortingFn: 'text',
+        minSize: 250,
         meta: {
           flex: true,
         },
@@ -136,6 +141,7 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('is_active', {
         header: m.users_col_status(),
         size: 100,
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -149,6 +155,7 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('username', {
         header: m.users_col_login(),
         size: 170,
+        minSize: 100,
         enableSorting: true,
         sortingFn: 'text',
         cell: (info) => (
@@ -159,6 +166,7 @@ export const UsersTable = ({ users }: Props) => {
       }),
       columnHelper.accessor('phone', {
         size: 175,
+        minSize: 175,
         header: m.users_col_phone(),
         enableSorting: false,
         cell: (info) => {
@@ -174,7 +182,19 @@ export const UsersTable = ({ users }: Props) => {
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
         size: 370,
+        minSize: 200,
         enableSorting: false,
+        enableColumnFilter: isPresent(groups),
+        filterFn: 'arrIncludesSome',
+        meta: {
+          filterOptions:
+            groups?.map(
+              (group): SelectionOption<string> => ({
+                id: group.name,
+                label: group.name,
+              }),
+            ) ?? [],
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue().join(', ')}</span>
@@ -183,6 +203,8 @@ export const UsersTable = ({ users }: Props) => {
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
+        size: 150,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -316,6 +338,7 @@ export const UsersTable = ({ users }: Props) => {
       deleteUser,
       groupsOptions,
       handleEditGroups,
+      groups,
     ],
   );
 
@@ -333,7 +356,7 @@ export const UsersTable = ({ users }: Props) => {
   );
 
   const renderExpanded = useCallback(
-    (row: Row<RowData>, rowStyles: CSSProperties, isLast = false) =>
+    (row: Row<RowData>, isLast = false) =>
       row.original.devices.map((device) => {
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
@@ -352,7 +375,7 @@ export const UsersTable = ({ users }: Props) => {
           <TableRowContainer
             className={clsx({ last: isLast })}
             key={device.id}
-            style={rowStyles}
+            assignColumnSizing
           >
             <TableCell empty />
             <TableCell alignContent="center" noPadding>
@@ -374,6 +397,7 @@ export const UsersTable = ({ users }: Props) => {
             </TableCell>
             <TableCell empty />
             <TableCell empty />
+            <TableFlexCell />
           </TableRowContainer>
         );
       }),
@@ -391,11 +415,15 @@ export const UsersTable = ({ users }: Props) => {
     },
     state: {
       rowSelection: selected,
+      columnFilters: columnFilters,
     },
     columns,
     data: transformedData,
     enableRowSelection: true,
     enableExpanding: true,
+    columnResizeMode: 'onChange',
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setSelected,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
@@ -465,11 +493,13 @@ export const UsersTable = ({ users }: Props) => {
           }}
         />
       )}
-      <TableBody
-        table={table}
-        renderExpandedRow={renderExpanded}
-        expandedHeaders={expandedHeader}
-      />
+      {transformedData.length > 0 && (
+        <TableBody
+          table={table}
+          renderExpandedRow={renderExpanded}
+          expandedHeaders={expandedHeader}
+        />
+      )}
     </>
   );
 };

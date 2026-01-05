@@ -159,6 +159,13 @@ const FloatingMenu = ({
     },
   });
 
+  const { mutate: removeGw } = useMutation({
+    mutationFn: api.location.deleteGateway,
+    meta: {
+      invalidate: ['network', networkId, 'gateways'],
+    },
+  });
+
   return (
     <div className={clsx('gateways-status-floating', className)} {...rest}>
       {connected.length > 0 && (
@@ -195,7 +202,16 @@ const FloatingMenu = ({
                   variant="critical"
                   text={gw.name ?? gw.hostname}
                 />
-                <InteractionBox icon="close" iconSize={20} onClick={() => {}} />
+                <InteractionBox
+                  icon="close"
+                  iconSize={20}
+                  onClick={() => {
+                    removeGw({
+                      gatewayId: gw.uid,
+                      networkId: networkId,
+                    });
+                  }}
+                />
               </li>
             ))}
           </ul>

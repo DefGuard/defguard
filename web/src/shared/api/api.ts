@@ -5,6 +5,8 @@ import { client } from './api-client';
 import type {
   AclAlias,
   AclRule,
+  ActivityLogEvent,
+  ActivityLogRequestParams,
   AddAclAliasRequest,
   AddAclRuleRequest,
   AddApiTokenRequest,
@@ -54,8 +56,10 @@ import type {
   MfaCompleteResponse,
   NetworkDevice,
   NetworkLocation,
+  OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
+  PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   Settings,
@@ -89,6 +93,9 @@ const api = {
       });
     }
     return res;
+  },
+  openid: {
+    authInfo: () => client.get<OpenIdAuthInfo>(`/openid/auth_info`),
   },
   openIdClient: {
     getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
@@ -367,6 +374,12 @@ const api = {
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
     },
   },
+  getActivityLog: (data?: ActivityLogRequestParams) =>
+    client
+      .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {
+        params: data,
+      })
+      .then((resp) => resp.data),
   info: () => client.get<ApplicationInfo>('/info'),
 } as const;
 
