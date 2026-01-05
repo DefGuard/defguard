@@ -30,7 +30,21 @@ impl LastStatsUpdate {
     /// - new update was collected after previous
     /// - transfer values are not decreased
     fn validate_update(&self, new_update: &PeerStatsUpdate) -> Result<(), SessionManagerError> {
-        todo!()
+        if new_update.collected_at < self.collected_at {
+            return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
+        }
+
+        if new_update.latest_handshake < self.latest_handshake {
+            return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
+        }
+
+        if (new_update.upload as i64) < self.total_upload
+            || (new_update.download as i64) < self.total_download
+        {
+            return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
+        }
+
+        Ok(())
     }
 }
 

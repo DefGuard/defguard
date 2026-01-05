@@ -19,6 +19,6 @@ pub enum SessionManagerError {
     DeviceDoesNotExistError(Id),
     #[error("Location with ID {0} does not exist")]
     LocationDoesNotExistError(Id),
-    #[error("Session map initialization error: {0}")]
-    SessionMapInitializationError(String),
+    #[error("Received out of order peer stats update")]
+    PeerStatsUpdateOutOfOrderError,
 }
