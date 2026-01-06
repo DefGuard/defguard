@@ -98,7 +98,7 @@ export const LoginMainPage = () => {
     <LoginPage>
       <h1>{m.login_main_title()}</h1>
       <h2>{m.login_main_subtitle()}</h2>
-      <SizedBox height={ThemeSize.Xl5} />
+      <SizedBox height={ThemeSize.Xl3} />
       {tooManyAttempts && (
         <>
           <InfoBanner
@@ -109,6 +109,7 @@ export const LoginMainPage = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
         </>
       )}
+      {isPresent(openIdAuthInfo) && <LoginWithExternalProvider {...openIdAuthInfo} />}
       <form.AppForm>
         <form
           id="login-main-form"
@@ -140,7 +141,6 @@ export const LoginMainPage = () => {
             disabled={tooManyAttempts}
           />
           <p className="forgot">{m.login_main_forgot()}</p>
-          {isPresent(openIdAuthInfo) && <LoginWithExternalProvider {...openIdAuthInfo} />}
         </form>
       </form.AppForm>
     </LoginPage>
@@ -157,9 +157,8 @@ const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
 
   return (
     <div id="external-login">
-      <Divider text="Or" />
-      <SizedBox height={ThemeSpacing.Xl} />
       <OIDCButton url={data.url} text={text} />
+      <Divider text="or" spacing={ThemeSpacing.Xl2} />
     </div>
   );
 };

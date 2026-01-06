@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
@@ -84,6 +85,11 @@ const AuthMfaRoute = AuthMfaRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
@@ -257,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof R404Route
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -293,6 +300,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/consent': typeof ConsentRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
@@ -333,6 +341,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -372,6 +381,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/auth'
     | '/consent'
+    | '/auth/callback'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
@@ -408,6 +418,7 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/consent'
+    | '/auth/callback'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth'
@@ -447,6 +458,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/consent'
     | '/_authorized/_default'
+    | '/auth/callback'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
@@ -544,6 +556,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_authorized/_default': {
@@ -846,12 +865,14 @@ const AuthMfaRouteWithChildren =
   AuthMfaRoute._addFileChildren(AuthMfaRouteChildren)
 
 interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthMfaRoute: typeof AuthMfaRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthMfaRoute: AuthMfaRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,

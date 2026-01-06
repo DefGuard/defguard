@@ -59,7 +59,8 @@ const licenses: Array<LicenseItemData> = [
 ];
 
 export const SettingsLicenseTab = () => {
-  const licenseInfo = useApp((s) => s.appInfo.license_info);
+  const appLicenseInfo = useApp((s) => s.appInfo.license_info);
+  // const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useQuery(getSettingsQueryOptions);
 
   return (
@@ -76,7 +77,7 @@ export const SettingsLicenseTab = () => {
               {`Current plan`}
             </AppText>
             <SizedBox height={ThemeSpacing.Sm} />
-            <Badge variant="neutral" text={licenseInfo.tier ?? 'No plan'} />
+            <Badge variant="neutral" text={appLicenseInfo.tier ?? 'No plan'} />
           </div>
           <Divider spacing={ThemeSpacing.Xl} />
           <DescriptionBlock title="License key">

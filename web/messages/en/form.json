@@ -1,6 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "form_min_value": "Minimal value of {value} required",
+  "form_error_license": "License is not valid",
   "form_error_file_format": "Invalid file format",
   "form_error_file_contents": "File content is not valid",
   "form_error_ip_or_domain": "Only valid IP or domain is allowed",

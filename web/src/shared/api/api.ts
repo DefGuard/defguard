@@ -47,6 +47,7 @@ import type {
   GroupInfo,
   GroupsResponse,
   IpValidation,
+  LicenseInfoResponse,
   LocationDevicesStats,
   LocationStats,
   LocationStatsRequest,
@@ -96,6 +97,7 @@ const api = {
   },
   openid: {
     authInfo: () => client.get<OpenIdAuthInfo>(`/openid/auth_info`),
+    callback: (data: unknown) => client.post<LoginResponse>(`/openid/callback`, data),
   },
   openIdClient: {
     getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
@@ -381,6 +383,7 @@ const api = {
       })
       .then((resp) => resp.data),
   info: () => client.get<ApplicationInfo>('/info'),
+  getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
 } as const;
 
 export default api;

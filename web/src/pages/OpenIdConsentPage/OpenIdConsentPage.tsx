@@ -1,14 +1,14 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { LoginPage } from '../../shared/components/LoginPage/LoginPage';
 import './style.scss';
 import { useLoaderData, useSearch } from '@tanstack/react-router';
 import { m } from '../../paraglide/messages';
-import type { OpenIdClientScopeValue } from '../../shared/api/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { parseOpenIdScopeSearch } from './utils';
 
 export const OpenIdConsentPage = () => {
   const search = useSearch({ from: '/consent' });
@@ -26,6 +26,8 @@ export const OpenIdConsentPage = () => {
     }
   }, []);
 
+  const scope = useMemo(() => parseOpenIdScopeSearch(search.scope), [search]);
+
   return (
     <LoginPage id="openid-consent-page">
       <h1>
@@ -36,14 +38,17 @@ export const OpenIdConsentPage = () => {
       </h1>
       <SizedBox height={ThemeSpacing.Lg} />
       <ul>
-        {(search.scope.trim().split(',') as Array<OpenIdClientScopeValue>).map(
-          (scope) => (
+        {scope.map((scope) => {
+          const translation_fn = m[`openid_consent_scope_${scope}`];
+          // If backend returns scope that was not defined by us we won't have translation for this, TSC only guarantees translation for defined scopes in types
+          const display = translation_fn?.() ?? scope;
+          return (
             <li key={scope}>
               <Icon size={18} icon="check-circle" />
-              <p>{m[`openid_consent_scope_${scope}`]()}</p>
+              <p>{display}</p>
             </li>
-          ),
-        )}
+          );
+        })}
       </ul>
       <SizedBox height={ThemeSpacing.Xl2} />
       <Button

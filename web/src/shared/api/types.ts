@@ -189,13 +189,26 @@ export interface LicenseLimits {
   wireguard_network: boolean;
 }
 
-export interface LicenseInfo {
+export interface LicenseAppInfo {
   enterprise: boolean;
   limits_exceeded: LicenseLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
   tier?: string | null;
 }
+
+export interface LicenseInfo {
+  expired: boolean;
+  limits_exceeded: boolean;
+  subscription: boolean;
+  valid_until: string;
+  tier: string;
+}
+
+export interface LicenseInfoResponse {
+  license_info: LicenseInfo | null;
+}
+
 export interface LdapInfo {
   enabled: boolean;
   ad: boolean;
@@ -206,7 +219,7 @@ export interface ApplicationInfo {
   network_present: boolean;
   smtp_enabled: boolean;
   external_openid_enabled: boolean;
-  license_info: LicenseInfo;
+  license_info: LicenseAppInfo;
   ldap_info: LdapInfo;
 }
 
