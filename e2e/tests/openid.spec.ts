@@ -11,6 +11,7 @@ import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
+import { logout } from '../utils/controllers/logout';
 
 // FIXME containerize test client so tests can run without external testing client
 
@@ -45,11 +46,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    await page.goto(routes.base + routes.profile, {
+    await page.goto(routes.base + routes.me, {
       waitUntil: 'networkidle',
     });
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 
   test('Authorize when session is not active', async ({ page }) => {
@@ -67,12 +69,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    // await page.goto(routes.base + routes.me, {
-    //   waitUntil: 'networkidle',
-    // });
-    // await waitForRoute(page, routes.me);
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 
   test('Authorize when session is not active and MFA is enabled', async ({
@@ -93,12 +95,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    // await page.goto(routes.base + routes.me, {
-    //   waitUntil: 'networkidle',
-    // });
-    // await waitForRoute(page, routes.me);
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 });
 

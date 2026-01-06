@@ -39,27 +39,6 @@ test.describe('Network devices', () => {
     await context.close();
   });
 
-  //  TODO:Check this
-  // // View the config
-  // await doAction({ page, deviceRow, action: 'View config' });
-  // const configDisplayCard = page.locator('#standalone-device-config-modal');
-  // const config = await configDisplayCard.locator('.config').first().innerText();
-  // expect(config).toContain(`${testNetwork.endpoint}:${testNetwork.port}`);
-  // await configDisplayCard.getByRole('button', { name: 'Close' }).click();
-
-  // // Generate the token command
-  // await doAction({ page, deviceRow, action: 'Generate auth token' });
-  // const tokenCard = page.locator('.modal-content');
-  // const command = await tokenCard.locator('.expanded-content').first().innerText();
-  // expect(command.length).toBeGreaterThan(0);
-  // await tokenCard.getByRole('button', { name: 'Close' }).click();
-
-  // // Delete device
-  // await doAction({ page, deviceRow, action: 'Delete' });
-  // const deleteModal = page.locator('.modal');
-  // await deleteModal.getByRole('button', { name: 'Delete' }).click();
-  // await expect(deviceRows).toHaveCount(0);
-
   test('Create and setup Defguard CLI network device', async ({
     page,
     browser,
@@ -110,8 +89,8 @@ test.describe('Network devices', () => {
     expect(createDeviceResPayload).toHaveProperty('configs');
     const configs = createDeviceResPayload['configs'];
     expect(configs.length).toEqual(1);
-    // const config = configs.pop();
-    // expect(config['endpoint']).toEqual(`${testNetwork.endpoint}:${testNetwork.port}`); // FIXME: add this after wizard is fixed
+    const config = configs.pop();
+    expect(config['endpoint']).toEqual(`${testNetwork.endpoint}:${testNetwork.port}`);
   });
 
   test('Create Manual WireGuard Client network device', async ({ page, browser }) => {
@@ -121,7 +100,7 @@ test.describe('Network devices', () => {
     // await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
     //   name: deviceName,
     //   pubKey: testKeys.public,
-    //   description: deviceDesc, // FIXME: Currently broken by frontend.
+    //   description: deviceDesc, // FIXME: Adding description freezes modal (https://github.com/DefGuard/defguard/issues/1785)
     // });
     await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
       name: deviceName + '2',

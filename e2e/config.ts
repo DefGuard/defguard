@@ -37,6 +37,10 @@ export const routes = {
     authentication_keys: '?tab=auth-keys',
     api_tokens: '?tab=api-tokens',
   },
+  firewall: {
+    rules: '/acl/rules',
+    aliases: '/acl/aliases',
+  },
   locations: '/locations',
   network_devices: '/network-devices',
   openid_apps: '/openid',

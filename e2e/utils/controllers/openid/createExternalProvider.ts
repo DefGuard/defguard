@@ -13,7 +13,7 @@ export const createExternalProvider = async (browser: Browser, client: OpenIdCli
   await page.goto(routes.base + routes.settings.tab.openid);
   await page.getByTestId('connect-custom').click();
 
-  await page.getByTestId('field-base_url').fill('http://localhost:8000/');
+  await page.getByTestId('field-base_url').fill(routes.base+"/");
   await page.getByTestId('field-client_id').fill(client.clientID || '');
   await page.getByTestId('field-client_secret').fill(client.clientSecret || '');
   await page.getByTestId('field-display_name').fill(client.name);
