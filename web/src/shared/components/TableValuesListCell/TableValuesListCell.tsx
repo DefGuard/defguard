@@ -10,16 +10,22 @@ interface Props extends TableCellProps {
 }
 
 export const TableValuesListCell = ({ values, className, ...cellProps }: Props) => {
+  const clickable = values.length > 2;
+
   return (
     <TableCell
-      className={clsx(className, 'values-list')}
+      className={clsx(className, 'values-list', {
+        clickable,
+      })}
       {...cellProps}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        openModal(ModalName.DisplayList, {
-          data: values,
-        });
+        if (clickable) {
+          openModal(ModalName.DisplayList, {
+            data: values,
+          });
+        }
       }}
     >
       <span>{values.join(', ')}</span>

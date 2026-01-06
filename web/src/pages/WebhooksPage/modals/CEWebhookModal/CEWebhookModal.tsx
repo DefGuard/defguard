@@ -14,7 +14,7 @@ import { useStore } from '@tanstack/react-form';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import api from '../../../../shared/api/api';
-import { FormSection } from '../../../../shared/components/FormSection/FormSection';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -179,10 +179,9 @@ const ModalContent = ({ webhook }: ModalData) => {
           )}
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
-        <FormSection
-          title={m.modal_ce_webhook_events_title()}
-          text={m.test_placeholder_long()}
-        />
+        <DescriptionBlock title={m.modal_ce_webhook_events_title()}>
+          <p>{m.test_placeholder_long()}</p>
+        </DescriptionBlock>
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="webhooks">
           <form.AppField name="on_user_created">

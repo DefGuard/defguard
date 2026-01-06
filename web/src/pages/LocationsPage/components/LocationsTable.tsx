@@ -174,6 +174,8 @@ export const LocationsTable = ({ locations }: Props) => {
       columnHelper.display({
         id: 'edit',
         size: tableEditColumnSize,
+        header: '',
+        enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
           return (
@@ -243,6 +245,7 @@ export const LocationsTable = ({ locations }: Props) => {
     },
     sortingFns: tableSortingFns,
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });

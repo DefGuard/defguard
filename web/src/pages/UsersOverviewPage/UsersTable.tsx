@@ -19,6 +19,7 @@ import api from '../../shared/api/api';
 import type { UsersListItem } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
@@ -195,11 +196,7 @@ export const UsersTable = ({ users }: Props) => {
               }),
             ) ?? [],
         },
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue().join(', ')}</span>
-          </TableCell>
-        ),
+        cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
@@ -220,6 +217,7 @@ export const UsersTable = ({ users }: Props) => {
         size: tableEditColumnSize,
         header: '',
         enableSorting: false,
+        enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
           return (

@@ -21,7 +21,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import { FormSection } from '../../../../shared/components/FormSection/FormSection';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon';
@@ -245,10 +245,9 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
           }}
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
-        <FormSection
-          title={m.modal_ce_openid_client_label_scopes_title()}
-          text={m.test_placeholder_long()}
-        />
+        <DescriptionBlock title={m.modal_ce_openid_client_label_scopes_title()}>
+          <p>{m.test_placeholder_long()}</p>
+        </DescriptionBlock>
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="scopes">
           {availableScopes.map((scope) => (

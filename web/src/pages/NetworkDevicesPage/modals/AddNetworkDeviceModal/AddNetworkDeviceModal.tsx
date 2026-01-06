@@ -23,7 +23,7 @@ import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
-import { FormSection } from '../../../../shared/components/FormSection/FormSection';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
@@ -158,10 +158,9 @@ const ManualStep = ({
 
   return (
     <>
-      <FormSection
-        title="Get configuration file"
-        text="Use the provided configuration file by importing it into your device's WireGuard app."
-      />
+      <DescriptionBlock title="Get configuration file">
+        <p>{`Use the provided configuration file by importing it into your device's WireGuard app.`}</p>
+      </DescriptionBlock>
       <SizedBox height={ThemeSpacing.Xl2} />
       <InfoBanner
         variant="warning"
