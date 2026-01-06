@@ -12,6 +12,7 @@ import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../shared/api/api';
 import type { OpenIdAuthInfo } from '../../../shared/api/types';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { OIDCButton } from '../../../shared/defguard-ui/components/SSOButton/OIDCButton';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
@@ -139,12 +140,7 @@ export const LoginMainPage = () => {
             disabled={tooManyAttempts}
           />
           <p className="forgot">{m.login_main_forgot()}</p>
-          {isPresent(openIdAuthInfo) && (
-            <>
-              <SizedBox height={ThemeSpacing.Xl4} />
-              <LoginWithExternalProvider {...openIdAuthInfo} />
-            </>
-          )}
+          {isPresent(openIdAuthInfo) && <LoginWithExternalProvider {...openIdAuthInfo} />}
         </form>
       </form.AppForm>
     </LoginPage>
@@ -159,5 +155,11 @@ const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
     return `Sign in with external provider`;
   }, [data.button_display_name]);
 
-  return <OIDCButton url={data.url} text={text} />;
+  return (
+    <div id="external-login">
+      <Divider text="Or" />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <OIDCButton url={data.url} text={text} />
+    </div>
+  );
 };

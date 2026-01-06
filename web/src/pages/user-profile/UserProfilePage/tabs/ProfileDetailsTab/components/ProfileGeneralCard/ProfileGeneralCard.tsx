@@ -6,8 +6,8 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import { FormRow } from '../../../../../../../shared/components/FormRow/FormRow';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
+import { EvenSplit } from '../../../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { useAppForm } from '../../../../../../../shared/form';
 import {
   patternSafeUsernameCharacters,
@@ -128,7 +128,7 @@ export const ProfileGeneralCard = () => {
               <field.FormInput {...fieldProps} label={m.form_label_username()} />
             )}
           </form.AppField>
-          <FormRow>
+          <EvenSplit>
             <form.AppField name="first_name">
               {(field) => (
                 <field.FormInput {...fieldProps} label={m.form_label_first_name()} />
@@ -139,7 +139,7 @@ export const ProfileGeneralCard = () => {
                 <field.FormInput {...fieldProps} label={m.form_label_last_name()} />
               )}
             </form.AppField>
-          </FormRow>
+          </EvenSplit>
           <form.AppField name="phone">
             {(field) => <field.FormInput label={m.form_label_phone()} />}
           </form.AppField>

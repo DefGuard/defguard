@@ -160,6 +160,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         id: 'edit',
         header: '',
         size: tableEditColumnSize,
+        enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
           const mainItems: MenuItemProps[] = [
@@ -234,6 +235,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     },
     data: networkDevices,
     columns,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableSorting: true,

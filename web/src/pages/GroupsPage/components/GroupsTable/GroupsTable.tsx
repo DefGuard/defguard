@@ -102,6 +102,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
         id: 'edit',
         size: tableEditColumnSize,
         header: '',
+        enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
           const menuItems: MenuItemProps[] = [
