@@ -67,7 +67,7 @@ export const LocationOverviewPage = () => {
           <div className="top">
             <div className="left">
               <p className="subtitle">{location.name}</p>
-              {isPresent(gateways) && <GatewaysStatusBadge data={gateways} />}
+              {isPresent(gateways) && <GatewaysStatusBadge data={gateways ?? []} />}
             </div>
             <div className="right">
               <OverviewPeriodSelect
