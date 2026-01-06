@@ -94,11 +94,11 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
       await patchSettings({
         license: value.license,
       }).catch((e: AxiosError<ApiError>) => {
-        if (e.status && e.status > 400 && e.status < 500) {
+        if (e.status && e.status >= 400 && e.status < 500) {
           formApi.setErrorMap({
             onSubmit: {
               fields: {
-                license: m.form_error_invalid(),
+                license: m.form_error_license(),
               },
             },
           });

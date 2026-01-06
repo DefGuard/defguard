@@ -143,3 +143,9 @@ export const getAliasesQueryOptions = queryOptions({
   queryKey: ['acl', 'alias'],
   select: (resp) => resp.data,
 });
+
+export const getLicenseInfoQueryOptions = queryOptions({
+  queryFn: api.getLicenseInfo,
+  queryKey: ['enterprise_info'],
+  select: (response) => response.data,
+});
