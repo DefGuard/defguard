@@ -1,10 +1,9 @@
 import { Browser } from 'playwright';
-import { expect } from 'playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
-import { Protocols, User } from '../types';
-import { waitForBase } from './waitForBase';
+import { Protocols } from '../types';
 import { loginBasic } from './controllers/login';
+import { waitForBase } from './waitForBase';
 
 export const createAlias = async (
   browser: Browser,
@@ -42,16 +41,16 @@ export const createAlias = async (
   await context.close();
 };
 
-export const createRule = async (
-  browser: Browser,
-  name: string,
-  addresses?: string[],
-  ports?: string[],
-  protocols?: Protocols[],
-): Promise<void> => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await waitForBase(page);
-  //TODO
-  await context.close();
-};
+// export const createRule = async (
+//   browser: Browser,
+//   name: string,
+//   addresses?: string[],
+//   ports?: string[],
+//   protocols?: Protocols[],
+// ): Promise<void> => {
+//   const context = await browser.newContext();
+//   const page = await context.newPage();
+//   await waitForBase(page);
+//   //TODO
+//   await context.close();
+// };

@@ -2,10 +2,10 @@ import { Browser, expect, Locator, Page } from '@playwright/test';
 
 import { routes } from '../../../config';
 import { EditNetworkDeviceForm, NetworkDeviceForm, User } from '../../../types';
+import { getPageClipboard } from '../../getPageClipboard';
+import { waitForPromise } from '../../waitForPromise';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
-import { waitForPromise } from '../../waitForPromise';
-import { getPageClipboard } from '../../getPageClipboard';
 
 export const getDeviceRow = async ({
   page,

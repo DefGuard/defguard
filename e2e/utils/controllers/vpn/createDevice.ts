@@ -1,4 +1,4 @@
-import { Browser, expect } from '@playwright/test';
+import { Browser } from '@playwright/test';
 
 import { routes } from '../../../config';
 import { DeviceForm, User } from '../../../types';

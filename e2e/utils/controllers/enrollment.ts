@@ -1,11 +1,9 @@
 import { Browser, expect, Page } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testsConfig } from '../../config';
+import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
-import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
-import { logout } from './logout';
 
 export const password = 'TestEnrollment1234!!';
 
@@ -35,7 +33,7 @@ export const createUserEnrollment = async (
   await formElement.getByTestId('field-email').fill(user.mail);
   await formElement.getByTestId('field-phone').fill(user.phone);
   await formElement.getByTestId('add-user-submit').click();
-  let token = await formElement.getByTestId('activation-token-field').textContent();
+  const token = await formElement.getByTestId('activation-token-field').textContent();
   await formElement.locator('button[data-variant="primary"]').click();
   if (groups) {
     await page.goto(routes.base + routes.identity.users);

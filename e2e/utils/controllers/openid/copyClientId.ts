@@ -27,7 +27,7 @@ export const copyOpenIdClientIdAndSecret = async (
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.openid_apps, { waitUntil: 'networkidle' });
-  const userRow = await page.locator('.virtual-row').filter({ hasText: clientName});
+  const userRow = await page.locator('.virtual-row').filter({ hasText: clientName });
   await userRow.locator('.icon-button').click();
   await page.getByTestId('copy-id').click();
   const id = await getPageClipboard(page);
@@ -36,7 +36,6 @@ export const copyOpenIdClientIdAndSecret = async (
   await page.getByTestId('copy-secret').click();
 
   const secret = await getPageClipboard(page);
-
 
   await context.close();
   return [id, secret];

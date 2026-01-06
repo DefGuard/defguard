@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { dockerRestart } from '../utils/docker';
-import { defaultUserAdmin, routes, testUserTemplate } from '../config';
-import { Protocols, User } from '../types';
-import { waitForBase } from '../utils/waitForBase';
-import { loginBasic } from '../utils/controllers/login';
+
+import { defaultUserAdmin, routes } from '../config';
+import { Protocols } from '../types';
 import { createAlias } from '../utils/acl';
+import { loginBasic } from '../utils/controllers/login';
+import { dockerRestart } from '../utils/docker';
 
 test.describe('Test aliases', () => {
-  let testUser: User;
+  // let testUser: User;
 
   test.beforeEach(() => {
     dockerRestart();
-    testUser = { ...testUserTemplate, username: 'test' };
+    // testUser = { ...testUserTemplate, username: 'test' };
   });
 
   test('Create alias and check content', async ({ page, browser }) => {

@@ -1,4 +1,5 @@
 import { APIRequestContext } from '@playwright/test';
+
 import { testsConfig } from '../../config';
 
 export const apiEnrollmentStart = async (request: APIRequestContext, token: string) => {

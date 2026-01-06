@@ -1,24 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-import { testsConfig, testUserTemplate } from '../config';
+import { testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
-import { apiGetUserProfile } from '../utils/api/users';
-import {
-  createDevice,
-  createUserEnrollment,
-  password,
-  selectEnrollment,
-  setPassword,
-  setToken,
-  validateData,
-} from '../utils/controllers/enrollment';
+import { createUserEnrollment, password } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
-import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
+import { disableUser } from '../utils/controllers/toggleUserState';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 const testNetwork: NetworkForm = {
   name: 'test network',
