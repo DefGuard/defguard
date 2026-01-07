@@ -25,10 +25,14 @@ import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../../shared/hooks/useApp';
-import { getSettingsQueryOptions } from '../../../../../shared/query';
+import {
+  getLicenseInfoQueryOptions,
+  getSettingsQueryOptions,
+} from '../../../../../shared/query';
 import businessImage from './assets/business.png';
 import enterpriseImage from './assets/enterprise.png';
 import starterImage from './assets/starter.png';
+import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSection/SettingsLicenseInfoSection';
 import { LicenseModal } from './modals/LicenseModal/LicenseModal';
 
 type LicenseItemData = {
@@ -60,7 +64,7 @@ const licenses: Array<LicenseItemData> = [
 
 export const SettingsLicenseTab = () => {
   const appLicenseInfo = useApp((s) => s.appInfo.license_info);
-  // const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useQuery(getSettingsQueryOptions);
 
   return (
@@ -72,14 +76,19 @@ export const SettingsLicenseTab = () => {
       />
       {isPresent(settings) && (
         <SettingsCard>
-          <div className="empty-plan">
-            <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
-              {`Current plan`}
-            </AppText>
-            <SizedBox height={ThemeSpacing.Sm} />
-            <Badge variant="neutral" text={appLicenseInfo.tier ?? 'No plan'} />
-          </div>
-          <Divider spacing={ThemeSpacing.Xl} />
+          {isPresent(licenseInfo) && (
+            <SettingsLicenseInfoSection licenseInfo={licenseInfo} />
+          )}
+          {!isPresent(licenseInfo) && (
+            <div className="empty-plan">
+              <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
+                {`Current plan`}
+              </AppText>
+              <SizedBox height={ThemeSpacing.Sm} />
+              <Badge variant="neutral" text={appLicenseInfo.tier ?? 'No plan'} />
+              <Divider spacing={ThemeSpacing.Xl} />
+            </div>
+          )}
           <DescriptionBlock title="License key">
             <p>{`Enter your license key to unlock additional Defguard features. Your license key is sent by email after purchase or registration on the Plans page.`}</p>
           </DescriptionBlock>
@@ -87,7 +96,9 @@ export const SettingsLicenseTab = () => {
             <div className="left">
               <Button
                 variant="primary"
-                text={settings.license.length > 0 ? 'Edit license' : 'Enter license'}
+                text={
+                  (settings.license?.length ?? 0) > 0 ? 'Edit license' : 'Enter license'
+                }
                 onClick={() => {
                   openModal(ModalName.License, {
                     license: settings.license,

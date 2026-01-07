@@ -34,6 +34,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     }
   },
   pendingComponent: AppLoaderPage,
+  pendingMs: 0,
 });
 
 function RootComponent() {

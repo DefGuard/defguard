@@ -631,7 +631,7 @@ export interface SettingsOpenID {
 }
 
 export interface SettingsLicense {
-  license: string;
+  license: string | null;
 }
 
 export interface SettingsGatewayNotifications {
