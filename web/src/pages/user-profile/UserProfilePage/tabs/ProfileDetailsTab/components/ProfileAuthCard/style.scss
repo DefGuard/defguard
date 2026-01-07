@@ -1,0 +1,145 @@
+#profile-auth-card {
+  & > .divider {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .section {
+    .section-title {
+      font: var(--t-body-primary-500);
+      color: var(--fg-default);
+    }
+
+    .webauthn-keys {
+      display: flex;
+      flex-flow: column;
+      column-gap: var(--spacing-sm);
+      padding-top: var(--spacing-md);
+      align-items: flex-start;
+      justify-content: flex-start;
+      flex: none;
+    }
+
+    & > .header {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-md);
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: var(--spacing-lg);
+    }
+
+    & > .divider {
+      padding: var(--spacing-lg) 0;
+    }
+  }
+
+  .biometric-devices {
+    & > .top {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-md);
+
+      & > p {
+        padding-bottom: var(--spacing-2xl);
+        margin-right: auto;
+      }
+
+      & > a {
+        font: var(--t-body-sm-400);
+        color: var(--fg-action);
+        text-decoration: none;
+        cursor: pointer;
+      }
+    }
+
+    .device {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-lg);
+
+      .icon {
+        user-select: none;
+      }
+
+      p {
+        font: var(--t-body-sm-400);
+      }
+    }
+  }
+}
+
+#profile-auth-card .factor-row {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+
+  .row {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    .fill {
+      width: calc(var(--spacing-md) + 20px);
+    }
+  }
+
+  .factor-name {
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+    padding: 0 var(--spacing-md);
+  }
+
+  .availability {
+    font: var(--t-body-xs-400);
+    color: var(--fg-muted);
+    text-align: left;
+    user-select: none;
+    cursor: default;
+  }
+
+  & > .content-track {
+    display: flex;
+    flex-flow: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    row-gap: 6px;
+
+    .badges {
+      display: flex;
+      flex-flow: row;
+      flex: none;
+      align-items: center;
+      column-gap: var(--spacing-sm);
+    }
+  }
+
+  .controls {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+    margin-left: auto;
+  }
+}
+
+#profile-auth-card .webauthn-row {
+  width: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: var(--spacing-lg);
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding-left: calc(20px + var(--spacing-sm));
+  min-height: 36px;
+
+  .name {
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+  }
+}

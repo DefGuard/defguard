@@ -1,3 +1,6 @@
 [submodule "proto"]
 	path = proto
 	url = ../proto.git
+[submodule "web/src/shared/defguard-ui"]
+	path = web/src/shared/defguard-ui
+	url = ../ui.git

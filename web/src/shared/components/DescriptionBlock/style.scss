@@ -1,0 +1,23 @@
+.description-block {
+  & > .title {
+    font: var(--t-body-sm-500);
+  }
+
+  & > div {
+    p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+
+    a {
+      font: var(--t-body-sm-400);
+      color: var(--fg-action);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+        text-decoration-color: var(--fg-action);
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+#ce-rule-page form {
+  .no-aliases-block {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--spacing-2xl);
+
+    p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-default);
+    }
+  }
+
+  .protocols-selection {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xl);
+  }
+}

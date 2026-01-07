@@ -1,0 +1,41 @@
+.badge.icon.gateways-status-badge.interactive {
+  display: grid;
+  grid-template-columns: 16px auto 16px;
+  cursor: pointer;
+}
+
+.gateways-status-floating {
+  display: block;
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--menu-shadow);
+  z-index: 5;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: var(--spacing-md);
+
+  .connected,
+  .disconnected {
+    & > p {
+      font: var(--t-body-xs-600);
+      color: var(--fg-neutral);
+      padding-bottom: var(--spacing-sm);
+    }
+
+    ul {
+      list-style: none;
+
+      li {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+
+        .interaction-box {
+          margin-left: auto;
+        }
+      }
+    }
+  }
+}

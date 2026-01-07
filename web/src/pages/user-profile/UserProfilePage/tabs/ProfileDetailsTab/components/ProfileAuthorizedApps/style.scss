@@ -1,0 +1,40 @@
+#authorized-apps-card {
+  & > h3 {
+    font: var(--t-body-sm-500);
+    color: var(--fg-default);
+    padding-bottom: var(--spacing-xs);
+  }
+
+  & > p {
+    padding-bottom: var(--spacing-2xl);
+    font: var(--t-body-sm-400);
+    color: var(--fg-muted);
+  }
+
+  & > .apps {
+    & > .app {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-lg);
+      padding: var(--spacing-md) 0;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid var(--border-disabled);
+      }
+
+      & > p {
+        font: var(--t-body-sm-500);
+        color: var(--fg-faded);
+      }
+
+      & > .controls {
+        display: flex;
+        flex-flow: row nowrap;
+        flex: none;
+        margin-left: auto;
+      }
+    }
+  }
+}

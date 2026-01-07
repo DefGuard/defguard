@@ -1,0 +1,97 @@
+import z from 'zod';
+import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../paraglide/messages';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useAppForm } from '../../../shared/form';
+import { formChangeLogic } from '../../../shared/formLogic';
+import { Validate } from '../../../shared/validate';
+import { AddLocationPageStep } from '../types';
+import { useAddLocationStore } from '../useAddLocationStore';
+
+const formSchema = z.object({
+  name: z.string(m.form_error_required()).min(1, m.form_error_required()),
+  endpoint: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required())
+    .refine(
+      (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
+      m.form_error_invalid(),
+    ),
+  port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+});
+
+type FormFields = z.infer<typeof formSchema>;
+
+export const AddLocationStartStep = () => {
+  const defaultValues = useAddLocationStore(
+    useShallow(
+      (s): FormFields => ({
+        endpoint: s.endpoint,
+        name: s.name,
+        port: s.port,
+      }),
+    ),
+  );
+
+  const form = useAppForm({
+    defaultValues,
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: formSchema,
+      onChange: formSchema,
+    },
+    onSubmit: ({ value }) => {
+      useAddLocationStore.setState({
+        ...value,
+        activeStep: AddLocationPageStep.InternalVpnSettings,
+      });
+    },
+  });
+
+  return (
+    <WizardCard id="add-location-start-step">
+      <form
+        onSubmit={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppForm>
+          <form.AppField name="name">
+            {(field) => <field.FormInput required label={'Location name'} />}
+          </form.AppField>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <DescriptionBlock title="Gateway public address">
+            <p>{`Used by VPN users to connect.`}</p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <form.AppField name="endpoint">
+            {(field) => (
+              <field.FormInput required label={'Gateway VPN IP address or domain name'} />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="port">
+            {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
+          </form.AppField>
+          <ModalControls
+            submitProps={{
+              text: m.controls_continue(),
+              testId: 'continue',
+              onClick: () => {
+                form.handleSubmit();
+              },
+            }}
+          />
+        </form.AppForm>
+      </form>
+    </WizardCard>
+  );
+};

@@ -1,0 +1,13 @@
+.edit-page-controls {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: var(--spacing-md);
+  padding-top: var(--spacing-2xl);
+  width: 100%;
+
+  & > .cancel {
+    margin-left: auto;
+  }
+}

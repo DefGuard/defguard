@@ -1,0 +1,29 @@
+.container-with-icon {
+  border: 1px solid var(--border-default);
+  box-sizing: border-box;
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+
+  & > .track {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-2xl);
+    align-items: start;
+
+    & > .container-icon {
+      display: block;
+      max-height: 33px;
+
+      svg {
+        rect {
+          fill: var(--bg-action-muted);
+        }
+
+        path {
+          fill: var(--fg-action);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+#general-card {
+  form {
+    display: flex;
+    flex-flow: column;
+    flex: none;
+    row-gap: var(--spacing-xl);
+
+    .btn {
+      margin-top: 4px;
+      align-self: flex-end;
+    }
+  }
+}

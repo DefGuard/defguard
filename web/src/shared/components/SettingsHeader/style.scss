@@ -1,0 +1,61 @@
+.settings-header {
+  padding-bottom: var(--spacing-2xl);
+
+  & > .inner-track {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-xl);
+    align-items: start;
+    justify-content: start;
+
+    & > .icon-track {
+      .icon-wrap {
+        display: grid;
+        grid-template-columns: 32px;
+        grid-template-rows: 32px;
+        place-items: center center;
+
+        & > * {
+          grid-row: 1;
+          grid-column: 1 / 2;
+        }
+
+        .bg {
+          display: block;
+          content: ' ';
+          pointer-events: none;
+          background-color: var(--bg-action-muted);
+          border-radius: var(--radius-full);
+          width: 100%;
+          height: 100%;
+        }
+
+        .icon path {
+          fill: var(--fg-action);
+        }
+      }
+    }
+
+    & > .content-track {
+      & > .top {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--spacing-md);
+
+        h4 {
+          font: var(--t-title-h4);
+          color: var(--fg-default);
+        }
+      }
+
+      & > p {
+        padding-top: var(--spacing-xs);
+        font: var(--t-body-sm-400);
+        color: var(--fg-faded);
+      }
+    }
+  }
+}

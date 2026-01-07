@@ -1,0 +1,14 @@
+.device-transfer-cell {
+  column-gap: var(--spacing-2xl);
+
+  .stats-summary {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-md);
+
+    & > span {
+      font: var(--t-body-xs-500);
+      color: var(--border-default);
+    }
+  }
+}
