@@ -1,8 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import z from 'zod';
+import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
 import api from '../../shared/api/api';
-import { LoginPage } from '../../shared/components/LoginPage/LoginPage';
-import { LoaderSpinner } from '../../shared/defguard-ui/components/LoaderSpinner/LoaderSpinner';
 import { useAuth } from '../../shared/hooks/useAuth';
 
 const searchSchema = z.object({
@@ -14,22 +13,19 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/auth/callback')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ search }),
-  loader: async ({ deps }) => {
+  loader: async ({ deps, context }) => {
     try {
       const search = deps.search;
       const response = await api.openid.callback(search);
-      useAuth.getState().authSubject.next(response.data);
+      setTimeout(() => {
+        void context.queryClient.invalidateQueries({
+          queryKey: ['me'],
+        });
+        useAuth.getState().authSubject.next(response.data);
+      }, 1000);
     } catch (_) {
       throw redirect({ to: '/auth/login', replace: true });
     }
   },
-  component: RouteComponent,
+  component: LoginLoadingPage,
 });
-
-function RouteComponent() {
-  return (
-    <LoginPage>
-      <LoaderSpinner size={64} />
-    </LoginPage>
-  );
-}

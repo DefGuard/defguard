@@ -60,27 +60,28 @@ function RouteComponent() {
         } else {
           navigateToAuthorized(basicResponse.user);
         }
-      }
-      const mfaSchemaResult = mfaSchema.safeParse(state);
-      const mfaResponse = mfaSchemaResult.data;
-      if (isPresent(mfaResponse) && mfaSchemaResult.success) {
-        useAuth.setState({ mfaLogin: mfaResponse });
-        switch (mfaResponse.mfa_method) {
-          case 'none':
-            console.error('Cannot login with MFA on a user with no MFA set');
-            break;
-          case 'OneTimePassword':
-            navigate({ to: '/auth/mfa/totp', replace: true });
-            break;
-          case 'Email':
-            navigate({ to: '/auth/mfa/email', replace: true });
-            break;
-          case 'Webauthn':
-            navigate({ to: '/auth/mfa/webauthn', replace: true });
-            break;
-        }
       } else {
-        console.error('Unknown response schema for login');
+        const mfaSchemaResult = mfaSchema.safeParse(state);
+        const mfaResponse = mfaSchemaResult.data;
+        if (isPresent(mfaResponse) && mfaSchemaResult.success) {
+          useAuth.setState({ mfaLogin: mfaResponse });
+          switch (mfaResponse.mfa_method) {
+            case 'none':
+              console.error('Cannot login with MFA on a user with no MFA set');
+              break;
+            case 'OneTimePassword':
+              navigate({ to: '/auth/mfa/totp', replace: true });
+              break;
+            case 'Email':
+              navigate({ to: '/auth/mfa/email', replace: true });
+              break;
+            case 'Webauthn':
+              navigate({ to: '/auth/mfa/webauthn', replace: true });
+              break;
+          }
+        } else {
+          console.error('Unknown response schema for login');
+        }
       }
     });
     return () => {

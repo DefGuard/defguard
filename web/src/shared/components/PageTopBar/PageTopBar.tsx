@@ -85,6 +85,7 @@ const ProfileMenu = () => {
             onClick: () => {
               api.auth.logout().then(() => {
                 resetAuth();
+                navigate({ to: '/auth/login', replace: true });
               });
             },
           },

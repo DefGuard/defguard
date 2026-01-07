@@ -130,7 +130,7 @@ const api = {
       client.post('/user/available', {
         username,
       }),
-    getMe: client.get<User>('/me'),
+    getMe: () => client.get<User>('/me'),
     getUsers: () => client.get<User[]>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>

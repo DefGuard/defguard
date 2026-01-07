@@ -1,0 +1,10 @@
+#login-loading-page {
+  .loader-track {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+    height: max(50%, var(--spacing-9xl));
+    align-items: center;
+    justify-content: center;
+  }
+}

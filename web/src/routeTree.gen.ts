@@ -11,12 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppLoaderRouteImport } from './routes/app-loader'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
@@ -58,6 +59,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLoaderRoute = AppLoaderRouteImport.update({
+  id: '/app-loader',
+  path: '/app-loader',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthorizedRoute = AuthorizedRouteImport.update({
   id: '/_authorized',
   getParentRoute: () => rootRouteImport,
@@ -65,11 +71,6 @@ const AuthorizedRoute = AuthorizedRouteImport.update({
 const R404Route = R404RouteImport.update({
   id: '/404',
   path: '/404',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
@@ -85,6 +86,11 @@ const AuthMfaRoute = AuthMfaRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoadingRoute = AuthLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -259,11 +265,12 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -297,10 +304,11 @@ export interface FileRoutesByFullPath {
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/app-loader': typeof AppLoaderRoute
   '/consent': typeof ConsentRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
@@ -335,13 +343,14 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
+  '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -377,11 +386,12 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/404'
+    | '/app-loader'
     | '/auth'
     | '/consent'
     | '/auth/callback'
+    | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
@@ -415,10 +425,11 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/404'
+    | '/app-loader'
     | '/consent'
     | '/auth/callback'
+    | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth'
@@ -452,13 +463,14 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   id:
     | '__root__'
-    | '/'
     | '/404'
     | '/_authorized'
+    | '/app-loader'
     | '/auth'
     | '/consent'
     | '/_authorized/_default'
     | '/auth/callback'
+    | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
     | '/auth/'
@@ -493,9 +505,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
+  AppLoaderRoute: typeof AppLoaderRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
 }
@@ -516,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app-loader': {
+      id: '/app-loader'
+      path: '/app-loader'
+      fullPath: '/app-loader'
+      preLoaderRoute: typeof AppLoaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authorized': {
       id: '/_authorized'
       path: ''
@@ -528,13 +547,6 @@ declare module '@tanstack/react-router' {
       path: '/404'
       fullPath: '/404'
       preLoaderRoute: typeof R404RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/': {
@@ -556,6 +568,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/loading': {
+      id: '/auth/loading'
+      path: '/loading'
+      fullPath: '/auth/loading'
+      preLoaderRoute: typeof AuthLoadingRouteImport
       parentRoute: typeof AuthRoute
     }
     '/auth/callback': {
@@ -866,6 +885,7 @@ const AuthMfaRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthLoadingRoute: typeof AuthLoadingRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthMfaRoute: typeof AuthMfaRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
@@ -873,6 +893,7 @@ interface AuthRouteChildren {
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthLoadingRoute: AuthLoadingRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthMfaRoute: AuthMfaRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
@@ -881,9 +902,9 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
+  AppLoaderRoute: AppLoaderRoute,
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
 }
