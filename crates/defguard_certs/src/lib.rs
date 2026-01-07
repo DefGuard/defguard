@@ -174,18 +174,6 @@ pub fn generate_key_pair() -> Result<KeyPair, CertificateError> {
     Ok(key_pair)
 }
 
-pub fn save_key_pair_to_pem_file(key_pair: &KeyPair, path: &Path) -> Result<(), CertificateError> {
-    let pem_string = key_pair.serialize_pem();
-    std::fs::write(path, pem_string)?;
-    Ok(())
-}
-
-pub fn save_cert_to_pem_file(cert: &Certificate, path: &Path) -> Result<(), CertificateError> {
-    let pem_string = cert.pem();
-    std::fs::write(path, pem_string)?;
-    Ok(())
-}
-
 pub type DnType = rcgen::DnType;
 
 #[cfg(test)]
