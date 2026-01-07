@@ -251,7 +251,7 @@ struct Proxy {
 impl Proxy {
     pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(pool.clone(), tx);
+        let services = ProxyServices::new(&pool, tx);
 
         Self {
             pool,
