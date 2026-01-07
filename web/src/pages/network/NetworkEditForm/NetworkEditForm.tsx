@@ -173,7 +173,11 @@ export const NetworkEditForm = () => {
           .optional()
           .refine(
             (val) =>
-              Validate.any(val, [Validate.IPv4, Validate.IPv6, Validate.Empty], true),
+              Validate.any(
+                val,
+                [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Empty],
+                true,
+              ),
             LL.form.error.address(),
           ),
         allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
