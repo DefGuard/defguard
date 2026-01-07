@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:24 AS web
+FROM public.ecr.aws/docker/library/node:25 AS web
 
 WORKDIR /app
 COPY web/package.json web/pnpm-lock.yaml ./
