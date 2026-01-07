@@ -97,9 +97,11 @@ pub(crate) fn parse_wireguard_config(
         ),
         None => None,
     };
+    // TODO: FwMark should also accept hex values.
     let fwmark = match interface_section.get("FwMark") {
         Some(value) => Some(
-            i32::from_str_radix(value, 16)
+            value
+                .parse::<i32>()
                 .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
         ),
         None => None,
@@ -204,6 +206,8 @@ mod test {
             Address = 10.0.0.1/24
             ListenPort = 55055
             DNS = 10.0.0.2
+            MTU = 1420
+            FwMark = 51820
 
             [Peer]
             PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
@@ -234,6 +238,8 @@ mod test {
         );
         assert_eq!(network.endpoint, "");
         assert_eq!(network.dns, Some("10.0.0.2".to_string()));
+        assert_eq!(network.mtu, Some(1420));
+        assert_eq!(network.fwmark, Some(51820));
         assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
         assert_eq!(network.connected_at, None);
 

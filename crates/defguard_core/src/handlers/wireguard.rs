@@ -1,6 +1,5 @@
 use std::{
     collections::{HashMap, HashSet},
-    net::IpAddr,
     str::FromStr,
 };
 
@@ -689,10 +688,10 @@ pub(crate) async fn import_network(
     info!("New network {network} created");
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
-    let reserved_ips: Vec<IpAddr> = imported_devices
+    let reserved_ips = imported_devices
         .iter()
         .flat_map(|dev| dev.wireguard_ips.clone())
-        .collect();
+        .collect::<Vec<_>>();
     let (devices, gateway_events) =
         handle_imported_devices(&network, &mut transaction, imported_devices).await?;
     appstate.send_multiple_wireguard_events(gateway_events);
