@@ -31,6 +31,7 @@ use crate::{
     auth::claims::{Claims, ClaimsType},
     db::{Id, NoId},
     types::user_info::UserInfo,
+    utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -103,7 +104,7 @@ pub struct WireguardNetwork<I = NoId> {
     #[model(ref)]
     #[schema(value_type = String)]
     pub address: Vec<IpNetwork>,
-    pub port: i32,
+    pub port: i32, // Should be u16
     pub pubkey: String,
     #[serde(default, skip_serializing)]
     pub prvkey: String,
@@ -250,8 +251,6 @@ impl WireguardNetwork {
 
     /// Try to set `address` from `&str`.
     pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        use crate::utils::parse_address_list;
-
         let address = parse_address_list(address);
         if address.is_empty() {
             return Err(IpNetworkError::InvalidAddr("invalid address".into()));
