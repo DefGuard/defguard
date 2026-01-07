@@ -23,6 +23,7 @@ export const AliasesDeployedTab = ({ aliases }: Props) => {
       text: 'Add new alias',
       iconLeft: 'add-alias',
       variant: 'primary',
+      testId: 'add-alias',
       onClick: () => {
         navigate({ to: '/acl/add-alias' });
       },

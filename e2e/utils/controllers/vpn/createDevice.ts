@@ -1,4 +1,4 @@
-import { Browser, expect } from '@playwright/test';
+import { Browser } from '@playwright/test';
 
 import { routes } from '../../../config';
 import { DeviceForm, User } from '../../../types';
@@ -10,15 +10,16 @@ export const createDevice = async (browser: Browser, user: User, device: DeviceF
   await loginBasic(page, user);
   await page.goto(routes.base + routes.profile + user.username + routes.tab.devices);
   await page.getByTestId('add-device').click();
-  await page.getByTestId('show-advanced-options').click();
-  await page.getByTestId('client-manual').click();
-  await page.getByTestId('field-name').fill(device.name);
+  const modal = await page.locator('#add-user-device-modal');
+  await modal.locator('.fold-button').click();
+  await modal.getByTestId('client-manual').click();
+  await modal.getByTestId('field-name').fill(device.name);
   if (device.pubKey && device.pubKey.length) {
-    await page.getByTestId('field-genChoice-manual').click();
-    await page.getByTestId('field-publicKey').fill(device.pubKey);
+    await modal.getByTestId('field-genChoice-manual').click();
+    await modal.getByTestId('field-publicKey').fill(device.pubKey);
   }
   // const responsePromise = page.waitForResponse('**/device/**'); //TODO: broken for now.
-  await page.getByTestId('continue').click();
+  await modal.getByTestId('continue').click();
   // const response = await responsePromise;
   // expect(response.status()).toBe(201);
   await context.close();

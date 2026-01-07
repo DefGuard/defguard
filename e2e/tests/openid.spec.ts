@@ -4,6 +4,7 @@ import { routes, testUserTemplate } from '../config';
 import { OpenIdClient, User } from '../types';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic, loginTOTP } from '../utils/controllers/login';
+import { logout } from '../utils/controllers/logout';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { copyOpenIdClientId } from '../utils/controllers/openid/copyClientId';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
@@ -45,11 +46,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    await page.goto(routes.base + routes.profile, {
+    await page.goto(routes.base + routes.me, {
       waitUntil: 'networkidle',
     });
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 
   test('Authorize when session is not active', async ({ page }) => {
@@ -67,12 +69,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    // await page.goto(routes.base + routes.me, {
-    //   waitUntil: 'networkidle',
-    // });
-    // await waitForRoute(page, routes.me);
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 
   test('Authorize when session is not active and MFA is enabled', async ({
@@ -93,12 +95,12 @@ test.describe('Authorize OpenID client.', () => {
       .locator('h1')
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-    // await page.goto(routes.base + routes.me, {
-    //   waitUntil: 'networkidle',
-    // });
-    // await waitForRoute(page, routes.me);
-    // await page.getByTestId('authorized-apps').getByRole('button').click();
-    // await logout(page); //TODO: add this after openid apps will be shown in ui
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
   });
 });
 

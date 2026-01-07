@@ -23,7 +23,7 @@ export const setupSMTP = async (browser: Browser) => {
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.settings.smtp);
   await page.getByTestId('field-smtp_server').fill('testServer.com');
-  // await page.getByTestId('field-smtp_port').fill('543'); #FIXME: Disabled for now, frontend declines correct port
+  await page.getByTestId('field-smtp_port').fill('543');
   await page.getByTestId('field-smtp_user').fill('testuser');
   await page.getByTestId('field-smtp_password').fill('test');
   await page.getByTestId('field-smtp_sender').fill('test@test.com');

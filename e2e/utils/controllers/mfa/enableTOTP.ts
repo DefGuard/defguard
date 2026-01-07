@@ -6,7 +6,6 @@ import { User } from '../../../types';
 import { getPageClipboard } from '../../getPageClipboard';
 import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
-import { acceptRecovery } from '../acceptRecovery';
 import { loginBasic } from '../login';
 
 export type EnableTOTPResult = {

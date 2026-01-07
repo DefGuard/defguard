@@ -176,6 +176,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
           <Toggle
             active={allDestinations}
             label={`All IP addresses`}
+            testId="radio-addresses"
             onClick={() => {
               setAllDestinations((s) => !s);
             }}
@@ -199,6 +200,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
           <Toggle
             active={allPorts}
             label={`All ports`}
+            testId="radio-ports"
             onClick={() => {
               setAllPorts((s) => !s);
             }}
@@ -222,6 +224,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
           <Toggle
             active={allProtocols}
             label={`All protocols`}
+            testId="radio-protocols"
             onClick={() => {
               setAllProtocols((s) => !s);
             }}

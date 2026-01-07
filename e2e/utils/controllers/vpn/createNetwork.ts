@@ -15,11 +15,11 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('add-regular-location').click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.endpoint);
+  await page.getByTestId('field-endpoint').fill(network.endpoint);
   await page.getByTestId('field-port').fill(network.port);
   await page.getByTestId('continue').click();
 
-  await page.getByTestId('field-endpoint').fill(network.address);
+  await page.getByTestId('field-address').fill(network.address);
 
   if (network.allowed_ips) {
     let addresses = '';

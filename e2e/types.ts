@@ -90,3 +90,9 @@ export type EditNetworkDeviceForm = {
 };
 
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';
+
+export enum Protocols {
+  UDP = 'UDP',
+  TCP = 'TCP',
+  ICMP = 'ICMP',
+}

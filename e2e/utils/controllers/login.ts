@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test';
 import { Page } from 'playwright';
 import { TOTP } from 'totp-generator';
 

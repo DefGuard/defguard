@@ -55,7 +55,7 @@ test.describe('External OIDC.', () => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);
-    const oidcLoginButton = await page.getByTestId('login-oidc');
+    const oidcLoginButton = await page.locator('.oidc-button');
     expect(oidcLoginButton).not.toBeNull();
     expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
     await oidcLoginButton.click();

@@ -1,11 +1,9 @@
 import { Browser, expect, Page } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testsConfig } from '../../config';
+import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
-import { waitForPromise } from '../waitForPromise';
 import { loginBasic } from './login';
-import { logout } from './logout';
 
 export const password = 'TestEnrollment1234!!';
 
@@ -17,11 +15,11 @@ type EnrollmentResponse = {
 export const createUserEnrollment = async (
   browser: Browser,
   user: User,
+  groups?: string[],
 ): Promise<EnrollmentResponse> => {
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
-  await page.goto(testsConfig.BASE_URL);
   await loginBasic(page, defaultUserAdmin);
 
   await page.goto(routes.base + routes.identity.users);
@@ -35,26 +33,26 @@ export const createUserEnrollment = async (
   await formElement.getByTestId('field-email').fill(user.mail);
   await formElement.getByTestId('field-phone').fill(user.phone);
   await formElement.getByTestId('add-user-submit').click();
-  await formElement.waitFor({ state: 'hidden', timeout: 2000 });
-  await context.close();
-  waitForPromise(2000);
-  const modalElement = page.locator('#add-user-modal');
-  const enrollmentForm = modalElement.getByTestId('start-enrollment-form');
-  await enrollmentForm.locator('.toggle-option').nth(1).click();
-  await enrollmentForm.locator('button[type="submit"]').click();
-  waitForPromise(2000);
-  // Copy to clipboard
-  const tokenStep = modalElement.locator('#enrollment-token-step');
-  const tokenDiv = tokenStep.locator('.copy-field.spacer').nth(1); // field with token
-  const tokenP = tokenDiv.locator('p.display-element');
-  const token = await tokenP.textContent();
-  expect(token.length).toBeGreaterThan(0);
-  // close modal
-  await modalElement.locator('.controls button.cancel').click();
-  await modalElement.waitFor({ state: 'hidden' });
-  // logout
-  await logout(page);
-  await context.close();
+  const token = await formElement.getByTestId('activation-token-field').textContent();
+  await formElement.locator('button[data-variant="primary"]').click();
+  if (groups) {
+    await page.goto(routes.base + routes.identity.users);
+    const userRow = page.locator('.virtual-row').filter({ hasText: user.username });
+    await userRow.locator('.icon-button').click();
+    await page.getByTestId('edit-groups').click();
+    for (const group of groups) {
+      await page.locator('.item:has-text("' + group + '") .checkbox').click();
+    }
+    await page.locator('button:has-text("Submit")').click();
+
+    for (const group of groups) {
+      await expect(userRow).toContainText(group);
+    }
+  }
+  if (!token) {
+    throw new Error('No token');
+  }
+
   return { user, token };
 };
 
@@ -64,9 +62,9 @@ export const selectEnrollment = async (page: Page) => {
 };
 
 export const setToken = async (token: string, page: Page) => {
-  const formElement = page.getByTestId('enrollment-token-form');
-  await formElement.getByTestId('field-token').fill(token);
-  await page.getByTestId('enrollment-token-submit-button').click();
+  await page.getByTestId('start-enrollment').click();
+  await page.getByTestId('field-token').fill(token);
+  await page.getByTestId('page-nav-next').click();
 };
 
 export const validateData = async (user: User, page: Page) => {

@@ -12,8 +12,8 @@ import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForRoute } from '../utils/waitForRoute';
 import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('Test user authentication', () => {
   let testUser: User;
@@ -210,14 +210,16 @@ test.describe('Test password change', () => {
     await createUser(browser, testUser);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.identity.users);
-    const userRow = page.locator('.virtual-row').filter({ hasText: testUser.username });
+    const userRow = await page
+      .locator('.virtual-row')
+      .filter({ hasText: testUser.username });
     await userRow.locator('.icon-button').click();
     await page.getByTestId('change-password').click();
     await page.getByTestId('field-password').fill(newPassword);
     await page.getByTestId('submit-password-change').click();
     await logout(page);
     testUser.password = newPassword;
-    const responsePromise = page.waitForResponse('**/auth');
+    const responsePromise = await page.waitForResponse('**/auth');
     await loginBasic(page, testUser);
     const response = await responsePromise;
     expect(response.ok()).toBeTruthy();
@@ -243,7 +245,9 @@ test.describe('API tokens management', () => {
     const api_token = await page.getByTestId('copy-field').textContent();
     await page.getByTestId('close').click();
 
-    const row = page.locator('.table-row-container').filter({ hasText: token_name });
+    const row = await page
+      .locator('.table-row-container')
+      .filter({ hasText: token_name });
     await row.locator('.icon-button').click();
     await page.getByTestId('delete').click();
     await expect(row).not.toBeVisible();
@@ -262,7 +266,9 @@ test.describe('API tokens management', () => {
     const api_token = await page.getByTestId('copy-field').textContent();
     await page.getByTestId('close').click();
 
-    const row = page.locator('.table-row-container').filter({ hasText: token_name });
+    const row = await page
+      .locator('.table-row-container')
+      .filter({ hasText: token_name });
     await row.locator('.icon-button').click();
     await page.getByTestId('delete').click();
     await expect(row).not.toBeVisible();
