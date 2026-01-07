@@ -1,20 +1,5 @@
-on:
-  push:
-    branches:
-      - main
-      - dev
-      - "release/**"
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
-  pull_request:
-    branches:
-      - main
-      - dev
-      - "release/**"
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
+on: []
+
 
 permissions:
   contents: read
