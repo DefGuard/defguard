@@ -1,4 +1,4 @@
-use std::{array::TryFromSliceError, net::IpAddr};
+use std::net::IpAddr;
 
 use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -11,12 +11,12 @@ use defguard_common::{
         Device, WireguardNetwork,
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            ServiceLocationMode, WireguardNetworkError,
+            ServiceLocationMode,
         },
     },
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
@@ -46,14 +46,6 @@ pub(crate) enum WireguardConfigParseError {
     InvalidFwMark(String),
     #[error("Missing interface network address")]
     MissingAddress,
-    #[error("WireGuard network error")]
-    NetworkError(#[from] WireguardNetworkError),
-}
-
-impl From<TryFromSliceError> for WireguardConfigParseError {
-    fn from(e: TryFromSliceError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{e}"))
-    }
 }
 
 impl From<DecodeError> for WireguardConfigParseError {
