@@ -26,8 +26,8 @@ use defguard_core::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CertResponse, CoreError, CoreRequest, CoreResponse,
-    CsrRequest, Done, ProxySetupResponse, core_request, core_response, proxy_client::ProxyClient,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload, Done,
+    ProxySetupResponse, core_request, core_response, proxy_client::ProxyClient,
     proxy_setup_request,
 };
 use defguard_version::{
@@ -496,9 +496,9 @@ impl Proxy {
             loop {
                 match stream.message().await {
                     Ok(Some(req)) => match req.payload {
-                        Some(proxy_setup_request::Payload::CsrRequest(CsrRequest { csr_der })) => {
+                        Some(proxy_setup_request::Payload::CsrRequest(DerPayload { der_data })) => {
                             debug!("Received CSR from proxy during initial setup");
-                            match defguard_certs::Csr::from_der(&csr_der) {
+                            match defguard_certs::Csr::from_der(&der_data) {
                                 Ok(csr) => {
                                     let settings = Settings::get_current_settings();
 
@@ -520,8 +520,8 @@ impl Proxy {
 
                                     match ca.sign_csr(&csr) {
                                         Ok(cert) => {
-                                            let response = CertResponse {
-                                                cert_der: cert.der().to_vec(),
+                                            let response = DerPayload {
+                                                der_data: cert.der().to_vec(),
                                             };
                                             tx.send(ProxySetupResponse { payload: Some(
                                                 defguard_proto::proxy::proxy_setup_response::Payload::CertResponse(response)
