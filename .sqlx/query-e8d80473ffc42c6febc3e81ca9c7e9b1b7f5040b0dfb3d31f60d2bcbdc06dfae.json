@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM aclrulenetwork r JOIN wireguard_network n ON n.id = r.network_id WHERE r.rule_id = $1",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
   "describe": {
     "columns": [
       {
@@ -45,36 +45,46 @@
       },
       {
         "ordinal": 8,
+        "name": "mtu",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "fwmark",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
         "name": "allowed_ips",
         "type_info": "InetArray"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 11,
+        "ordinal": 13,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 15,
         "name": "acl_default_allow",
         "type_info": "Bool"
       },
       {
-        "ordinal": 14,
+        "ordinal": 16,
         "name": "location_mfa_mode: LocationMfaMode",
         "type_info": {
           "Custom": {
@@ -90,7 +100,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 17,
         "name": "service_location_mode: ServiceLocationMode",
         "type_info": {
           "Custom": {
@@ -107,9 +117,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -119,6 +127,8 @@
       false,
       false,
       false,
+      true,
+      true,
       true,
       false,
       true,
@@ -130,5 +140,5 @@
       false
     ]
   },
-  "hash": "03710e2a3e96096e57f95a62543174a42e3447f9d2a949b6820e685ddab6561d"
+  "hash": "e8d80473ffc42c6febc3e81ca9c7e9b1b7f5040b0dfb3d31f60d2bcbdc06dfae"
 }

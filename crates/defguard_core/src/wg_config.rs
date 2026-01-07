@@ -40,6 +40,10 @@ pub(crate) enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
+    #[error("Invalid MTU: {0}")]
+    InvalidMTU(String),
+    #[error("Invalid FwMark: {0}")]
+    InvalidFwMark(String),
     #[error("Missing interface network address")]
     MissingAddress,
     #[error("WireGuard network error")]
@@ -85,6 +89,21 @@ pub(crate) fn parse_wireguard_config(
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
     let dns = interface_section.get("DNS").map(ToString::to_string);
+    let mtu = match interface_section.get("MTU") {
+        Some(value) => Some(
+            value
+                .parse::<i32>()
+                .map_err(|_| WireguardConfigParseError::InvalidMTU(value.to_string()))?,
+        ),
+        None => None,
+    };
+    let fwmark = match interface_section.get("FwMark") {
+        Some(value) => Some(
+            i32::from_str_radix(value, 16)
+                .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
+        ),
+        None => None,
+    };
     let mut addresses: Vec<IpNetwork> = Vec::new();
     for addr in address.split(',') {
         match addr.trim().parse() {
@@ -106,6 +125,8 @@ pub(crate) fn parse_wireguard_config(
         port,
         String::new(),
         dns,
+        mtu,
+        fwmark,
         allowed_ips,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,

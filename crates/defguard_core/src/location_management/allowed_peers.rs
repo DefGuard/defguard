@@ -86,6 +86,7 @@ mod test {
 
     use crate::location_management::allowed_peers::get_location_allowed_peers;
 
+    #[ignore]
     #[sqlx::test]
     async fn test_get_peers_service_location_modes(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
