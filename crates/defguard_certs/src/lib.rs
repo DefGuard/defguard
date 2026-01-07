@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
