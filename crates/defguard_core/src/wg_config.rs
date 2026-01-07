@@ -61,10 +61,10 @@ pub(crate) fn parse_wireguard_config(
     // Parse WireGuardNetwork
     let interface_section = config
         .section(Some("Interface"))
-        .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface"))?;
+        .ok_or(WireguardConfigParseError::SectionNotFound("Interface"))?;
     let prvkey = interface_section
         .get("PrivateKey")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("PrivateKey"))?;
     let prvkey_bytes: [u8; KEY_LENGTH] = BASE64_STANDARD
         .decode(prvkey.as_bytes())?
         .try_into()
@@ -73,10 +73,10 @@ pub(crate) fn parse_wireguard_config(
         BASE64_STANDARD.encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
     let address = interface_section
         .get("Address")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("Address"))?;
     let port = interface_section
         .get("ListenPort")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("ListenPort"))?;
     let port = port
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
@@ -139,7 +139,7 @@ pub(crate) fn parse_wireguard_config(
     for peer in peer_sections {
         let allowed_ips = peer
             .get("AllowedIPs")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
+            .ok_or(WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
 
         let mut peer_addresses: Vec<IpAddr> = Vec::new();
         for allowed_ip in allowed_ips.split(',') {
@@ -163,7 +163,7 @@ pub(crate) fn parse_wireguard_config(
 
         let pubkey = peer
             .get("PublicKey")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey"))?;
+            .ok_or(WireguardConfigParseError::KeyNotFound("PublicKey"))?;
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
 
         // check if device pubkey collides with network pubkey
