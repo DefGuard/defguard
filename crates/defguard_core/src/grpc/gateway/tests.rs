@@ -14,17 +14,17 @@ use tokio_stream::wrappers::{UnboundedReceiverStream, UnixListenerStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
 use defguard_common::db::{
-    models::wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+    models::{
+        gateway::Gateway,
+        wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+    },
     setup_pool,
 };
 use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreRequest, CoreResponse, gateway_server};
 
 use super::{TONIC_SOCKET, handler::GatewayHandler};
-use crate::{
-    db::models::gateway::Gateway,
-    grpc::{ClientMap, GrpcEvent, gateway::events::GatewayEvent},
-};
+use crate::grpc::{ClientMap, GrpcEvent, gateway::events::GatewayEvent};
 
 // TODO: move to "gateway" repo.
 struct FakeGateway;

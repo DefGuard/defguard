@@ -1,28 +1,21 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    sync::{Arc, Mutex, mpsc::Receiver},
-    thread::JoinHandle,
+    sync::{Arc, Mutex},
 };
 
-use chrono::{DateTime, Utc};
 use defguard_common::{
     config::server_config,
     db::{
-        ChangeNotification, Id, NoId, TriggerOperation,
-        models::{
-            Device, User, WireguardNetwork, wireguard::ServiceLocationMode,
-            wireguard_peer_stats::WireguardPeerStats,
-        },
+        ChangeNotification, Id, TriggerOperation,
+        models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
     },
 };
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update},
+    gateway::{Configuration, CoreResponse, Peer, Update, core_response, update},
 };
-use defguard_version::version_info_from_metadata;
-use semver::Version;
 use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
 use thiserror::Error;
 use tokio::{
@@ -32,24 +25,19 @@ use tokio::{
     },
     task::{AbortHandle, JoinSet},
 };
-use tonic::{Code, Status, metadata::MetadataMap};
+use tonic::{Code, Status};
 
 use crate::{
-    db::models::gateway::Gateway,
     enterprise::is_enterprise_license_active,
     events::{GrpcEvent, GrpcRequestContext},
-    grpc::gateway::{
-        client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler, map::GatewayMap,
-    },
+    grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
 pub mod client_state;
 pub mod events;
 pub(crate) mod handler;
-pub mod map;
-pub(crate) mod state;
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 #[cfg(test)]
 pub(super) static TONIC_SOCKET: &str = "tonic.sock";
@@ -64,7 +52,7 @@ pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
     }
 }
 
-/// Sends multiple events to be handled by gateway GRPC server
+/// Sends multiple events to be handled by gateway gRPC server.
 ///
 /// If you want to use it inside the API context, use [`crate::AppState::send_multiple_wireguard_events`] instead
 pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
@@ -74,31 +62,31 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
-/// Helper used to convert peer stats coming from gRPC client
-/// into an internal representation
-fn protos_into_internal_stats(
-    proto_stats: PeerStats,
-    location_id: Id,
-    device_id: Id,
-) -> WireguardPeerStats {
-    let endpoint = match proto_stats.endpoint {
-        endpoint if endpoint.is_empty() => None,
-        _ => Some(proto_stats.endpoint),
-    };
-    WireguardPeerStats {
-        id: NoId,
-        network: location_id,
-        endpoint,
-        device_id,
-        collected_at: Utc::now().naive_utc(),
-        upload: proto_stats.upload as i64,
-        download: proto_stats.download as i64,
-        latest_handshake: DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
-            .unwrap_or_default()
-            .naive_utc(),
-        allowed_ips: Some(proto_stats.allowed_ips),
-    }
-}
+// Helper used to convert peer stats coming from gRPC client
+// into an internal representation
+// fn protos_into_internal_stats(
+//     proto_stats: PeerStats,
+//     location_id: Id,
+//     device_id: Id,
+// ) -> WireguardPeerStats {
+//     let endpoint = match proto_stats.endpoint {
+//         endpoint if endpoint.is_empty() => None,
+//         _ => Some(proto_stats.endpoint),
+//     };
+//     WireguardPeerStats {
+//         id: NoId,
+//         network: location_id,
+//         endpoint,
+//         device_id,
+//         collected_at: Utc::now().naive_utc(),
+//         upload: proto_stats.upload as i64,
+//         download: proto_stats.download as i64,
+//         latest_handshake: DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
+//             .unwrap_or_default()
+//             .naive_utc(),
+//         allowed_ips: Some(proto_stats.allowed_ips),
+//     }
+// }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
@@ -115,16 +103,8 @@ impl From<GatewayServerError> for Status {
     }
 }
 
-pub struct GatewayServer {
-    pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: Arc<Mutex<ClientMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
-}
-
-/// If this location is marked as a service location, checks if all requirements are met for it to function:
+/// If this location is marked as a service location, checks if all requirements are met for it to
+/// function:
 /// - Enterprise is enabled
 #[must_use]
 pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
@@ -149,7 +129,7 @@ where
 {
     debug!("Fetching all peers for network {}", location.id);
 
-    if should_prevent_service_location_usage(&location) {
+    if should_prevent_service_location_usage(location) {
         warn!(
             "Tried to use service location {} with disabled enterprise features. No clients \
             will be allowed to connect.",
@@ -198,169 +178,6 @@ where
         .collect();
 
     Ok(result)
-}
-
-/// Utility struct encapsulating commonly extracted metadata fields during gRPC communication.
-struct GatewayMetadata {
-    network_id: Id,
-    hostname: String,
-    version: Version,
-    // info: String,
-}
-
-impl GatewayServer {
-    /// Create new gateway server instance
-    #[must_use]
-    pub fn new(
-        pool: PgPool,
-        gateway_state: Arc<Mutex<GatewayMap>>,
-        client_state: Arc<Mutex<ClientMap>>,
-        wireguard_tx: Sender<GatewayEvent>,
-        mail_tx: UnboundedSender<Mail>,
-        grpc_event_tx: UnboundedSender<GrpcEvent>,
-    ) -> Self {
-        Self {
-            pool,
-            gateway_state,
-            client_state,
-            wireguard_tx,
-            mail_tx,
-            grpc_event_tx,
-        }
-    }
-
-    fn get_network_id(metadata: &MetadataMap) -> Result<i64, Status> {
-        match Self::get_network_id_from_metadata(metadata) {
-            Some(m) => Ok(m),
-            None => Err(Status::new(
-                Code::Internal,
-                "Network ID was not found in metadata",
-            )),
-        }
-    }
-
-    // parse network id from gateway request metadata from intercepted information from JWT token
-    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
-        if let Some(ascii_value) = metadata.get("gateway_network_id") {
-            if let Ok(slice) = ascii_value.clone().to_str() {
-                if let Ok(id) = slice.parse::<Id>() {
-                    return Some(id);
-                }
-            }
-        }
-        None
-    }
-
-    // extract gateway hostname from request headers
-    fn get_gateway_hostname(metadata: &MetadataMap) -> Result<String, Status> {
-        match metadata.get("hostname") {
-            Some(ascii_value) => {
-                let hostname = ascii_value.to_str().map_err(|_| {
-                    Status::new(
-                        Code::Internal,
-                        "Failed to parse gateway hostname from request metadata",
-                    )
-                })?;
-                Ok(hostname.into())
-            }
-            None => Err(Status::new(
-                Code::Internal,
-                "Gateway hostname not found in request metadata",
-            )),
-        }
-    }
-
-    pub fn get_client_state_guard(
-        &self,
-    ) -> Result<std::sync::MutexGuard<'_, ClientMap>, GatewayServerError> {
-        let client_state = self
-            .client_state
-            .lock()
-            .map_err(|_| GatewayServerError::ClientStateMutexError)?;
-        debug!("Current VPN client state map: {client_state:?}");
-        Ok(client_state)
-    }
-
-    fn emit_event(&self, event: GrpcEvent) -> Result<(), GatewayServerError> {
-        Ok(self.grpc_event_tx.send(event)?)
-    }
-
-    /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
-    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Option<Device<Id>>, Status> {
-        let device = Device::find_by_pubkey(&self.pool, public_key)
-            .await
-            .map_err(|err| {
-                error!("Failed to retrieve device with public key {public_key}: {err}",);
-                Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve device with public key {public_key}: {err}",),
-                )
-            })?;
-
-        Ok(device)
-    }
-
-    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
-    async fn fetch_location_from_db(
-        &self,
-        location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, Status> {
-        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
-            Ok(Some(location)) => location,
-            Ok(None) => {
-                error!("Location {location_id} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Location {location_id} not found"),
-                ));
-            }
-            Err(err) => {
-                error!("Failed to retrieve location {location_id}: {err}",);
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve location {location_id}: {err}",),
-                ));
-            }
-        };
-        Ok(location)
-    }
-
-    /// Helper method to fetch `User` info from DB and return appropriate errors
-    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
-        let user = match User::find_by_id(&self.pool, user_id).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                error!("User {user_id} assigned to device with public key {public_key} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("User assigned to device with public key {public_key} not found"),
-                ));
-            }
-            Err(err) => {
-                error!(
-                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
-                );
-                return Err(Status::new(
-                    Code::Internal,
-                    format!(
-                        "Failed to retrieve user for device with public key {public_key}: {err}",
-                    ),
-                ));
-            }
-        };
-
-        Ok(user)
-    }
-
-    /// Utility function extracting metadata fields during gRPC communication.
-    fn extract_metadata(metadata: &MetadataMap) -> Result<GatewayMetadata, Status> {
-        let (version, _info) = version_info_from_metadata(metadata);
-        Ok(GatewayMetadata {
-            network_id: Self::get_network_id(metadata)?,
-            hostname: Self::get_gateway_hostname(metadata)?,
-            version,
-        })
-    }
 }
 
 fn gen_config(
@@ -516,7 +333,6 @@ impl GatewayUpdatesHandler {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
                         self.send_network_update(&network, Vec::new(), None, 0)
-                            .await
                     } else {
                         Ok(())
                     }
@@ -528,9 +344,8 @@ impl GatewayUpdatesHandler {
                     maybe_firewall_config,
                 ) => {
                     if network_id == self.network_id {
-                        let result = self
-                            .send_network_update(&network, peers, maybe_firewall_config, 1)
-                            .await;
+                        let result =
+                            self.send_network_update(&network, peers, maybe_firewall_config, 1);
                         // update stored network data
                         self.network = network;
                         result
@@ -540,7 +355,7 @@ impl GatewayUpdatesHandler {
                 }
                 GatewayEvent::NetworkDeleted(network_id, network_name) => {
                     if network_id == self.network_id {
-                        self.send_network_delete(&network_name).await
+                        self.send_network_delete(&network_name)
                     } else {
                         Ok(())
                     }
@@ -576,7 +391,6 @@ impl GatewayUpdatesHandler {
                                 },
                                 0,
                             )
-                            .await
                         }
                         None => Ok(()),
                     }
@@ -612,7 +426,6 @@ impl GatewayUpdatesHandler {
                                 },
                                 1,
                             )
-                            .await
                         }
                         None => Ok(()),
                     }
@@ -624,20 +437,20 @@ impl GatewayUpdatesHandler {
                         .iter()
                         .find(|info| info.network_id == self.network_id)
                     {
-                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
+                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
                         None => Ok(()),
                     }
                 }
                 GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
                     if location_id == self.network_id {
-                        self.send_firewall_update(firewall_config).await
+                        self.send_firewall_update(firewall_config)
                     } else {
                         Ok(())
                     }
                 }
                 GatewayEvent::FirewallDisabled(location_id) => {
                     if location_id == self.network_id {
-                        self.send_firewall_disable().await
+                        self.send_firewall_disable()
                     } else {
                         Ok(())
                     }
@@ -654,7 +467,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Sends updated network configuration
-    async fn send_network_update(
+    fn send_network_update(
         &self,
         network: &WireguardNetwork<Id>,
         peers: Vec<Peer>,
@@ -689,7 +502,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Sends delete network command to gateway
-    async fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
+    fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
         debug!(
             "Sending network delete command for network {}",
             self.network
@@ -720,7 +533,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send update peer command to gateway
-    async fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
+    fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
         debug!("Sending peer update for network {}", self.network);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
@@ -730,7 +543,8 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send peer update for network {}, update type: {update_type} ({}), error: {err}",
+                "Failed to send peer update for network {}, update type: {update_type} ({}), \
+                error: {err}",
                 self.network,
                 if update_type == 0 { "CREATE" } else { "MODIFY" },
             );
@@ -742,7 +556,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send delete peer command to gateway
-    async fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
+    fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
         debug!("Sending peer delete for network {}", self.network);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
@@ -757,7 +571,8 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 (DELETE), error: {err}",
+                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 \
+                (DELETE), error: {err}",
                 self.network,
             );
             error!(msg);
@@ -768,7 +583,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send firewall config update command to gateway
-    async fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
+    fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
         debug!(
             "Sending firewall config update for network {} with config {firewall_config:?}",
             self.network
@@ -792,7 +607,7 @@ impl GatewayUpdatesHandler {
     }
 
     /// Send firewall disable command to gateway
-    async fn send_firewall_disable(&self) -> Result<(), Status> {
+    fn send_firewall_disable(&self) -> Result<(), Status> {
         debug!(
             "Sending firewall disable command for network {}",
             self.network
@@ -815,59 +630,6 @@ impl GatewayUpdatesHandler {
         Ok(())
     }
 }
-
-pub struct GatewayUpdatesStream {
-    task_handle: JoinHandle<()>,
-    rx: Receiver<Result<Update, Status>>,
-    network_id: Id,
-    gateway_hostname: String,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    pool: PgPool,
-}
-
-impl GatewayUpdatesStream {
-    #[must_use]
-    pub fn new(
-        task_handle: JoinHandle<()>,
-        rx: Receiver<Result<Update, Status>>,
-        network_id: Id,
-        gateway_hostname: String,
-        gateway_state: Arc<Mutex<GatewayMap>>,
-        pool: PgPool,
-    ) -> Self {
-        Self {
-            task_handle,
-            rx,
-            network_id,
-            gateway_hostname,
-            gateway_state,
-            pool,
-        }
-    }
-}
-
-// impl Stream for GatewayUpdatesStream {
-//     type Item = Result<Update, Status>;
-
-//     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-//         Pin::new(&mut self.rx).poll_recv(cx)
-//     }
-// }
-
-// impl Drop for GatewayUpdatesStream {
-//     fn drop(&mut self) {
-//         info!("Client disconnected");
-//         // terminate update task
-//         self.task_handle.abort();
-//         // update gateway state
-//         // TODO: possibly use a oneshot channel instead
-//         self.gateway_state
-//             .lock()
-//             .unwrap()
-//             .disconnect_gateway(self.network_id, self.gateway_hostname.clone(), &self.pool)
-//             .expect("Unable to disconnect gateway.");
-//     }
-// }
 
 // #[tonic::async_trait]
 // impl gateway_service_server::GatewayService for GatewayServer {

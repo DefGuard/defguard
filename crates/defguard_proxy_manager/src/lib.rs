@@ -189,7 +189,7 @@ impl ProxyOrchestrator {
         let proxies = vec![Proxy::new(
             self.pool.clone(),
             Url::from_str(url)?,
-            self.tx.clone(),
+            &self.tx,
             Arc::clone(&self.router),
         )];
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
@@ -249,7 +249,7 @@ struct Proxy {
 }
 
 impl Proxy {
-    pub fn new(pool: PgPool, url: Url, tx: ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
+    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(pool.clone(), tx);
 
@@ -1020,7 +1020,7 @@ impl Proxy {
                         }
                     } else {
                         let _ = tx.send(req);
-                    };
+                    }
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
@@ -1049,7 +1049,7 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(pool: PgPool, tx: ProxyTxSet) -> Self {
+    pub fn new(pool: &PgPool, tx: &ProxyTxSet) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),

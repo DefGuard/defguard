@@ -185,7 +185,12 @@ async fn enterprise_status_check(
                     .expect("ACL-enabled location must have firewall config");
 
                 // Handle service location update or just update the firewall
-                if location.service_location_mode != ServiceLocationMode::Disabled {
+                if location.service_location_mode == ServiceLocationMode::Disabled {
+                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ))?;
+                } else {
                     let new_peers =
                         get_location_allowed_peers(&location, &mut *transaction).await?;
                     wireguard_tx.send(GatewayEvent::NetworkModified(
@@ -194,11 +199,6 @@ async fn enterprise_status_check(
                         new_peers,
                         Some(firewall_config),
                     ))?;
-                } else {
-                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
-                        location.id,
-                        firewall_config,
-                    ))?;
                 }
             }
             transaction.commit().await?;
@@ -206,10 +206,13 @@ async fn enterprise_status_check(
             // handle switch from enabled -> disabled
             debug!("Disabling gateway firewall configuration for ACL-enabled locations");
             for location in locations {
-                if location.service_location_mode != ServiceLocationMode::Disabled {
+                if location.service_location_mode == ServiceLocationMode::Disabled {
+                    debug!("Disabling gateway firewall configuration for location {location:?}");
+                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+                } else {
                     debug!(
-                        "Disabling gateway firewall configuration and service location client connections \
-                        for location {location:?}"
+                        "Disabling gateway firewall configuration and service location client \
+                        connections for location {location}"
                     );
                     wireguard_tx.send(GatewayEvent::NetworkModified(
                         location.id,
@@ -218,9 +221,6 @@ async fn enterprise_status_check(
                         Vec::new(),
                         None,
                     ))?;
-                } else {
-                    debug!("Disabling gateway firewall configuration for location {location:?}");
-                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
                 }
             }
         }

@@ -1,10 +1,11 @@
 use std::fmt;
 
-use crate::db::{Id, NoId, models::user::User};
 use model_derive::Model;
 use serde::Serialize;
 use sqlx::{Error as SqlxError, FromRow, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
+
+use crate::db::{Id, NoId, models::user::User};
 
 #[derive(Debug)]
 pub enum Permission {
@@ -30,8 +31,8 @@ impl Default for Group {
     fn default() -> Self {
         Self {
             id: NoId,
-            name: Default::default(),
-            is_admin: Default::default(),
+            name: String::default(),
+            is_admin: bool::default(),
         }
     }
 }

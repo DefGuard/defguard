@@ -13,7 +13,10 @@ use defguard_common::{
     auth::claims::Claims,
     db::{
         Id, NoId,
-        models::{Device, User, WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+        models::{
+            Device, User, WireguardNetwork, gateway::Gateway,
+            wireguard_peer_stats::WireguardPeerStats,
+        },
     },
 };
 use defguard_mail::Mail;
@@ -33,13 +36,11 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Code, Status,
-    metadata::MetadataMap,
     transport::{ClientTlsConfig, Endpoint},
 };
 
 use crate::{
     ClaimsType,
-    db::models::gateway::Gateway,
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
@@ -110,32 +111,6 @@ impl GatewayHandler {
             mail_tx,
             grpc_event_tx,
         })
-    }
-
-    // Parse network ID from Gateway request metadata from intercepted information from JWT token.
-    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<Id> {
-        if let Some(ascii_value) = metadata.get("gateway_network_id") {
-            if let Ok(slice) = ascii_value.clone().to_str() {
-                if let Ok(id) = slice.parse::<Id>() {
-                    return Some(id);
-                }
-            }
-        }
-        None
-    }
-
-    // Extract Gateway hostname from request headers.
-    fn get_gateway_hostname(metadata: &MetadataMap) -> Option<String> {
-        if let Some(ascii_value) = metadata.get("hostname") {
-            let Ok(hostname) = ascii_value.to_str() else {
-                error!("Failed to parse Gateway hostname from request metadata");
-                return None;
-            };
-            Some(hostname.into())
-        } else {
-            error!("Gateway hostname not found in request metadata");
-            None
-        }
     }
 
     /// Send network and VPN configuration to Gateway.

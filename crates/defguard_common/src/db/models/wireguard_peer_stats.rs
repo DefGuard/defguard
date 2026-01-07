@@ -137,6 +137,7 @@ impl WireguardPeerStats<Id> {
     /// Remove port part from `endpoint`.
     /// IPv4: a.b.c.d:p -> a.b.c.d
     /// IPv6: [x::y:z]:p -> x::y:z
+    #[must_use]
     pub fn endpoint_without_port(&self) -> Option<String> {
         self.endpoint.as_ref().and_then(|endpoint| {
             let mut addr = endpoint.rsplit_once(':')?.0;
@@ -151,6 +152,7 @@ impl WireguardPeerStats<Id> {
 
     /// Returns a `Vec` of `allowed_ips` without a CIDR mask.
     /// Non-parsable addresses are omitted.
+    #[must_use]
     pub fn trim_allowed_ips(&self) -> Vec<String> {
         let Some(allowed_ips) = &self.allowed_ips else {
             return Vec::new();

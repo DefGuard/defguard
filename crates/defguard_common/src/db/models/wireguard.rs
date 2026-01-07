@@ -21,19 +21,15 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
+    ModelError,
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
+    group::{Group, Permission},
     user::User,
+    wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
     auth::claims::{Claims, ClaimsType},
-    db::{
-        Id, NoId,
-        models::{
-            ModelError,
-            group::{Group, Permission},
-            wireguard_peer_stats::WireguardPeerStats,
-        },
-    },
+    db::{Id, NoId},
     types::user_info::UserInfo,
 };
 
@@ -1079,15 +1075,6 @@ impl Default for WireguardNetwork {
             service_location_mode: ServiceLocationMode::default(),
         }
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct WireguardNetworkInfo {
-    #[serde(flatten)]
-    pub network: WireguardNetwork<Id>,
-    pub connected: bool,
-    // pub gateways: Vec<GatewayState>,
-    pub allowed_groups: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq)]

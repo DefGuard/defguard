@@ -1,4 +1,8 @@
-use std::{collections::HashSet, net::IpAddr, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    net::IpAddr,
+    str::FromStr,
+};
 
 use axum::{
     extract::{Json, Path, Query, State},
@@ -12,10 +16,11 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
+            gateway::Gateway,
             wireguard::{
                 DateTimeAggregation, LocationMfaMode, MappedDevice, ServiceLocationMode,
-                WireguardDeviceStatsRow, WireguardNetworkInfo, WireguardNetworkStats,
-                WireguardUserStatsRow, networks_stats,
+                WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
+                networks_stats,
             },
         },
     },
@@ -48,6 +53,41 @@ use crate::{
     server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
+
+#[derive(Serialize, ToSchema)]
+pub(crate) struct GatewayInfo {
+    id: Id,
+    network_id: Id,
+    url: String,
+    hostname: Option<String>,
+    connected_at: Option<NaiveDateTime>,
+    disconnected_at: Option<NaiveDateTime>,
+    connected: bool,
+}
+
+impl From<Gateway<Id>> for GatewayInfo {
+    fn from(gateway: Gateway<Id>) -> Self {
+        let connected = gateway.is_connected();
+        Self {
+            id: gateway.id,
+            network_id: gateway.network_id,
+            url: gateway.url,
+            hostname: gateway.hostname,
+            connected_at: gateway.connected_at,
+            disconnected_at: gateway.disconnected_at,
+            connected,
+        }
+    }
+}
+
+#[derive(Serialize, ToSchema)]
+pub(crate) struct WireguardNetworkInfo {
+    #[serde(flatten)]
+    network: WireguardNetwork<Id>,
+    connected: bool,
+    gateways: Vec<GatewayInfo>,
+    allowed_groups: Vec<String>,
+}
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
@@ -127,21 +167,21 @@ impl WireguardNetworkData {
     }
 }
 
-// Used in process of importing network from WireGuard config
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MappedDevices {
-    pub devices: Vec<MappedDevice>,
+// Used in process of importing network from WireGuard config.
+#[derive(Deserialize)]
+pub(crate) struct MappedDevices {
+    devices: Vec<MappedDevice>,
 }
 
 #[derive(Deserialize)]
-pub struct ImportNetworkData {
-    pub name: String,
-    pub endpoint: String,
-    pub config: String,
-    pub allowed_groups: Vec<String>,
+pub(crate) struct ImportNetworkData {
+    name: String,
+    endpoint: String,
+    config: String,
+    allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
@@ -296,15 +336,14 @@ pub(crate) async fn modify_network(
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
-    network.service_location_mode = match data.location_mfa_mode {
-        LocationMfaMode::Disabled => data.service_location_mode,
-        _ => {
-            warn!(
-                "Disabling service location mode for location {} because location MFA is enabled",
-                network.name
-            );
-            ServiceLocationMode::Disabled
-        }
+    network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
+        data.service_location_mode
+    } else {
+        warn!(
+            "Disabling service location mode for location {} because location MFA is enabled",
+            network.name
+        );
+        ServiceLocationMode::Disabled
     };
     network.location_mfa_mode = data.location_mfa_mode;
 
@@ -429,16 +468,14 @@ pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppSt
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     for network in networks {
-        let network_id = network.id;
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
-        {
-            network_info.push(WireguardNetworkInfo {
-                network,
-                connected: false, // FIXME: was: gateway_state.connected(network_id),
-                // gateways: gateway_state.get_network_gateway_status(network_id),
-                allowed_groups,
-            });
-        }
+        let gateways = Gateway::find_by_network_id(&appstate.pool, network.id).await?;
+        network_info.push(WireguardNetworkInfo {
+            network,
+            connected: false, // FIXME: was: gateway_state.connected(network_id),
+            gateways: gateways.into_iter().map(Into::into).collect(),
+            allowed_groups,
+        });
     }
     debug!("Listed WireGuard networks");
 
@@ -481,10 +518,11 @@ pub(crate) async fn network_details(
     let response = match network {
         Some(network) => {
             let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
+            let gateways = Gateway::find_by_network_id(&appstate.pool, network_id).await?;
             let network_info = WireguardNetworkInfo {
                 network,
                 connected: false, // FIXME: was: gateway_state.connected(network_id),
-                // gateways: gateway_state.get_network_gateway_status(network_id),
+                gateways: gateways.into_iter().map(Into::into).collect(),
                 allowed_groups,
             };
             ApiResponse {
@@ -505,48 +543,115 @@ pub(crate) async fn network_details(
 /// Returns state of gateways in a given network
 ///
 /// # Returns
-/// Returns `Vec<GatewayState>` for requested network
-pub(crate) async fn gateway_status(Path(network_id): Path<i64>, _role: AdminRole) -> ApiResult {
+/// Returns `Vec<Gateway>` for requested network.
+pub(crate) async fn gateway_status(
+    Path(network_id): Path<i64>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
 
-    // TODO: fetch gateways from db
+    let gateways = Gateway::find_by_network_id(&appstate.pool, network_id)
+        .await?
+        .into_iter()
+        .map(GatewayInfo::from)
+        .collect::<Vec<_>>();
 
     debug!("Displayed gateway status for network {network_id}");
 
-    // Ok(ApiResponse {
-    //     json: json!(gateway_state.get_network_gateway_status(network_id)),
-    //     status: StatusCode::OK,
-    // })
-    Ok(ApiResponse::default())
+    Ok(ApiResponse {
+        json: json!(gateways),
+        status: StatusCode::OK,
+    })
 }
 
 /// Returns state of gateways for all networks
 ///
-/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork`
-pub(crate) async fn all_gateways_status(_role: AdminRole) -> ApiResult {
+/// Returns current state of gateways as `HashMap<Id, Vec<GatewayInfo>>` where key is ID of
+/// `WireguardNetwork`.
+pub(crate) async fn all_gateways_status(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     debug!("Displaying gateways status for all networks.");
 
-    // let flattened = (*gateway_state).as_flattened();
-    // Ok(ApiResponse {
-    //     json: json!(flattened),
-    //     status: StatusCode::OK,
-    // })
-    Ok(ApiResponse::default())
+    let mut map = HashMap::new();
+    let gateways = Gateway::all(&appstate.pool).await?;
+    for gateway in gateways {
+        let entry: &mut Vec<GatewayInfo> = map.entry(gateway.network_id).or_default();
+        entry.push(gateway.into());
+    }
+
+    Ok(ApiResponse {
+        json: json!(map),
+        status: StatusCode::OK,
+    })
 }
 
-pub(crate) async fn remove_gateway(
-    Path((network_id, gateway_id)): Path<(i64, String)>,
+#[derive(Deserialize)]
+pub(crate) struct GatewayData {
+    url: String,
+}
+
+/// Add gateway (POST).
+pub(crate) async fn add_gateway(
+    Path(network_id): Path<Id>,
     _role: AdminRole,
+    State(appstate): State<AppState>,
+    Json(data): Json<GatewayData>,
+) -> ApiResult {
+    debug!("Adding gateway in network {network_id}");
+
+    let gateway = Gateway::new(network_id, data.url)
+        .save(&appstate.pool)
+        .await?;
+
+    info!("Added gateway in network {network_id}");
+
+    Ok(ApiResponse {
+        json: json!(GatewayInfo::from(gateway)),
+        status: StatusCode::CREATED,
+    })
+}
+
+/// Change gateway (PUT).
+pub(crate) async fn change_gateway(
+    Path((network_id, gateway_id)): Path<(Id, Id)>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Json(data): Json<GatewayData>,
+) -> ApiResult {
+    debug!("Changing gateway {gateway_id} in network {network_id}");
+
+    if let Some(mut gateway) = Gateway::find_by_id(&appstate.pool, gateway_id).await? {
+        if gateway.network_id == network_id {
+            gateway.url = data.url;
+            gateway.save(&appstate.pool).await?;
+            info!("Changed gateway");
+            return Ok(ApiResponse {
+                json: json!(GatewayInfo::from(gateway)),
+                status: StatusCode::OK,
+            });
+        }
+    }
+
+    info!("Changed gateway {gateway_id} in network {network_id}");
+
+    Ok(ApiResponse {
+        json: Value::Null,
+        status: StatusCode::NOT_FOUND,
+    })
+}
+
+/// Remove gateway (DELETE).
+pub(crate) async fn remove_gateway(
+    Path((network_id, gateway_id)): Path<(Id, Id)>,
+    _role: AdminRole,
+    State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("Removing gateway {gateway_id} in network {network_id}");
 
-    // TODO: fetch gateways from db
-
-    // gateway_state.remove_gateway(
-    //     network_id,
-    //     Uuid::from_str(&gateway_id)
-    //         .map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
-    // )?;
+    Gateway::delete_by_id(&appstate.pool, gateway_id, network_id).await?;
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 
@@ -665,7 +770,7 @@ pub(crate) async fn add_user_devices(
 
 // assign IPs and generate configs for each network
 #[derive(Serialize, ToSchema)]
-pub struct AddDeviceResult {
+pub(crate) struct AddDeviceResult {
     configs: Vec<DeviceConfig>,
     device: Device<Id>,
 }
@@ -1357,7 +1462,7 @@ fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCod
 }
 
 #[derive(Deserialize)]
-pub struct QueryFrom {
+pub(crate) struct QueryFrom {
     from: Option<String>,
 }
 
@@ -1372,9 +1477,9 @@ impl QueryFrom {
 }
 
 #[derive(Serialize)]
-pub struct DevicesStatsResponse {
-    pub user_devices: Vec<WireguardUserStatsRow>,
-    pub network_devices: Vec<WireguardDeviceStatsRow>,
+pub(crate) struct DevicesStatsResponse {
+    user_devices: Vec<WireguardUserStatsRow>,
+    network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
 /// Returns network statistics for users and their devices

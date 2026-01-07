@@ -19,12 +19,12 @@ defguard_certs = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }
-argon2 = { workspace = true }
 axum = { workspace = true }
 axum-client-ip = { workspace = true }
 axum-extra = { workspace = true }
 base32 = { workspace = true }
 base64 = { workspace = true }
+bytes = { workspace = true }
 chrono = { workspace = true }
 humantime = { workspace = true }
 # match version used by sqlx
@@ -47,8 +47,6 @@ rust-ini = { workspace = true }
 secrecy = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
-# match version from webauthn-rs-core
-serde_cbor = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
 sha-1 = { workspace = true }
@@ -56,6 +54,8 @@ sha256 = { workspace = true }
 sqlx = { workspace = true }
 ssh-key = { workspace = true }
 struct-patch = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 tera = { workspace = true }
 thiserror = { workspace = true }
 # match axum-extra -> cookies
@@ -70,7 +70,6 @@ totp-lite = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 trait-variant = { workspace = true }
-uaparser = { workspace = true }
 # openapi
 utoipa = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
@@ -79,19 +78,15 @@ webauthn-authenticator-rs = { workspace = true }
 webauthn-rs = { workspace = true }
 webauthn-rs-proto = { workspace = true }
 x25519-dalek = { workspace = true }
-strum = { workspace = true }
-strum_macros = { workspace = true }
-bytes = { workspace = true }
-tower = "0.5"
+ammonia = "4.1"
 regex = "1.10"
-ammonia = "4.1.1"
+tower = "0.5"
+uaparser = "0.6"
 
 [dev-dependencies]
-bytes = "1.6"
 claims.workspace = true
 hyper-util = "0.1"
 matches.workspace = true
-regex = "1.10"
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",
@@ -100,7 +95,6 @@ reqwest = { version = "0.12", features = [
     "stream",
 ], default-features = false }
 serde_qs = "0.15"
-tower = "0.5"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
