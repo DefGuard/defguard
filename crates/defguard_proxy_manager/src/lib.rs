@@ -61,6 +61,8 @@ pub(crate) mod password_reset;
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
+const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
+const PROXY_SETUP_RESTART_DELAY: Duration = Duration::from_secs(5);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 #[derive(Error, Debug)]
@@ -310,14 +312,18 @@ impl Proxy {
                 Ok(false) => {
                     // HTTPS not configured - try to perform initial setup
                     if let Err(err) = self.perform_initial_setup().await {
-                        error!("Failed to perform initial proxy setup: {err}");
+                        error!("Failed to perform initial Proxy setup: {err}");
                     }
                     // Wait a bit before establishing proper connection, reconnecting too fast will often result in an
                     // error since proxy may have not restarted the server yet.
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    tokio::time::sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
                 }
                 Err(err) => {
-                    error!("Failed to probe proxy endpoint: {err}, retrying in 10s");
+                    error!(
+                        "Failed to check if Proxy gRPC server is running on {} or {}, retrying in 10s: {err}.",
+                        self.endpoint(false)?.uri(),
+                        self.endpoint(true)?.uri()
+                    );
                     sleep(TEN_SECS).await;
                     continue;
                 }
@@ -396,7 +402,7 @@ impl Proxy {
 
         match tokio::time::timeout(
             Duration::from_secs(10),
-            client.proxy_setup(UnboundedReceiverStream::new(rx)),
+            client.setup(UnboundedReceiverStream::new(rx)),
         )
         .await
         {
@@ -418,7 +424,7 @@ impl Proxy {
 
                 match tokio::time::timeout(
                     Duration::from_secs(10),
-                    client.proxy_setup(UnboundedReceiverStream::new(rx)),
+                    client.setup(UnboundedReceiverStream::new(rx)),
                 )
                 .await
                 {
@@ -456,11 +462,15 @@ impl Proxy {
 
         let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
         let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
-        let hostname = self.url.host_str().unwrap_or("localhost");
+        let Some(hostname) = self.url.host_str() else {
+            return Err(ProxyError::UrlError(
+                "Proxy URL missing hostname".to_string(),
+            ));
+        };
 
         'connection: loop {
             let (tx, rx) = mpsc::unbounded_channel();
-            let mut stream = match client.proxy_setup(UnboundedReceiverStream::new(rx)).await {
+            let mut stream = match client.setup(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response.into_inner(),
                 Err(err) => {
                     error!(
@@ -487,6 +497,7 @@ impl Proxy {
                 match stream.message().await {
                     Ok(Some(req)) => match req.payload {
                         Some(proxy_setup_request::Payload::CsrRequest(CsrRequest { csr_der })) => {
+                            debug!("Received CSR from proxy during initial setup");
                             match defguard_certs::Csr::from_der(&csr_der) {
                                 Ok(csr) => {
                                     let settings = Settings::get_current_settings();
@@ -515,7 +526,9 @@ impl Proxy {
                                             tx.send(ProxySetupResponse { payload: Some(
                                                 defguard_proto::proxy::proxy_setup_response::Payload::CertResponse(response)
                                             ) })?;
-                                            info!("Signed CSR and sent certificate to proxy");
+                                            info!(
+                                                "Signed CSR received from proxy during initial setup and sent back the certificate"
+                                            );
                                         }
                                         Err(err) => {
                                             error!("Failed to sign CSR: {err}");
@@ -540,7 +553,6 @@ impl Proxy {
                         }
                         _ => {
                             error!("Expected CertRequest from proxy during setup");
-                            continue;
                         }
                     },
                     Ok(None) => {
@@ -554,7 +566,7 @@ impl Proxy {
                 }
             }
 
-            sleep(Duration::from_secs(1)).await;
+            sleep(PROXY_SETUP_RESTART_DELAY).await;
         }
 
         Ok(())
