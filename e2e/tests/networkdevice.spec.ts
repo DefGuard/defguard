@@ -97,11 +97,11 @@ test.describe('Network devices', () => {
     const deviceName = 'test';
     const deviceDesc = 'test device description';
     await waitForBase(page);
-    // await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
-    //   name: deviceName,
-    //   pubKey: testKeys.public,
-    //   description: deviceDesc, // FIXME: Adding description freezes modal (https://github.com/DefGuard/defguard/issues/1785)
-    // });
+    await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
+      name: deviceName,
+      pubKey: testKeys.public,
+      description: deviceDesc,
+    });
     await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
       name: deviceName + '2',
       description: deviceDesc,

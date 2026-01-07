@@ -146,9 +146,9 @@ const ManualStep = ({
 }: Pick<ModalState, 'manualDevice' | 'privateKey'>) => {
   const { writeToClipboard } = useClipboard();
   const config = useMemo(() => {
-    if (!isPresent(manualDevice) || !isPresent(privateKey)) return null;
+    if (!isPresent(manualDevice)) return null;
     let res = manualDevice.config.config;
-    if (privateKey) {
+    if (isPresent(privateKey)) {
       res = res.replace('YOUR_PRIVATE_KEY', privateKey);
     }
     return res;
