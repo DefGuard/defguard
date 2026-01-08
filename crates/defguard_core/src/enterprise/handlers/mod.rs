@@ -72,35 +72,37 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
         .map(|license: &crate::enterprise::license::License| {
             let counts = get_counts();
             let limits_info = license.limits.map(|limits| LicenseLimitsInfo {
-                    locations: LimitInfo {
-                        current: counts.location(),
-                        limit: limits.locations,
-                    },
-                    users: LimitInfo {
-                        current: counts.user(),
-                        limit: limits.users,
-                    },
-                    devices: if limits.network_devices.is_some() {
-                        None
-                    } else {
-                        Some(LimitInfo {
-                            current: counts.user_device() + counts.network_device(),
-                            limit: limits.devices,
-                        })
-                    },
-                    user_devices: if limits.network_devices.is_some() {
-                        Some(LimitInfo {
-                            current: counts.user_device(),
-                            limit: limits.devices,
-                        })
-                    } else {
-                        None
-                    },
-                    network_devices: limits.network_devices.map(|network_devices_limit| LimitInfo {
-                            current: counts.network_device(),
-                            limit: network_devices_limit,
-                        }),
-                });
+                locations: LimitInfo {
+                    current: counts.location(),
+                    limit: limits.locations,
+                },
+                users: LimitInfo {
+                    current: counts.user(),
+                    limit: limits.users,
+                },
+                devices: if limits.network_devices.is_some() {
+                    None
+                } else {
+                    Some(LimitInfo {
+                        current: counts.user_device() + counts.network_device(),
+                        limit: limits.devices,
+                    })
+                },
+                user_devices: if limits.network_devices.is_some() {
+                    Some(LimitInfo {
+                        current: counts.user_device(),
+                        limit: limits.devices,
+                    })
+                } else {
+                    None
+                },
+                network_devices: limits
+                    .network_devices
+                    .map(|network_devices_limit| LimitInfo {
+                        current: counts.network_device(),
+                        limit: network_devices_limit,
+                    }),
+            });
 
             serde_json::json!(
                 {
