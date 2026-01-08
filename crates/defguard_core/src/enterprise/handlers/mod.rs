@@ -1,6 +1,6 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
-    enterprise::get_counts,
+    enterprise::{get_counts, is_enterprise_free},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -16,6 +16,8 @@ use axum::{
     http::{StatusCode, request::Parts},
 };
 
+use serde::Serialize;
+
 use super::{
     db::models::enterprise_settings::EnterpriseSettings, is_business_license_active,
     license::get_cached_license,
@@ -28,6 +30,21 @@ pub struct LicenseInfo {
 
 /// Used to check if user is allowed to manage his devices.
 pub struct CanManageDevices;
+
+#[derive(Serialize)]
+struct LimitInfo {
+    current: u32,
+    limit: u32,
+}
+
+#[derive(Serialize)]
+struct LicenseLimitsInfo {
+    users: LimitInfo,
+    locations: LimitInfo,
+    user_devices: Option<LimitInfo>,
+    network_devices: Option<LimitInfo>,
+    devices: Option<LimitInfo>,
+}
 
 impl<S> FromRequestParts<S> for LicenseInfo
 where
@@ -50,18 +67,53 @@ where
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let license = get_cached_license();
-    let license_info = license.as_ref().map(|license| {
-        let counts = get_counts();
-        serde_json::json!(
-            {
-                "valid_until": license.valid_until,
-                "subscription": license.subscription,
-                "expired": license.is_max_overdue(),
-                "limits_exceeded": counts.is_over_license_limits(license),
-                "tier": license.tier
-            }
-        )
-    });
+    let license_info = license
+        .as_ref()
+        .map(|license: &crate::enterprise::license::License| {
+            let counts = get_counts();
+            let limits_info = license.limits.map(|limits| LicenseLimitsInfo {
+                    locations: LimitInfo {
+                        current: counts.location(),
+                        limit: limits.locations,
+                    },
+                    users: LimitInfo {
+                        current: counts.user(),
+                        limit: limits.users,
+                    },
+                    devices: if limits.network_devices.is_some() {
+                        None
+                    } else {
+                        Some(LimitInfo {
+                            current: counts.user_device() + counts.network_device(),
+                            limit: limits.devices,
+                        })
+                    },
+                    user_devices: if limits.network_devices.is_some() {
+                        Some(LimitInfo {
+                            current: counts.user_device(),
+                            limit: limits.devices,
+                        })
+                    } else {
+                        None
+                    },
+                    network_devices: limits.network_devices.map(|network_devices_limit| LimitInfo {
+                            current: counts.network_device(),
+                            limit: network_devices_limit,
+                        }),
+                });
+
+            serde_json::json!(
+                {
+                    "free": is_enterprise_free(),
+                    "valid_until": license.valid_until,
+                    "subscription": license.subscription,
+                    "expired": license.is_max_overdue(),
+                    "limits_exceeded": counts.is_over_license_limits(license),
+                    "tier": license.tier,
+                    "limits": limits_info,
+                }
+            )
+        });
     Ok(ApiResponse {
         json: serde_json::json!(
             {
