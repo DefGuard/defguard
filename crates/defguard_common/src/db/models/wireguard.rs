@@ -547,33 +547,26 @@ impl WireguardNetwork<Id> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
-        // query_as! macro doesn't work with `... WHERE ... IN (...) `
-        // so we'll have to use format! macro
-        // https://github.com/launchbadge/sqlx/issues/875
-        // https://github.com/launchbadge/sqlx/issues/656
-        let device_ids = devices
-            .iter()
-            .map(|d| d.id.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
-        let query = format!(
-            "SELECT device_id, device.name, device.user_id, \
-            date_trunc($1, collected_at) collected_at, \
-            CAST(sum(download) AS bigint) download, \
-            CAST(sum(upload) AS bigint) upload \
-            FROM wireguard_peer_stats_view wpsv \
-            JOIN device ON wpsv.device_id = device.id \
-            WHERE device_id IN ({device_ids}) \
-            AND collected_at >= $2 \
-            AND network = $3 \
-            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4"
-        );
-        let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
-            .bind(aggregation.fstring())
-            .bind(from)
-            .bind(self.id)
-            .fetch_all(conn)
-            .await?;
+
+        let device_ids = devices.iter().map(|d| d.id).collect::<Vec<Id>>();
+
+        let stats = query_as!(
+            WireguardDeviceTransferRow,
+            "SELECT s.device_id \"device_id!\", date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
+            CAST(sum(download_diff) AS bigint) \"download!\", CAST(sum(upload_diff) AS bigint) \"upload!\" \
+			FROM vpn_session_stats \
+            INNER JOIN vpn_client_session s ON session_id = s.id \
+            WHERE s.device_id = ANY($2) AND collected_at >= $3 AND s.location_id = $4  \
+            GROUP BY device_id, collected_at \
+            ORDER BY device_id, collected_at",
+            aggregation.fstring(),
+            &device_ids,
+            from,
+            self.id,
+        )
+        .fetch_all(conn)
+        .await?;
+
         let mut result = Vec::new();
         for device in devices {
             let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
@@ -609,21 +602,20 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
     ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
-        let oldest_handshake = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
-        // Retrieve connected devices from database
+        // Retrieve currently connected devices from database
         let devices = query_as!(
             Device,
             "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
             d.description, d.device_type \"device_type: DeviceType\", d.configured \
-            FROM device d JOIN wireguard_peer_stats s ON d.id = s.device_id \
-            WHERE s.latest_handshake >= $1 AND s.network = $2 \
-            AND d.device_type = $3",
-            oldest_handshake,
+            FROM device d JOIN vpn_client_session s ON d.id = s.device_id \
+            WHERE s.state = 'connected' AND s.location_id = $1 \
+            AND d.device_type = $2",
             self.id,
             &device_type as &DeviceType,
         )
         .fetch_all(conn)
         .await?;
+
         // Retrieve data series for all active devices and assign them to users
         self.device_stats(conn, &devices, from, aggregation).await
     }
@@ -636,6 +628,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+
         // Retrieve data series for all active devices and assign them to users
         let device_stats = self
             .distinct_device_stats(conn, from, aggregation, DeviceType::User)
@@ -643,6 +636,7 @@ impl WireguardNetwork<Id> {
         for stats in device_stats {
             user_map.entry(stats.user_id).or_default().push(stats);
         }
+
         // Reshape final result
         let mut stats = Vec::new();
         for u in user_map {
