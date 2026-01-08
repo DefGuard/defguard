@@ -1,0 +1,23 @@
+#login-page main .mfa-links {
+  padding-top: var(--spacing-2xl);
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  row-gap: var(--spacing-2xl);
+
+  a {
+    text-decoration: none;
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+    cursor: pointer;
+
+    &[data-status='active'] {
+      display: none;
+    }
+
+    span {
+      color: inherit;
+    }
+  }
+}

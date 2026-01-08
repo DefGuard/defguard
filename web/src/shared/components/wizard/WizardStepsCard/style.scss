@@ -1,0 +1,107 @@
+.wizard-steps-card {
+  box-sizing: border-box;
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  background-color: var(--bg-disabled);
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+
+    li:not(.spacer) {
+      --bg: var(--bg-faded);
+      --indicator-color: var(--fg-white);
+      --color: var(--fg-muted);
+
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-md);
+
+      &.muted {
+        --bg: var(--bg-faded);
+      }
+
+      &.active {
+        --bg: var(--bg-action);
+        --color: var(--fg-action);
+      }
+
+      &.success {
+        --bg: var(--bg-success);
+        --color: var(--fg-success);
+      }
+
+      & > span {
+        font: var(--t-body-sm-400);
+        color: var(--color);
+
+        @include animate(color);
+      }
+
+      .step-indicator {
+        display: grid;
+        grid-template-columns: 20px;
+        grid-template-rows: 20px;
+        place-items: center center;
+
+        .icon {
+          display: flex;
+        }
+
+        .icon path {
+          fill: var(--indicator-color);
+        }
+
+        .icon,
+        span,
+        div {
+          grid-row: 1;
+          grid-column: 1 / 2;
+        }
+
+        span {
+          font: var(--t-body-xs-500);
+          color: var(--indicator-color);
+          width: 100%;
+          max-width: 100%;
+          text-align: center;
+
+          @include animate(color);
+        }
+
+        .circle {
+          display: block;
+          content: ' ';
+          width: 100%;
+          height: 100%;
+          border-radius: var(--radius-full);
+          background-color: var(--bg);
+
+          @include animate(background-color);
+        }
+      }
+    }
+
+    li.spacer {
+      user-select: none;
+      display: inline-block;
+      content: ' ';
+      position: relative;
+      width: 10px;
+      height: 12px;
+
+      & > .line {
+        display: block;
+        content: ' ';
+        position: absolute;
+        right: -0.5px;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background-color: var(--border-muted);
+      }
+    }
+  }
+}

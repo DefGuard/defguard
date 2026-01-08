@@ -10,14 +10,13 @@ export const createExternalProvider = async (browser: Browser, client: OpenIdCli
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.settings, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'OpenID' }).click();
-  await page.locator('div#provider-settings .content-frame').click();
-  await page.getByRole('button', { name: 'Custom' }).click();
-  await page.getByTestId('field-base_url').fill('http://localhost:8000/');
+  await page.goto(routes.base + routes.settings.tab.openid);
+  await page.getByTestId('connect-custom').click();
+
+  await page.getByTestId('field-base_url').fill(routes.base + '/');
   await page.getByTestId('field-client_id').fill(client.clientID || '');
   await page.getByTestId('field-client_secret').fill(client.clientSecret || '');
   await page.getByTestId('field-display_name').fill(client.name);
-  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByTestId('continue').click();
   await context.close();
 };

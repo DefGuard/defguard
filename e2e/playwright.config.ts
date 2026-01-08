@@ -1,4 +1,4 @@
-import { defineConfig, devices, FullConfig, ReporterDescription } from '@playwright/test';
+import { defineConfig, devices, ReporterDescription } from '@playwright/test';
 
 import { routes, testsConfig } from './config';
 import { loadEnv } from './utils/loadEnv';
@@ -25,7 +25,7 @@ if (process.env.SHOW_REPORT) {
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  timeout: process.env.CI ? testsConfig.TEST_TIMEOUT * 1000 : 180_000,
+  timeout: testsConfig.TEST_TIMEOUT * 1000,
   testDir: './tests',
   /* Run tests in files in parallel */
   fullyParallel: false,
@@ -33,7 +33,6 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  maxFailures: process.env.CI ? 1 : undefined,
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: reporter,
@@ -50,8 +49,7 @@ export default defineConfig({
       permissions: ['clipboard-read', 'clipboard-write'],
     },
   },
-  globalTeardown: require.resolve('./utils/teardown'),
-  globalSetup: require.resolve('./utils/setup'),
+
   /* Configure projects for major browsers */
   projects: [
     {

@@ -1,72 +1,59 @@
 import { expect, test } from '@playwright/test';
 
-import { testsConfig, testUserTemplate } from '../config';
+import { testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
-import enrollmentController, {
-  createUserEnrollment,
-} from '../utils/controllers/enrollment';
+import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
+import { createUserEnrollment, password } from '../utils/controllers/enrollment';
+import { loginBasic } from '../utils/controllers/login';
 import { disableUser } from '../utils/controllers/toggleUserState';
-import { createNetwork } from '../utils/controllers/vpn/createNetwork';
+import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 const testNetwork: NetworkForm = {
   name: 'test network',
   address: '10.10.10.1/24',
   endpoint: '127.0.0.1',
+  allowed_ips: ['127.1.5.1'],
   port: '5055',
 };
 
-test.describe('Enrollment tests', () => {
+test.describe('Create user and enroll him', () => {
   let token: string;
   const user: User = { ...testUserTemplate, username: 'test' };
 
   test.beforeEach(async ({ browser }) => {
     dockerRestart();
-    await createNetwork(browser, testNetwork);
     const response = await createUserEnrollment(browser, user);
     token = response.token;
+    await createRegularLocation(browser, testNetwork);
   });
 
-  test('Try to complete enrollment with disabled user', async ({ page, browser }) => {
+  test('Complete user enrollment via API', async ({ request, page }) => {
     expect(token).toBeDefined();
+    await apiEnrollmentStart(request, token);
+    await apiEnrollmentActivateUser(request, password, '+48123456789');
+
     await waitForBase(page);
+    const responsePromise = page.waitForResponse('**/auth');
+    await loginBasic(page, { username: user.username, password });
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+  });
+  test('Try to complete disabled user enrollment via API', async ({
+    page,
+    request,
+    browser,
+  }) => {
+    expect(token).toBeDefined();
     await disableUser(browser, user);
-    await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
-    // Test if we can send the token
-    await enrollmentController.startEnrollment(page);
-    await enrollmentController.fillTokenForm(token, page);
-    const startResponse = page.waitForResponse((response) =>
-      response.url().endsWith('/start'),
-    );
-    await enrollmentController.navNext(page);
-    expect((await startResponse).status()).toBe(403);
-  });
+    await apiEnrollmentStart(request, token);
+    await apiEnrollmentActivateUser(request, password, '+48123456789');
 
-  test('Complete enrollment flow', async ({ page }) => {
-    expect(token).toBeDefined();
     await waitForBase(page);
-    await page.goto(testsConfig.ENROLLMENT_URL, {
-      waitUntil: 'networkidle',
-    });
-    await enrollmentController.startEnrollment(page);
-    await enrollmentController.fillTokenForm(token, page);
-    const startResponse = page.waitForResponse((response) =>
-      response.url().endsWith('/start'),
-    );
-    await enrollmentController.navNext(page);
-    expect((await startResponse).ok).toBeTruthy();
-    //download
-    await page.waitForURL('**/download', {
-      waitUntil: 'networkidle',
-    });
-    await enrollmentController.navNext(page);
-    await enrollmentController.confirmClientDownloadModal(page);
-    await page.waitForURL('**/client-setup', {
-      waitUntil: 'networkidle',
-    });
-    expect(page.locator('#configure-client-page')).toBeVisible();
+    const responsePromise = page.waitForResponse('**/auth');
+    await loginBasic(page, { username: user.username, password });
+    const response = await responsePromise;
+    expect(response.ok()).toBeFalsy();
   });
 });

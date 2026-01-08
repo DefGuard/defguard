@@ -1,0 +1,26 @@
+#add-user-device-manual-setup {
+  & > header p {
+    &:nth-child(1) {
+      font: var(--t-body-sm-500);
+      color: var(--fg-default);
+      padding-bottom: var(--spacing-xs);
+    }
+
+    &:nth-child(2) {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+  }
+
+  form {
+    .choice {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-md);
+
+      & > p {
+        font: var(--t-body-primary-500);
+      }
+    }
+  }
+}

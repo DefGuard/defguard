@@ -1,0 +1,70 @@
+.license-general-info {
+  & > .top {
+    display: grid;
+    grid-auto-flow: column;
+    align-items: stretch;
+  }
+
+  .license-property-info {
+    box-sizing: border-box;
+
+    &:not(:first-child) {
+      padding-left: var(--spacing-xl);
+    }
+
+    &:not(:last-child) {
+      border-right: var(--border-1) solid var(--bg-active);
+      padding-right: var(--spacing-xl);
+    }
+
+    & > .top {
+      padding-bottom: var(--spacing-xs);
+
+      p {
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+      }
+    }
+
+    & > .bottom {
+      display: flex;
+      flex-flow: row nowrap;
+
+      & > p {
+        font: var(--t-body-sm-500);
+        color: var(--fg-default);
+      }
+
+      & > .badge {
+        margin-left: var(--spacing-md);
+      }
+    }
+  }
+
+  .limits-label {
+    font: var(--t-body-xs-400);
+    color: var(--fg-neutral);
+  }
+
+  .license-limit-progress {
+    & > .info {
+      display: flex;
+      flex-flow: row nowrap;
+
+      & > p {
+        font: var(--t-body-sm-500);
+        color: var(--fg-default);
+        padding-left: var(--spacing-sm);
+      }
+
+      & > .counter {
+        margin-left: auto;
+
+        & > p {
+          font: var(--t-body-sm-500);
+          color: var(--fg-default);
+        }
+      }
+    }
+  }
+}

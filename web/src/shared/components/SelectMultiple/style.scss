@@ -1,0 +1,17 @@
+.select-multiple .fold-content {
+  .selected {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  & > button {
+    background-color: transparent;
+    border: 0;
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+    cursor: pointer;
+  }
+}

@@ -1,0 +1,44 @@
+.action-card {
+  background-color: var(--bg-action-muted);
+  border-radius: var(--radius-lg);
+
+  & > .inner-track {
+    display: inline-grid;
+    grid-template-columns: 90px 1fr;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-2xl);
+    align-items: start;
+    justify-content: start;
+    box-sizing: border-box;
+    padding: var(--spacing-lg);
+
+    & > .image-track {
+      grid-column: 1 / 2;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    & > .content-track {
+      grid-column: 2 / 3;
+
+      & > .title {
+        font: var(--t-body-sm-500);
+        color: var(--fg-default);
+      }
+
+      & > .subtitle {
+        font: var(--t-body-sm-400);
+        color: var(--fg-muted);
+        padding-top: var(--spacing-xs);
+      }
+
+      & > .content {
+        padding-top: var(--spacing-lg);
+      }
+    }
+  }
+}

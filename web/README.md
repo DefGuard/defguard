@@ -1,73 +1,73 @@
-# Defguard frontend
+# React + TypeScript + Vite
 
-React.js based, web user interface for Defguard project.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Run development server
+Currently, two official plugins are available:
 
-Install dependencies
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-```bash
-  pnpm install
+## React Compiler
+
+The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-Start the dev server
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```bash
-  pnpm run dev
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-You can configure API proxy by changing `target` key value under `/api` path within `vite.config.ts` file.
-
-## Build docker image
-
-```bash
-docker build .
-```
-
-## Linting
-
-For linting this project uses [prettier](https://www.npmjs.com/package/prettier), [eslint](https://www.npmjs.com/package/eslint) and [stylelint](https://stylelint.io/)
-
-#### Available commands
-
-Check linting in all supported files ( both prettier and eslint )
-
-```bash
-pnpm run lint
-```
-
-Fix all autofixable problems with eslint
-
-```bash
-pnpm run eslint-fix
-```
-
-Fix all autofixable probles with prettier
-
-```bash
-pnpm run prettier-fix
-```
-
-Fix all autofixable problems with pretter and eslint
-
-```bash
-pnpm fix-lint
-```
-
-#### Adding new SVG components
-
-Move .svg files into `src/shared/images/svg` then use command:
-
-```bash
-pnpm parse-svgs
-```
-
-This will generate new components within `src/shared/components/svg`, they can be used as a regular components. Also this command doesn't replace or modify already existing files.
-
-## Conventional Commits
-
-Using [commitlint](https://commitlint.js.org/#/) with this [config](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional).
-
-## Versioning
-
-Using [standard-version](https://github.com/conventional-changelog/standard-version)

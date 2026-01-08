@@ -1,3 +1,4 @@
+import { table } from 'console';
 import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
@@ -29,6 +30,25 @@ export const testsConfig: TestsConfig = mergeObjects(envConfig, defaultConfig);
 export const routes = {
   base: testsConfig.BASE_URL,
   me: '/me',
+  profile: '/user/',
+  tab: {
+    details: '?tab=details',
+    devices: '?tab=devices',
+    authentication_keys: '?tab=auth-keys',
+    api_tokens: '?tab=api-tokens',
+  },
+  firewall: {
+    rules: '/acl/rules',
+    aliases: '/acl/aliases',
+  },
+  locations: '/locations',
+  network_devices: '/network-devices',
+  openid_apps: '/openid',
+  webhooks: '/webhooks',
+  identity: {
+    users: '/users',
+    groups: '/groups',
+  },
   consent: '/consent',
   addDevice: '/add-device',
   auth: {
@@ -36,6 +56,14 @@ export const routes = {
     totp: '/auth/mfa/totp',
     recovery: '/auth/mfa/recovery',
     email: '/auth/mfa/email',
+  },
+  settings: {
+    base: '/settings',
+    smtp: '/settings/smtp',
+    openid: '/settings/openid',
+    tab: {
+      openid: '/settings?tab=openid',
+    },
   },
   admin: {
     wizard: '/admin/wizard',
