@@ -95,11 +95,10 @@ pub async fn run_periodic_peer_disconnect(
         // get all MFA-protected locations
         let locations = query_as!(
             WireguardNetwork::<Id>,
-            "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
-                service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode != 'disabled'::location_mfa_mode",
         )
         .fetch_all(&pool)

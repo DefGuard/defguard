@@ -138,9 +138,9 @@ where
         return Ok(Vec::new());
     }
 
+    // TODO: possible to not use ARRAY-unnest here?
     let rows = query!(
         "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-            -- TODO possible to not use ARRAY-unnest here?
             ARRAY(
                 SELECT host(ip)
                 FROM unnest(wnd.wireguard_ips) AS ip
@@ -192,6 +192,8 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
+        mtu: network.mtu.map(|i| i as u32),
+        fwmark: network.fwmark.map(|i| i as u32),
     }
 }
 
@@ -486,6 +488,8 @@ impl GatewayUpdatesHandler {
                     port: network.port as u32,
                     peers,
                     firewall_config,
+                    mtu: network.mtu.map(|i| i as u32),
+                    fwmark: network.fwmark.map(|i| i as u32),
                 })),
             })),
         }) {
@@ -518,6 +522,8 @@ impl GatewayUpdatesHandler {
                     port: 0,
                     peers: Vec::new(),
                     firewall_config: None,
+                    mtu: None,
+                    fwmark: None,
                 })),
             })),
         }) {

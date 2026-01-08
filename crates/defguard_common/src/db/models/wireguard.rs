@@ -31,6 +31,7 @@ use crate::{
     auth::claims::{Claims, ClaimsType},
     db::{Id, NoId},
     types::user_info::UserInfo,
+    utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -103,12 +104,14 @@ pub struct WireguardNetwork<I = NoId> {
     #[model(ref)]
     #[schema(value_type = String)]
     pub address: Vec<IpNetwork>,
-    pub port: i32,
+    pub port: i32, // Should be u16
     pub pubkey: String,
     #[serde(default, skip_serializing)]
     pub prvkey: String,
     pub endpoint: String,
     pub dns: Option<String>,
+    pub mtu: Option<i32>,    // Should be Option<u32>, but sqlx won't allow that.
+    pub fwmark: Option<i32>, // Should be Option<u32>, but sqlx won't allow that.
     #[model(ref)]
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
@@ -163,30 +166,6 @@ impl fmt::Debug for WireguardNetwork<Id> {
     }
 }
 
-#[cfg(test)]
-impl Default for WireguardNetwork<Id> {
-    fn default() -> Self {
-        Self {
-            id: Id::default(),
-            name: String::default(),
-            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-            port: i32::default(),
-            pubkey: String::default(),
-            prvkey: String::default(),
-            endpoint: String::default(),
-            dns: Option::default(),
-            allowed_ips: Vec::default(),
-            connected_at: Option::default(),
-            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
-            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
-            acl_default_allow: false,
-            acl_enabled: false,
-            location_mfa_mode: LocationMfaMode::default(),
-            service_location_mode: ServiceLocationMode::default(),
-        }
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum WireguardNetworkError {
     #[error("Network address space cannot fit all devices")]
@@ -236,6 +215,8 @@ impl WireguardNetwork {
         port: i32,
         endpoint: String,
         dns: Option<String>,
+        mtu: Option<i32>,
+        fwmark: Option<i32>,
         allowed_ips: Vec<IpNetwork>,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
@@ -255,9 +236,10 @@ impl WireguardNetwork {
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
+            mtu,
+            fwmark,
             allowed_ips,
             connected_at: None,
-
             keepalive_interval,
             peer_disconnect_threshold,
             acl_enabled,
@@ -269,8 +251,6 @@ impl WireguardNetwork {
 
     /// Try to set `address` from `&str`.
     pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        use crate::utils::parse_address_list;
-
         let address = parse_address_list(address);
         if address.is_empty() {
             return Err(IpNetworkError::InvalidAddr("invalid address".into()));
@@ -291,8 +271,8 @@ impl WireguardNetwork<Id> {
     {
         let networks = query_as!(
             WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
             acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
@@ -890,8 +870,8 @@ impl WireguardNetwork<Id> {
     {
         let locations = query_as!(
             WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
             acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
@@ -1065,6 +1045,8 @@ impl Default for WireguardNetwork {
             prvkey: String::default(),
             endpoint: String::default(),
             dns: Option::default(),
+            mtu: Option::default(),
+            fwmark: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
@@ -1517,6 +1499,8 @@ mod test {
             50051,
             String::new(),
             None,
+            None,
+            None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,
@@ -1648,6 +1632,8 @@ mod test {
             ],
             50051,
             String::new(),
+            None,
+            None,
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,

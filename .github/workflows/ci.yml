@@ -48,6 +48,9 @@ jobs:
       DEFGUARD_DB_PASSWORD: defguard
       DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
       SQLX_OFFLINE: true
+      # sccache
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: Checkout
@@ -65,8 +68,8 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           scanners: "vuln"
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler

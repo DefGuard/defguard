@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"allowed_ips\" = $9,\"connected_at\" = $10,\"acl_enabled\" = $11,\"acl_default_allow\" = $12,\"keepalive_interval\" = $13,\"peer_disconnect_threshold\" = $14,\"location_mfa_mode\" = $15,\"service_location_mode\" = $16 WHERE id = $1",
+  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"mtu\" = $9,\"fwmark\" = $10,\"allowed_ips\" = $11,\"connected_at\" = $12,\"acl_enabled\" = $13,\"acl_default_allow\" = $14,\"keepalive_interval\" = $15,\"peer_disconnect_threshold\" = $16,\"location_mfa_mode\" = $17,\"service_location_mode\" = $18 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,6 +13,8 @@
         "Text",
         "Text",
         "Text",
+        "Int4",
+        "Int4",
         "InetArray",
         "Timestamp",
         "Bool",
@@ -47,5 +49,5 @@
     },
     "nullable": []
   },
-  "hash": "fe2ad01a923b3d66c74343dbd9c385908407c4f642d3005e36df113a1aee841d"
+  "hash": "078285805ae4812c5c5bc57b4f748840cee8e29186fc476e2ef148688385c6a4"
 }
