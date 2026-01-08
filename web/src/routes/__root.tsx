@@ -12,7 +12,7 @@ interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   beforeLoad: async ({ location }) => {
-    // only auto check for auth if route is not in /auth flow
+    // only auto check for auth state if route is not in /auth flow
     if (location.pathname.startsWith('/auth')) {
       return;
     }
