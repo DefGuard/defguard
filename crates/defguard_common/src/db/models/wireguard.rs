@@ -13,7 +13,7 @@ use crate::{
             ModelError,
             group::{Group, Permission},
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
-            wireguard_peer_stats::WireguardPeerStats,
+            vpn_session_stats::VpnSessionStats,
         },
     },
     types::user_info::UserInfo,
@@ -569,20 +569,31 @@ impl WireguardNetwork<Id> {
 
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
-            let wireguard_ips = if let Some(stats) = &latest_stats {
-                stats.trim_allowed_ips()
+            // get public IP from latest session stats
+            let maybe_latest_stats =
+                VpnSessionStats::fetch_latest_for_device(conn, device.id, self.id).await?;
+            let public_ip = maybe_latest_stats
+                .as_ref()
+                .and_then(VpnSessionStats::endpoint_without_port);
+
+            let wireguard_ips = if let Some(device_config) =
+                WireguardNetworkDevice::find(conn, self.id, self.id).await?
+            {
+                device_config
+                    .wireguard_ips
+                    .iter()
+                    .map(|ip| ip.to_string())
+                    .collect()
             } else {
                 Vec::new()
             };
+
             result.push(WireguardDeviceStatsRow {
                 id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ips,
-                public_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::endpoint_without_port),
+                public_ip,
                 connected_at: self.connected_at(conn, device.id).await?,
                 // Filter stats for this device
                 stats: stats
