@@ -80,25 +80,17 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                     current: counts.user(),
                     limit: limits.users,
                 },
-                devices: if limits.network_devices.is_some() {
-                    None
-                } else {
+                devices: limits.network_devices.map_or(
                     Some(LimitInfo {
                         current: counts.user_device() + counts.network_device(),
                         limit: limits.devices,
-                    })
-                },
-                user_devices: limits.network_devices.map(|limit| LimitInfo {
+                    }),
+                    |_| None,
+                ),
+                user_devices: limits.network_devices.map(|_| LimitInfo {
                     current: counts.user_device(),
                     limit: limits.devices,
                 }),
-                    Some(LimitInfo {
-                        current: counts.user_device(),
-                        limit: limits.devices,
-                    })
-                } else {
-                    None
-                },
                 network_devices: limits
                     .network_devices
                     .map(|network_devices_limit| LimitInfo {
