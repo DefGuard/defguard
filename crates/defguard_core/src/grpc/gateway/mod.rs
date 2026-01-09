@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use chrono::DateTime;
 use defguard_common::{
     config::server_config,
     db::{
@@ -15,7 +16,7 @@ use defguard_common::{
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, CoreResponse, Peer, Update, core_response, update},
+    gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update},
 };
 use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
 use thiserror::Error;
@@ -30,7 +31,7 @@ use tonic::{Code, Status};
 
 use crate::{
     enterprise::is_enterprise_license_active,
-    events::{GrpcEvent, GrpcRequestContext},
+    events::GrpcEvent,
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
@@ -224,13 +225,14 @@ fn gen_config(
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 
-/// Bi-directional gRPC stream for comminication with Defguard Gateway.
+/// Bi-directional gRPC stream for communication with Defguard Gateway.
 pub async fn run_grpc_gateway_stream(
     pool: PgPool,
     client_state: Arc<Mutex<ClientMap>>,
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
     let tls_config = config.grpc_client_tls_config()?;
@@ -814,26 +816,26 @@ impl GatewayUpdatesHandler {
 //                         }
 //                     }
 
-            // convert stats to DB storage format
-            match try_protos_into_stats_message(peer_stats.clone(), network_id, device_id) {
-                None => {
-                    warn!(
-                        "Failed to parse peer stats update. Skipping sending message to session manager."
-                    )
-                }
-                Some(message) => {
-                    self.peer_stats_tx.send(message).map_err(|err| {
-                        error!("Failed to send peers stats update to session manager: {err}");
-                        Status::new(
-                            Code::Internal,
-                            format!("Failed to send peers stats update to session manager: {err}"),
-                        )
-                    })?;
-                }
-            };
+// convert stats to DB storage format
+// match try_protos_into_stats_message(peer_stats.clone(), network_id, device_id) {
+//     None => {
+//         warn!(
+//             "Failed to parse peer stats update. Skipping sending message to session manager."
+//         )
+//     }
+//     Some(message) => {
+//         self.peer_stats_tx.send(message).map_err(|err| {
+//             error!("Failed to send peers stats update to session manager: {err}");
+//             Status::new(
+//                 Code::Internal,
+//                 format!("Failed to send peers stats update to session manager: {err}"),
+//             )
+//         })?;
+//     }
+// };
 
-            // convert stats to DB storage format
-            let stats = protos_into_internal_stats(peer_stats, network_id, device_id);
+// convert stats to DB storage format
+// let stats = protos_into_internal_stats(peer_stats, network_id, device_id);
 
 //                 // emit client disconnect events
 //                 for (device, context) in disconnected_clients {

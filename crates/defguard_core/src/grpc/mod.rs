@@ -70,7 +70,6 @@ pub async fn run_grpc_server(
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -100,7 +99,6 @@ pub async fn build_grpc_service_router(
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));

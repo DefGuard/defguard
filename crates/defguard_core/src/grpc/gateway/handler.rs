@@ -42,9 +42,10 @@ use tonic::{
 use crate::{
     ClaimsType,
     enterprise::firewall::try_get_location_firewall_config,
+    events::GrpcRequestContext,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
-        gateway::{GrpcRequestContext, events::GatewayEvent, get_peers},
+        gateway::{events::GatewayEvent, get_peers},
     },
     handlers::mail::send_gateway_disconnected_email,
 };

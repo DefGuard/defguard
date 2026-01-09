@@ -167,6 +167,7 @@ async fn main() -> Result<(), anyhow::Error> {
             wireguard_tx.clone(),
             mail_tx.clone(),
             grpc_event_tx,
+            peer_stats_tx,
         ) => error!("Gateway gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
@@ -174,7 +175,6 @@ async fn main() -> Result<(), anyhow::Error> {
             grpc_cert,
             grpc_key,
             failed_logins.clone(),
-            peer_stats_tx,
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,

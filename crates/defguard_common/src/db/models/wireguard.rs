@@ -12,8 +12,8 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
-    query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    postgres::types::PgInterval, query, query_as, query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, info};
@@ -25,11 +25,16 @@ use super::{
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
     group::{Group, Permission},
     user::User,
-    wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
     auth::claims::{Claims, ClaimsType},
-    db::{Id, NoId},
+    db::{
+        Id, NoId,
+        models::{
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_session_stats::VpnSessionStats,
+        },
+    },
     types::user_info::UserInfo,
     utils::parse_address_list,
 };
@@ -1211,7 +1216,7 @@ pub async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
-    use crate::db::setup_pool;
+    use crate::db::{models::wireguard_peer_stats::WireguardPeerStats, setup_pool};
     use chrono::{SubsecRound, TimeDelta, Utc};
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
