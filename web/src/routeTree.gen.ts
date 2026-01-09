@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SnackbarRouteImport } from './routes/snackbar'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppLoaderRouteImport } from './routes/app-loader'
@@ -49,6 +50,11 @@ import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_autho
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
+const SnackbarRoute = SnackbarRouteImport.update({
+  id: '/snackbar',
+  path: '/snackbar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConsentRoute = ConsentRouteImport.update({
   id: '/consent',
   path: '/consent',
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -307,6 +314,7 @@ export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/app-loader': typeof AppLoaderRoute
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/app-loader'
     | '/consent'
+    | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/snackbar'
     | '/_authorized/_default'
     | '/auth/callback'
     | '/auth/loading'
@@ -510,10 +522,18 @@ export interface RootRouteChildren {
   AppLoaderRoute: typeof AppLoaderRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
+  SnackbarRoute: typeof SnackbarRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/snackbar': {
+      id: '/snackbar'
+      path: '/snackbar'
+      fullPath: '/snackbar'
+      preLoaderRoute: typeof SnackbarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/consent': {
       id: '/consent'
       path: '/consent'
@@ -907,6 +927,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppLoaderRoute: AppLoaderRoute,
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
+  SnackbarRoute: SnackbarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
