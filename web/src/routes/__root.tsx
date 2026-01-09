@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet, redirect } from '@tanstack/react-router';
 import { AppLoaderPage } from '../pages/AppLoaderPage/AppLoaderPage';
 import api from '../shared/api/api';
+import { SnackbarManager } from '../shared/defguard-ui/providers/snackbar/SnackbarManager';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../shared/hooks/useAuth';
 
@@ -38,5 +39,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <SnackbarManager>
+      <Outlet />
+    </SnackbarManager>
+  );
 }
