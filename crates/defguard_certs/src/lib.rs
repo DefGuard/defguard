@@ -173,6 +173,7 @@ pub fn generate_key_pair() -> Result<KeyPair, CertificateError> {
 }
 
 pub type DnType = rcgen::DnType;
+pub type RcGenKeyPair = rcgen::KeyPair;
 
 #[cfg(test)]
 mod tests {

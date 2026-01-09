@@ -26,9 +26,9 @@ use defguard_core::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload, Done,
-    ProxySetupResponse, core_request, core_response, proxy_client::ProxyClient,
-    proxy_setup_request,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload,
+    InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
+    proxy_setup_client::ProxySetupClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
@@ -62,7 +62,6 @@ extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
-const PROXY_SETUP_RESTART_DELAY: Duration = Duration::from_secs(5);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 #[derive(Error, Debug)]
@@ -87,8 +86,6 @@ pub enum ProxyError {
     MissingConfiguration(String),
     #[error("URL error: {0}")]
     UrlError(String),
-    #[error("Proxy setup error: {0}")]
-    SetupError(#[from] tokio::sync::mpsc::error::SendError<ProxySetupResponse>),
     #[error(transparent)]
     Transport(#[from] tonic::Status),
     #[error("Connection timeout: {0}")]
@@ -304,29 +301,14 @@ impl Proxy {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Result<(), ProxyError> {
         loop {
-            // Probe endpoint for HTTPS availability before performing initial setup
-            match self.is_https_configured().await {
-                Ok(true) => {
-                    // HTTPS already present - skip initial setup
-                }
-                Ok(false) => {
-                    // HTTPS not configured - try to perform initial setup
-                    if let Err(err) = self.perform_initial_setup().await {
-                        error!("Failed to perform initial Proxy setup: {err}");
-                    }
-                    // Wait a bit before establishing proper connection, reconnecting too fast will often result in an
-                    // error since proxy may have not restarted the server yet.
-                    tokio::time::sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
-                }
-                Err(err) => {
-                    error!(
-                        "Failed to check if Proxy gRPC server is running on {} or {}, retrying in 10s: {err}.",
-                        self.endpoint(false)?.uri(),
-                        self.endpoint(true)?.uri()
-                    );
-                    sleep(TEN_SECS).await;
-                    continue;
-                }
+            // TODO: When we will have proxy table, we should first check in DB if we already configured
+            // this proxy, and only perform initial setup if not.
+            if let Err(err) = self.perform_initial_setup().await {
+                warn!(
+                    "Failed to perform initial Proxy setup: {err}. Will try to connect anyway as proxy may be already setup."
+                );
+            } else {
+                sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
             }
 
             let endpoint = self.endpoint(true)?;
@@ -390,69 +372,6 @@ impl Proxy {
         }
     }
 
-    /// Probe the endpoint to check if HTTPS is available.
-    /// Returns Ok(true) if HTTPS is configured and working.
-    /// Returns Ok(false) if there's a protocol/TLS error (HTTPS not configured).
-    /// Returns Err for other errors like timeouts or network issues.
-    async fn is_https_configured(&self) -> Result<bool, ProxyError> {
-        let endpoint = self.endpoint(true)?;
-        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-        let (tx, rx) = mpsc::unbounded_channel();
-        let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
-
-        match tokio::time::timeout(
-            Duration::from_secs(10),
-            client.setup(UnboundedReceiverStream::new(rx)),
-        )
-        .await
-        {
-            Ok(Ok(_)) => {
-                info!("Proxy endpoint is already using HTTPS, skipping initial setup");
-                let _ = tx.send(ProxySetupResponse {
-                    payload: Some(defguard_proto::proxy::proxy_setup_response::Payload::Done(
-                        Done {},
-                    )),
-                });
-                Ok(true)
-            }
-            Ok(Err(err)) => {
-                let http_endpoint = self.endpoint(false)?;
-                let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-                let (tx, rx) = mpsc::unbounded_channel();
-                let mut client =
-                    ProxyClient::with_interceptor(http_endpoint.connect_lazy(), interceptor);
-
-                match tokio::time::timeout(
-                    Duration::from_secs(10),
-                    client.setup(UnboundedReceiverStream::new(rx)),
-                )
-                .await
-                {
-                    // HTTP works = HTTPS not configured
-                    Ok(Ok(_)) => {
-                        info!("Proxy endpoint is available via HTTP, HTTPS not configured");
-                        let _ = tx.send(ProxySetupResponse {
-                            payload: Some(
-                                defguard_proto::proxy::proxy_setup_response::Payload::Done(Done {}),
-                            ),
-                        });
-                        Ok(false)
-                    }
-                    Ok(Err(_)) => {
-                        // gRPC errors should be propagated
-                        Err(ProxyError::Transport(err))
-                    }
-                    Err(_) => Err(ProxyError::ConnectionTimeout(
-                        "Timeout while probing HTTP endpoint".to_string(),
-                    )),
-                }
-            }
-            Err(_) => Err(ProxyError::ConnectionTimeout(
-                "Timeout while probing HTTPS endpoint".to_string(),
-            )),
-        }
-    }
-
     /// Attempt to perform an initial setup of the target proxy.
     /// If the proxy doesn't have signed gRPC certificates by Core yet,
     /// this step will perform the signing. Otherwise, the step will be skipped
@@ -461,112 +380,53 @@ impl Proxy {
         let endpoint = self.endpoint(false)?;
 
         let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-        let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
+        let mut client = ProxySetupClient::with_interceptor(endpoint.connect_lazy(), interceptor);
         let Some(hostname) = self.url.host_str() else {
             return Err(ProxyError::UrlError(
                 "Proxy URL missing hostname".to_string(),
             ));
         };
 
-        'connection: loop {
-            let (tx, rx) = mpsc::unbounded_channel();
-            let mut stream = match client.setup(UnboundedReceiverStream::new(rx)).await {
-                Ok(response) => response.into_inner(),
-                Err(err) => {
-                    error!(
-                        "Failed to connect to proxy @ {}, retrying in 10s: {}",
-                        endpoint.uri(),
-                        err
-                    );
-                    sleep(TEN_SECS).await;
-                    continue 'connection;
-                }
-            };
+        let csr = client
+            .start(InitialSetupInfo {
+                cert_hostname: hostname.to_string(),
+            })
+            .await?
+            .into_inner();
 
-            tx.send(ProxySetupResponse {
-                payload: Some(
-                    defguard_proto::proxy::proxy_setup_response::Payload::InitialSetupInfo(
-                        defguard_proto::proxy::InitialSetupInfo {
-                            cert_hostname: hostname.to_string(),
-                        },
-                    ),
-                ),
-            })?;
+        let csr = defguard_certs::Csr::from_der(&csr.der_data)?;
 
-            loop {
-                match stream.message().await {
-                    Ok(Some(req)) => match req.payload {
-                        Some(proxy_setup_request::Payload::CsrRequest(DerPayload { der_data })) => {
-                            debug!("Received CSR from proxy during initial setup");
-                            match defguard_certs::Csr::from_der(&der_data) {
-                                Ok(csr) => {
-                                    let settings = Settings::get_current_settings();
+        let settings = Settings::get_current_settings();
 
-                                    let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
-                                        ProxyError::MissingConfiguration(
-                                            "CA certificate DER not found in settings for proxy gRPC bidi stream".to_string(),
-                                        )
-                                    })?;
-                                    let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
-                                        ProxyError::MissingConfiguration(
-                                            "CA key pairs DER not found in settings for proxy gRPC bidi stream".to_string(),
-                                        )
-                                    })?;
+        let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(
+                "CA certificate DER not found in settings for proxy gRPC bidi stream".to_string(),
+            )
+        })?;
+        let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(
+                "CA key pairs DER not found in settings for proxy gRPC bidi stream".to_string(),
+            )
+        })?;
 
-                                    let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
-                                        &ca_cert_der,
-                                        &ca_key_pair,
-                                    )?;
+        let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
+            &ca_cert_der,
+            &ca_key_pair,
+        )?;
 
-                                    match ca.sign_csr(&csr) {
-                                        Ok(cert) => {
-                                            let response = DerPayload {
-                                                der_data: cert.der().to_vec(),
-                                            };
-                                            tx.send(ProxySetupResponse { payload: Some(
-                                                defguard_proto::proxy::proxy_setup_response::Payload::CertResponse(response)
-                                            ) })?;
-                                            info!(
-                                                "Signed CSR received from proxy during initial setup and sent back the certificate"
-                                            );
-                                        }
-                                        Err(err) => {
-                                            error!("Failed to sign CSR: {err}");
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    error!("Failed to parse CSR: {err}");
-                                }
-                            }
-                        }
-                        Some(proxy_setup_request::Payload::Done(Done {})) => {
-                            info!("Proxy setup completed");
-                            tx.send(ProxySetupResponse {
-                                payload: Some(
-                                    defguard_proto::proxy::proxy_setup_response::Payload::Done(
-                                        Done {},
-                                    ),
-                                ),
-                            })?;
-                            break 'connection;
-                        }
-                        _ => {
-                            error!("Expected CertRequest from proxy during setup");
-                        }
-                    },
-                    Ok(None) => {
-                        error!("Proxy setup stream closed unexpectedly");
-                        break;
-                    }
-                    Err(err) => {
-                        error!("Failed to receive CSR request from proxy: {err}");
-                        break;
-                    }
-                }
+        match ca.sign_csr(&csr) {
+            Ok(cert) => {
+                let response = DerPayload {
+                    der_data: cert.der().to_vec(),
+                };
+                client.send_cert(response).await?;
+                info!(
+                    "Signed CSR received from proxy during initial setup and sent back the certificate"
+                );
             }
-
-            sleep(PROXY_SETUP_RESTART_DELAY).await;
+            Err(err) => {
+                error!("Failed to sign CSR: {err}");
+            }
         }
 
         Ok(())
