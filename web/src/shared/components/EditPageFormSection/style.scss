@@ -1,0 +1,27 @@
+.edit-page-form-section {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 1fr;
+  column-gap: var(--spacing-4xl);
+  box-sizing: border-box;
+  border-bottom: var(--border-1) solid var(--border-disabled);
+  padding-bottom: var(--spacing-3xl);
+
+  &:not(:first-child) {
+    padding-top: var(--spacing-3xl);
+  }
+
+  & > .label {
+    font: var(--t-body-sm-500);
+    color: var(--fg-neutral);
+    text-align: left;
+    grid-column: 1 / 3;
+    grid-row: 1;
+    place-self: start start;
+  }
+
+  & > .content {
+    width: 100%;
+    grid-column: 3 / 7;
+  }
+}

@@ -4,6 +4,7 @@ pub mod biometric_auth;
 pub mod device;
 pub mod device_login;
 pub mod error;
+pub mod gateway;
 pub mod group;
 pub mod mfa_info;
 pub mod oauth2authorizedapp;

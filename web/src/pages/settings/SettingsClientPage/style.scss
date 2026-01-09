@@ -1,0 +1,11 @@
+#settings-client-behavior-card {
+  .marked-section > .content {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xl);
+
+    h3 {
+      font: var(--t-body-primary-600);
+    }
+  }
+}

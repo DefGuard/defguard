@@ -581,7 +581,7 @@ pub async fn secure_authorization(
 
                         send_new_device_ocid_login_email(
                             &session_info.user.email,
-                            oauth2client.name.to_string(),
+                            oauth2client.name.clone(),
                             &appstate.mail_tx,
                             &session_info.session.into(),
                         )

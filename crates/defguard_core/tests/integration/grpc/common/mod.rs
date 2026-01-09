@@ -36,7 +36,6 @@ pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
     pub grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     wireguard_tx: Sender<GatewayEvent>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     client_state: Arc<Mutex<ClientMap>>,
     pub client_channel: Channel,
     #[allow(dead_code)]
@@ -50,7 +49,6 @@ impl TestGrpcServer {
         grpc_router: Router,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
         wireguard_tx: Sender<GatewayEvent>,
-        gateway_state: Arc<Mutex<GatewayMap>>,
         client_state: Arc<Mutex<ClientMap>>,
         client_channel: Channel,
         peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
@@ -68,17 +66,10 @@ impl TestGrpcServer {
             grpc_server_task_handle,
             grpc_event_rx,
             wireguard_tx,
-            gateway_state,
             client_state,
             client_channel,
             peer_stats_rx,
         }
-    }
-
-    pub fn get_gateway_map(&self) -> std::sync::MutexGuard<'_, GatewayMap> {
-        self.gateway_state
-            .lock()
-            .expect("failed to acquire lock on gateway state")
     }
 
     pub fn get_client_map(&self) -> std::sync::MutexGuard<'_, ClientMap> {
@@ -160,28 +151,16 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     set_cached_license(Some(license));
     let server = Server::builder();
 
-    let grpc_router = build_grpc_service_router(
-        server,
-        pool.clone(),
-        worker_state,
-        gateway_state.clone(),
-        client_state.clone(),
-        wg_tx.clone(),
-        mail_tx,
-        failed_logins,
-        grpc_event_tx,
-        Default::default(),
-        peer_stats_tx,
-    )
-    .await
-    .unwrap();
+    let grpc_router =
+        build_grpc_service_router(server, pool.clone(), worker_state, mail_tx, failed_logins)
+            .await
+            .unwrap();
 
     TestGrpcServer::new(
         server_stream,
         grpc_router,
         grpc_event_rx,
         wg_tx,
-        gateway_state,
         client_state,
         client_channel,
         peer_stats_rx,

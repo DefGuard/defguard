@@ -1,0 +1,57 @@
+.upload-field {
+  & > .inner-track {
+    display: flex;
+    flex-flow: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 1px;
+
+    & > .btn {
+      flex: none;
+    }
+
+    .file-row {
+      box-sizing: border-box;
+      padding: var(--spacing-sm);
+      display: grid;
+      column-gap: var(--spacing-md);
+      grid-template-columns: 20px 1fr 20px;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-muted);
+
+      & > p {
+        font: var(--t-body-sm-500);
+        color: var(--fg-default);
+        text-wrap: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        max-width: 100%;
+        text-align: left;
+      }
+
+      & > button {
+        --fill: var(--fg-muted);
+
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+
+        &:hover {
+          --fill: var(--fg-critical);
+        }
+
+        svg path {
+          fill: var(--fill);
+
+          @include animate(fill);
+        }
+      }
+    }
+  }
+}

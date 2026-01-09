@@ -2,6 +2,7 @@ use ipnetwork::IpNetwork;
 
 /// Parse a string with comma-separated IP addresses.
 /// Invalid addresses will be silently ignored.
+#[must_use]
 pub fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
     ips.split(',')
         .filter_map(|ip| ip.trim().parse().ok())
@@ -11,6 +12,7 @@ pub fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
 /// Parse a string with comma-separated IP network addresses.
 /// Host bits will be stripped.
 /// Invalid addresses will be silently ignored.
+#[must_use]
 pub fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
     ips.split(',')
         .filter_map(|ip| ip.trim().parse().ok())

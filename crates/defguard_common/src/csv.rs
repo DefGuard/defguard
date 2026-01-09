@@ -4,7 +4,7 @@ pub trait AsCsv {
 
 impl<T, I> AsCsv for I
 where
-    I: ?Sized + std::iter::IntoIterator<Item = T>,
+    I: ?Sized + IntoIterator<Item = T>,
     for<'a> &'a I: IntoIterator<Item = &'a T>,
     T: ToString,
 {

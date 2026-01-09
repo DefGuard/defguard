@@ -849,7 +849,8 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
             break;
         }
         let formatted = formatter(ip_segment);
-        network_part.push_str(&format!("{formatted}{delimiter}"));
+        network_part.push_str(&formatted);
+        network_part.push_str(delimiter);
     }
 
     SplitIp {

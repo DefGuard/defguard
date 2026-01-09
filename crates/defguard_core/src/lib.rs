@@ -101,7 +101,7 @@ use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    grpc::{WorkerState, gateway::map::GatewayMap},
+    grpc::WorkerState,
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -150,7 +150,9 @@ use self::{
     },
 };
 use crate::{
-    grpc::gateway::events::GatewayEvent, location_management::sync_location_allowed_devices,
+    grpc::gateway::events::GatewayEvent,
+    handlers::wireguard::{add_gateway, change_gateway},
+    location_management::sync_location_allowed_devices,
     version::IncompatibleComponents,
 };
 
@@ -348,7 +350,6 @@ pub fn build_webapp(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -621,9 +622,10 @@ pub fn build_webapp(
                     .get(network_details),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
+            .route("/network/{network_id}/gateways", post(add_gateway))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
-                delete(remove_gateway),
+                put(change_gateway).delete(remove_gateway),
             )
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
@@ -641,8 +643,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
             )
-            .route("/outdated", get(outdated_components))
-            .layer(Extension(gateway_state)),
+            .route("/outdated", get(outdated_components)),
     );
 
     let webapp = webapp.nest(
@@ -694,7 +695,6 @@ pub fn build_webapp(
 #[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -710,7 +710,6 @@ pub async fn run_web_server(
         wireguard_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         failed_logins,
         event_tx,
@@ -776,6 +775,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()],
             50051,
             "0.0.0.0".to_string(),
+            None,
+            None,
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
             DEFAULT_KEEPALIVE_INTERVAL,
@@ -875,6 +876,8 @@ pub async fn init_vpn_location(
                 args.port,
                 args.endpoint.clone(),
                 args.dns.clone(),
+                args.mtu.map(|i| i as i32),
+                args.fwmark.map(|i| i as i32),
                 args.allowed_ips.clone(),
                 DEFAULT_KEEPALIVE_INTERVAL,
                 DEFAULT_DISCONNECT_THRESHOLD,
@@ -915,6 +918,8 @@ pub async fn init_vpn_location(
             args.port,
             args.endpoint.clone(),
             args.dns.clone(),
+            args.mtu.map(|i| i as i32),
+            args.fwmark.map(|i| i as i32),
             args.allowed_ips.clone(),
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,

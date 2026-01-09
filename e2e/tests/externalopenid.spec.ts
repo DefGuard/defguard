@@ -8,7 +8,7 @@ import { logout } from '../utils/controllers/logout';
 import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
 import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
-import { createNetwork } from '../utils/controllers/vpn/createNetwork';
+import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
@@ -29,6 +29,7 @@ test.describe('External OIDC.', () => {
   const testNetwork: NetworkForm = {
     name: 'test network',
     address: '10.10.10.1/24',
+    allowed_ips: ['1.2.3.4'],
     endpoint: '127.0.0.1',
     port: '5055',
   };
@@ -46,7 +47,7 @@ test.describe('External OIDC.', () => {
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUser(page, testUser);
     await logout(page);
-    await createNetwork(browser, testNetwork);
+    await createRegularLocation(browser, testNetwork);
     await context.close();
   });
 
@@ -54,7 +55,7 @@ test.describe('External OIDC.', () => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);
-    const oidcLoginButton = page.getByTestId('login-oidc');
+    const oidcLoginButton = await page.locator('.oidc-button');
     expect(oidcLoginButton).not.toBeNull();
     expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
     await oidcLoginButton.click();
@@ -74,17 +75,23 @@ test.describe('External OIDC.', () => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
-    await page.getByTestId('start-enrollment').click();
-    const oidcLoginButton = page.locator('button.oidc-button');
-    expect(oidcLoginButton).not.toBeNull();
-    expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
-    await oidcLoginButton.click();
+    await page.getByTestId('select-enrollment').click();
+    await page.getByTestId('login-oidc').click();
     await page.getByTestId('login-form-username').fill(testUser.username);
     await page.getByTestId('login-form-password').fill(testUser.password);
     await page.getByTestId('login-form-submit').click();
     await page.getByTestId('openid-allow').click();
-    await page.waitForURL('**/download', {
-      waitUntil: 'networkidle',
-    });
+    const instanceUrlBoxText = await page
+      .locator('div.copy-field div.list-cell-text ')
+      .first()
+      .textContent();
+    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL + '/');
+
+    const instanceTokenBoxText = await page
+      .locator('div.copy-field div.list-cell-text ')
+      .nth(1)
+      .textContent();
+    expect(instanceTokenBoxText).toBeDefined();
+    expect(instanceTokenBoxText?.length).toBeGreaterThan(1);
   });
 });

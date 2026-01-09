@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "openid_edit_copy_id": "Copy client ID",
+  "openid_edit_copy_secret": "Copy client secret",
+  "openid_title": "OpenID Apps",
+  "openid_empty_title": "You don't have any OpenID Apps.",
+  "openid_empty_subtitle": "To add one, click the button below.",
+  "openid_add": "Add new OpenID App",
+  "openid_table_top_title": "All apps",
+  "openid_consent_title": "{name} would like to",
+  "openid_consent_scope_openid": "Use OpenID.",
+  "openid_consent_scope_profile": "Know basic information from your profile.",
+  "openid_consent_scope_phone": "Know your phone information.",
+  "openid_consent_scope_groups": "Know what groups your are in.",
+  "openid_consent_scope_email": "Know your email address."
+}

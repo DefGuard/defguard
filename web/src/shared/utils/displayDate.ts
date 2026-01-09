@@ -1,3 +1,10 @@
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
-export const dateToLocal = (value: string): Dayjs => dayjs.utc(value).local();
+const defaultFormat = 'DD/MM/YYYY | HH:mm';
+
+export const displayDate = (date: string | number) => {
+  if (typeof date === 'number') {
+    return dayjs.unix(date).local().format(defaultFormat);
+  }
+  return dayjs.utc(date).local().format(defaultFormat);
+};

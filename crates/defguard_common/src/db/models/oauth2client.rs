@@ -1,10 +1,11 @@
+use model_derive::Model;
+use serde::{Deserialize, Serialize};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
+
 use crate::{
     db::{Id, NoId, models::OAuth2Token},
     random::gen_alphanumeric,
 };
-use model_derive::Model;
-use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct OAuth2Client<I = NoId> {
@@ -105,6 +106,7 @@ impl OAuth2Client<Id> {
     }
 
     /// Checks if `url` matches client config (ignoring trailing slashes).
+    #[must_use]
     pub fn contains_redirect_url(&self, url: &str) -> bool {
         let url_trimmed = url.trim_end_matches('/');
 

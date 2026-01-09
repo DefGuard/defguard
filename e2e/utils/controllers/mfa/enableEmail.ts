@@ -21,16 +21,16 @@ export const setupSMTP = async (browser: Browser) => {
   await waitForBase(page);
   await waitForPromise(5000);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.admin.settings);
-  await page.getByRole('button', { name: 'SMTP' }).click();
+  await page.goto(routes.base + routes.settings.smtp);
   await page.getByTestId('field-smtp_server').fill('testServer.com');
   await page.getByTestId('field-smtp_port').fill('543');
   await page.getByTestId('field-smtp_user').fill('testuser');
   await page.getByTestId('field-smtp_password').fill('test');
   await page.getByTestId('field-smtp_sender').fill('test@test.com');
-  const requestPromise = page.waitForRequest('**/settings');
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await requestPromise;
+  const saveButton = await page.getByTestId('save-changes');
+  if (await saveButton.isEnabled()) {
+    await saveButton.click();
+  }
   await waitForPromise(1000);
   await logout(page);
   await context.close();
@@ -44,17 +44,11 @@ export const enableEmailMFA = async (
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
-  // make so app info will allow email mfa to be enabled for user
   await waitForPromise(5000);
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.me);
-  await page.getByTestId('edit-user').click();
-  await page.getByTestId('edit-email-mfa').scrollIntoViewIfNeeded();
-  await page.getByTestId('edit-email-mfa').click();
-  const requestPromise = page.waitForRequest('**/init');
-  await page.getByTestId('enable-email-mfa-option').click();
-  const formElement = page.locator('#register-mfa-email-form');
-  await requestPromise;
+  await page.goto(routes.base + routes.profile);
+  await page.getByTestId('email-codes-row').locator('.icon-button').click();
+  await page.getByTestId('enable-email').click();
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
   const { otp: code } = TOTP.generate(secret, {
@@ -62,8 +56,7 @@ export const enableEmailMFA = async (
     period: 60,
   });
   await page.getByTestId('field-code').fill(code);
-  await formElement.locator('button[type="submit"]').click();
-  await formElement.waitFor({ state: 'detached', timeout: 1000 });
+  await page.getByTestId('submit').click();
   const recovery = await acceptRecovery(page);
   await context.close();
   return {

@@ -51,20 +51,23 @@ pub(super) async fn run_http_stream_task(
                                     let body: String = {
                                         let text = &response.text().await;
                                         match text {
-                                            Ok(body) => body.to_string(),
+                                            Ok(body) => body.clone(),
                                             Err(_) => "Body decoding failed".to_string(),
                                         }
                                     };
-                                    error!("Activity log stream ({stream_name}) response code {0}. Body: {1}", status_code, body);
+                                    error!("Activity log stream ({stream_name}) response code \
+                                        {status_code}. Body: {body}");
                                 }
                             },
                             Err(e) => {
-                                error!("Activity log stream {stream_name} failed to send messages. Reason: {e}");
+                                error!("Activity log stream {stream_name} failed to send messages. \
+                                    Reason: {e}");
                             }
                         }
                     },
                     Err(e) => {
-                        error!("Receiving activity log stream message failed ! Reason: {}", e.to_string());
+                        error!("Receiving activity log stream message failed! Reason: {}",
+                            e.to_string());
                         break;
                     }
                 }

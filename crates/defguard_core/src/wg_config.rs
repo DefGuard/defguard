@@ -1,4 +1,4 @@
-use std::{array::TryFromSliceError, net::IpAddr};
+use std::net::IpAddr;
 
 use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -11,12 +11,12 @@ use defguard_common::{
         Device, WireguardNetwork,
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            ServiceLocationMode, WireguardNetworkError,
+            ServiceLocationMode,
         },
     },
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
@@ -40,16 +40,12 @@ pub(crate) enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
+    #[error("Invalid MTU: {0}")]
+    InvalidMTU(String),
+    #[error("Invalid FwMark: {0}")]
+    InvalidFwMark(String),
     #[error("Missing interface network address")]
     MissingAddress,
-    #[error("WireGuard network error")]
-    NetworkError(#[from] WireguardNetworkError),
-}
-
-impl From<TryFromSliceError> for WireguardConfigParseError {
-    fn from(e: TryFromSliceError) -> Self {
-        WireguardConfigParseError::InvalidKey(format!("{e}"))
-    }
 }
 
 impl From<DecodeError> for WireguardConfigParseError {
@@ -65,10 +61,10 @@ pub(crate) fn parse_wireguard_config(
     // Parse WireGuardNetwork
     let interface_section = config
         .section(Some("Interface"))
-        .ok_or_else(|| WireguardConfigParseError::SectionNotFound("Interface"))?;
+        .ok_or(WireguardConfigParseError::SectionNotFound("Interface"))?;
     let prvkey = interface_section
         .get("PrivateKey")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PrivateKey"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("PrivateKey"))?;
     let prvkey_bytes: [u8; KEY_LENGTH] = BASE64_STANDARD
         .decode(prvkey.as_bytes())?
         .try_into()
@@ -77,14 +73,31 @@ pub(crate) fn parse_wireguard_config(
         BASE64_STANDARD.encode(PublicKey::from(&StaticSecret::from(prvkey_bytes)).to_bytes());
     let address = interface_section
         .get("Address")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("Address"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("Address"))?;
     let port = interface_section
         .get("ListenPort")
-        .ok_or_else(|| WireguardConfigParseError::KeyNotFound("ListenPort"))?;
+        .ok_or(WireguardConfigParseError::KeyNotFound("ListenPort"))?;
     let port = port
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
     let dns = interface_section.get("DNS").map(ToString::to_string);
+    let mtu = match interface_section.get("MTU") {
+        Some(value) => Some(
+            value
+                .parse::<i32>()
+                .map_err(|_| WireguardConfigParseError::InvalidMTU(value.to_string()))?,
+        ),
+        None => None,
+    };
+    // TODO: FwMark should also accept hex values.
+    let fwmark = match interface_section.get("FwMark") {
+        Some(value) => Some(
+            value
+                .parse::<i32>()
+                .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
+        ),
+        None => None,
+    };
     let mut addresses: Vec<IpNetwork> = Vec::new();
     for addr in address.split(',') {
         match addr.trim().parse() {
@@ -106,6 +119,8 @@ pub(crate) fn parse_wireguard_config(
         port,
         String::new(),
         dns,
+        mtu,
+        fwmark,
         allowed_ips,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
@@ -124,7 +139,7 @@ pub(crate) fn parse_wireguard_config(
     for peer in peer_sections {
         let allowed_ips = peer
             .get("AllowedIPs")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
+            .ok_or(WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
 
         let mut peer_addresses: Vec<IpAddr> = Vec::new();
         for allowed_ip in allowed_ips.split(',') {
@@ -148,7 +163,7 @@ pub(crate) fn parse_wireguard_config(
 
         let pubkey = peer
             .get("PublicKey")
-            .ok_or_else(|| WireguardConfigParseError::KeyNotFound("PublicKey"))?;
+            .ok_or(WireguardConfigParseError::KeyNotFound("PublicKey"))?;
         Device::validate_pubkey(pubkey).map_err(WireguardConfigParseError::InvalidKey)?;
 
         // check if device pubkey collides with network pubkey
@@ -183,6 +198,8 @@ mod test {
             Address = 10.0.0.1/24
             ListenPort = 55055
             DNS = 10.0.0.2
+            MTU = 1420
+            FwMark = 51820
 
             [Peer]
             PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
@@ -213,6 +230,8 @@ mod test {
         );
         assert_eq!(network.endpoint, "");
         assert_eq!(network.dns, Some("10.0.0.2".to_string()));
+        assert_eq!(network.mtu, Some(1420));
+        assert_eq!(network.fwmark, Some(51820));
         assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
         assert_eq!(network.connected_at, None);
 

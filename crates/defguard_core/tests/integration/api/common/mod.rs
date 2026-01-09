@@ -20,10 +20,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
-    grpc::{
-        WorkerState,
-        gateway::{events::GatewayEvent, map::GatewayMap},
-    },
+    grpc::{WorkerState, gateway::events::GatewayEvent},
     handlers::{Auth, user::UserDetails},
 };
 use defguard_mail::Mail;
@@ -89,7 +86,6 @@ pub(crate) async fn make_base_client(
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -135,7 +131,6 @@ pub(crate) async fn make_base_client(
         wg_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         failed_logins,
         api_event_tx,

@@ -1,0 +1,32 @@
+#locations-overview-page .page-content {
+  & > .top {
+    display: flex;
+    flex-flow: row nowrap;
+    box-sizing: border-box;
+    padding: 0 var(--spacing-xl);
+
+    & > p {
+      font: var(--t-title-h4);
+    }
+
+    & > .right {
+      margin-left: auto;
+      width: 100%;
+      max-width: 200px;
+    }
+  }
+
+  & > ul {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+    list-style: none;
+    padding: 0 var(--spacing-xl);
+
+    .location-overview-card .summary-top {
+      p {
+        font: var(--t-title-h5);
+      }
+    }
+  }
+}

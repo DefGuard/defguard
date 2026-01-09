@@ -1,0 +1,11 @@
+.settings-layout {
+  & > .layout-grid {
+    box-sizing: border-box;
+    padding: var(--spacing-3xl) var(--spacing-xl);
+
+    & > .main-content {
+      grid-column: 1 / 7;
+      grid-row: 1;
+    }
+  }
+}

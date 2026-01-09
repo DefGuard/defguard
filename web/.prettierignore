@@ -1,4 +1,3 @@
-/src/i18n/*.ts
-/src/i18n/*.tsx
 /src/**/*.tsx
 /src/**/*.ts
+/src/**/*.js

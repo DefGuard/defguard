@@ -561,7 +561,7 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
                 }
                 _ => {
                     error!("Failed to parse ports string: \"{ports}\"");
-                    return Err(AclError::InvalidPortsFormat(ports.to_string()));
+                    return Err(AclError::InvalidPortsFormat(ports.clone()));
                 }
             }
         }
@@ -911,8 +911,8 @@ impl AclRule<Id> {
         } else {
             query_as!(
                 WireguardNetwork,
-                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, keepalive_interval, peer_disconnect_threshold, \
+                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+                allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
                 acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
                 service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \

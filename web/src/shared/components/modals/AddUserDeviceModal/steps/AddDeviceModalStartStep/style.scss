@@ -1,0 +1,59 @@
+#add-device-start-step {
+  .option {
+    display: grid;
+    grid-template-columns: calc(90px + var(--spacing-2xl)) 1fr calc(
+        20px + var(--spacing-4xl)
+      );
+    align-items: center;
+    grid-template-rows: 1fr;
+    box-sizing: border-box;
+    padding: var(--spacing-lg);
+    border: var(--border-1) solid var(--border-disabled);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+
+    .image img {
+      width: 90px;
+      height: auto;
+    }
+
+    & > .icon {
+      justify-self: end;
+    }
+
+    .description {
+      p {
+        &:nth-child(1) {
+          font: var(--t-body-primary-600);
+          padding-bottom: var(--spacing-sm);
+        }
+
+        &:nth-child(2) {
+          font: var(--t-body-sm-400);
+          color: var(--fg-muted);
+        }
+      }
+    }
+  }
+
+  .fold-control {
+    border: 0;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-sm);
+    cursor: pointer;
+
+    span {
+      color: var(--fg-action);
+    }
+
+    .icon {
+      path {
+        fill: var(--fg-action);
+      }
+    }
+  }
+}

@@ -5,19 +5,6 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
-use crate::{
-    auth::claims::{Claims, ClaimsType},
-    db::{
-        Id, NoId,
-        models::{
-            ModelError,
-            group::{Group, Permission},
-            vpn_client_session::{VpnClientSession, VpnClientSessionState},
-            vpn_session_stats::VpnSessionStats,
-        },
-    },
-    types::user_info::UserInfo,
-};
 use base64::prelude::{BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
@@ -25,8 +12,8 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as, query_scalar,
+    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
+    query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, info};
@@ -34,14 +21,23 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
+    ModelError,
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
+    group::{Group, Permission},
     user::User,
+    wireguard_peer_stats::WireguardPeerStats,
+};
+use crate::{
+    auth::claims::{Claims, ClaimsType},
+    db::{Id, NoId},
+    types::user_info::UserInfo,
+    utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 
-// Used in process of importing network from wireguard config
+// Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: Id,
@@ -108,12 +104,14 @@ pub struct WireguardNetwork<I = NoId> {
     #[model(ref)]
     #[schema(value_type = String)]
     pub address: Vec<IpNetwork>,
-    pub port: i32,
+    pub port: i32, // Should be u16
     pub pubkey: String,
     #[serde(default, skip_serializing)]
     pub prvkey: String,
     pub endpoint: String,
     pub dns: Option<String>,
+    pub mtu: Option<i32>,    // Should be Option<u32>, but sqlx won't allow that.
+    pub fwmark: Option<i32>, // Should be Option<u32>, but sqlx won't allow that.
     #[model(ref)]
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
@@ -168,30 +166,6 @@ impl fmt::Debug for WireguardNetwork<Id> {
     }
 }
 
-#[cfg(test)]
-impl Default for WireguardNetwork<Id> {
-    fn default() -> Self {
-        Self {
-            id: Id::default(),
-            name: String::default(),
-            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-            port: i32::default(),
-            pubkey: String::default(),
-            prvkey: String::default(),
-            endpoint: String::default(),
-            dns: Option::default(),
-            allowed_ips: Vec::default(),
-            connected_at: Option::default(),
-            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
-            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
-            acl_default_allow: false,
-            acl_enabled: false,
-            location_mfa_mode: LocationMfaMode::default(),
-            service_location_mode: ServiceLocationMode::default(),
-        }
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum WireguardNetworkError {
     #[error("Network address space cannot fit all devices")]
@@ -241,6 +215,8 @@ impl WireguardNetwork {
         port: i32,
         endpoint: String,
         dns: Option<String>,
+        mtu: Option<i32>,
+        fwmark: Option<i32>,
         allowed_ips: Vec<IpNetwork>,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
@@ -260,9 +236,10 @@ impl WireguardNetwork {
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
+            mtu,
+            fwmark,
             allowed_ips,
             connected_at: None,
-
             keepalive_interval,
             peer_disconnect_threshold,
             acl_enabled,
@@ -274,8 +251,6 @@ impl WireguardNetwork {
 
     /// Try to set `address` from `&str`.
     pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        use crate::utils::parse_address_list;
-
         let address = parse_address_list(address);
         if address.is_empty() {
             return Err(IpNetworkError::InvalidAddr("invalid address".into()));
@@ -296,8 +271,8 @@ impl WireguardNetwork<Id> {
     {
         let networks = query_as!(
             WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
             acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
@@ -506,13 +481,15 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
         device_id: Id,
-    ) -> Result<Option<NaiveDateTime>, SqlxError> {
+    ) -> Result<Option<NaiveDateTime>, sqlx::Error> {
         // Find a first handshake gap longer than WIREGUARD_MAX_HANDSHAKE.
         // We assume that this gap indicates a time when the device was not connected.
         // So, the handshake after this gap is the moment the last connection was established.
-        // If no such gap is found, the device may be connected from the beginning, return the first handshake in this case.
+        // If no such gap is found, the device may be connected from the beginning, return the first
+        // handshake in this case.
         let connected_at = query_scalar!(
-            "WITH stats AS (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
+            "WITH stats AS \
+            (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
             SELECT \
                 COALESCE( \
                     ( \
@@ -536,6 +513,23 @@ impl WireguardNetwork<Id> {
         Ok(connected_at)
     }
 
+    /// Update `connected_at` to the current time and save it to the database.
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.connected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE wireguard_network SET connected_at = $2 WHERE name = $1",
+            self.name,
+            self.connected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
     /// Retrieves stats for specified devices
     pub(crate) async fn device_stats(
         &self,
@@ -543,7 +537,7 @@ impl WireguardNetwork<Id> {
         devices: &[Device<Id>],
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
@@ -642,7 +636,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardUserStatsRow>, sqlx::Error> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
 
         // Retrieve data series for all active devices and assign them to users
@@ -658,7 +652,7 @@ impl WireguardNetwork<Id> {
         for u in user_map {
             let user = User::find_by_id(conn, u.0)
                 .await?
-                .ok_or(SqlxError::RowNotFound)?;
+                .ok_or(sqlx::Error::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
                 user: UserInfo::from_user(conn, &user).await?,
                 devices: u.1.clone(),
@@ -724,7 +718,7 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardStatsRow>, SqlxError> {
+    ) -> Result<Vec<WireguardStatsRow>, sqlx::Error> {
         let stats = query_as!(
             WireguardStatsRow,
             "SELECT \
@@ -774,7 +768,7 @@ impl WireguardNetwork<Id> {
         &self,
         executor: E,
         device_type: DeviceType,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
+    ) -> Result<Vec<Device<Id>>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
@@ -886,8 +880,8 @@ impl WireguardNetwork<Id> {
     {
         let locations = query_as!(
             WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
             acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
@@ -1078,6 +1072,8 @@ impl Default for WireguardNetwork {
             prvkey: String::default(),
             endpoint: String::default(),
             dns: Option::default(),
+            mtu: Option::default(),
+            fwmark: Option::default(),
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
@@ -1532,6 +1528,8 @@ mod test {
             50051,
             String::new(),
             None,
+            None,
+            None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,
@@ -1663,6 +1661,8 @@ mod test {
             ],
             50051,
             String::new(),
+            None,
+            None,
             None,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,

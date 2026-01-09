@@ -28,7 +28,7 @@ anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = [
+axum-extra = { version = "0.12", features = [
     "cookie-private",
     "typed-header",
     "query",
@@ -45,9 +45,9 @@ clap = { version = "4.5", features = ["derive", "env"] }
 humantime = "2.1"
 # match version used by sqlx
 ipnetwork = "0.20"
-jsonwebkey = { version = "0.3", features = ["pkcs-convert"] }
+jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = "9.3"
-ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
+ldap3 = { version = "0.12", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1-native-tls"] }
 matches = "0.1"
 md4 = "0.10"
@@ -63,13 +63,12 @@ pulldown-cmark = "0.13"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
-# 0.21.2 causes config parsing errors
-rust-ini = "=0.21.1"
+rust-ini = "0.21"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
-serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
+serde_cbor = { version = "0.13", package = "serde_cbor_2" }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
@@ -111,12 +110,11 @@ tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
-uaparser = "0.6"
 # openapi
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
-webauthn-authenticator-rs = { version = "0.5" }
+webauthn-authenticator-rs = "0.5"
 webauthn-rs = { version = "0.5", features = [
     "danger-allow-state-serialisation",
 ] }
