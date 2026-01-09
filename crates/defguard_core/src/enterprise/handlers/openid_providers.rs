@@ -46,12 +46,12 @@ pub struct AddProviderData {
     pub prefetch_users: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 pub struct DeleteProviderData {
     name: String,
 }
 
-pub async fn add_openid_provider(
+pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
@@ -213,7 +213,7 @@ pub async fn get_current_openid_provider(
     }
 }
 
-pub async fn delete_openid_provider(
+pub(crate) async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
@@ -268,10 +268,11 @@ pub async fn delete_openid_provider(
     }
 }
 
-pub async fn modify_openid_provider(
+pub(crate) async fn modify_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
@@ -290,6 +291,11 @@ pub async fn modify_openid_provider(
             "User {} modified OpenID client {}",
             session.user.username, provider.name
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::OpenIdProviderModified { provider }),
+        })?;
+
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::OK,
@@ -306,19 +312,19 @@ pub async fn modify_openid_provider(
     }
 }
 
-pub async fn list_openid_providers(
-    _license: LicenseInfo,
-    _admin: AdminRole,
-    State(appstate): State<AppState>,
-) -> ApiResult {
-    let providers = OpenIdProvider::all(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(providers),
-        status: StatusCode::OK,
-    })
-}
+// pub(crate) async fn list_openid_providers(
+//     _license: LicenseInfo,
+//     _admin: AdminRole,
+//     State(appstate): State<AppState>,
+// ) -> ApiResult {
+//     let providers = OpenIdProvider::all(&appstate.pool).await?;
+//     Ok(ApiResponse {
+//         json: json!(providers),
+//         status: StatusCode::OK,
+//     })
+// }
 
-pub async fn test_dirsync_connection(
+pub(crate) async fn test_dirsync_connection(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
@@ -331,8 +337,8 @@ pub async fn test_dirsync_connection(
 
     if let Err(err) = test_directory_sync_connection(&appstate.pool).await {
         error!(
-            "User {} tested directory sync connection, the connection failed: {}",
-            session.user.username, err
+            "User {} tested directory sync connection, the connection failed: {err}",
+            session.user.username,
         );
         return Ok(ApiResponse {
             json: json!({"message": err.to_string(), "success": false}),
