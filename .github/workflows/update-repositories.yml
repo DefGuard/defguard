@@ -1,0 +1,90 @@
+name: Update repositories with packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-apt:
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download .deb assets from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir debs
+          gh release download "${{ github.event.release.tag_name }}" \
+            --pattern "*.deb" \
+            --dir debs
+
+      - name: Install ruby with deb-s3
+        run: |
+          sudo apt-get install -y ruby
+          gem install deb-s3
+          echo "$(ruby -r rubygems -e 'puts Gem.user_dir')/bin" >> $GITHUB_PATH
+
+      - name: Upload DEB to APT repository
+        run: |
+          if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+            component="pre-release"
+          else
+            component="release"
+          fi
+
+          for deb_file in debs/*.deb; do
+            if [[ "$deb_file" == *"ubuntu-22-04-lts"* ]]; then
+              codename="bookworm"
+            else
+              codename="trixie"
+            fi
+            
+            echo "Uploading $deb_file to $codename"
+            deb-s3 upload -l \
+              --bucket=apt.defguard.net \
+              --access-key-id=${{ secrets.AWS_ACCESS_KEY_APT }} \
+              --secret-access-key=${{ secrets.AWS_SECRET_KEY_APT }} \
+              --s3-region=eu-north-1 \
+              --no-fail-if-exists \
+              --codename="$codename" \
+              --component="$component"
+              "$deb_file"
+          done
+
+  apt-sign:
+    needs:
+      - update-apt
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    steps:
+      - name: Sign APT repository
+        run: |
+          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_APT }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY_APT }}
+          export AWS_REGION=eu-north-1
+          sudo apt update -y
+          sudo apt install -y awscli curl jq
+
+          for DIST in trixie bookworm; do
+            aws s3 cp s3://apt.defguard.net/dists/${DIST}/Release .
+
+            curl -X POST "${{ secrets.DEFGUARD_SIGNING_URL }}?signature_type=both" \
+              -H "Authorization: Bearer ${{ secrets.DEFGUARD_SIGNING_API_KEY }}" \
+              -F "file=@Release" \
+              -o response.json
+
+            cat response.json | jq -r '.files["Release.gpg"].content' | base64 --decode > Release.gpg
+            cat response.json | jq -r '.files.Release.content' | base64 --decode > InRelease
+
+            aws s3 cp Release.gpg s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+            aws s3 cp InRelease s3://apt.defguard.net/dists/${DIST}/ --acl public-read
+
+          done
+          (aws s3 ls s3://apt.defguard.net/dists/ --recursive; aws s3 ls s3://apt.defguard.net/pool/ --recursive) | awk '{print "<a href=\""$4"\">"$4"</a><br>"}' > index.html
+          aws s3 cp index.html s3://apt.defguard.net/ --acl public-read
