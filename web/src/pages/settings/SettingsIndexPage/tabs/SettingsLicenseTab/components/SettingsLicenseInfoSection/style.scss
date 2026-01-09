@@ -47,6 +47,12 @@
   }
 
   .license-limit-progress {
+    .progression-bar.complete {
+      .bar {
+        background-color: var(--bg-critical);
+      }
+    }
+
     & > .info {
       display: flex;
       flex-flow: row nowrap;

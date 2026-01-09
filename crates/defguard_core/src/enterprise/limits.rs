@@ -114,6 +114,22 @@ impl Counts {
         }
     }
 
+    pub(crate) fn user(&self) -> u32 {
+        self.user
+    }
+
+    pub(crate) fn user_device(&self) -> u32 {
+        self.user_device
+    }
+
+    pub(crate) fn network_device(&self) -> u32 {
+        self.network_device
+    }
+
+    pub(crate) fn location(&self) -> u32 {
+        self.location
+    }
+
     // New licenses have a network device limit field, this function handles backwards compatibility
     // If no such field is present = old behavior (user devices + network devices <= devices limit)
     // If field is present, check user devices and network devices separately

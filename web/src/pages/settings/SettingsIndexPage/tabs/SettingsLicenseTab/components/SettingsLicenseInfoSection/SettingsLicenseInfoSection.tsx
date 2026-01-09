@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useMemo } from 'react';
+import { Fragment, type PropsWithChildren, useMemo } from 'react';
 import './style.scss';
 import dayjs from 'dayjs';
 import type { LicenseInfo } from '../../../../../../../shared/api/types';
@@ -26,7 +26,8 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
           {isPresent(licenseTier) && (
             <>
               <p>{licenseTier}</p>
-              <Badge variant="success" text="Active" />
+              {license.expired && <Badge variant="critical" text="Expired" />}
+              {!license.expired && <Badge variant="success" text="Active" />}
             </>
           )}
           {!isPresent(licenseTier) && (
@@ -36,21 +37,25 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
           )}
         </PropertyInfo>
         <PropertyInfo title={`License type`}>
-          <p>{`Offline`}</p>
+          <p>{license.subscription ? 'Subscription' : 'Offline'}</p>
         </PropertyInfo>
         <PropertyInfo title={`Support type`}>
-          <p>{`Community support`}</p>
+          <p>{`Placeholder`}</p>
         </PropertyInfo>
-        {!license.expired && (
+        {!license.expired && isPresent(license.valid_until) && (
           <PropertyInfo title={`Valid until`}>
             <ValidUntil validUntil={license.valid_until} />
           </PropertyInfo>
         )}
       </div>
       <Divider spacing={ThemeSpacing.Xl} />
-      <p className="limits-label">{`Current plan limits`}</p>
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <LimitsSection license={license} />
+      {isPresent(license.limits) && (
+        <Fragment>
+          <p className="limits-label">{`Current plan limits`}</p>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <LimitsSection license={license} />
+        </Fragment>
+      )}
     </div>
   );
 };
@@ -64,7 +69,11 @@ const ValidUntil = ({ validUntil }: ValidUntilProps) => {
     const untilDay = dayjs.utc(validUntil).local();
     const nowDay = dayjs();
     const diff = untilDay.diff(nowDay, 'days');
-    return `${untilDay.format('DD/MM/YYYY')} (${diff} ${diff !== 1 ? 'days' : 'day'} left)`;
+    let res = untilDay.format('DD/MM/YYYY');
+    if (diff > 0) {
+      res += ` (${diff} ${diff !== 1 ? 'days' : 'day'} left)`;
+    }
+    return res;
   }, [validUntil]);
 
   return <p>{display}</p>;
@@ -74,16 +83,45 @@ type LimitSectionProps = {
   license: LicenseInfo;
 };
 
-const LimitsSection = (_props: LimitSectionProps) => {
+const LimitsSection = ({ license: { limits } }: LimitSectionProps) => {
   return (
     <div className="license-limits">
-      <LicenseLimitProgress title="Added users" icon="users" value={4} maxValue={10} />
+      <LicenseLimitProgress
+        title="Added users"
+        icon="users"
+        value={limits.users.current}
+        maxValue={limits.users.limit}
+      />
       <LicenseLimitProgress
         title="VPN locations"
         icon="location-tracking"
-        value={1}
-        maxValue={3}
+        value={limits.locations.current}
+        maxValue={limits.locations.limit}
       />
+      {isPresent(limits.devices) && (
+        <LicenseLimitProgress
+          title={`Devices`}
+          icon="devices"
+          value={limits.devices.current}
+          maxValue={limits.devices.limit}
+        />
+      )}
+      {isPresent(limits.user_devices) && (
+        <LicenseLimitProgress
+          title={`Users devices`}
+          icon="devices"
+          value={limits.user_devices.current}
+          maxValue={limits.user_devices.limit}
+        />
+      )}
+      {isPresent(limits.network_devices) && (
+        <LicenseLimitProgress
+          title={`Network devices`}
+          icon="servers"
+          value={limits.network_devices.current}
+          maxValue={limits.network_devices.limit}
+        />
+      )}
     </div>
   );
 };
