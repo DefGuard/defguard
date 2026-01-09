@@ -1116,7 +1116,7 @@ dependencies = [
 
 [[package]]
 name = "defguard_common"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
