@@ -60,7 +60,7 @@ export const LicenseModal = () => {
 };
 
 const formSchema = z.object({
-  license: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+  license: z.string(m.form_error_invalid()).trim().min(1, m.form_error_required()),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -79,7 +79,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
       closeModal(modalNameValue);
     },
     meta: {
-      invalidate: ['settings'],
+      invalidate: [['settings'], ['enterprise_info']],
     },
   });
 
@@ -92,7 +92,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
     },
     onSubmit: async ({ value, formApi }) => {
       await patchSettings({
-        license: value.license,
+        license: value.license.replaceAll('\n', '').trim(),
       }).catch((e: AxiosError<ApiError>) => {
         if (e.status && e.status >= 400 && e.status < 500) {
           formApi.setErrorMap({

@@ -1,6 +1,7 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Fragment } from 'react/jsx-runtime';
+import { LicenseTier } from '../../../../../shared/api/types';
 import { Controls } from '../../../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { SettingsCard } from '../../../../../shared/components/SettingsCard/SettingsCard';
@@ -31,7 +32,6 @@ import {
 } from '../../../../../shared/query';
 import businessImage from './assets/business.png';
 import enterpriseImage from './assets/enterprise.png';
-import starterImage from './assets/starter.png';
 import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSection/SettingsLicenseInfoSection';
 import { LicenseModal } from './modals/LicenseModal/LicenseModal';
 
@@ -43,12 +43,6 @@ type LicenseItemData = {
 };
 
 const licenses: Array<LicenseItemData> = [
-  {
-    title: 'Starter',
-    imageSrc: starterImage,
-    description: `Advanced protection, shared access controls, and centralized billing. Ideal for small to medium teams.`,
-    badges: [{ text: 'Free', variant: BadgeVariant.Success }],
-  },
   {
     title: 'Business',
     imageSrc: businessImage,
@@ -66,6 +60,8 @@ export const SettingsLicenseTab = () => {
   const appLicenseInfo = useApp((s) => s.appInfo.license_info);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useQuery(getSettingsQueryOptions);
+
+  const licenseTier = licenseInfo?.tier ?? null;
 
   return (
     <SettingsLayout id="settings-license-tab">
@@ -109,30 +105,27 @@ export const SettingsLicenseTab = () => {
           </Controls>
         </SettingsCard>
       )}
-      <SizedBox height={ThemeSpacing.Xl} />
-      <SettingsCard id="license-plans">
-        <header>
-          <h5>{`Expand your possibilities with advanced plans`}</h5>
-          <ExternalLink
-            href="https://defguard.net/pricing/"
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            {`Select your plan`}
-          </ExternalLink>
-        </header>
-        <SizedBox height={ThemeSpacing.Xl3} />
-        {licenses.map((data, index) => {
-          const isLast = index !== licenses.length - 1;
-          return (
-            <Fragment key={index}>
-              <LicenseItem data={data} />
-              {isLast && <Divider spacing={ThemeSpacing.Xl2} />}
-            </Fragment>
-          );
-        })}
-      </SettingsCard>
-      {/* modals */}
+      {isPresent(licenseTier) && !(licenseTier === LicenseTier.Enterprise) && (
+        <Fragment>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <SettingsCard id="license-plans">
+            <header>
+              <h5>{`Expand your possibilities with advanced plans`}</h5>
+              <ExternalLink
+                href="https://defguard.net/pricing/"
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                {`Select your plan`}
+              </ExternalLink>
+            </header>
+            <SizedBox height={ThemeSpacing.Xl3} />
+            <div className="tiers">
+              <LicenseItem data={licenses[1]} />
+            </div>
+          </SettingsCard>
+        </Fragment>
+      )}
       <LicenseModal />
     </SettingsLayout>
   );

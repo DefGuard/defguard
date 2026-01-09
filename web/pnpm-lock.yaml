@@ -81,8 +81,8 @@ importers:
         specifier: ^4.17.22
         version: 4.17.22
       motion:
-        specifier: ^12.24.12
-        version: 12.24.12(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        specifier: ^12.25.0
+        version: 12.25.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.3)
@@ -130,8 +130,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1(vite@7.3.1(@types/node@25.0.3)(sass@1.97.2)(tsx@4.21.0))
       '@tanstack/router-plugin':
-        specifier: ^1.146.2
-        version: 1.146.2(@tanstack/react-router@1.146.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(vite@7.3.1(@types/node@25.0.3)(sass@1.97.2)(tsx@4.21.0))
+        specifier: ^1.146.3
+        version: 1.146.3(@tanstack/react-router@1.146.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(vite@7.3.1(@types/node@25.0.3)(sass@1.97.2)(tsx@4.21.0))
       '@types/byte-size':
         specifier: ^8.1.2
         version: 8.1.2
@@ -1256,8 +1256,8 @@ packages:
     resolution: {integrity: sha512-0eO/iL50OrNLtG613iHLmps8AVJC7WChDz+njFViTiWCf20RMEjeUlKTffdrREx3v/QeaLVuxlBvLkXRqSW0yg==}
     engines: {node: '>=12'}
 
-  '@tanstack/router-plugin@1.146.2':
-    resolution: {integrity: sha512-4eHhoH2z69KfJTXqLqWAnfseGxzAiw5BX7wDatzXR5ODYXOu+JBIEMiZrP2YDclxPLVuetmBrGAluWSduH8O/g==}
+  '@tanstack/router-plugin@1.146.3':
+    resolution: {integrity: sha512-2YCieC5UbFBEf3d1Up6Q2IeGqRjc+qmxbCvVxSONnitK6aDFKpRoxltlhMyeQyeIhFsIyhqxaIADOkO+fMrFRQ==}
     engines: {node: '>=12'}
     peerDependencies:
       '@rsbuild/core': '>=1.0.2'
@@ -1819,8 +1819,8 @@ packages:
   fraction.js@5.3.4:
     resolution: {integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==}
 
-  framer-motion@12.24.12:
-    resolution: {integrity: sha512-W+tBOI1SDGNMH4D4mADY95qYd16Drke2Tj9zlGlwTGSCi6yy8wbMmPY1mvirfcTK8HBeuuCd2PflHdN/zbL4ew==}
+  framer-motion@12.25.0:
+    resolution: {integrity: sha512-mlWqd0rApIjeyhTCSNCqPYsUAEhkcUukZxH3ke6KbstBRPcxhEpuIjmiUQvB+1E9xkEm5SpNHBgHCapH/QHTWg==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -2222,8 +2222,8 @@ packages:
   motion-utils@12.24.10:
     resolution: {integrity: sha512-x5TFgkCIP4pPsRLpKoI86jv/q8t8FQOiM/0E8QKBzfMozWHfkKap2gA1hOki+B5g3IsBNpxbUnfOum1+dgvYww==}
 
-  motion@12.24.12:
-    resolution: {integrity: sha512-usaP62NpHmM8++QrEnNoCco6qrtK1AtzkeHfgW+4qICE0k7ykK+dPJGaRjEzo7sF1GcrYskrGBB/r5RtqnminQ==}
+  motion@12.25.0:
+    resolution: {integrity: sha512-jBFohEYklpZ+TL64zv03sHdqr1Tsc8/yDy7u68hVzi7hTJYtv53AduchqCiY3aWi4vY1hweS8DWtgCuckusYdQ==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -3828,7 +3828,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/router-plugin@1.146.2(@tanstack/react-router@1.146.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(vite@7.3.1(@types/node@25.0.3)(sass@1.97.2)(tsx@4.21.0))':
+  '@tanstack/router-plugin@1.146.3(@tanstack/react-router@1.146.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(vite@7.3.1(@types/node@25.0.3)(sass@1.97.2)(tsx@4.21.0))':
     dependencies:
       '@babel/core': 7.28.5
       '@babel/plugin-syntax-jsx': 7.27.1(@babel/core@7.28.5)
@@ -4346,7 +4346,7 @@ snapshots:
 
   fraction.js@5.3.4: {}
 
-  framer-motion@12.24.12(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+  framer-motion@12.25.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
       motion-dom: 12.24.11
       motion-utils: 12.24.10
@@ -4872,9 +4872,9 @@ snapshots:
 
   motion-utils@12.24.10: {}
 
-  motion@12.24.12(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+  motion@12.25.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
-      framer-motion: 12.24.12(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      framer-motion: 12.25.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tslib: 2.8.1
     optionalDependencies:
       react: 19.2.3

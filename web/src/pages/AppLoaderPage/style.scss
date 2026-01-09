@@ -1,0 +1,15 @@
+#app-loader-page {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-4xl);
+  height: 100dvh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-default);
+
+  & > svg {
+    width: calc(129 * 2px);
+    height: calc(32 * 2px);
+  }
+}

@@ -3,6 +3,7 @@ import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayL
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
 import { useAuth } from '../shared/hooks/useAuth';
 import { AppConfigProvider } from '../shared/providers/AppConfigProvider';
+import { AppUserProvider } from '../shared/providers/AppUserProvider';
 
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
@@ -16,10 +17,12 @@ export const Route = createFileRoute('/_authorized')({
 
 function RouteComponent() {
   return (
-    <AppConfigProvider>
-      <Outlet />
-      <DisplayListModal />
-      <SelectionModal />
-    </AppConfigProvider>
+    <AppUserProvider>
+      <AppConfigProvider>
+        <Outlet />
+        <DisplayListModal />
+        <SelectionModal />
+      </AppConfigProvider>
+    </AppUserProvider>
   );
 }
