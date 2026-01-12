@@ -130,7 +130,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut settings = Settings::get_current_settings();
     if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        warn!(
+        info!(
             "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
         );
 

@@ -64,6 +64,22 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum Scheme {
+    Http,
+    Https,
+}
+
+impl Scheme {
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        match self {
+            Self::Http => "http",
+            Self::Https => "https",
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ProxyError {
     #[error(transparent)]
@@ -258,12 +274,11 @@ impl Proxy {
         }
     }
 
-    fn endpoint(&self, with_tls: bool) -> Result<Endpoint, ProxyError> {
+    fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
-        let scheme = if with_tls { "https" } else { "http" };
-        url.set_scheme(scheme).map_err(|()| {
-            ProxyError::UrlError(format!("Failed to set {scheme} scheme on URL {url}"))
+        url.set_scheme(scheme.as_str()).map_err(|()| {
+            ProxyError::UrlError(format!("Failed to set {scheme:?} scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
@@ -271,7 +286,7 @@ impl Proxy {
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
 
-        let endpoint = if with_tls {
+        let endpoint = if scheme == Scheme::Https {
             let settings = Settings::get_current_settings();
             let Some(ca_cert_der) = settings.ca_cert_der else {
                 return Err(ProxyError::MissingConfiguration(
@@ -311,7 +326,7 @@ impl Proxy {
                 sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
             }
 
-            let endpoint = self.endpoint(true)?;
+            let endpoint = self.endpoint(Scheme::Https)?;
 
             debug!("Connecting to proxy at {}", endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
@@ -377,7 +392,7 @@ impl Proxy {
     /// this step will perform the signing. Otherwise, the step will be skipped
     /// by instantly sending the "Done" message by both parties.
     pub async fn perform_initial_setup(&self) -> Result<(), ProxyError> {
-        let endpoint = self.endpoint(false)?;
+        let endpoint = self.endpoint(Scheme::Http)?;
 
         let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
         let mut client = ProxySetupClient::with_interceptor(endpoint.connect_lazy(), interceptor);
