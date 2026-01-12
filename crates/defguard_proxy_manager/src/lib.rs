@@ -144,14 +144,14 @@ impl ProxyRouter {
 /// - instantiating and supervising proxy connections,
 /// - routing responses to the appropriate proxy based on correlation state,
 /// - providing shared infrastructure (database access, outbound channels),
-pub struct ProxyOrchestrator {
+pub struct ProxyManager {
     pool: PgPool,
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     router: Arc<RwLock<ProxyRouter>>,
 }
 
-impl ProxyOrchestrator {
+impl ProxyManager {
     pub fn new(
         pool: PgPool,
         tx: ProxyTxSet,
@@ -226,14 +226,14 @@ impl ProxyTxSet {
 /// bidirectional stream to one proxy instance, handling incoming requests
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
-/// `ProxyOrchestrator`.
+/// `ProxyManager`.
 struct Proxy {
     pool: PgPool,
     /// Proxy server gRPC URI
     endpoint: Endpoint,
     /// gRPC servers
     services: ProxyServices,
-    /// Router shared between proxies and the orchestrator
+    /// Router shared between proxies and the proxy manager
     router: Arc<RwLock<ProxyRouter>>,
 }
 
