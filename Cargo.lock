@@ -776,8 +776,10 @@ checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
+ "hkdf",
  "percent-encoding",
  "rand 0.8.5",
+ "sha2",
  "subtle",
  "time",
  "version_check",
@@ -1286,6 +1288,7 @@ name = "defguard_proxy_manager"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "axum-extra",
  "defguard_common",
  "defguard_core",
  "defguard_mail",
@@ -1293,6 +1296,7 @@ dependencies = [
  "defguard_version",
  "openidconnect",
  "reqwest",
+ "secrecy",
  "semver",
  "sqlx",
  "thiserror 2.0.17",

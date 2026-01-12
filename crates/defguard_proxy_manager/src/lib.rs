@@ -7,8 +7,10 @@ use std::{
 };
 
 use axum::http::Uri;
+use axum_extra::extract::cookie::Key;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
+use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
 use thiserror::Error;
@@ -65,8 +67,6 @@ extern crate tracing;
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 static COOKIE_KEY_HEADER: &str = "dg-cookie-key-bin";
-// TODO(jck)
-static COOKIE_KEY: &[u8] = &[1; 64];
 
 #[derive(Error, Debug)]
 pub enum ProxyError {
@@ -293,9 +293,14 @@ impl Proxy {
                 ProxyClient::with_interceptor(self.endpoint.connect_lazy(), interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
             let mut request = tonic::Request::new(UnboundedReceiverStream::new(rx));
-            request
-                .metadata_mut()
-                .insert_bin(COOKIE_KEY_HEADER, MetadataValue::from_bytes(COOKIE_KEY));
+            let config = server_config();
+
+            // Derive proxy cookie key from core secret to avoid transmitting it.
+            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
+            request.metadata_mut().insert_bin(
+                COOKIE_KEY_HEADER,
+                MetadataValue::from_bytes(proxy_cookie_key.master()),
+            );
             let response = match client.bidi(request).await {
                 Ok(response) => response,
                 Err(err) => {
