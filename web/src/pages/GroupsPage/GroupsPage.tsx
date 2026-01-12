@@ -2,6 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getGroupsInfoQueryOptions, getUsersQueryOptions } from '../../shared/query';
 import { GroupsTable } from './components/GroupsTable/GroupsTable';
 import { CEGroupModal } from './modals/CEGroupModal/CEGroupModal';
@@ -13,7 +14,9 @@ export const GroupsPage = () => {
     <>
       <Page id="groups-page" title="Groups">
         <SizedBox height={ThemeSpacing.Xl3} />
-        <GroupsTable groups={groups} users={users} />
+        <TablePageLayout>
+          <GroupsTable groups={groups} users={users} />
+        </TablePageLayout>
       </Page>
       <CEGroupModal />
     </>
