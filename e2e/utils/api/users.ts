@@ -18,11 +18,12 @@ export const apiGetUserProfile = async (
   username: string,
 ): Promise<ApiUserProfile> => {
   const url = testsConfig.CORE_BASE_URL + '/user/' + username;
-  const userProfile = await page.evaluate(async (url) => {
-    return await fetch(url, {
-      method: 'GET',
-    }).then((res) => res.json());
-  }, url);
+  const response = await page.request.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const userProfile = await response.json();
   return userProfile;
 };
 
@@ -41,11 +42,12 @@ export const apiGetUserAuthKeys = async (
   username: string,
 ): Promise<ApiUserAuthKey[]> => {
   const url = testsConfig.CORE_BASE_URL + `/user/${username}/auth_key`;
-  const userData = await page.evaluate(async (url) => {
-    return await fetch(url, {
-      method: 'GET',
-    }).then((res) => res.json());
-  }, url);
+  const response = await page.request.get(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const userData = await response.json();
   return userData;
 };
 
@@ -57,28 +59,17 @@ export const apiCreateUsersBulk = async (page: Page, users: User[]): Promise<voi
 
 export const apiCreateUser = async (page: Page, user: User): Promise<void> => {
   const url = testsConfig.CORE_BASE_URL + '/user';
-  await page.evaluate(
-    async ({ user, url }) => {
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access-control-allow-origin': '*',
-        },
-        body: JSON.stringify({
-          username: user.username,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          email: user.mail,
-          phone: user.phone,
-          password: user.password,
-        }),
-      };
-      await fetch(url, options);
+  await page.request.post(url, {
+    data: {
+      username: user.username,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.mail,
+      phone: user.phone,
+      password: user.password,
     },
-    {
-      user,
-      url,
+    headers: {
+      'Content-Type': 'application/json',
     },
-  );
+  });
 };

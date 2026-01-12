@@ -1,0 +1,17 @@
+#add-network-device-modal {
+  .box-controls {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-md);
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  form {
+    .fields {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xl);
+    }
+  }
+}

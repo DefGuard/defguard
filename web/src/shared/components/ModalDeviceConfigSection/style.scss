@@ -1,0 +1,16 @@
+.modal-device-config-section {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  grid-template-rows: 1fr;
+  column-gap: var(--spacing-4xl);
+
+  & > .right {
+    width: 100%;
+
+    & > p {
+      font: var(--t-body-xs-500);
+      color: var(--fg-muted);
+      padding-bottom: var(--spacing-md);
+    }
+  }
+}

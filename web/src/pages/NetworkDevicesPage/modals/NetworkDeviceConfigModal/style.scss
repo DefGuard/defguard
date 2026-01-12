@@ -1,0 +1,7 @@
+#network-device-config-modal .box-controls {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: var(--spacing-md);
+}

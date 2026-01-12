@@ -1,0 +1,15 @@
+#test-snackbar {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  flex-flow: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-top: var(--spacing-4xl);
+  padding-bottom: var(--spacing-2xl);
+
+  .input > .inner {
+    min-width: 300px;
+  }
+}

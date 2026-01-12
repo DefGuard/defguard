@@ -1,6 +1,5 @@
 use std::{
     collections::{HashMap, HashSet},
-    net::IpAddr,
     str::FromStr,
 };
 
@@ -97,6 +96,8 @@ pub struct WireguardNetworkData {
     pub port: i32,
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
+    pub mtu: Option<i32>,
+    pub fwmark: Option<i32>,
     pub allowed_groups: Vec<String>,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
@@ -232,6 +233,8 @@ pub(crate) async fn create_network(
         data.port,
         data.endpoint,
         data.dns,
+        data.mtu,
+        data.fwmark,
         allowed_ips,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
@@ -685,10 +688,10 @@ pub(crate) async fn import_network(
     info!("New network {network} created");
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
-    let reserved_ips: Vec<IpAddr> = imported_devices
+    let reserved_ips = imported_devices
         .iter()
         .flat_map(|dev| dev.wireguard_ips.clone())
-        .collect();
+        .collect::<Vec<_>>();
     let (devices, gateway_events) =
         handle_imported_devices(&network, &mut transaction, imported_devices).await?;
     appstate.send_multiple_wireguard_events(gateway_events);

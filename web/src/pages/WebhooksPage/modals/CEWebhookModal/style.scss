@@ -1,0 +1,7 @@
+#ce-webhook-modal form {
+  .webhooks {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+  }
+}

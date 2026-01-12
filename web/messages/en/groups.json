@@ -1,0 +1,13 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "groups_title": "Groups",
+  "groups_table_title": "All groups",
+  "groups_add": "Add new group",
+  "groups_search_placeholder": "Find group",
+  "groups_col_name": "Group name",
+  "groups_col_users_count": "Added users",
+  "groups_col_type": "Type",
+  "groups_col_locations": "Used in locations",
+  "groups_type_admin": "Admin",
+  "groups_type_user": "User"
+}

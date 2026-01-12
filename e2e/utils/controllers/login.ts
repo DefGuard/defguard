@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test';
 import { Page } from 'playwright';
 import { TOTP } from 'totp-generator';
 
@@ -15,26 +14,25 @@ type AuthInfo = User | Pick<User, 'username' | 'password'>;
 export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
-  await page.getByTestId('login-form-username').fill(userInfo.username);
-  await page.getByTestId('login-form-password').fill(userInfo.password);
-  const responsePromise = page.waitForResponse('**/auth');
-  await page.getByTestId('login-form-submit').click();
-  const response = await responsePromise;
-  expect([200, 201].includes(response.status())).toBeTruthy();
-  await waitForPromise(2000);
+  await page.getByTestId('field-username').fill(userInfo.username);
+  await page.getByTestId('field-password').fill(userInfo.password);
+  await page.getByTestId('sign-in').click();
+  await waitForPromise(1000);
 };
 
 export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {
-  await loginBasic(page, userInfo);
+  await page.goto(testsConfig.BASE_URL);
+  await waitForRoute(page, routes.auth.login);
+  await page.getByTestId('field-username').fill(userInfo.username);
+  await page.getByTestId('field-password').fill(userInfo.password);
+  await page.getByTestId('sign-in').click();
   await waitForRoute(page, routes.auth.totp);
-  const codeField = page.getByTestId('field-code');
+  const codeField = await page.getByTestId('field-code');
   await codeField.clear();
-  const responsePromise = page.waitForResponse('**/verify');
   const { otp: token } = TOTP.generate(totpSecret);
-  await codeField.type(token);
-  await page.locator('button[type="submit"]').click();
-  const response = await responsePromise;
-  expect(response.status()).toBe(200);
+  await codeField.fill(token);
+  await page.getByTestId('submit-totp').click();
+  await waitForPromise(1000);
 };
 
 export const loginRecoveryCodes = async (
@@ -42,11 +40,15 @@ export const loginRecoveryCodes = async (
   userInfo: AuthInfo,
   code: string,
 ): Promise<void> => {
-  await loginBasic(page, userInfo);
-  await page.goto(routes.base + routes.auth.recovery, {
-    waitUntil: 'networkidle',
-  });
+  await page.goto(testsConfig.BASE_URL);
+  await waitForRoute(page, routes.auth.login);
+  await page.getByTestId('field-username').fill(userInfo.username);
+  await page.getByTestId('field-password').fill(userInfo.password);
+  await page.getByTestId('sign-in').click();
+  await page.locator('a:has-text("Use recovery codes instead")').click();
+  await waitForPromise(1000);
   await page.getByTestId('field-code').clear();
-  await page.getByTestId('field-code').fill(code.trim(), { delay: 100 });
-  await page.locator('button[type="submit"]').click();
+  await page.getByTestId('field-code').fill(code.trim());
+  await page.getByTestId('submit-recovery-code').click();
+  await waitForPromise(1000);
 };

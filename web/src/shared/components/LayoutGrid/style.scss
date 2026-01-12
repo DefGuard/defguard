@@ -1,0 +1,13 @@
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 1fr;
+
+  &.variant-default {
+    column-gap: 40px;
+  }
+
+  &.variant-wizard {
+    column-gap: 60px;
+  }
+}

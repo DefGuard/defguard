@@ -1,0 +1,33 @@
+#openid-consent-page {
+  h1 {
+    font: var(--t-title-h4);
+    color: var(--fg-default);
+  }
+
+  form {
+    display: inline-block;
+    height: 0;
+    width: 0;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  main > * {
+    width: 100%;
+  }
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+
+    li {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-md);
+    }
+  }
+}

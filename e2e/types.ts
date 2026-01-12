@@ -67,7 +67,7 @@ export type NetworkForm = {
   address: string;
   endpoint: string;
   port: string;
-  allowed_ips?: string;
+  allowed_ips?: string[];
   dns?: string;
   location_mfa_mode?: string;
 };
@@ -90,3 +90,9 @@ export type EditNetworkDeviceForm = {
 };
 
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';
+
+export enum Protocols {
+  UDP = 'UDP',
+  TCP = 'TCP',
+  ICMP = 'ICMP',
+}

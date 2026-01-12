@@ -27,12 +27,15 @@ jobs:
           submodules: "recursive"
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 25
       - name: install deps
         working-directory: ./web
         run: |
           npm i -g npm pnpm
           pnpm i --frozen-lockfile
+      - name: Build
+        working-directory: ./web
+        run: pnpm run build
       - name: Lint
         working-directory: ./web
         run: pnpm run lint

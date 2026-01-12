@@ -1,0 +1,12 @@
+#settings-openid-tab {
+  .section-label {
+    font: var(--t-body-xxs-500);
+    color: var(--fg-muted);
+  }
+
+  & > .providers {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+  }
+}

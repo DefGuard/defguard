@@ -1,0 +1,16 @@
+.controls {
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: var(--spacing-md);
+  align-items: center;
+  justify-content: flex-start;
+
+  .right {
+    margin-left: auto;
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-md);
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
