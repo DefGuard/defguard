@@ -1,32 +1,12 @@
 use std::{
     collections::HashMap,
-    fs::read_to_string,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
 
-use axum::http::Uri;
-use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
-use reqwest::Url;
-use semver::Version;
-use sqlx::PgPool;
-use thiserror::Error;
-use tokio::{
-    sync::{
-        broadcast::Sender,
-        mpsc::{self, UnboundedSender},
-    },
-    task::JoinSet,
-    time::sleep,
-};
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Code, Streaming,
-    transport::{Certificate, ClientTlsConfig, Endpoint},
-};
-
-use defguard_common::{VERSION, config::server_config};
+use defguard_certs::der_to_pem;
+use defguard_common::{VERSION, config::server_config, db::models::Settings};
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enrollment_management::clear_unused_enrollment_tokens,
@@ -46,11 +26,30 @@ use defguard_core::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
-    core_response, proxy_client::ProxyClient,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload,
+    InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
+    proxy_setup_client::ProxySetupClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
+};
+use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
+use reqwest::Url;
+use semver::Version;
+use sqlx::PgPool;
+use thiserror::Error;
+use tokio::{
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender},
+    },
+    task::JoinSet,
+    time::sleep,
+};
+use tokio_stream::wrappers::UnboundedReceiverStream;
+use tonic::{
+    Code, Streaming,
+    transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
 use crate::{enrollment::EnrollmentServer, password_reset::PasswordResetServer};
@@ -62,7 +61,24 @@ pub(crate) mod password_reset;
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
+const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum Scheme {
+    Http,
+    Https,
+}
+
+impl Scheme {
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        match self {
+            Self::Http => "http",
+            Self::Https => "https",
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum ProxyError {
@@ -78,6 +94,18 @@ pub enum ProxyError {
     SqlxError(#[from] sqlx::Error),
     #[error(transparent)]
     TokenError(#[from] TokenError),
+    #[error(transparent)]
+    CertificateError(#[from] defguard_certs::CertificateError),
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
+    #[error("Missing proxy configuration: {0}")]
+    MissingConfiguration(String),
+    #[error("URL error: {0}")]
+    UrlError(String),
+    #[error(transparent)]
+    Transport(#[from] tonic::Status),
+    #[error("Connection timeout: {0}")]
+    ConnectionTimeout(String),
 }
 
 /// Maintains routing state for proxy-specific responses by associating
@@ -173,10 +201,10 @@ impl ProxyOrchestrator {
         };
         let proxies = vec![Proxy::new(
             self.pool.clone(),
-            Uri::from_str(url)?,
+            Url::from_str(url)?,
             &self.tx,
             Arc::clone(&self.router),
-        )?];
+        )];
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
             tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
@@ -203,7 +231,7 @@ pub struct ProxyTxSet {
 
 impl ProxyTxSet {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         wireguard: Sender<GatewayEvent>,
         mail: UnboundedSender<Mail>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
@@ -225,51 +253,56 @@ impl ProxyTxSet {
 /// `ProxyOrchestrator`.
 struct Proxy {
     pool: PgPool,
-    /// Proxy server gRPC URI
-    endpoint: Endpoint,
     /// gRPC servers
     services: ProxyServices,
     /// Router shared between proxies and the orchestrator
     router: Arc<RwLock<ProxyRouter>>,
+    /// Proxy server gRPC URL
+    url: Url,
 }
 
 impl Proxy {
-    pub fn new(
-        pool: PgPool,
-        uri: Uri,
-        tx: &ProxyTxSet,
-        router: Arc<RwLock<ProxyRouter>>,
-    ) -> Result<Self, ProxyError> {
-        let endpoint = Endpoint::from(uri);
+    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
+        // Instantiate gRPC servers.
+        let services = ProxyServices::new(&pool, tx);
 
-        // Set endpoint keep-alive to avoid connectivity issues in proxied deployments.
+        Self {
+            pool,
+            services,
+            router,
+            url,
+        }
+    }
+
+    fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
+        let mut url = self.url.clone();
+
+        url.set_scheme(scheme.as_str()).map_err(|()| {
+            ProxyError::UrlError(format!("Failed to set {scheme:?} scheme on URL {url}"))
+        })?;
+        let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
             .http2_keep_alive_interval(TEN_SECS)
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
 
-        // Setup certs.
-        let config = server_config();
-        let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
-            let ca = read_to_string(ca).map_err(|err| {
-                error!("Failed to read CA certificate: {err:?}");
-                ProxyError::CaCertReadError(err)
-            })?;
-            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        let endpoint = if scheme == Scheme::Https {
+            let settings = Settings::get_current_settings();
+            let Some(ca_cert_der) = settings.ca_cert_der else {
+                return Err(ProxyError::MissingConfiguration(
+                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+                ));
+            };
+
+            let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
+            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
+
             endpoint.tls_config(tls)?
         } else {
-            endpoint.tls_config(ClientTlsConfig::new().with_enabled_roots())?
+            endpoint
         };
 
-        // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx);
-
-        Ok(Self {
-            pool,
-            endpoint,
-            services,
-            router,
-        })
+        Ok(endpoint)
     }
 
     /// Establishes and maintains a gRPC bidirectional stream to the proxy.
@@ -283,10 +316,21 @@ impl Proxy {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Result<(), ProxyError> {
         loop {
-            debug!("Connecting to proxy at {}", self.endpoint.uri());
+            // TODO: When we will have proxy table, we should first check in DB if we already configured
+            // this proxy, and only perform initial setup if not.
+            if let Err(err) = self.perform_initial_setup().await {
+                warn!(
+                    "Failed to perform initial Proxy setup: {err}. Will try to connect anyway as proxy may be already setup."
+                );
+            } else {
+                sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
+            }
+
+            let endpoint = self.endpoint(Scheme::Https)?;
+
+            debug!("Connecting to proxy at {}", endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-            let mut client =
-                ProxyClient::with_interceptor(self.endpoint.connect_lazy(), interceptor);
+            let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
@@ -296,14 +340,14 @@ impl Proxy {
                             error!(
                                 "Failed to connect to proxy @ {}, version check failed, retrying in \
                             10s: {err}",
-                                self.endpoint.uri()
+                                endpoint.uri()
                             );
                             // TODO push event
                         }
                         err => {
                             error!(
                                 "Failed to connect to proxy @ {}, retrying in 10s: {err}",
-                                self.endpoint.uri()
+                                endpoint.uri()
                             );
                         }
                     }
@@ -336,11 +380,71 @@ impl Proxy {
             }
             IncompatibleComponents::remove_proxy(&incompatible_components);
 
-            info!("Connected to proxy at {}", self.endpoint.uri());
+            info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
             self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
         }
+    }
+
+    /// Attempt to perform an initial setup of the target proxy.
+    /// If the proxy doesn't have signed gRPC certificates by Core yet,
+    /// this step will perform the signing. Otherwise, the step will be skipped
+    /// by instantly sending the "Done" message by both parties.
+    pub async fn perform_initial_setup(&self) -> Result<(), ProxyError> {
+        let endpoint = self.endpoint(Scheme::Http)?;
+
+        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+        let mut client = ProxySetupClient::with_interceptor(endpoint.connect_lazy(), interceptor);
+        let Some(hostname) = self.url.host_str() else {
+            return Err(ProxyError::UrlError(
+                "Proxy URL missing hostname".to_string(),
+            ));
+        };
+
+        let csr = client
+            .start(InitialSetupInfo {
+                cert_hostname: hostname.to_string(),
+            })
+            .await?
+            .into_inner();
+
+        let csr = defguard_certs::Csr::from_der(&csr.der_data)?;
+
+        let settings = Settings::get_current_settings();
+
+        let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(
+                "CA certificate DER not found in settings for proxy gRPC bidi stream".to_string(),
+            )
+        })?;
+        let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(
+                "CA key pairs DER not found in settings for proxy gRPC bidi stream".to_string(),
+            )
+        })?;
+
+        let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
+            &ca_cert_der,
+            &ca_key_pair,
+        )?;
+
+        match ca.sign_csr(&csr) {
+            Ok(cert) => {
+                let response = DerPayload {
+                    der_data: cert.der().to_vec(),
+                };
+                client.send_cert(response).await?;
+                info!(
+                    "Signed CSR received from proxy during initial setup and sent back the certificate"
+                );
+            }
+            Err(err) => {
+                error!("Failed to sign CSR: {err}");
+            }
+        }
+
+        Ok(())
     }
 
     /// Processes incoming requests from the proxy over an active gRPC stream.
@@ -794,7 +898,7 @@ impl Proxy {
                     }
                 }
                 Err(err) => {
-                    error!("Disconnected from proxy at {}: {err}", self.endpoint.uri());
+                    error!("Disconnected from proxy at {}: {err}", self.url);
                     debug!("waiting 10s to re-establish the connection");
                     sleep(TEN_SECS).await;
                     break 'message;
