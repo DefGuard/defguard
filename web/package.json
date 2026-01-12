@@ -37,7 +37,7 @@
     "humanize-duration": "^3.33.2",
     "ipaddr.js": "^2.3.0",
     "lodash-es": "^4.17.22",
-    "motion": "^12.25.0",
+    "motion": "^12.26.1",
     "qrcode.react": "^4.2.0",
     "qs": "^6.14.1",
     "react": "^19.2.3",
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.11",
-    "@inlang/paraglide-js": "2.7.2",
+    "@inlang/paraglide-js": "2.8.0",
     "@tanstack/devtools-vite": "^0.4.1",
     "@tanstack/router-plugin": "^1.149.0",
     "@types/byte-size": "^8.1.2",
