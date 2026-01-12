@@ -36,6 +36,7 @@ type PayloadOf<N extends ModalNameValue> =
   }
     ? D
     : undefined;
+
 export function openModal<N extends ModalNameValue>(
   name: N,
   ...args: PayloadOf<N> extends undefined ? [] : [PayloadOf<N>]
@@ -43,6 +44,10 @@ export function openModal<N extends ModalNameValue>(
   const event = (
     args.length === 0 ? { name } : { name, data: args[0] }
   ) as ModalOpenEvent;
+
+  // blur whatever right now has focus
+  const activeElement = document.activeElement as HTMLElement | null;
+  activeElement?.blur();
 
   openModalSubject.next(event);
 }
