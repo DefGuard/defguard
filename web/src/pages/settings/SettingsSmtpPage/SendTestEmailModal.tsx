@@ -82,6 +82,7 @@ const ModalContent = () => {
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
         {`Check if your SMTP configuration works by sending a test email.`}
       </AppText>
+      <SizedBox height={ThemeSpacing.Xl2} />
       <form
         onSubmit={(e) => {
           e.stopPropagation();

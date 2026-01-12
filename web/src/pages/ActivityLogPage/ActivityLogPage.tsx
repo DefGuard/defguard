@@ -5,6 +5,7 @@ import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { ActivityLogTable } from './ActivityLogTable';
 
 export const ActivityLogPage = () => {
@@ -36,18 +37,20 @@ export const ActivityLogPage = () => {
   return (
     <Page id="activity-log-page" title={`Activity log`}>
       <SizedBox height={ThemeSpacing.Xl3} />
-      {isPresent(flatData) && isPresent(pagination) && (
-        <ActivityLogTable
-          data={flatData}
-          pagination={pagination}
-          filters={{}}
-          loadingNextPage={isFetchingNextPage}
-          onNextPage={() => {
-            fetchNextPage();
-          }}
-          hasNextPage={pagination.next_page !== null}
-        />
-      )}
+      <TablePageLayout>
+        {isPresent(flatData) && isPresent(pagination) && (
+          <ActivityLogTable
+            data={flatData}
+            pagination={pagination}
+            filters={{}}
+            loadingNextPage={isFetchingNextPage}
+            onNextPage={() => {
+              fetchNextPage();
+            }}
+            hasNextPage={pagination.next_page !== null}
+          />
+        )}
+      </TablePageLayout>
     </Page>
   );
 };

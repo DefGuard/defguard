@@ -23,7 +23,9 @@ import { TableValuesListCell } from '../../shared/components/TableValuesListCell
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
+import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
@@ -51,6 +53,22 @@ const columnHelper = createColumnHelper<RowData>();
 export const UsersTable = ({ users }: Props) => {
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
+
+  const addButtonProps = useMemo(
+    (): ButtonProps => ({
+      variant: 'primary',
+      text: 'Add new user',
+      iconLeft: 'add-user',
+      testId: 'add-user',
+      onClick: () => {
+        useAddUserModal.getState().open({
+          reservedEmails,
+          reservedUsernames,
+        });
+      },
+    }),
+    [reservedEmails, reservedUsernames],
+  );
 
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -429,6 +447,15 @@ export const UsersTable = ({ users }: Props) => {
     getRowCanExpand: (row) => row.original.devices.length > 0,
   });
 
+  if (users.length === 0)
+    return (
+      <EmptyStateFlexible
+        title={`No users here yet.`}
+        subtitle={`Add users by clicking the button below.`}
+        primaryAction={addButtonProps}
+      />
+    );
+
   return (
     <>
       <TableTop text={m.users_header_title()}>
@@ -455,40 +482,13 @@ export const UsersTable = ({ users }: Props) => {
           initialValue={search}
           onChange={setSearch}
         />
-        <Button
-          iconLeft="add-user"
-          text={m.users_add()}
-          testId="add-user"
-          onClick={() => {
-            useAddUserModal.getState().open({
-              reservedEmails,
-              reservedUsernames,
-            });
-          }}
-        />
+        <Button {...addButtonProps} />
       </TableTop>
       {transformedData.length === 0 && search.length > 0 && (
         <EmptyState
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
-        />
-      )}
-      {transformedData.length === 0 && search.length === 0 && (
-        <EmptyState
-          icon="search"
-          title={m.users_empty_title()}
-          subtitle={m.users_empty_subtitle()}
-          primaryAction={{
-            text: m.users_add(),
-            iconLeft: 'add-user',
-            onClick: () => {
-              useAddUserModal.getState().open({
-                reservedEmails,
-                reservedUsernames,
-              });
-            },
-          }}
         />
       )}
       {transformedData.length > 0 && (
