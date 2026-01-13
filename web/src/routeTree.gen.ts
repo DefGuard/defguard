@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SnackbarRouteImport } from './routes/snackbar'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppLoaderRouteImport } from './routes/app-loader'
@@ -24,6 +25,7 @@ import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
+import { Route as AuthorizedWizardSetupWizardRouteImport } from './routes/_authorized/_wizard/setup-wizard'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
@@ -49,6 +51,11 @@ import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_autho
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
+const SnackbarRoute = SnackbarRouteImport.update({
+  id: '/snackbar',
+  path: '/snackbar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConsentRoute = ConsentRouteImport.update({
   id: '/consent',
   path: '/consent',
@@ -122,6 +129,12 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
+const AuthorizedWizardSetupWizardRoute =
+  AuthorizedWizardSetupWizardRouteImport.update({
+    id: '/_wizard/setup-wizard',
+    path: '/setup-wizard',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthorizedWizardAddLocationRoute =
   AuthorizedWizardAddLocationRouteImport.update({
     id: '/_wizard/add-location',
@@ -269,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -282,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -307,6 +322,7 @@ export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/app-loader': typeof AppLoaderRoute
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -320,6 +336,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -348,6 +365,7 @@ export interface FileRoutesById {
   '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -362,6 +380,7 @@ export interface FileRoutesById {
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/_authorized/_wizard/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -390,6 +409,7 @@ export interface FileRouteTypes {
     | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -403,6 +423,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -428,6 +449,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/app-loader'
     | '/consent'
+    | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -441,6 +463,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -468,6 +491,7 @@ export interface FileRouteTypes {
     | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/snackbar'
     | '/_authorized/_default'
     | '/auth/callback'
     | '/auth/loading'
@@ -482,6 +506,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
+    | '/_authorized/_wizard/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -510,10 +535,18 @@ export interface RootRouteChildren {
   AppLoaderRoute: typeof AppLoaderRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
+  SnackbarRoute: typeof SnackbarRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/snackbar': {
+      id: '/snackbar'
+      path: '/snackbar'
+      fullPath: '/snackbar'
+      preLoaderRoute: typeof SnackbarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/consent': {
       id: '/consent'
       path: '/consent'
@@ -618,6 +651,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/mfa/email'
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
+    }
+    '/_authorized/_wizard/setup-wizard': {
+      id: '/_authorized/_wizard/setup-wizard'
+      path: '/setup-wizard'
+      fullPath: '/setup-wizard'
+      preLoaderRoute: typeof AuthorizedWizardSetupWizardRouteImport
+      parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/add-location': {
       id: '/_authorized/_wizard/add-location'
@@ -853,6 +893,7 @@ interface AuthorizedRouteChildren {
   AuthorizedDefaultRoute: typeof AuthorizedDefaultRouteWithChildren
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
+  AuthorizedWizardSetupWizardRoute: typeof AuthorizedWizardSetupWizardRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -860,6 +901,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
+  AuthorizedWizardSetupWizardRoute: AuthorizedWizardSetupWizardRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
@@ -907,6 +949,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppLoaderRoute: AppLoaderRoute,
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
+  SnackbarRoute: SnackbarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

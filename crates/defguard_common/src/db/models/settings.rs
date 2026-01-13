@@ -143,6 +143,8 @@ pub struct Settings {
     pub gateway_disconnect_notifications_enabled: bool,
     pub gateway_disconnect_notifications_inactivity_threshold: i32,
     pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
+    pub ca_key_der: Option<Vec<u8>>,
+    pub ca_cert_der: Option<Vec<u8>>,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -249,7 +251,8 @@ impl Settings {
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
-            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\" \
+            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\", \
+            ca_key_der, ca_cert_der \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -326,7 +329,9 @@ impl Settings {
             ldap_uses_ad = $45, \
             ldap_user_rdn_attr = $46, \
             ldap_sync_groups = $47, \
-            openid_username_handling = $48 \
+            openid_username_handling = $48, \
+            ca_key_der = $49, \
+            ca_cert_der = $50 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -376,6 +381,8 @@ impl Settings {
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
             &self.openid_username_handling as &OpenidUsernameHandling,
+            &self.ca_key_der as &Option<Vec<u8>>,
+            &self.ca_cert_der as &Option<Vec<u8>>,
         )
         .execute(executor)
         .await?;
