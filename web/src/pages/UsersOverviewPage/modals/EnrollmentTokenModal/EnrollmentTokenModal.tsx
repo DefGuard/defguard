@@ -17,7 +17,6 @@ import {
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { useApp } from '../../../../shared/hooks/useApp';
 import {
   closeModal,
   subscribeCloseModal,
@@ -25,6 +24,7 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenEnrollmentTokenModal } from '../../../../shared/hooks/modalControls/types';
+import { useApp } from '../../../../shared/hooks/useApp';
 
 const modalName = ModalName.EnrollmentToken;
 
@@ -88,7 +88,7 @@ const ModalContent = ({ user }: ModalData) => {
               ctx.addIssue({
                 code: 'custom',
                 path: ['email'],
-                message: result.error.message,
+                message: result.error.issues[0].message,
               });
             }
           }
@@ -121,7 +121,7 @@ const ModalContent = ({ user }: ModalData) => {
     if (!form.state.isPristine) {
       form.validateAllFields('change');
     }
-  }, [sendEmail]);
+  }, [form.state.isPristine, form.validateAllFields]);
 
   useEffect(() => {
     const fetchEnrollmentToken = async () => {
