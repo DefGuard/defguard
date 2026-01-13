@@ -12,6 +12,7 @@ import type {
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
   OpenEditUserModal,
+  OpenEnrollmentTokenModal,
   OpenGatewaySetupModal,
   OpenLicenseModal,
   OpenNetworkDeviceConfigModal,
@@ -45,6 +46,7 @@ export const ModalName = {
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
   AddLocation: 'addLocation',
+  EnrollmentToken: 'enrollmentToken',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -98,6 +100,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.EditUserModal),
     data: z.custom<OpenEditUserModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.EnrollmentToken),
+    data: z.custom<OpenEnrollmentTokenModal>(),
   }),
   z.object({
     name: z.literal(ModalName.CEOpenIdClient),

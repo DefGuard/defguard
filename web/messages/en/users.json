@@ -24,5 +24,6 @@
   "users_row_menu_edit": "Edit details",
   "users_row_menu_change_password": "Change password",
   "users_row_menu_edit_groups": "Edit groups",
+  "users_row_menu_enrollment_token": "User activation token",
   "modal_edit_user_groups_title": "Edit user groups"
 }

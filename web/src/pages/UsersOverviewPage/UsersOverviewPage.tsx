@@ -10,6 +10,7 @@ import { getUsersQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
+import { EnrollmentTokenModal } from './modals/EnrollmentTokenModal/EnrollmentTokenModal';
 import { UsersTable } from './UsersTable';
 
 export const UsersOverviewPage = () => {
@@ -21,6 +22,7 @@ export const UsersOverviewPage = () => {
       </Page>
       <AddUserModal />
       <EditUserModal />
+      <EnrollmentTokenModal />
       <AddAuthKeyModal />
       <ChangePasswordModal />
       <AssignUsersToGroupsModal />

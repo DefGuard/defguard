@@ -50,6 +50,10 @@ export interface OpenEditUserModal {
   reservedEmails: string[];
 }
 
+export interface OpenEnrollmentTokenModal {
+  user: User;
+}
+
 export interface OpenCEOpenIdClientModal {
   openIdClient?: OpenIdClient;
   reservedNames: string[];

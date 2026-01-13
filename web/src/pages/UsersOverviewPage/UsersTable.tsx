@@ -227,6 +227,19 @@ export const UsersTable = ({ users }: Props) => {
                 menuItems={[
                   {
                     items: [
+                      ...(!rowData.enrolled
+                        ? [
+                            {
+                              text: m.users_row_menu_enrollment_token(),
+                              icon: 'enrollment' as const,
+                              onClick: () => {
+                                openModal(ModalName.EnrollmentToken, {
+                                  user: rowData,
+                                });
+                              },
+                            },
+                          ]
+                        : []),
                       {
                         text: m.users_row_menu_edit(),
                         icon: 'edit',
