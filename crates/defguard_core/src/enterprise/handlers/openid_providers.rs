@@ -46,11 +46,6 @@ pub struct AddProviderData {
     pub prefetch_users: bool,
 }
 
-#[derive(Deserialize)]
-pub struct DeleteProviderData {
-    name: String,
-}
-
 pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -182,13 +177,16 @@ pub(crate) async fn add_openid_provider(
     })
 }
 
-pub async fn get_current_openid_provider(
+pub async fn get_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
+    Path(name): Path<String>,
 ) -> ApiResult {
     let settings = Settings::get_current_settings();
-    match OpenIdProvider::get_current(&appstate.pool).await? {
+    let settings_json = json!({"create_account": settings.openid_create_account,
+        "username_handling": settings.openid_username_handling});
+    match OpenIdProvider::find_by_name(&appstate.pool, &name).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
@@ -196,8 +194,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({"create_account": settings.openid_create_account,
-                        "username_handling": settings.openid_username_handling}),
+                    "settings": settings_json,
                 }),
                 status: StatusCode::OK,
             })
@@ -205,8 +202,7 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({"create_account": settings.openid_create_account,
-                    "username_handling": settings.openid_username_handling}),
+                "settings": settings_json,
             }),
             status: StatusCode::NO_CONTENT,
         }),
@@ -219,14 +215,14 @@ pub(crate) async fn delete_openid_provider(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Path(provider_data): Path<DeleteProviderData>,
+    Path(name): Path<String>,
 ) -> ApiResult {
     debug!(
-        "User {} deleting OpenID provider {}",
-        session.user.username, provider_data.name
+        "User {} deleting OpenID provider {name}",
+        session.user.username
     );
     let mut transaction = appstate.pool.begin().await?;
-    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &name).await?;
     if let Some(provider) = provider {
         provider.clone().delete(&mut *transaction).await?;
         // fetch all locations using external MFA
@@ -258,8 +254,8 @@ pub(crate) async fn delete_openid_provider(
         })
     } else {
         warn!(
-            "User {} failed to delete OpenID provider {}. Such provider does not exist.",
-            session.user.username, provider_data.name
+            "User {} failed to delete OpenID provider {name}. Such provider does not exist.",
+            session.user.username,
         );
         Ok(ApiResponse {
             json: json!({}),
@@ -312,17 +308,17 @@ pub(crate) async fn modify_openid_provider(
     }
 }
 
-// pub(crate) async fn list_openid_providers(
-//     _license: LicenseInfo,
-//     _admin: AdminRole,
-//     State(appstate): State<AppState>,
-// ) -> ApiResult {
-//     let providers = OpenIdProvider::all(&appstate.pool).await?;
-//     Ok(ApiResponse {
-//         json: json!(providers),
-//         status: StatusCode::OK,
-//     })
-// }
+pub(crate) async fn list_openid_providers(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let providers = OpenIdProvider::all(&appstate.pool).await?;
+    Ok(ApiResponse {
+        json: json!(providers),
+        status: StatusCode::OK,
+    })
+}
 
 pub(crate) async fn test_dirsync_connection(
     _license: LicenseInfo,

@@ -93,7 +93,7 @@ use self::{
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
-                add_openid_provider, delete_openid_provider, get_current_openid_provider,
+                add_openid_provider, delete_openid_provider, get_openid_provider,
                 modify_openid_provider, test_dirsync_connection,
             },
         },
@@ -150,6 +150,7 @@ use self::{
     },
 };
 use crate::{
+    enterprise::handlers::openid_providers::list_openid_providers,
     grpc::gateway::events::GatewayEvent,
     handlers::wireguard::{add_gateway, change_gateway},
     location_management::sync_location_allowed_devices,
@@ -502,11 +503,13 @@ pub fn build_webapp(
         Router::new()
             .route(
                 "/provider",
-                get(get_current_openid_provider).post(add_openid_provider),
+                get(list_openid_providers).post(add_openid_provider),
             )
             .route(
                 "/provider/{name}",
-                put(modify_openid_provider).delete(delete_openid_provider),
+                get(get_openid_provider)
+                    .put(modify_openid_provider)
+                    .delete(delete_openid_provider),
             )
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
