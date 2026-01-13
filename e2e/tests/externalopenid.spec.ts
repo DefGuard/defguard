@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, request, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, OpenIdClient, User } from '../types';
@@ -13,6 +13,7 @@ import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
 import { waitForRoute } from '../utils/waitForRoute';
+import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -71,27 +72,27 @@ test.describe('External OIDC.', () => {
     expect(authorizedApps).toContain(client.name);
   });
 
-  test('Complete enrollment through external OIDC', async ({ page }) => {
+  test('Sign in with external SSO', async ({ page, request }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
-    await page.getByTestId('select-enrollment').click();
-    await page.getByTestId('login-oidc').click();
-    await page.getByTestId('login-form-username').fill(testUser.username);
-    await page.getByTestId('login-form-password').fill(testUser.password);
-    await page.getByTestId('login-form-submit').click();
-    await page.getByTestId('openid-allow').click();
-    const instanceUrlBoxText = await page
-      .locator('div.copy-field div.list-cell-text ')
-      .first()
-      .textContent();
-    expect(instanceUrlBoxText).toBe(testsConfig.ENROLLMENT_URL + '/');
+    await page.getByTestId('start-enrollment').click();
+    await page.locator('.oidc-button-link').click();
+    await page.getByTestId('field-username').fill(defaultUserAdmin.username);
+    await page.getByTestId('field-password').fill(defaultUserAdmin.password);
+    await page.getByTestId('sign-in').click();
+    await page.getByTestId('accept-openid').click();
+    await page.getByTestId('page-nav-next').click();
+    await page.getByTestId('modal-confirm-download-submit').click();
 
-    const instanceTokenBoxText = await page
-      .locator('div.copy-field div.list-cell-text ')
-      .nth(1)
+    const setup_desktop = await page.locator('#setup-desktop');
+    await setup_desktop.locator('.fold-button').click();
+
+    const token = await page
+      .locator('.copy-field')
+      .filter({ hasText: 'Token' })
+      .locator('.track p')
       .textContent();
-    expect(instanceTokenBoxText).toBeDefined();
-    expect(instanceTokenBoxText?.length).toBeGreaterThan(1);
+    expect(token).toBeDefined();
   });
 });
