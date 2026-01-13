@@ -14,6 +14,7 @@ defguard_core.workspace = true
 defguard_mail.workspace = true
 defguard_proto.workspace = true
 defguard_version.workspace = true
+defguard_certs.workspace = true
 openidconnect.workspace = true
 reqwest.workspace = true
 semver.workspace = true

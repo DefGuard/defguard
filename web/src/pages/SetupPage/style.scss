@@ -1,0 +1,132 @@
+/* stylelint-disable no-descending-specificity */
+#setup-page {
+  background-color: var(--bg-muted);
+  width: 100%;
+  min-height: 100dvh;
+}
+
+#setup-page > .content-limiter {
+  display: flex;
+  flex-flow: row;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+#setup-page .page-grid {
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 1120px;
+  box-sizing: border-box;
+  min-height: 100dvh;
+}
+
+#setup-page header {
+  height: 60px;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: var(--spacing-2xl);
+  padding-bottom: var(--spacing-4xl);
+}
+
+#setup-page #content-card {
+  display: grid;
+  grid-template-columns: 667fr 443fr;
+  border-radius: var(--radius-xxl);
+  background-color: var(--bg-default);
+  box-shadow: var(--menu-shadow);
+  overflow: hidden;
+
+  & > .main-track {
+    box-sizing: border-box;
+    padding: var(--spacing-4xl);
+  }
+
+  & > .image {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    overflow: hidden;
+
+    video {
+      width: 100%;
+      min-height: 657px;
+      min-width: 443px;
+      object-fit: cover;
+    }
+  }
+}
+
+#docs-card {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  background-color: transparent;
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  column-gap: var(--spacing-2xl);
+
+  .image-track {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+
+    p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted);
+    }
+  }
+}
+
+#setup-page footer {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--spacing-4xl);
+  padding-bottom: var(--spacing-2xl);
+
+  & > div:nth-child(2) {
+    margin-left: auto;
+  }
+
+  div p {
+    font: var(--t-body-xs-400);
+    color: var(--fg-muted);
+
+    span {
+      color: inherit;
+      font: inherit;
+    }
+  }
+
+  div:nth-child(1) {
+    a {
+      color: inherit;
+    }
+  }
+
+  div:nth-child(2) {
+    a {
+      color: var(--fg-action);
+      text-decoration: none;
+    }
+  }
+}

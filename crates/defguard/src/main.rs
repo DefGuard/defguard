@@ -12,7 +12,7 @@ use defguard_common::{
         models::{
             Settings,
             User,
-            settings::initialize_current_settings,
+            settings::{initialize_current_settings, update_current_settings},
             // wireguard_peer_stats::WireguardPeerStats,
         },
     },
@@ -127,6 +127,22 @@ async fn main() -> Result<(), anyhow::Error> {
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
+
+    let mut settings = Settings::get_current_settings();
+    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
+        info!(
+            "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
+        );
+
+        let ca = defguard_certs::CertificateAuthority::new()?;
+
+        let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
+
+        settings.ca_cert_der = Some(cert_der);
+        settings.ca_key_der = Some(key_der);
+
+        update_current_settings(&pool, settings).await?;
+    }
 
     // read grpc TLS cert and key
     let grpc_cert = config

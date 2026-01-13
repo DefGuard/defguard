@@ -25,6 +25,7 @@ import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
+import { Route as AuthorizedWizardSetupWizardRouteImport } from './routes/_authorized/_wizard/setup-wizard'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
@@ -128,6 +129,12 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
+const AuthorizedWizardSetupWizardRoute =
+  AuthorizedWizardSetupWizardRouteImport.update({
+    id: '/_wizard/setup-wizard',
+    path: '/setup-wizard',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
 const AuthorizedWizardAddLocationRoute =
   AuthorizedWizardAddLocationRouteImport.update({
     id: '/_wizard/add-location',
@@ -289,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -328,6 +336,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -371,6 +380,7 @@ export interface FileRoutesById {
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/_authorized/_wizard/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -452,6 +463,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -494,6 +506,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
+    | '/_authorized/_wizard/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -638,6 +651,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/mfa/email'
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
+    }
+    '/_authorized/_wizard/setup-wizard': {
+      id: '/_authorized/_wizard/setup-wizard'
+      path: '/setup-wizard'
+      fullPath: '/setup-wizard'
+      preLoaderRoute: typeof AuthorizedWizardSetupWizardRouteImport
+      parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/add-location': {
       id: '/_authorized/_wizard/add-location'
@@ -873,6 +893,7 @@ interface AuthorizedRouteChildren {
   AuthorizedDefaultRoute: typeof AuthorizedDefaultRouteWithChildren
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
+  AuthorizedWizardSetupWizardRoute: typeof AuthorizedWizardSetupWizardRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -880,6 +901,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
+  AuthorizedWizardSetupWizardRoute: AuthorizedWizardSetupWizardRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(

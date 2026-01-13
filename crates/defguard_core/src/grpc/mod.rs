@@ -5,16 +5,15 @@ use std::{
     time::{Duration, Instant},
 };
 
+use defguard_common::{
+    auth::claims::ClaimsType,
+    db::{Id, models::Settings},
+};
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-
-use defguard_common::{
-    auth::claims::ClaimsType,
-    db::{Id, models::Settings},
-};
 
 use self::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer};
 use crate::{
