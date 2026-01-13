@@ -6,8 +6,6 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use secrecy::ExposeSecret;
-
 use defguard_certs::der_to_pem;
 use defguard_common::{VERSION, config::server_config, db::models::Settings};
 use defguard_core::{
@@ -38,6 +36,7 @@ use defguard_version::{
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
 use reqwest::Url;
+use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
 use thiserror::Error;
