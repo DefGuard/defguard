@@ -1,0 +1,11 @@
+#playground-page {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: flex-start;
+  row-gap: var(--spacing-2xl);
+  box-sizing: border-box;
+  padding: var(--spacing-4xl);
+}

@@ -10,9 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SnackbarRouteImport } from './routes/snackbar'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AppLoaderRouteImport } from './routes/app-loader'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
@@ -56,6 +56,11 @@ const SnackbarRoute = SnackbarRouteImport.update({
   path: '/snackbar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConsentRoute = ConsentRouteImport.update({
   id: '/consent',
   path: '/consent',
@@ -64,11 +69,6 @@ const ConsentRoute = ConsentRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppLoaderRoute = AppLoaderRouteImport.update({
-  id: '/app-loader',
-  path: '/app-loader',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthorizedRoute = AuthorizedRouteImport.update({
@@ -279,9 +279,9 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
-  '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -320,8 +320,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
-  '/app-loader': typeof AppLoaderRoute
   '/consent': typeof ConsentRoute
+  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -362,9 +362,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
-  '/app-loader': typeof AppLoaderRoute
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
+  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
@@ -406,9 +406,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/404'
-    | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/playground'
     | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
@@ -447,8 +447,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
-    | '/app-loader'
     | '/consent'
+    | '/playground'
     | '/snackbar'
     | '/auth/callback'
     | '/auth/loading'
@@ -488,9 +488,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/404'
     | '/_authorized'
-    | '/app-loader'
     | '/auth'
     | '/consent'
+    | '/playground'
     | '/snackbar'
     | '/_authorized/_default'
     | '/auth/callback'
@@ -532,9 +532,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
-  AppLoaderRoute: typeof AppLoaderRoute
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   SnackbarRoute: typeof SnackbarRoute
 }
 
@@ -545,6 +545,13 @@ declare module '@tanstack/react-router' {
       path: '/snackbar'
       fullPath: '/snackbar'
       preLoaderRoute: typeof SnackbarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/consent': {
@@ -559,13 +566,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app-loader': {
-      id: '/app-loader'
-      path: '/app-loader'
-      fullPath: '/app-loader'
-      preLoaderRoute: typeof AppLoaderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authorized': {
@@ -946,9 +946,9 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
-  AppLoaderRoute: AppLoaderRoute,
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
+  PlaygroundRoute: PlaygroundRoute,
   SnackbarRoute: SnackbarRoute,
 }
 export const routeTree = rootRouteImport
