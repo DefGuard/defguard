@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"session_id\",\"collected_at\",\"latest_handshake\",\"endpoint\",\"total_upload\",\"total_download\",\"upload_diff\",\"download_diff\" FROM \"vpn_session_stats\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "collected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "latest_handshake",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_upload",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_download",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "upload_diff",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "download_diff",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "21ee4396cef32d74121dc43235e1785d0aca658a64256c28d4b044e77f6fb603"
+}

@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT st.id, session_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff FROM vpn_session_stats st JOIN vpn_client_session se ON session_id = se.id WHERE device_id = $1 AND location_id = $2 ORDER BY collected_at DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "collected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "latest_handshake",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_upload",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_download",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "upload_diff",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "download_diff",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e8a00314f4cffdbffcd26ce8cc166771f7759689c60d182aaa7feb051856910c"
+}

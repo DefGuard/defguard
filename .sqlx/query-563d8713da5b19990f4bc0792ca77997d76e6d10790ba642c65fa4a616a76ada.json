@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download FROM wireguard_peer_stats_view WHERE collected_at >= $2 AND network = $3 GROUP BY 1 ORDER BY 1 LIMIT $4",
+  "query": "SELECT date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download FROM vpn_session_stats JOIN vpn_client_session s ON session_id = s.id WHERE collected_at >= $2 AND s.location_id = $3 GROUP BY 1 ORDER BY 1 LIMIT $4",
   "describe": {
     "columns": [
       {
@@ -33,5 +33,5 @@
       null
     ]
   },
-  "hash": "42ccaa218d47638ff39d9006095ac30ae1cd9dce74ec826ed875c39cc05f04f8"
+  "hash": "563d8713da5b19990f4bc0792ca77997d76e6d10790ba642c65fa4a616a76ada"
 }
