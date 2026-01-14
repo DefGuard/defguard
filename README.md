@@ -171,6 +171,10 @@ Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGu
 
 See the [documentation](https://docs.defguard.net/) for more information.
 
+## Community and Support
+
+If you encounter any issues with Defguard, you can reach out to our community for support via [GitHub Discussions](https://github.com/DefGuard/defguard/discussions/new/choose)
+
 ## License
 
 The code in this repository is available under a dual licensing model:
