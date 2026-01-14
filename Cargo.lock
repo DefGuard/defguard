@@ -1148,6 +1148,8 @@ dependencies = [
  "serde",
  "sqlx",
  "thiserror 2.0.17",
+ "time",
+ "x509-parser 0.18.0",
 ]
 
 [[package]]

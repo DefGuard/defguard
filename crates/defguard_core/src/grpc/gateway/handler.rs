@@ -8,22 +8,25 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta, Utc};
+use defguard_certs::{Csr, der_to_pem};
 use defguard_common::{
     VERSION,
     auth::claims::Claims,
     db::{
         Id, NoId,
         models::{
-            Device, User, WireguardNetwork, gateway::Gateway,
+            Device, Settings, User, WireguardNetwork, gateway::Gateway,
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
 };
 use defguard_mail::Mail;
 use defguard_proto::gateway::{
-    CoreResponse, PeerStats, core_request, core_response, gateway_client,
+    CoreResponse, DerPayload, InitialSetupInfo, PeerStats, core_request, core_response,
+    gateway_client, gateway_setup_client,
 };
 use defguard_version::client::ClientVersionInterceptor;
+use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -36,7 +39,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Code, Status,
-    transport::{ClientTlsConfig, Endpoint},
+    transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
 use crate::{
@@ -44,10 +47,26 @@ use crate::{
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
-        gateway::{GrpcRequestContext, events::GatewayEvent, get_peers},
+        gateway::{GatewayError, GrpcRequestContext, events::GatewayEvent, get_peers},
     },
     handlers::mail::send_gateway_disconnected_email,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Scheme {
+    Http,
+    Https,
+}
+
+impl Scheme {
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        match self {
+            Self::Http => "http",
+            Self::Https => "https",
+        }
+    }
+}
 
 fn peer_stats_from_proto(stats: PeerStats, network_id: Id, device_id: Id) -> WireguardPeerStats {
     let endpoint = match stats.endpoint {
@@ -71,7 +90,8 @@ fn peer_stats_from_proto(stats: PeerStats, network_id: Id, device_id: Id) -> Wir
 
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {
-    endpoint: Endpoint,
+    // Gateway server endpoint URL.
+    url: Url,
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
@@ -84,25 +104,21 @@ pub(crate) struct GatewayHandler {
 impl GatewayHandler {
     pub(crate) fn new(
         gateway: Gateway<Id>,
-        tls_config: Option<ClientTlsConfig>,
         pool: PgPool,
         client_state: Arc<Mutex<ClientMap>>,
         events_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         grpc_event_tx: UnboundedSender<GrpcEvent>,
-    ) -> Result<Self, tonic::transport::Error> {
-        let endpoint = Endpoint::from_shared(gateway.url.clone())?
-            .http2_keep_alive_interval(TEN_SECS)
-            .tcp_keepalive(Some(TEN_SECS))
-            .keep_alive_while_idle(true);
-        let endpoint = if let Some(tls) = tls_config {
-            endpoint.tls_config(tls)?
-        } else {
-            endpoint
-        };
+    ) -> Result<Self, GatewayError> {
+        let url = Url::from_str(&gateway.url).map_err(|err| {
+            GatewayError::EndpointError(format!(
+                "Failed to parse Gateway URL {}: {}",
+                &gateway.url, err
+            ))
+        })?;
 
         Ok(Self {
-            endpoint,
+            url,
             gateway,
             message_id: AtomicU64::new(0),
             pool,
@@ -113,33 +129,74 @@ impl GatewayHandler {
         })
     }
 
+    pub const fn has_certificate(&self) -> bool {
+        self.gateway.has_certificate
+    }
+
+    fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, GatewayError> {
+        let mut url = self.url.clone();
+
+        if let Err(err) = url.set_scheme(scheme.as_str()) {
+            return Err(GatewayError::EndpointError(format!(
+                "Failed to set scheme {} for Gateway URL {:?}",
+                scheme.as_str(),
+                self.url
+            )));
+        }
+
+        let endpoint = Endpoint::from_shared(url.to_string())
+            .map_err(|err| {
+                GatewayError::EndpointError(format!(
+                    "Failed to create endpoint for Gateway URL {:?}: {}",
+                    url, err
+                ))
+            })?
+            .http2_keep_alive_interval(TEN_SECS)
+            .tcp_keepalive(Some(TEN_SECS))
+            .keep_alive_while_idle(true);
+
+        if scheme == Scheme::Https {
+            let settings = Settings::get_current_settings();
+            let Some(ca_cert_der) = settings.ca_cert_der else {
+                return Err(GatewayError::EndpointError(
+                    "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+                ));
+            };
+
+            let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
+                .map_err(|err| {
+                    GatewayError::EndpointError(format!(
+                        "Failed to convert CA certificate DER to PEM for Gateway URL {:?}: {}",
+                        url, err
+                    ))
+                })?;
+            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
+
+            Ok(endpoint.tls_config(tls).map_err(|err| {
+                GatewayError::EndpointError(format!(
+                    "Failed to set TLS config for Gateway URL {:?}: {}",
+                    url, err
+                ))
+            })?)
+        } else {
+            Ok(endpoint)
+        }
+    }
+
     /// Send network and VPN configuration to Gateway.
     async fn send_configuration(
         &self,
         tx: &UnboundedSender<CoreResponse>,
-    ) -> Result<WireguardNetwork<Id>, Status> {
+    ) -> Result<WireguardNetwork<Id>, GatewayError> {
         debug!("Sending configuration to Gateway");
         let network_id = self.gateway.network_id;
 
-        let mut conn = self.pool.acquire().await.map_err(|err| {
-            error!("Failed to acquire DB connection: {err}");
-            Status::new(
-                Code::Internal,
-                "Failed to acquire database connection".to_string(),
-            )
-        })?;
+        let mut conn = self.pool.acquire().await?;
 
         let mut network = WireguardNetwork::find_by_id(&mut *conn, network_id)
-            .await
-            .map_err(|err| {
-                error!("Network {network_id} not found");
-                Status::new(Code::Internal, format!("Failed to retrieve network: {err}"))
-            })?
+            .await?
             .ok_or_else(|| {
-                Status::new(
-                    Code::Internal,
-                    format!("Network with id {network_id} not found"),
-                )
+                GatewayError::NotFound(format!("Network with id {network_id} not found"))
             })?;
 
         debug!(
@@ -153,23 +210,9 @@ impl GatewayHandler {
             );
         }
 
-        let peers = get_peers(&network, &self.pool).await.map_err(|error| {
-            error!("Failed to fetch peers from the database for network {network_id}: {error}",);
-            Status::new(
-                Code::Internal,
-                format!("Failed to retrieve peers from the database for network: {network_id}"),
-            )
-        })?;
+        let peers = get_peers(&network, &self.pool).await?;
 
-        let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn)
-            .await
-            .map_err(|err| {
-                error!("Failed to generate firewall config for network {network_id}: {err}");
-                Status::new(
-                    Code::Internal,
-                    format!("Failed to generate firewall config for network: {network_id}"),
-                )
-            })?;
+        let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
         let payload = Some(core_response::Payload::Config(super::gen_config(
             &network,
             peers,
@@ -184,10 +227,10 @@ impl GatewayHandler {
             }
             Err(err) => {
                 error!("Failed to send configuration sent to {}", self.gateway);
-                Err(Status::new(
-                    Code::Internal,
-                    format!("Configuration not sent to {}, error {err}", self.gateway),
-                ))
+                Err(GatewayError::MessageChannelError(format!(
+                    "Configuration not sent to {}, error {err}",
+                    self.gateway
+                )))
             }
         }
     }
@@ -241,17 +284,11 @@ impl GatewayHandler {
     }
 
     /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
-    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Option<Device<Id>>, Status> {
-        let device = Device::find_by_pubkey(&self.pool, public_key)
-            .await
-            .map_err(|err| {
-                error!("Failed to retrieve device with public key {public_key}: {err}",);
-                Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve device with public key {public_key}: {err}",),
-                )
-            })?;
-
+    async fn fetch_device_from_db(
+        &self,
+        public_key: &str,
+    ) -> Result<Option<Device<Id>>, GatewayError> {
+        let device = Device::find_by_pubkey(&self.pool, public_key).await?;
         Ok(device)
     }
 
@@ -259,48 +296,32 @@ impl GatewayHandler {
     async fn fetch_location_from_db(
         &self,
         location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, Status> {
-        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
-            Ok(Some(location)) => location,
-            Ok(None) => {
+    ) -> Result<WireguardNetwork<Id>, GatewayError> {
+        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await? {
+            Some(location) => location,
+            None => {
                 error!("Location {location_id} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Location {location_id} not found"),
-                ));
-            }
-            Err(err) => {
-                error!("Failed to retrieve location {location_id}: {err}",);
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Failed to retrieve location {location_id}: {err}",),
-                ));
+                return Err(GatewayError::NotFound(format!(
+                    "Location {location_id} not found"
+                )));
             }
         };
         Ok(location)
     }
 
     /// Helper method to fetch `User` info from DB and return appropriate errors
-    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
-        let user = match User::find_by_id(&self.pool, user_id).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
+    async fn fetch_user_from_db(
+        &self,
+        user_id: Id,
+        public_key: &str,
+    ) -> Result<User<Id>, GatewayError> {
+        let user = match User::find_by_id(&self.pool, user_id).await? {
+            Some(user) => user,
+            None => {
                 error!("User {user_id} assigned to device with public key {public_key} not found");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("User assigned to device with public key {public_key} not found"),
-                ));
-            }
-            Err(err) => {
-                error!(
-                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
-                );
-                return Err(Status::new(
-                    Code::Internal,
-                    format!(
-                        "Failed to retrieve user for device with public key {public_key}: {err}",
-                    ),
-                ));
+                return Err(GatewayError::NotFound(format!(
+                    "User assigned to device with public key {public_key} not found"
+                )));
             }
         };
 
@@ -313,14 +334,113 @@ impl GatewayHandler {
         }
     }
 
+    pub(crate) async fn handle_setup(&mut self) -> Result<(), GatewayError> {
+        debug!("Handling initial setup for Gateway {}", self.gateway);
+        let endpoint = self.endpoint(Scheme::Http)?;
+        let uri = endpoint.uri().to_string();
+
+        let hostname = self
+            .url
+            .host_str()
+            .ok_or_else(|| {
+                error!("Failed to get hostname from Gateway URL {}", self.url);
+                GatewayError::EndpointError(format!(
+                    "Failed to get hostname from Gateway URL {}",
+                    self.url
+                ))
+            })?
+            .to_string();
+
+        #[cfg(not(test))]
+        let channel = endpoint.connect_lazy();
+        #[cfg(test)]
+        let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
+            |_: tonic::transport::Uri| async {
+                Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                    tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
+                ))
+            },
+        ));
+
+        debug!("Connecting to Gateway {uri}");
+        let interceptor = ClientVersionInterceptor::new(
+            Version::parse(VERSION).expect("failed to parse self version"),
+        );
+        let mut client =
+            gateway_setup_client::GatewaySetupClient::with_interceptor(channel, interceptor);
+
+        let request = InitialSetupInfo {
+            cert_hostname: hostname,
+        };
+
+        let response = client.start(request).await?;
+        let response = response.into_inner();
+
+        let csr = Csr::from_der(&response.der_data)?;
+
+        let settings = Settings::get_current_settings();
+
+        let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
+            GatewayError::ConfigurationError(
+                "CA certificate DER not found in settings for Gateway setup".to_string(),
+            )
+        })?;
+        let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
+            GatewayError::ConfigurationError(
+                "CA key pairs DER not found in settings for Gateway setup".to_string(),
+            )
+        })?;
+
+        let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
+            &ca_cert_der,
+            &ca_key_pair,
+        )?;
+
+        match ca.sign_csr(&csr) {
+            Ok(cert) => {
+                let req = DerPayload {
+                    der_data: cert.der().to_vec(),
+                };
+
+                client.send_cert(req).await?;
+
+                let expiry = defguard_certs::get_certificate_expiry(&cert)?;
+
+                self.gateway.has_certificate = true;
+                self.gateway.certificate_expiry = Some(
+                    chrono::DateTime::from_timestamp(expiry.unix_timestamp(), 0)
+                        .ok_or_else(|| {
+                            GatewayError::ConversionError(format!(
+                                "Failed to convert certificate expiry timestamp {} to DateTime",
+                                expiry.unix_timestamp()
+                            ))
+                        })?
+                        .naive_utc(),
+                );
+                self.gateway.save(&self.pool).await?;
+            }
+            Err(err) => {
+                error!("Failed to sign CSR: {err}");
+            }
+        }
+
+        debug!(
+            "Saving information about issued certificate to the database for Gateway {}",
+            self.gateway
+        );
+
+        Ok(())
+    }
+
     /// Connect to Gateway and handle its messages through gRPC.
-    pub(crate) async fn handle_connection(&mut self) -> ! {
-        let uri = self.endpoint.uri();
+    pub(crate) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
+        let endpoint = self.endpoint(Scheme::Https)?;
+        let uri = endpoint.uri().to_string();
         loop {
             #[cfg(not(test))]
-            let channel = self.endpoint.connect_lazy();
+            let channel = endpoint.connect_lazy();
             #[cfg(test)]
-            let channel = self.endpoint.connect_with_connector_lazy(tower::service_fn(
+            let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
                 |_: tonic::transport::Uri| async {
                     Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
                         tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
