@@ -1,4 +1,5 @@
 import { Browser } from 'playwright';
+import { expect } from 'playwright/test';
 import { TOTP } from 'totp-generator';
 
 import { routes } from '../../../config';
@@ -7,7 +8,6 @@ import { getPageClipboard } from '../../getPageClipboard';
 import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
-import { expect } from 'playwright/test';
 
 export type EnableTOTPResult = {
   secret: string;

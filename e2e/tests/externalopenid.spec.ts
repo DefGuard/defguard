@@ -1,7 +1,8 @@
-import { expect, request, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
+import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, OpenIdClient, User } from '../types';
+// import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
 import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
@@ -12,8 +13,7 @@ import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
-import { waitForRoute } from '../utils/waitForRoute';
-import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
+// import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -73,7 +73,7 @@ test.describe('External OIDC.', () => {
   //   expect(authorizedApps).toContain(client.name);
   // });
 
-  test('Sign in with external SSO', async ({ page, request }) => {
+  test('Sign in with external SSO', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);

@@ -1,18 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
 import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, OpenIdClient, User } from '../types';
-import { apiCreateUser, apiGetUserProfile } from '../utils/api/users';
+import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import { copyOpenIdClientIdAndSecret } from '../utils/controllers/openid/copyClientId';
 import { createExternalProvider } from '../utils/controllers/openid/createExternalProvider';
 import { CreateOpenIdClient } from '../utils/controllers/openid/createOpenIdClient';
-import { createDevice } from '../utils/controllers/vpn/createDevice';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
-import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -47,7 +44,6 @@ test.describe('External OIDC.', () => {
     await createRegularLocation(browser, testNetwork);
     await context.close();
   });
-
 
   // TODO: Finish when https://github.com/DefGuard/defguard/issues/1817 is resolved
   // test('Complete client MFA through external OpenID', async ({ page, browser }) => {
