@@ -10,6 +10,8 @@ use x509_parser::parse_x509_certificate;
 
 const CA_NAME: &str = "Defguard CA";
 const CA_ORG: &str = "Defguard";
+const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
+const DEFAULT_CERT_VALIDITY_DAYS: i64 = 365;
 
 #[derive(Debug, Error)]
 pub enum CertificateError {
@@ -77,7 +79,7 @@ impl CertificateAuthority<'_> {
 
     pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
         // TODO: make validity configurable?
-        self.sign_csr_with_validity(csr, 360)
+        self.sign_csr_with_validity(csr, DEFAULT_CERT_VALIDITY_DAYS)
     }
 
     /// Sign CSR with explicit validity in days.
@@ -89,7 +91,7 @@ impl CertificateAuthority<'_> {
         let mut csr_params = csr.params()?;
 
         let now = OffsetDateTime::now_utc();
-        let not_before = now - Duration::minutes(5);
+        let not_before = now - NOT_BEFORE_OFFSET_SECS;
         let not_after = now + Duration::days(days_valid);
 
         csr_params.params.not_before = not_before;
