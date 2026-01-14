@@ -10,6 +10,7 @@ use defguard_common::db::models::{
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
+use utoipa::ToSchema;
 
 use super::LicenseInfo;
 use crate::{
@@ -22,7 +23,7 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddProviderData {
     pub name: String,
     pub base_url: String,
@@ -46,6 +47,17 @@ pub struct AddProviderData {
     pub prefetch_users: bool,
 }
 
+/// Add OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "created" on success.
+#[utoipa::path(
+    post,
+    path = "/api/v1/openid/provider",
+    responses(
+        (status = CREATED, description = "Add OpenID provider", body = [AddProviderData]),
+    ),
+)]
 pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -177,7 +189,21 @@ pub(crate) async fn add_openid_provider(
     })
 }
 
-pub async fn get_openid_provider(
+/// Get OpenID provider by name.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    put,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Get OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn get_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -209,6 +235,20 @@ pub async fn get_openid_provider(
     }
 }
 
+/// Delete OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Delete OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
 pub(crate) async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -264,6 +304,20 @@ pub(crate) async fn delete_openid_provider(
     }
 }
 
+/// Modify OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    put,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Modify OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
 pub(crate) async fn modify_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -308,6 +362,17 @@ pub(crate) async fn modify_openid_provider(
     }
 }
 
+/// List all OpenID providers.
+///
+/// # Returns
+/// - Array of all OpenID providers and HTTP status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider",
+    responses(
+        (status = OK, description = "List all OpenID provider"),
+    ),
+)]
 pub(crate) async fn list_openid_providers(
     _license: LicenseInfo,
     _admin: AdminRole,
