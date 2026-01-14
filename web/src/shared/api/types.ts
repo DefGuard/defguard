@@ -486,7 +486,7 @@ export interface NetworkLocation {
   allowed_groups: string[];
   dns: string | null;
   keepalive_interval: number;
-  mtu: number;
+  mtu: number | null;
   fwmark: number | null;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;

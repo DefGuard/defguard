@@ -25,7 +25,7 @@ const defaults: StoreValues = {
   name: '',
   port: 50051,
   keepalive_interval: 25,
-  mtu: 0,
+  mtu: null,
   fwmark: null,
   peer_disconnect_threshold: 300,
   acl_default_allow: true,
