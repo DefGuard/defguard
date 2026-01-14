@@ -204,7 +204,6 @@ impl ProxyManager {
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
     /// such as routing state and compatibility tracking.
-    // pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
     pub async fn run(self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         // Retrieve proxies from DB.
