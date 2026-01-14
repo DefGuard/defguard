@@ -493,11 +493,10 @@ export interface NetworkLocation {
   service_location_mode: LocationServiceModeValue;
 }
 
-export interface EditNetworkLocation
-  extends Omit<
-    NetworkLocation,
-    'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
-  > {
+export interface EditNetworkLocation extends Omit<
+  NetworkLocation,
+  'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
+> {
   allowed_ips: string;
   address: string;
 }
@@ -854,6 +853,33 @@ export interface ActivityLogEvent {
   module: ActivityLogModuleValue;
   device: string;
   description?: string;
+}
+
+export const ActivityLogStreamType = {
+  VectorHttp: 'vector_http',
+  LogstashHttp: 'logstash_http',
+} as const;
+
+export type ActivityLogStreamTypeValue =
+  (typeof ActivityLogStreamType)[keyof typeof ActivityLogStreamType];
+
+export interface ActivityLogStream {
+  id: number;
+  name: string;
+  stream_type: ActivityLogStreamTypeValue;
+  config: ActivityLogStreamConfig;
+}
+export interface CreateActivityLogStreamRequest {
+  name: string;
+  stream_type: ActivityLogStreamTypeValue;
+  stream_config: ActivityLogStreamConfig;
+}
+
+export interface ActivityLogStreamConfig {
+  url: string;
+  username?: string;
+  password?: string;
+  cert?: string;
 }
 
 export type ActivityLogSortKey =

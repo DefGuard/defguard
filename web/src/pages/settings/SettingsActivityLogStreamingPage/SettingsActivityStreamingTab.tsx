@@ -10,7 +10,7 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
 
 export const SettingsActivityLogStreamingPage = () => {
-  const isEmpty = false;
+  const isEmpty = true;
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -30,15 +30,24 @@ export const SettingsActivityLogStreamingPage = () => {
         badgeProps={businessPlanBadgeProps}
         icon="activity"
         title="Activity log streaming"
-        subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring."
+        subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring." // TODO: add this and rest to common.json
       />
-      <EmptyState
-        id=""
-        icon="log"
-        title="You don't have any activity log upstreams."
-        subtitle={`Click the button below to add an activity log provider and start streaming events.`}
-        primaryAction={addButtonProps}
-      />
+      {isEmpty ? (
+        <EmptyState
+          id=""
+          icon="log"
+          title="You don't have any activity log upstreams."
+          subtitle={`Click the button below to add an activity log provider and start streaming events.`}
+          primaryAction={addButtonProps}
+        />
+      ) : (
+        <SettingsHeader // placeholder
+          badgeProps={businessPlanBadgeProps}
+          icon="activity"
+          title="Activity log streaming"
+          subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring."
+        />
+      )}
       <AddLogStreamingModal />
     </SettingsLayout>
   );

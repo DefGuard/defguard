@@ -1,24 +1,15 @@
 import { create } from 'zustand';
 
 interface StoreValues {
-  step: 'choice' | 'destination';
-  destination?: 'logstash' | 'vector';
+  step: 'choice' | 'form';
+  destination: 'logstash' | 'vector';
   isOpen: boolean;
-  name: string;
-  url: string;
-  username?: string;
-  password?: string;
-  certificate?: string;
 }
 
 const defaults: StoreValues = {
   isOpen: false,
+  destination: 'logstash',
   step: 'choice',
-  name: '',
-  url: '',
-  username: '',
-  password: '',
-  certificate: '',
 };
 
 interface Store extends StoreValues {
