@@ -88,7 +88,7 @@ pub(crate) struct WireguardNetworkInfo {
     allowed_groups: Vec<String>,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: String, // comma-separated list of addresses
