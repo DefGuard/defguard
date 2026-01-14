@@ -171,10 +171,6 @@ Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGu
 
 See the [documentation](https://docs.defguard.net/) for more information.
 
-## Community and Support
-
-Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
-
 ## License
 
 The code in this repository is available under a dual licensing model:
