@@ -7,6 +7,7 @@ import { getPageClipboard } from '../../getPageClipboard';
 import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
+import { expect } from 'playwright/test';
 
 export type EnableTOTPResult = {
   secret: string;
@@ -40,6 +41,8 @@ export const enableTOTP = async (
 
   await page.getByTestId('confirm-code-save').click();
   await page.getByTestId('finish-recovery-codes').click();
+  expect(totpSecret).toBeDefined();
+  expect(recovery).toBeDefined();
 
   await context.close();
   return {
