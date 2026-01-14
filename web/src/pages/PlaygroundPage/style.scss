@@ -8,4 +8,8 @@
   row-gap: var(--spacing-2xl);
   box-sizing: border-box;
   padding: var(--spacing-4xl);
+
+  .card {
+    max-width: 670px;
+  }
 }
