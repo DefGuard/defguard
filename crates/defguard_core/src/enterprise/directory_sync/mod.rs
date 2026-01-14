@@ -253,7 +253,8 @@ impl DirectorySyncClient {
                 ) {
                     (Some(key), Some(email), Some(admin_email)) => {
                         debug!(
-                            "Google directory has all the configuration needed, proceeding with creating the sync client"
+                            "Google directory has all the configuration needed, proceeding with \
+                            creating the sync client"
                         );
                         let client = google::GoogleDirectorySync::new(key, email, admin_email);
                         debug!("Google directory sync client created");
@@ -279,7 +280,8 @@ impl DirectorySyncClient {
                     provider_settings.okta_dirsync_client_id.as_ref(),
                 ) {
                     debug!(
-                        "Okta directory has all the configuration needed, proceeding with creating the sync client"
+                        "Okta directory has all the configuration needed, proceeding with creating \
+                        the sync client"
                     );
                     let client =
                         okta::OktaDirectorySync::new(jwk, client_id, &provider_settings.base_url);
@@ -287,7 +289,8 @@ impl DirectorySyncClient {
                     Ok(Self::Okta(client))
                 } else {
                     Err(DirectorySyncError::InvalidProviderConfiguration(
-                        "Okta provider is not configured correctly for Directory Sync. Okta private key or client id is missing."
+                        "Okta provider is not configured correctly for Directory Sync. Okta \
+                            private key or client id is missing."
                             .to_string(),
                     ))
                 }
@@ -296,7 +299,8 @@ impl DirectorySyncClient {
                 debug!("JumpCloud directory sync provider selected");
                 if let Some(key) = provider_settings.jumpcloud_api_key.as_ref() {
                     debug!(
-                        "JumpCloud directory has all the configuration needed, proceeding with creating the sync client"
+                        "JumpCloud directory has all the configuration needed, proceeding with \
+                        creating the sync client"
                     );
                     let client = jumpcloud::JumpCloudDirectorySync::new(key.clone());
                     debug!("JumpCloud directory sync client created");
@@ -446,7 +450,8 @@ async fn create_and_add_to_group(
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
     debug!(
-        "Creating group {} if it doesn't exist and adding user {group_name} to it if they are not already a member",
+        "Creating group {} if it doesn't exist and adding user {group_name} to it if they are not \
+        already a member",
         user.email
     );
     let group = if let Some(group) = Group::find_by_name(pool, group_name).await? {
@@ -492,7 +497,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
         match directory_sync.get_group_members(group, all_users).await {
             Ok(members) => {
                 debug!(
-                    "Group {} has {} members in the directory, adding them to the user-group mapping",
+                    "Group {} has {} members in the directory, adding them to the user-group \
+                    mapping",
                     group.name,
                     members.len()
                 );
@@ -541,13 +547,15 @@ async fn sync_all_users_groups<T: DirectorySync>(
                 if current_group.is_admin {
                     if admin_count == 1 {
                         error!(
-                            "User {} is the last admin in the system, can't remove them from an admin group {}",
+                            "User {} is the last admin in the system, can't remove them from an \
+                            admin group {}",
                             user.email, current_group.name
                         );
                         continue;
                     }
                     debug!(
-                        "Removing user {} from group {} as they are not a member of it in the directory",
+                        "Removing user {} from group {} as they are not a member of it in the \
+                        directory",
                         user.email, current_group.name
                     );
                     user.remove_from_group(&mut *transaction, current_group)
@@ -555,7 +563,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
                     admin_count -= 1;
                 } else {
                     debug!(
-                        "Removing user {} from group {} as they are not a member of it in the directory",
+                        "Removing user {} from group {} as they are not a member of it in the \
+                        directory",
                         user.email, current_group.name
                     );
                     user.remove_from_group(&mut *transaction, current_group)
@@ -674,12 +683,14 @@ async fn sync_all_users_state(
             match &directory_user.user_details {
                 None => {
                     error!(
-                        "Missing directory user details for user {directory_user:?}. Unable to create missing Defguard user."
+                        "Missing directory user details for user {directory_user:?}. Unable to \
+                        create missing Defguard user."
                     );
                 }
                 Some(details) => {
                     debug!(
-                        "User {directory_user:?} exists in directory but not in Defguard. Creating new Defguard user.",
+                        "User {directory_user:?} exists in directory but not in Defguard. Creating \
+                        new Defguard user.",
                     );
 
                     // Extract the username from the email address
@@ -728,11 +739,10 @@ async fn sync_all_users_state(
         .collect::<Vec<User<Id>>>();
 
     debug!(
-        "There are {} users missing from the directory but present in Defguard, \
-    deciding what to do next based on the following settings: user action: {}, admin action: {}",
+        "There are {} users missing from the directory but present in Defguard, deciding what to \
+        do next based on the following settings: user action: {user_behavior}, admin action: \
+        {admin_behavior}",
         missing_directory_users.len(),
-        user_behavior,
-        admin_behavior
     );
     // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
@@ -810,7 +820,8 @@ async fn sync_all_users_state(
                 DirectorySyncUserBehavior::Disable => {
                     if user.is_active {
                         info!(
-                            "Disabling user {} because they are not present in the directory and the user behavior setting is set to disable",
+                            "Disabling user {} because they are not present in the directory and \
+                            the user behavior setting is set to disable",
                             user.email
                         );
                         disable_user(&mut user, &mut transaction, wg_tx).await.map_err(|err| {
@@ -887,7 +898,7 @@ async fn sync_inactive_directory_users(
             .collect();
 
     debug!(
-        "There are {} active Defguard users disabled in the directory. Disabling them in Defguard...",
+        "There are {} active Defguard users disabled in the directory. Disabling them in Defguard.",
         users_to_disable.len()
     );
 
@@ -933,7 +944,7 @@ async fn sync_active_directory_users(
             .collect();
 
     debug!(
-        "There are {} inactive Defguard users enabled in the directory. Enabling them in Defguard...",
+        "There are {} inactive Defguard users enabled in the directory. Enabling them in Defguard.",
         users_to_enable.len()
     );
     for mut user in users_to_enable {
@@ -957,7 +968,8 @@ async fn sync_active_directory_users(
 // The default inverval for the directory sync job
 const DIRECTORY_SYNC_INTERVAL: u64 = 60 * 10;
 
-/// Used to inform the utility thread how often it should perform the directory sync job. See [`run_utility_thread`] for more details.
+/// Used to inform the utility thread how often it should perform the directory sync job.
+/// See [`run_utility_thread`] for more details.
 pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
     if let Ok(Some(provider_settings)) = OpenIdProvider::get_current(pool).await {
         provider_settings
@@ -980,7 +992,8 @@ pub(crate) async fn do_directory_sync(
         return Ok(());
     }
 
-    // TODO: Reduce the amount of times those settings are retrieved in the whole directory sync process
+    // TODO: Reduce the amount of times those settings are retrieved in the whole directory sync
+    // process.
     let provider = OpenIdProvider::get_current(pool).await?;
 
     if !is_directory_sync_enabled(provider.as_ref()) {
@@ -995,12 +1008,12 @@ pub(crate) async fn do_directory_sync(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             // TODO: Directory sync's access token is dropped every time, find a way to preserve it
-            // Same goes for Etags, those could be used to reduce the amount of data transferred. Some way
-            // of preserving them should be implemented.
+            // Same goes for Etags, those could be used to reduce the amount of data transferred.
+            // Some way of preserving them should be implemented.
             dir_sync.prepare().await?;
 
-            // This is an optimization, both sync_all_users_state and sync_all_users_groups depend on it so we might
-            // as well get all users once and pass it to both functions.
+            // This is an optimization, both sync_all_users_state and sync_all_users_groups depend
+            // on it so we might as well get all users once and pass it to both functions.
             let mut all_users = None;
 
             if matches!(
@@ -1015,12 +1028,13 @@ pub(crate) async fn do_directory_sync(
                 sync_target,
                 DirectorySyncTarget::All | DirectorySyncTarget::Groups
             ) {
-                // Sometimes we don't even need to query all users, this is an optimization to reduce the amount of data transferred.
+                // Sometimes we don't even need to query all users, this is an optimization to
+                // reduce the amount of data transferred.
                 let users_to_pass = match dir_sync {
                     DirectorySyncClient::JumpCloud(_) => {
                         if all_users.is_none() {
-                            // JumpCloud doesn't return emails of group members, so we need to pass all users
-                            // to the get_user_groups method to map ids to emails.
+                            // JumpCloud doesn't return emails of group members, so we need to pass
+                            // all users to the get_user_groups method to map ids to emails.
                             Some(dir_sync.get_all_users().await?)
                         } else {
                             all_users
@@ -1041,9 +1055,9 @@ pub(crate) async fn do_directory_sync(
 }
 
 // Helpers shared between the directory sync providers
-//
 
-/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
+/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error
+/// to a DirectorySyncError::RequestError.
 /// The context_message is used to provide more context to the error message.
 async fn parse_response<T>(
     response: reqwest::Response,

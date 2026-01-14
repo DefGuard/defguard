@@ -49,7 +49,7 @@ fn test_get_rdn_attr() {
 
     // Empty string should fall back to default 'cn'
     let config = LDAPConfig {
-        ldap_user_rdn_attr: Some("".to_string()),
+        ldap_user_rdn_attr: Some(String::new()),
         ..LDAPConfig::default()
     };
     assert_eq!(config.get_rdn_attr(), "cn");
@@ -218,7 +218,7 @@ fn test_using_username_as_rdn() {
 
     // Empty RDN attribute falls back to 'cn', so username is used
     let config = LDAPConfig {
-        ldap_user_rdn_attr: Some("".to_string()),
+        ldap_user_rdn_attr: Some(String::new()),
         ..LDAPConfig::default()
     };
     assert!(config.using_username_as_rdn());
@@ -1965,7 +1965,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         );
         assert_eq!(added_user.username, "ldap_only_user");
         assert!(added_user.from_ldap);
-        assert!(ldap_conn.test_client.get_events().is_empty())
+        assert!(ldap_conn.test_client.get_events().is_empty());
     }
 }
 
@@ -2455,7 +2455,7 @@ fn test_extract_dn_value() {
     assert_eq!(extract_rdn_value("cn=onlyvalue"), None);
     assert_eq!(
         extract_rdn_value("cn=,dc=example,dc=com"),
-        Some("".to_string())
+        Some(String::new())
     );
     assert_eq!(extract_rdn_value(""), None);
 }
@@ -2845,7 +2845,7 @@ fn test_as_ldap_attrs() {
         "Smith".to_string(),
         "John".to_string(),
         "john.smith@example.com".to_string(),
-        Some("".to_string()),
+        Some(String::new()),
     );
 
     let attrs = user_as_ldap_attrs(
@@ -2897,7 +2897,7 @@ fn test_as_ldap_mod_with_empty_phone() {
         "Smith".to_string(),
         "John".to_string(),
         "john.smith@example.com".to_string(),
-        Some("".to_string()),
+        Some(String::new()),
     );
 
     let config = LDAPConfig {
@@ -2992,7 +2992,7 @@ fn test_extract_dn_path_various_cases() {
 
     assert_eq!(extract_dn_path(""), None);
 
-    assert_eq!(extract_dn_path("cn=abc,"), Some("".to_string()));
+    assert_eq!(extract_dn_path("cn=abc,"), Some(String::new()));
 
     assert_eq!(
         extract_dn_path("uid=cde,ou=users,ou=staff,dc=example,dc=org"),

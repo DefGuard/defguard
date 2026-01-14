@@ -799,7 +799,7 @@ fn test_last_ip_in_v6_subnet() {
         IpAddr::V6(Ipv6Addr::new(
             0x280b, 0x47f8, 0xc9d7, 0x634c, 0xcb35, 0x11f3, 0x14e1, 0x51ff
         ))
-    )
+    );
 }
 
 async fn create_acl_rule(

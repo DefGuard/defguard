@@ -5,6 +5,7 @@ use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{global_value, secret::SecretStringWrapper};
@@ -51,7 +52,7 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default, Copy)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
 pub enum OpenidUsernameHandling {
     #[default]

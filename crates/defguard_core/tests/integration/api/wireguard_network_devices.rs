@@ -388,5 +388,5 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
                 valid: true,
             }
         ]
-    )
+    );
 }
