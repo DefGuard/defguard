@@ -29,7 +29,7 @@ export const AddLocationPage = () => {
       internalVpnSettings: {
         id: AddLocationPageStep.InternalVpnSettings,
         order: 1,
-        label: 'Internal VPN ',
+        label: 'Internal VPN',
         description:
           'Manage core details and connection parameters for your VPN location.',
       },

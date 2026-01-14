@@ -13,6 +13,8 @@ const formSchema = z.object({
   keepalive_interval: z
     .number(m.form_error_required())
     .max(65535, m.form_error_port_max()),
+  mtu: z.number(m.form_error_required()),
+  fwmark: z.number().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -22,6 +24,8 @@ export const AddLocationNetworkStep = () => {
     useShallow(
       (s): FormFields => ({
         keepalive_interval: s.keepalive_interval,
+        mtu: s.mtu,
+        fwmark: s.fwmark,
       }),
     ),
   );
@@ -57,6 +61,20 @@ export const AddLocationNetworkStep = () => {
                 label="Keep alive interval (seconds)"
                 type="number"
               />
+            )}
+          </form.AppField>
+          <form.AppField name="mtu">
+            {(field) => (
+              <field.FormInput
+                required
+                label="Maximum Transmission Unit (MTU)"
+                type="number"
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="fwmark">
+            {(field) => (
+              <field.FormInput required label="Firewall Mark (FwMark)" type="number" />
             )}
           </form.AppField>
           <ModalControls
