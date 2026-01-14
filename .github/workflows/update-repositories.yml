@@ -16,6 +16,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install gh cli
+        run: |
+          sudo apt-get install -y gh
+
       - name: Download .deb assets from release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
