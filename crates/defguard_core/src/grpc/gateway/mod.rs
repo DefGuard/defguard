@@ -5,12 +5,9 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::{
-    config::server_config,
-    db::{
-        ChangeNotification, Id, TriggerOperation,
-        models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
-    },
+use defguard_common::db::{
+    ChangeNotification, Id, TriggerOperation,
+    models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
 };
 use defguard_mail::Mail;
 use defguard_proto::{
