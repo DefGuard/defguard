@@ -7,7 +7,11 @@ use std::{
 
 use axum_extra::extract::cookie::Key;
 use defguard_certs::der_to_pem;
-use defguard_common::{VERSION, config::server_config, db::models::Settings};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::models::{Settings, proxy::Proxy},
+};
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enrollment_management::clear_unused_enrollment_tokens,
@@ -197,21 +201,20 @@ impl ProxyManager {
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
     /// such as routing state and compatibility tracking.
-    pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
-        // TODO retrieve proxies from db
-        let Some(url) = url else {
+    // pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
+    pub async fn run(self) -> Result<(), ProxyError> {
+        let proxies = Proxy::all(&self.pool).await?;
+		// TODO setup a channel to allow dynamic proxy connections
+		if proxies.is_empty() {
             tokio::time::sleep(Duration::MAX).await;
             return Ok(());
-        };
-        let proxies = vec![Proxy::new(
-            self.pool.clone(),
-            Url::from_str(url)?,
-            &self.tx,
-            Arc::clone(&self.router),
-        )];
+		}
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
-            tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
+            let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
+            let server =
+                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
+            tasks.spawn(server.run(self.tx.clone(), self.incompatible_components.clone()));
         }
         while let Some(result) = tasks.join_next().await {
             match result {
@@ -255,7 +258,7 @@ impl ProxyTxSet {
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
 /// `ProxyManager`.
-struct Proxy {
+struct ProxyServer {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
@@ -265,7 +268,7 @@ struct Proxy {
     url: Url,
 }
 
-impl Proxy {
+impl ProxyServer {
     pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx);
