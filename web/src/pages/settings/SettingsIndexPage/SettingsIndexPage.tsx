@@ -10,14 +10,13 @@ import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
-
-const ActivityTab = () => null;
+import { SettingsActivityLogStreamingPage } from '../SettingsActivityLogStreamingPage/SettingsActivityStreamingTab';
 
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
   notifications: <SettingsNotificationsTab />,
   openid: <SettingsExternalOpenIdPage />,
-  activity: <ActivityTab />,
+  activity: <SettingsActivityLogStreamingPage />,
   license: <SettingsLicenseTab />,
 };
 

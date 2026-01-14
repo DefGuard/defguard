@@ -45,6 +45,7 @@ export const ModalName = {
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
   AddLocation: 'addLocation',
+  AddLogStreaming: 'addLogStreaming',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -137,6 +138,9 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.AddLocation),
+  }),
+  z.object({
+    name: z.literal(ModalName.AddLogStreaming),
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),
