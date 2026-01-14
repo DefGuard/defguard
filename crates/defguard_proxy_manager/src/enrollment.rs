@@ -12,20 +12,6 @@ use defguard_common::{
         },
     },
 };
-use defguard_mail::{Mail, templates::TemplateLocation};
-use defguard_proto::proxy::{
-    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
-    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
-    NewDevice, RegisterMobileAuthRequest,
-};
-use sqlx::{PgPool, query_scalar};
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedSender, error::SendError},
-};
-use tonic::Status;
-
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enterprise::{
@@ -50,6 +36,19 @@ use defguard_core::{
     headers::get_device_info,
     is_valid_phone_number,
 };
+use defguard_mail::{Mail, templates::TemplateLocation};
+use defguard_proto::proxy::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
+    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
+    NewDevice, RegisterMobileAuthRequest,
+};
+use sqlx::{PgPool, query_scalar};
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{UnboundedSender, error::SendError},
+};
+use tonic::Status;
 
 pub(super) struct EnrollmentServer {
     pool: PgPool,

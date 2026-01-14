@@ -11,7 +11,6 @@ use chrono::{DateTime, TimeDelta, Utc};
 use defguard_certs::{Csr, der_to_pem};
 use defguard_common::{
     VERSION,
-    auth::claims::Claims,
     db::{
         Id, NoId,
         models::{
@@ -37,13 +36,9 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Code, Status,
-    transport::{Certificate, ClientTlsConfig, Endpoint},
-};
+use tonic::transport::{Certificate, ClientTlsConfig, Endpoint};
 
 use crate::{
-    ClaimsType,
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
@@ -136,7 +131,7 @@ impl GatewayHandler {
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, GatewayError> {
         let mut url = self.url.clone();
 
-        if let Err(err) = url.set_scheme(scheme.as_str()) {
+        if let Err(()) = url.set_scheme(scheme.as_str()) {
             return Err(GatewayError::EndpointError(format!(
                 "Failed to set scheme {} for Gateway URL {:?}",
                 scheme.as_str(),
@@ -147,8 +142,7 @@ impl GatewayHandler {
         let endpoint = Endpoint::from_shared(url.to_string())
             .map_err(|err| {
                 GatewayError::EndpointError(format!(
-                    "Failed to create endpoint for Gateway URL {:?}: {}",
-                    url, err
+                    "Failed to create endpoint for Gateway URL {url:?}: {err}",
                 ))
             })?
             .http2_keep_alive_interval(TEN_SECS)
@@ -166,16 +160,14 @@ impl GatewayHandler {
             let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
                 .map_err(|err| {
                     GatewayError::EndpointError(format!(
-                        "Failed to convert CA certificate DER to PEM for Gateway URL {:?}: {}",
-                        url, err
+                        "Failed to convert CA certificate DER to PEM for Gateway URL {url:?}: {err}",
                     ))
                 })?;
             let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
 
             Ok(endpoint.tls_config(tls).map_err(|err| {
                 GatewayError::EndpointError(format!(
-                    "Failed to set TLS config for Gateway URL {:?}: {}",
-                    url, err
+                    "Failed to set TLS config for Gateway URL {url:?}: {err}",
                 ))
             })?)
         } else {
@@ -484,35 +476,6 @@ impl GatewayHandler {
                                         "Ignoring repeated configuration request from {}",
                                         self.gateway
                                     );
-                                    continue;
-                                }
-                                // Validate authorization token.
-                                if let Ok(claims) = Claims::from_jwt(
-                                    ClaimsType::Gateway,
-                                    &config_request.auth_token,
-                                ) {
-                                    if let Ok(client_id) = Id::from_str(&claims.client_id) {
-                                        if client_id == self.gateway.network_id {
-                                            debug!(
-                                                "Authorization token is correct for {}",
-                                                self.gateway
-                                            );
-                                        } else {
-                                            warn!(
-                                                "Authorization token received from {uri} has \
-                                                `client_id` for a different network"
-                                            );
-                                            continue;
-                                        }
-                                    } else {
-                                        warn!(
-                                            "Authorization token received from {uri} has incorrect \
-                                            `client_id`"
-                                        );
-                                        continue;
-                                    }
-                                } else {
-                                    warn!("Invalid authorization token received from {uri}");
                                     continue;
                                 }
 

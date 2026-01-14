@@ -229,7 +229,6 @@ pub async fn run_grpc_gateway_stream(
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
-    let config = server_config();
     let mut abort_handles = HashMap::new();
 
     let mut tasks = JoinSet::new();

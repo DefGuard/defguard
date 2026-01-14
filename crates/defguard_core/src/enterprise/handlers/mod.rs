@@ -15,7 +15,6 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
-
 use serde::Serialize;
 
 use super::{
