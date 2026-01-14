@@ -71,12 +71,7 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // setup admin devices management
     let settings = EnterpriseSettings {
@@ -167,12 +162,7 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // setup admin devices management
     let settings = EnterpriseSettings {
@@ -255,12 +245,7 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // disable manual device management
     let settings = EnterpriseSettings {
@@ -336,12 +321,7 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // disable manual device management
     let settings = EnterpriseSettings {

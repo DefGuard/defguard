@@ -388,7 +388,7 @@ async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
         assert_eq!(response.status(), StatusCode::CREATED);
 
         let test_user = get_db_user(&pool, username).await;
-        expected_events.push(ApiEventType::UserAdded { user: test_user })
+        expected_events.push(ApiEventType::UserAdded { user: test_user });
     }
 
     client.verify_api_events(&expected_events);
@@ -550,12 +550,7 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     );
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
     expected_events.push(ApiEventType::VpnLocationAdded {
         location: get_db_location(&state.pool, 1).await,
     });

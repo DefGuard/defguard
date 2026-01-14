@@ -38,12 +38,7 @@ async fn test_stats(_: PgPoolOptions, options: PgConnectOptions) {
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // create devices
     let device = json!({

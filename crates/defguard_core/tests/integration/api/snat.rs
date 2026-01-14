@@ -26,12 +26,7 @@ async fn test_snat_crud(_: PgPoolOptions, options: PgConnectOptions) {
     authenticate_admin(&mut client).await;
 
     // create location
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // list SNAT bindings (should be empty)
     let response = client.get("/api/v1/network/1/snat").send().await;
@@ -118,12 +113,7 @@ async fn test_snat_enterprise_required(_: PgPoolOptions, options: PgConnectOptio
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // unset the license
     let license = get_cached_license().clone();
@@ -185,12 +175,7 @@ async fn test_snat_admin_required(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // login as normal user
     let auth = Auth::new("hpotter", "pass123");
@@ -241,12 +226,7 @@ async fn test_snat_validation(_: PgPoolOptions, options: PgConnectOptions) {
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // try to create binding for non-existent user
     let new_binding = NewUserSnatBinding {
@@ -318,12 +298,7 @@ async fn test_snat_multiple_bindings(_: PgPoolOptions, options: PgConnectOptions
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // create multiple SNAT bindings for different users
     let binding1 = NewUserSnatBinding {
