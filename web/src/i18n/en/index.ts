@@ -2362,7 +2362,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     debugDataCard: {
       title: 'Support data',
       body: `
-If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+If you need assistance or you were asked to generate support data by our team you have two options:
 * Either you can configure SMTP settings and click "Send support data"
 * Or click "Download support data" and create a bug report in our GitHub attaching this file.
 `,
