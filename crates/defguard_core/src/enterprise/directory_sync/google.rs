@@ -106,6 +106,8 @@ impl From<User> for DirectoryUser {
             email: val.primary_email,
             active: !val.suspended,
             id: None,
+            // TODO: currently not supported for Google
+            user_details: None,
         }
     }
 }

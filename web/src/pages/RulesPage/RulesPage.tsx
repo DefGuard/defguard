@@ -7,6 +7,7 @@ import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getRulesQueryOptions } from '../../shared/query';
 import { RulesDeployedTab } from './tabs/RulesDeployedTab';
 import { RulesPendingTab } from './tabs/RulesPendingTab';
@@ -53,12 +54,14 @@ export const RulesPage = () => {
     <Page title="Rules" id="rules-page">
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
-      {activeTab === RulesPageTab.Deployed && isPresent(deployed) && (
-        <RulesDeployedTab rules={deployed} />
-      )}
-      {activeTab === RulesPageTab.Pending && isPresent(pending) && (
-        <RulesPendingTab rules={pending} />
-      )}
+      <TablePageLayout>
+        {activeTab === RulesPageTab.Deployed && isPresent(deployed) && (
+          <RulesDeployedTab rules={deployed} />
+        )}
+        {activeTab === RulesPageTab.Pending && isPresent(pending) && (
+          <RulesPendingTab rules={pending} />
+        )}
+      </TablePageLayout>
     </Page>
   );
 };

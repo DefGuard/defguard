@@ -44,5 +44,9 @@ export function openModal<N extends ModalNameValue>(
     args.length === 0 ? { name } : { name, data: args[0] }
   ) as ModalOpenEvent;
 
+  // blur whatever right now has focus
+  const activeElement = document.activeElement as HTMLElement | null;
+  activeElement?.blur();
+
   openModalSubject.next(event);
 }

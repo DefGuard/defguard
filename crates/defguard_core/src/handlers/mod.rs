@@ -6,17 +6,22 @@ use axum::{
 };
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{TypedHeader, headers::UserAgent};
-use defguard_common::db::{Id, NoId};
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{Device, User},
+    },
+    types::user_info::UserInfo,
+};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
-use crate::db::Device;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{User, UserInfo, WebHook},
+    db::WebHook,
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     events::ApiRequestContext,
@@ -27,16 +32,16 @@ pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
-pub(crate) mod mail;
+pub mod mail;
 pub mod network_devices;
-pub(crate) mod openid_clients;
+pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
 pub(crate) mod updates;
-pub(crate) mod user;
+pub mod user;
 pub(crate) mod webhooks;
 pub mod wireguard;
 pub mod worker;
@@ -63,9 +68,6 @@ impl ApiResponse {
 impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> ApiResponse {
         match web_error {
-            WebError::Deserialization(msg) => {
-                ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
-            }
             WebError::ObjectNotFound(msg) => {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }
@@ -83,11 +85,9 @@ impl From<WebError> for ApiResponse {
             }
             WebError::DbError(_)
             | WebError::Grpc(_)
-            | WebError::Ldap(_)
             | WebError::WebauthnRegistration(_)
             | WebError::Serialization(_)
             | WebError::ModelError(_)
-            | WebError::ServerConfigMissing
             | WebError::EmailMfa(_)
             | WebError::ClientIpError
             | WebError::FirewallError(_)
@@ -159,8 +159,7 @@ impl From<WebError> for ApiResponse {
                 json!({ "msg": "Too many login attempts" }),
                 StatusCode::TOO_MANY_REQUESTS,
             ),
-            WebError::IncorrectUsername(msg)
-            | WebError::PubkeyValidation(msg)
+            WebError::PubkeyValidation(msg)
             | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
@@ -331,6 +330,7 @@ pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
+    pub token_expiration_time: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

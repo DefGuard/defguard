@@ -39,6 +39,8 @@ impl From<User> for DirectoryUser {
             email: user.email,
             active: user.activated && !user.account_locked && user.state == UserState::Activated,
             id: Some(user.id),
+            // TODO: currently not supported for Jumpcloud
+            user_details: None,
         }
     }
 }

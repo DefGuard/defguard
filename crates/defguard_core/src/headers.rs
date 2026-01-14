@@ -1,7 +1,10 @@
 use std::{borrow::Borrow, sync::LazyLock};
 
 use axum::http::{HeaderName, HeaderValue};
-use defguard_common::db::{Id, models::DeviceLoginEvent};
+use defguard_common::db::{
+    Id,
+    models::{DeviceLoginEvent, User},
+};
 use defguard_mail::{
     Mail,
     templates::{SessionContext, TemplateError},
@@ -10,7 +13,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
-use crate::{db::User, handlers::mail::send_new_device_login_email};
+use crate::handlers::mail::send_new_device_login_email;
 
 pub(crate) const CONTENT_SECURITY_POLICY_HEADER_NAME: HeaderName =
     HeaderName::from_static("content-security-policy");
@@ -23,7 +26,7 @@ pub(crate) static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|
 });
 
 #[must_use]
-pub(crate) fn get_device_info(user_agent: &str) -> String {
+pub fn get_device_info(user_agent: &str) -> String {
     let escaped = tera::escape_html(user_agent);
     let client = USER_AGENT_PARSER.parse(&escaped);
     get_user_agent_device(&client)

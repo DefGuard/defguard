@@ -6,7 +6,6 @@ use std::{
     sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
-use crate::version::IncompatibleComponents;
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
@@ -14,40 +13,25 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
-use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
     config::{DefGuardConfig, InitVpnLocationArgs, server_config},
-    db::init_db,
+    db::{
+        init_db,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            oauth2client::OAuth2Client,
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
+                ServiceLocationMode,
+            },
+        },
+    },
 };
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
-use enterprise::{
-    handlers::{
-        acl::{
-            apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
-            delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
-            list_acl_rules, update_acl_alias, update_acl_rule,
-        },
-        activity_log_stream::{
-            create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
-            modify_activity_log_stream,
-        },
-        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-        check_enterprise_info,
-        enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
-        openid_login::{auth_callback, get_auth_info},
-        openid_providers::{
-            add_openid_provider, delete_openid_provider, get_current_openid_provider,
-            test_dirsync_connection,
-        },
-    },
-    snat::handlers::{
-        create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
-    },
-};
 use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
@@ -89,31 +73,37 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::handlers::wireguard::{
-    add_device, add_user_devices, create_network, create_network_token, delete_device,
-    delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
-    list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway,
-};
-use self::handlers::worker::{
-    create_job, create_worker_token, job_status, list_workers, remove_worker,
-};
-use self::handlers::{
-    openid_clients::{
-        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        get_openid_client, list_openid_clients,
-    },
-    openid_flow::{
-        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
-    },
-};
 use self::{
     appstate::AppState,
-    db::{
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
-        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+    auth::failed_login::FailedLoginMap,
+    db::AppEvent,
+    enterprise::{
+        handlers::{
+            acl::{
+                apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
+                delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
+                list_acl_rules, update_acl_alias, update_acl_rule,
+            },
+            activity_log_stream::{
+                create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+                modify_activity_log_stream,
+            },
+            api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+            check_enterprise_info,
+            enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+            openid_login::{auth_callback, get_auth_info},
+            openid_providers::{
+                add_openid_provider, delete_openid_provider, get_openid_provider,
+                modify_openid_provider, test_dirsync_connection,
+            },
+        },
+        snat::handlers::{
+            create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
+        },
     },
+    grpc::WorkerState,
     handlers::{
+        app_info::get_app_info,
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
             logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
@@ -126,6 +116,14 @@ use self::{
             remove_group_member,
         },
         mail::{send_support_data, test_mail},
+        openid_clients::{
+            add_openid_client, change_openid_client, change_openid_client_state,
+            delete_openid_client, get_openid_client, list_openid_clients,
+        },
+        openid_flow::{
+            authorization, discovery_keys, openid_configuration, secure_authorization, token,
+            userinfo,
+        },
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -142,26 +140,37 @@ use self::{
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
+        wireguard::{
+            add_device, add_user_devices, create_network, create_network_token, delete_device,
+            delete_network, devices_stats, download_config, gateway_status, get_device,
+            import_network, list_devices, list_networks, list_user_devices, modify_device,
+            modify_network, network_details, network_stats, remove_gateway,
+        },
+        worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
 };
-use self::{
-    auth::failed_login::FailedLoginMap,
-    db::models::oauth2client::OAuth2Client,
-    grpc::{WorkerState, gateway::map::GatewayMap},
-    handlers::app_info::get_app_info,
+use crate::{
+    enterprise::handlers::openid_providers::list_openid_providers,
+    grpc::gateway::events::GatewayEvent,
+    handlers::wireguard::{add_gateway, change_gateway},
+    location_management::sync_location_allowed_devices,
+    version::IncompatibleComponents,
 };
 
 pub mod appstate;
 pub mod auth;
 pub mod db;
+pub mod enrollment_management;
 pub mod enterprise;
 mod error;
 pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
+pub mod location_management;
 pub mod support;
 pub mod updates;
+pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;
@@ -179,13 +188,13 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
-// WireGuard key length in bytes.
-pub(crate) const KEY_LENGTH: usize = 32;
-
 mod openapi {
-    use db::{
-        AddDevice, UserDetails, UserInfo,
-        models::device::{ModifyDevice, UserDevice},
+    use defguard_common::{
+        db::models::{
+            Device,
+            device::{AddDevice, ModifyDevice, UserDevice},
+        },
+        types::user_info::UserInfo,
     };
     use handlers::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
@@ -200,7 +209,7 @@ mod openapi {
     };
 
     use super::*;
-    use crate::{enterprise::snat::handlers as snat, error::WebError};
+    use crate::{enterprise::snat::handlers as snat, error::WebError, handlers::user::UserDetails};
 
     #[derive(OpenApi)]
     #[openapi(
@@ -342,7 +351,6 @@ pub fn build_webapp(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -495,9 +503,14 @@ pub fn build_webapp(
         Router::new()
             .route(
                 "/provider",
-                get(get_current_openid_provider).post(add_openid_provider),
+                get(list_openid_providers).post(add_openid_provider),
             )
-            .route("/provider/{name}", delete(delete_openid_provider))
+            .route(
+                "/provider/{name}",
+                get(get_openid_provider)
+                    .put(modify_openid_provider)
+                    .delete(delete_openid_provider),
+            )
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
@@ -615,9 +628,10 @@ pub fn build_webapp(
                     .get(network_details),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
+            .route("/network/{network_id}/gateways", post(add_gateway))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
-                delete(remove_gateway),
+                put(change_gateway).delete(remove_gateway),
             )
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
@@ -635,8 +649,7 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
             )
-            .route("/outdated", get(outdated_components))
-            .layer(Extension(gateway_state)),
+            .route("/outdated", get(outdated_components)),
     );
 
     let webapp = webapp.nest(
@@ -688,7 +701,6 @@ pub fn build_webapp(
 #[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -704,7 +716,6 @@ pub async fn run_web_server(
         wireguard_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         failed_logins,
         event_tx,
@@ -771,12 +782,15 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             50051,
             "0.0.0.0".to_string(),
             None,
+            None,
+            None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
@@ -857,7 +871,7 @@ pub async fn init_vpn_location(
             network.dns.clone_from(&args.dns);
             network.allowed_ips.clone_from(&args.allowed_ips);
             network.save(&mut *transaction).await?;
-            network.sync_allowed_devices(&mut transaction, None).await?;
+            sync_location_allowed_devices(&network, &mut transaction, None).await?;
             network
         }
         // Otherwise create it with the predefined ID
@@ -868,12 +882,15 @@ pub async fn init_vpn_location(
                 args.port,
                 args.endpoint.clone(),
                 args.dns.clone(),
+                args.mtu.map(|i| i as i32),
+                args.fwmark.map(|i| i as i32),
                 args.allowed_ips.clone(),
                 DEFAULT_KEEPALIVE_INTERVAL,
                 DEFAULT_DISCONNECT_THRESHOLD,
                 false,
                 false,
                 LocationMfaMode::Disabled,
+                ServiceLocationMode::Disabled,
             )
             .save(&mut *transaction)
             .await?;
@@ -907,12 +924,15 @@ pub async fn init_vpn_location(
             args.port,
             args.endpoint.clone(),
             args.dns.clone(),
+            args.mtu.map(|i| i as i32),
+            args.fwmark.map(|i| i as i32),
             args.allowed_ips.clone(),
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
+            ServiceLocationMode::Disabled,
         )
         .save(pool)
         .await?
@@ -930,7 +950,7 @@ pub async fn init_vpn_location(
     Ok(token)
 }
 
-pub(crate) fn is_valid_phone_number(number: &str) -> bool {
+pub fn is_valid_phone_number(number: &str) -> bool {
     PHONE_NUMBER_REGEX.is_match(number)
 }
 

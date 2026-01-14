@@ -1,6 +1,6 @@
 use defguard_core::{
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
+        db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
@@ -12,7 +12,10 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use super::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
-async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_only_enterprise_can_modify_enterpise_settings(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
 
     // admin login
@@ -29,8 +32,8 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
 
     // try to patch enterprise settings
     let settings = EnterpriseSettings {
-        admin_device_management: true,
-        disable_all_traffic: false,
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
 
@@ -40,7 +43,7 @@ async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOpt
         .send()
         .await;
 
-    // server should say nono
+    // server should say no
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // restore valid license and try again
@@ -68,17 +71,12 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // setup admin devices management
     let settings = EnterpriseSettings {
         admin_device_management: true,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
     let response = client
@@ -96,6 +94,13 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     let response = client
         .post("/api/v1/device/hpotter")
         .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -134,6 +139,14 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // start desktop enrollment
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
 #[sqlx::test]
@@ -149,17 +162,12 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // setup admin devices management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: false,
     };
     let response = client
@@ -215,6 +223,13 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
     let response = client.put("/api/v1/device/2").json(&device).send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/user/hpotter/start_desktop")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[sqlx::test]
@@ -230,17 +245,12 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // disable manual device management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
     };
     let response = client
@@ -311,17 +321,12 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
     exceed_enterprise_limits(&client).await;
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // disable manual device management
     let settings = EnterpriseSettings {
         admin_device_management: false,
-        disable_all_traffic: false,
+        client_traffic_policy: ClientTrafficPolicy::None,
         only_client_activation: true,
     };
     let response = client

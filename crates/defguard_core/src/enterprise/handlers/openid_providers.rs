@@ -4,17 +4,18 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::models::{
-    Settings,
+    Settings, WireguardNetwork,
     settings::{OpenidUsernameHandling, update_current_settings},
+    wireguard::LocationMfaMode,
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
+use utoipa::ToSchema;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{WireguardNetwork, models::wireguard::LocationMfaMode},
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
@@ -22,7 +23,7 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddProviderData {
     pub name: String,
     pub base_url: String,
@@ -43,14 +44,21 @@ pub struct AddProviderData {
     pub directory_sync_group_match: Option<String>,
     pub username_handling: OpenidUsernameHandling,
     pub jumpcloud_api_key: Option<String>,
+    pub prefetch_users: bool,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct DeleteProviderData {
-    name: String,
-}
-
-pub async fn add_openid_provider(
+/// Add OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "created" on success.
+#[utoipa::path(
+    post,
+    path = "/api/v1/openid/provider",
+    responses(
+        (status = CREATED, description = "Add OpenID provider", body = [AddProviderData]),
+    ),
+)]
+pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
@@ -160,6 +168,7 @@ pub async fn add_openid_provider(
         provider_data.okta_dirsync_client_id,
         group_match,
         provider_data.jumpcloud_api_key,
+        provider_data.prefetch_users,
     )
     .upsert(&appstate.pool)
     .await?;
@@ -180,13 +189,30 @@ pub async fn add_openid_provider(
     })
 }
 
-pub async fn get_current_openid_provider(
+/// Get OpenID provider by name.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    put,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Get OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn get_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
+    Path(name): Path<String>,
 ) -> ApiResult {
     let settings = Settings::get_current_settings();
-    match OpenIdProvider::get_current(&appstate.pool).await? {
+    let settings_json = json!({"create_account": settings.openid_create_account,
+        "username_handling": settings.openid_username_handling});
+    match OpenIdProvider::find_by_name(&appstate.pool, &name).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
@@ -194,8 +220,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({"create_account": settings.openid_create_account,
-                        "username_handling": settings.openid_username_handling}),
+                    "settings": settings_json,
                 }),
                 status: StatusCode::OK,
             })
@@ -203,28 +228,41 @@ pub async fn get_current_openid_provider(
         None => Ok(ApiResponse {
             json: json!({
                 "provider": null,
-                "settings": json!({"create_account": settings.openid_create_account,
-                    "username_handling": settings.openid_username_handling}),
+                "settings": settings_json,
             }),
             status: StatusCode::NO_CONTENT,
         }),
     }
 }
 
-pub async fn delete_openid_provider(
+/// Delete OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Delete OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Path(provider_data): Path<DeleteProviderData>,
+    Path(name): Path<String>,
 ) -> ApiResult {
     debug!(
-        "User {} deleting OpenID provider {}",
-        session.user.username, provider_data.name
+        "User {} deleting OpenID provider {name}",
+        session.user.username
     );
     let mut transaction = appstate.pool.begin().await?;
-    let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
+    let provider = OpenIdProvider::find_by_name(&mut *transaction, &name).await?;
     if let Some(provider) = provider {
         provider.clone().delete(&mut *transaction).await?;
         // fetch all locations using external MFA
@@ -256,8 +294,8 @@ pub async fn delete_openid_provider(
         })
     } else {
         warn!(
-            "User {} failed to delete OpenID provider {}. Such provider does not exist.",
-            session.user.username, provider_data.name
+            "User {} failed to delete OpenID provider {name}. Such provider does not exist.",
+            session.user.username,
         );
         Ok(ApiResponse {
             json: json!({}),
@@ -266,10 +304,25 @@ pub async fn delete_openid_provider(
     }
 }
 
-pub async fn modify_openid_provider(
+/// Modify OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    put,
+    path = "/api/v1/openid/provider/{name}",
+    responses(
+        (status = OK, description = "Modify OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn modify_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
@@ -288,6 +341,11 @@ pub async fn modify_openid_provider(
             "User {} modified OpenID client {}",
             session.user.username, provider.name
         );
+        appstate.emit_event(ApiEvent {
+            context,
+            event: Box::new(ApiEventType::OpenIdProviderModified { provider }),
+        })?;
+
         Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::OK,
@@ -304,7 +362,18 @@ pub async fn modify_openid_provider(
     }
 }
 
-pub async fn list_openid_providers(
+/// List all OpenID providers.
+///
+/// # Returns
+/// - Array of all OpenID providers and HTTP status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider",
+    responses(
+        (status = OK, description = "List all OpenID provider"),
+    ),
+)]
+pub(crate) async fn list_openid_providers(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -316,7 +385,7 @@ pub async fn list_openid_providers(
     })
 }
 
-pub async fn test_dirsync_connection(
+pub(crate) async fn test_dirsync_connection(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
@@ -329,8 +398,8 @@ pub async fn test_dirsync_connection(
 
     if let Err(err) = test_directory_sync_connection(&appstate.pool).await {
         error!(
-            "User {} tested directory sync connection, the connection failed: {}",
-            session.user.username, err
+            "User {} tested directory sync connection, the connection failed: {err}",
+            session.user.username,
         );
         return Ok(ApiResponse {
             json: json!({"message": err.to_string(), "success": false}),

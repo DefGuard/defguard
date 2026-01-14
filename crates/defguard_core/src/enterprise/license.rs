@@ -1,8 +1,14 @@
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
 use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::models::{Settings, settings::update_current_settings},
+    global_value,
+};
 use humantime::format_duration;
 use pgp::{
     composed::{Deserializable, SignedPublicKey, StandaloneSignature},
@@ -14,12 +20,8 @@ use thiserror::Error;
 use tokio::time::sleep;
 
 use super::limits::Counts;
-use crate::grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata};
-use defguard_common::{
-    VERSION,
-    config::server_config,
-    db::models::{Settings, settings::update_current_settings},
-    global_value,
+use crate::grpc::proto::enterprise::license::{
+    LicenseKey, LicenseLimits, LicenseMetadata, LicenseTier as LicenseTierProto,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -195,11 +197,35 @@ pub enum LicenseError {
         "License limits exceeded. To upgrade your license please contact sales<at>defguard.net"
     )]
     LicenseLimitsExceeded,
+    #[error("License tier is lower than required minimum")]
+    LicenseTierTooLow,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct RefreshRequestResponse {
     key: String,
+}
+
+/// Represents license tiers
+///
+/// Variant order must be maintained to go from lowest (first) to highest (last) tier
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, PartialOrd)]
+pub enum LicenseTier {
+    Business, // this corresponds to both Team & Business level in our current pricing structure
+    Enterprise,
+}
+
+impl Display for LicenseTier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Business => {
+                write!(f, "Business")
+            }
+            Self::Enterprise => {
+                write!(f, "Enterprise")
+            }
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -209,6 +235,7 @@ pub struct License {
     pub valid_until: Option<DateTime<Utc>>,
     pub limits: Option<LicenseLimits>,
     pub version_date_limit: Option<DateTime<Utc>>,
+    pub tier: LicenseTier,
 }
 
 impl License {
@@ -219,6 +246,7 @@ impl License {
         valid_until: Option<DateTime<Utc>>,
         limits: Option<LicenseLimits>,
         version_date_limit: Option<DateTime<Utc>>,
+        tier: LicenseTier,
     ) -> Self {
         Self {
             customer_id,
@@ -226,6 +254,7 @@ impl License {
             valid_until,
             limits,
             version_date_limit,
+            tier,
         }
     }
 
@@ -306,12 +335,27 @@ impl License {
                     None => None,
                 };
 
+                let license_tier = match LicenseTierProto::try_from(metadata.tier) {
+                    Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
+                    // fall back to Business tier for legacy licenses
+                    Ok(LicenseTierProto::Business | LicenseTierProto::Unspecified) => {
+                        LicenseTier::Business
+                    }
+                    Err(err) => {
+                        error!("Failed to read license tier from license metadata: {err}");
+                        return Err(LicenseError::DecodeError(
+                            "Failed to decode license tier metadata".into(),
+                        ));
+                    }
+                };
+
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
                     metadata.limits,
                     version_date_limit,
+                    license_tier,
                 );
 
                 if license.requires_renewal() {
@@ -448,6 +492,14 @@ impl License {
             self.is_expired()
         }
     }
+
+    // Checks if License tier is lower than specified minimum
+    //
+    // Ordering is implemented by the `LicenseTier` enum itself
+    #[must_use]
+    pub(crate) fn is_lower_tier(&self, minimum_tier: LicenseTier) -> bool {
+        self.tier < minimum_tier
+    }
 }
 
 /// Exchange the currently stored key for a new one from the license server.
@@ -510,9 +562,11 @@ async fn renew_license() -> Result<String, LicenseError> {
 /// 1. Does the cached license exist
 /// 2. Is the cached license past its maximum expiry date
 /// 3. Does current object count exceed license limits
+/// 4. Is the license of at least the specified tier (or higher)
 pub(crate) fn validate_license(
     license: Option<&License>,
     counts: &Counts,
+    minimum_tier: LicenseTier,
 ) -> Result<(), LicenseError> {
     debug!("Validating if the license is present, not expired and not exceeding limits...");
     match license {
@@ -522,6 +576,9 @@ pub(crate) fn validate_license(
             }
             if counts.is_over_license_limits(license) {
                 return Err(LicenseError::LicenseLimitsExceeded);
+            }
+            if license.is_lower_tier(minimum_tier) {
+                return Err(LicenseError::LicenseTierTooLow);
             }
             Ok(())
         }
@@ -695,6 +752,9 @@ mod test {
         assert_eq!(limits.users, 10);
         assert_eq!(limits.devices, 100);
         assert_eq!(limits.locations, 5);
+
+        // pre-1.6 license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -713,6 +773,9 @@ mod test {
 
         // legacy license is unlimited
         assert!(license.limits.is_none());
+
+        // legacy license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -728,6 +791,9 @@ mod test {
             license.valid_until.unwrap(),
             Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
+
+        // pre-1.6 license defaults to Business tier
+        assert_eq!(license.tier, LicenseTier::Business);
     }
 
     #[test]
@@ -735,8 +801,8 @@ mod test {
         let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
         let counts = Counts::default();
-        assert!(validate_license(Some(&license), &counts).is_err());
-        assert!(validate_license(None, &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
+        assert!(validate_license(None, &counts, LicenseTier::Business).is_err());
 
         // One day past the expiry date, non-subscription license
         let license = License::new(
@@ -745,8 +811,9 @@ mod test {
             Some(Utc::now() - TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // One day before the expiry date, non-subscription license
         let license = License::new(
@@ -755,12 +822,20 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License::new("test".to_string(), false, None, None, None);
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+        );
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         // One day past the maximum overdue date
         let license = License::new(
@@ -769,8 +844,9 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // One day before the maximum overdue date
         let license = License::new(
@@ -779,8 +855,9 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
         let counts = Counts::new(5, 5, 5, 5);
 
@@ -796,8 +873,9 @@ mod test {
                 network_devices: Some(1),
             }),
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
         // Below object count limits
         let license = License::new(
@@ -811,7 +889,23 @@ mod test {
                 network_devices: Some(10),
             }),
             None,
+            LicenseTier::Business,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
+    }
+
+    #[test]
+    fn test_license_tiers() {
+        let legacy_license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9EMAAoJEKiEbAECmoSE/0kEAIb18pVTEYWQo0w6813nShJqi7++Uo/fX4pxaAzEiG9r5HGpZSbsceCarMiK1rBr93HOIMeDRsbZmJBA/MAYGi32uXgzLE8fGSd4lcUPAbpvlj7KNvQNH6sMelzQVw+AJVY+IASqO84nfy92taEVagbLqIwl/eSQUnehJBS+B5/z";
+        let legacy_license = License::from_base64(legacy_license).unwrap();
+        assert_eq!(legacy_license.tier, LicenseTier::Business);
+
+        let business_license = "Ci4KJGEyYjE1M2MzLWYwZmEtNGUzNC05ZThkLWY0Nzk1NTA4OWMwNRiI7KTKBjABErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7iAAKCRCohGwBApqEhHdaA/0QqDNiryYSzWTEayBMwEBE6KAxTEtwRzXOxQxsnULjbQMol/SRjqfu8iwlI4IeBQP3CuAR9kglewvwg3osXDldIns46W/cDBd0jxANebLY9SPz0JS6pStMnSzhZ6rFW5ns3nCz86EOyAA9npx0/qxHCbtT6Qzi//5JYQe6VvvCmw==";
+        let business_license = License::from_base64(business_license).unwrap();
+        assert_eq!(business_license.tier, LicenseTier::Business);
+
+        let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
+        let enterprise_license = License::from_base64(enterprise_license).unwrap();
+        assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
     }
 }

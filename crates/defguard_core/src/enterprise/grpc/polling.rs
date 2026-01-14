@@ -1,13 +1,12 @@
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, polling_token::PollingToken, user::User},
+};
+use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoResponse};
 use sqlx::PgPool;
 use tonic::Status;
 
-use crate::{
-    db::{Device, User, models::polling_token::PollingToken},
-    enterprise::is_enterprise_enabled,
-    grpc::utils::build_device_config_response,
-};
-use defguard_proto::proxy::{InstanceInfoRequest, InstanceInfoResponse};
+use crate::{enterprise::is_business_license_active, grpc::utils::build_device_config_response};
 
 pub struct PollingServer {
     pool: PgPool,
@@ -24,7 +23,7 @@ impl PollingServer {
         debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
-        if !is_enterprise_enabled() {
+        if !is_business_license_active() {
             debug!("Instance has enterprise features disabled, denying instance polling info");
             return Err(Status::failed_precondition("no valid license"));
         }
@@ -47,7 +46,11 @@ impl PollingServer {
 
     /// Prepares instance info for polling requests. Enterprise only.
     #[instrument(skip_all)]
-    pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
+    pub async fn info(
+        &self,
+        request: InstanceInfoRequest,
+        device_info: Option<DeviceInfo>,
+    ) -> Result<InstanceInfoResponse, Status> {
         trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;
         let Some(device) = Device::find_by_id(&self.pool, token.device_id)
@@ -82,7 +85,8 @@ impl PollingServer {
         }
 
         // Build and return polling info.
-        let device_config = build_device_config_response(&self.pool, device, None).await?;
+        let device_config =
+            build_device_config_response(&self.pool, device, None, device_info).await?;
 
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),

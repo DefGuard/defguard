@@ -183,7 +183,7 @@ export interface ApiError {
   message?: string;
 }
 
-export interface LicenseLimits {
+export interface AppInfoExceededLimits {
   user: boolean;
   device: boolean;
   wireguard_network: boolean;
@@ -191,18 +191,40 @@ export interface LicenseLimits {
 
 export interface LicenseAppInfo {
   enterprise: boolean;
-  limits_exceeded: LicenseLimits;
+  limits_exceeded: AppInfoExceededLimits;
   any_limit_exceeded: boolean;
   is_enterprise_free: boolean;
   tier?: string | null;
 }
 
+export interface LimitInfo {
+  current: number;
+  limit: number;
+}
+
+export interface LicenseLimitsInfo {
+  locations: LimitInfo;
+  users: LimitInfo;
+  user_devices: LimitInfo | null;
+  network_devices: LimitInfo | null;
+  devices: LimitInfo | null;
+}
+
+export const LicenseTier = {
+  Business: 'Business',
+  Enterprise: 'Enterprise',
+} as const;
+
+export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
+
 export interface LicenseInfo {
+  free: boolean;
   expired: boolean;
   limits_exceeded: boolean;
   subscription: boolean;
-  valid_until: string;
-  tier: string;
+  valid_until: string | null;
+  tier: LicenseTierValue;
+  limits: LicenseLimitsInfo;
 }
 
 export interface LicenseInfoResponse {
@@ -631,7 +653,7 @@ export interface SettingsOpenID {
 }
 
 export interface SettingsLicense {
-  license: string;
+  license: string | null;
 }
 
 export interface SettingsGatewayNotifications {

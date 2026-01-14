@@ -1,3 +1,4 @@
+use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 use openidconnect::{AuthorizationCode, Nonce};
 use reqwest::Url;
 use tonic::Status;
@@ -5,15 +6,14 @@ use tonic::Status;
 use crate::{
     enterprise::{
         handlers::openid_login::{extract_state_data, user_from_claims},
-        is_enterprise_enabled,
+        is_business_license_active,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
-        client_mfa::{ClientLoginSession, ClientMfaServer},
-        utils::parse_client_info,
+        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
+        utils::parse_client_ip_agent,
     },
 };
-use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 
 impl ClientMfaServer {
     #[instrument(skip_all)]
@@ -23,7 +23,7 @@ impl ClientMfaServer {
         info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Received OIDC MFA authentication request: {request:?}");
-        if !is_enterprise_enabled() {
+        if !is_business_license_active() {
             error!("OIDC MFA method requires enterprise feature to be enabled");
             return Err(Status::invalid_argument("OIDC MFA method is not supported"));
         }
@@ -66,7 +66,7 @@ impl ClientMfaServer {
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
-        let (ip, _user_agent) = parse_client_info(&info).map_err(Status::internal)?;
+        let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(
             user.id,
             user.username.clone(),

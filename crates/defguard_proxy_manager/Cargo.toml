@@ -1,0 +1,30 @@
+[package]
+name = "defguard_proxy_manager"
+version = "0.0.0"
+edition.workspace = true
+license-file.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# internal dependencies
+defguard_common.workspace = true
+defguard_core.workspace = true
+defguard_mail.workspace = true
+defguard_proto.workspace = true
+defguard_version.workspace = true
+defguard_certs.workspace = true
+openidconnect.workspace = true
+reqwest.workspace = true
+semver.workspace = true
+tokio-stream.workspace = true
+
+axum.workspace = true
+axum-extra.workspace = true
+secrecy.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tonic.workspace = true
+tracing.workspace = true

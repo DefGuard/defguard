@@ -1,8 +1,11 @@
 use std::{net::IpAddr, str::FromStr};
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, WireguardNetwork},
+};
 use defguard_core::{
-    db::{Device, GatewayEvent, WireguardNetwork},
+    grpc::gateway::events::GatewayEvent,
     handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
@@ -27,7 +30,8 @@ fn make_network() -> Value {
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     })
 }
 
@@ -44,7 +48,8 @@ fn make_second_network() -> Value {
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     })
 }
 
@@ -303,7 +308,8 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
         "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
+        "location_mfa_mode": "disabled",
+        "service_location_mode": "disabled"
     });
     let response = client.post("/api/v1/network").json(&location).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -382,5 +388,5 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
                 valid: true,
             }
         ]
-    )
+    );
 }

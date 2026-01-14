@@ -1,11 +1,10 @@
 use std::ops::Bound;
 
-use defguard_common::db::setup_pool;
+use defguard_common::{db::setup_pool, utils::parse_address_list};
 use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::handlers::wireguard::parse_address_list;
 
 #[sqlx::test]
 async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
@@ -177,12 +176,15 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         1000,
         "endpoint1".to_string(),
         None,
+        None,
+        None,
         Vec::new(),
         100,
         100,
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -193,12 +195,15 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         2000,
         "endpoint2".to_string(),
         None,
+        None,
+        None,
         Vec::new(),
         200,
         200,
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await

@@ -1,22 +1,26 @@
-use defguard_common::db::Id;
-use defguard_core::{
+use defguard_common::{
     db::{
-        AddDevice, UserInfo,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client},
+        Id,
+        models::{device::AddDevice, oauth2client::OAuth2Client},
     },
+    types::user_info::UserInfo,
+};
+use defguard_core::{
     events::ApiEventType,
-    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
+    handlers::{
+        AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username,
+        openid_clients::NewOpenIDClient,
+    },
 };
 use reqwest::{StatusCode, header::USER_AGENT};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
-use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
-
 use super::{
     TEST_SERVER_URL,
     common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool},
 };
+use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
 
 #[sqlx::test]
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
@@ -384,7 +388,7 @@ async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
         assert_eq!(response.status(), StatusCode::CREATED);
 
         let test_user = get_db_user(&pool, username).await;
-        expected_events.push(ApiEventType::UserAdded { user: test_user })
+        expected_events.push(ApiEventType::UserAdded { user: test_user });
     }
 
     client.verify_api_events(&expected_events);
@@ -546,12 +550,7 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     );
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
     expected_events.push(ApiEventType::VpnLocationAdded {
         location: get_db_location(&state.pool, 1).await,
     });

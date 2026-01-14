@@ -1,5 +1,6 @@
 -s dir
 --name defguard
---description "defguard core service"
+--description "Defguard Core service"
 --url "https://defguard.net/"
---maintainer "teonite"
+--maintainer "Defguard"
+--config-files /etc/defguard/core.conf

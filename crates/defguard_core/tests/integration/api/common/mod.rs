@@ -9,16 +9,19 @@ pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
     config::DefGuardConfig,
-    db::{Id, NoId, models::settings::initialize_current_settings},
+    db::{
+        Id, NoId,
+        models::{Device, User, WireguardNetwork, settings::initialize_current_settings},
+    },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
-    db::{AppEvent, Device, GatewayEvent, User, UserDetails, WireguardNetwork},
-    enterprise::license::{License, set_cached_license},
+    db::AppEvent,
+    enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
-    grpc::{WorkerState, gateway::map::GatewayMap},
-    handlers::Auth,
+    grpc::{WorkerState, gateway::events::GatewayEvent},
+    handlers::{Auth, user::UserDetails},
 };
 use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
@@ -35,7 +38,10 @@ use tokio::{
 };
 
 use self::client::TestClient;
-use crate::common::{init_config, initialize_users};
+use crate::{
+    api::common::client::TestResponse,
+    common::{init_config, initialize_users},
+};
 
 #[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
@@ -83,7 +89,6 @@ pub(crate) async fn make_base_client(
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -95,6 +100,7 @@ pub(crate) async fn make_base_client(
         None,
         None,
         None,
+        LicenseTier::Business,
     );
 
     set_cached_license(Some(license));
@@ -128,12 +134,11 @@ pub(crate) async fn make_base_client(
         wg_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         failed_logins,
         api_event_tx,
         Version::parse(VERSION).unwrap(),
-        Default::default(),
+        Arc::default(),
     );
 
     (
@@ -167,10 +172,16 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
 
+    make_network(client, "network1").await;
+    make_network(client, "network2").await;
+}
+
+/// Create test network with a given name.
+pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestResponse {
     let response = client
         .post("/api/v1/network")
         .json(&json!({
-            "name": "network1",
+            "name": name,
             "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
@@ -181,48 +192,13 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
             "acl_default_allow": false,
-            "location_mfa_mode": "disabled"
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
         }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-
-    let response = client
-        .post("/api/v1/network")
-        .json(&json!({
-                "name": "network2",
-                "address": "10.1.1.1/24",
-                "port": 55555,
-                "endpoint": "192.168.4.14",
-                "allowed_ips": "10.1.1.0/24",
-                "dns": "1.1.1.1",
-                "allowed_groups": [],
-                "keepalive_interval": 25,
-                "peer_disconnect_threshold": 300,
-                "acl_enabled": false,
-                "acl_default_allow": false,
-                "location_mfa_mode": "disabled"
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-}
-
-pub(crate) fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled"
-    })
+    response
 }
 
 /// Replaces id field in json response with NoId

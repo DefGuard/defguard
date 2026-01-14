@@ -1,14 +1,14 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, User, WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
+};
 use thiserror::Error;
 use tonic::{Code, Status};
 
-use crate::{
-    db::{Device, User, WireguardNetwork, models::wireguard_peer_stats::WireguardPeerStats},
-    events::GrpcRequestContext,
-};
+use crate::events::GrpcRequestContext;
 
 #[derive(Debug, Error)]
 pub enum ClientMapError {
@@ -117,7 +117,8 @@ impl ClientMap {
         stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
-            "VPN client {} with public key {public_key} connected to location {location_id} through gateway {gateway_hostname}",
+            "VPN client {} with public key {public_key} connected to location {location_id} \
+            through Gateway {gateway_hostname}",
             device.name
         );
 

@@ -5,16 +5,13 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::{
-    db::{Group, User},
-    enterprise::ldap::{
-        model::extract_rdn_value,
-        sync::{
-            Authority, compute_group_sync_changes, compute_user_sync_changes,
-            extract_intersecting_users,
-        },
-        test_client::LdapEvent,
+use crate::enterprise::ldap::{
+    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    sync::{
+        Authority, compute_group_sync_changes, compute_user_sync_changes,
+        extract_intersecting_users,
     },
+    test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
 };
 
 const PASSWORD: &str = "test_password";
@@ -52,7 +49,7 @@ fn test_get_rdn_attr() {
 
     // Empty string should fall back to default 'cn'
     let config = LDAPConfig {
-        ldap_user_rdn_attr: Some("".to_string()),
+        ldap_user_rdn_attr: Some(String::new()),
         ..LDAPConfig::default()
     };
     assert_eq!(config.get_rdn_attr(), "cn");
@@ -221,7 +218,7 @@ fn test_using_username_as_rdn() {
 
     // Empty RDN attribute falls back to 'cn', so username is used
     let config = LDAPConfig {
-        ldap_user_rdn_attr: Some("".to_string()),
+        ldap_user_rdn_attr: Some(String::new()),
         ..LDAPConfig::default()
     };
     assert!(config.using_username_as_rdn());
@@ -307,7 +304,11 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
         &[
             LdapEvent::ObjectAdded {
                 dn: ldap_conn.config.user_dn_from_user(&active_user_not_in_ldap),
-                attrs: active_user_not_in_ldap.to_test_attrs(Some(PASSWORD), &ldap_conn.config),
+                attrs: user_to_test_attrs(
+                    &active_user_not_in_ldap,
+                    Some(PASSWORD),
+                    &ldap_conn.config
+                ),
             },
             LdapEvent::ObjectDeleted {
                 dn: ldap_conn.config.user_dn_from_user(&inactive_user_in_ldap),
@@ -334,7 +335,11 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(ldap_conn.test_client.events_match(
         &[LdapEvent::ObjectAdded {
             dn: ldap_conn.config.group_dn(&group.name),
-            attrs: group.to_test_attrs(&ldap_conn.config, Some(&vec![&active_user_in_ldap])),
+            attrs: group_to_test_attrs(
+                &group,
+                &ldap_conn.config,
+                Some(&vec![&active_user_in_ldap])
+            ),
         }],
         false
     ));
@@ -484,7 +489,10 @@ async fn test_get_user() {
     };
 
     // By username
-    let result = ldap_conn.get_user_by_username(&test_user).await.unwrap();
+    let result = ldap_conn
+        .get_user_by_username(&test_user.username)
+        .await
+        .unwrap();
     check(result);
 
     // By DN
@@ -493,7 +501,9 @@ async fn test_get_user() {
 
     // Non-existent user
     let non_existent_user = make_test_user("nonexistent", None, None);
-    let result = ldap_conn.get_user_by_username(&non_existent_user).await;
+    let result = ldap_conn
+        .get_user_by_username(&non_existent_user.username)
+        .await;
 
     assert!(result.is_err());
 }
@@ -1955,7 +1965,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         );
         assert_eq!(added_user.username, "ldap_only_user");
         assert!(added_user.from_ldap);
-        assert!(ldap_conn.test_client.get_events().is_empty())
+        assert!(ldap_conn.test_client.get_events().is_empty());
     }
 }
 
@@ -2422,7 +2432,7 @@ async fn test_get_empty_user_path(_: PgPoolOptions, options: PgConnectOptions) {
     let user = make_test_user("testuser", None, None);
     let user = user.save(&pool).await.unwrap();
 
-    let mut users = User::<Id>::get_without_ldap_path(&pool).await.unwrap();
+    let mut users = get_users_without_ldap_path(&pool).await.unwrap();
     let user_found = users.pop().unwrap();
     assert_eq!(user_found.username, user.username);
 }
@@ -2445,7 +2455,7 @@ fn test_extract_dn_value() {
     assert_eq!(extract_rdn_value("cn=onlyvalue"), None);
     assert_eq!(
         extract_rdn_value("cn=,dc=example,dc=com"),
-        Some("".to_string())
+        Some(String::new())
     );
     assert_eq!(extract_rdn_value(""), None);
 }
@@ -2466,7 +2476,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
+        let user = user_from_searchentry(&entry, "user1", Some("password123")).unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2489,7 +2499,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "user1", None).unwrap();
+        let user = user_from_searchentry(&entry, "user1", None).unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2511,7 +2521,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2531,7 +2541,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2551,7 +2561,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2572,7 +2582,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2593,7 +2603,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2611,7 +2621,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let result = User::from_searchentry(&entry, "user1", None);
+        let result = user_from_searchentry(&entry, "user1", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2633,7 +2643,7 @@ fn test_from_searchentry() {
         };
 
         // Test with invalid username (contains special characters)
-        let result = User::from_searchentry(&entry, "user@#$%", None);
+        let result = user_from_searchentry(&entry, "user@#$%", None);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -2655,7 +2665,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
+        let user = user_from_searchentry(&entry, "user1", Some("password123")).unwrap();
 
         assert_eq!(user.username, "user1");
         assert_eq!(user.last_name, "lastname1");
@@ -2683,7 +2693,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "user1", Some("mypassword")).unwrap();
+        let user = user_from_searchentry(&entry, "user1", Some("mypassword")).unwrap();
 
         assert_eq!(user.username, "user1");
         assert!(user.password_hash.is_some());
@@ -2719,7 +2729,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "user1", None).unwrap();
+        let user = user_from_searchentry(&entry, "user1", None).unwrap();
 
         // Should use the first value when multiple values are present
         assert_eq!(user.last_name, "lastname1");
@@ -2742,7 +2752,7 @@ fn test_from_searchentry() {
             bin_attrs: HashMap::new(),
         };
 
-        let user = User::from_searchentry(&entry, "testuser", None).unwrap();
+        let user = user_from_searchentry(&entry, "testuser", None).unwrap();
 
         // Verify LDAP-specific fields are properly set
         assert!(user.from_ldap);
@@ -2766,7 +2776,8 @@ fn test_as_ldap_attrs() {
     );
 
     // Basic test with InetOrgPerson
-    let attrs = user.as_ldap_attrs(
+    let attrs = user_as_ldap_attrs(
+        &user,
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![UserObjectClass::InetOrgPerson.into()],
@@ -2783,7 +2794,8 @@ fn test_as_ldap_attrs() {
     assert!(attrs.contains(&("objectClass", hashset!["inetOrgPerson"])));
 
     // Test with ActiveDirectory
-    let attrs = user.as_ldap_attrs(
+    let attrs = user_as_ldap_attrs(
+        &user,
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![UserObjectClass::User.into()],
@@ -2795,7 +2807,8 @@ fn test_as_ldap_attrs() {
     assert!(attrs.contains(&("sAMAccountName", hashset!["testuser"])));
 
     // Test with SimpleSecurityObject and SambaSamAccount
-    let attrs = user.as_ldap_attrs(
+    let attrs = user_as_ldap_attrs(
+        &user,
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![
@@ -2812,7 +2825,8 @@ fn test_as_ldap_attrs() {
     assert!(attrs.contains(&("sambaNTPassword", hashset!["NT_HASH"])));
 
     // Test with custom RDN attribute
-    let attrs = user.as_ldap_attrs(
+    let attrs = user_as_ldap_attrs(
+        &user,
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![UserObjectClass::User.into()],
@@ -2831,10 +2845,11 @@ fn test_as_ldap_attrs() {
         "Smith".to_string(),
         "John".to_string(),
         "john.smith@example.com".to_string(),
-        Some("".to_string()),
+        Some(String::new()),
     );
 
-    let attrs = user_no_phone.as_ldap_attrs(
+    let attrs = user_as_ldap_attrs(
+        &user_no_phone,
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![UserObjectClass::InetOrgPerson.into()],
@@ -2867,7 +2882,7 @@ fn test_as_ldap_mod_inetorgperson() {
         ..Default::default()
     };
 
-    let mods = user.as_ldap_mod(&config);
+    let mods = user_as_ldap_mod(&user, &config);
     assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
     assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
     assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
@@ -2882,7 +2897,7 @@ fn test_as_ldap_mod_with_empty_phone() {
         "Smith".to_string(),
         "John".to_string(),
         "john.smith@example.com".to_string(),
-        Some("".to_string()),
+        Some(String::new()),
     );
 
     let config = LDAPConfig {
@@ -2891,7 +2906,7 @@ fn test_as_ldap_mod_with_empty_phone() {
         ..Default::default()
     };
 
-    let mods = user.as_ldap_mod(&config);
+    let mods = user_as_ldap_mod(&user, &config);
 
     assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
     assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
@@ -2918,7 +2933,7 @@ fn test_as_ldap_mod_with_active_directory() {
         ..Default::default()
     };
 
-    let mods = user.as_ldap_mod(&config);
+    let mods = user_as_ldap_mod(&user, &config);
 
     assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
     assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
@@ -2944,7 +2959,7 @@ fn test_as_ldap_mod_with_custom_rdn() {
         ..Default::default()
     };
 
-    let mods = user.as_ldap_mod(&config);
+    let mods = user_as_ldap_mod(&user, &config);
 
     assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
     assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
@@ -2977,7 +2992,7 @@ fn test_extract_dn_path_various_cases() {
 
     assert_eq!(extract_dn_path(""), None);
 
-    assert_eq!(extract_dn_path("cn=abc,"), Some("".to_string()));
+    assert_eq!(extract_dn_path("cn=abc,"), Some(String::new()));
 
     assert_eq!(
         extract_dn_path("uid=cde,ou=users,ou=staff,dc=example,dc=org"),
@@ -3017,7 +3032,7 @@ async fn test_ldap_sync_allowed_with_empty_sync_groups(
     user.password_hash = Some("hash".to_string());
     let user = user.save(&pool).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(result);
 }
 
@@ -3031,7 +3046,7 @@ async fn test_ldap_sync_allowed_with_inactive_user(_: PgPoolOptions, options: Pg
     user.password_hash = Some("hash".to_string());
     let user = user.save(&pool).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
 }
 
@@ -3047,7 +3062,7 @@ async fn test_ldap_sync_allowed_with_unenrolled_user(_: PgPoolOptions, options: 
     user.from_ldap = false;
     let user = user.save(&pool).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
 }
 
@@ -3071,7 +3086,7 @@ async fn test_ldap_sync_allowed_with_sync_groups_user_in_group(
     settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
     update_current_settings(&pool, settings).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(result);
 }
 
@@ -3096,7 +3111,7 @@ async fn test_ldap_sync_allowed_with_sync_groups_user_not_in_group(
     settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
     update_current_settings(&pool, settings).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
 }
 
@@ -3127,7 +3142,7 @@ async fn test_ldap_sync_allowed_with_multiple_sync_groups(
     ];
     update_current_settings(&pool, settings).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(result);
 }
 
@@ -3143,7 +3158,7 @@ async fn test_ldap_sync_allowed_enrolled_via_openid(_: PgPoolOptions, options: P
     user.from_ldap = false;
     let user = user.save(&pool).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(result);
 }
 
@@ -3159,7 +3174,7 @@ async fn test_ldap_sync_allowed_enrolled_via_ldap(_: PgPoolOptions, options: PgC
     user.from_ldap = true;
     let user = user.save(&pool).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(result);
 }
 
@@ -3181,6 +3196,6 @@ async fn test_ldap_sync_allowed_all_conditions_false(_: PgPoolOptions, options: 
     settings.ldap_sync_groups = vec!["ldap_sync_group".to_string()];
     update_current_settings(&pool, settings).await.unwrap();
 
-    let result = user.ldap_sync_allowed(&pool).await.unwrap();
+    let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
 }

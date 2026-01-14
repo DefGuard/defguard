@@ -1,11 +1,10 @@
 use std::time::Duration;
 
 use chrono::{TimeDelta, Utc};
+use defguard_common::db::models::wireguard_peer_stats::WireguardPeerStats;
 use humantime::format_duration;
 use sqlx::PgPool;
 use tokio::time::sleep;
-
-use crate::db::models::wireguard_peer_stats::WireguardPeerStats;
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP: Duration = Duration::from_secs(300); // 5 minutes

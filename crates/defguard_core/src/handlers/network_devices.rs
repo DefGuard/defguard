@@ -8,7 +8,17 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
-use defguard_common::{csv::AsCsv, db::Id};
+use defguard_common::{
+    csv::AsCsv,
+    db::{
+        Id,
+        models::{
+            Device, DeviceConfig, DeviceType, User, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::NetworkAddressError,
+        },
+    },
+};
 use defguard_mail::templates::TemplateLocation;
 use ipnetwork::IpNetwork;
 use serde_json::json;
@@ -18,15 +28,10 @@ use super::{ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{
-        Device, GatewayEvent, User, WireguardNetwork,
-        models::{
-            device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
-            wireguard::NetworkAddressError,
-        },
-    },
-    enterprise::limits::update_counts,
+    enrollment_management::start_desktop_configuration,
+    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    grpc::gateway::events::GatewayEvent,
     handlers::mail::send_new_device_added_email,
     server_config,
 };
@@ -460,18 +465,18 @@ pub(crate) async fn start_network_device_setup(
         device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
     };
     let config = server_config();
-    let configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &user,
-            None,
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            false,
-            appstate.mail_tx.clone(),
-            Some(result.device.id),
-        )
-        .await?;
+    let configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &user,
+        None,
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        false,
+        appstate.mail_tx.clone(),
+        Some(result.device.id),
+    )
+    .await?;
 
     debug!(
         "Generated a new device CLI configuration token for a network device {device_name} with ID {}: {configuration_token}",
@@ -526,18 +531,18 @@ pub(crate) async fn start_network_device_setup_for_device(
             ))
         })?;
     let config = server_config();
-    let configuration_token = user
-        .start_remote_desktop_configuration(
-            &mut transaction,
-            &user,
-            None,
-            config.enrollment_token_timeout.as_secs(),
-            config.enrollment_url.clone(),
-            false,
-            appstate.mail_tx.clone(),
-            Some(device.id),
-        )
-        .await?;
+    let configuration_token = start_desktop_configuration(
+        &user,
+        &mut transaction,
+        &user,
+        None,
+        config.enrollment_token_timeout.as_secs(),
+        config.enrollment_url.clone(),
+        false,
+        appstate.mail_tx.clone(),
+        Some(device.id),
+    )
+    .await?;
     transaction.commit().await?;
 
     debug!(
@@ -629,7 +634,9 @@ pub(crate) async fn add_network_device(
     update_counts(&mut *transaction).await?;
 
     // send firewall update event if ACLs & enterprise features are enabled
-    if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
+    if let Some(firewall_config) =
+        try_get_location_firewall_config(&network, &mut transaction).await?
+    {
         appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
             network.id,
             firewall_config,
@@ -733,9 +740,8 @@ pub async fn modify_network_device(
 
         // send firewall update event if ACLs are enabled
         if device_network.acl_enabled {
-            if let Some(firewall_config) = device_network
-                .try_get_firewall_config(&mut transaction)
-                .await?
+            if let Some(firewall_config) =
+                try_get_location_firewall_config(&device_network, &mut transaction).await?
             {
                 appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                     device_network.id,
@@ -843,7 +849,8 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
             break;
         }
         let formatted = formatter(ip_segment);
-        network_part.push_str(&format!("{formatted}{delimiter}"));
+        network_part.push_str(&formatted);
+        network_part.push_str(delimiter);
     }
 
     SplitIp {

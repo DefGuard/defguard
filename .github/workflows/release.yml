@@ -4,6 +4,11 @@ on:
     tags:
       - v*.*.*
 
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -18,10 +23,12 @@ jobs:
     uses: ./.github/workflows/build-docker.yml
     with:
       tags: |
-        type=raw,value=latest
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
         type=sha
+      # Explicitly disable latest tag. It will be added otherwise.
+      flavor: |
+        latest=false
 
   build-docker-prerelease:
     # Only build tags with -, like v1.0.0-alpha
@@ -59,7 +66,6 @@ jobs:
 
   build-binaries:
     needs: [create-release]
-
     runs-on:
       - self-hosted
       - Linux
@@ -103,7 +109,7 @@ jobs:
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.89.0
+          toolchain: 1.89.0 # "stable" causes rust-lld: error on aarch64-linux
           target: ${{ matrix.target }}
           override: true
 
@@ -117,7 +123,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
+          version: 10.17
 
       - name: Use Node.js 24
         uses: actions/setup-node@v4
@@ -167,26 +174,6 @@ jobs:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
           fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
-      - name: Run `packer init`
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        id: init
-        run: "packer init ./images/ami/core.pkr.hcl"
-
-      - name: Build AMI images for multiple regions
-        if: matrix.build == 'linux' && matrix.arch == 'amd64'
-        run: |
-          regions=(us-east-1 eu-west-1 ap-northeast-1 eu-central-1)
-          for region in "${regions[@]}"; do
-            echo "Building AMI for region: $region"
-            echo "Running packer validate for $region..."
-            packer validate --var "package_version=${{ env.VERSION }}" --var "region=$region" ./images/ami/core.pkr.hcl
-            echo "Building AMI image for $region..."
-            packer build -color=false -on-error=abort --var "package_version=${{ env.VERSION }}" --var "region=$region" ./images/ami/core.pkr.hcl
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
       - name: Upload DEB
         if: matrix.build == 'linux'
         uses: actions/upload-release-asset@v1.0.2
@@ -221,7 +208,7 @@ jobs:
         uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*' --depends openssl"
 
       - name: Upload FreeBSD
         if: matrix.build == 'freebsd'

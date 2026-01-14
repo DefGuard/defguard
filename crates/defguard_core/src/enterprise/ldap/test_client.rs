@@ -4,13 +4,11 @@ use std::{
     vec::Vec,
 };
 
+use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
 use super::error::LdapError;
-use crate::{
-    db::{Group, User},
-    enterprise::ldap::model::extract_rdn_value,
-};
+use crate::enterprise::ldap::model::{extract_rdn_value, user_as_ldap_attrs};
 
 /// Extract attribute value from LDAP filter
 ///
@@ -72,9 +70,7 @@ fn vecs_equal_unordered<T>(vec1: &[T], vec2: &[T]) -> bool
 where
     T: PartialEq + Clone,
 {
-    if vec1.len() != vec2.len() {
-        false
-    } else {
+    if vec1.len() == vec2.len() {
         let mut vec2_copy = vec2.to_vec();
         vec1.iter().all(|item| {
             if let Some(pos) = vec2_copy.iter().position(|x| x == item) {
@@ -84,6 +80,8 @@ where
                 false
             }
         })
+    } else {
+        false
     }
 }
 
@@ -141,8 +139,7 @@ impl Object {
         match self {
             Object::User(user) => SearchEntry {
                 dn: dn.to_string(),
-                attrs: user
-                    .to_test_attrs(None, config)
+                attrs: user_to_test_attrs(user, None, config)
                     .into_iter()
                     .map(|(k, v)| (k, v.into_iter().collect()))
                     .collect(),
@@ -150,8 +147,7 @@ impl Object {
             },
             Object::Group(group) => SearchEntry {
                 dn: dn.to_string(),
-                attrs: group
-                    .to_test_attrs(config, None)
+                attrs: group_to_test_attrs(group, config, None)
                     .into_iter()
                     .map(|(k, v)| (k, v.into_iter().collect()))
                     .collect(),
@@ -390,7 +386,12 @@ impl super::LDAPConnection {
             dn: dn.to_string(),
             attrs: attrs
                 .into_iter()
-                .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
+                .map(|(k, v)| {
+                    (
+                        k.to_string(),
+                        v.iter().map(std::string::ToString::to_string).collect(),
+                    )
+                })
                 .collect(),
         });
         Ok(())
@@ -489,10 +490,11 @@ impl super::LDAPConnection {
                     .ldap_user_rdn_attr
                     .clone()
                     .unwrap_or(config.ldap_username_attr.clone());
-                let attrs = user.as_ldap_attrs(
+                let attrs = user_as_ldap_attrs(
+                    user,
                     "",
                     "",
-                    classes.iter().map(|s| s.as_str()).collect(),
+                    classes.iter().map(std::string::String::as_str).collect(),
                     false,
                     &config.ldap_username_attr,
                     &rdn_attr,
@@ -501,7 +503,12 @@ impl super::LDAPConnection {
                     dn: dn.clone(),
                     attrs: attrs
                         .iter()
-                        .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
+                        .map(|(k, v)| {
+                            (
+                                k.to_string(),
+                                v.iter().map(std::string::ToString::to_string).collect(),
+                            )
+                        })
                         .collect(),
                     bin_attrs: HashMap::new(),
                 });
@@ -540,75 +547,77 @@ impl super::LDAPConnection {
 }
 
 #[cfg(test)]
-impl<I> User<I> {
-    pub(super) fn to_test_attrs(
-        &self,
-        password: Option<&str>,
-        config: &super::LDAPConfig,
-    ) -> Vec<(String, HashSet<String>)> {
-        let rdn_attr = config
-            .ldap_user_rdn_attr
-            .clone()
-            .unwrap_or(config.ldap_username_attr.clone());
-        let classes = config.get_all_user_obj_classes();
-        let ssha_password = if let Some(password) = &password {
-            super::hash::salted_sha1_hash(password)
-        } else {
-            String::new()
-        };
-        let nt_password = if let Some(password) = &password {
-            super::hash::nthash(password)
-        } else {
-            String::new()
-        };
-        self.as_ldap_attrs(
-            &ssha_password,
-            &nt_password,
-            classes.iter().map(|s| s.as_str()).collect(),
-            false,
-            &config.ldap_username_attr,
-            &rdn_attr,
+pub(super) fn user_to_test_attrs<I>(
+    user: &User<I>,
+    password: Option<&str>,
+    config: &super::LDAPConfig,
+) -> Vec<(String, HashSet<String>)> {
+    let rdn_attr = config
+        .ldap_user_rdn_attr
+        .clone()
+        .unwrap_or(config.ldap_username_attr.clone());
+    let classes = config.get_all_user_obj_classes();
+    let ssha_password = if let Some(password) = &password {
+        super::hash::salted_sha1_hash(password)
+    } else {
+        String::new()
+    };
+    let nt_password = if let Some(password) = &password {
+        super::hash::nthash(password)
+    } else {
+        String::new()
+    };
+    user_as_ldap_attrs(
+        user,
+        &ssha_password,
+        &nt_password,
+        classes.iter().map(std::string::String::as_str).collect(),
+        false,
+        &config.ldap_username_attr,
+        &rdn_attr,
+    )
+    .into_iter()
+    .map(|(k, v)| {
+        (
+            k.to_string(),
+            v.iter().map(std::string::ToString::to_string).collect(),
         )
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
-        .collect()
-    }
+    })
+    .collect()
 }
 
 #[cfg(test)]
-impl<I> Group<I> {
-    pub(super) fn to_test_attrs(
-        &self,
-        config: &super::LDAPConfig,
-        members: Option<&Vec<&User<I>>>,
-    ) -> Vec<(String, HashSet<String>)> {
-        use crate::hashset;
+pub(super) fn group_to_test_attrs<I>(
+    group: &Group<I>,
+    config: &super::LDAPConfig,
+    members: Option<&Vec<&User<I>>>,
+) -> Vec<(String, HashSet<String>)> {
+    use crate::hashset;
 
-        let mut attrs = vec![
-            (
-                config.ldap_groupname_attr.clone(),
-                hashset![self.name.clone()],
-            ),
-            (
-                "objectClass".to_string(),
-                hashset![config.ldap_group_obj_class.clone()],
-            ),
-        ];
+    let mut attrs = vec![
+        (
+            config.ldap_groupname_attr.clone(),
+            hashset![group.name.clone()],
+        ),
+        (
+            "objectClass".to_string(),
+            hashset![config.ldap_group_obj_class.clone()],
+        ),
+    ];
 
-        if let Some(members) = members {
-            for user in members {
-                let user_dn = config.user_dn_from_user(user);
-                attrs.push((config.ldap_group_member_attr.clone(), hashset![user_dn]));
-            }
+    if let Some(members) = members {
+        for user in members {
+            let user_dn = config.user_dn_from_user(user);
+            attrs.push((config.ldap_group_member_attr.clone(), hashset![user_dn]));
         }
-
-        attrs
     }
+
+    attrs
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::db::User;
+    use defguard_common::db::models::User;
 
     #[tokio::test]
     async fn test_search_users_by_username() {

@@ -147,5 +147,5 @@ export const getAliasesQueryOptions = queryOptions({
 export const getLicenseInfoQueryOptions = queryOptions({
   queryFn: api.getLicenseInfo,
   queryKey: ['enterprise_info'],
-  select: (response) => response.data,
+  select: (response) => response.data.license_info,
 });

@@ -4,10 +4,11 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::cookie::CookieJar;
+use defguard_common::db::models::Session;
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
-use crate::{appstate::AppState, db::Session, error::WebError, server_config};
+use crate::{appstate::AppState, error::WebError, server_config};
 
 // Header names
 static FORWARDED_HOST: &str = "x-forwarded-host";

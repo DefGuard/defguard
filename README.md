@@ -1,12 +1,22 @@
+ <p align="center">
+    <img src="docs/header.png" alt="defguard">
+ </p>
+
 <div align="center">
  <p align="center">
-  Defguard is a <strong>true Zero-Trust WireGuard® VPN with 2FA/Multi-Factor Authentication</strong>, as each connection requires MFA (and not only when logging in into the client application like other solutions)
-  <img width="1096" alt="zero-trust" src="https://github.com/user-attachments/assets/a3bed030-0d82-4f8c-9687-01cc5780eff7" />
-  Our primary focus at defguard is on prioritizing security. Then, we aim to make this challenging topic both useful and as easy to navigate as possible.
+  Defguard is an enterprise-grade open-source VPN solution built with the highest security standards in mind. It provides the world’s only multi-factor authentication (MFA) for WireGuard VPN connections, using either its built-in SSO (with TOTP, biometrics, etc.) or external SSO providers such as Google, Microsoft, Active Directory/LDAP, Okta, JumpCloud or any other OpenID Connect Provider.
+ </p>
 
 [Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support)
-
 </div>
+
+### Open, transparent, verifiable and inspectable 
+
+- Our security approach: https://defguard.net/security/
+- Our public penetration tests reports: https://defguard.net/pentesting/
+- Daily SBOM CVE scan: https://defguard.net/sbom/ 
+- Our detailed roadmap: https://github.com/orgs/DefGuard/projects/5
+- Our Architecture Decision Records: https://app.gitbook.com/o/Z3mGSAbEj9iLdZ7cNFlL/s/kHPDOBrb5X1TB8O3GsjW/~/changes/86/in-depth/architecture-decision-records
 
 ### Defguard provides Comprehensive Access Control (a complete security platform):
 
@@ -204,12 +214,6 @@ All release assets (binaries, packages, etc.) include SHA256 checksums that are 
    # Linux/macOS
    echo known_sha256_checksum_of_the_file path/to/file | sha256sum --check
    ```
-
-# Built and sponsored by
-
-<p align="center">
-      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="built by teonite" /></a>
-</p>
 
 # Legal
 

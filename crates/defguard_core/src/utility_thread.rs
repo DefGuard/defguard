@@ -1,6 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{WireguardNetwork, wireguard::ServiceLocationMode},
+};
 use sqlx::{PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
@@ -9,14 +12,16 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    db::{GatewayEvent, WireguardNetwork},
     enterprise::{
         db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
-        is_enterprise_enabled,
+        firewall::try_get_location_firewall_config,
+        is_business_license_active,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
+    grpc::gateway::events::GatewayEvent,
+    location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
 };
 
@@ -40,7 +45,7 @@ pub async fn run_utility_thread(
     let mut last_enterprise_status_check = Instant::now();
 
     // helper variable which stores previous enterprise features status
-    let mut enterprise_enabled = is_enterprise_enabled();
+    let mut enterprise_enabled = is_business_license_active();
 
     let directory_sync_task = || async {
         if let Err(e) = Box::pin(
@@ -129,7 +134,7 @@ pub async fn run_utility_thread(
 
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
-            let new_enterprise_enabled = is_enterprise_enabled();
+            let new_enterprise_enabled = is_business_license_active();
             if let Err(err) = enterprise_status_check(
                 pool,
                 wireguard_tx.clone(),
@@ -172,25 +177,51 @@ async fn enterprise_status_check(
         if new_enterprise_enabled {
             // handle switch from disabled -> enabled
             debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
-            let mut conn = pool.acquire().await?;
+            let mut transaction = pool.begin().await?;
             for location in locations {
                 debug!("Re-enabling gateway firewall configuration for location {location:?}");
-                let firewall_config = location
-                    .try_get_firewall_config(&mut conn)
+                let firewall_config = try_get_location_firewall_config(&location, &mut transaction)
                     .await?
                     .expect("ACL-enabled location must have firewall config");
 
-                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
-                    location.id,
-                    firewall_config,
-                ))?;
+                // Handle service location update or just update the firewall
+                if location.service_location_mode == ServiceLocationMode::Disabled {
+                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ))?;
+                } else {
+                    let new_peers =
+                        get_location_allowed_peers(&location, &mut *transaction).await?;
+                    wireguard_tx.send(GatewayEvent::NetworkModified(
+                        location.id,
+                        location,
+                        new_peers,
+                        Some(firewall_config),
+                    ))?;
+                }
             }
+            transaction.commit().await?;
         } else {
             // handle switch from enabled -> disabled
             debug!("Disabling gateway firewall configuration for ACL-enabled locations");
             for location in locations {
-                debug!("Disabling gateway firewall configuration for location {location:?}");
-                wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+                if location.service_location_mode == ServiceLocationMode::Disabled {
+                    debug!("Disabling gateway firewall configuration for location {location:?}");
+                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+                } else {
+                    debug!(
+                        "Disabling gateway firewall configuration and service location client \
+                        connections for location {location}"
+                    );
+                    wireguard_tx.send(GatewayEvent::NetworkModified(
+                        location.id,
+                        location,
+                        // Send empty peer list, we are disabling the service location
+                        Vec::new(),
+                        None,
+                    ))?;
+                }
             }
         }
     }
@@ -240,7 +271,7 @@ async fn expired_acl_rules_check(
 
     let mut conn = pool.acquire().await?;
     for location in affected_locations {
-        match location.try_get_firewall_config(&mut conn).await? {
+        match try_get_location_firewall_config(&location, &mut conn).await? {
             Some(firewall_config) => {
                 debug!("Sending firewall update event for location {location}");
                 wireguard_tx.send(GatewayEvent::FirewallConfigChanged(

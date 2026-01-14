@@ -1,16 +1,16 @@
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
-use defguard_common::db::{Id, NoId};
-use defguard_core::{
-    db::models::{
-        device::Device,
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device,
         wireguard::{
             WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
             WireguardUserStatsRow,
         },
         wireguard_peer_stats::WireguardPeerStats,
     },
-    handlers::Auth,
 };
+use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
@@ -38,12 +38,7 @@ async fn test_stats(_: PgPoolOptions, options: PgConnectOptions) {
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // create devices
     let device = json!({

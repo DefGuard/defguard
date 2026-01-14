@@ -23,7 +23,7 @@ pub struct GatewayState {
     pub connected: bool,
     pub network_id: Id,
     pub network_name: String,
-    pub name: Option<String>,
+    pub name: Option<String>, // TODO: remove
     pub hostname: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
@@ -166,7 +166,6 @@ impl GatewayState {
         }
     }
 
-    #[allow(dead_code)]
     pub(super) fn as_version_info(&self) -> VersionInfo {
         VersionInfo {
             component: Some(DefguardComponent::Gateway),

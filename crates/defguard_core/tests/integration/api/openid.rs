@@ -2,14 +2,11 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use defguard_common::db::Id;
-use defguard_core::{
-    db::{
-        User,
-        models::{NewOpenIDClient, oauth2client::OAuth2Client},
-    },
-    handlers::Auth,
+use defguard_common::db::{
+    Id,
+    models::{OAuth2AuthorizedApp, User, oauth2client::OAuth2Client},
 };
+use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
@@ -452,7 +449,7 @@ async fn http_client(
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
-    for (key, value) in request.headers().iter() {
+    for (key, value) in request.headers() {
         test_request = test_request.header(
             HeaderName::from_str(key.as_str()).unwrap(),
             value.to_str().unwrap(),
@@ -977,7 +974,6 @@ async fn dg25_23_test_openid_client_scope_change_clears_authorizations(
     assert_eq!(response.status(), StatusCode::FOUND);
 
     // Verify that the authorization was created
-    use defguard_core::db::OAuth2AuthorizedApp;
     let authorized_app = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &state.pool,
         admin.id,
@@ -1390,7 +1386,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
             // Clean up - delete the OAuth client
             client
-                .delete(format!("/api/v1/oauth/{}", client_id_for_cleanup))
+                .delete(format!("/api/v1/oauth/{client_id_for_cleanup}"))
                 .send()
                 .await;
 

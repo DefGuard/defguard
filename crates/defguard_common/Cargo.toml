@@ -1,6 +1,6 @@
 [package]
 name = "defguard_common"
-version = "1.5.1"
+version = "1.6.1"
 edition.workspace = true
 license-file.workspace = true
 homepage.workspace = true
@@ -11,8 +11,11 @@ rust-version.workspace = true
 model_derive.workspace = true
 
 anyhow.workspace = true
+argon2.workspace = true
+base32.workspace = true
 base64.workspace = true
 chrono.workspace = true
+claims.workspace = true
 clap.workspace = true
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 humantime.workspace = true
@@ -24,13 +27,17 @@ reqwest.workspace = true
 rsa.workspace = true
 secrecy.workspace = true
 serde.workspace = true
+serde_cbor.workspace = true
 sqlx.workspace = true
 struct-patch.workspace = true
 thiserror.workspace = true
 tonic.workspace = true
+totp-lite.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
 uuid.workspace = true
+webauthn-rs.workspace = true
+x25519-dalek.workspace = true
 
 [dev-dependencies]
 matches.workspace = true

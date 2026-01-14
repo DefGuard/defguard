@@ -6,7 +6,15 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, WireguardNetwork,
+        group::Group,
+        user::User,
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+    },
+};
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
@@ -16,13 +24,12 @@ use sqlx::{
 use thiserror::Error;
 
 use crate::{
-    DeviceType,
     appstate::AppState,
-    db::{Device, GatewayEvent, Group, User, WireguardNetwork, models::wireguard::LocationMfaMode},
     enterprise::{
-        firewall::FirewallError,
+        firewall::{FirewallError, try_get_location_firewall_config},
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
+    grpc::gateway::events::GatewayEvent,
 };
 
 #[derive(Debug, Error)]
@@ -476,7 +483,7 @@ impl AclRule {
         );
 
         for location in affected_locations {
-            match location.try_get_firewall_config(&mut transaction).await? {
+            match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
                     appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
@@ -554,7 +561,7 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
                 }
                 _ => {
                     error!("Failed to parse ports string: \"{ports}\"");
-                    return Err(AclError::InvalidPortsFormat(ports.to_string()));
+                    return Err(AclError::InvalidPortsFormat(ports.clone()));
                 }
             }
         }
@@ -904,9 +911,10 @@ impl AclRule<Id> {
         } else {
             query_as!(
                 WireguardNetwork,
-                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
+                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+                allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
+                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+                service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \
@@ -969,7 +977,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -995,7 +1003,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM aclruleuser r \
             JOIN \"user\" u \
             ON u.id = r.user_id \
@@ -1176,7 +1184,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1198,7 +1206,7 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
             WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1237,7 +1245,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1260,7 +1268,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path \
+                from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1673,7 +1681,7 @@ impl AclAlias {
         );
 
         for location in affected_locations {
-            match location.try_get_firewall_config(&mut transaction).await? {
+            match try_get_location_firewall_config(&location, &mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
                     appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(

@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"mtu\",\"fwmark\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"location_mfa_mode\" \"location_mfa_mode: _\",\"service_location_mode\" \"service_location_mode: _\" FROM \"wireguard_network\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "address: _",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "prvkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "dns",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "mtu",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "fwmark",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "allowed_ips: _",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 11,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "acl_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "acl_default_allow",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "keepalive_interval",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "peer_disconnect_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "location_mfa_mode: _",
+        "type_info": {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "service_location_mode: _",
+        "type_info": {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cd6a0b78b618518ac4c1b644c3d1bd3ffabd5ad1ed9a260ca3a821c9a187b7d3"
+}

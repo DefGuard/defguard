@@ -96,6 +96,8 @@ impl From<User> for DirectoryUser {
             email: val.profile.email,
             active: ACTIVE_STATUS.contains(&val.status.as_str()),
             id: None,
+            // TODO: currently not supported for Okta
+            user_details: None,
         }
     }
 }

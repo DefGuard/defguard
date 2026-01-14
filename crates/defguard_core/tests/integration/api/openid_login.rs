@@ -1,13 +1,15 @@
 use chrono::{Duration, Utc};
-use defguard_common::db::{Id, models::settings::OpenidUsernameHandling};
+use defguard_common::db::{
+    Id,
+    models::{oauth2client::OAuth2Client, settings::OpenidUsernameHandling},
+};
 use defguard_core::{
-    db::models::{NewOpenIDClient, oauth2client::OAuth2Client},
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
-        license::{License, set_cached_license},
+        license::{License, LicenseTier, set_cached_license},
     },
-    handlers::Auth,
+    handlers::{Auth, openid_clients::NewOpenIDClient},
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
@@ -53,6 +55,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         directory_sync_group_match: None,
         username_handling: OpenidUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
+        prefetch_users: false,
     };
 
     let response = client
@@ -92,13 +95,14 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         Some(Utc::now() - Duration::days(1)),
         None,
         None,
+        LicenseTier::Business,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-// FIXME: tihs test sometimes fails because of test_openid_providers.
+// FIXME: this test sometimes fails because of test_openid_providers.
 // The license state is possibly preserved between those two. This requires further research.
 #[sqlx::test]
 async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
@@ -153,6 +157,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         directory_sync_group_match: None,
         username_handling: OpenidUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
+        prefetch_users: false,
     };
     let response = client
         .post("/api/v1/openid/provider")

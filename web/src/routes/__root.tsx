@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet, redirect } from '@tanstack/react-router';
 import { AppLoaderPage } from '../pages/AppLoaderPage/AppLoaderPage';
 import api from '../shared/api/api';
+import { SnackbarManager } from '../shared/defguard-ui/providers/snackbar/SnackbarManager';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../shared/hooks/useAuth';
 
@@ -12,7 +13,7 @@ interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   beforeLoad: async ({ location }) => {
-    // only auto check for auth if route is not in /auth flow
+    // only auto check for auth state if route is not in /auth flow
     if (location.pathname.startsWith('/auth')) {
       return;
     }
@@ -34,8 +35,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     }
   },
   pendingComponent: AppLoaderPage,
+  pendingMs: 100,
 });
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <SnackbarManager>
+      <Outlet />
+    </SnackbarManager>
+  );
 }

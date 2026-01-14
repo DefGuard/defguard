@@ -1,19 +1,21 @@
 use axum::{extract::State, http::StatusCode};
+use defguard_common::{
+    VERSION,
+    db::models::{Settings, WireguardNetwork},
+};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::WireguardNetwork,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        is_enterprise_enabled, is_enterprise_free,
-        license::get_cached_license,
+        is_business_license_active, is_enterprise_free,
+        license::{LicenseTier, get_cached_license},
         limits::{LimitsExceeded, get_counts},
     },
 };
-use defguard_common::{VERSION, db::models::Settings};
 
 #[derive(Serialize)]
 struct LicenseInfo {
@@ -25,6 +27,8 @@ struct LicenseInfo {
     any_limit_exceeded: bool,
     /// Whether the enterprise features are used for free.
     is_enterprise_free: bool,
+    // Which license tier (if any) is active
+    tier: Option<LicenseTier>,
 }
 
 #[derive(Serialize)]
@@ -55,11 +59,12 @@ pub(crate) async fn get_app_info(
     let external_openid_enabled = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
 
     let settings = Settings::get_current_settings();
-    let enterprise = is_enterprise_enabled();
+    let enterprise = is_business_license_active();
     let license = get_cached_license();
     let counts = get_counts();
     let limits_exceeded = counts.get_exceeded_limits(license.as_ref());
     let any_limit_exceeded = limits_exceeded.any();
+    let tier = license.as_ref().map(|license| license.tier.clone());
 
     let res = AppInfo {
         network_present: !networks.is_empty(),
@@ -70,6 +75,7 @@ pub(crate) async fn get_app_info(
             limits_exceeded,
             any_limit_exceeded,
             is_enterprise_free: is_enterprise_free(),
+            tier,
         },
         ldap_info: LdapInfo {
             enabled: settings.ldap_enabled,

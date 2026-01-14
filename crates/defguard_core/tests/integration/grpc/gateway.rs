@@ -5,22 +5,23 @@ use std::{
 
 use chrono::{Days, Utc};
 use claims::{assert_err_eq, assert_matches};
-use defguard_common::db::{Id, NoId, setup_pool};
-use defguard_core::{
-    db::{
-        Device, User, WireguardNetwork,
-        models::{
-            device::DeviceType, wireguard::LocationMfaMode,
-            wireguard_peer_stats::WireguardPeerStats,
-        },
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, User, WireguardNetwork,
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+        wireguard_peer_stats::WireguardPeerStats,
     },
+    setup_pool,
+};
+use defguard_core::{
     enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
-    grpc::MIN_GATEWAY_VERSION,
+    grpc::{MIN_GATEWAY_VERSION, gateway::events::GatewayEvent},
 };
 use defguard_proto::{
     enterprise::firewall::FirewallPolicy,
-    gateway::{Configuration, PeerStats, StatsUpdate, Update, stats_update::Payload, update},
+    gateway::{Configuration, PeerStats, Update, stats_update::Payload, update},
 };
 use semver::Version;
 use sqlx::{
@@ -50,6 +51,7 @@ async fn setup_test_server(
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -399,6 +401,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -425,7 +428,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     gateway_2.connect_to_updates_stream().await;
 
     // send update for location 1
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(
         test_location.id,
         "network name".into(),
     ));
@@ -447,7 +450,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(update, expected_update);
 
     // send update for location 2
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(
         test_location_2.id,
         "network name 2".into(),
     ));
@@ -469,10 +472,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(update, expected_update);
 
     // send update for location which does not exist
-    test_server.send_wireguard_event(defguard_core::db::GatewayEvent::NetworkDeleted(
-        1234,
-        "does not exist".into(),
-    ));
+    test_server.send_wireguard_event(GatewayEvent::NetworkDeleted(1234, "does not exist".into()));
 
     // no gateway should receive this update
     assert!(gateway_1.receive_next_update().await.is_none());
@@ -520,6 +520,7 @@ async fn test_gateway_config(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         false,
         LocationMfaMode::Disabled,
+        ServiceLocationMode::Disabled,
     )
     .save(&pool)
     .await
@@ -553,4 +554,118 @@ async fn test_gateway_version_validation(_: PgPoolOptions, options: PgConnectOpt
     assert!(response.is_err());
     let status = response.err().unwrap();
     assert_eq!(status.code(), Code::FailedPrecondition);
+}
+
+// https://github.com/DefGuard/defguard/issues/1671
+#[sqlx::test]
+async fn test_device_pubkey_change(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut test_server, mut gateway, test_location, test_user) =
+        setup_test_server(pool.clone()).await;
+
+    // initial client map is empty
+    {
+        let client_map = test_server.get_client_map();
+        assert!(client_map.is_empty())
+    }
+
+    // connect stats stream
+    let stats_tx = gateway.setup_stats_update_stream().await;
+    let mut update_id = 1;
+
+    // add user device
+    let device_pubkey = "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=";
+    let mut test_device = Device::new(
+        "test device".into(),
+        device_pubkey.into(),
+        test_user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // send stats update for existing device
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // wait for event to be emitted
+    sleep(Duration::from_millis(100)).await;
+    let grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+    assert_matches!(
+    grpc_event,
+    GrpcEvent::ClientConnected {
+        context: _,
+        location,
+        device
+    } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
+
+    // change device pubkey
+    let new_device_pubkey = "TJG2T6rhndZtk06KnIIOlD6hhd7wpVkBss8sfyvMCAA=";
+    test_device.wireguard_pubkey = new_device_pubkey.to_owned();
+    test_device.save(&pool).await.unwrap();
+
+    // send stats update with old pubkey
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // no event should be emitted
+    sleep(Duration::from_millis(100)).await;
+    assert_err_eq!(test_server.grpc_event_rx.try_recv(), TryRecvError::Empty);
+
+    // send stats update with new pubkey
+    update_id += 1;
+    stats_tx
+        .send(StatsUpdate {
+            id: update_id,
+            payload: Some(Payload::PeerStats(PeerStats {
+                public_key: new_device_pubkey.into(),
+                endpoint: "1.2.3.4:1234".into(),
+                latest_handshake: Utc::now().timestamp() as u64,
+                ..Default::default()
+            })),
+        })
+        .expect("failed to send stats update");
+
+    // wait for event
+    // FIXME: ideally this should not be emitted; we'll fix it once we implement a more robust VPN session logic
+    sleep(Duration::from_millis(100)).await;
+    let grpc_event = test_server
+        .grpc_event_rx
+        .try_recv()
+        .expect("failed to receive gRPC event");
+
+    assert_matches!(
+        grpc_event,
+        GrpcEvent::ClientConnected {
+            context: _,
+            location,
+            device
+        } if ((location.id == test_location.id) & (device.id == test_device.id))
+    );
 }

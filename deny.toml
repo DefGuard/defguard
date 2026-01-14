@@ -71,7 +71,7 @@ feature-depth = 1
 # output a note when they are encountered.
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "https://github.com/RustCrypto/RSA/issues/19" },
-    { id = "RUSTSEC-2024-0436", reason = "Unmaintained" },
+    { id = "RUSTSEC-2024-0436", reason = "Unmaintained dependency of tera" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -89,6 +89,7 @@ ignore = [
 allow = [
     "MIT",
     "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
     "MPL-2.0",
     "BSD-3-Clause",
     "Unicode-3.0",
@@ -110,34 +111,56 @@ confidence-threshold = 0.8
 exceptions = [
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_common" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_core" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_mail" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_proto" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_web_ui" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_event_router" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_event_logger" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
+    ], crate = "defguard_proxy_manager" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
+    ], crate = "defguard_session_manager" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_version" },
     { allow = [
         "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "model_derive" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
+    ], crate = "defguard_certs" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,

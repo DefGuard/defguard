@@ -2,35 +2,33 @@ use std::{net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
-    db::{Id, models::Settings},
-};
-use sqlx::PgPool;
-use tonic::Status;
-
-use super::InstanceInfo;
-use crate::{
     db::{
-        Device, User,
+        Id,
         models::{
-            device::{DeviceType, WireguardNetworkDevice},
+            Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
             polling_token::PollingToken,
-            wireguard::{LocationMfaMode, WireguardNetwork},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
-    },
-    enterprise::db::models::{
-        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
 };
 use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
     LocationMfaMode as ProtoLocationMfaMode,
 };
+use sqlx::PgPool;
+use tonic::Status;
+
+use super::InstanceInfo;
+use crate::{
+    enterprise::db::models::{
+        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
+    },
+    grpc::{client_version::ClientFeature, gateway::should_prevent_service_location_usage},
+};
 
 // Create a new token for configuration polling.
-pub(crate) async fn new_polling_token(
-    pool: &PgPool,
-    device: &Device<Id>,
-) -> Result<String, Status> {
+pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
     debug!(
         "Making a new polling token for device {}",
         device.wireguard_pubkey
@@ -68,10 +66,11 @@ pub(crate) async fn new_polling_token(
     Ok(new_token.token)
 }
 
-pub(crate) async fn build_device_config_response(
+pub async fn build_device_config_response(
     pool: &PgPool,
     device: Device<Id>,
     token: Option<String>,
+    device_info: Option<DeviceInfo>,
 ) -> Result<DeviceConfigResponse, Status> {
     let settings = Settings::get_current_settings();
 
@@ -122,27 +121,46 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
+
+            if network.service_location_mode != ServiceLocationMode::Disabled {
+                error!(
+                    "Network device {} tried to fetch config for service location {}, which is unsupported.",
+                    device.name, network.name
+                );
+                return Err(Status::permission_denied(
+                    "service location mode is not available for network devices",
+                ));
+            }
+
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let config = ProtoDeviceConfig {
-                config: Device::create_config(&network, &wireguard_network_device),
-                network_id: network.id,
-                network_name: network.name,
-                assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                endpoint: format!("{}:{}", network.endpoint, network.port),
-                pubkey: network.pubkey,
-                allowed_ips: network.allowed_ips.as_csv(),
-                dns: network.dns,
-                keepalive_interval: network.keepalive_interval,
-                #[allow(deprecated)]
-                mfa_enabled,
-                location_mfa_mode: Some(
-                    <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                        network.location_mfa_mode,
-                    )
-                    .into(),
-                ),
-            };
+            let config =
+                ProtoDeviceConfig {
+                    config: Device::create_config(&network, &wireguard_network_device),
+                    network_id: network.id,
+                    network_name: network.name,
+                    assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
+                    endpoint: format!("{}:{}", network.endpoint, network.port),
+                    pubkey: network.pubkey,
+                    allowed_ips: network.allowed_ips.as_csv(),
+                    dns: network.dns,
+                    keepalive_interval: network.keepalive_interval,
+                    #[allow(deprecated)]
+                    mfa_enabled,
+                    location_mfa_mode: Some(
+                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
+                            network.location_mfa_mode,
+                        )
+                        .into(),
+                    ),
+                    service_location_mode:
+                        Some(
+                            <ServiceLocationMode as Into<
+                                defguard_proto::proxy::ServiceLocationMode,
+                            >>::into(network.service_location_mode)
+                            .into(),
+                        ),
+                };
             configs.push(config);
         }
     } else {
@@ -158,6 +176,22 @@ pub(crate) async fn build_device_config_response(
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
+            if should_prevent_service_location_usage(&network) {
+                warn!(
+                    "Tried to use service location {} with disabled enterprise features.",
+                    network.name
+                );
+                continue;
+            }
+            if network.service_location_mode != ServiceLocationMode::Disabled
+                && !ClientFeature::ServiceLocations.is_supported_by_device(device_info.as_ref())
+            {
+                info!(
+                    "Device {} does not support service locations feature, skipping sending network {} configuration to device {}.",
+                    device.name, network.name, device.name
+                );
+                continue;
+            }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
             if let Some(wireguard_network_device) = wireguard_network_device {
@@ -179,6 +213,13 @@ pub(crate) async fn build_device_config_response(
                         )
                         .into(),
                     ),
+                    service_location_mode:
+                        Some(
+                            <ServiceLocationMode as Into<
+                                defguard_proto::proxy::ServiceLocationMode,
+                            >>::into(network.service_location_mode)
+                            .into(),
+                        ),
                 };
                 configs.push(config);
             }
@@ -187,7 +228,7 @@ pub(crate) async fn build_device_config_response(
 
     info!(
         "User {}({}) device {}({}) automatically fetched the newest configuration.",
-        user.username, user.id, device.name, device.id,
+        user.username, user.id, device.name, device.id
     );
 
     Ok(DeviceConfigResponse {
@@ -207,7 +248,7 @@ pub(crate) async fn build_device_config_response(
 }
 
 /// Parses `DeviceInfo` returning client IP address and user agent.
-pub(crate) fn parse_client_info(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
+pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
     let Some(info) = info else {
         error!("Missing DeviceInfo in proxy request");
         return Err("missing device info".to_string());
