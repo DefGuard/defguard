@@ -10,7 +10,10 @@ use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::models::{Settings, proxy::Proxy},
+    db::{
+        Id,
+        models::{Settings, proxy::Proxy},
+    },
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
@@ -203,18 +206,43 @@ impl ProxyManager {
     /// such as routing state and compatibility tracking.
     // pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
     pub async fn run(self) -> Result<(), ProxyError> {
-        let proxies = Proxy::all(&self.pool).await?;
-		// TODO setup a channel to allow dynamic proxy connections
-		if proxies.is_empty() {
+        debug!("ProxyManager starting");
+        // Retrieve proxies from DB.
+        let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
+            .await?
+            .iter()
+            .map(|proxy| {
+                ProxyServer::from_proxy(
+                    proxy,
+                    self.pool.clone(),
+                    &self.tx,
+                    Arc::clone(&self.router),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+        debug!("Retrieved {} proxies from the DB", proxies.len());
+
+        // For backwards compatibility add the proxy specified in cli arg as well.
+        if let Some(ref url) = server_config().proxy_url {
+            debug!("Adding proxy from cli arg: {url}");
+            let url = Url::from_str(url)?;
+            let proxy =
+                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
+            proxies.push(proxy);
+        }
+
+        // TODO setup a channel to allow dynamic proxy connections
+        if proxies.is_empty() {
+            debug!("No proxies to connect to, waiting for changes");
             tokio::time::sleep(Duration::MAX).await;
             return Ok(());
-		}
+        }
+
+        // Connect to all proxies.
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
-            let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-            let server =
-                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
-            tasks.spawn(server.run(self.tx.clone(), self.incompatible_components.clone()));
+            debug!("Spawning proxy task for proxy {}", proxy.url);
+            tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
         }
         while let Some(result) = tasks.join_next().await {
             match result {
@@ -279,6 +307,16 @@ impl ProxyServer {
             router,
             url,
         }
+    }
+
+    fn from_proxy(
+        proxy: &Proxy<Id>,
+        pool: PgPool,
+        tx: &ProxyTxSet,
+        router: Arc<RwLock<ProxyRouter>>,
+    ) -> Result<Self, ProxyError> {
+        let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
+        Ok(Self::new(pool, url, tx, router))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
