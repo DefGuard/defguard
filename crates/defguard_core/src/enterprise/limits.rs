@@ -87,8 +87,8 @@ impl Counts {
         Self {
             user,
             user_device,
-            location,
             network_device,
+            location,
         }
     }
 

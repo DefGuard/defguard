@@ -449,7 +449,7 @@ async fn http_client(
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
-    for (key, value) in request.headers().iter() {
+    for (key, value) in request.headers() {
         test_request = test_request.header(
             HeaderName::from_str(key.as_str()).unwrap(),
             value.to_str().unwrap(),
@@ -1386,7 +1386,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
             // Clean up - delete the OAuth client
             client
-                .delete(format!("/api/v1/oauth/{}", client_id_for_cleanup))
+                .delete(format!("/api/v1/oauth/{client_id_for_cleanup}"))
                 .send()
                 .await;
 

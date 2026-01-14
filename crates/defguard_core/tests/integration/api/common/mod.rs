@@ -38,7 +38,10 @@ use tokio::{
 };
 
 use self::client::TestClient;
-use crate::common::{init_config, initialize_users};
+use crate::{
+    api::common::client::TestResponse,
+    common::{init_config, initialize_users},
+};
 
 #[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
@@ -135,7 +138,7 @@ pub(crate) async fn make_base_client(
         failed_logins,
         api_event_tx,
         Version::parse(VERSION).unwrap(),
-        Default::default(),
+        Arc::default(),
     );
 
     (
@@ -169,10 +172,16 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
 
+    make_network(client, "network1").await;
+    make_network(client, "network2").await;
+}
+
+/// Create test network with a given name.
+pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestResponse {
     let response = client
         .post("/api/v1/network")
         .json(&json!({
-            "name": "network1",
+            "name": name,
             "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
@@ -189,45 +198,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-
-    let response = client
-        .post("/api/v1/network")
-        .json(&json!({
-                "name": "network2",
-                "address": "10.1.1.1/24",
-                "port": 55555,
-                "endpoint": "192.168.4.14",
-                "allowed_ips": "10.1.1.0/24",
-                "dns": "1.1.1.1",
-                "allowed_groups": [],
-                "keepalive_interval": 25,
-                "peer_disconnect_threshold": 300,
-                "acl_enabled": false,
-                "acl_default_allow": false,
-                "location_mfa_mode": "disabled",
-                "service_location_mode": "disabled"
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-}
-
-pub(crate) fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    })
+    response
 }
 
 /// Replaces id field in json response with NoId
