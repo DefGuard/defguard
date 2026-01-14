@@ -173,7 +173,7 @@ See the [documentation](https://docs.defguard.net/) for more information.
 
 ## Community and Support
 
-If you encounter any issues with Defguard, you can reach out to our community for support via [GitHub Discussions](https://github.com/DefGuard/defguard/discussions/new/choose)
+Reach out to our community via [GitHub Discussions](https://github.com/DefGuard/defguard/discussions/new/choose)
 
 ## License
 
