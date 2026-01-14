@@ -273,12 +273,12 @@ mod tests {
         .unwrap();
         let signed_cert: Certificate = ca.sign_csr_with_validity(&csr, 90).unwrap();
         let der = signed_cert.der();
-        let (_rem, parsed) = parse_x509_certificate(&der).unwrap();
+        let (_rem, parsed) = parse_x509_certificate(der).unwrap();
         let validity = parsed.tbs_certificate.validity;
         let not_before = validity.not_before.to_datetime();
         let not_after = validity.not_after.to_datetime();
         let days = (not_after - not_before).whole_days();
-        assert!(days >= 89 && days <= 91, "expected 89-91 days, got {days}");
+        assert!((89..=91).contains(&days), "expected 89-91 days, got {days}");
         assert!(not_after > not_before);
     }
 

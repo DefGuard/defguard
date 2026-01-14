@@ -242,7 +242,7 @@ pub async fn run_grpc_gateway_stream(
         let abort_handle = tasks.spawn(async move {
             loop {
                 if gateway_handler.has_certificate() {
-                    info!("Gateway has a valid certificate, proceeding to connection");
+                    info!("A certificate was already issued for Gateway, proceeding to connection");
                 } else {
                     info!("Gateway does not have a valid certificate, proceeding to setup");
                     if let Err(err) = gateway_handler.handle_setup().await {
