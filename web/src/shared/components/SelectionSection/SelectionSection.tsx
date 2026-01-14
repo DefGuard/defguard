@@ -43,7 +43,7 @@ export const SelectionSection = <T extends SelectionKey>({
       });
     }
     return res;
-  }, [options, onlySelected, selection, search.trim]);
+  }, [options, onlySelected, selection, search]);
 
   const handleSelectAll = useCallback(() => {
     const allSelected = selection.size === options.length;
