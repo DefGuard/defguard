@@ -1,13 +1,17 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
-    Issuer, KeyPair, SigningKey,
+    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
+    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey,
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
 use thiserror::Error;
+use time::{Duration, OffsetDateTime};
+use x509_parser::parse_x509_certificate;
 
 const CA_NAME: &str = "Defguard CA";
 const CA_ORG: &str = "Defguard";
+const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
+const DEFAULT_CERT_VALIDITY_DAYS: i64 = 365;
 
 #[derive(Debug, Error)]
 pub enum CertificateError {
@@ -59,7 +63,8 @@ impl CertificateAuthority<'_> {
     pub fn new() -> Result<Self, CertificateError> {
         let mut ca_params = CertificateParams::new(vec![CA_NAME.to_string()])?;
 
-        ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+        // path length 0 to avoid issuing further CAs
+        ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
         ca_params
             .distinguished_name
             .push(rcgen::DnType::OrganizationName, CA_ORG);
@@ -73,8 +78,35 @@ impl CertificateAuthority<'_> {
     }
 
     pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
-        let csr = csr.params()?;
-        let cert = csr.signed_by(&self.issuer)?;
+        // TODO: make validity configurable?
+        self.sign_csr_with_validity(csr, DEFAULT_CERT_VALIDITY_DAYS)
+    }
+
+    /// Sign CSR with explicit validity in days.
+    pub fn sign_csr_with_validity(
+        &self,
+        csr: &Csr,
+        days_valid: i64,
+    ) -> Result<Certificate, CertificateError> {
+        let mut csr_params = csr.params()?;
+
+        let now = OffsetDateTime::now_utc();
+        let not_before = now - NOT_BEFORE_OFFSET_SECS;
+        let not_after = now + Duration::days(days_valid);
+
+        csr_params.params.not_before = not_before;
+        csr_params.params.not_after = not_after;
+
+        csr_params.params.key_usages = vec![
+            KeyUsagePurpose::DigitalSignature,
+            KeyUsagePurpose::KeyEncipherment,
+        ];
+        csr_params.params.extended_key_usages = vec![
+            ExtendedKeyUsagePurpose::ServerAuth,
+            ExtendedKeyUsagePurpose::ClientAuth,
+        ];
+
+        let cert = csr_params.signed_by(&self.issuer)?;
         Ok(cert)
     }
 
@@ -91,6 +123,14 @@ impl CertificateAuthority<'_> {
     pub fn key_pair_der(&self) -> &[u8] {
         self.issuer.key().serialized_der()
     }
+}
+
+/// Extract the expiry date (not_after) from a certificate.
+pub fn get_certificate_expiry(cert: &Certificate) -> Result<OffsetDateTime, CertificateError> {
+    let (_, parsed) = parse_x509_certificate(cert.der())
+        .map_err(|e| CertificateError::ParsingError(format!("Failed to parse certificate: {e}")))?;
+
+    Ok(parsed.tbs_certificate.validity.not_after.to_datetime())
 }
 
 pub struct Csr<'a> {
@@ -207,7 +247,7 @@ mod tests {
     #[test]
     fn test_sign_csr() {
         let ca = CertificateAuthority::new().unwrap();
-        let cert_key_pair = KeyPair::generate().unwrap();
+        let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
             &["example.com".to_string(), "www.example.com".to_string()],
@@ -219,6 +259,29 @@ mod tests {
         .unwrap();
         let signed_cert: Certificate = ca.sign_csr(&csr).unwrap();
         assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
+    }
+
+    #[test]
+    fn test_sign_csr_with_validity() {
+        use x509_parser::parse_x509_certificate;
+
+        let ca = CertificateAuthority::new().unwrap();
+        let cert_key_pair = generate_key_pair().unwrap();
+        let csr = Csr::new(
+            &cert_key_pair,
+            &["example.com".to_string()],
+            vec![(rcgen::DnType::CommonName, "example.com")],
+        )
+        .unwrap();
+        let signed_cert: Certificate = ca.sign_csr_with_validity(&csr, 90).unwrap();
+        let der = signed_cert.der();
+        let (_rem, parsed) = parse_x509_certificate(der).unwrap();
+        let validity = parsed.tbs_certificate.validity;
+        let not_before = validity.not_before.to_datetime();
+        let not_after = validity.not_after.to_datetime();
+        let days = (not_after - not_before).whole_days();
+        assert!((89..=91).contains(&days), "expected 89-91 days, got {days}");
+        assert!(not_after > not_before);
     }
 
     #[test]

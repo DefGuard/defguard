@@ -1,13 +1,4 @@
 use defguard_common::{config::server_config, db::models::User};
-use defguard_mail::Mail;
-use defguard_proto::proxy::{
-    DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
-    PasswordResetStartResponse,
-};
-use sqlx::PgPool;
-use tokio::sync::mpsc::{UnboundedSender, error::SendError};
-use tonic::Status;
-
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::ldap::utils::ldap_change_password,
@@ -19,6 +10,14 @@ use defguard_core::{
     },
     headers::get_device_info,
 };
+use defguard_mail::Mail;
+use defguard_proto::proxy::{
+    DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+    PasswordResetStartResponse,
+};
+use sqlx::PgPool;
+use tokio::sync::mpsc::{UnboundedSender, error::SendError};
+use tonic::Status;
 
 pub(super) struct PasswordResetServer {
     pool: PgPool,
