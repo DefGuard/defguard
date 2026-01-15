@@ -54,8 +54,11 @@ pub struct AddProviderData {
 #[utoipa::path(
     post,
     path = "/api/v1/openid/provider",
+    params(
+        ("data" = AddProviderData, Path, description = "OpenID provider data",)
+    ),
     responses(
-        (status = CREATED, description = "Add OpenID provider", body = [AddProviderData]),
+        (status = CREATED, description = "Add OpenID provider"),
     ),
 )]
 pub(crate) async fn add_openid_provider(
@@ -194,7 +197,7 @@ pub(crate) async fn add_openid_provider(
 /// # Returns
 /// - HTTP Status "OK" on success.
 #[utoipa::path(
-    put,
+    get,
     path = "/api/v1/openid/provider/{name}",
     responses(
         (status = OK, description = "Get OpenID provider"),
@@ -240,7 +243,7 @@ pub(crate) async fn get_openid_provider(
 /// # Returns
 /// - HTTP Status "OK" on success.
 #[utoipa::path(
-    get,
+    delete,
     path = "/api/v1/openid/provider/{name}",
     responses(
         (status = OK, description = "Delete OpenID provider"),

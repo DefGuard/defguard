@@ -221,7 +221,7 @@ impl IntoResponse for ApiResponse {
 
 pub type ApiResult = Result<ApiResponse, WebError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct Auth {
     username: String,
     password: String,
