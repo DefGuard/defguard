@@ -12,8 +12,8 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as, query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
+    query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, info};
@@ -1189,9 +1189,9 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let mut location = WireguardNetwork::default();
+        location.try_set_address("10.1.1.1/29").unwrap();
+        let location = location.save(&pool).await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -1226,7 +1226,7 @@ mod test {
                 id: NoId,
                 device_id: device.id,
                 collected_at: now - TimeDelta::minutes(i),
-                network: network.id,
+                network: location.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
@@ -1238,8 +1238,8 @@ mod test {
             .unwrap();
         }
 
-        let connected_at = network
-            .connected_at(&pool, device.id)
+        let connected_at = device
+            .last_connected_at(&pool, location.id)
             .await
             .unwrap()
             .unwrap();
@@ -1253,9 +1253,9 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let mut location = WireguardNetwork::default();
+        location.try_set_address("10.1.1.1/29").unwrap();
+        let location = location.save(&pool).await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -1288,7 +1288,7 @@ mod test {
                 id: NoId,
                 device_id: device.id,
                 collected_at: now - TimeDelta::minutes(i),
-                network: network.id,
+                network: location.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
@@ -1300,8 +1300,8 @@ mod test {
             .unwrap();
         }
 
-        let connected_at = network
-            .connected_at(&pool, device.id)
+        let connected_at = device
+            .last_connected_at(&pool, location.id)
             .await
             .unwrap()
             .unwrap();

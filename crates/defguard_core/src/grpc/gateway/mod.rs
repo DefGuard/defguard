@@ -7,7 +7,6 @@ use std::{
 
 use chrono::DateTime;
 use defguard_common::{
-    config::server_config,
     db::{
         ChangeNotification, Id, TriggerOperation,
         models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
@@ -32,7 +31,7 @@ use tonic::{Code, Status};
 
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_license_active},
-    events::{GrpcEvent, GrpcRequestContext},
+    events::GrpcEvent,
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
@@ -268,6 +267,7 @@ pub async fn run_grpc_gateway_stream(
             events_tx.clone(),
             mail_tx.clone(),
             grpc_event_tx.clone(),
+            peer_stats_tx.clone(),
         )?;
         let abort_handle = tasks.spawn(async move {
             loop {

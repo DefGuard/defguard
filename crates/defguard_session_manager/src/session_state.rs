@@ -62,16 +62,14 @@ impl From<VpnSessionStats<Id>> for LastStatsUpdate {
 /// State of a specific VPN client session
 pub(crate) struct SessionState {
     session_id: Id,
-    user_id: Id,
     last_stats_update: Option<LastStatsUpdate>,
 }
 
 impl SessionState {
-    fn new(session_id: Id, user_id: Id) -> Self {
+    fn new(session_id: Id) -> Self {
         Self {
             session_id,
             last_stats_update: None,
-            user_id,
         }
     }
 
@@ -121,7 +119,6 @@ impl From<&VpnClientSession<Id>> for SessionState {
     fn from(value: &VpnClientSession<Id>) -> Self {
         Self {
             session_id: value.id,
-            user_id: value.user_id,
             last_stats_update: None,
         }
     }
@@ -255,7 +252,7 @@ impl ActiveSessionsMap {
         .await?;
 
         // add to session map
-        let session_state = SessionState::new(session.id, user.id);
+        let session_state = SessionState::new(session.id);
         let session_map = self.get_or_create_location_session_map(location_id);
         let maybe_existing_session = session_map.insert(device_id, session_state);
         // if a session exists already there was an error in earlier logic
