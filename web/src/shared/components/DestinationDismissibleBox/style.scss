@@ -1,0 +1,14 @@
+.destination-dismissible-box {
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-disabled);
+  box-sizing: border-box;
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+
+  & > .track {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-4xl);
+    place-items: center stretch;
+  }
+}

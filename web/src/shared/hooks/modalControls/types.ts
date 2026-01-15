@@ -95,3 +95,15 @@ export interface OpenGatewaySetupModal {
 export interface OpenLicenseModal {
   license?: string | null;
 }
+
+const UpgradeLicenseModalVariant = {
+  Business: 'business',
+  Enterprise: 'enterprise',
+} as const;
+
+export type UpgradeLicenseModalVariantValue =
+  (typeof UpgradeLicenseModalVariant)[keyof typeof UpgradeLicenseModalVariant];
+
+export interface OpenUpgradeLicenseModal {
+  variant: UpgradeLicenseModalVariantValue;
+}
