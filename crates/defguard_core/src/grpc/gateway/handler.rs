@@ -43,7 +43,7 @@ use crate::{
     events::GrpcRequestContext,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
-        gateway::{GatewayError, GrpcRequestContext, events::GatewayEvent, get_peers},
+        gateway::{GatewayError, events::GatewayEvent, get_peers},
     },
     handlers::mail::send_gateway_disconnected_email,
 };

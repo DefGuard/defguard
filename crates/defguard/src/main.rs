@@ -10,10 +10,8 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            Settings,
-            User,
+            Settings, User,
             settings::{initialize_current_settings, update_current_settings},
-            // wireguard_peer_stats::WireguardPeerStats,
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -42,7 +40,7 @@ use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
-// use defguard_session_manager::run_session_manager;
+use defguard_session_manager::run_session_manager;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 

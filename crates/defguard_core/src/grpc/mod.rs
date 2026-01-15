@@ -5,10 +5,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use defguard_common::{
-    auth::claims::ClaimsType,
-    db::{Id, models::Settings},
-};
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
@@ -18,7 +14,6 @@ use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 use defguard_common::{
     auth::claims::ClaimsType,
     db::{Id, models::Settings},
-    messages::peer_stats_update::PeerStatsUpdate,
 };
 
 use self::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer};
