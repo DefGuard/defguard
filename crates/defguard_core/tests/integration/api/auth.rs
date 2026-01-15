@@ -109,6 +109,20 @@ async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
     }
 }
 
+async fn responses_eq(response1: TestResponse, response2: TestResponse) -> bool {
+    // omit date header
+    let mut headers1 = response1.headers().clone();
+    headers1.remove("date");
+    let mut headers2 = response2.headers().clone();
+    headers2.remove("date");
+    let headers = headers1 == headers2;
+
+    let status = response1.status() == response2.status();
+    let body = response1.bytes().await == response2.bytes().await;
+
+    status && headers && body
+}
+
 #[sqlx::test]
 async fn dg25_21_test_login_enumeration(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -123,20 +137,6 @@ async fn dg25_21_test_login_enumeration(_: PgPoolOptions, options: PgConnectOpti
 
     let response = client.post("/api/v1/auth").json(&user_auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
-    async fn responses_eq(response1: TestResponse, response2: TestResponse) -> bool {
-        // omit date header
-        let mut headers1 = response1.headers().clone();
-        headers1.remove("date");
-        let mut headers2 = response2.headers().clone();
-        headers2.remove("date");
-        let headers = headers1 == headers2;
-
-        let status = response1.status() == response2.status();
-        let body = response1.bytes().await == response2.bytes().await;
-
-        status && headers && body
-    }
 
     // regular user
     let user_auth = Auth::new("hpotter", "invalid");
@@ -282,7 +282,7 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     // provide recovery code
-    let code = recovery_codes.codes.unwrap().first().unwrap().to_string();
+    let code = recovery_codes.codes.unwrap().first().unwrap().clone();
     let response = client
         .post("/api/v1/auth/recovery")
         .json(&json!({ "code": code }))

@@ -15,6 +15,7 @@ defguard_proto = { workspace = true }
 defguard_web_ui = { workspace = true }
 defguard_version = { workspace = true }
 model_derive = { workspace = true }
+defguard_certs = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }

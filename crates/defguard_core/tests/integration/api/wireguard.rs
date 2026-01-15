@@ -44,12 +44,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = make_network(&client, "network").await;
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
@@ -330,12 +325,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
@@ -369,12 +359,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     );
 
     // add another network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
     // an IP was assigned for an existing device
@@ -607,12 +592,7 @@ async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
 
     // admin can add devices for other users
     let device = json!({
@@ -754,12 +734,7 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    make_network(&client, "network").await;
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 

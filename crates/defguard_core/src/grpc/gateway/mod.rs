@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     net::IpAddr,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use chrono::DateTime;
@@ -30,8 +31,8 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::is_enterprise_license_active,
-    events::GrpcEvent,
+    enterprise::{firewall::FirewallError, is_enterprise_license_active},
+    events::{GrpcEvent, GrpcRequestContext},
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
@@ -116,15 +117,34 @@ fn try_protos_into_stats_message(
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
-pub enum GatewayServerError {
+pub enum GatewayError {
     #[error("Failed to acquire lock on VPN client state map")]
     ClientStateMutexError,
     #[error("gRPC event channel error: {0}")]
     GrpcEventChannelError(#[from] SendError<GrpcEvent>),
+    #[error("Endpoint error: {0}")]
+    EndpointError(String),
+    #[error("gRPC communication error: {0}")]
+    GrpcCommunicationError(#[from] tonic::Status),
+    #[error(transparent)]
+    CertificateError(#[from] defguard_certs::CertificateError),
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+    #[error("Conversion error: {0}")]
+    ConversionError(String),
+    #[error(transparent)]
+    SqlxError(#[from] sqlx::Error),
+    #[error("Not found: {0}")]
+    NotFound(String),
+    // mpsc channel send/receive error
+    #[error("Message channel error: {0}")]
+    MessageChannelError(String),
+    #[error(transparent)]
+    FirewallError(#[from] FirewallError),
 }
 
-impl From<GatewayServerError> for Status {
-    fn from(value: GatewayServerError) -> Self {
+impl From<GatewayError> for Status {
+    fn from(value: GatewayError) -> Self {
         Self::new(Code::Internal, value.to_string())
     }
 }
@@ -224,6 +244,8 @@ fn gen_config(
 }
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
+const GATEWAY_SETUP_DELAY: Duration = Duration::from_secs(1);
+const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
 /// Bi-directional gRPC stream for communication with Defguard Gateway.
 pub async fn run_grpc_gateway_stream(
@@ -234,29 +256,39 @@ pub async fn run_grpc_gateway_stream(
     grpc_event_tx: UnboundedSender<GrpcEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
-    let config = server_config();
-    let tls_config = config.grpc_client_tls_config()?;
-
     let mut abort_handles = HashMap::new();
 
     let mut tasks = JoinSet::new();
     // Helper closure to launch `GatewayHandler`.
-    let mut launch_gateway_handler =
-        |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
-            let mut gateway_handler = GatewayHandler::new(
-                gateway,
-                tls_config.clone(),
-                pool.clone(),
-                Arc::clone(&client_state),
-                events_tx.clone(),
-                mail_tx.clone(),
-                grpc_event_tx.clone(),
-            )?;
-            let abort_handle = tasks.spawn(async move {
-                gateway_handler.handle_connection().await;
-            });
-            Ok(abort_handle)
-        };
+    let mut launch_gateway_handler = |gateway: Gateway<Id>| -> Result<AbortHandle, anyhow::Error> {
+        let mut gateway_handler = GatewayHandler::new(
+            gateway,
+            pool.clone(),
+            Arc::clone(&client_state),
+            events_tx.clone(),
+            mail_tx.clone(),
+            grpc_event_tx.clone(),
+        )?;
+        let abort_handle = tasks.spawn(async move {
+            loop {
+                if gateway_handler.has_certificate() {
+                    info!("A certificate was already issued for Gateway, proceeding to connection");
+                } else {
+                    info!("Gateway does not have a valid certificate, proceeding to setup");
+                    if let Err(err) = gateway_handler.handle_setup().await {
+                        warn!("Gateway setup failed: {err}, will try to connect anyway...");
+                    } else {
+                        tokio::time::sleep(GATEWAY_SETUP_DELAY).await;
+                    }
+                }
+                if let Err(err) = gateway_handler.handle_connection().await {
+                    error!("Gateway connection error: {err}, retrying in 5 seconds...");
+                    tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;
+                }
+            }
+        });
+        Ok(abort_handle)
+    };
 
     for gateway in Gateway::all(&pool).await? {
         let id = gateway.id;

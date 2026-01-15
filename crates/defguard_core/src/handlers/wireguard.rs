@@ -336,6 +336,8 @@ pub(crate) async fn modify_network(
     network.port = data.port;
     network.dns = data.dns;
     network.keepalive_interval = data.keepalive_interval;
+    network.mtu = data.mtu;
+    network.fwmark = data.fwmark;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;

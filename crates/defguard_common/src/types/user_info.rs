@@ -1,3 +1,7 @@
+use serde::{Deserialize, Serialize};
+use sqlx::{Error as SqlxError, PgConnection, PgPool};
+use utoipa::ToSchema;
+
 use crate::{
     db::{
         Id,
@@ -5,9 +9,6 @@ use crate::{
     },
     types::group_diff::GroupDiff,
 };
-use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgConnection, PgPool};
-use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
@@ -146,10 +147,10 @@ impl UserInfo {
 
 #[cfg(test)]
 mod test {
-    use crate::db::setup_pool;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
+    use crate::db::setup_pool;
 
     #[sqlx::test]
     async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {

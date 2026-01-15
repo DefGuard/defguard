@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Page } from '../../shared/components/Page/Page';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getNetworkDevicesQueryOptions } from '../../shared/query';
 import { AddNetworkDeviceModal } from './modals/AddNetworkDeviceModal/AddNetworkDeviceModal';
 import { EditNetworkDeviceModal } from './modals/EditNetworkDeviceModal/EditNetworkDeviceModal';
@@ -13,7 +14,9 @@ export const NetworkDevicesPage = () => {
   return (
     <>
       <Page id="network-devices-page" title="Network Devices">
-        <NetworkDevicesTable networkDevices={networkDevices} />
+        <TablePageLayout>
+          <NetworkDevicesTable networkDevices={networkDevices} />
+        </TablePageLayout>
       </Page>
       <AddNetworkDeviceModal />
       <NetworkDeviceConfigModal />

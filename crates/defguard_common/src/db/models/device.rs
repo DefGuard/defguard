@@ -1,19 +1,5 @@
 use std::{fmt, net::IpAddr};
 
-use crate::{
-    KEY_LENGTH,
-    csv::AsCsv,
-    db::{
-        Id, NoId,
-        models::{
-            ModelError, WireguardNetwork,
-            user::User,
-            wireguard::{
-                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WIREGUARD_MAX_HANDSHAKE,
-            },
-        },
-    },
-};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
@@ -31,6 +17,21 @@ use sqlx::{
 use thiserror::Error;
 use tracing::{debug, error, info};
 use utoipa::ToSchema;
+
+use crate::{
+    KEY_LENGTH,
+    csv::AsCsv,
+    db::{
+        Id, NoId,
+        models::{
+            ModelError, WireguardNetwork,
+            user::User,
+            wireguard::{
+                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WIREGUARD_MAX_HANDSHAKE,
+            },
+        },
+    },
+};
 
 #[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {
@@ -1021,9 +1022,8 @@ mod test {
     use claims::{assert_err, assert_ok};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use crate::db::setup_pool;
-
     use super::*;
+    use crate::db::setup_pool;
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

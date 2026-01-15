@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\" FROM \"gateway\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\" FROM \"proxy\"",
   "describe": {
     "columns": [
       {
@@ -10,43 +10,47 @@
       },
       {
         "ordinal": 1,
-        "name": "network_id",
-        "type_info": "Int8"
+        "name": "name",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "url",
+        "name": "address",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "hostname",
-        "type_info": "Text"
+        "name": "port",
+        "type_info": "Int4"
       },
       {
         "ordinal": 4,
+        "name": "public_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
       false,
-      true,
+      false,
+      false,
       true,
       true
     ]
   },
-  "hash": "0648b5c0e4d4a4cd922ccaef80e06ff43f8ff063a6772586b79f1c524a848554"
+  "hash": "57d87e1e6c73c6f630153227c3220a0bef9f3e0ec3ca5697130e3f506cfc2e0a"
 }

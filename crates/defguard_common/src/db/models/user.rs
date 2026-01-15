@@ -1,14 +1,5 @@
 use std::{fmt, time::SystemTime};
 
-use crate::{
-    config::server_config,
-    db::{
-        Id, NoId,
-        models::{MFAInfo, Session, WebAuthn},
-    },
-    random::{gen_alphanumeric, gen_totp_secret},
-    types::user_info::OAuth2AuthorizedAppInfo,
-};
 use argon2::{
     Argon2,
     password_hash::{
@@ -35,6 +26,15 @@ use utoipa::ToSchema;
 use super::{
     device::{Device, DeviceType, UserDevice},
     group::{Group, Permission},
+};
+use crate::{
+    config::server_config,
+    db::{
+        Id, NoId,
+        models::{MFAInfo, Session, WebAuthn},
+    },
+    random::{gen_alphanumeric, gen_totp_secret},
+    types::user_info::OAuth2AuthorizedAppInfo,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
@@ -1221,13 +1221,13 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use super::*;
     use crate::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{models::settings::initialize_current_settings, setup_pool},
     };
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-    use super::*;
 
     #[sqlx::test]
     async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {

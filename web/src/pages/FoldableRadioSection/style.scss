@@ -1,0 +1,40 @@
+.foldable-radio-section {
+  .top {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    grid-template-rows: 1fr;
+    align-items: start;
+    gap: var(--spacing-md);
+    user-select: none;
+    cursor: pointer;
+
+    .content {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xs);
+
+      .title {
+        font: var(--t-body-sm-500);
+        color: var(--fg-default);
+      }
+
+      .subtitle {
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+      }
+
+      .header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        justify-content: flex-start;
+        column-gap: var(--spacing-md);
+      }
+    }
+  }
+
+  .bottom {
+    box-sizing: border-box;
+    padding-left: calc(var(--spacing-md) + 24px);
+  }
+}

@@ -5,6 +5,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use defguard_common::{
+    auth::claims::ClaimsType,
+    db::{Id, models::Settings},
+};
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;

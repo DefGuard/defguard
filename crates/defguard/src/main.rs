@@ -9,7 +9,12 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, User, settings::initialize_current_settings},
+        models::{
+            Settings,
+            User,
+            settings::{initialize_current_settings, update_current_settings},
+            // wireguard_peer_stats::WireguardPeerStats,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -36,8 +41,8 @@ use defguard_core::{
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
-use defguard_proxy_manager::{ProxyOrchestrator, ProxyTxSet};
-use defguard_session_manager::run_session_manager;
+use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
+// use defguard_session_manager::run_session_manager;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -124,6 +129,22 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
+    let mut settings = Settings::get_current_settings();
+    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
+        info!(
+            "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
+        );
+
+        let ca = defguard_certs::CertificateAuthority::new()?;
+
+        let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
+
+        settings.ca_cert_der = Some(cert_der);
+        settings.ca_key_der = Some(key_der);
+
+        update_current_settings(&pool, settings).await?;
+    }
+
     // read grpc TLS cert and key
     let grpc_cert = config
         .grpc_cert
@@ -155,12 +176,12 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
-    let proxy_orchestrator =
-        ProxyOrchestrator::new(pool.clone(), proxy_tx, Arc::clone(&incompatible_components));
+    let proxy_manager =
+        ProxyManager::new(pool.clone(), proxy_tx, Arc::clone(&incompatible_components));
 
     // run services
     tokio::select! {
-        res = proxy_orchestrator.run(&config.proxy_url) => error!("ProxyOrchestrator returned early: {res:?}"),
+        res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
         res = run_grpc_gateway_stream(
             pool.clone(),
             client_state,
