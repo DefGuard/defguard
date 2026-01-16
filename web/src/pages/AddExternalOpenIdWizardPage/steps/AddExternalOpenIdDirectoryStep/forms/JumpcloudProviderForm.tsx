@@ -35,7 +35,6 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
       directory_sync_target: providerState.directory_sync_target,
       directory_sync_user_behavior: providerState.directory_sync_user_behavior,
       jumpcloud_api_key: providerState.jumpcloud_api_key ?? '',
-      kind: OpenIdProviderKind.JumpCloud,
     }),
     [providerState],
   );
