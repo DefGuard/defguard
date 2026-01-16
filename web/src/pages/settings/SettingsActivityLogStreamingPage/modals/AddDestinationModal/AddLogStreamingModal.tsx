@@ -41,9 +41,9 @@ export const AddLogStreamingModal = () => {
       return m.modal_select_log_streaming_destination_title();
     switch (modalState.destination) {
       case 'logstash':
-        return m.modal_add_logstash_destination();
+        return m.modal_add_logstash_destination_title();
       case 'vector':
-        return m.modal_add_vector_destination();
+        return m.modal_add_vector_destination_title();
       default:
         return 'Add destination';
     }
