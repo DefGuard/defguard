@@ -30,6 +30,7 @@ import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/B
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
+import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { Radio } from '../../shared/defguard-ui/components/Radio/Radio';
 import { RadioIndicator } from '../../shared/defguard-ui/components/RadioIndicator/RadioIndicator';
 import { SectionSelect } from '../../shared/defguard-ui/components/SectionSelect/SectionSelect';
@@ -193,6 +194,12 @@ export const PlaygroundPage = () => {
       </Card>
       <Divider spacing={ThemeSpacing.Sm} />
       <TestIpAssignmentSection />
+      <Divider spacing={ThemeSpacing.Sm} />
+      <Card>
+        <Helper tooltipProps={{ id: 'custom-helper-id' }}>
+          {m.test_placeholder_long()}
+        </Helper>
+      </Card>
     </div>
   );
 };
