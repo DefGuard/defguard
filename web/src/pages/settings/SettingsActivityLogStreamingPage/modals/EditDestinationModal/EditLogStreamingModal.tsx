@@ -30,12 +30,12 @@ export const EditLogStreamingModal = () => {
   const [modalData, setModalData] = useState<ModalData | null>(null);
 
   const modalTitle = useMemo(() => {
-    if (!modalData) return 'Edit destination';
+    if (!modalData) return m.modal_edit_log_streaming_destination_title();
     switch (modalData.stream_type) {
       case ActivityLogStreamType.LogstashHttp:
-        return 'Edit Logstash destination';
+        return m.modal_edit_logstash_destination_title();
       case ActivityLogStreamType.VectorHttp:
-        return 'Edit Vector destination';
+        return m.modal_edit_vector_destination_title();
     }
   }, [modalData]);
 

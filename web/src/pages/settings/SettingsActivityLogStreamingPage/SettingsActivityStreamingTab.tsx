@@ -15,6 +15,7 @@ import { getActivityLogStreamsQueryOptions } from '../../../shared/query';
 import { ActivityLogStreamTable } from './ActivityLogStreamTable';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { m } from '../../../paraglide/messages';
 
 export const SettingsActivityLogStreamingPage = () => {
   const { data: streams } = useQuery(getActivityLogStreamsQueryOptions);
@@ -23,7 +24,7 @@ export const SettingsActivityLogStreamingPage = () => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add log streaming',
+      text: m.settings_activity_log_streaming_add_log_streaming_button(),
       iconLeft: 'file-add',
       testId: 'add-activity-stream',
       onClick: () => {
@@ -38,20 +39,20 @@ export const SettingsActivityLogStreamingPage = () => {
       <SettingsHeader
         badgeProps={businessPlanBadgeProps}
         icon="activity"
-        title="Activity log streaming"
-        subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring."
+        title={m.settings_activity_log_streaming_title()}
+        subtitle={m.settings_activity_log_streaming_description()}
       />
       {isEmpty ? (
         <EmptyState
-          id=""
+          id="empty-state-upstreams"
           icon="log"
-          title="You don't have any activity log upstreams."
-          subtitle={`Click the button below to add an activity log provider and start streaming events.`}
+          title={m.settings_activity_log_streaming_no_upstreams()}
+          subtitle={m.settings_activity_log_streaming_no_upstreams_subtitle()}
           primaryAction={addButtonProps}
         />
       ) : (
         <>
-          <TableTop text="All log streams">
+          <TableTop text={m.settings_activity_log_streaming_table_title()}>
             <Button {...addButtonProps} />
           </TableTop>
           <ActivityLogStreamTable data={streams} />

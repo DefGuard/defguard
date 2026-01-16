@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "settings_activity_log_streaming_title": "Activity log streaming",
+  "settings_activity_log_streaming_description": "Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring.",
+  "settings_activity_log_streaming_no_upstreams": "You don't have any activity log upstreams.",
+  "settings_activity_log_streaming_no_upstreams_subtitle": "Click the button below to add an activity log provider and start streaming events.",
+  "settings_activity_log_streaming_add_log_streaming_button": "Add log streaming.",
+  "settings_activity_log_streaming_delete_log_streaming_title": "Delete destination confirmation",
+  "settings_activity_log_streaming_table_title": "All log streams",
+  "settings_activity_log_streaming_table_header_name": "Name",
+  "settings_activity_log_streaming_table_stream_type_name": "Destination"
+}

@@ -27,7 +27,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Name',
+        header: m.settings_activity_log_streaming_table_header_name(),
         minSize: 484,
         enableSorting: true,
         sortingFn: 'text',
@@ -38,7 +38,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
         ),
       }),
       columnHelper.accessor('stream_type', {
-        header: 'Destination',
+        header: m.settings_activity_log_streaming_table_stream_type_name(),
         size: 220,
         minSize: 100,
         cell: (info) => {

@@ -50,7 +50,7 @@ export const DeleteLogStreamingModal = () => {
     <Modal
       id="delete-destination-modal"
       size="small"
-      title="Delete destination confirmation"
+      title={m.settings_activity_log_streaming_delete_log_streaming_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => setModalData(null)}

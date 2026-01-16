@@ -37,12 +37,13 @@ export const AddLogStreamingModal = () => {
   const [modalState, setModalState] = useState<ModalState>(defaultState);
 
   const modalTitle = useMemo(() => {
-    if (modalState.step === 'choice') return 'Select destination';
+    if (modalState.step === 'choice')
+      return m.modal_select_log_streaming_destination_title();
     switch (modalState.destination) {
       case 'logstash':
-        return 'Add Logstash destination';
+        return m.modal_add_logstash_destination();
       case 'vector':
-        return 'Add Vector destination';
+        return m.modal_add_vector_destination();
       default:
         return 'Add destination';
     }
