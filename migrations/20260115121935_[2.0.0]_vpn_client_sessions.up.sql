@@ -8,7 +8,7 @@ CREATE TABLE vpn_client_session (
     id bigserial PRIMARY KEY,
     location_id bigint NOT NULL,
     user_id bigint NOT NULL,
-    device_id bigint NULL,
+    device_id bigint NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT current_timestamp,
     connected_at timestamp without time zone NOT NULL,
     disconnected_at timestamp without time zone NOT NULL,
@@ -22,6 +22,7 @@ CREATE TABLE vpn_client_session (
 CREATE TABLE vpn_session_stats (
     id bigserial PRIMARY KEY,
     session_id bigint NOT NULL,
+    gateway_id bigint NOT NULL,
     collected_at timestamp without time zone NOT NULL,
     latest_handshake timestamp without time zone NOT NULL,
     endpoint text NOT NULL,
@@ -29,5 +30,6 @@ CREATE TABLE vpn_session_stats (
     total_download bigint NOT NULL,
     upload_diff bigint NOT NULL,
     download_diff bigint NOT NULL,
-    FOREIGN KEY (session_id) REFERENCES vpn_client_session(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES vpn_client_session(id) ON DELETE CASCADE,
+    FOREIGN KEY (gateway_id) REFERENCES gateway(id) ON DELETE CASCADE
 );
