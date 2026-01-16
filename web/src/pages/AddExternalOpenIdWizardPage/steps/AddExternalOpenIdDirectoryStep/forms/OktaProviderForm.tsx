@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
-import { OpenIdProviderKind } from '../../../../../shared/api/types';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -47,10 +46,7 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
       onChange: oktaProviderSyncSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit({
-        ...value,
-        kind: OpenIdProviderKind.Okta,
-      });
+      await onSubmit(value);
     },
   });
 

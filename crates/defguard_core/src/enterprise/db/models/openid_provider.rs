@@ -90,11 +90,12 @@ impl From<String> for DirectorySyncTarget {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "openid_provider_kind")]
 pub enum OpenIdProviderKind {
+    Custom,
     Google,
     Microsoft,
     Okta,
     JumpCloud,
-    Custom,
+    Zitadel,
 }
 
 #[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize)]

@@ -2,7 +2,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
-import { OpenIdProviderKind } from '../../../../../shared/api/types';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -47,10 +46,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
       onChange: jumpcloudProviderSyncSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit({
-        ...value,
-        kind: OpenIdProviderKind.JumpCloud,
-      });
+      await onSubmit(value);
     },
   });
 

@@ -1,4 +1,3 @@
-import type { ExternalProviderValue } from '../../pages/settings/shared/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -680,11 +679,12 @@ export interface OpenIdProviderSettings {
 }
 
 export const OpenIdProviderKind = {
+  Custom: 'Custom',
   Google: 'Google',
   Microsoft: 'Microsoft',
   Okta: 'Okta',
   JumpCloud: 'JumpCloud',
-  Custom: 'Custom',
+  Zitadel: 'Zitadel',
 } as const;
 
 export type OpenIdProviderKindValue =
@@ -719,7 +719,7 @@ export type OpenIdProviderUsernameHandlingValue =
 
 export interface OpenIdProvider {
   id: number;
-  name: ExternalProviderValue;
+  name: OpenIdProviderKindValue;
   base_url: string;
   kind: OpenIdProviderKindValue;
   client_id: string;

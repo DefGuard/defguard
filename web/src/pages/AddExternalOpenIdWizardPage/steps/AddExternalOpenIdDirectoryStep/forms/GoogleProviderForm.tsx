@@ -3,7 +3,6 @@ import { omit } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
 import type z from 'zod';
 import { m } from '../../../../../paraglide/messages';
-import { OpenIdProviderKind } from '../../../../../shared/api/types';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -60,7 +59,6 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
       if (isPresent(fileData)) {
         await onSubmit({
           ...value,
-          kind: OpenIdProviderKind.Google,
           google_service_account_email: fileData?.client_email ?? '',
           google_service_account_key: fileData?.private_key ?? '',
         });
@@ -83,7 +81,6 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
     const fileData = await parseGoogleKeyFile(state.google_service_account_file as File);
     return {
       ...omit(state, ['google_service_account_file']),
-      kind: OpenIdProviderKind.Google,
       google_service_account_key: fileData?.private_key ?? null,
       google_service_account_email: fileData?.client_email ?? null,
     };

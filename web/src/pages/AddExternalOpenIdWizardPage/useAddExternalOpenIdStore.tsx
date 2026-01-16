@@ -6,6 +6,7 @@ import {
   DirectorySyncBehavior,
   DirectorySyncTarget,
   OpenIdProviderKind,
+  type OpenIdProviderKindValue,
   OpenIdProviderUsernameHandling,
 } from '../../shared/api/types';
 import {
@@ -14,7 +15,6 @@ import {
   jumpcloudProviderBaseUrl,
   SUPPORTED_SYNC_PROVIDERS,
 } from '../../shared/constants';
-import { ExternalProvider, type ExternalProviderValue } from '../settings/shared/types';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 
 type ProviderState = AddOpenIdProvider & {
@@ -22,7 +22,7 @@ type ProviderState = AddOpenIdProvider & {
 };
 
 interface StoreValues {
-  provider: ExternalProviderValue;
+  provider: OpenIdProviderKindValue;
   activeStep: AddExternalProviderStepValue;
   providerState: ProviderState;
   testResult: boolean | null;
@@ -30,12 +30,12 @@ interface StoreValues {
 }
 
 export const addExternalOpenIdStoreDefaults: StoreValues = {
-  provider: ExternalProvider.Custom,
+  provider: OpenIdProviderKind.Custom,
   activeStep: 'client-settings',
   testResult: null,
   testMessage: null,
   providerState: {
-    name: ExternalProvider.Custom,
+    name: OpenIdProviderKind.Custom,
     base_url: '',
     kind: OpenIdProviderKind.Custom,
     client_id: '',
@@ -65,7 +65,7 @@ export const addExternalOpenIdStoreDefaults: StoreValues = {
 
 interface Store extends StoreValues {
   reset: () => void;
-  initialize: (provider: ExternalProviderValue) => void;
+  initialize: (provider: OpenIdProviderKindValue) => void;
   next: (data?: Partial<StoreValues['providerState']>) => void;
   back: (data?: Partial<StoreValues['providerState']>) => void;
 }
@@ -120,24 +120,24 @@ export const useAddExternalOpenIdStore = create<Store>()(
       initialize: (provider) => {
         const initialProviderState = addExternalOpenIdStoreDefaults.providerState;
         initialProviderState.name = provider;
-        if (provider !== ExternalProvider.Custom) {
+        initialProviderState.kind = provider;
+        if (provider !== OpenIdProviderKind.Custom) {
           initialProviderState.display_name = externalProviderName[provider];
         }
         switch (provider) {
-          case 'google':
+          case 'Google':
             initialProviderState.base_url = googleProviderBaseUrl;
             break;
-          case 'microsoft':
+          case 'Microsoft':
             break;
-          case 'jumpCloud':
+          case 'JumpCloud':
             initialProviderState.base_url = jumpcloudProviderBaseUrl;
             break;
-          case 'okta':
+          case 'Okta':
             break;
         }
         set({
           activeStep: 'client-settings',
-          provider,
           providerState: initialProviderState,
         });
       },

@@ -26,11 +26,12 @@
             "name": "openid_provider_kind",
             "kind": {
               "Enum": [
+                "Custom",
                 "Google",
                 "Microsoft",
                 "Okta",
                 "JumpCloud",
-                "Custom"
+                "Zitadel"
               ]
             }
           }

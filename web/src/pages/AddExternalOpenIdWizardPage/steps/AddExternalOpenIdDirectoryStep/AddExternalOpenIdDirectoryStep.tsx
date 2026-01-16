@@ -53,13 +53,13 @@ export const AddExternalOpenIdDirectoryStep = () => {
 
   const formRender = useMemo(() => {
     switch (provider) {
-      case 'google':
+      case 'Google':
         return <GoogleProviderForm onSubmit={handleValidSubmit} />;
-      case 'microsoft':
+      case 'Microsoft':
         return <MicrosoftProviderForm onSubmit={handleValidSubmit} />;
-      case 'okta':
+      case 'Okta':
         return <OktaProviderForm onSubmit={handleValidSubmit} />;
-      case 'jumpCloud':
+      case 'JumpCloud':
         return <JumpcloudProviderForm onSubmit={handleValidSubmit} />;
     }
     return null;
