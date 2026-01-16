@@ -130,9 +130,19 @@ pub(crate) async fn create_session(
     }
 }
 
-/// For successful login, return:
+/// Authenticate a user.
+///
+/// # For successful login, returns:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth",
+    responses(
+        (status = OK, description = "User authenticated"),
+        (status = CREATED, description = "User authenticated, but an additional authentication factor is required"),
+    ),
+)]
 pub(crate) async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
@@ -298,7 +308,14 @@ pub(crate) async fn authenticate(
 }
 
 /// Logout - forget the session cookie.
-pub async fn logout(
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/logout",
+    responses(
+        (status = OK, description = "User logged out"),
+    ),
+)]
+pub(crate) async fn logout(
     cookies: CookieJar,
     SessionExtractor(session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,

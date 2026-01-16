@@ -38,7 +38,7 @@ impl From<String> for DirectorySyncUserBehavior {
             "disable" => DirectorySyncUserBehavior::Disable,
             "delete" => DirectorySyncUserBehavior::Delete,
             _ => {
-                warn!("Unknown directory sync user behavior passed: {}", s);
+                warn!("Unknown directory sync user behavior passed: {s}");
                 DirectorySyncUserBehavior::Keep
             }
         }
@@ -79,7 +79,7 @@ impl From<String> for DirectorySyncTarget {
             "users" => DirectorySyncTarget::Users,
             "groups" => DirectorySyncTarget::Groups,
             _ => {
-                warn!("Unknown directory sync target passed: {}", s);
+                warn!("Unknown directory sync target passed: {s}");
                 DirectorySyncTarget::All
             }
         }

@@ -31,6 +31,7 @@ axum = "0.8"
 axum-client-ip = "0.7"
 axum-extra = { version = "0.12", features = [
     "cookie-private",
+    "cookie-key-expansion",
     "typed-header",
     "query",
 ] }

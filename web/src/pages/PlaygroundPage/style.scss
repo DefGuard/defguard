@@ -1,0 +1,45 @@
+#playground-page {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: flex-start;
+  row-gap: var(--spacing-2xl);
+  box-sizing: border-box;
+  padding: var(--spacing-4xl);
+
+  .card {
+    max-width: 670px;
+  }
+}
+
+#playground-selection-section-test {
+  .item > .custom-selection-item {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-md);
+    cursor: pointer;
+    user-select: none;
+
+    &:not(.active) {
+      &:hover {
+        .box {
+          --border: var(--border-emphasis);
+        }
+      }
+    }
+  }
+}
+
+#chips-test {
+  & > div {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-flow: row wrap;
+    gap: var(--spacing-xl);
+  }
+}

@@ -764,7 +764,7 @@ mod test {
         // empty second part
         let encoded = BASE64_STANDARD.encode("csrf.");
         let extracted = extract_state_data(&encoded);
-        assert_eq!(extracted, Some("".to_string()));
+        assert_eq!(extracted, Some(String::new()));
 
         // multiple dots
         let encoded = BASE64_STANDARD.encode("csrf.data.with.dots");

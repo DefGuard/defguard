@@ -1,0 +1,43 @@
+.modal-upgrade-plan {
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: var(--modal-size-md);
+  overflow: hidden;
+
+  & > .tracks {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+
+    & > .image-track {
+      background-size: cover;
+      background-position: left;
+      background-repeat: no-repeat;
+    }
+
+    & > .content-track {
+      box-sizing: border-box;
+      padding: var(--spacing-xl);
+      min-height: 425px;
+      display: flex;
+      flex-flow: column;
+      background-color: var(--bg-default);
+
+      ul {
+        padding-top: var(--spacing-md);
+        padding-left: calc(var(--spacing-md) + 5px);
+        display: flex;
+        flex-flow: column;
+        row-gap: var(--spacing-xs);
+
+        li {
+          font: var(--t-body-sm-400);
+          color: var(--fg-neutral);
+        }
+      }
+
+      .controls {
+        margin-top: auto;
+      }
+    }
+  }
+}

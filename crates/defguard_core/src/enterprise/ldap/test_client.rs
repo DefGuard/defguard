@@ -70,9 +70,7 @@ fn vecs_equal_unordered<T>(vec1: &[T], vec2: &[T]) -> bool
 where
     T: PartialEq + Clone,
 {
-    if vec1.len() != vec2.len() {
-        false
-    } else {
+    if vec1.len() == vec2.len() {
         let mut vec2_copy = vec2.to_vec();
         vec1.iter().all(|item| {
             if let Some(pos) = vec2_copy.iter().position(|x| x == item) {
@@ -82,6 +80,8 @@ where
                 false
             }
         })
+    } else {
+        false
     }
 }
 
@@ -386,7 +386,12 @@ impl super::LDAPConnection {
             dn: dn.to_string(),
             attrs: attrs
                 .into_iter()
-                .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
+                .map(|(k, v)| {
+                    (
+                        k.to_string(),
+                        v.iter().map(std::string::ToString::to_string).collect(),
+                    )
+                })
                 .collect(),
         });
         Ok(())
@@ -489,7 +494,7 @@ impl super::LDAPConnection {
                     user,
                     "",
                     "",
-                    classes.iter().map(|s| s.as_str()).collect(),
+                    classes.iter().map(std::string::String::as_str).collect(),
                     false,
                     &config.ldap_username_attr,
                     &rdn_attr,
@@ -498,7 +503,12 @@ impl super::LDAPConnection {
                     dn: dn.clone(),
                     attrs: attrs
                         .iter()
-                        .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
+                        .map(|(k, v)| {
+                            (
+                                k.to_string(),
+                                v.iter().map(std::string::ToString::to_string).collect(),
+                            )
+                        })
                         .collect(),
                     bin_attrs: HashMap::new(),
                 });
@@ -561,13 +571,18 @@ pub(super) fn user_to_test_attrs<I>(
         user,
         &ssha_password,
         &nt_password,
-        classes.iter().map(|s| s.as_str()).collect(),
+        classes.iter().map(std::string::String::as_str).collect(),
         false,
         &config.ldap_username_attr,
         &rdn_attr,
     )
     .into_iter()
-    .map(|(k, v)| (k.to_string(), v.iter().map(|s| s.to_string()).collect()))
+    .map(|(k, v)| {
+        (
+            k.to_string(),
+            v.iter().map(std::string::ToString::to_string).collect(),
+        )
+    })
     .collect()
 }
 

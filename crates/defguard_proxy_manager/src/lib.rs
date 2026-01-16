@@ -5,8 +5,16 @@ use std::{
     time::Duration,
 };
 
+use axum_extra::extract::cookie::Key;
 use defguard_certs::der_to_pem;
-use defguard_common::{VERSION, config::server_config, db::models::Settings};
+use defguard_common::{
+    VERSION,
+    config::server_config,
+    db::{
+        Id,
+        models::{Settings, proxy::Proxy},
+    },
+};
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
     enrollment_management::clear_unused_enrollment_tokens,
@@ -35,6 +43,7 @@ use defguard_version::{
 };
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
 use reqwest::Url;
+use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
 use thiserror::Error;
@@ -49,6 +58,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Code, Streaming,
+    metadata::MetadataValue,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
@@ -63,6 +73,7 @@ extern crate tracing;
 const TEN_SECS: Duration = Duration::from_secs(10);
 const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
+static COOKIE_KEY_HEADER: &str = "dg-cookie-key-bin";
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Scheme {
@@ -168,14 +179,14 @@ impl ProxyRouter {
 /// - instantiating and supervising proxy connections,
 /// - routing responses to the appropriate proxy based on correlation state,
 /// - providing shared infrastructure (database access, outbound channels),
-pub struct ProxyOrchestrator {
+pub struct ProxyManager {
     pool: PgPool,
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     router: Arc<RwLock<ProxyRouter>>,
 }
 
-impl ProxyOrchestrator {
+impl ProxyManager {
     pub fn new(
         pool: PgPool,
         tx: ProxyTxSet,
@@ -193,20 +204,43 @@ impl ProxyOrchestrator {
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
     /// such as routing state and compatibility tracking.
-    pub async fn run(self, url: &Option<String>) -> Result<(), ProxyError> {
-        // TODO retrieve proxies from db
-        let Some(url) = url else {
+    pub async fn run(self) -> Result<(), ProxyError> {
+        debug!("ProxyManager starting");
+        // Retrieve proxies from DB.
+        let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
+            .await?
+            .iter()
+            .map(|proxy| {
+                ProxyServer::from_proxy(
+                    proxy,
+                    self.pool.clone(),
+                    &self.tx,
+                    Arc::clone(&self.router),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+        debug!("Retrieved {} proxies from the DB", proxies.len());
+
+        // For backwards compatibility add the proxy specified in cli arg as well.
+        if let Some(ref url) = server_config().proxy_url {
+            debug!("Adding proxy from cli arg: {url}");
+            let url = Url::from_str(url)?;
+            let proxy =
+                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
+            proxies.push(proxy);
+        }
+
+        // TODO setup a channel to allow dynamic proxy connections
+        if proxies.is_empty() {
+            debug!("No proxies to connect to, waiting for changes");
             tokio::time::sleep(Duration::MAX).await;
             return Ok(());
-        };
-        let proxies = vec![Proxy::new(
-            self.pool.clone(),
-            Url::from_str(url)?,
-            &self.tx,
-            Arc::clone(&self.router),
-        )];
+        }
+
+        // Connect to all proxies.
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
+            debug!("Spawning proxy task for proxy {}", proxy.url);
             tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
         }
         while let Some(result) = tasks.join_next().await {
@@ -250,18 +284,18 @@ impl ProxyTxSet {
 /// bidirectional stream to one proxy instance, handling incoming requests
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
-/// `ProxyOrchestrator`.
-struct Proxy {
+/// `ProxyManager`.
+struct ProxyServer {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
-    /// Router shared between proxies and the orchestrator
+    /// Router shared between proxies and the proxy manager
     router: Arc<RwLock<ProxyRouter>>,
     /// Proxy server gRPC URL
     url: Url,
 }
 
-impl Proxy {
+impl ProxyServer {
     pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx);
@@ -272,6 +306,16 @@ impl Proxy {
             router,
             url,
         }
+    }
+
+    fn from_proxy(
+        proxy: &Proxy<Id>,
+        pool: PgPool,
+        tx: &ProxyTxSet,
+        router: Arc<RwLock<ProxyRouter>>,
+    ) -> Result<Self, ProxyError> {
+        let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
+        Ok(Self::new(pool, url, tx, router))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -332,7 +376,16 @@ impl Proxy {
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
             let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
-            let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+            let mut request = tonic::Request::new(UnboundedReceiverStream::new(rx));
+            let config = server_config();
+
+            // Derive proxy cookie key from core secret to avoid transmitting it.
+            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
+            request.metadata_mut().insert_bin(
+                COOKIE_KEY_HEADER,
+                MetadataValue::from_bytes(proxy_cookie_key.master()),
+            );
+            let response = match client.bidi(request).await {
                 Ok(response) => response,
                 Err(err) => {
                     match err.code() {

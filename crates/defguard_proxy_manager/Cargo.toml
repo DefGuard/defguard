@@ -21,6 +21,8 @@ semver.workspace = true
 tokio-stream.workspace = true
 
 axum.workspace = true
+axum-extra.workspace = true
+secrecy.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

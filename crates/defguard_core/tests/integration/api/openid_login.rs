@@ -102,7 +102,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-// FIXME: tihs test sometimes fails because of test_openid_providers.
+// FIXME: this test sometimes fails because of test_openid_providers.
 // The license state is possibly preserved between those two. This requires further research.
 #[sqlx::test]
 async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {

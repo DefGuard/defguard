@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import './style.scss';
 import clsx from 'clsx';
-import { orderBy } from 'lodash-es';
 import { m } from '../../../paraglide/messages';
 import { Checkbox } from '../../defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
@@ -10,18 +9,22 @@ import { Search } from '../../defguard-ui/components/Search/Search';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../defguard-ui/types';
+import { isPresent } from '../../defguard-ui/utils/isPresent';
+import { sortByLabel } from '../../defguard-ui/utils/sortByLabel';
 import type { SelectionKey, SelectionOption, SelectionSectionProps } from './type';
 
 //TODO: virtualize items
-export const SelectionSection = <T extends SelectionKey>({
+export const SelectionSection = <T extends SelectionKey, M = unknown>({
   onChange,
   options,
   selection,
   className,
   id,
+  renderItem,
+  orderItems,
   itemGap = 8,
   itemHeight = 24,
-}: SelectionSectionProps<T>) => {
+}: SelectionSectionProps<T, M>) => {
   const [onlySelected, setOnlySelected] = useState(false);
   const [search, setSearch] = useState('');
   const searching = search.trim().length > 0;
@@ -42,8 +45,9 @@ export const SelectionSection = <T extends SelectionKey>({
         return option.label.toLowerCase().includes(trimmedSearch);
       });
     }
-    return res;
-  }, [options, onlySelected, selection, search.trim]);
+    if (isPresent(orderItems)) return orderItems(res);
+    return sortByLabel(res, (option) => option.label);
+  }, [options, onlySelected, selection, search, orderItems]);
 
   const handleSelectAll = useCallback(() => {
     const allSelected = selection.size === options.length;
@@ -122,12 +126,11 @@ export const SelectionSection = <T extends SelectionKey>({
               rowGap: itemGap,
             }}
           >
-            {orderBy(
-              visibleOptions,
-              (item) => item.label.toLowerCase().replaceAll(' ', ''),
-              ['asc'],
-            ).map((option) => {
+            {visibleOptions.map((option) => {
               const selected = selection.has(option.id);
+              const handleClick = () => {
+                handleSelect(option, selected, selection);
+              };
               return (
                 <div
                   className="item"
@@ -136,13 +139,19 @@ export const SelectionSection = <T extends SelectionKey>({
                     minHeight: itemHeight,
                   }}
                 >
-                  <Checkbox
-                    active={selected}
-                    text={option.label}
-                    onClick={() => {
-                      handleSelect(option, selected, selection);
-                    }}
-                  />
+                  {!isPresent(renderItem) && (
+                    <Checkbox
+                      active={selected}
+                      text={option.label}
+                      onClick={handleClick}
+                    />
+                  )}
+                  {isPresent(renderItem) &&
+                    renderItem({
+                      option,
+                      active: selected,
+                      onClick: handleClick,
+                    })}
                 </div>
               );
             })}

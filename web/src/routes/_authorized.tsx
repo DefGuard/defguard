@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayListModal';
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
+import { UpgradePlanModalManager } from '../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { useAuth } from '../shared/hooks/useAuth';
 import { AppConfigProvider } from '../shared/providers/AppConfigProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
@@ -22,6 +23,7 @@ function RouteComponent() {
         <Outlet />
         <DisplayListModal />
         <SelectionModal />
+        <UpgradePlanModalManager />
       </AppConfigProvider>
     </AppUserProvider>
   );

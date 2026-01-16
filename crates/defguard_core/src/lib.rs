@@ -32,30 +32,6 @@ use defguard_common::{
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
-use enterprise::{
-    handlers::{
-        acl::{
-            apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
-            delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
-            list_acl_rules, update_acl_alias, update_acl_rule,
-        },
-        activity_log_stream::{
-            create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
-            modify_activity_log_stream,
-        },
-        api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
-        check_enterprise_info,
-        enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
-        openid_login::{auth_callback, get_auth_info},
-        openid_providers::{
-            add_openid_provider, delete_openid_provider, get_current_openid_provider,
-            test_dirsync_connection,
-        },
-    },
-    snat::handlers::{
-        create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
-    },
-};
 use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
@@ -91,16 +67,37 @@ use tower_http::{
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
-use utoipa::{
-    Modify, OpenApi,
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
+    enterprise::{
+        handlers::{
+            acl::{
+                apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
+                delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
+                list_acl_rules, update_acl_alias, update_acl_rule,
+            },
+            activity_log_stream::{
+                create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
+                modify_activity_log_stream,
+            },
+            api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+            check_enterprise_info,
+            enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+            openid_login::{auth_callback, get_auth_info},
+            openid_providers::{
+                add_openid_provider, delete_openid_provider, get_openid_provider,
+                modify_openid_provider, test_dirsync_connection,
+            },
+        },
+        snat::handlers::{
+            create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
+        },
+    },
     grpc::WorkerState,
     handlers::{
         app_info::get_app_info,
@@ -150,6 +147,7 @@ use self::{
     },
 };
 use crate::{
+    enterprise::handlers::openid_providers::list_openid_providers,
     grpc::gateway::events::GatewayEvent,
     handlers::wireguard::{add_gateway, change_gateway},
     location_management::sync_location_allowed_devices,
@@ -187,149 +185,7 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("Failed to parse phone number regex")
 });
 
-mod openapi {
-    use defguard_common::{
-        db::models::{
-            Device,
-            device::{AddDevice, ModifyDevice, UserDevice},
-        },
-        types::user_info::UserInfo,
-    };
-    use handlers::{
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username,
-        group::{self, BulkAssignToGroupsRequest, Groups},
-        user, wireguard as device, wireguard as network,
-        wireguard::AddDeviceResult,
-    };
-    use utoipa::{
-        OpenApi,
-        openapi::security::{HttpAuthScheme, HttpBuilder},
-    };
-
-    use super::*;
-    use crate::{enterprise::snat::handlers as snat, error::WebError, handlers::user::UserDetails};
-
-    #[derive(OpenApi)]
-    #[openapi(
-        modifiers(&SecurityAddon),
-        paths(
-            // /user
-            user::list_users,
-            user::get_user,
-            user::add_user,
-            user::start_enrollment,
-            user::start_remote_desktop_configuration,
-            user::username_available,
-            user::modify_user,
-            user::delete_user,
-            user::change_self_password,
-            user::change_password,
-            user::reset_password,
-            user::delete_security_key,
-            user::me,
-            user::delete_authorized_app,
-            // /group
-            group::bulk_assign_to_groups,
-            group::list_groups_info,
-            group::list_groups,
-            group::get_group,
-            group::create_group,
-            group::modify_group,
-            group::delete_group,
-            group::add_group_member,
-            group::remove_group_member,
-            // /device
-            device::add_device,
-            device::modify_device,
-            device::get_device,
-            device::delete_device,
-            device::list_devices,
-            device::list_user_devices,
-            // /network
-            network::create_network,
-            network::modify_network,
-            network::delete_network,
-            network::list_networks,
-            network::network_details,
-            // /network/{location_id}/snat
-			snat::list_snat_bindings,
-			snat::create_snat_binding,
-			snat::modify_snat_binding,
-			snat::delete_snat_binding,
-        ),
-        components(
-            schemas(
-                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
-            ),
-        ),
-        tags(
-            (name = "user", description = "
-### Endpoints for managing users
-Available actions:
-- list all users
-- disable/enable user
-- CRUD mechanism for handling users
-- operations on security key and authorized app
-- change user password.
-- start remote desktop configuratiion
-- trigger enrollment process
-            "),
-            (name = "group", description = "
-### Endpoints for managing groups
-Available actions:
-- list all groups
-- CRUD mechanism for handling groups
-- add or delete a group member
-- remove group
-- bulk assign users to groups
-            "),
-            (name = "device", description = "
-### Endpoints for managing devices
-
-Available actions:
-- list all devices or user devices
-- CRUD mechanism for handling devices.
-            "),
-            (name = "network", description = "
-### Endpoints that allow to control your networks.
-
-Available actions:
-- list all wireguard networks
-- CRUD mechanism for handling devices.
-            "),
-            (name = "SNAT", description = "
-### Endpoints that allow you to control user SNAT bindings for your locations.
-
-Available actions:
-- list all SNAT bindings
-- create new SNAT binding
-- modify SNAT binding
-- delete SNAT binding
-            "),
-        )
-    )]
-    pub struct ApiDoc;
-
-    struct SecurityAddon;
-
-    impl Modify for SecurityAddon {
-        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-            if let Some(components) = openapi.components.as_mut() {
-                // session cookie auth
-                components.add_security_scheme(
-                    "cookie",
-                    SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_COOKIE_NAME))),
-                );
-                // API token auth
-                components.add_security_scheme(
-                    "api_token",
-                    SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
-                );
-            }
-        }
-    }
-}
+mod openapi;
 
 /// Simple health-check.
 async fn health_check() -> &'static str {
@@ -502,9 +358,14 @@ pub fn build_webapp(
         Router::new()
             .route(
                 "/provider",
-                get(get_current_openid_provider).post(add_openid_provider),
+                get(list_openid_providers).post(add_openid_provider),
             )
-            .route("/provider/{name}", delete(delete_openid_provider))
+            .route(
+                "/provider/{name}",
+                get(get_openid_provider)
+                    .put(modify_openid_provider)
+                    .delete(delete_openid_provider),
+            )
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
