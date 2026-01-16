@@ -1,12 +1,27 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12, directory_sync_target = $13, okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16, jumpcloud_api_key = $17, prefetch_users = $18 WHERE id = $19",
+  "query": "UPDATE openidprovider SET name = $1, base_url = $2, kind = $3, client_id = $4, client_secret = $5, display_name = $6, google_service_account_key = $7, google_service_account_email = $8, admin_email = $9, directory_sync_enabled = $10, directory_sync_interval = $11, directory_sync_user_behavior = $12, directory_sync_admin_behavior = $13, directory_sync_target = $14, okta_private_jwk = $15, okta_dirsync_client_id = $16, directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19 WHERE id = $20",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Text",
         "Text",
+        {
+          "Custom": {
+            "name": "openid_provider_kind",
+            "kind": {
+              "Enum": [
+                "Custom",
+                "Google",
+                "Microsoft",
+                "Okta",
+                "JumpCloud",
+                "Zitadel"
+              ]
+            }
+          }
+        },
         "Text",
         "Text",
         "Text",
@@ -61,5 +76,5 @@
     },
     "nullable": []
   },
-  "hash": "796ef2b0b73f5689a592497320b98ddb54a2a673a531cb882aadea3d5aa25d66"
+  "hash": "20cd8429969e36695d67c52d7c27e824bbcf5ba0c8198c55bc610186f6dc3779"
 }

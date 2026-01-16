@@ -44,8 +44,10 @@ export const AddExternalOpenIdDirectoryStep = () => {
 
   const handleValidSubmit = useCallback(
     async (value: Partial<AddOpenIdProvider>) => {
-      const providerState = useAddExternalOpenIdStore.getState().providerState;
-      const submitValues = { ...cloneDeep(providerState), value };
+      const state = useAddExternalOpenIdStore.getState()
+      const providerState = state.providerState;
+      const provider = state.provider;
+      const submitValues = { ...cloneDeep(providerState), value, kind: provider };
       await mutateAsync(submitValues);
     },
     [mutateAsync],

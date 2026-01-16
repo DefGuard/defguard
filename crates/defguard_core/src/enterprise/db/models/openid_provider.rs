@@ -184,17 +184,17 @@ impl OpenIdProvider {
     pub(crate) async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
         if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
             query!(
-                "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, \
-                client_secret = $4, display_name = $5, google_service_account_key = $6, \
-                google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, \
-                directory_sync_interval = $10, directory_sync_user_behavior = $11, \
-                directory_sync_admin_behavior = $12, directory_sync_target = $13, \
-                okta_private_jwk = $14, okta_dirsync_client_id = $15, \
-                directory_sync_group_match = $16, jumpcloud_api_key = $17, \
-                prefetch_users = $18 \
-                WHERE id = $19",
+                "UPDATE openidprovider SET name = $1, base_url = $2, kind = $3, client_id = $4, \
+                client_secret = $5, display_name = $6, google_service_account_key = $7, \
+                google_service_account_email = $8, admin_email = $9, directory_sync_enabled = $10, \
+                directory_sync_interval = $11, directory_sync_user_behavior = $12, \
+                directory_sync_admin_behavior = $13, directory_sync_target = $14, \
+                okta_private_jwk = $15, okta_dirsync_client_id = $16, \
+                directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19 \
+                WHERE id = $20",
                 self.name,
                 self.base_url,
+                self.kind as OpenIdProviderKind,
                 self.client_id,
                 self.client_secret,
                 self.display_name,
