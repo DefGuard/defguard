@@ -137,6 +137,8 @@ impl SessionManager {
     }
 
     async fn update_inactive_session_status(&self) -> Result<(), SessionManagerError> {
-        unimplemented!()
+        // TODO(mwojcik): actually implement this logic
+        debug!("Disconnecting inactive VPN sessions");
+        Ok(())
     }
 }
