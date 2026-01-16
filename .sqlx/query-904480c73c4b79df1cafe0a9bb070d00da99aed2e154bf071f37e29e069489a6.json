@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, session_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff\n        \tFROM vpn_session_stats WHERE session_id = $1 ORDER BY collected_at DESC LIMIT 1",
+  "query": "SELECT id, \"session_id\",\"gateway_id\",\"collected_at\",\"latest_handshake\",\"endpoint\",\"total_upload\",\"total_download\",\"upload_diff\",\"download_diff\" FROM \"vpn_session_stats\"",
   "describe": {
     "columns": [
       {
@@ -15,46 +15,50 @@
       },
       {
         "ordinal": 2,
+        "name": "gateway_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
         "name": "collected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "latest_handshake",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "endpoint",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "total_upload",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "total_download",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "upload_diff",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "download_diff",
         "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -66,5 +70,5 @@
       false
     ]
   },
-  "hash": "ab6b0e27cf3ccdd6ca490eb6c01fdeada1a1cd59bf756867fd4777e13d768283"
+  "hash": "904480c73c4b79df1cafe0a9bb070d00da99aed2e154bf071f37e29e069489a6"
 }

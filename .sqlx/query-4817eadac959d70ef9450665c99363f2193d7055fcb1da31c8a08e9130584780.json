@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"vpn_session_stats\" (\"session_id\",\"collected_at\",\"latest_handshake\",\"endpoint\",\"total_upload\",\"total_download\",\"upload_diff\",\"download_diff\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "query": "INSERT INTO \"vpn_session_stats\" (\"session_id\",\"gateway_id\",\"collected_at\",\"latest_handshake\",\"endpoint\",\"total_upload\",\"total_download\",\"upload_diff\",\"download_diff\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8",
         "Timestamp",
         "Timestamp",
@@ -25,5 +26,5 @@
       false
     ]
   },
-  "hash": "c22a3d851ab7c4c22114984f146d98d798b879bd0c14ad1f467b51cb53391db7"
+  "hash": "4817eadac959d70ef9450665c99363f2193d7055fcb1da31c8a08e9130584780"
 }
