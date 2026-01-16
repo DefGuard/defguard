@@ -20,8 +20,7 @@ pub struct VpnClientSession<I = NoId> {
     pub id: I,
     pub location_id: Id,
     pub user_id: Id,
-    // users can delete their device, but we want to retain sessions & stats
-    pub device_id: Option<Id>,
+    pub device_id: Id,
     pub created_at: NaiveDateTime,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
@@ -49,7 +48,7 @@ impl VpnClientSession {
             id: NoId,
             location_id,
             user_id,
-            device_id: Some(device_id),
+            device_id,
             created_at: Utc::now().naive_utc(),
             connected_at,
             disconnected_at: None,
@@ -87,7 +86,7 @@ impl VpnClientSession<Id> {
     ) -> Result<Option<VpnSessionStats<Id>>, SqlxError> {
         query_as!(
             VpnSessionStats,
-            "SELECT id, session_id, collected_at, latest_handshake, endpoint, \
+            "SELECT id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
             	total_upload, total_download, upload_diff, download_diff
         	FROM vpn_session_stats \
         	WHERE session_id = $1 \

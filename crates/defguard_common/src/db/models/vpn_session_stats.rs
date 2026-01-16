@@ -9,6 +9,7 @@ use crate::db::{Id, NoId};
 pub struct VpnSessionStats<I = NoId> {
     pub id: I,
     pub session_id: Id,
+    pub gateway_id: Id,
     pub collected_at: NaiveDateTime,
     // handshake must have occured for a session to be considered active
     pub latest_handshake: NaiveDateTime,
@@ -26,6 +27,7 @@ pub struct VpnSessionStats<I = NoId> {
 impl VpnSessionStats {
     pub fn new(
         session_id: Id,
+        gateway_id: Id,
         collected_at: NaiveDateTime,
         latest_handshake: NaiveDateTime,
         endpoint: String,
@@ -37,6 +39,7 @@ impl VpnSessionStats {
         Self {
             id: NoId,
             session_id,
+            gateway_id,
             collected_at,
             latest_handshake,
             endpoint,
@@ -57,7 +60,7 @@ impl VpnSessionStats<Id> {
     ) -> Result<Option<Self>, sqlx::Error> {
         let maybe_stats = query_as!(
             Self,
-            "SELECT st.id, session_id, collected_at, latest_handshake, endpoint, \
+            "SELECT st.id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
 			 total_upload, total_download, upload_diff, download_diff \
 			 FROM vpn_session_stats st \
 			 JOIN vpn_client_session se ON session_id = se.id \

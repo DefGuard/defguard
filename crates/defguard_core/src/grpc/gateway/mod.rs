@@ -95,6 +95,7 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
 fn try_protos_into_stats_message(
     proto_stats: PeerStats,
     location_id: Id,
+    gateway_id: Id,
     device_id: Id,
 ) -> Option<PeerStatsUpdate> {
     // try to parse endpoint
@@ -106,6 +107,7 @@ fn try_protos_into_stats_message(
 
     Some(PeerStatsUpdate::new(
         location_id,
+        gateway_id,
         device_id,
         endpoint,
         proto_stats.upload,

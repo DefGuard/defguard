@@ -667,6 +667,7 @@ impl GatewayHandler {
                                 match try_protos_into_stats_message(
                                     peer_stats.clone(),
                                     self.gateway.network_id,
+                                    self.gateway.id,
                                     device_id,
                                 ) {
                                     None => {

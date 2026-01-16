@@ -9,6 +9,7 @@ use crate::db::Id;
 #[derive(Debug)]
 pub struct PeerStatsUpdate {
     pub location_id: Id,
+    pub gateway_id: Id,
     pub device_id: Id,
     pub collected_at: NaiveDateTime,
     pub endpoint: SocketAddr,
@@ -22,6 +23,7 @@ pub struct PeerStatsUpdate {
 impl PeerStatsUpdate {
     pub fn new(
         location_id: Id,
+        gateway_id: Id,
         device_id: Id,
         endpoint: SocketAddr,
         upload: u64,
@@ -31,6 +33,7 @@ impl PeerStatsUpdate {
         let collected_at = Utc::now().naive_utc();
         Self {
             location_id,
+            gateway_id,
             device_id,
             collected_at,
             endpoint,

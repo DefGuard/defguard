@@ -514,7 +514,7 @@ impl WireguardNetwork<Id> {
 
         let stats = query_as!(
             WireguardDeviceTransferRow,
-            "SELECT s.device_id \"device_id!\", date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
+            "SELECT s.device_id, date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
             CAST(sum(download_diff) AS bigint) \"download!\", CAST(sum(upload_diff) AS bigint) \"upload!\" \
 			FROM vpn_session_stats \
             INNER JOIN vpn_client_session s ON session_id = s.id \

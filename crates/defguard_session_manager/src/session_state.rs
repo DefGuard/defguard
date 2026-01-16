@@ -96,6 +96,7 @@ impl SessionState {
 
         let vpn_session_stats = VpnSessionStats::new(
             self.session_id,
+            peer_stats_update.gateway_id,
             peer_stats_update.collected_at,
             peer_stats_update.latest_handshake,
             peer_stats_update.endpoint.to_string(),

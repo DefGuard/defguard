@@ -16,7 +16,7 @@ CREATE TABLE vpn_client_session (
     state vpn_client_session_state NOT NULL DEFAULT 'new',
     FOREIGN KEY (location_id) REFERENCES wireguard_network(id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE,
-    FOREIGN KEY (device_id) REFERENCES device(id) ON DELETE SET NULL
+    FOREIGN KEY (device_id) REFERENCES device(id) ON DELETE CASCADE
 );
 
 CREATE TABLE vpn_session_stats (
