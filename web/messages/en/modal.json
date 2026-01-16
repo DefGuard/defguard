@@ -81,6 +81,7 @@
   "modal_edit_logstash_destination_title": "Edit Logstash destination",
   "modal_edit_log_streaming_destination_title": "Edit destination",
   "modal_select_log_streaming_destination_title": "Select destination",
+  "modal_add_log_streaming_destination_title": "Add destination",
   "modal_add_user_groups_title": "Assign user to group(s)",
   "modal_add_user_enroll_title": "Start enrollment for user",
   "modal_add_user_choice_enroll_title": "Add user with self-enrollment option",

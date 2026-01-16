@@ -45,7 +45,7 @@ export const AddLogStreamingModal = () => {
       case 'vector':
         return m.modal_add_vector_destination_title();
       default:
-        return 'Add destination';
+        return m.modal_add_log_streaming_destination_title();
     }
   }, [modalState]);
 
