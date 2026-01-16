@@ -168,7 +168,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       <SizedBox height={ThemeSpacing.Xl2} />
       <ModalControls
         submitProps={{
-          text: m.controls_save(),
+          text: m.controls_save_changes(),
           testId: 'edit-destination-submit',
           onClick: () => form.handleSubmit(),
         }}
