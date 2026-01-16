@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\",\"directory_sync_target\",\"okta_private_jwk\",\"okta_dirsync_client_id\",\"directory_sync_group_match\",\"jumpcloud_api_key\",\"prefetch_users\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id",
+  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"kind\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\",\"directory_sync_target\",\"okta_private_jwk\",\"okta_dirsync_client_id\",\"directory_sync_group_match\",\"jumpcloud_api_key\",\"prefetch_users\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -13,6 +13,20 @@
       "Left": [
         "Text",
         "Text",
+        {
+          "Custom": {
+            "name": "openid_provider_kind",
+            "kind": {
+              "Enum": [
+                "Google",
+                "Microsoft",
+                "Okta",
+                "JumpCloud",
+                "Custom"
+              ]
+            }
+          }
+        },
         "Text",
         "Text",
         "Text",
@@ -68,5 +82,5 @@
       false
     ]
   },
-  "hash": "c6ebb402f91d242754872addc3604fb6ffac7e6fdd0d9428070cecb68c666cd8"
+  "hash": "1332e9c8c375774902845e5bebddd49aadbd2516b1ff4fb962d1fc2437401064"
 }

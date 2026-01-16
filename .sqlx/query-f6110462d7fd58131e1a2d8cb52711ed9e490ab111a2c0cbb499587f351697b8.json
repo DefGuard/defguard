@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5,\"display_name\" = $6,\"google_service_account_key\" = $7,\"google_service_account_email\" = $8,\"admin_email\" = $9,\"directory_sync_enabled\" = $10,\"directory_sync_interval\" = $11,\"directory_sync_user_behavior\" = $12,\"directory_sync_admin_behavior\" = $13,\"directory_sync_target\" = $14,\"okta_private_jwk\" = $15,\"okta_dirsync_client_id\" = $16,\"directory_sync_group_match\" = $17,\"jumpcloud_api_key\" = $18,\"prefetch_users\" = $19 WHERE id = $1",
+  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"kind\" = $4,\"client_id\" = $5,\"client_secret\" = $6,\"display_name\" = $7,\"google_service_account_key\" = $8,\"google_service_account_email\" = $9,\"admin_email\" = $10,\"directory_sync_enabled\" = $11,\"directory_sync_interval\" = $12,\"directory_sync_user_behavior\" = $13,\"directory_sync_admin_behavior\" = $14,\"directory_sync_target\" = $15,\"okta_private_jwk\" = $16,\"okta_dirsync_client_id\" = $17,\"directory_sync_group_match\" = $18,\"jumpcloud_api_key\" = $19,\"prefetch_users\" = $20 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -8,6 +8,20 @@
         "Int8",
         "Text",
         "Text",
+        {
+          "Custom": {
+            "name": "openid_provider_kind",
+            "kind": {
+              "Enum": [
+                "Google",
+                "Microsoft",
+                "Okta",
+                "JumpCloud",
+                "Custom"
+              ]
+            }
+          }
+        },
         "Text",
         "Text",
         "Text",
@@ -61,5 +75,5 @@
     },
     "nullable": []
   },
-  "hash": "c8e9800861c7bc853235858650be8ad3d3d19b0c4f0e69b9002a6a1fbd46a324"
+  "hash": "f6110462d7fd58131e1a2d8cb52711ed9e490ab111a2c0cbb499587f351697b8"
 }

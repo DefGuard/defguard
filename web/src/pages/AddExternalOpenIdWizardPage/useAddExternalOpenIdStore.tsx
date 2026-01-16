@@ -5,6 +5,7 @@ import {
   type AddOpenIdProvider,
   DirectorySyncBehavior,
   DirectorySyncTarget,
+  OpenIdProviderKind,
   OpenIdProviderUsernameHandling,
 } from '../../shared/api/types';
 import {
@@ -35,26 +36,30 @@ export const addExternalOpenIdStoreDefaults: StoreValues = {
   testMessage: null,
   providerState: {
     name: ExternalProvider.Custom,
-    display_name: '',
-    admin_email: '',
     base_url: '',
+    kind: OpenIdProviderKind.Custom,
     client_id: '',
     client_secret: '',
-    create_account: false,
-    microsoftTenantId: null,
-    directory_sync_group_match: null,
-    google_service_account_email: null,
+    display_name: '',
     google_service_account_key: null,
-    okta_dirsync_client_id: null,
-    okta_private_jwk: null,
-    jumpcloud_api_key: null,
+    google_service_account_email: null,
+    admin_email: '',
     directory_sync_enabled: false,
     directory_sync_interval: 600,
-    directory_sync_target: DirectorySyncTarget.All,
-    directory_sync_admin_behavior: DirectorySyncBehavior.Keep,
     directory_sync_user_behavior: DirectorySyncBehavior.Keep,
+    directory_sync_admin_behavior: DirectorySyncBehavior.Keep,
+    directory_sync_target: DirectorySyncTarget.All,
+    okta_private_jwk: null,
+    okta_dirsync_client_id: null,
+    directory_sync_group_match: null,
+    jumpcloud_api_key: null,
     prefetch_users: false,
+
+    // Core settings
+    create_account: false,
     username_handling: OpenIdProviderUsernameHandling.RemoveForbidden,
+
+    microsoftTenantId: null,
   },
 };
 

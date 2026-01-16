@@ -54,7 +54,7 @@ pub enum SmtpEncryption {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
-pub enum OpenidUsernameHandling {
+pub enum OpenIdUsernameHandling {
     #[default]
     /// Removes all forbidden characters
     RemoveForbidden,
@@ -138,7 +138,7 @@ pub struct Settings {
     pub ldap_sync_groups: Vec<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
-    pub openid_username_handling: OpenidUsernameHandling,
+    pub openid_username_handling: OpenIdUsernameHandling,
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
@@ -252,7 +252,7 @@ impl Settings {
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
-            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\", \
+            openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             ca_key_der, ca_cert_der \
             FROM \"settings\" WHERE id = 1",
         )
@@ -381,7 +381,7 @@ impl Settings {
             self.ldap_uses_ad,
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
-            &self.openid_username_handling as &OpenidUsernameHandling,
+            &self.openid_username_handling as &OpenIdUsernameHandling,
             &self.ca_key_der as &Option<Vec<u8>>,
             &self.ca_cert_der as &Option<Vec<u8>>,
         )

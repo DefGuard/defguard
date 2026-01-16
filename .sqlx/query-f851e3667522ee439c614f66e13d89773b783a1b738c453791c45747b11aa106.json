@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, base_url, client_id, client_secret, display_name, google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users FROM openidprovider LIMIT 1",
+  "query": "SELECT id, \"name\",\"base_url\",\"kind\" \"kind: _\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\",\"okta_private_jwk\",\"okta_dirsync_client_id\",\"directory_sync_group_match\" \"directory_sync_group_match: _\",\"jumpcloud_api_key\",\"prefetch_users\" FROM \"openidprovider\"",
   "describe": {
     "columns": [
       {
@@ -20,63 +20,65 @@
       },
       {
         "ordinal": 3,
-        "name": "client_id",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
-        "name": "client_secret",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 5,
-        "name": "display_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 6,
-        "name": "google_service_account_key",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 7,
-        "name": "google_service_account_email",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 8,
-        "name": "admin_email",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
-        "name": "directory_sync_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 10,
-        "name": "directory_sync_interval",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 11,
-        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
+        "name": "kind: _",
         "type_info": {
           "Custom": {
-            "name": "dirsync_user_behavior",
+            "name": "openid_provider_kind",
             "kind": {
               "Enum": [
-                "keep",
-                "disable",
-                "delete"
+                "Google",
+                "Microsoft",
+                "Okta",
+                "JumpCloud",
+                "Custom"
               ]
             }
           }
         }
       },
       {
+        "ordinal": 4,
+        "name": "client_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "client_secret",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "google_service_account_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "google_service_account_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "admin_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "directory_sync_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "directory_sync_interval",
+        "type_info": "Int4"
+      },
+      {
         "ordinal": 12,
-        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_user_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -92,7 +94,23 @@
       },
       {
         "ordinal": 13,
-        "name": "directory_sync_target: DirectorySyncTarget",
+        "name": "directory_sync_admin_behavior: _",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "directory_sync_target: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_target",
@@ -107,27 +125,27 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "okta_private_jwk",
         "type_info": "Text"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "okta_dirsync_client_id",
         "type_info": "Text"
       },
       {
-        "ordinal": 16,
-        "name": "directory_sync_group_match",
+        "ordinal": 17,
+        "name": "directory_sync_group_match: _",
         "type_info": "TextArray"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "jumpcloud_api_key",
         "type_info": "Text"
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "prefetch_users",
         "type_info": "Bool"
       }
@@ -136,6 +154,7 @@
       "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -157,5 +176,5 @@
       false
     ]
   },
-  "hash": "e28b02ccc616d67fcb1a1aa940ea35be58cb652e8287a6f5028421656048b58a"
+  "hash": "f851e3667522ee439c614f66e13d89773b783a1b738c453791c45747b11aa106"
 }

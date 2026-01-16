@@ -6,7 +6,7 @@ use defguard_common::db::{
         WireguardNetwork,
         group::Group,
         oauth2client::OAuth2Client,
-        settings::{LdapSyncStatus, OpenidUsernameHandling, SmtpEncryption},
+        settings::{LdapSyncStatus, OpenIdUsernameHandling, SmtpEncryption},
         user::User,
     },
 };
@@ -391,7 +391,7 @@ pub struct SettingsNoSecrets {
     pub ldap_sync_groups: Vec<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
-    pub openid_username_handling: OpenidUsernameHandling,
+    pub openid_username_handling: OpenIdUsernameHandling,
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
