@@ -59,7 +59,7 @@ jobs:
               --s3-region=eu-north-1 \
               --no-fail-if-exists \
               --codename="$codename" \
-              --component="$component"
+              --component="$component" \
               "$deb_file"
           done
 
