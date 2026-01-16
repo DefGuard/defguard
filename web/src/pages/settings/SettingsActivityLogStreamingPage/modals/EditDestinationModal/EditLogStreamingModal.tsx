@@ -5,13 +5,14 @@ import { m } from '../../../../../paraglide/messages';
 import api from '../../../../../shared/api/api';
 import {
   ActivityLogStreamType,
+  type ActivityLogStream,
   type CreateActivityLogStreamRequest,
 } from '../../../../../shared/api/types';
 import { Modal } from '../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SectionSelect } from '../../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
@@ -20,36 +21,27 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 
-const modalNameValue = ModalName.AddLogStreaming;
+const modalNameValue = ModalName.EditLogStreaming;
 
-type ModalState = {
-  step: 'choice' | 'form';
-  destination: 'logstash' | 'vector' | null;
-};
+type ModalData = ActivityLogStream;
 
-const defaultState: ModalState = {
-  step: 'choice',
-  destination: null,
-};
-
-export const AddLogStreamingModal = () => {
+export const EditLogStreamingModal = () => {
   const [isOpen, setOpen] = useState(false);
-  const [modalState, setModalState] = useState<ModalState>(defaultState);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
 
   const modalTitle = useMemo(() => {
-    if (modalState.step === 'choice') return 'Select destination';
-    switch (modalState.destination) {
-      case 'logstash':
-        return 'Add Logstash destination';
-      case 'vector':
-        return 'Add Vector destination';
-      default:
-        return 'Add destination';
+    if (!modalData) return 'Edit destination';
+    switch (modalData.stream_type) {
+      case ActivityLogStreamType.LogstashHttp:
+        return 'Edit Logstash destination';
+      case ActivityLogStreamType.VectorHttp:
+        return 'Edit Vector destination';
     }
-  }, [modalState]);
+  }, [modalData]);
 
   useEffect(() => {
-    const openSub = subscribeOpenModal(modalNameValue, () => {
+    const openSub = subscribeOpenModal(modalNameValue, (data) => {
+      setModalData(data);
       setOpen(true);
     });
     const closeSub = subscribeCloseModal(modalNameValue, () => setOpen(false));
@@ -64,65 +56,22 @@ export const AddLogStreamingModal = () => {
       title={modalTitle}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
-      afterClose={() => setModalState(defaultState)}
+      afterClose={() => setModalData(null)}
     >
-      {modalState.step === 'choice' && <ChoiceStep setModalState={setModalState} />}
-      {modalState.step === 'form' && (
-        <FormStep
-          destination={modalState.destination!}
-          setOpen={setOpen}
-          setModalState={setModalState}
-        />
-      )}
+      {isPresent(modalData) && <ModalContent modalData={modalData} setOpen={setOpen} />}
     </Modal>
   );
 };
 
-type ChoiceStepProps = {
-  setModalState: (state: ModalState) => void;
-};
-
-const ChoiceStep = ({ setModalState }: ChoiceStepProps) => {
-  return (
-    <>
-      <SectionSelect
-        image="logstash"
-        title="Logstash"
-        content={m.modal_add_logstash_destination()}
-        data-testid="add-logstash"
-        onClick={() => {
-          setModalState({
-            step: 'form',
-            destination: 'logstash',
-          });
-        }}
-      />
-      <SizedBox height={ThemeSpacing.Md} />
-      <SectionSelect
-        image="vector"
-        content={m.modal_add_vector_destination()}
-        title="Vector"
-        data-testid="add-vector"
-        onClick={() => {
-          setModalState({
-            step: 'form',
-            destination: 'vector',
-          });
-        }}
-      />
-    </>
-  );
-};
-
-type FormStepProps = {
-  destination: 'logstash' | 'vector';
+type ModalContentProps = {
+  modalData: ModalData;
   setOpen: (open: boolean) => void;
-  setModalState: (state: ModalState) => void;
 };
 
-const FormStep = ({ destination, setOpen }: FormStepProps) => {
-  const { mutateAsync: createStream } = useMutation({
-    mutationFn: api.activityLogStream.createStream,
+const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
+  const { mutateAsync: updateStream } = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateActivityLogStreamRequest }) =>
+      api.activityLogStream.updateStream(id, data),
     meta: {
       invalidate: ['activity_log_stream'],
     },
@@ -144,13 +93,13 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      name: '',
-      url: '',
-      username: '',
-      password: '',
-      certificate: '',
+      name: modalData.name,
+      url: modalData.config.url,
+      username: modalData.config.username || '',
+      password: modalData.config.password || '',
+      certificate: modalData.config.cert || '',
     }),
-    [],
+    [modalData],
   );
 
   const form = useAppForm({
@@ -163,10 +112,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
     onSubmit: async ({ value }) => {
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
-        stream_type:
-          destination === 'logstash'
-            ? ActivityLogStreamType.LogstashHttp
-            : ActivityLogStreamType.VectorHttp,
+        stream_type: modalData.stream_type,
         stream_config: {
           url: value.url,
           username: value.username || undefined,
@@ -175,7 +121,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
         },
       };
 
-      await createStream(requestData);
+      await updateStream({ id: modalData.id, data: requestData });
       setOpen(false);
     },
   });
@@ -222,8 +168,8 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       <SizedBox height={ThemeSpacing.Xl2} />
       <ModalControls
         submitProps={{
-          text: m.controls_add_destination(),
-          testId: 'add-destination-submit',
+          text: m.controls_save(),
+          testId: 'edit-destination-submit',
           onClick: () => form.handleSubmit(),
         }}
         cancelProps={{

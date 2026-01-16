@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -7,7 +6,6 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import type { ActivityLogStream } from '../../../shared/api/types';
 import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../shared/defguard-ui/components/Menu/types';
@@ -26,13 +24,6 @@ type Props = {
 };
 
 export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
-  const { mutate: deleteStream } = useMutation({
-    mutationFn: api.activityLogStream.deleteStream, //TODO
-    meta: {
-      invalidate: ['activity_log_stream'],
-    },
-  });
-
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -48,7 +39,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
       }),
       columnHelper.accessor('stream_type', {
         header: 'Destination',
-        size: 200,
+        size: 220,
         minSize: 100,
         cell: (info) => {
           const value = info.getValue();
@@ -75,8 +66,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    // TODO: edit modal
-                    openModal(ModalName.AddLogStreaming);
+                    openModal(ModalName.EditLogStreaming, row);
                   },
                 },
                 {
@@ -84,7 +74,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteStream(row.id);
+                    openModal(ModalName.DeleteLogStreaming, row);
                   },
                 },
               ],
@@ -98,7 +88,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
         },
       }),
     ],
-    [deleteStream],
+    [],
   );
 
   const table = useReactTable({

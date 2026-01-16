@@ -9,6 +9,8 @@ import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
+import { EditLogStreamingModal } from './modals/EditDestinationModal/EditLogStreamingModal';
+import { DeleteLogStreamingModal } from './modals/DeleteDestinationModal/DeleteLogStreamingModal';
 import { getActivityLogStreamsQueryOptions } from '../../../shared/query';
 import { ActivityLogStreamTable } from './ActivityLogStreamTable';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -56,6 +58,8 @@ export const SettingsActivityLogStreamingPage = () => {
         </>
       )}
       <AddLogStreamingModal />
+      <EditLogStreamingModal />
+      <DeleteLogStreamingModal />
     </SettingsLayout>
   );
 };

@@ -1,5 +1,5 @@
 import z from 'zod';
-import type { AddDeviceResponse, User } from '../../api/types';
+import type { ActivityLogStream, AddDeviceResponse, User } from '../../api/types';
 import type {
   OpenAddApiTokenModal,
   OpenAddNetworkDeviceModal,
@@ -46,6 +46,8 @@ export const ModalName = {
   NetworkDeviceToken: 'networkDeviceToken',
   AddLocation: 'addLocation',
   AddLogStreaming: 'addLogStreaming',
+  EditLogStreaming: 'editLogStreaming',
+  DeleteLogStreaming: 'deleteLogStreaming',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -141,6 +143,14 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.AddLogStreaming),
+  }),
+  z.object({
+    name: z.literal(ModalName.EditLogStreaming),
+    data: z.custom<ActivityLogStream>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteLogStreaming),
+    data: z.custom<ActivityLogStream>(),
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),
