@@ -44,8 +44,10 @@ export const AddExternalOpenIdDirectoryStep = () => {
 
   const handleValidSubmit = useCallback(
     async (value: Partial<AddOpenIdProvider>) => {
-      const providerState = useAddExternalOpenIdStore.getState().providerState;
-      const submitValues = { ...cloneDeep(providerState), value };
+      const state = useAddExternalOpenIdStore.getState();
+      const providerState = state.providerState;
+      const provider = state.provider;
+      const submitValues = { ...cloneDeep(providerState), value, kind: provider };
       await mutateAsync(submitValues);
     },
     [mutateAsync],
@@ -53,13 +55,13 @@ export const AddExternalOpenIdDirectoryStep = () => {
 
   const formRender = useMemo(() => {
     switch (provider) {
-      case 'google':
+      case 'Google':
         return <GoogleProviderForm onSubmit={handleValidSubmit} />;
-      case 'microsoft':
+      case 'Microsoft':
         return <MicrosoftProviderForm onSubmit={handleValidSubmit} />;
-      case 'okta':
+      case 'Okta':
         return <OktaProviderForm onSubmit={handleValidSubmit} />;
-      case 'jumpCloud':
+      case 'JumpCloud':
         return <JumpcloudProviderForm onSubmit={handleValidSubmit} />;
     }
     return null;

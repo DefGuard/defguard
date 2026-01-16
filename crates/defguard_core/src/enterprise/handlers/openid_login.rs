@@ -13,7 +13,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, settings::OpenidUsernameHandling, user::User},
+        models::{Settings, settings::OpenIdUsernameHandling, user::User},
     },
 };
 use openidconnect::{
@@ -59,7 +59,7 @@ use crate::{
 /// - only special characters allowed: . - _
 /// - no whitespaces
 #[must_use]
-pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> String {
+pub fn prune_username(username: &str, handling: OpenIdUsernameHandling) -> String {
     let mut result = username.to_string();
 
     // Go through the string and remove any non-alphanumeric characters at the beginning
@@ -70,16 +70,16 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
     let is_char_valid = |c: char| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_';
 
     match handling {
-        OpenidUsernameHandling::RemoveForbidden => {
+        OpenIdUsernameHandling::RemoveForbidden => {
             result.retain(&is_char_valid);
         }
-        OpenidUsernameHandling::ReplaceForbidden => {
+        OpenIdUsernameHandling::ReplaceForbidden => {
             result = result
                 .chars()
                 .map(|c| if is_char_valid(c) { c } else { '_' })
                 .collect();
         }
-        OpenidUsernameHandling::PruneEmailDomain => {
+        OpenIdUsernameHandling::PruneEmailDomain => {
             if let Some(at_index) = result.find('@') {
                 result.truncate(at_index);
             }
@@ -658,7 +658,7 @@ mod test {
     #[test]
     fn test_prune_username() {
         // Test RemoveForbidden handling
-        let handling_remove = OpenidUsernameHandling::RemoveForbidden;
+        let handling_remove = OpenIdUsernameHandling::RemoveForbidden;
         assert_eq!(prune_username("zenek", handling_remove), "zenek");
         assert_eq!(prune_username("zenek34", handling_remove), "zenek34");
         assert_eq!(prune_username("zenek@34", handling_remove), "zenek34");
@@ -679,7 +679,7 @@ mod test {
         assert_eq!(prune_username("...zenek", handling_remove), "zenek");
 
         // Test ReplaceForbidden handling
-        let handling_replace = OpenidUsernameHandling::ReplaceForbidden;
+        let handling_replace = OpenIdUsernameHandling::ReplaceForbidden;
         assert_eq!(prune_username("zenek", handling_replace), "zenek");
         assert_eq!(prune_username("zenek34", handling_replace), "zenek34");
         assert_eq!(prune_username("zenek@34", handling_replace), "zenek_34");
@@ -696,7 +696,7 @@ mod test {
         );
 
         // Test PruneEmailDomain handling
-        let handling_prune_email = OpenidUsernameHandling::PruneEmailDomain;
+        let handling_prune_email = OpenIdUsernameHandling::PruneEmailDomain;
         assert_eq!(
             prune_username("zenek@example.com", handling_prune_email),
             "zenek"
