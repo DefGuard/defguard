@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
@@ -8,9 +9,15 @@ import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
+import { getActivityLogStreamsQueryOptions } from '../../../shared/query';
+import { ActivityLogStreamTable } from './ActivityLogStreamTable';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 
 export const SettingsActivityLogStreamingPage = () => {
-  const isEmpty = true;
+  const { data: streams } = useQuery(getActivityLogStreamsQueryOptions);
+
+  const isEmpty = !streams || streams.length === 0;
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -30,7 +37,7 @@ export const SettingsActivityLogStreamingPage = () => {
         badgeProps={businessPlanBadgeProps}
         icon="activity"
         title="Activity log streaming"
-        subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring." // TODO: add this and rest to common.json
+        subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring."
       />
       {isEmpty ? (
         <EmptyState
@@ -41,12 +48,12 @@ export const SettingsActivityLogStreamingPage = () => {
           primaryAction={addButtonProps}
         />
       ) : (
-        <SettingsHeader // placeholder
-          badgeProps={businessPlanBadgeProps}
-          icon="activity"
-          title="Activity log streaming"
-          subtitle="Monitor and export real-time activity logs from your Defguard instance. Stream events to external systems for auditing, analytics, or security monitoring."
-        />
+        <>
+          <TableTop text="All log streams">
+            <Button {...addButtonProps} />
+          </TableTop>
+          <ActivityLogStreamTable data={streams} />
+        </>
       )}
       <AddLogStreamingModal />
     </SettingsLayout>

@@ -1,5 +1,16 @@
 #settings-activity-log-streaming-tab {
+  width: 784px;
+
+  .table-top {
+    margin-right: 10px;
+    margin-left: -20px;
+  }
+  .table {
+    margin-left: -20px;
+  }
+
   .empty-state {
     margin-top: 120px;
   }
 }
+// temporarily

@@ -177,6 +177,7 @@ export const AliasTable = ({ data: rowData }: Props) => {
     enableRowSelection: false,
     enableExpanding: false,
     enableSorting: true,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
