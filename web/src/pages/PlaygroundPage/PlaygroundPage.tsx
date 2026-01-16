@@ -4,25 +4,45 @@ import { CodeCard } from '../../shared/defguard-ui/components/CodeCard/CodeCard'
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import './style.scss';
-import { useState } from 'react';
+import clsx from 'clsx';
+import { useMemo, useState } from 'react';
 import { Controls } from '../../shared/components/Controls/Controls';
+import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
+import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
 import { LoadingStep } from '../../shared/components/LoadingStep/LoadingStep';
+import { UpgradePlanModalManager } from '../../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
+import { SelectionSection } from '../../shared/components/SelectionSection/SelectionSection';
+import type {
+  SelectionOption,
+  SelectionSectionCustomRender,
+} from '../../shared/components/SelectionSection/type';
 import { ActionableSection } from '../../shared/defguard-ui/components/ActionableSection/ActionableSection';
 import { ActionableSectionVariant } from '../../shared/defguard-ui/components/ActionableSection/types';
-import { BadgeVariant } from '../../shared/defguard-ui/components/Badge/types';
+import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
+import {
+  type BadgeProps,
+  BadgeVariant,
+} from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
+import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Radio } from '../../shared/defguard-ui/components/Radio/Radio';
 import { RadioIndicator } from '../../shared/defguard-ui/components/RadioIndicator/RadioIndicator';
 import { SectionSelect } from '../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { FoldableRadioSection } from '../FoldableRadioSection/FoldableRadioSection';
 import testIconSrc from './assets/actionable-test1.png';
 
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <UpgradePlanModalManager />
       <Card>
         <CodeCard title="Code section title" value={m.test_placeholder_extreme()} />
       </Card>
@@ -115,6 +135,59 @@ export const PlaygroundPage = () => {
           checkbox
         />
       </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <TestSelectionSection />
+      <Divider spacing={ThemeSpacing.Sm} />
+      <Card>
+        <DestinationLabel
+          name="Scanner_Brother-Warsaw-office"
+          ips="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
+          ports="All ports"
+          protocols="UPD, ICMP"
+        />
+      </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <Card>
+        <DestinationDismissibleBox
+          onClick={() => {
+            Snackbar.default('Clicked');
+          }}
+          name="Scanner_Brother-Warsaw-office"
+          ips="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
+          ports="All ports"
+          protocols="UPD, ICMP"
+        />
+      </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <Card id="chips-test">
+        <div>
+          <Chip text="SSH" onDismiss={() => {}} size="sm" />
+          <Chip text="General server settings" onDismiss={() => {}} size="lg" />
+          <Chip text={m.test_placeholder()} size="sm" />
+          <Chip text={m.test_placeholder()} size="lg" />
+        </div>
+      </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <Card>
+        <ButtonsGroup>
+          <Button
+            text="Open business upgrade"
+            onClick={() => {
+              openModal(ModalName.UpgradeLicenseModal, {
+                variant: 'business',
+              });
+            }}
+          />
+          <Button
+            text="Open enterprise upgrade"
+            onClick={() => {
+              openModal(ModalName.UpgradeLicenseModal, {
+                variant: 'enterprise',
+              });
+            }}
+          />
+        </ButtonsGroup>
+      </Card>
     </div>
   );
 };
@@ -194,5 +267,71 @@ const LoadingStepsTest = () => {
         </div>
       </Card>
     </>
+  );
+};
+
+const selectionItemRender: SelectionSectionCustomRender<number, BadgeProps> = ({
+  active,
+  onClick,
+  option,
+}) => {
+  return (
+    <div
+      className={clsx('custom-selection-item', {
+        active,
+      })}
+      onClick={onClick}
+    >
+      <CheckboxIndicator active={active} /> <p>{option.label}</p>
+      <span>{` | `}</span>
+      {isPresent(option.meta) && <Badge {...option.meta} />}
+    </div>
+  );
+};
+
+const TestSelectionSection = () => {
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  const options = useMemo(
+    (): SelectionOption<number, BadgeProps>[] => [
+      { id: 1, label: 'Item 1', meta: { text: 'text', variant: 'success' } },
+      { id: 2, label: 'Item 2', meta: { text: 'text', variant: 'critical' } },
+      { id: 3, label: 'Item 3', meta: { text: 'text', variant: 'success' } },
+      { id: 4, label: 'Item 4', meta: { text: 'text', variant: 'critical' } },
+      { id: 5, label: 'Item 5', meta: { text: 'text', variant: 'success' } },
+      { id: 6, label: 'Item 6', meta: { text: 'text', variant: 'critical' } },
+      { id: 7, label: 'Item 7', meta: { text: 'text', variant: 'success' } },
+      { id: 8, label: 'Item 8', meta: { text: 'text', variant: 'critical' } },
+      { id: 9, label: 'Item 9', meta: { text: 'text', variant: 'success' } },
+      { id: 10, label: 'Item 10', meta: { text: 'text', variant: 'critical' } },
+      { id: 11, label: 'Item 11', meta: { text: 'text', variant: 'success' } },
+      { id: 12, label: 'Item 12', meta: { text: 'text', variant: 'critical' } },
+      { id: 13, label: 'Item 13', meta: { text: 'text', variant: 'success' } },
+      { id: 14, label: 'Item 14', meta: { text: 'text', variant: 'critical' } },
+      { id: 15, label: 'Item 15', meta: { text: 'text', variant: 'success' } },
+      { id: 16, label: 'Item 16', meta: { text: 'text', variant: 'critical' } },
+      { id: 17, label: 'Item 17', meta: { text: 'text', variant: 'success' } },
+      { id: 18, label: 'Item 18', meta: { text: 'text', variant: 'critical' } },
+      { id: 19, label: 'Item 19', meta: { text: 'text', variant: 'success' } },
+      { id: 20, label: 'Item 20', meta: { text: 'text', variant: 'critical' } },
+    ],
+    [],
+  );
+
+  return (
+    <Card>
+      <SizedBox width={600} height={1} />
+      <h4>Test custom item render for selection section</h4>
+      <SizedBox height={ThemeSpacing.Sm} />
+      <p>{`Selection: ${Array.from(selected).join(', ')}`}</p>
+      <Divider spacing={ThemeSpacing.Xl} />
+      <SelectionSection<number, BadgeProps>
+        onChange={setSelected}
+        options={options}
+        renderItem={selectionItemRender}
+        selection={selected}
+        id="playground-selection-section-test"
+      />
+    </Card>
   );
 };
