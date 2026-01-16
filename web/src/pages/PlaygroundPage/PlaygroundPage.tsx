@@ -9,6 +9,8 @@ import { useMemo, useState } from 'react';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
 import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
+import { IpAssignmentCard } from '../../shared/components/IpAssignmentCard/IpAssignmentCard';
+import { IpAssignmentDeviceSection } from '../../shared/components/IpAssignmentDeviceSection/IpAssignmentDeviceSection';
 import { LoadingStep } from '../../shared/components/LoadingStep/LoadingStep';
 import { UpgradePlanModalManager } from '../../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { SelectionSection } from '../../shared/components/SelectionSection/SelectionSection';
@@ -32,6 +34,7 @@ import { Radio } from '../../shared/defguard-ui/components/Radio/Radio';
 import { RadioIndicator } from '../../shared/defguard-ui/components/RadioIndicator/RadioIndicator';
 import { SectionSelect } from '../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { SuggestedIpInput } from '../../shared/defguard-ui/components/SuggestedIPInput/SuggestedIPInput';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
@@ -188,7 +191,84 @@ export const PlaygroundPage = () => {
           />
         </ButtonsGroup>
       </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <TestIpAssignmentSection />
     </div>
+  );
+};
+
+const TestIpAssignmentSection = () => {
+  const [haveErrors, setHaveErrors] = useState(false);
+  const [isOpen, setOpen] = useState(false);
+  const [input, setInput] = useState<string | null>('14');
+  const [input2, setInput2] = useState<string | null>('11');
+  const [input3, setInput3] = useState<string | null>('5486:5236');
+  return (
+    <Card>
+      <SizedBox width={600} height={1} />
+      <Button
+        text={`Toggle Errors (${haveErrors})`}
+        variant="outlined"
+        onClick={() => {
+          setHaveErrors((s) => !s);
+        }}
+      />
+      <SizedBox height={ThemeSpacing.Xl4} />
+      <IpAssignmentCard
+        title="Paris Office"
+        isOpen={isOpen}
+        onOpenChange={(val) => setOpen(val ?? false)}
+      >
+        <IpAssignmentDeviceSection name="MacBook Pro">
+          <SuggestedIpInput
+            data={{
+              modifiable_part: '14',
+              network_part: '10.2.12.',
+              network_prefix: '24',
+            }}
+            value={input}
+            error={haveErrors ? m.test_placeholder_long() : undefined}
+            onChange={(val) => {
+              setInput(val);
+            }}
+          />
+          <SuggestedIpInput
+            data={{
+              modifiable_part: '24',
+              network_part: '10.3.12.',
+              network_prefix: '24',
+            }}
+            value={input2}
+            onChange={(val) => {
+              setInput2(val);
+            }}
+          />
+          <SuggestedIpInput
+            data={{
+              modifiable_part: '24',
+              network_part: '10.3.12.',
+              network_prefix: '24',
+            }}
+            value={input2}
+            error={haveErrors ? m.test_placeholder_long() : undefined}
+            onChange={(val) => {
+              setInput2(val);
+            }}
+          />
+          <SuggestedIpInput
+            data={{
+              modifiable_part: '',
+              network_part: '2001:db8::42::8a2e:',
+              network_prefix: '96',
+            }}
+            value={input3}
+            onChange={(val) => {
+              setInput3(val);
+            }}
+          />
+        </IpAssignmentDeviceSection>
+      </IpAssignmentCard>
+    </Card>
   );
 };
 
