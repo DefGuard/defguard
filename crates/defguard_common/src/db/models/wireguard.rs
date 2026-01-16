@@ -1179,14 +1179,13 @@ pub async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
-    use crate::db::{models::wireguard_peer_stats::WireguardPeerStats, setup_pool};
-    use chrono::{SubsecRound, TimeDelta, Utc};
+    use crate::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
 
-    // FIXME: test new connection logic
+    // FIXME(mwojcik): rewrite for new stats implementation
     // #[sqlx::test]
     // async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
     //     let pool = setup_pool(options).await;
@@ -1251,7 +1250,7 @@ mod test {
     //     );
     // }
 
-    // FIXME: test new connection logic
+    // FIXME(mwojcik): rewrite for new stats implementation
     // #[sqlx::test]
     // async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
     //     let pool = setup_pool(options).await;

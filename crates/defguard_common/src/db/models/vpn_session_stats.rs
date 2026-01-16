@@ -25,6 +25,7 @@ pub struct VpnSessionStats<I = NoId> {
 }
 
 impl VpnSessionStats {
+    #![allow(clippy::too_many_arguments)]
     pub fn new(
         session_id: Id,
         gateway_id: Id,
