@@ -65,11 +65,11 @@ export const Validate = {
     }
     return true;
   },
-  CIDRv4: (ip: string): boolean => {
+  CIDRv4: (ip: string, allow_zero: boolean = false): boolean => {
     if (!ipv4WithCIDRPattern.test(ip)) {
       return false;
     }
-    if (ip.endsWith('/0')) {
+    if (ip.endsWith('/0') && !allow_zero) {
       return false;
     }
     if (!ipaddr.IPv4.isValidCIDR(ip)) {
@@ -77,8 +77,8 @@ export const Validate = {
     }
     return true;
   },
-  CIDRv6: (ip: string): boolean => {
-    if (ip.endsWith('/0')) {
+  CIDRv6: (ip: string, allow_zero: boolean = false): boolean => {
+    if (ip.endsWith('/0') && !allow_zero) {
       return false;
     }
     if (!ipaddr.IPv6.isValidCIDR(ip)) {

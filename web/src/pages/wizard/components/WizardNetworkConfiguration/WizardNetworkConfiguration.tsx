@@ -149,9 +149,9 @@ export const WizardNetworkConfiguration = () => {
               Validate.any(
                 val,
                 [
-                  Validate.CIDRv4,
+                  (v: string) => Validate.CIDRv4(v, true),
                   Validate.IPv4,
-                  Validate.CIDRv6,
+                  (v: string) => Validate.CIDRv6(v, true),
                   Validate.IPv6,
                   Validate.Empty,
                 ],
