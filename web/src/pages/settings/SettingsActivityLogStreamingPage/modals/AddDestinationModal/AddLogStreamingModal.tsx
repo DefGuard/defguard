@@ -88,7 +88,7 @@ const ChoiceStep = ({ setModalState }: ChoiceStepProps) => {
     <>
       <SectionSelect
         image="logstash"
-        title="Logstash"
+        title={m.modal_logstash_destination_title()}
         content={m.modal_add_logstash_destination()}
         data-testid="add-logstash"
         onClick={() => {
@@ -102,7 +102,7 @@ const ChoiceStep = ({ setModalState }: ChoiceStepProps) => {
       <SectionSelect
         image="vector"
         content={m.modal_add_vector_destination()}
-        title="Vector"
+        title={m.modal_vector_destination_title()}
         data-testid="add-vector"
         onClick={() => {
           setModalState({

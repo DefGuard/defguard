@@ -41,15 +41,15 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
         header: m.settings_activity_log_streaming_table_stream_type_name(),
         size: 220,
         minSize: 100,
-        cell: (info) => {
-          const value = info.getValue();
-          const displayValue = value === 'vector_http' ? 'Vector' : 'Logstash';
-          return (
-            <TableCell>
-              <span>{displayValue}</span>
-            </TableCell>
-          );
-        },
+        cell: (info) => (
+          <TableCell>
+            <span>
+              {info.getValue() === 'vector_http'
+                ? m.modal_vector_destination_title()
+                : m.modal_logstash_destination_title()}
+            </span>
+          </TableCell>
+        ),
       }),
       columnHelper.display({
         id: 'edit',

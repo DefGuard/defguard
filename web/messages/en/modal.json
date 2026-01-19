@@ -77,6 +77,8 @@
   "modal_add_user_title": "Add new user",
   "modal_add_vector_destination_title": "Add Vector destination",
   "modal_add_logstash_destination_title": "Add Logstash destination",
+  "modal_logstash_destination_title": "Logstash",
+  "modal_vector_destination_title": "Vector",
   "modal_edit_vector_destination_title": "Edit Vector destination",
   "modal_edit_logstash_destination_title": "Edit Logstash destination",
   "modal_edit_log_streaming_destination_title": "Edit destination",
