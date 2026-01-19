@@ -2,7 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
-import { OpenIdProviderUsernameHandling } from '../../../../shared/api/types';
+import {
+  OpenIdProviderKind,
+  type OpenIdProviderKindValue,
+  OpenIdProviderUsernameHandling,
+} from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { SUPPORTED_SYNC_PROVIDERS } from '../../../../shared/constants';
@@ -12,20 +16,16 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import {
-  ExternalProvider,
-  type ExternalProviderValue,
-} from '../../../settings/shared/types';
-import {
   formatMicrosoftBaseUrl,
   providerUsernameHandlingOptions,
   validateExternalProviderWizard,
 } from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
 
-const baseUrlHidden: Set<ExternalProviderValue> = new Set([
-  ExternalProvider.JumpCloud,
-  ExternalProvider.Microsoft,
-  ExternalProvider.Google,
+const baseUrlHidden: Set<OpenIdProviderKindValue> = new Set([
+  OpenIdProviderKind.JumpCloud,
+  OpenIdProviderKind.Microsoft,
+  OpenIdProviderKind.Google,
 ]);
 
 export const AddExternalOpenIdClientSettingsStep = () => {
@@ -76,7 +76,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           microsoftTenantId: z.string().trim().nullable(),
         })
         .superRefine((values, ctx) => {
-          if (provider === ExternalProvider.Microsoft) {
+          if (provider === OpenIdProviderKind.Microsoft) {
             const schema = z
               .string(m.form_error_required())
               .trim()
@@ -143,7 +143,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           <form.AppField name="display_name">
             {(field) => <field.FormInput required label="Display Name" />}
           </form.AppField>
-          {provider === ExternalProvider.Microsoft && (
+          {provider === OpenIdProviderKind.Microsoft && (
             <>
               <SizedBox height={ThemeSpacing.Xl2} />
               <form.AppField

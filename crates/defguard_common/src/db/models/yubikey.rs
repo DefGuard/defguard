@@ -1,7 +1,8 @@
-use crate::db::{Id, NoId};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
+
+use crate::db::{Id, NoId};
 
 #[derive(Deserialize, Model, Serialize)]
 pub struct YubiKey<I = NoId> {

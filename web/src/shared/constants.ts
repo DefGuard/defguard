@@ -1,7 +1,4 @@
-import {
-  ExternalProvider,
-  type ExternalProviderValue,
-} from '../pages/settings/shared/types';
+import { OpenIdProviderKind, type OpenIdProviderKindValue } from './api/types';
 
 export const externalLink = {
   defguard: {
@@ -20,20 +17,20 @@ export const externalLink = {
   },
 } as const;
 
-export const externalProviderName: Record<ExternalProviderValue, string> = {
-  custom: 'Custom provider',
-  google: 'Google',
-  jumpCloud: 'JumpCloud',
-  microsoft: 'Microsoft',
-  okta: 'Okta',
-  zitadel: 'Zitadel',
+export const externalProviderName: Record<OpenIdProviderKindValue, string> = {
+  Custom: 'Custom provider',
+  Google: 'Google',
+  JumpCloud: 'JumpCloud',
+  Microsoft: 'Microsoft',
+  Okta: 'Okta',
+  Zitadel: 'Zitadel',
 };
 
-export const SUPPORTED_SYNC_PROVIDERS: Set<ExternalProviderValue> = new Set([
-  ExternalProvider.Google,
-  ExternalProvider.Microsoft,
-  ExternalProvider.Okta,
-  ExternalProvider.JumpCloud,
+export const SUPPORTED_SYNC_PROVIDERS: Set<OpenIdProviderKindValue> = new Set([
+  OpenIdProviderKind.Google,
+  OpenIdProviderKind.Microsoft,
+  OpenIdProviderKind.Okta,
+  OpenIdProviderKind.JumpCloud,
 ]);
 
 export const googleProviderBaseUrl = 'https://accounts.google.com';

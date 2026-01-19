@@ -5,7 +5,7 @@ use axum::{
 };
 use defguard_common::db::models::{
     Settings, WireguardNetwork,
-    settings::{OpenidUsernameHandling, update_current_settings},
+    settings::{OpenIdUsernameHandling, update_current_settings},
     wireguard::LocationMfaMode,
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
@@ -17,7 +17,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{
-        db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
+        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
+        directory_sync::test_directory_sync_connection,
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
@@ -27,6 +28,7 @@ use crate::{
 pub struct AddProviderData {
     pub name: String,
     pub base_url: String,
+    pub kind: OpenIdProviderKind,
     pub client_id: String,
     pub client_secret: String,
     pub display_name: Option<String>,
@@ -38,13 +40,14 @@ pub struct AddProviderData {
     pub directory_sync_user_behavior: String,
     pub directory_sync_admin_behavior: String,
     pub directory_sync_target: String,
-    pub create_account: bool,
     pub okta_private_jwk: Option<String>,
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
-    pub username_handling: OpenidUsernameHandling,
     pub jumpcloud_api_key: Option<String>,
     pub prefetch_users: bool,
+    // Core settings
+    pub create_account: bool,
+    pub username_handling: OpenIdUsernameHandling,
 }
 
 /// Add OpenID provider.
@@ -54,8 +57,11 @@ pub struct AddProviderData {
 #[utoipa::path(
     post,
     path = "/api/v1/openid/provider",
+    params(
+        ("data" = AddProviderData, Path, description = "OpenID provider data",)
+    ),
     responses(
-        (status = CREATED, description = "Add OpenID provider", body = [AddProviderData]),
+        (status = CREATED, description = "Add OpenID provider"),
     ),
 )]
 pub(crate) async fn add_openid_provider(
@@ -153,6 +159,7 @@ pub(crate) async fn add_openid_provider(
     let new_provider = OpenIdProvider::new(
         provider_data.name,
         provider_data.base_url,
+        provider_data.kind,
         provider_data.client_id,
         provider_data.client_secret,
         provider_data.display_name,
@@ -194,7 +201,7 @@ pub(crate) async fn add_openid_provider(
 /// # Returns
 /// - HTTP Status "OK" on success.
 #[utoipa::path(
-    put,
+    get,
     path = "/api/v1/openid/provider/{name}",
     responses(
         (status = OK, description = "Get OpenID provider"),
@@ -240,7 +247,7 @@ pub(crate) async fn get_openid_provider(
 /// # Returns
 /// - HTTP Status "OK" on success.
 #[utoipa::path(
-    get,
+    delete,
     path = "/api/v1/openid/provider/{name}",
     responses(
         (status = OK, description = "Delete OpenID provider"),
@@ -334,6 +341,7 @@ pub(crate) async fn modify_openid_provider(
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(mut provider) = provider {
         provider.base_url = provider_data.base_url;
+        provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
         provider.client_secret = provider_data.client_secret;
         provider.save(&mut *transaction).await?;

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use crate::db::{Id, NoId};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use ipnetwork::IpNetwork;
@@ -8,6 +7,8 @@ use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
 use tracing::{debug, info};
+
+use crate::db::{Id, NoId};
 
 #[derive(Debug, Deserialize, Model, Serialize)]
 #[table(wireguard_peer_stats)]

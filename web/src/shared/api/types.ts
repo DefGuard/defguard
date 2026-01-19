@@ -1,4 +1,3 @@
-import type { ExternalProviderValue } from '../../pages/settings/shared/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -486,6 +485,8 @@ export interface NetworkLocation {
   allowed_groups: string[];
   dns: string | null;
   keepalive_interval: number;
+  mtu: number | null;
+  fwmark: number | null;
   peer_disconnect_threshold: number;
   acl_enabled: boolean;
   acl_default_allow: boolean;
@@ -676,6 +677,18 @@ export interface OpenIdProviderSettings {
   username_handling: OpenIdProviderUsernameHandlingValue;
 }
 
+export const OpenIdProviderKind = {
+  Custom: 'Custom',
+  Google: 'Google',
+  Microsoft: 'Microsoft',
+  Okta: 'Okta',
+  JumpCloud: 'JumpCloud',
+  Zitadel: 'Zitadel',
+} as const;
+
+export type OpenIdProviderKindValue =
+  (typeof OpenIdProviderKind)[keyof typeof OpenIdProviderKind];
+
 export const DirectorySyncBehavior = {
   Keep: 'keep',
   Disable: 'disable',
@@ -705,24 +718,24 @@ export type OpenIdProviderUsernameHandlingValue =
 
 export interface OpenIdProvider {
   id: number;
-  name: ExternalProviderValue;
+  name: OpenIdProviderKindValue;
   base_url: string;
+  kind: OpenIdProviderKindValue;
   client_id: string;
   client_secret: string;
   display_name: string;
+  google_service_account_key?: string | null;
+  google_service_account_email?: string | null;
+  admin_email?: string | null;
   directory_sync_enabled: boolean;
   directory_sync_interval: number;
   directory_sync_user_behavior: DirectorySyncBehaviorValue;
   directory_sync_admin_behavior: DirectorySyncBehaviorValue;
   directory_sync_target: DirectorySyncTargetValue;
-  google_service_account_key?: string | null;
-  google_service_account_email?: string | null;
-  admin_email?: string | null;
   okta_private_jwk?: string | null;
   okta_dirsync_client_id?: string | null;
-  jumpcloud_api_key?: string | null;
-  // microsoft
   directory_sync_group_match?: string | null;
+  jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
 }
 

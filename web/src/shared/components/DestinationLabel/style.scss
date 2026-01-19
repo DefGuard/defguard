@@ -1,0 +1,42 @@
+.destination-label {
+  display: flex;
+  flex-flow: row nowrap;
+  overflow: hidden;
+  align-items: center;
+  justify-content: flex-start;
+
+  & > .name {
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  & > .separator {
+    font: var(--t-body-sm-500);
+    color: var(--fg-disabled);
+    flex-shrink: 0;
+  }
+
+  .icon {
+    flex-shrink: 0;
+  }
+
+  .info {
+    display: inline-block;
+    font: var(--t-body-xs-400);
+    color: var(--fg-neutral);
+    overflow: hidden;
+    white-space: nowrap;
+
+    &:not(.wrap) {
+      flex-shrink: 0;
+    }
+
+    &.wrap {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-overflow: ellipsis;
+    }
+  }
+}

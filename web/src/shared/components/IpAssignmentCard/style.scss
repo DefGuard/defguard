@@ -1,0 +1,39 @@
+.location-assignment-card {
+  background-color: var(--bg);
+  border-radius: var(--radius-md);
+  border: var(--border-1) solid var(--border-color);
+  box-sizing: border-box;
+  padding: var(--spacing-sm);
+
+  @include animate(background-color, border-color);
+
+  &[data-open='true'] {
+    --border-color: var(--border-disabled);
+    --bg: var(--bg-default);
+  }
+
+  &[data-open='false'] {
+    --border-color: var(--bg-disabled);
+    --bg: var(--bg-disabled);
+  }
+
+  & > .main-track {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    grid-template-rows: 1fr;
+    align-items: center;
+    min-height: 20px;
+    column-gap: var(--spacing-md);
+    user-select: none;
+    cursor: pointer;
+
+    .title {
+      font: var(--t-body-sm-500);
+    }
+  }
+
+  & > .fold > .fold-content {
+    box-sizing: border-box;
+    padding-left: var(--spacing-3xl);
+  }
+}

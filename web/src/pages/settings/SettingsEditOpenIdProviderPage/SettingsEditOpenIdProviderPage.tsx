@@ -2,11 +2,10 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useCallback, useMemo } from 'react';
 import api from '../../../shared/api/api';
-import type { AddOpenIdProvider } from '../../../shared/api/types';
+import { type AddOpenIdProvider, OpenIdProviderKind } from '../../../shared/api/types';
 import { EditPage } from '../../../shared/components/EditPage/EditPage';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getExternalProviderQueryOptions } from '../../../shared/query';
-import { ExternalProvider } from '../shared/types';
 import { EditCustomProviderForm } from './form/EditCustomProviderForm';
 import { EditGoogleProviderForm } from './form/EditGoogleProviderForm';
 import { EditJumpCloudProviderForm } from './form/EditJumpCloudProviderForm';
@@ -78,7 +77,7 @@ export const SettingsEditOpenIdProviderPage = () => {
         title: 'Edit external OpenID provider',
       }}
     >
-      {formData.name === ExternalProvider.Google && (
+      {formData.name === OpenIdProviderKind.Google && (
         <EditGoogleProviderForm
           onSubmit={handleSubmit}
           provider={formData}
@@ -88,7 +87,7 @@ export const SettingsEditOpenIdProviderPage = () => {
           loading={deletePending}
         />
       )}
-      {formData.name === ExternalProvider.Microsoft && (
+      {formData.name === OpenIdProviderKind.Microsoft && (
         <EditMicrosoftProviderForm
           onSubmit={handleSubmit}
           provider={formData}
@@ -98,7 +97,7 @@ export const SettingsEditOpenIdProviderPage = () => {
           loading={deletePending}
         />
       )}
-      {formData.name === ExternalProvider.Okta && (
+      {formData.name === OpenIdProviderKind.Okta && (
         <EditOktaProviderForm
           onSubmit={handleSubmit}
           provider={formData}
@@ -108,7 +107,7 @@ export const SettingsEditOpenIdProviderPage = () => {
           loading={deletePending}
         />
       )}
-      {formData.name === ExternalProvider.JumpCloud && (
+      {formData.name === OpenIdProviderKind.JumpCloud && (
         <EditJumpCloudProviderForm
           onSubmit={handleSubmit}
           provider={formData}
@@ -118,7 +117,7 @@ export const SettingsEditOpenIdProviderPage = () => {
           loading={deletePending}
         />
       )}
-      {formData.name === ExternalProvider.Custom && (
+      {formData.name === OpenIdProviderKind.Custom && (
         <EditCustomProviderForm
           onSubmit={handleSubmit}
           provider={formData}

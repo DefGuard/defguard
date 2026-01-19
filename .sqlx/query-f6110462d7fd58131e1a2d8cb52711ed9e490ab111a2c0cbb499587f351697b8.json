@@ -1,12 +1,28 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12, directory_sync_target = $13, okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16, jumpcloud_api_key = $17, prefetch_users = $18 WHERE id = $19",
+  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"kind\" = $4,\"client_id\" = $5,\"client_secret\" = $6,\"display_name\" = $7,\"google_service_account_key\" = $8,\"google_service_account_email\" = $9,\"admin_email\" = $10,\"directory_sync_enabled\" = $11,\"directory_sync_interval\" = $12,\"directory_sync_user_behavior\" = $13,\"directory_sync_admin_behavior\" = $14,\"directory_sync_target\" = $15,\"okta_private_jwk\" = $16,\"okta_dirsync_client_id\" = $17,\"directory_sync_group_match\" = $18,\"jumpcloud_api_key\" = $19,\"prefetch_users\" = $20 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
+        "Int8",
         "Text",
         "Text",
+        {
+          "Custom": {
+            "name": "openid_provider_kind",
+            "kind": {
+              "Enum": [
+                "Custom",
+                "Google",
+                "Microsoft",
+                "Okta",
+                "JumpCloud",
+                "Zitadel"
+              ]
+            }
+          }
+        },
         "Text",
         "Text",
         "Text",
@@ -55,11 +71,10 @@
         "Text",
         "TextArray",
         "Text",
-        "Bool",
-        "Int8"
+        "Bool"
       ]
     },
     "nullable": []
   },
-  "hash": "796ef2b0b73f5689a592497320b98ddb54a2a673a531cb882aadea3d5aa25d66"
+  "hash": "f6110462d7fd58131e1a2d8cb52711ed9e490ab111a2c0cbb499587f351697b8"
 }

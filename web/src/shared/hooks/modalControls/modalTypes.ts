@@ -17,9 +17,11 @@ import type {
   OpenNetworkDeviceConfigModal,
   OpenNetworkDeviceTokenModal,
   OpenRenameApiTokenModal,
+  OpenUpgradeLicenseModal,
 } from './types';
 
 export const ModalName = {
+  UpgradeLicenseModal: 'upgradeLicenseModal',
   License: 'license',
   SendTestMail: 'sendTestMail',
   GatewaySetup: 'gatewaySetup',
@@ -158,6 +160,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.License),
     data: z.custom<OpenLicenseModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.UpgradeLicenseModal),
+    data: z.custom<OpenUpgradeLicenseModal>(),
   }),
 ]);
 

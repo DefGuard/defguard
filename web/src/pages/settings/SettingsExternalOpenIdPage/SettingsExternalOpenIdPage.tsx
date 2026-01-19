@@ -2,12 +2,15 @@ import { useNavigate } from '@tanstack/react-router';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { higherPlanBadgeProps } from '../shared/consts';
-import { ExternalProvider, type ExternalProviderValue } from '../shared/types';
 import { ExternalProviderCard } from './components/ExternalProviderCard/ExternalProviderCard';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import api from '../../../shared/api/api';
+import {
+  OpenIdProviderKind,
+  type OpenIdProviderKindValue,
+} from '../../../shared/api/types';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -24,8 +27,8 @@ export const SettingsExternalOpenIdPage = () => {
   });
 
   const visibleProviders = useMemo(() => {
-    const res = Object.values(ExternalProvider).filter(
-      (p) => p !== ExternalProvider.Zitadel,
+    const res = Object.values(OpenIdProviderKind).filter(
+      (p) => p !== OpenIdProviderKind.Zitadel,
     );
     if (activeProvider) {
       return res.filter((p) => p !== activeProvider.name);
@@ -47,7 +50,7 @@ export const SettingsExternalOpenIdPage = () => {
           <SizedBox height={ThemeSpacing.Md} />
           <ExternalProviderCard
             edit
-            provider={activeProvider.name as ExternalProviderValue}
+            provider={activeProvider.name as OpenIdProviderKindValue}
             displayName={activeProvider.display_name}
             onClick={() => {
               navigate({ to: '/settings/edit-openid' });

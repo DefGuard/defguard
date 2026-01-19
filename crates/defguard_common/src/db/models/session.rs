@@ -1,7 +1,8 @@
-use crate::{config::server_config, db::Id, random::gen_alphanumeric};
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
+
+use crate::{config::server_config, db::Id, random::gen_alphanumeric};
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
