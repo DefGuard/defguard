@@ -4,7 +4,7 @@ use sqlx::{Error as SqlxError, Type, query_as};
 
 use crate::db::{
     Id, NoId,
-    models::{WireguardNetwork, vpn_session_stats::VpnSessionStats},
+    models::{WireguardNetwork, vpn_session_stats::VpnSessionStats, wireguard::LocationMfaMode},
 };
 
 #[derive(Default, Type)]
@@ -27,7 +27,9 @@ pub struct VpnClientSession<I = NoId> {
     pub created_at: NaiveDateTime,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-    pub mfa: bool,
+    // TODO: use actual MFA method used to connect
+    #[model(enum)]
+    pub mfa_mode: LocationMfaMode,
     #[model(enum)]
     pub state: VpnClientSessionState,
 }
@@ -38,7 +40,7 @@ impl VpnClientSession {
         user_id: Id,
         device_id: Id,
         connected_at: Option<NaiveDateTime>,
-        mfa: bool,
+        mfa_mode: LocationMfaMode,
     ) -> Self {
         // determine session state
         let state = if connected_at.is_some() {
@@ -55,7 +57,7 @@ impl VpnClientSession {
             created_at: Utc::now().naive_utc(),
             connected_at,
             disconnected_at: None,
-            mfa,
+            mfa_mode,
             state,
         }
     }
@@ -73,7 +75,7 @@ impl VpnClientSession<Id> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa, state \"state: VpnClientSessionState\" \
+	            mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND device_id = $2",
             location_id,
@@ -108,7 +110,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
-	            mfa, state \"state: VpnClientSessionState\" \
+	            mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
 			FROM vpn_client_session s \
 			LEFT JOIN LATERAL ( \
 				SELECT latest_handshake \
@@ -132,7 +134,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa, state \"state: VpnClientSessionState\" \
+	            mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND state = 'new' \
             AND (NOW() - created_at) > $2 * interval '1 second'",

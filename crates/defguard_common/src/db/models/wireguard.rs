@@ -1018,7 +1018,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, \
-            created_at, connected_at, disconnected_at, mfa, state \"state: VpnClientSessionState\" \
+            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
             self.id,

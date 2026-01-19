@@ -218,7 +218,7 @@ impl ActiveSessionsMap {
         // fetch location
         let location_id = stats_update.location_id;
         // wrap in block to avoid multiple mutable borrows
-        let (location_name, mfa_enabled) = {
+        let (location_name, mfa_mode) = {
             let location = self.get_location(&mut *transaction, location_id).await?;
             // check if a given peer is considered active and should be added to active sessions
             if Utc::now().naive_utc() - stats_update.latest_handshake
@@ -230,7 +230,7 @@ impl ActiveSessionsMap {
                 return Ok(None);
             };
 
-            (location.name.clone(), location.mfa_enabled())
+            (location.name.clone(), location.location_mfa_mode.clone())
         };
 
         // fetch other related objects from DB
@@ -247,7 +247,7 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            mfa_enabled,
+            mfa_mode,
         )
         .save(transaction)
         .await?;

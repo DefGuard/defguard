@@ -177,7 +177,7 @@ impl SessionManager {
                     "Disconnecting inactive session for user {}, device {} in location {location}",
                     session.user_id, session.device_id
                 );
-                Self::disconnect_session(&mut *&mut transaction, session).await?;
+                Self::disconnect_session(&mut transaction, session).await?;
             }
 
             // get all sessions which were created but have never connected
@@ -195,7 +195,7 @@ impl SessionManager {
                     "Disconnecting never connected session for user {}, device {} in location {location}",
                     session.user_id, session.device_id
                 );
-                Self::disconnect_session(&mut *&mut transaction, session).await?;
+                Self::disconnect_session(&mut transaction, session).await?;
             }
         }
 

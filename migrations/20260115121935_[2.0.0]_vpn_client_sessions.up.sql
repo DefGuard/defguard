@@ -12,7 +12,7 @@ CREATE TABLE vpn_client_session (
     created_at timestamp without time zone NOT NULL DEFAULT current_timestamp,
     connected_at timestamp without time zone NULL,
     disconnected_at timestamp without time zone NULL,
-    mfa boolean NOT NULL,
+    mfa_mode location_mfa_mode NOT NULL,
     state vpn_client_session_state NOT NULL DEFAULT 'new',
     FOREIGN KEY (location_id) REFERENCES wireguard_network(id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE,
