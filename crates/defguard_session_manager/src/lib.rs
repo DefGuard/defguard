@@ -1,5 +1,9 @@
+use chrono::Utc;
 use defguard_common::{
-    db::models::{WireguardNetwork, vpn_client_session::VpnClientSession},
+    db::{
+        Id,
+        models::{WireguardNetwork, vpn_client_session::VpnClientSession},
+    },
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use sqlx::{PgConnection, PgPool};
@@ -168,6 +172,14 @@ impl SessionManager {
                 inactive_sessions.len()
             );
 
+            for session in inactive_sessions {
+                debug!(
+                    "Disconnecting inactive session for user {}, device {} in location {location}",
+                    session.user_id, session.device_id
+                );
+                Self::disconnect_session(&mut *&mut transaction, session).await?;
+            }
+
             // get all sessions which were created but have never connected
             // this is only relevant for MFA locations
             let unused_sessions =
@@ -177,6 +189,14 @@ impl SessionManager {
                 "Found {} new VPN sessions which have not connected within required time in location {location}",
                 unused_sessions.len()
             );
+
+            for session in unused_sessions {
+                debug!(
+                    "Disconnecting never connected session for user {}, device {} in location {location}",
+                    session.user_id, session.device_id
+                );
+                Self::disconnect_session(&mut *&mut transaction, session).await?;
+            }
         }
 
         // commit DB transaction after processing all inactive sessions
@@ -184,6 +204,18 @@ impl SessionManager {
 
         debug!("Finished processing inactive VPN sessions");
 
+        Ok(())
+    }
+
+    /// Helper user to mark session as disconnected and trigger necessary sideffects
+    async fn disconnect_session(
+        transaction: &mut PgConnection,
+        mut session: VpnClientSession<Id>,
+    ) -> Result<(), SessionManagerError> {
+        session.disconnected_at = Some(Utc::now().naive_utc());
+        session.state =
+            defguard_common::db::models::vpn_client_session::VpnClientSessionState::Disconnected;
+        session.save(&mut *transaction).await?;
         Ok(())
     }
 }
