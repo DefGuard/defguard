@@ -676,7 +676,8 @@ impl AclRule<Id> {
         .await?;
         if !invalid_alias_ids.is_empty() {
             error!(
-                "Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}"
+                "Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: \
+                {invalid_alias_ids:?}"
             );
             return Err(AclError::CannotUseModifiedAliasInRuleError(
                 invalid_alias_ids,
@@ -1029,10 +1030,8 @@ impl AclRule<Id> {
             Group,
             "SELECT g.id, name, is_admin \
             FROM aclrulegroup r \
-            JOIN \"group\" g \
-            ON g.id = r.group_id \
-            WHERE r.rule_id = $1 \
-            AND r.allow = $2",
+            JOIN \"group\" g ON g.id = r.group_id \
+            WHERE r.rule_id = $1 AND r.allow = $2",
             self.id,
             allowed,
         )
@@ -1068,10 +1067,8 @@ impl AclRule<Id> {
             "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
-            JOIN device d \
-            ON d.id = r.device_id \
-            WHERE r.rule_id = $1 \
-            AND r.allow = true AND d.configured = true",
+            JOIN device d ON d.id = r.device_id \
+            WHERE r.rule_id = $1 AND r.allow = true AND d.configured = true",
             self.id,
         )
         .fetch_all(executor)
@@ -1090,10 +1087,8 @@ impl AclRule<Id> {
             "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
-            JOIN device d \
-            ON d.id = r.device_id \
-            WHERE r.rule_id = $1 \
-            AND r.allow = false AND d.configured = true",
+            JOIN device d ON d.id = r.device_id \
+            WHERE r.rule_id = $1 AND r.allow = false AND d.configured = true",
             self.id,
         )
         .fetch_all(executor)

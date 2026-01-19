@@ -3,10 +3,13 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::{
-    Settings, WireguardNetwork,
-    settings::{OpenIdUsernameHandling, update_current_settings},
-    wireguard::LocationMfaMode,
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings, WireguardNetwork,
+        settings::{OpenIdUsernameHandling, update_current_settings},
+        wireguard::LocationMfaMode,
+    },
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -378,7 +381,7 @@ pub(crate) async fn modify_openid_provider(
     get,
     path = "/api/v1/openid/provider",
     responses(
-        (status = OK, description = "List all OpenID provider"),
+        (status = OK, description = "List of OpenID providers"),
     ),
 )]
 pub(crate) async fn list_openid_providers(

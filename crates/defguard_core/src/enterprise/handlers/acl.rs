@@ -1,3 +1,5 @@
+pub(crate) mod destination;
+
 use axum::{
     Json,
     extract::{Path, State},
@@ -6,6 +8,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
+use utoipa::ToSchema;
 
 use super::LicenseInfo;
 use crate::{
@@ -78,7 +81,7 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
 }
 
 /// API representation of [`AclRule`] used in API requests for modification operations
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct EditAclRule {
     pub name: String,
     pub all_networks: bool,
@@ -199,7 +202,15 @@ pub struct ApplyAclAliasesData {
     aliases: Vec<Id>,
 }
 
-pub async fn list_acl_rules(
+/// List all ACL rules.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/rule",
+    responses(
+        (status = OK, description = "ACL rules"),
+    ),
+)]
+pub(crate) async fn list_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -224,7 +235,18 @@ pub async fn list_acl_rules(
     })
 }
 
-pub async fn get_acl_rule(
+/// Get ACL rule.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/rule/{id}",
+    params(
+        ("id" = Id, Path, description = "ID of ACL rule",)
+    ),
+    responses(
+        (status = OK, description = "ACL rule"),
+    )
+)]
+pub(crate) async fn get_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -250,7 +272,16 @@ pub async fn get_acl_rule(
     Ok(ApiResponse::new(rule, status))
 }
 
-pub async fn create_acl_rule(
+/// Create ACL rule.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/rule",
+    request_body = EditAclRule,
+    responses(
+        (status = OK, description = "ACL destination"),
+    )
+)]
+pub(crate) async fn create_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -278,7 +309,7 @@ pub async fn create_acl_rule(
     })
 }
 
-pub async fn update_acl_rule(
+pub(crate) async fn update_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -304,7 +335,7 @@ pub async fn update_acl_rule(
     })
 }
 
-pub async fn delete_acl_rule(
+pub(crate) async fn delete_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -322,7 +353,7 @@ pub async fn delete_acl_rule(
     Ok(ApiResponse::default())
 }
 
-pub async fn list_acl_aliases(
+pub(crate) async fn list_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -346,7 +377,7 @@ pub async fn list_acl_aliases(
     })
 }
 
-pub async fn get_acl_alias(
+pub(crate) async fn get_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -374,7 +405,7 @@ pub async fn get_acl_alias(
     })
 }
 
-pub async fn create_acl_alias(
+pub(crate) async fn create_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -398,7 +429,7 @@ pub async fn create_acl_alias(
     })
 }
 
-pub async fn update_acl_alias(
+pub(crate) async fn update_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -420,7 +451,7 @@ pub async fn update_acl_alias(
     })
 }
 
-pub async fn delete_acl_alias(
+pub(crate) async fn delete_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -438,7 +469,7 @@ pub async fn delete_acl_alias(
     Ok(ApiResponse::default())
 }
 
-pub async fn apply_acl_rules(
+pub(crate) async fn apply_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -462,7 +493,7 @@ pub async fn apply_acl_rules(
     Ok(ApiResponse::default())
 }
 
-pub async fn apply_acl_aliases(
+pub(crate) async fn apply_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
