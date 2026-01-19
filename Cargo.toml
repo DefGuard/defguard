@@ -6,7 +6,8 @@ repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.85.1"
 
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "tools/*"]
+default-members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]

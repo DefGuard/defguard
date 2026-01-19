@@ -1298,6 +1298,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard_generator"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "defguard_common",
+ "rand 0.8.5",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "defguard_mail"
 version = "0.0.0"
 dependencies = [

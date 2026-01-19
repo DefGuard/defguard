@@ -1,0 +1,177 @@
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+use anyhow::Result;
+use chrono::{Duration, NaiveDateTime, Utc};
+use defguard_common::db::{
+    Id,
+    models::{
+        Device, User, WireguardNetwork,
+        gateway::Gateway,
+        vpn_client_session::{VpnClientSession, VpnClientSessionState},
+        vpn_session_stats::VpnSessionStats,
+        wireguard::LocationMfaMode,
+    },
+};
+use rand::{Rng, rngs::ThreadRng};
+use sqlx::{PgConnection, PgPool};
+use tracing::info;
+
+use crate::{user_devices::prepare_user_devices, users::prepare_users};
+
+const STATS_COLLECTION_INTERVAL: Duration = Duration::seconds(30);
+const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
+
+pub struct VpnSessionGeneratorConfig {
+    pub location_id: Id,
+    pub num_users: u16,
+    pub devices_per_user: u8,
+    pub sessions_per_device: u8,
+}
+
+pub async fn generate_vpn_session_stats(
+    pool: PgPool,
+    config: VpnSessionGeneratorConfig,
+) -> Result<()> {
+    let mut rng = rand::thread_rng();
+
+    // fetch specified location
+    let location = WireguardNetwork::find_by_id(&pool, config.location_id)
+        .await?
+        .expect("Location not found");
+
+    // prepare a gateway
+    let gateway = prepare_gateway(&pool, location.id).await?;
+
+    // prepare requested number of users
+    let user_count = config.num_users as usize;
+    let users = prepare_users(&pool, user_count).await?;
+
+    // generate sessions for each user
+    for (i, user) in users.into_iter().enumerate() {
+        info!("[{i}/{user_count}] Generating VPN sessions for user {user}");
+
+        // begin DB transaction
+        let mut transaction = pool.begin().await?;
+
+        // prepare requested number of devices
+        let devices = prepare_user_devices(&pool, &user, config.devices_per_user).await?;
+
+        for device in devices {
+            // generate requested number of sessions for a device
+            // we always start with a session that's currently active
+            // and generate past ones as needed
+
+            // start with the active session
+            let mut session_end = Utc::now().naive_utc();
+
+            for i in 0..config.sessions_per_device {
+                let session_duration = Duration::minutes(rng.gen_range(10..120));
+                let session_start = session_end - session_duration;
+
+                let mut session = VpnClientSession::new(
+                    location.id,
+                    device.user_id,
+                    device.id,
+                    Some(session_start),
+                    LocationMfaMode::Disabled,
+                )
+                .save(&mut *transaction)
+                .await?;
+
+                // mark all but the first session as disconnected
+                if i > 0 {
+                    session.state = VpnClientSessionState::Disconnected;
+                    session.disconnected_at = Some(session_end);
+                    session.save(&mut *transaction).await?;
+                }
+
+                generate_mock_session_stats(
+                    &mut *transaction,
+                    &mut rng,
+                    session.id,
+                    gateway.id,
+                    session_start,
+                    session_end,
+                )
+                .await?;
+
+                // update end timestamp for next session
+                session_end = session_end - Duration::minutes(rng.gen_range(30..120));
+            }
+        }
+        transaction.commit().await?;
+    }
+
+    Ok(())
+}
+
+async fn prepare_gateway(pool: &PgPool, location_id: Id) -> Result<Gateway<Id>> {
+    // check if a gateway exists already
+    let existing_gateways = Gateway::find_by_network_id(pool, location_id).await?;
+    match existing_gateways.into_iter().next() {
+        Some(gateway) => Ok(gateway),
+        None => {
+            let gateway = Gateway::new(location_id, "http://localhost:50055")
+                .save(pool)
+                .await?;
+            Ok(gateway)
+        }
+    }
+}
+
+async fn generate_mock_session_stats(
+    transaction: &mut PgConnection,
+    rng: &mut ThreadRng,
+    session_id: Id,
+    gateway_id: Id,
+    session_start: NaiveDateTime,
+    session_end: NaiveDateTime,
+) -> Result<()> {
+    let mut latest_handshake = session_start;
+    let mut next_handshake = latest_handshake + HANDSHAKE_INTERVAL;
+    let mut collected_at = session_start;
+    let mut total_upload = 0;
+    let mut total_download = 0;
+
+    // assume the IP remains static within a single session
+    let endpoint = random_socket_addr(rng).to_string();
+
+    while collected_at <= session_end {
+        // generate traffic
+        let upload_diff = rng.gen_range(100..100_000);
+        total_upload = total_upload + upload_diff;
+        let download_diff = rng.gen_range(100..100_000);
+        total_download = total_download + download_diff;
+
+        VpnSessionStats::new(
+            session_id,
+            gateway_id,
+            collected_at,
+            latest_handshake,
+            endpoint.clone(),
+            total_upload,
+            total_download,
+            download_diff,
+            download_diff,
+        )
+        .save(&mut *transaction)
+        .await?;
+
+        // update variables for next sample
+        collected_at = collected_at + STATS_COLLECTION_INTERVAL;
+
+        // update handshake if necessary
+        if collected_at > next_handshake {
+            latest_handshake = next_handshake;
+            next_handshake = latest_handshake + HANDSHAKE_INTERVAL;
+        }
+    }
+
+    Ok(())
+}
+
+fn random_socket_addr(rng: &mut ThreadRng) -> SocketAddr {
+    let ip = Ipv4Addr::new(rng.r#gen(), rng.r#gen(), rng.r#gen(), rng.r#gen());
+    let port = rng.r#gen();
+    SocketAddr::new(IpAddr::V4(ip), port)
+}
