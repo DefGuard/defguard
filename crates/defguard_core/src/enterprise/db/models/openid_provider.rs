@@ -3,6 +3,7 @@ use std::fmt;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
+use utoipa::ToSchema;
 
 // The behavior when a user is deleted from the directory
 // Keep: Keep the user, despite being deleted from the external provider's directory
@@ -86,11 +87,24 @@ impl From<String> for DirectorySyncTarget {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
+#[sqlx(type_name = "openid_provider_kind")]
+pub enum OpenIdProviderKind {
+    Custom,
+    Google,
+    Microsoft,
+    Okta,
+    JumpCloud,
+    Zitadel,
+}
+
+#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize)]
 pub struct OpenIdProvider<I = NoId> {
     pub id: I,
     pub name: String,
     pub base_url: String,
+    #[model(enum)]
+    pub kind: OpenIdProviderKind,
     pub client_id: String,
     pub client_secret: String,
     pub display_name: Option<String>,
@@ -125,6 +139,7 @@ impl OpenIdProvider {
     pub fn new<S: Into<String>>(
         name: S,
         base_url: S,
+        kind: OpenIdProviderKind,
         client_id: S,
         client_secret: S,
         display_name: Option<String>,
@@ -146,6 +161,7 @@ impl OpenIdProvider {
             id: NoId,
             name: name.into(),
             base_url: base_url.into(),
+            kind,
             client_id: client_id.into(),
             client_secret: client_secret.into(),
             display_name,
@@ -168,17 +184,17 @@ impl OpenIdProvider {
     pub(crate) async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
         if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
             query!(
-                "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, \
-                client_secret = $4, display_name = $5, google_service_account_key = $6, \
-                google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, \
-                directory_sync_interval = $10, directory_sync_user_behavior = $11, \
-                directory_sync_admin_behavior = $12, directory_sync_target = $13, \
-                okta_private_jwk = $14, okta_dirsync_client_id = $15, \
-                directory_sync_group_match = $16, jumpcloud_api_key = $17, \
-                prefetch_users = $18 \
-                WHERE id = $19",
+                "UPDATE openidprovider SET name = $1, base_url = $2, kind = $3, client_id = $4, \
+                client_secret = $5, display_name = $6, google_service_account_key = $7, \
+                google_service_account_email = $8, admin_email = $9, directory_sync_enabled = $10, \
+                directory_sync_interval = $11, directory_sync_user_behavior = $12, \
+                directory_sync_admin_behavior = $13, directory_sync_target = $14, \
+                okta_private_jwk = $15, okta_dirsync_client_id = $16, \
+                directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19 \
+                WHERE id = $20",
                 self.name,
                 self.base_url,
+                self.kind as OpenIdProviderKind,
                 self.client_id,
                 self.client_secret,
                 self.display_name,
@@ -214,7 +230,7 @@ impl OpenIdProvider<Id> {
     {
         query_as!(
             OpenIdProvider,
-            "SELECT id, name, base_url, client_id, client_secret, display_name, \
+            "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
             google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled,
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
@@ -233,7 +249,7 @@ impl OpenIdProvider<Id> {
     {
         query_as!(
             OpenIdProvider,
-            "SELECT id, name, base_url, client_id, client_secret, display_name, \
+            "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
             google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \

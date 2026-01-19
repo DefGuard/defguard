@@ -1,11 +1,13 @@
 use chrono::{Duration, Utc};
 use defguard_common::db::{
     Id,
-    models::{oauth2client::OAuth2Client, settings::OpenidUsernameHandling},
+    models::{oauth2client::OAuth2Client, settings::OpenIdUsernameHandling},
 };
 use defguard_core::{
     enterprise::{
-        db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+        },
         handlers::openid_providers::AddProviderData,
         license::{License, LicenseTier, set_cached_license},
     },
@@ -38,6 +40,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         name: "test".to_string(),
         // FIXME: this won't work offline.
         base_url: "https://accounts.google.com".to_string(),
+        kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
         display_name: Some("display_name".to_string()),
@@ -53,7 +56,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
@@ -140,6 +143,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
     let provider_data = AddProviderData {
         name: "Custom".into(),
         base_url: url,
+        kind: OpenIdProviderKind::Custom,
         client_id: openid_client.client_id.clone(),
         client_secret: openid_client.client_secret.clone(),
         display_name: Some("Defguard".to_string()),
@@ -155,7 +159,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };

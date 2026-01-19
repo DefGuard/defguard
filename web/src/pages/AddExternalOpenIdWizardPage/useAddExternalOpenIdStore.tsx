@@ -5,6 +5,8 @@ import {
   type AddOpenIdProvider,
   DirectorySyncBehavior,
   DirectorySyncTarget,
+  OpenIdProviderKind,
+  type OpenIdProviderKindValue,
   OpenIdProviderUsernameHandling,
 } from '../../shared/api/types';
 import {
@@ -13,7 +15,6 @@ import {
   jumpcloudProviderBaseUrl,
   SUPPORTED_SYNC_PROVIDERS,
 } from '../../shared/constants';
-import { ExternalProvider, type ExternalProviderValue } from '../settings/shared/types';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 
 type ProviderState = AddOpenIdProvider & {
@@ -21,7 +22,7 @@ type ProviderState = AddOpenIdProvider & {
 };
 
 interface StoreValues {
-  provider: ExternalProviderValue;
+  provider: OpenIdProviderKindValue;
   activeStep: AddExternalProviderStepValue;
   providerState: ProviderState;
   testResult: boolean | null;
@@ -29,38 +30,42 @@ interface StoreValues {
 }
 
 export const addExternalOpenIdStoreDefaults: StoreValues = {
-  provider: ExternalProvider.Custom,
+  provider: OpenIdProviderKind.Custom,
   activeStep: 'client-settings',
   testResult: null,
   testMessage: null,
   providerState: {
-    name: ExternalProvider.Custom,
-    display_name: '',
-    admin_email: '',
+    name: OpenIdProviderKind.Custom,
     base_url: '',
+    kind: OpenIdProviderKind.Custom,
     client_id: '',
     client_secret: '',
-    create_account: false,
-    microsoftTenantId: null,
-    directory_sync_group_match: null,
-    google_service_account_email: null,
+    display_name: '',
     google_service_account_key: null,
-    okta_dirsync_client_id: null,
-    okta_private_jwk: null,
-    jumpcloud_api_key: null,
+    google_service_account_email: null,
+    admin_email: '',
     directory_sync_enabled: false,
     directory_sync_interval: 600,
-    directory_sync_target: DirectorySyncTarget.All,
-    directory_sync_admin_behavior: DirectorySyncBehavior.Keep,
     directory_sync_user_behavior: DirectorySyncBehavior.Keep,
+    directory_sync_admin_behavior: DirectorySyncBehavior.Keep,
+    directory_sync_target: DirectorySyncTarget.All,
+    okta_private_jwk: null,
+    okta_dirsync_client_id: null,
+    directory_sync_group_match: null,
+    jumpcloud_api_key: null,
     prefetch_users: false,
+
+    // Core settings
+    create_account: false,
     username_handling: OpenIdProviderUsernameHandling.RemoveForbidden,
+
+    microsoftTenantId: null,
   },
 };
 
 interface Store extends StoreValues {
   reset: () => void;
-  initialize: (provider: ExternalProviderValue) => void;
+  initialize: (provider: OpenIdProviderKindValue) => void;
   next: (data?: Partial<StoreValues['providerState']>) => void;
   back: (data?: Partial<StoreValues['providerState']>) => void;
 }
@@ -115,24 +120,24 @@ export const useAddExternalOpenIdStore = create<Store>()(
       initialize: (provider) => {
         const initialProviderState = addExternalOpenIdStoreDefaults.providerState;
         initialProviderState.name = provider;
-        if (provider !== ExternalProvider.Custom) {
+        initialProviderState.kind = provider;
+        if (provider !== OpenIdProviderKind.Custom) {
           initialProviderState.display_name = externalProviderName[provider];
         }
         switch (provider) {
-          case 'google':
+          case 'Google':
             initialProviderState.base_url = googleProviderBaseUrl;
             break;
-          case 'microsoft':
+          case 'Microsoft':
             break;
-          case 'jumpCloud':
+          case 'JumpCloud':
             initialProviderState.base_url = jumpcloudProviderBaseUrl;
             break;
-          case 'okta':
+          case 'Okta':
             break;
         }
         set({
           activeStep: 'client-settings',
-          provider,
           providerState: initialProviderState,
         });
       },

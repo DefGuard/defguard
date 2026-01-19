@@ -1,0 +1,61 @@
+.ip-assignment-device-section {
+  & > .top-track {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: 1fr;
+    column-gap: var(--spacing-md);
+    padding-bottom: var(--spacing-lg);
+    user-select: none;
+    align-items: center;
+
+    .device-name {
+      font: var(--t-body-sm-400);
+      color: var(--fg-default);
+    }
+  }
+
+  & > .inputs-track {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: 1fr;
+
+    & > .lines {
+      display: flex;
+      flex-flow: column;
+      row-gap: 8px;
+      position: relative;
+      user-select: none;
+
+      & > .line {
+        position: relative;
+
+        svg {
+          position: absolute;
+          top: 12px;
+          left: 0;
+        }
+      }
+
+      & > .main-line {
+        background-color: var(--border-muted);
+        width: 1px;
+        position: absolute;
+        inset: 0;
+      }
+    }
+
+    & > .inputs {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-sm);
+      overflow: hidden;
+
+      .field-error {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+    }
+  }
+}

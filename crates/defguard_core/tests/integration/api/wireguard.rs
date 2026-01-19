@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{
         Device, WireguardNetwork,
         device::WireguardNetworkDevice,
-        settings::OpenidUsernameHandling,
+        settings::OpenIdUsernameHandling,
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
             ServiceLocationMode,
@@ -14,7 +14,9 @@ use defguard_common::db::{
 };
 use defguard_core::{
     enterprise::{
-        db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+        },
         handlers::openid_providers::AddProviderData,
         license::{get_cached_license, set_cached_license},
     },
@@ -177,6 +179,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
     let provider_data = AddProviderData {
         name: "test".to_string(),
         base_url: "https://accounts.google.com".to_string(),
+        kind: OpenIdProviderKind::Custom,
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
         display_name: Some("display_name".to_string()),
@@ -192,7 +195,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
@@ -275,6 +278,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
     let provider_data = AddProviderData {
         name: "test".to_string(),
         base_url: "https://accounts.google.com".to_string(),
+        kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
         display_name: Some("display_name".to_string()),
@@ -290,7 +294,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
