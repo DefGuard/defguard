@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa, state \"state: VpnClientSessionState\" FROM vpn_client_session WHERE location_id = $1 AND device_id = $2",
+  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" FROM vpn_client_session WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
   "describe": {
     "columns": [
       {
@@ -40,8 +40,19 @@
       },
       {
         "ordinal": 7,
-        "name": "mfa",
-        "type_info": "Bool"
+        "name": "mfa_mode: LocationMfaMode",
+        "type_info": {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
       },
       {
         "ordinal": 8,
@@ -62,7 +73,6 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -78,5 +88,5 @@
       false
     ]
   },
-  "hash": "495cf0ba3efac4da8a3a8daa79851cfa6f6df1f5b5f1e8b9f7ceb3850a85358f"
+  "hash": "1815955c24b6178c653bd7a0e4a18dde89c59df69ede331ea25d3dbac93bc5b8"
 }

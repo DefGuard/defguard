@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" FROM vpn_client_session WHERE location_id = $1 AND state = 'new' AND (NOW() - created_at) > $2 * interval '1 second'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "disconnected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "mfa_mode: LocationMfaMode",
+        "type_info": {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "state: VpnClientSessionState",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e9bfbd2e39ddc1cc0f95258cbd711fa4ea8d63de6e7bd7a0f5cf41119cb3bf86"
+}

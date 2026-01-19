@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"vpn_client_session\" (\"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"mfa\",\"state\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "query": "INSERT INTO \"vpn_client_session\" (\"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"mfa_mode\",\"state\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -17,7 +17,18 @@
         "Timestamp",
         "Timestamp",
         "Timestamp",
-        "Bool",
+        {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        },
         {
           "Custom": {
             "name": "vpn_client_session_state",
@@ -36,5 +47,5 @@
       false
     ]
   },
-  "hash": "e980a3f10a2968960f8e727a305e9fe417a3f7f734adc81052a707e15d17ccc4"
+  "hash": "2ec4ae04a8cf90d7a062ce0b2c318bff70bed69bec930e7331c576073f612677"
 }
