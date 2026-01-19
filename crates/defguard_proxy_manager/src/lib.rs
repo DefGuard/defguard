@@ -35,7 +35,7 @@ use defguard_core::{
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload,
-    InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
+    InitialInfo, InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
     proxy_setup_client::ProxySetupClient,
 };
 use defguard_version::{
@@ -376,16 +376,7 @@ impl ProxyServer {
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
             let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
-            let mut request = tonic::Request::new(UnboundedReceiverStream::new(rx));
-            let config = server_config();
-
-            // Derive proxy cookie key from core secret to avoid transmitting it.
-            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
-            request.metadata_mut().insert_bin(
-                COOKIE_KEY_HEADER,
-                MetadataValue::from_bytes(proxy_cookie_key.master()),
-            );
-            let response = match client.bidi(request).await {
+            let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
                 Err(err) => {
                     match err.code() {
@@ -435,6 +426,23 @@ impl ProxyServer {
 
             info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
+
+            // Derive proxy cookie key from core secret to avoid transmitting it.
+            let config = server_config();
+            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
+			error!("### KEY: {:?}", proxy_cookie_key.master());
+            // request.metadata_mut().insert_bin(
+            //     COOKIE_KEY_HEADER,
+            //     MetadataValue::from_bytes(proxy_cookie_key.master()),
+            // );
+			let initial_info = InitialInfo {
+				private_cookies_key: proxy_cookie_key.master().to_vec(),
+			};
+			let req = CoreResponse {
+				id: 0,
+				payload: Some(core_response::Payload::InitialInfo(initial_info)),
+			};
+			let _ = tx.send(req);
             self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
         }
