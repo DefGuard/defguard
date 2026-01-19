@@ -2,7 +2,10 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{Error as SqlxError, Type, query_as};
 
-use crate::db::{Id, NoId, models::vpn_session_stats::VpnSessionStats};
+use crate::db::{
+    Id, NoId,
+    models::{WireguardNetwork, vpn_session_stats::VpnSessionStats},
+};
 
 #[derive(Default, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
@@ -95,5 +98,46 @@ impl VpnClientSession<Id> {
         )
         .fetch_optional(executor)
         .await
+    }
+
+    /// Fetch active sessions which have become inactive for a specific location
+    pub async fn get_inactive<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location: &WireguardNetwork<Id>,
+    ) -> Result<Vec<Self>, SqlxError> {
+        query_as!(
+    		Self,
+            "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
+	            mfa, state \"state: VpnClientSessionState\" \
+			FROM vpn_client_session s \
+			LEFT JOIN LATERAL ( \
+				SELECT latest_handshake \
+				FROM vpn_session_stats \
+				WHERE session_id = s.id \
+				ORDER BY collected_at DESC \
+				LIMIT 1 \
+			) ss ON true \
+			WHERE location_id = $1 AND state = 'connected' \
+            AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
+			location.id,
+			f64::from(location.peer_disconnect_threshold)
+    	).fetch_all(executor).await
+    }
+
+    /// Fetch sessions that were created but have not become `connected` within the disconnect threshold
+    pub async fn get_never_connected<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location: &WireguardNetwork<Id>,
+    ) -> Result<Vec<Self>, SqlxError> {
+        query_as!(
+    		Self,
+            "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
+	            mfa, state \"state: VpnClientSessionState\" \
+			FROM vpn_client_session \
+			WHERE location_id = $1 AND state = 'new' \
+            AND (NOW() - created_at) > $2 * interval '1 second'",
+			location.id,
+			f64::from(location.peer_disconnect_threshold)
+    	).fetch_all(executor).await
     }
 }

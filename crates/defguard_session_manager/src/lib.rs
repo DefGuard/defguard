@@ -1,4 +1,7 @@
-use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
+use defguard_common::{
+    db::models::{WireguardNetwork, vpn_client_session::VpnClientSession},
+    messages::peer_stats_update::PeerStatsUpdate,
+};
 use sqlx::{PgConnection, PgPool};
 use tokio::{
     sync::mpsc::UnboundedReceiver,
@@ -136,9 +139,51 @@ impl SessionManager {
         Ok(())
     }
 
+    /// Disconnect all inactive sessions
+    ///
+    /// A session is considered inactive once more than the configured `peer_disconnect_threshold`
+    /// has elapsed since the last registered handshake has ocurred.
+    /// This threshold is specified per location.
     async fn update_inactive_session_status(&self) -> Result<(), SessionManagerError> {
-        // TODO(mwojcik): actually implement this logic
-        debug!("Disconnecting inactive VPN sessions");
+        info!("Disconnecting inactive VPN sessions");
+
+        // begin DB transaction
+        let mut transaction = self.pool.begin().await?;
+
+        // get all locations
+        let locations = WireguardNetwork::all(&mut *transaction).await?;
+        let locations_count = locations.len();
+
+        for (index, location) in locations.into_iter().enumerate() {
+            debug!(
+                "[{index}/{locations_count}] Disconnecting inactive sessions in location {location}"
+            );
+
+            // get all connected sessions which have become inactive
+            let inactive_sessions =
+                VpnClientSession::get_inactive(&mut *transaction, &location).await?;
+
+            debug!(
+                "Found {} inactive VPN sessions in location {location}",
+                inactive_sessions.len()
+            );
+
+            // get all sessions which were created but have never connected
+            // this is only relevant for MFA locations
+            let unused_sessions =
+                VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
+
+            debug!(
+                "Found {} new VPN sessions which have not connected within required time in location {location}",
+                unused_sessions.len()
+            );
+        }
+
+        // commit DB transaction after processing all inactive sessions
+        transaction.commit().await?;
+
+        debug!("Finished processing inactive VPN sessions");
+
         Ok(())
     }
 }
