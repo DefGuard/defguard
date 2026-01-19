@@ -5,17 +5,17 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import { EmptyState } from '../../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { businessPlanBadgeProps } from '../shared/consts';
 import './style.scss';
+import { m } from '../../../paraglide/messages';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
+import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
-import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
-import { EditLogStreamingModal } from './modals/EditDestinationModal/EditLogStreamingModal';
-import { DeleteLogStreamingModal } from './modals/DeleteDestinationModal/DeleteLogStreamingModal';
 import { getActivityLogStreamsQueryOptions } from '../../../shared/query';
 import { ActivityLogStreamTable } from './ActivityLogStreamTable';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { m } from '../../../paraglide/messages';
+import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
+import { DeleteLogStreamingModal } from './modals/DeleteDestinationModal/DeleteLogStreamingModal';
+import { EditLogStreamingModal } from './modals/EditDestinationModal/EditLogStreamingModal';
 
 export const SettingsActivityLogStreamingPage = () => {
   const { data: streams } = useQuery(getActivityLogStreamsQueryOptions);

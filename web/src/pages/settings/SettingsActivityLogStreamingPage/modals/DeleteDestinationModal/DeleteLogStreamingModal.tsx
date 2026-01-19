@@ -7,11 +7,11 @@ import { AppText } from '../../../../../shared/defguard-ui/components/AppText/Ap
 import { Modal } from '../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { TextStyle } from '../../../../../shared/defguard-ui/types';
-import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 
 const modalNameValue = ModalName.DeleteLogStreaming;
 

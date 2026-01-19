@@ -494,10 +494,11 @@ export interface NetworkLocation {
   service_location_mode: LocationServiceModeValue;
 }
 
-export interface EditNetworkLocation extends Omit<
-  NetworkLocation,
-  'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
-> {
+export interface EditNetworkLocation
+  extends Omit<
+    NetworkLocation,
+    'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
+  > {
   allowed_ips: string;
   address: string;
 }

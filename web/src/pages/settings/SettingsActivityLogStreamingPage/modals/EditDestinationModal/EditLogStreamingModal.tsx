@@ -4,8 +4,8 @@ import z from 'zod';
 import { m } from '../../../../../paraglide/messages';
 import api from '../../../../../shared/api/api';
 import {
-  ActivityLogStreamType,
   type ActivityLogStream,
+  ActivityLogStreamType,
   type CreateActivityLogStreamRequest,
 } from '../../../../../shared/api/types';
 import { Modal } from '../../../../../shared/defguard-ui/components/Modal/Modal';
@@ -15,11 +15,11 @@ import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
-import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 
 const modalNameValue = ModalName.EditLogStreaming;
 

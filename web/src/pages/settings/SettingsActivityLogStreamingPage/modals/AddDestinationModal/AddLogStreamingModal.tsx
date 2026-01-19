@@ -14,11 +14,11 @@ import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
-import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 
 const modalNameValue = ModalName.AddLogStreaming;
 
@@ -68,9 +68,9 @@ export const AddLogStreamingModal = () => {
       afterClose={() => setModalState(defaultState)}
     >
       {modalState.step === 'choice' && <ChoiceStep setModalState={setModalState} />}
-      {modalState.step === 'form' && (
+      {modalState.step === 'form' && modalState.destination && (
         <FormStep
-          destination={modalState.destination!}
+          destination={modalState.destination}
           setOpen={setOpen}
           setModalState={setModalState}
         />
