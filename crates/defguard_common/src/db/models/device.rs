@@ -1004,7 +1004,7 @@ impl Device<Id> {
         location_id: Id,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
         query_scalar!(
-            "SELECT connected_at FROM vpn_client_session \
+            "SELECT connected_at \"connected_at!\" FROM vpn_client_session \
     		WHERE location_id = $1 AND device_id = $2 AND connected_at IS NOT NULL \
     		ORDER BY connected_at DESC LIMIT 1",
             location_id,
