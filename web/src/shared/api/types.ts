@@ -869,6 +869,33 @@ export interface ActivityLogEvent {
   description?: string;
 }
 
+export const ActivityLogStreamType = {
+  VectorHttp: 'vector_http',
+  LogstashHttp: 'logstash_http',
+} as const;
+
+export type ActivityLogStreamTypeValue =
+  (typeof ActivityLogStreamType)[keyof typeof ActivityLogStreamType];
+
+export interface ActivityLogStream {
+  id: number;
+  name: string;
+  stream_type: ActivityLogStreamTypeValue;
+  config: ActivityLogStreamConfig;
+}
+export interface CreateActivityLogStreamRequest {
+  name: string;
+  stream_type: ActivityLogStreamTypeValue;
+  stream_config: ActivityLogStreamConfig;
+}
+
+export interface ActivityLogStreamConfig {
+  url: string;
+  username?: string;
+  password?: string;
+  cert?: string;
+}
+
 export type ActivityLogSortKey =
   | 'timestamp'
   | 'username'

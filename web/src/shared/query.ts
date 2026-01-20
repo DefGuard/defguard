@@ -149,3 +149,9 @@ export const getLicenseInfoQueryOptions = queryOptions({
   queryKey: ['enterprise_info'],
   select: (response) => response.data.license_info,
 });
+
+export const getActivityLogStreamsQueryOptions = queryOptions({
+  queryFn: api.activityLogStream.getStreams,
+  queryKey: ['activity_log_stream'],
+  select: (resp) => resp.data,
+});
