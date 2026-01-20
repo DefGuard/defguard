@@ -7,6 +7,7 @@ import type {
   AclRule,
   ActivityLogEvent,
   ActivityLogRequestParams,
+  ActivityLogStream,
   AddAclAliasRequest,
   AddAclRuleRequest,
   AddApiTokenRequest,
@@ -29,6 +30,7 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CreateActivityLogStreamRequest,
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
@@ -375,6 +377,14 @@ const api = {
         }),
       deleteRule: (ruleId: number | string) => client.delete(`/acl/rule/${ruleId}`),
     },
+  },
+  activityLogStream: {
+    getStreams: () => client.get<ActivityLogStream[]>('/activity_log_stream'),
+    createStream: (data: CreateActivityLogStreamRequest) =>
+      client.post('/activity_log_stream', data),
+    updateStream: (id: number, data: CreateActivityLogStreamRequest) =>
+      client.put(`/activity_log_stream/${id}`, data),
+    deleteStream: (id: number) => client.delete(`/activity_log_stream/${id}`),
   },
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client

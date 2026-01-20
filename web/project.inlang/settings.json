@@ -1,9 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/project-settings",
   "baseLocale": "en",
-  "locales": [
-    "en"
-  ],
+  "locales": ["en"],
   "modules": [
     "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@latest/dist/index.js"
   ],
@@ -19,7 +17,8 @@
       "./messages/{locale}/webhooks.json",
       "./messages/{locale}/groups.json",
       "./messages/{locale}/openid.json",
-      "./messages/{locale}/activity.json"
+      "./messages/{locale}/activity.json",
+      "./messages/{locale}/settings.json"
     ]
   }
 }
