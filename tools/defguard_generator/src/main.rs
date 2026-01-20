@@ -1,30 +1,10 @@
-use anyhow::{Context, Result};
-use chrono::{Duration, NaiveDateTime, Utc};
-use clap::{Arg, ArgAction, Command, Parser, Subcommand, arg};
-use defguard_common::db::{
-    Id, init_db,
-    models::{
-        WireguardNetwork,
-        vpn_client_session::{VpnClientSession, VpnClientSessionState},
-        vpn_session_stats::VpnSessionStats,
-    },
-    setup_pool,
-};
+use anyhow::Result;
+use clap::{Parser, Subcommand};
+use defguard_common::db::{Id, init_db};
 use defguard_generator::vpn_session_stats::{
     VpnSessionGeneratorConfig, generate_vpn_session_stats,
 };
-use rand::Rng;
-use sqlx::{PgPool, postgres::PgPoolOptions};
-use tracing::{Level, info};
-
-#[derive(Debug)]
-struct GeneratorConfig {
-    users: usize,
-    devices_per_user: usize,
-    sessions_per_device: usize,
-    network_id: Id,
-    database_url: String,
-}
+use tracing::Level;
 
 #[derive(Parser)]
 #[command(about, long_about = None)]

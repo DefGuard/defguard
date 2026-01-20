@@ -22,7 +22,7 @@ pub async fn prepare_user_devices(
             "Found {} existing devices for user {user} in the database. Using the required number.",
             user_devices.len()
         );
-        return Ok(user_devices[..(devices_per_user as usize)].to_vec());
+        return Ok(user_devices[..devices_per_user].to_vec());
     }
 
     // if there are not enough users create new ones

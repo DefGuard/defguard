@@ -5,7 +5,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use defguard_common::db::{
     Id,
     models::{
-        Device, User, WireguardNetwork,
+        WireguardNetwork,
         gateway::Gateway,
         vpn_client_session::{VpnClientSession, VpnClientSessionState},
         vpn_session_stats::VpnSessionStats,
@@ -87,7 +87,7 @@ pub async fn generate_vpn_session_stats(
                 }
 
                 generate_mock_session_stats(
-                    &mut *transaction,
+                    &mut transaction,
                     &mut rng,
                     session.id,
                     gateway.id,
@@ -97,7 +97,7 @@ pub async fn generate_vpn_session_stats(
                 .await?;
 
                 // update end timestamp for next session
-                session_end = session_end - Duration::minutes(rng.gen_range(30..120));
+                session_end -= Duration::minutes(rng.gen_range(30..120));
             }
         }
         transaction.commit().await?;
@@ -140,9 +140,9 @@ async fn generate_mock_session_stats(
     while collected_at <= session_end {
         // generate traffic
         let upload_diff = rng.gen_range(100..100_000);
-        total_upload = total_upload + upload_diff;
+        total_upload += upload_diff;
         let download_diff = rng.gen_range(100..100_000);
-        total_download = total_download + download_diff;
+        total_download += download_diff;
 
         VpnSessionStats::new(
             session_id,
@@ -159,7 +159,7 @@ async fn generate_mock_session_stats(
         .await?;
 
         // update variables for next sample
-        collected_at = collected_at + STATS_COLLECTION_INTERVAL;
+        collected_at += STATS_COLLECTION_INTERVAL;
 
         // update handshake if necessary
         if collected_at > next_handshake {

@@ -20,7 +20,7 @@ pub async fn prepare_users(
             "Found {} existing users in the database. Using the required number.",
             all_users.len()
         );
-        return Ok(all_users[..(num_users as usize)].to_vec());
+        return Ok(all_users[..num_users].to_vec());
     }
 
     // if there are not enough users create new ones
