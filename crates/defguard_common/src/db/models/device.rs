@@ -106,10 +106,10 @@ impl fmt::Display for Device<Id> {
     }
 }
 
-impl Distribution<Device<Id>> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
+impl Distribution<Device> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device {
         Device {
-            id: rng.r#gen(),
+            id: NoId,
             name: Alphanumeric.sample_string(rng, 8),
             wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
             user_id: rng.r#gen(),
