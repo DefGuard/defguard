@@ -18,6 +18,12 @@ CREATE TABLE vpn_client_session (
     FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     FOREIGN KEY (device_id) REFERENCES device(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_vpn_client_session_user_id ON vpn_client_session(user_id);
+CREATE INDEX idx_vpn_client_session_device_id ON vpn_client_session(device_id);
+CREATE INDEX idx_vpn_client_session_location_id ON vpn_client_session(location_id);
+CREATE INDEX idx_vpn_client_session_state ON vpn_client_session(state);
+CREATE INDEX idx_vpn_client_session_created_at ON vpn_client_session(created_at DESC);
+CREATE INDEX idx_vpn_client_session_connected_at ON vpn_client_session(connected_at DESC);
 
 CREATE TABLE vpn_session_stats (
     id bigserial PRIMARY KEY,
@@ -33,3 +39,8 @@ CREATE TABLE vpn_session_stats (
     FOREIGN KEY (session_id) REFERENCES vpn_client_session(id) ON DELETE CASCADE,
     FOREIGN KEY (gateway_id) REFERENCES gateway(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_vpn_session_stats_session_id ON vpn_session_stats(session_id);
+CREATE INDEX idx_vpn_session_stats_gateway_id ON vpn_session_stats(gateway_id);
+CREATE INDEX idx_vpn_session_stats_collected_at ON vpn_session_stats(collected_at DESC);
+CREATE INDEX idx_vpn_session_stats_latest_handshake ON vpn_session_stats(latest_handshake DESC);
+CREATE INDEX idx_vpn_session_stats_session_collected ON vpn_session_stats(session_id, collected_at DESC);
