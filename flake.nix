@@ -10,6 +10,17 @@
         nixpkgs.follows = "nixpkgs";
       };
     };
+
+    # let git manage submodules
+    self.submodules = true;
+    proto = {
+      url = "path:proto";
+      flake = false;
+    };
+    defguard-ui = {
+      url = "path:web/src/shared/defguard-ui";
+      flake = false;
+    };
   };
 
   outputs = {

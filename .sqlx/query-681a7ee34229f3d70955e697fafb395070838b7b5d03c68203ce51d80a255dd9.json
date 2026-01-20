@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", d.configured FROM device d JOIN wireguard_peer_stats s ON d.id = s.device_id WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = $3",
+  "query": "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", d.configured FROM device d JOIN vpn_client_session s ON d.id = s.device_id WHERE s.state = 'connected' AND s.location_id = $1 AND d.device_type = $2",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,6 @@
     ],
     "parameters": {
       "Left": [
-        "Timestamp",
         "Int8",
         {
           "Custom": {
@@ -82,5 +81,5 @@
       false
     ]
   },
-  "hash": "9d11c1fcb305f13f6141c89a3309f61e8f3fcfbbaa41a988aca381a89fc66ecc"
+  "hash": "681a7ee34229f3d70955e697fafb395070838b7b5d03c68203ce51d80a255dd9"
 }

@@ -12,7 +12,7 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as,
+    postgres::types::PgInterval, query, query_as, query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, error, info};
@@ -996,6 +996,22 @@ impl Device<Id> {
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await
+    }
+
+    pub async fn last_connected_at<'e, E: PgExecutor<'e>>(
+        &self,
+        executor: E,
+        location_id: Id,
+    ) -> Result<Option<NaiveDateTime>, SqlxError> {
+        query_scalar!(
+            "SELECT connected_at \"connected_at!\" FROM vpn_client_session \
+    		WHERE location_id = $1 AND device_id = $2 AND connected_at IS NOT NULL \
+    		ORDER BY connected_at DESC LIMIT 1",
+            location_id,
+            self.id
+        )
+        .fetch_optional(executor)
+        .await
     }
 }
 

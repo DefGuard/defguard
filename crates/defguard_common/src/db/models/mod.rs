@@ -15,6 +15,8 @@ pub mod proxy;
 pub mod session;
 pub mod settings;
 pub mod user;
+pub mod vpn_client_session;
+pub mod vpn_session_stats;
 pub mod webauthn;
 pub mod wireguard;
 pub mod wireguard_peer_stats;

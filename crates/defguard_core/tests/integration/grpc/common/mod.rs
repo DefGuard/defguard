@@ -1,7 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use axum::http::Uri;
-use defguard_common::db::models::settings::initialize_current_settings;
+use defguard_common::{
+    db::models::settings::initialize_current_settings, messages::peer_stats_update::PeerStatsUpdate,
+};
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
@@ -36,6 +38,8 @@ pub struct TestGrpcServer {
     wireguard_tx: Sender<GatewayEvent>,
     client_state: Arc<Mutex<ClientMap>>,
     pub client_channel: Channel,
+    #[allow(dead_code)]
+    peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
 }
 
 impl TestGrpcServer {
@@ -47,6 +51,7 @@ impl TestGrpcServer {
         wireguard_tx: Sender<GatewayEvent>,
         client_state: Arc<Mutex<ClientMap>>,
         client_channel: Channel,
+        peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     ) -> Self {
         // spawn test gRPC server
         let grpc_server_task_handle = tokio::spawn(async move {
@@ -63,6 +68,7 @@ impl TestGrpcServer {
             wireguard_tx,
             client_state,
             client_channel,
+            peer_stats_rx,
         }
     }
 
@@ -119,6 +125,8 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     let worker_state = Arc::new(Mutex::new(WorkerState::new(app_event_tx.clone())));
     let (wg_tx, _wg_rx) = broadcast::channel::<GatewayEvent>(16);
     let (mail_tx, _mail_rx) = unbounded_channel::<Mail>();
+    let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
+    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     let failed_logins = FailedLoginMap::new();
@@ -155,6 +163,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
         wg_tx,
         client_state,
         client_channel,
+        peer_stats_rx,
     )
     .await
 }

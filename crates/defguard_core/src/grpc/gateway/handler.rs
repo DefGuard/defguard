@@ -18,6 +18,7 @@ use defguard_common::{
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_mail::Mail;
 use defguard_proto::gateway::{
@@ -40,9 +41,10 @@ use tonic::transport::{Certificate, ClientTlsConfig, Endpoint};
 
 use crate::{
     enterprise::firewall::try_get_location_firewall_config,
+    events::GrpcRequestContext,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
-        gateway::{GatewayError, GrpcRequestContext, events::GatewayEvent, get_peers},
+        gateway::{GatewayError, events::GatewayEvent, get_peers, try_protos_into_stats_message},
     },
     handlers::mail::send_gateway_disconnected_email,
 };
@@ -94,6 +96,7 @@ pub(crate) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 }
 
 impl GatewayHandler {
@@ -104,6 +107,7 @@ impl GatewayHandler {
         events_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         grpc_event_tx: UnboundedSender<GrpcEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url).map_err(|err| {
             GatewayError::EndpointError(format!(
@@ -121,6 +125,7 @@ impl GatewayHandler {
             events_tx,
             mail_tx,
             grpc_event_tx,
+            peer_stats_tx,
         })
     }
 
@@ -515,7 +520,7 @@ impl GatewayHandler {
                                 if !config_sent {
                                     warn!(
                                         "Ignoring peer statistics from {} because it hasn't \
-                                        authorize itself",
+                                        authorized itself",
                                         self.gateway
                                     );
                                     continue;
@@ -553,7 +558,7 @@ impl GatewayHandler {
 
                                 // Convert stats to database storage format.
                                 let stats = peer_stats_from_proto(
-                                    peer_stats,
+                                    peer_stats.clone(),
                                     self.gateway.network_id,
                                     device_id,
                                 );
@@ -657,6 +662,28 @@ impl GatewayHandler {
                                         });
                                     }
                                 }
+
+                                // convert stats to DB storage format
+                                match try_protos_into_stats_message(
+                                    peer_stats.clone(),
+                                    self.gateway.network_id,
+                                    self.gateway.id,
+                                    device_id,
+                                ) {
+                                    None => {
+                                        warn!(
+                                            "Failed to parse peer stats update. Skipping sending message to session manager."
+                                        )
+                                    }
+                                    Some(message) => {
+                                        if let Err(err) = self.peer_stats_tx.send(message) {
+                                            error!(
+                                                "Failed to send peers stats update to session manager: {err}"
+                                            );
+                                            continue;
+                                        };
+                                    }
+                                };
 
                                 // Save stats to database.
                                 let stats = match stats.save(&self.pool).await {

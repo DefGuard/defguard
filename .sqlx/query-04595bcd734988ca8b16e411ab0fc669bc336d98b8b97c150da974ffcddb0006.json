@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"vpn_session_stats\" SET \"session_id\" = $2,\"gateway_id\" = $3,\"collected_at\" = $4,\"latest_handshake\" = $5,\"endpoint\" = $6,\"total_upload\" = $7,\"total_download\" = $8,\"upload_diff\" = $9,\"download_diff\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Timestamp",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "04595bcd734988ca8b16e411ab0fc669bc336d98b8b97c150da974ffcddb0006"
+}
