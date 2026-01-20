@@ -44,7 +44,7 @@ pub async fn generate_vpn_session_stats(
 
     // prepare requested number of users
     let user_count = config.num_users as usize;
-    let users = prepare_users(&pool, user_count).await?;
+    let users = prepare_users(&pool, &mut rng, user_count).await?;
 
     // generate sessions for each user
     for (i, user) in users.into_iter().enumerate() {
@@ -54,7 +54,8 @@ pub async fn generate_vpn_session_stats(
         let mut transaction = pool.begin().await?;
 
         // prepare requested number of devices
-        let devices = prepare_user_devices(&pool, &user, config.devices_per_user).await?;
+        let devices =
+            prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
 
         for device in devices {
             // generate requested number of sessions for a device
