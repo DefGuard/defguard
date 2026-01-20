@@ -425,17 +425,19 @@ impl ProxyServer {
             info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
 
-            // Derive proxy cookie key from core secret to avoid transmitting it.
+            // Derive proxy cookie key from core secret to avoid transmitting it over gRPC.
             let config = server_config();
             let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
+
+            // Send initial info with private cookies key.
             let initial_info = InitialInfo {
                 private_cookies_key: proxy_cookie_key.master().to_vec(),
             };
-            let req = CoreResponse {
+            let _ = tx.send(CoreResponse {
                 id: 0,
                 payload: Some(core_response::Payload::InitialInfo(initial_info)),
-            };
-            let _ = tx.send(req);
+            });
+
             self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
         }
