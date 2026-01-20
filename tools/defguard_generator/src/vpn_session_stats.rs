@@ -34,6 +34,10 @@ pub async fn generate_vpn_session_stats(
 ) -> Result<()> {
     let mut rng = rand::thread_rng();
 
+    // clear sessions & stats tables
+    info!("Clearing existing sessions & stats");
+    truncate_with_restart(&pool).await?;
+
     // fetch specified location
     let location = WireguardNetwork::find_by_id(&pool, config.location_id)
         .await?
@@ -102,6 +106,16 @@ pub async fn generate_vpn_session_stats(
         }
         transaction.commit().await?;
     }
+
+    Ok(())
+}
+
+/// Remove all records from sessions & stats tables.
+/// This also resets the auto-incrementing sequences
+async fn truncate_with_restart(pool: &PgPool) -> Result<()> {
+    sqlx::query("TRUNCATE TABLE vpn_client_session RESTART IDENTITY CASCADE")
+        .execute(pool)
+        .await?;
 
     Ok(())
 }
