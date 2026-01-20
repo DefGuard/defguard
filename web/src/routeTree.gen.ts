@@ -279,7 +279,6 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
@@ -314,14 +313,13 @@ export interface FileRoutesByFullPath {
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
-  '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
-  '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/settings': typeof AuthorizedDefaultSettingsIndexRoute
+  '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
@@ -408,7 +406,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/404'
-    | '/'
     | '/auth'
     | '/consent'
     | '/playground'
@@ -443,14 +440,13 @@ export interface FileRouteTypes {
     | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
-    | '/locations/'
-    | '/settings/'
-    | '/vpn-overview/'
+    | '/locations'
+    | '/settings'
+    | '/vpn-overview'
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
-    | '/'
     | '/consent'
     | '/playground'
     | '/snackbar'
@@ -575,7 +571,7 @@ declare module '@tanstack/react-router' {
     '/_authorized': {
       id: '/_authorized'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof AuthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -624,7 +620,7 @@ declare module '@tanstack/react-router' {
     '/_authorized/_default': {
       id: '/_authorized/_default'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof AuthorizedDefaultRouteImport
       parentRoute: typeof AuthorizedRoute
     }
@@ -722,21 +718,21 @@ declare module '@tanstack/react-router' {
     '/_authorized/_default/vpn-overview/': {
       id: '/_authorized/_default/vpn-overview/'
       path: '/vpn-overview'
-      fullPath: '/vpn-overview/'
+      fullPath: '/vpn-overview'
       preLoaderRoute: typeof AuthorizedDefaultVpnOverviewIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/settings/': {
       id: '/_authorized/_default/settings/'
       path: '/settings'
-      fullPath: '/settings/'
+      fullPath: '/settings'
       preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
-      fullPath: '/locations/'
+      fullPath: '/locations'
       preLoaderRoute: typeof AuthorizedDefaultLocationsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
