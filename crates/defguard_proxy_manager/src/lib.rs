@@ -58,7 +58,6 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     Code, Streaming,
-    metadata::MetadataValue,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 
@@ -73,7 +72,6 @@ extern crate tracing;
 const TEN_SECS: Duration = Duration::from_secs(10);
 const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
-static COOKIE_KEY_HEADER: &str = "dg-cookie-key-bin";
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Scheme {
@@ -430,19 +428,14 @@ impl ProxyServer {
             // Derive proxy cookie key from core secret to avoid transmitting it.
             let config = server_config();
             let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
-			error!("### KEY: {:?}", proxy_cookie_key.master());
-            // request.metadata_mut().insert_bin(
-            //     COOKIE_KEY_HEADER,
-            //     MetadataValue::from_bytes(proxy_cookie_key.master()),
-            // );
-			let initial_info = InitialInfo {
-				private_cookies_key: proxy_cookie_key.master().to_vec(),
-			};
-			let req = CoreResponse {
-				id: 0,
-				payload: Some(core_response::Payload::InitialInfo(initial_info)),
-			};
-			let _ = tx.send(req);
+            let initial_info = InitialInfo {
+                private_cookies_key: proxy_cookie_key.master().to_vec(),
+            };
+            let req = CoreResponse {
+                id: 0,
+                payload: Some(core_response::Payload::InitialInfo(initial_info)),
+            };
+            let _ = tx.send(req);
             self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
                 .await?;
         }
