@@ -55,8 +55,8 @@ pub async fn generate_firewall_rules_from_acls(
     let location = WireguardNetwork::find_by_id(&mut *conn, location_id)
         .await?
         .ok_or(ModelError::NotFound)?;
-    let has_ipv4_addresses = location.address.iter().any(IpNetwork::is_ipv4);
-    let has_ipv6_addresses = location.address.iter().any(IpNetwork::is_ipv6);
+    let location_has_ipv4_addresses = location.address.iter().any(IpNetwork::is_ipv4);
+    let location_has_ipv6_addresses = location.address.iter().any(IpNetwork::is_ipv6);
 
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
@@ -148,8 +148,9 @@ pub async fn generate_firewall_rules_from_acls(
 
         // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
         // at this point component aliases have been added to the manual config so they don't need to be handled separately
-        let has_no_manual_destination = dest_addrs_v4.is_empty()
-            && dest_addrs_v6.is_empty()
+        let has_v4_destination = !dest_addrs_v4.is_empty();
+        let has_v6_destination = !dest_addrs_v6.is_empty();
+        let has_no_manual_destination = !(has_v4_destination || has_v6_destination)
             && destination_ports.is_empty()
             && protocols.is_empty();
         let has_destination_aliases = !destination_aliases.is_empty();
@@ -157,7 +158,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         if !is_destination_alias_only_rule {
             let comment = format!("ACL {} - {}", acl.id, acl.name);
-            if has_ipv4_addresses {
+            if location_has_ipv4_addresses && has_v4_destination {
                 // create IPv4 rules
                 let ipv4_rules = create_rules(
                     acl.id,
@@ -174,7 +175,7 @@ pub async fn generate_firewall_rules_from_acls(
                 deny_rules.push(ipv4_rules.1);
             }
 
-            if has_ipv6_addresses {
+            if location_has_ipv6_addresses && has_v6_destination {
                 // create IPv6 rules
                 let ipv6_rules = create_rules(
                     acl.id,
@@ -222,7 +223,7 @@ pub async fn generate_firewall_rules_from_acls(
                 "ACL {} - {}, ALIAS {} - {}",
                 acl.id, acl.name, alias.id, alias.name
             );
-            if has_ipv4_addresses {
+            if location_has_ipv4_addresses {
                 // create IPv4 rules
                 let ipv4_rules = create_rules(
                     alias.id,
@@ -239,7 +240,7 @@ pub async fn generate_firewall_rules_from_acls(
                 deny_rules.push(ipv4_rules.1);
             }
 
-            if has_ipv6_addresses {
+            if location_has_ipv6_addresses {
                 // create IPv6 rules
                 let ipv6_rules = create_rules(
                     alias.id,

@@ -179,14 +179,37 @@ pub struct AclRuleInfo<I = NoId> {
     pub protocols: Vec<Protocol>,
 }
 
+/// Constructs a [`String`] of comma-separated addresses.
+fn format_destination(destination: &[IpNetwork]) -> String {
+    match destination {
+        [] => String::new(),
+        d => d
+            .iter()
+            .map(|a| {
+                let mut addr_string = a.to_string() + ", ";
+                if a.is_ipv4() {
+                    addr_string = addr_string.replace("/32", "");
+                };
+                addr_string
+            })
+            .collect::<String>(),
+    }
+}
+/// Constructs a [`String`] of comma-separated ports and port ranges.
+fn format_ports(ports: &[PortRange]) -> String {
+    ports
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 impl<I> AclRuleInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges.
     pub(crate) fn format_destination(&self) -> String {
-        // process single addresses
-        let addrs = match &self.destination {
-            d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
-        };
+        // process single addresses and subnets
+        let addrs = format_destination(&self.destination);
+
         // process address ranges
         let ranges = match &self.destination_ranges {
             r if r.is_empty() => String::new(),
@@ -195,8 +218,8 @@ impl<I> AclRuleInfo<I> {
             }),
         };
 
-        // remove full mask from resulting string
-        let destination = (addrs + &ranges).replace("/32", "");
+        // combine resulting strings
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
@@ -207,11 +230,7 @@ impl<I> AclRuleInfo<I> {
 
     /// Constructs a [`String`] of comma-separated ports and port ranges.
     pub(crate) fn format_ports(&self) -> String {
-        self.ports
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ")
+        format_ports(&self.ports)
     }
 }
 
@@ -1365,11 +1384,9 @@ pub struct AclAliasInfo<I = NoId> {
 impl<I> AclAliasInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges
     pub fn format_destination(&self) -> String {
-        // process single addresses
-        let addrs = match &self.destination {
-            d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
-        };
+        // process single addresses and subnets
+        let addrs = format_destination(&self.destination);
+
         // process address ranges
         let ranges = match &self.destination_ranges {
             r if r.is_empty() => String::new(),
@@ -1378,8 +1395,8 @@ impl<I> AclAliasInfo<I> {
             }),
         };
 
-        // remove full mask from resulting string
-        let destination = (addrs + &ranges).replace("/32", "");
+        // combine resulting strings
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
@@ -1390,11 +1407,7 @@ impl<I> AclAliasInfo<I> {
 
     /// Constructs a [`String`] of comma-separated ports and port ranges
     pub fn format_ports(&self) -> String {
-        self.ports
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ")
+        format_ports(&self.ports)
     }
 }
 
