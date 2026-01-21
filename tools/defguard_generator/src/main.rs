@@ -30,7 +30,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// generates mock VPN session stats
+    /// Generates fake VPN session statistics.
     VpnSessionStats {
         #[arg(long)]
         location_id: Id,
