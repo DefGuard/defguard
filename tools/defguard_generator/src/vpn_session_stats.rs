@@ -21,6 +21,7 @@ use crate::{user_devices::prepare_user_devices, users::prepare_users};
 const STATS_COLLECTION_INTERVAL: Duration = Duration::seconds(30);
 const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
 
+#[derive(Debug)]
 pub struct VpnSessionGeneratorConfig {
     pub location_id: Id,
     pub num_users: u16,
@@ -33,6 +34,7 @@ pub async fn generate_vpn_session_stats(
     pool: PgPool,
     config: VpnSessionGeneratorConfig,
 ) -> Result<()> {
+    info!("Running VPN stats generator with config: {config:#?}");
     let mut rng = rand::thread_rng();
 
     // clear sessions & stats tables
@@ -55,7 +57,10 @@ pub async fn generate_vpn_session_stats(
 
     // generate sessions for each user
     for (i, user) in users.into_iter().enumerate() {
-        info!("[{i}/{user_count}] Generating VPN sessions for user {user}");
+        info!(
+            "[{}/{user_count}] Generating VPN sessions for user {user}",
+            i + 1
+        );
 
         // begin DB transaction
         let mut transaction = pool.begin().await?;
@@ -65,6 +70,7 @@ pub async fn generate_vpn_session_stats(
             prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
 
         for device in devices {
+            info!("Generating sessions for device {device}");
             // generate requested number of sessions for a device
             // we always start with a session that's currently active
             // and generate past ones as needed
@@ -93,6 +99,8 @@ pub async fn generate_vpn_session_stats(
                     session.save(&mut *transaction).await?;
                 }
 
+                info!("Created session {session:?}");
+
                 generate_mock_session_stats(
                     &mut transaction,
                     &mut rng,
@@ -102,6 +110,8 @@ pub async fn generate_vpn_session_stats(
                     session_end,
                 )
                 .await?;
+
+                info!("Finished generating mock stats for session {session:?}");
 
                 // update end timestamp for next session
                 session_end -= Duration::minutes(rng.gen_range(30..120));

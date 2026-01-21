@@ -7,7 +7,7 @@ use crate::db::{
     models::{WireguardNetwork, vpn_session_stats::VpnSessionStats, wireguard::LocationMfaMode},
 };
 
-#[derive(Default, Type)]
+#[derive(Debug, Default, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
 pub enum VpnClientSessionState {
     #[default]
@@ -17,7 +17,7 @@ pub enum VpnClientSessionState {
 }
 
 /// Represents a single VPN client session from creation to eventual disconnection
-#[derive(Model)]
+#[derive(Debug, Model)]
 #[table(vpn_client_session)]
 pub struct VpnClientSession<I = NoId> {
     pub id: I,

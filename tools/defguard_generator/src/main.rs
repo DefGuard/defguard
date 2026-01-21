@@ -4,7 +4,7 @@ use defguard_common::db::{Id, init_db};
 use defguard_generator::vpn_session_stats::{
     VpnSessionGeneratorConfig, generate_vpn_session_stats,
 };
-use tracing::Level;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(about, long_about = None)]
@@ -48,7 +48,11 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
 
     // parse CLI options
     let cli = Cli::parse();
