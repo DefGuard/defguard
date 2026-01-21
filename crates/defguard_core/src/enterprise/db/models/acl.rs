@@ -185,7 +185,16 @@ impl<I> AclRuleInfo<I> {
         // process single addresses
         let addrs = match &self.destination {
             d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+            d => d
+                .iter()
+                .map(|a| {
+                    let mut addr_string = a.to_string() + ", ";
+                    if a.is_ipv4() {
+                        addr_string = addr_string.replace("/32", "");
+                    };
+                    addr_string
+                })
+                .collect::<String>(),
         };
         // process address ranges
         let ranges = match &self.destination_ranges {
@@ -196,7 +205,7 @@ impl<I> AclRuleInfo<I> {
         };
 
         // remove full mask from resulting string
-        let destination = (addrs + &ranges).replace("/32", "");
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
@@ -1365,10 +1374,19 @@ pub struct AclAliasInfo<I = NoId> {
 impl<I> AclAliasInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges
     pub fn format_destination(&self) -> String {
-        // process single addresses
+        // process single addresses and subnets
         let addrs = match &self.destination {
             d if d.is_empty() => String::new(),
-            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+            d => d
+                .iter()
+                .map(|a| {
+                    let mut addr_string = a.to_string() + ", ";
+                    if a.is_ipv4() {
+                        addr_string = addr_string.replace("/32", "");
+                    };
+                    addr_string
+                })
+                .collect::<String>(),
         };
         // process address ranges
         let ranges = match &self.destination_ranges {
@@ -1379,7 +1397,7 @@ impl<I> AclAliasInfo<I> {
         };
 
         // remove full mask from resulting string
-        let destination = (addrs + &ranges).replace("/32", "");
+        let destination = addrs + &ranges;
         if destination.is_empty() {
             destination
         } else {
