@@ -43,6 +43,9 @@ enum Commands {
         /// truncate sessions & stats tables before generating stats
         #[arg(long)]
         truncate_sessions_table: bool,
+        /// insert stats records in batches of specified size
+        #[arg(long, default_value_t = 1000)]
+        stats_batch_size: u16,
     },
 }
 
@@ -76,6 +79,7 @@ async fn main() -> Result<()> {
             devices_per_user,
             sessions_per_device,
             truncate_sessions_table,
+            stats_batch_size,
         } => {
             let config = VpnSessionGeneratorConfig {
                 location_id,
@@ -83,6 +87,7 @@ async fn main() -> Result<()> {
                 devices_per_user,
                 sessions_per_device,
                 truncate_sessions_table,
+                stats_batch_size,
             };
 
             generate_vpn_session_stats(pool, config).await?;
