@@ -24,3 +24,13 @@ cargo run -p defguard_generator -- vpn-session-stats \
     --sessions-per-device 5
 ```
 
+### Session generation logic
+
+For each device the generator always starts with creating an active (not disconnected) session. 
+If there are more sessions per device to be generated it goes backwards in time and creates
+additional disconnected sessions.
+Session duration and gaps between sessions are randomized but there is no logic to verify if
+sessions are overlapping so by default the generator runs a `TRUNCATE` query at the start.
+To disable this behavior (for example when running it multiple times for separate locations)
+use the `--no-truncate` CLI flag.
+

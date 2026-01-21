@@ -27,7 +27,7 @@ pub struct VpnSessionGeneratorConfig {
     pub num_users: u16,
     pub devices_per_user: u8,
     pub sessions_per_device: u8,
-    pub truncate_sessions_table: bool,
+    pub no_truncate: bool,
     pub stats_batch_size: u16,
 }
 
@@ -38,8 +38,8 @@ pub async fn generate_vpn_session_stats(
     info!("Running VPN stats generator with config: {config:#?}");
     let mut rng = rand::thread_rng();
 
-    // clear sessions & stats tables
-    if config.truncate_sessions_table {
+    // clear sessions & stats tables unless disabled
+    if !config.no_truncate {
         info!("Clearing existing sessions & stats");
         truncate_with_restart(&pool).await?;
     }
