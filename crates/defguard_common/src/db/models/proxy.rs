@@ -12,4 +12,5 @@ pub struct Proxy<I = NoId> {
     pub public_address: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
+    pub version: Option<String>,
 }

@@ -14,7 +14,7 @@ use defguard_mail::{
     templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
 };
 use lettre::message::header::ContentType;
-use reqwest::Url;
+use reqwest::{Proxy, Url};
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
@@ -133,6 +133,21 @@ pub async fn send_support_data(
     let config = dump_config(&appstate.pool).await;
     let config =
         serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
+
+    let proxies: Vec<defguard_common::db::models::proxy::Proxy<Id>> =
+        defguard_common::db::models::proxy::Proxy::all(&appstate.pool).await?;
+
+    for proxy in proxies {
+        info!(proxy.version);
+    }
+
+    let gateways: Vec<defguard_common::db::models::gateway::Gateway<Id>> =
+        defguard_common::db::models::gateway::Gateway::all(&appstate.pool).await?;
+
+    for gateway in gateways {
+        info!(gateway.version);
+    }
+
     let config = Attachment {
         filename: format!("defguard-support-data-{}.json", Utc::now()),
         content: config.into(),
@@ -153,27 +168,33 @@ pub async fn send_support_data(
         result_tx: Some(tx),
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
-    match appstate.mail_tx.send(mail) {
-        Ok(()) => match rx.recv().await {
-            Some(Ok(_)) => {
-                info!(
-                    "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
-                    session.user.username
-                );
-                Ok(ApiResponse {
-                    json: json!({}),
-                    status: StatusCode::OK,
-                })
-            }
-            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-            None => Ok(internal_error(
-                &to,
-                &subject,
-                &String::from("None received"),
-            )),
-        },
-        Err(err) => Ok(internal_error(&to, &subject, &err)),
-    }
+
+    info!("prepared support mail");
+    Ok(ApiResponse {
+        json: json!({"debug": "Mail content logged, not sent"}),
+        status: StatusCode::OK,
+    })
+    // match appstate.mail_tx.send(mail) {{}
+    //     Ok(()) => match rx.recv().await {
+    //         Some(Ok(_)) => {
+    //             info!(
+    //                 "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
+    //                 session.user.username
+    //             );
+    //             Ok(ApiResponse {
+    //                 json: json!({}),
+    //                 status: StatusCode::OK,
+    //             })
+    //         }
+    //         Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
+    //         None => Ok(internal_error(
+    //             &to,
+    //             &subject,
+    //             &String::from("None received"),
+    //         )),
+    //     },
+    //     Err(err) => Ok(internal_error(&to, &subject, &err)),
+    // }
 }
 
 pub fn send_new_device_added_email(
