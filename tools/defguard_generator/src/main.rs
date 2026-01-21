@@ -30,7 +30,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// generates VPN session stats
+    /// generates mock VPN session stats
     VpnSessionStats {
         #[arg(long)]
         location_id: Id,
@@ -40,6 +40,7 @@ enum Commands {
         devices_per_user: u8,
         #[arg(long)]
         sessions_per_device: u8,
+        /// truncate sessions & stats tables before generating stats
         #[arg(long)]
         truncate_sessions_table: bool,
     },
