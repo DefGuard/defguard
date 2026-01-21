@@ -2433,6 +2433,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec!["10.0.20.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2443,6 +2444,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec!["10.0.22.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2504,6 +2506,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec!["fb00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2514,6 +2517,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec!["fc00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2578,6 +2582,10 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec![
+            "10.0.20.0/24".parse().unwrap(),
+            "fb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -2588,6 +2596,10 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
+        destination: vec![
+            "10.0.30.0/24".parse().unwrap(),
+            "fa00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -2648,6 +2660,7 @@ async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOption
         expires: None,
         enabled: false,
         state: RuleState::Applied,
+        destination: vec!["10.0.10.10".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2658,6 +2671,7 @@ async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOption
         expires: None,
         enabled: false,
         state: RuleState::Applied,
+        destination: vec!["10.0.10.10".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2718,6 +2732,7 @@ async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOption
         id: NoId,
         expires: None,
         enabled: false,
+        destination: vec!["fc00::0/112".parse().unwrap()],
         state: RuleState::Applied,
         ..Default::default()
     }
@@ -2728,6 +2743,7 @@ async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOption
         id: NoId,
         expires: None,
         enabled: false,
+        destination: vec!["fb00::0/112".parse().unwrap()],
         state: RuleState::Applied,
         ..Default::default()
     }
@@ -2793,6 +2809,10 @@ async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConn
         expires: None,
         enabled: false,
         state: RuleState::Applied,
+        destination: vec![
+            "10.0.10.0/24".parse().unwrap(),
+            "fc00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -2803,6 +2823,10 @@ async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConn
         expires: None,
         enabled: false,
         state: RuleState::Applied,
+        destination: vec![
+            "10.0.20.0/24".parse().unwrap(),
+            "fb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -2863,6 +2887,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
         expires: None,
         enabled: true,
         state: RuleState::New,
+        destination: vec!["10.0.20.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2873,6 +2898,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
         expires: None,
         enabled: true,
         state: RuleState::Modified,
+        destination: vec!["10.1.20.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -2934,6 +2960,10 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
         expires: None,
         enabled: true,
         state: RuleState::New,
+        destination: vec![
+            "10.0.20.0/24".parse().unwrap(),
+            "fa00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -2944,6 +2974,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
         expires: None,
         enabled: true,
         state: RuleState::Modified,
+        destination: vec!["fb00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -3008,6 +3039,10 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
         expires: None,
         enabled: true,
         state: RuleState::New,
+        destination: vec![
+            "10.0.20.0/24".parse().unwrap(),
+            "fb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -3018,6 +3053,10 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
         expires: None,
         enabled: true,
         state: RuleState::Modified,
+        destination: vec![
+            "10.2.20.0/24".parse().unwrap(),
+            "eb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -3153,6 +3192,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         all_networks: true,
         state: RuleState::Applied,
+        destination: vec!["192.168.2.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -3166,6 +3206,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        destination: vec!["192.168.3.0/24".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -3315,6 +3356,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         all_networks: true,
         state: RuleState::Applied,
+        destination: vec!["fb00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -3328,6 +3370,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        destination: vec!["fa00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -3491,6 +3534,10 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         enabled: true,
         all_networks: true,
         state: RuleState::Applied,
+        destination: vec![
+            "192.168.2.0/24".parse().unwrap(),
+            "fb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -3504,6 +3551,10 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        destination: vec![
+            "192.168.3.0/24".parse().unwrap(),
+            "fa00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
