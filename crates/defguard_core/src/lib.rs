@@ -70,7 +70,7 @@ use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::{
+use crate::{
     appstate::AppState,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
@@ -78,8 +78,13 @@ use self::{
         handlers::{
             acl::{
                 apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
-                delete_acl_alias, delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases,
-                list_acl_rules, update_acl_alias, update_acl_rule,
+                delete_acl_alias, delete_acl_rule,
+                destination::{
+                    create_acl_destination, delete_acl_destination, get_acl_destination,
+                    list_acl_destinations, update_acl_destination,
+                },
+                get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias,
+                update_acl_rule,
             },
             activity_log_stream::{
                 create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
@@ -91,14 +96,14 @@ use self::{
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
                 add_openid_provider, delete_openid_provider, get_openid_provider,
-                modify_openid_provider, test_dirsync_connection,
+                list_openid_providers, modify_openid_provider, test_dirsync_connection,
             },
         },
         snat::handlers::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::WorkerState,
+    grpc::{WorkerState, gateway::events::GatewayEvent},
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -138,18 +143,14 @@ use self::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_user_devices, create_network, create_network_token, delete_device,
-            delete_network, devices_stats, download_config, gateway_status, get_device,
-            import_network, list_devices, list_networks, list_user_devices, modify_device,
-            modify_network, network_details, network_stats, remove_gateway,
+            add_device, add_gateway, add_user_devices, change_gateway, create_network,
+            create_network_token, delete_device, delete_network, devices_stats, download_config,
+            gateway_status, get_device, import_network, list_devices, list_networks,
+            list_user_devices, modify_device, modify_network, network_details, network_stats,
+            remove_gateway,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
-};
-use crate::{
-    enterprise::handlers::openid_providers::list_openid_providers,
-    grpc::gateway::events::GatewayEvent,
-    handlers::wireguard::{add_gateway, change_gateway},
     location_management::sync_location_allowed_devices,
     version::IncompatibleComponents,
 };
@@ -431,7 +432,17 @@ pub fn build_webapp(
                     .put(update_acl_alias)
                     .delete(delete_acl_alias),
             )
-            .route("/alias/apply", put(apply_acl_aliases)),
+            .route("/alias/apply", put(apply_acl_aliases))
+            .route(
+                "/destination",
+                get(list_acl_destinations).post(create_acl_destination),
+            )
+            .route(
+                "/destination/{id}",
+                get(get_acl_destination)
+                    .put(update_acl_destination)
+                    .delete(delete_acl_destination),
+            ),
     );
 
     let webapp = webapp.nest(

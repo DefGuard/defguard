@@ -139,7 +139,7 @@ where
                         return Ok(Self(
                             OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
                                 .await
-                                .map_err(Into::<WebError>::into)?,
+                                .map_err(WebError::from)?,
                         ));
                     }
                 }
