@@ -220,10 +220,9 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
           </form.AppField>
         </form.AppForm>
       </form>
-      <SizedBox height={ThemeSpacing.Xl2} />
       <ModalControls
         submitProps={{
-          text: m.controls_add_destination(),
+          text: m.controls_submit(),
           testId: 'add-destination-submit',
           onClick: () => form.handleSubmit(),
         }}

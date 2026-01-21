@@ -165,7 +165,6 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
           </form.AppField>
         </form.AppForm>
       </form>
-      <SizedBox height={ThemeSpacing.Xl2} />
       <ModalControls
         submitProps={{
           text: m.controls_save_changes(),
