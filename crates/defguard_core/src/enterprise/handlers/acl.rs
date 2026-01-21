@@ -21,8 +21,8 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-/// API representation of [`AclRule`] used in API responses
-/// All relations represented as arrays of ids.
+/// API representation of [`AclRule`] used in API responses.
+/// All relations represented as arrays of IDs.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ApiAclRule {
     pub id: Id,
@@ -183,21 +183,20 @@ impl From<AclAliasInfo<Id>> for ApiAclAlias {
 }
 
 /// API representation of [`AclAlias`] used in API requests for modification operations
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct EditAclAlias {
     pub name: String,
-    pub kind: AliasKind,
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ApplyAclRulesData {
     rules: Vec<Id>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ApplyAclAliasesData {
     aliases: Vec<Id>,
 }
@@ -206,6 +205,7 @@ pub struct ApplyAclAliasesData {
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule",
+    tag = "ACL",
     responses(
         (status = OK, description = "ACL rules"),
     ),
@@ -219,11 +219,11 @@ pub(crate) async fn list_acl_rules(
     debug!("User {} listing ACL rules", session.user.username);
     let mut conn = appstate.pool.acquire().await?;
     let rules = AclRule::all(&mut *conn).await?;
-    let mut api_rules: Vec<ApiAclRule> = Vec::with_capacity(rules.len());
-    for r in &rules {
+    let mut api_rules = Vec::<ApiAclRule>::with_capacity(rules.len());
+    for rule in &rules {
         // TODO: may require optimisation wrt. sql queries
-        let info = r.to_info(&mut conn).await.map_err(|err| {
-            error!("Error retrieving ACL rule {r:?}: {err}");
+        let info = rule.to_info(&mut conn).await.map_err(|err| {
+            error!("Error retrieving ACL rule {rule:?}: {err}");
             err
         })?;
         api_rules.push(info.into());
@@ -239,6 +239,7 @@ pub(crate) async fn list_acl_rules(
 #[utoipa::path(
     get,
     path = "/api/v1/acl/rule/{id}",
+    tag = "ACL",
     params(
         ("id" = Id, Path, description = "ID of ACL rule",)
     ),
@@ -257,12 +258,12 @@ pub(crate) async fn get_acl_rule(
     let mut conn = appstate.pool.acquire().await?;
     let (rule, status) = match AclRule::find_by_id(&mut *conn, id).await? {
         Some(rule) => (
-            json!(Into::<ApiAclRule>::into(
-                rule.to_info(&mut conn).await.map_err(|err| {
+            json!(ApiAclRule::from(rule.to_info(&mut conn).await.map_err(
+                |err| {
                     error!("Error retrieving ACL rule {rule:?}: {err}");
                     err
-                })?
-            )),
+                }
+            )?)),
             StatusCode::OK,
         ),
         None => (Value::Null, StatusCode::NOT_FOUND),
@@ -276,9 +277,10 @@ pub(crate) async fn get_acl_rule(
 #[utoipa::path(
     post,
     path = "/api/v1/acl/rule",
+    tag = "ACL",
     request_body = EditAclRule,
     responses(
-        (status = OK, description = "ACL destination"),
+        (status = OK, description = "ACL rule"),
     )
 )]
 pub(crate) async fn create_acl_rule(
@@ -309,6 +311,19 @@ pub(crate) async fn create_acl_rule(
     })
 }
 
+/// Update ACL rule.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/rule/{id}",
+    tag = "ACL",
+    params(
+        ("id" = Id, Path, description = "ID of ACL rule",)
+    ),
+    request_body = EditAclRule,
+    responses(
+        (status = OK, description = "ACL rule"),
+    )
+)]
 pub(crate) async fn update_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -335,12 +350,24 @@ pub(crate) async fn update_acl_rule(
     })
 }
 
+/// Delete ACL rule.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/acl/rule/{id}",
+    tag = "ACL",
+    params(
+        ("id" = Id, Path, description = "ID of ACL rule",)
+    ),
+    responses(
+        (status = OK, description = "ACL rule"),
+    )
+)]
 pub(crate) async fn delete_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL rule {id}", session.user.username);
     AclRule::delete_from_api(&appstate.pool, id)
@@ -353,6 +380,15 @@ pub(crate) async fn delete_acl_rule(
     Ok(ApiResponse::default())
 }
 
+/// List all ACL aliases.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/alias",
+    tag = "ACL",
+    responses(
+        (status = OK, description = "ACL alias"),
+    ),
+)]
 pub(crate) async fn list_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -362,10 +398,10 @@ pub(crate) async fn list_acl_aliases(
     debug!("User {} listing ACL aliases", session.user.username);
     let aliases = AclAlias::all(&appstate.pool).await?;
     let mut api_aliases: Vec<ApiAclAlias> = Vec::with_capacity(aliases.len());
-    for a in &aliases {
+    for alias in &aliases {
         // TODO: may require optimisation wrt. sql queries
-        let info = a.to_info(&appstate.pool).await.map_err(|err| {
-            error!("Error retrieving ACL alias {a:?}: {err}");
+        let info = alias.to_info(&appstate.pool).await.map_err(|err| {
+            error!("Error retrieving ACL alias {alias:?}: {err}");
             err
         })?;
         api_aliases.push(info.into());
@@ -377,6 +413,18 @@ pub(crate) async fn list_acl_aliases(
     })
 }
 
+/// Get ACL alias.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/alias/{id}",
+    tag = "ACL",
+    params(
+        ("id" = Id, Path, description = "ID of ACL alias",)
+    ),
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn get_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -387,7 +435,7 @@ pub(crate) async fn get_acl_alias(
     debug!("User {} retrieving ACL alias {id}", session.user.username);
     let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
         Some(alias) => (
-            json!(Into::<ApiAclAlias>::into(
+            json!(ApiAclAlias::from(
                 alias.to_info(&appstate.pool).await.map_err(|err| {
                     error!("Error retrieving ACL alias {alias:?}: {err}");
                     err
@@ -405,6 +453,16 @@ pub(crate) async fn get_acl_alias(
     })
 }
 
+/// Create ACL alias.
+#[utoipa::path(
+    post,
+    path = "/api/v1/acl/alias",
+    tag = "ACL",
+    request_body = EditAclAlias,
+    responses(
+        (status = CREATED, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn create_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -413,7 +471,7 @@ pub(crate) async fn create_acl_alias(
     Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} creating ACL alias {data:?}", session.user.username);
-    let alias = AclAlias::create_from_api(&appstate.pool, &data)
+    let alias = AclAlias::create_from_api(&appstate.pool, &data, AliasKind::Component)
         .await
         .map_err(|err| {
             error!("Error creating ACL alias {data:?}: {err}");
@@ -429,6 +487,19 @@ pub(crate) async fn create_acl_alias(
     })
 }
 
+/// Update ACL alias.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/alias/{id}",
+    tag = "ACL",
+    params(
+        ("id" = Id, Path, description = "ID of ACL alias",)
+    ),
+    request_body = EditAclAlias,
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn update_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -438,7 +509,7 @@ pub(crate) async fn update_acl_alias(
     Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} updating ACL alias {data:?}", session.user.username);
-    let alias = AclAlias::update_from_api(&appstate.pool, id, &data)
+    let alias = AclAlias::update_from_api(&appstate.pool, id, &data, AliasKind::Component)
         .await
         .map_err(|err| {
             error!("Error updating ACL alias {data:?}: {err}");
@@ -451,6 +522,18 @@ pub(crate) async fn update_acl_alias(
     })
 }
 
+/// Delete ACL alias.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/acl/alias/{id}",
+    tag = "ACL",
+    params(
+        ("id" = Id, Path, description = "ID of ACL alias",)
+    ),
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn delete_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -469,6 +552,16 @@ pub(crate) async fn delete_acl_alias(
     Ok(ApiResponse::default())
 }
 
+/// Apply ACL alias.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/rule/apply",
+    tag = "ACL",
+    request_body = ApplyAclRulesData,
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn apply_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -493,6 +586,16 @@ pub(crate) async fn apply_acl_rules(
     Ok(ApiResponse::default())
 }
 
+/// Apply ACL aliases.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/alias/apply",
+    tag = "ACL",
+    request_body = ApplyAclAliasesData,
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
 pub(crate) async fn apply_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,

@@ -22,6 +22,7 @@ use sqlx::{
     postgres::types::PgRange, query, query_as, query_scalar,
 };
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     appstate::AppState,
@@ -1397,26 +1398,6 @@ impl<I> AclAliasInfo<I> {
     }
 }
 
-impl TryFrom<EditAclAlias> for AclAlias<NoId> {
-    type Error = AclError;
-
-    fn try_from(alias: EditAclAlias) -> Result<Self, Self::Error> {
-        Ok(Self {
-            destination: parse_destination(&alias.destination)?.addrs,
-            ports: parse_ports(&alias.ports)?
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-            id: NoId,
-            parent_id: None,
-            name: alias.name,
-            kind: alias.kind,
-            state: AliasState::Applied,
-            protocols: alias.protocols,
-        })
-    }
-}
-
 /// ACL alias can be in one of the following states:
 /// - Applied: the alias can be used in ACL rules
 /// - Modified: the alias has been modified and the changes have not yet been applied
@@ -1436,7 +1417,7 @@ pub enum AliasState {
 /// ACL alias can be of one of the following types:
 /// - Destination: the alias defines a complete destination that an ACL rule applies to
 /// - Component: the alias defines parts of a destination and will be combined with other parts manually defined in an ACL rule
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
 pub enum AliasKind {
     #[default]
@@ -1489,22 +1470,41 @@ impl AclAlias {
         }
     }
 
-    /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`]
+    /// Try to convert alias from API.
+    pub(crate) fn try_from(alias: &EditAclAlias, kind: AliasKind) -> Result<Self, AclError> {
+        Ok(Self {
+            destination: parse_destination(&alias.destination)?.addrs,
+            ports: parse_ports(&alias.ports)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            id: NoId,
+            parent_id: None,
+            name: alias.name.clone(),
+            kind,
+            state: AliasState::Applied,
+            protocols: alias.protocols.clone(),
+        })
+    }
+
+    /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`].
     pub(crate) async fn create_from_api(
         pool: &PgPool,
         api_alias: &EditAclAlias,
+        kind: AliasKind,
     ) -> Result<ApiAclAlias, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the alias
-        let alias: AclAlias<NoId> = api_alias.clone().try_into()?;
-        let alias = alias.save(&mut *transaction).await?;
+        let alias = AclAlias::try_from(&api_alias, kind)?
+            .save(&mut *transaction)
+            .await?;
 
         // create related objects
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        let result: ApiAclAlias = alias.to_info(pool).await?.into();
+        let result = ApiAclAlias::from(alias.to_info(pool).await?);
         Ok(result)
     }
 
@@ -1513,6 +1513,7 @@ impl AclAlias {
         pool: &PgPool,
         id: Id,
         api_alias: &EditAclAlias,
+        kind: AliasKind,
     ) -> Result<ApiAclAlias, AclError> {
         let mut transaction = pool.begin().await?;
 
@@ -1524,8 +1525,8 @@ impl AclAlias {
                 AclError::AliasNotFoundError(id)
             })?;
 
-        // convert API alias to model
-        let mut alias: AclAlias<NoId> = api_alias.clone().try_into()?;
+        // Convert alias from API to model.
+        let mut alias = AclAlias::try_from(&api_alias, kind)?;
 
         // perform appropriate updates depending on existing alias' state
         let alias = match existing_alias.state {
