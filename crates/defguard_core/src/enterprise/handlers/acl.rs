@@ -526,7 +526,6 @@ pub(crate) async fn update_acl_alias(
 #[utoipa::path(
     delete,
     path = "/api/v1/acl/alias/{id}",
-    tag = "ACL",
     params(
         ("id" = Id, Path, description = "ID of ACL alias",)
     ),
@@ -556,7 +555,6 @@ pub(crate) async fn delete_acl_alias(
 #[utoipa::path(
     put,
     path = "/api/v1/acl/rule/apply",
-    tag = "ACL",
     request_body = ApplyAclRulesData,
     responses(
         (status = OK, description = "ACL alias"),
@@ -590,7 +588,6 @@ pub(crate) async fn apply_acl_rules(
 #[utoipa::path(
     put,
     path = "/api/v1/acl/alias/apply",
-    tag = "ACL",
     request_body = ApplyAclAliasesData,
     responses(
         (status = OK, description = "ACL alias"),

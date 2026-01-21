@@ -1174,30 +1174,21 @@ impl AclRuleInfo<Id> {
                 "allow_all_users flag is enabled for ACL rule {}. Fetching all active users",
                 self.id
             );
-            let all_active_users = query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await;
-
-            return all_active_users;
+            return User::<Id>::all_active(executor).await;
         }
 
         // get explicitly allowed users
         let mut allowed_users = self.allowed_users.clone();
 
         // get allowed groups IDs
-        let allowed_group_ids: Vec<Id> = self.allowed_groups.iter().map(|group| group.id).collect();
+        let allowed_group_ids = self
+            .allowed_groups
+            .iter()
+            .map(|group| group.id)
+            .collect::<Vec<_>>();
 
         // fetch all active members of allowed groups
-        let allowed_groups_users: Vec<User<Id>> = query_as!(
+        let allowed_groups_users = query_as!(
             User,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
@@ -1235,20 +1226,7 @@ impl AclRuleInfo<Id> {
                 "deny_all_users flag is enabled for ACL rule {}. Fetching all active users",
                 self.id
             );
-            let all_denied_users = query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-                ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await;
-
-            return all_denied_users;
+            return User::<Id>::all_active(executor).await;
         }
 
         // get explicitly denied users
@@ -1258,7 +1236,7 @@ impl AclRuleInfo<Id> {
         let denied_group_ids: Vec<Id> = self.denied_groups.iter().map(|group| group.id).collect();
 
         // fetch all active members of denied groups
-        let denied_groups_users: Vec<User<Id>> = query_as!(
+        let denied_groups_users = query_as!(
             User,
             "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
@@ -1349,7 +1327,7 @@ impl AclRuleInfo<Id> {
 /// Helper struct combining all DB objects related to given [`AclAlias`].
 /// All related objects are stored in vectors.
 #[derive(Clone, Debug)]
-pub struct AclAliasInfo<I = NoId> {
+pub(crate) struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub parent_id: Option<Id>,
     pub name: String,
@@ -1364,7 +1342,7 @@ pub struct AclAliasInfo<I = NoId> {
 
 impl<I> AclAliasInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges
-    pub fn format_destination(&self) -> String {
+    pub(crate) fn format_destination(&self) -> String {
         // process single addresses
         let addrs = match &self.destination {
             d if d.is_empty() => String::new(),
@@ -1379,6 +1357,7 @@ impl<I> AclAliasInfo<I> {
         };
 
         // remove full mask from resulting string
+        // FIXME: This mask shouldn't be removed for IP v6 addresses.
         let destination = (addrs + &ranges).replace("/32", "");
         if destination.is_empty() {
             destination
@@ -1389,7 +1368,7 @@ impl<I> AclAliasInfo<I> {
     }
 
     /// Constructs a [`String`] of comma-separated ports and port ranges
-    pub fn format_ports(&self) -> String {
+    pub(crate) fn format_ports(&self) -> String {
         self.ports
             .iter()
             .map(ToString::to_string)
@@ -1496,7 +1475,7 @@ impl AclAlias {
         let mut transaction = pool.begin().await?;
 
         // save the alias
-        let alias = AclAlias::try_from(&api_alias, kind)?
+        let alias = AclAlias::try_from(api_alias, kind)?
             .save(&mut *transaction)
             .await?;
 
@@ -1526,7 +1505,7 @@ impl AclAlias {
             })?;
 
         // Convert alias from API to model.
-        let mut alias = AclAlias::try_from(&api_alias, kind)?;
+        let mut alias = AclAlias::try_from(api_alias, kind)?;
 
         // perform appropriate updates depending on existing alias' state
         let alias = match existing_alias.state {
@@ -1933,8 +1912,8 @@ impl<I> From<&AclRuleDestinationRange<I>> for RangeInclusive<IpAddr> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AclAliasDestinationRange<I = NoId> {
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub(crate) struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
     pub alias_id: Id,
     pub start: IpAddr,
