@@ -182,7 +182,7 @@ pub struct AclRuleInfo<I = NoId> {
 /// Constructs a [`String`] of comma-separated addresses.
 fn format_destination(destination: &[IpNetwork]) -> String {
     match destination {
-        d if d.is_empty() => String::new(),
+        [] => String::new(),
         d => d
             .iter()
             .map(|a| {
