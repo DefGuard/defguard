@@ -26,6 +26,7 @@ pub struct VpnSessionGeneratorConfig {
     pub num_users: u16,
     pub devices_per_user: u8,
     pub sessions_per_device: u8,
+    pub truncate_sessions_table: bool,
 }
 
 pub async fn generate_vpn_session_stats(
@@ -35,8 +36,10 @@ pub async fn generate_vpn_session_stats(
     let mut rng = rand::thread_rng();
 
     // clear sessions & stats tables
-    info!("Clearing existing sessions & stats");
-    truncate_with_restart(&pool).await?;
+    if config.truncate_sessions_table {
+        info!("Clearing existing sessions & stats");
+        truncate_with_restart(&pool).await?;
+    }
 
     // fetch specified location
     let location = WireguardNetwork::find_by_id(&pool, config.location_id)

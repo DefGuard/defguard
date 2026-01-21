@@ -40,6 +40,8 @@ enum Commands {
         devices_per_user: u8,
         #[arg(long)]
         sessions_per_device: u8,
+        #[arg(long)]
+        truncate_sessions_table: bool,
     },
 }
 
@@ -68,12 +70,14 @@ async fn main() -> Result<()> {
             num_users,
             devices_per_user,
             sessions_per_device,
+            truncate_sessions_table,
         } => {
             let config = VpnSessionGeneratorConfig {
                 location_id,
                 num_users,
                 devices_per_user,
                 sessions_per_device,
+                truncate_sessions_table,
             };
 
             generate_vpn_session_stats(pool, config).await?;
