@@ -16,6 +16,7 @@ use tracing::{debug, error, info, trace, warn};
 use crate::{error::SessionManagerError, session_state::ActiveSessionsMap};
 
 pub mod error;
+pub mod events;
 pub mod session_state;
 
 const MESSAGE_LIMIT: usize = 100;
@@ -60,7 +61,6 @@ pub async fn run_session_manager(
 
 struct SessionManager {
     pool: PgPool,
-    // active_sessions: LocationSessionsMap,
 }
 
 impl SessionManager {
@@ -68,10 +68,7 @@ impl SessionManager {
         // initialize active sessions state based on DB content
         // let active_sessions = LocationSessionsMap::initialize_from_db(&pool).await?;
 
-        Ok(Self {
-            pool,
-            // active_sessions,
-        })
+        Ok(Self { pool })
     }
 
     /// Helper function for processing all messages read from the channel in a single batch
