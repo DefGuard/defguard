@@ -40,7 +40,7 @@ use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
-use defguard_session_manager::run_session_manager;
+use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
@@ -102,6 +102,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
     let (internal_event_tx, internal_event_rx) = unbounded_channel::<InternalEvent>();
     let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
+    let (session_manager_event_tx, session_manager_event_rx) =
+        unbounded_channel::<SessionManagerEvent>();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -227,7 +229,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 api_event_rx,
                 grpc_event_rx,
                 bidi_event_rx,
-                internal_event_rx
+                internal_event_rx,
+                session_manager_event_rx
             ),
             event_logger_tx,
             wireguard_tx,

@@ -1,7 +1,10 @@
 use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
-use defguard_common::db::Id;
+use defguard_common::db::{
+    Id,
+    models::{Device, User, WireguardNetwork},
+};
 
 #[derive(Debug)]
 pub struct SessionManagerEvent {
@@ -12,11 +15,10 @@ pub struct SessionManagerEvent {
 #[derive(Debug)]
 pub struct SessionManagerEventContext {
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
-    pub username: String,
+    pub location: WireguardNetwork<Id>,
+    pub user: User<Id>,
+    pub device: Device<Id>,
     pub public_ip: IpAddr,
-    pub device_id: Id,
-    pub device_name: String,
 }
 
 #[derive(Debug)]

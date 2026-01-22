@@ -25,6 +25,7 @@ use defguard_core::{
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_mail::Mail;
+use defguard_session_manager::events::SessionManagerEvent;
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
@@ -43,6 +44,7 @@ pub struct RouterReceiverSet {
     grpc: UnboundedReceiver<GrpcEvent>,
     bidi: UnboundedReceiver<BidiStreamEvent>,
     internal: UnboundedReceiver<InternalEvent>,
+    session_manager: UnboundedReceiver<SessionManagerEvent>,
 }
 
 impl RouterReceiverSet {
@@ -52,12 +54,14 @@ impl RouterReceiverSet {
         grpc: UnboundedReceiver<GrpcEvent>,
         bidi: UnboundedReceiver<BidiStreamEvent>,
         internal: UnboundedReceiver<InternalEvent>,
+        session_manager: UnboundedReceiver<SessionManagerEvent>,
     ) -> Self {
         Self {
             api,
             grpc,
             bidi,
             internal,
+            session_manager,
         }
     }
 }
@@ -127,9 +131,13 @@ impl EventRouter {
                     error!("Internal event channel closed");
                     return Err(EventRouterError::InternalEventChannelClosed);
               },
+              event = self.receivers.session_manager.recv() => if let Some(session_manager_event) = event { Event::SessionManager(session_manager_event) } else {
+                    error!("Internal event channel closed");
+                    return Err(EventRouterError::InternalEventChannelClosed);
+              },
             };
 
-            debug!("Received event");
+            debug!("Received event: {event:?}");
 
             // Route the event to the appropriate handler
             match event {
@@ -137,6 +145,9 @@ impl EventRouter {
                 Event::Grpc(grpc_event) => self.handle_grpc_event(*grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
                 Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
+                Event::SessionManager(session_manager_event) => {
+                    self.handle_session_manager_event(session_manager_event)?
+                }
             }
         }
     }
