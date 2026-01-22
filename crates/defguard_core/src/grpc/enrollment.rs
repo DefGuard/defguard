@@ -671,7 +671,7 @@ impl EnrollmentServer {
             }
 
             let (network_info, configs) = device
-                .get_network_configs(&network, &mut transaction)
+                .get_network_configs(&mut transaction, &network, &enterprise_settings)
                 .await
                 .map_err(|err| {
                     error!(

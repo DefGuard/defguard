@@ -25,7 +25,7 @@ use crate::{
             wireguard::NetworkAddressError,
         },
     },
-    enterprise::limits::update_counts,
+    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -112,31 +112,36 @@ pub async fn download_network_device_config(
     Path(device_id): Path<i64>,
 ) -> Result<String, WebError> {
     debug!("Creating a WireGuard config for network device {device_id}.");
+    let enterprise_settings = EnterpriseSettings::get(&appstate.pool).await?;
     let device =
         Device::find_by_id(&appstate.pool, device_id)
             .await?
             .ok_or(WebError::ObjectNotFound(format!(
                 "Network device with ID {device_id} not found"
             )))?;
-    let network = device
+    let location = device
         .find_network_device_networks(&appstate.pool)
         .await?
         .pop()
         .ok_or(WebError::ObjectNotFound(format!(
-            "No network found for network device: {}({})",
+            "No location found for network device: {}({})",
             device.name, device.id
         )))?;
-    let network_device = WireguardNetworkDevice::find(&appstate.pool, device_id, network.id)
+    let network_device = WireguardNetworkDevice::find(&appstate.pool, device_id, location.id)
         .await?
         .ok_or(WebError::ObjectNotFound(format!(
             "No IP address found for device: {}({})",
             device.name, device.id
         )))?;
     debug!(
-        "Created a WireGuard config for network device {device_id} in network {}.",
-        network.name
+        "Created a WireGuard config for network device {device_id} in location {}.",
+        location.name
     );
-    Ok(Device::create_config(&network, &network_device))
+    Ok(Device::create_config(
+        &location,
+        &network_device,
+        &enterprise_settings,
+    ))
 }
 
 pub async fn get_network_device(
@@ -399,6 +404,8 @@ pub(crate) async fn start_network_device_setup(
         session.user.username, setup_start.location_id
     );
 
+    let enterprise_settings = EnterpriseSettings::get(&appstate.pool).await?;
+
     let user = session.user;
     let network = WireguardNetwork::find_by_id(&appstate.pool, setup_start.location_id)
         .await?
@@ -447,7 +454,7 @@ pub(crate) async fn start_network_device_setup(
     network.can_assign_ips(&mut transaction, &ips, None).await?;
 
     let (_, config) = device
-        .add_to_network(&network, &ips, &mut transaction)
+        .add_to_network(&mut transaction, &network, &ips, &enterprise_settings)
         .await?;
 
     info!(
@@ -566,16 +573,17 @@ pub(crate) async fn add_network_device(
         "User {} adding network device {device_name} in location {}.",
         session.user.username, add_network_device.location_id
     );
+    let enterprise_settings = EnterpriseSettings::get(&appstate.pool).await?;
 
     let user = session.user;
-    let network = WireguardNetwork::find_by_id(&appstate.pool, add_network_device.location_id)
+    let location = WireguardNetwork::find_by_id(&appstate.pool, add_network_device.location_id)
         .await?
         .ok_or_else(|| {
             error!(
-                "Failed to add device {device_name}, network with ID {} not found",
+                "Failed to add device {device_name}, location with ID {} not found",
                 add_network_device.location_id
             );
-            WebError::BadRequest("Failed to add device, network not found".to_string())
+            WebError::BadRequest("Failed to add device, location not found".to_string())
         })?;
 
     Device::validate_pubkey(&add_network_device.wireguard_pubkey)
@@ -615,10 +623,12 @@ pub(crate) async fn add_network_device(
             error!(msg);
             WebError::BadRequest(msg)
         })?;
-    network.can_assign_ips(&mut transaction, &ips, None).await?;
+    location
+        .can_assign_ips(&mut transaction, &ips, None)
+        .await?;
 
     let (network_info, config) = device
-        .add_to_network(&network, &ips, &mut transaction)
+        .add_to_network(&mut transaction, &location, &ips, &enterprise_settings)
         .await?;
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
@@ -629,9 +639,9 @@ pub(crate) async fn add_network_device(
     update_counts(&mut *transaction).await?;
 
     // send firewall update event if ACLs & enterprise features are enabled
-    if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
+    if let Some(firewall_config) = location.try_get_firewall_config(&mut transaction).await? {
         appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-            network.id,
+            location.id,
             firewall_config,
         ));
     }
@@ -664,10 +674,7 @@ pub(crate) async fn add_network_device(
     );
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::NetworkDeviceAdded {
-            device,
-            location: network,
-        }),
+        event: Box::new(ApiEventType::NetworkDeviceAdded { device, location }),
     })?;
 
     Ok(ApiResponse {

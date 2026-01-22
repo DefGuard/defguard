@@ -1,10 +1,13 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 use defguard_core::{
     enterprise::{
         db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
         license::{get_cached_license, set_cached_license},
     },
-    handlers::Auth,
+    handlers::{Auth, wireguard::AddDeviceResult},
 };
+use ipnetwork::IpNetwork;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -379,4 +382,62 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
 
     let response = client.get("/api/v1/network/1/device/1/config").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn test_override_allowed_ips(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // admin login
+    let (client, _) = make_test_client(pool).await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // force all traffic setting for clients
+    let settings = EnterpriseSettings {
+        admin_device_management: false,
+        client_traffic_policy: ClientTrafficPolicy::ForceAllTraffic,
+        only_client_activation: false,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // add device for normal user
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response: AddDeviceResult = response.json().await;
+
+    for config in response.configs {
+        assert_eq!(
+            config.allowed_ips,
+            vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)
+                    .expect("Failed to parse UNSPECIFIED IPv4 constant"),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
+                    .expect("Failed to parse UNSPECIFIED IPv6 constant"),
+            ]
+        )
+    }
 }
