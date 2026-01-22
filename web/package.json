@@ -81,7 +81,7 @@
     "ipaddr.js": "^2.3.0",
     "itertools": "^2.5.0",
     "js-base64": "^3.7.8",
-    "lodash-es": "^4.17.22",
+    "lodash-es": "^4.17.23",
     "merge-refs": "^2.0.0",
     "millify": "^6.1.0",
     "motion": "^12.24.12",
