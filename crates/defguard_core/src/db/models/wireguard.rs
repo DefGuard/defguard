@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt::{self, Display},
     iter::zip,
-    net::{IpAddr, Ipv4Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
 };
 
 use base64::prelude::{BASE64_STANDARD, Engine};
@@ -40,7 +40,11 @@ use super::{
     wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
-    enterprise::{firewall::FirewallError, is_enterprise_license_active},
+    enterprise::{
+        db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+        firewall::FirewallError,
+        is_enterprise_license_active,
+    },
     grpc::gateway::{send_multiple_wireguard_events, state::GatewayState},
     wg_config::ImportedDevice,
 };
@@ -1490,6 +1494,24 @@ pub(crate) async fn networks_stats(
         upload: transfer_series.iter().filter_map(|t| t.upload).sum(),
         transfer_series,
     })
+}
+
+// If `force_all_traffic` setting is enabled we override the allowed_ips
+// to also enforce this on legacy clients.
+pub fn get_allowed_ips_for_device(
+    enterprise_settings: &EnterpriseSettings,
+    location: &WireguardNetwork<Id>,
+) -> Vec<IpNetwork> {
+    if enterprise_settings.client_traffic_policy == ClientTrafficPolicy::ForceAllTraffic {
+        vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)
+                .expect("Failed to parse UNSPECIFIED IPv4 constant"),
+            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
+                .expect("Failed to parse UNSPECIFIED IPv6 constant"),
+        ]
+    } else {
+        location.allowed_ips.clone()
+    }
 }
 
 #[cfg(test)]

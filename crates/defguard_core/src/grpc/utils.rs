@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-};
+use std::{net::IpAddr, str::FromStr};
 
 use defguard_common::{
     csv::AsCsv,
@@ -11,7 +8,6 @@ use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
     LocationMfaMode as ProtoLocationMfaMode,
 };
-use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -22,12 +18,13 @@ use crate::{
         models::{
             device::{DeviceType, WireguardNetworkDevice},
             polling_token::PollingToken,
-            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+            wireguard::{
+                LocationMfaMode, ServiceLocationMode, WireguardNetwork, get_allowed_ips_for_device,
+            },
         },
     },
     enterprise::db::models::{
-        enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-        openid_provider::OpenIdProvider,
+        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
     grpc::client_version::ClientFeature,
 };
@@ -74,25 +71,6 @@ pub(crate) async fn new_polling_token(
     Ok(new_token.token)
 }
 
-// If `force_all_traffic` setting is enabled we override the allowed_ips
-// to also enforce this on legacy clients.
-fn get_allowed_ips(
-    enterprise_settings: &EnterpriseSettings,
-    location: &WireguardNetwork<Id>,
-) -> String {
-    if enterprise_settings.client_traffic_policy == ClientTrafficPolicy::ForceAllTraffic {
-        vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)
-                .expect("Failed to parse UNSPECIFIED IPv4 constant"),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
-                .expect("Failed to parse UNSPECIFIED IPv6 constant"),
-        ]
-        .as_csv()
-    } else {
-        location.allowed_ips.as_csv()
-    }
-}
-
 pub(crate) async fn build_device_config_response(
     pool: &PgPool,
     device: Device<Id>,
@@ -106,8 +84,8 @@ pub(crate) async fn build_device_config_response(
         Status::internal(format!("unexpected error: {err}"))
     })?;
 
-    let networks = WireguardNetwork::all(pool).await.map_err(|err| {
-        error!("Failed to fetch all networks: {err}");
+    let locations = WireguardNetwork::all(pool).await.map_err(|err| {
+        error!("Failed to fetch all locations: {err}");
         Status::internal(format!("unexpected error: {err}"))
     })?;
 
@@ -138,21 +116,21 @@ pub(crate) async fn build_device_config_response(
                 Status::internal(format!("unexpected error: {err}"))
             })?;
         if let Some(wireguard_network_device) = wireguard_network_device {
-            let network = wireguard_network_device
+            let location = wireguard_network_device
                 .network(pool)
                 .await
                 .map_err(|err| {
                     error!(
-                        "Failed to fetch network for WireGuard network device {}: {err}",
+                        "Failed to fetch location for WireGuard network device {}: {err}",
                         device.name
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
 
-            if network.service_location_mode != ServiceLocationMode::Disabled {
+            if location.service_location_mode != ServiceLocationMode::Disabled {
                 error!(
                     "Network device {} tried to fetch config for service location {}, which is unsupported.",
-                    device.name, network.name
+                    device.name, location.name
                 );
                 return Err(Status::permission_denied(
                     "service location mode is not available for network devices",
@@ -160,24 +138,28 @@ pub(crate) async fn build_device_config_response(
             }
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let allowed_ips = get_allowed_ips(&enterprise_settings, &network);
+            let mfa_enabled = location.location_mfa_mode == LocationMfaMode::Internal;
+            let allowed_ips = get_allowed_ips_for_device(&enterprise_settings, &location).as_csv();
             let config =
                 ProtoDeviceConfig {
-                    config: Device::create_config(&network, &wireguard_network_device),
-                    network_id: network.id,
-                    network_name: network.name,
+                    config: Device::create_config(
+                        &location,
+                        &wireguard_network_device,
+                        &enterprise_settings,
+                    ),
+                    network_id: location.id,
+                    network_name: location.name,
                     assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                    endpoint: format!("{}:{}", network.endpoint, network.port),
-                    pubkey: network.pubkey,
+                    endpoint: format!("{}:{}", location.endpoint, location.port),
+                    pubkey: location.pubkey,
                     allowed_ips,
-                    dns: network.dns,
-                    keepalive_interval: network.keepalive_interval,
+                    dns: location.dns,
+                    keepalive_interval: location.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
                     location_mfa_mode: Some(
                         <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                            network.location_mfa_mode,
+                            location.location_mfa_mode,
                         )
                         .into(),
                     ),
@@ -185,60 +167,66 @@ pub(crate) async fn build_device_config_response(
                         Some(
                             <ServiceLocationMode as Into<
                                 defguard_proto::proxy::ServiceLocationMode,
-                            >>::into(network.service_location_mode)
+                            >>::into(location.service_location_mode)
                             .into(),
                         ),
                 };
             configs.push(config);
         }
     } else {
-        for network in networks {
+        for location in locations {
             let wireguard_network_device = WireguardNetworkDevice::find(
-                pool, device.id, network.id,
+                pool,
+                device.id,
+                location.id,
             )
             .await
             .map_err(|err| {
                 error!(
                     "Failed to fetch WireGuard network device for device {} and network {}: {err}",
-                    device.id, network.id
+                    device.id, location.id
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
-            if network.should_prevent_service_location_usage() {
+            if location.should_prevent_service_location_usage() {
                 warn!(
                     "Tried to use service location {} with disabled enterprise features.",
-                    network.name
+                    location.name
                 );
                 continue;
             }
-            if network.service_location_mode != ServiceLocationMode::Disabled
+            if location.service_location_mode != ServiceLocationMode::Disabled
                 && !ClientFeature::ServiceLocations.is_supported_by_device(device_info.as_ref())
             {
                 info!(
                     "Device {} does not support service locations feature, skipping sending network {} configuration to device {}.",
-                    device.name, network.name, device.name
+                    device.name, location.name, device.name
                 );
                 continue;
             }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
-            let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let allowed_ips = get_allowed_ips(&enterprise_settings, &network);
+            let mfa_enabled = location.location_mfa_mode == LocationMfaMode::Internal;
+            let allowed_ips = get_allowed_ips_for_device(&enterprise_settings, &location).as_csv();
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
-                    config: Device::create_config(&network, &wireguard_network_device),
-                    network_id: network.id,
-                    network_name: network.name,
+                    config: Device::create_config(
+                        &location,
+                        &wireguard_network_device,
+                        &enterprise_settings,
+                    ),
+                    network_id: location.id,
+                    network_name: location.name,
                     assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                    endpoint: format!("{}:{}", network.endpoint, network.port),
-                    pubkey: network.pubkey,
+                    endpoint: format!("{}:{}", location.endpoint, location.port),
+                    pubkey: location.pubkey,
                     allowed_ips,
-                    dns: network.dns,
-                    keepalive_interval: network.keepalive_interval,
+                    dns: location.dns,
+                    keepalive_interval: location.keepalive_interval,
                     #[allow(deprecated)]
                     mfa_enabled,
                     location_mfa_mode: Some(
                         <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                            network.location_mfa_mode,
+                            location.location_mfa_mode,
                         )
                         .into(),
                     ),
@@ -246,7 +234,7 @@ pub(crate) async fn build_device_config_response(
                         Some(
                             <ServiceLocationMode as Into<
                                 defguard_proto::proxy::ServiceLocationMode,
-                            >>::into(network.service_location_mode)
+                            >>::into(location.service_location_mode)
                             .into(),
                         ),
                 };

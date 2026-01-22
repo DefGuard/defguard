@@ -1338,10 +1338,10 @@ pub(crate) async fn download_config(
 ) -> Result<String, WebError> {
     debug!("Creating config for device {device_id} in network {network_id}");
 
-    let settings = EnterpriseSettings::get(&appstate.pool).await?;
-    if settings.only_client_activation && !session.is_admin {
+    let enterprise_settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if enterprise_settings.only_client_activation && !session.is_admin {
         warn!(
-            "User {} tried to download device config, but manual device management is disaled",
+            "User {} tried to download device config, but manual device management is disabled",
             session.user.username
         );
         return Err(WebError::Forbidden(
@@ -1355,7 +1355,11 @@ pub(crate) async fn download_config(
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     if let Some(wireguard_network_device) = wireguard_network_device {
         info!("Created config for device {}({device_id})", device.name);
-        Ok(Device::create_config(&network, &wireguard_network_device))
+        Ok(Device::create_config(
+            &network,
+            &wireguard_network_device,
+            &enterprise_settings,
+        ))
     } else {
         error!(
             "Failed to create config, no IP address found for device: {}({})",
