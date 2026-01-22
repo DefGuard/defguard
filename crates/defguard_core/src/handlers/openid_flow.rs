@@ -398,9 +398,16 @@ pub async fn authorization(
                             "Redirecting user to consent form - client id {}",
                             data.client_id
                         );
-                        // FIXME: do not panic
                         return Ok(redirect_to(
-                            format!("/consent?{}", serde_urlencoded::to_string(data).unwrap()),
+                            format!(
+                                "/consent?{}",
+                                serde_urlencoded::to_string(data).map_err(|err| {
+                                    error!(
+                                        "Failed to URL-encode OID authorization request data: {err}"
+                                    );
+                                    WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+                                })?
+                            ),
                             private_cookies,
                         ));
                     }
