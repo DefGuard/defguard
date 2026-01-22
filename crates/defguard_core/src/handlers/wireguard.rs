@@ -710,10 +710,10 @@ pub(crate) async fn add_user_devices(
 }
 
 // assign IPs and generate configs for each network
-#[derive(Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddDeviceResult {
-    configs: Vec<DeviceConfig>,
-    device: Device<Id>,
+    pub configs: Vec<DeviceConfig>,
+    pub device: Device<Id>,
 }
 
 /// Add device
@@ -734,9 +734,9 @@ pub struct AddDeviceResult {
 /// - `WebError` if error occurs
 #[utoipa::path(
     post,
-    path = "/api/v1/device/{device_id}",
+    path = "/api/v1/device/{username}",
     params(
-        ("device_id" = String, description = "ID of device.")
+        ("username" = String, description = "Username of the device owner.")
     ),
     request_body = AddDevice,
     responses(

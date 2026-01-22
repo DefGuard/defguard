@@ -35,7 +35,7 @@ use crate::{
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct DeviceConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
@@ -44,7 +44,7 @@ pub struct DeviceConfig {
     pub(crate) address: Vec<IpAddr>,
     pub(crate) endpoint: String,
     #[schema(value_type = String)]
-    pub(crate) allowed_ips: Vec<IpNetwork>,
+    pub allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
     pub(crate) keepalive_interval: i32,
