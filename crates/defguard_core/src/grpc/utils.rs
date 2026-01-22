@@ -1,4 +1,7 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use defguard_common::{
     csv::AsCsv,
@@ -8,6 +11,7 @@ use defguard_proto::proxy::{
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
     LocationMfaMode as ProtoLocationMfaMode,
 };
+use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -22,7 +26,8 @@ use crate::{
         },
     },
     enterprise::db::models::{
-        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
+        enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+        openid_provider::OpenIdProvider,
     },
     grpc::client_version::ClientFeature,
 };
@@ -67,6 +72,25 @@ pub(crate) async fn new_polling_token(
     );
 
     Ok(new_token.token)
+}
+
+// If `force_all_traffic` setting is enabled we override the allowed_ips
+// to also enforce this on legacy clients.
+fn get_allowed_ips(
+    enterprise_settings: &EnterpriseSettings,
+    location: &WireguardNetwork<Id>,
+) -> String {
+    if enterprise_settings.client_traffic_policy == ClientTrafficPolicy::ForceAllTraffic {
+        vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)
+                .expect("Failed to parse UNSPECIFIED IPv4 constant"),
+            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
+                .expect("Failed to parse UNSPECIFIED IPv6 constant"),
+        ]
+        .as_csv()
+    } else {
+        location.allowed_ips.as_csv()
+    }
 }
 
 pub(crate) async fn build_device_config_response(
@@ -137,6 +161,7 @@ pub(crate) async fn build_device_config_response(
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let allowed_ips = get_allowed_ips(&enterprise_settings, &network);
             let config =
                 ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -145,7 +170,7 @@ pub(crate) async fn build_device_config_response(
                     assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
                     endpoint: format!("{}:{}", network.endpoint, network.port),
                     pubkey: network.pubkey,
-                    allowed_ips: network.allowed_ips.as_csv(),
+                    allowed_ips,
                     dns: network.dns,
                     keepalive_interval: network.keepalive_interval,
                     #[allow(deprecated)]
@@ -197,6 +222,7 @@ pub(crate) async fn build_device_config_response(
             }
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
+            let allowed_ips = get_allowed_ips(&enterprise_settings, &network);
             if let Some(wireguard_network_device) = wireguard_network_device {
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
@@ -205,7 +231,7 @@ pub(crate) async fn build_device_config_response(
                     assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
                     endpoint: format!("{}:{}", network.endpoint, network.port),
                     pubkey: network.pubkey,
-                    allowed_ips: network.allowed_ips.as_csv(),
+                    allowed_ips,
                     dns: network.dns,
                     keepalive_interval: network.keepalive_interval,
                     #[allow(deprecated)]
