@@ -8,12 +8,14 @@ use defguard_common::{
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::{
-    sync::mpsc::UnboundedReceiver,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time::{Duration, interval},
 };
 use tracing::{debug, error, info, trace, warn};
 
-use crate::{error::SessionManagerError, session_state::ActiveSessionsMap};
+use crate::{
+    error::SessionManagerError, events::SessionManagerEvent, session_state::ActiveSessionsMap,
+};
 
 pub mod error;
 pub mod events;
@@ -25,12 +27,13 @@ const SESSION_UPDATE_INTERVAL: u64 = 60;
 pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
+    session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
 
     // initialize session manager
-    let mut session_manager = SessionManager::new(pool).await?;
+    let mut session_manager = SessionManager::new(pool, session_manager_event_tx);
 
     loop {
         // receive next batch of peer stats messages
@@ -61,14 +64,15 @@ pub async fn run_session_manager(
 
 struct SessionManager {
     pool: PgPool,
+    session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
 }
 
 impl SessionManager {
-    async fn new(pool: PgPool) -> Result<Self, SessionManagerError> {
-        // initialize active sessions state based on DB content
-        // let active_sessions = LocationSessionsMap::initialize_from_db(&pool).await?;
-
-        Ok(Self { pool })
+    fn new(pool: PgPool, session_manager_event_tx: UnboundedSender<SessionManagerEvent>) -> Self {
+        Self {
+            pool,
+            session_manager_event_tx,
+        }
     }
 
     /// Helper function for processing all messages read from the channel in a single batch
@@ -126,7 +130,7 @@ impl SessionManager {
                     message.device_id, message.location_id
                 );
                 active_sessions
-                    .try_add_new_session(transaction, &message)
+                    .try_add_new_session(transaction, &message, &self.session_manager_event_tx)
                     .await?
             }
         };

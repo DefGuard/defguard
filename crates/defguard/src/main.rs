@@ -246,7 +246,8 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Activity log stream manager returned early: {res:?}"),
         res = run_session_manager(
             pool.clone(),
-            peer_stats_rx
+            peer_stats_rx,
+            session_manager_event_tx
         ) => error!("VPN client session manager returned early: {res:?}"),
     }
 
