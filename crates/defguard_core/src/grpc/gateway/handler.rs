@@ -1,10 +1,6 @@
 use std::{
-    net::SocketAddr,
     str::FromStr,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use chrono::{DateTime, Utc};
@@ -42,7 +38,7 @@ use tonic::transport::{Certificate, ClientTlsConfig, Endpoint};
 use crate::{
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
-        ClientMap, GrpcEvent, TEN_SECS,
+        TEN_SECS,
         gateway::{GatewayError, events::GatewayEvent, get_peers, try_protos_into_stats_message},
     },
     handlers::mail::send_gateway_disconnected_email,
@@ -91,10 +87,8 @@ pub(crate) struct GatewayHandler {
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
-    client_state: Arc<Mutex<ClientMap>>,
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 }
 
@@ -102,10 +96,8 @@ impl GatewayHandler {
     pub(crate) fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
-        client_state: Arc<Mutex<ClientMap>>,
         events_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        grpc_event_tx: UnboundedSender<GrpcEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url).map_err(|err| {
@@ -120,10 +112,8 @@ impl GatewayHandler {
             gateway,
             message_id: AtomicU64::new(0),
             pool,
-            client_state,
             events_tx,
             mail_tx,
-            grpc_event_tx,
             peer_stats_tx,
         })
     }
@@ -286,29 +276,6 @@ impl GatewayHandler {
     ) -> Result<Option<Device<Id>>, GatewayError> {
         let device = Device::find_by_pubkey(&self.pool, public_key).await?;
         Ok(device)
-    }
-
-    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
-    async fn fetch_location_from_db(
-        &self,
-        location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, GatewayError> {
-        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await? {
-            Some(location) => location,
-            None => {
-                error!("Location {location_id} not found");
-                return Err(GatewayError::NotFound(format!(
-                    "Location {location_id} not found"
-                )));
-            }
-        };
-        Ok(location)
-    }
-
-    fn emit_event(&self, event: GrpcEvent) {
-        if self.grpc_event_tx.send(event).is_err() {
-            warn!("Failed to send gRPC event");
-        }
     }
 
     pub(crate) async fn handle_setup(&mut self) -> Result<(), GatewayError> {
@@ -523,76 +490,12 @@ impl GatewayHandler {
                                 // copy device ID for easier reference later
                                 let device_id = device.id;
 
-                                // fetch user and location from DB for activity log
-                                // TODO: cache usernames since they don't change
-                                let Ok(location) =
-                                    self.fetch_location_from_db(self.gateway.network_id).await
-                                else {
-                                    continue;
-                                };
-
                                 // Convert stats to database storage format.
                                 let stats = peer_stats_from_proto(
                                     peer_stats.clone(),
                                     self.gateway.network_id,
                                     device_id,
                                 );
-
-                                // Only perform client state update if stats include an endpoint IP.
-                                // Otherwise, a peer was added to the gateway interface, but hasn't
-                                // connected yet.
-                                if let Some(endpoint) = &stats.endpoint {
-                                    // parse client endpoint IP
-                                    let Ok(socket_addr) = endpoint.clone().parse::<SocketAddr>()
-                                    else {
-                                        error!("Failed to parse VPN client endpoint");
-                                        continue;
-                                    };
-
-                                    // Perform client state operations in a dedicated block to drop
-                                    // mutex guard.
-                                    let disconnected_clients = {
-                                        // acquire lock on client state map
-                                        let mut client_map = self.client_state.lock().unwrap();
-
-                                        // update connected clients map
-                                        match client_map
-                                            .get_vpn_client(self.gateway.network_id, &public_key)
-                                        {
-                                            Some(client_state) => {
-                                                // update connected client state
-                                                client_state.update_client_state(
-                                                    device,
-                                                    socket_addr,
-                                                    stats.latest_handshake,
-                                                    stats.upload,
-                                                    stats.download,
-                                                );
-                                            }
-                                            None => {}
-                                        }
-
-                                        // disconnect inactive clients
-                                        let Ok(clients) = client_map
-                                            .disconnect_inactive_vpn_clients_for_location(
-                                                &location,
-                                            )
-                                        else {
-                                            // TODO: log message
-                                            continue;
-                                        };
-                                        clients
-                                    };
-
-                                    // emit client disconnect events
-                                    for (device, context) in disconnected_clients {
-                                        self.emit_event(GrpcEvent::ClientDisconnected {
-                                            context,
-                                            location: location.clone(),
-                                            device,
-                                        });
-                                    }
-                                }
 
                                 // convert stats to DB storage format
                                 match try_protos_into_stats_message(

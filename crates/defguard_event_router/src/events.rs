@@ -1,4 +1,4 @@
-use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, InternalEvent};
 use defguard_session_manager::events::SessionManagerEvent;
 
 /// Enum representing all possible events that can be generated in the system.
@@ -8,7 +8,6 @@ use defguard_session_manager::events::SessionManagerEvent;
 #[derive(Debug)]
 pub enum Event {
     Api(ApiEvent),
-    Grpc(Box<GrpcEvent>),
     Bidi(BidiStreamEvent),
     Internal(Box<InternalEvent>),
     SessionManager(Box<SessionManagerEvent>),
