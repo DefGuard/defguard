@@ -480,22 +480,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let network = json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client.post("/api/v1/network").json(&network).send().await;
+    let response = make_network(&client, "network").await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // network details
