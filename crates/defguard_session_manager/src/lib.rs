@@ -1,8 +1,10 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
-        models::{WireguardNetwork, vpn_client_session::VpnClientSession},
+        models::{Device, User, WireguardNetwork, vpn_client_session::VpnClientSession},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -14,7 +16,9 @@ use tokio::{
 use tracing::{debug, error, info, trace, warn};
 
 use crate::{
-    error::SessionManagerError, events::SessionManagerEvent, session_state::ActiveSessionsMap,
+    error::SessionManagerError,
+    events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
+    session_state::ActiveSessionsMap,
 };
 
 pub mod error;
@@ -178,7 +182,8 @@ impl SessionManager {
                     "Disconnecting inactive session for user {}, device {} in location {location}",
                     session.user_id, session.device_id
                 );
-                Self::disconnect_session(&mut transaction, session).await?;
+                self.disconnect_session(&mut transaction, session, &location)
+                    .await?;
             }
 
             // get all sessions which were created but have never connected
@@ -196,7 +201,8 @@ impl SessionManager {
                     "Disconnecting never connected session for user {}, device {} in location {location}",
                     session.user_id, session.device_id
                 );
-                Self::disconnect_session(&mut transaction, session).await?;
+                self.disconnect_session(&mut transaction, session, &location)
+                    .await?;
             }
         }
 
@@ -210,13 +216,44 @@ impl SessionManager {
 
     /// Helper user to mark session as disconnected and trigger necessary sideffects
     async fn disconnect_session(
+        &self,
         transaction: &mut PgConnection,
         mut session: VpnClientSession<Id>,
+        location: &WireguardNetwork<Id>,
     ) -> Result<(), SessionManagerError> {
-        session.disconnected_at = Some(Utc::now().naive_utc());
+        let disconnect_timestamp = Utc::now().naive_utc();
+
+        // update session record in DB
+        session.disconnected_at = Some(disconnect_timestamp);
         session.state =
             defguard_common::db::models::vpn_client_session::VpnClientSessionState::Disconnected;
         session.save(&mut *transaction).await?;
+
+        // fetch related objects necessary for event context
+        let user = User::find_by_id(&mut *transaction, session.user_id)
+            .await?
+            .ok_or(SessionManagerError::UserDoesNotExistError(session.user_id))?;
+        let device = Device::find_by_id(&mut *transaction, session.device_id)
+            .await?
+            .ok_or(SessionManagerError::DeviceDoesNotExistError(
+                session.device_id,
+            ))?;
+
+        // emit event
+        let context = SessionManagerEventContext {
+            timestamp: disconnect_timestamp,
+            location: location.clone(),
+            user,
+            device,
+            // FIXME: this is a workaround since we require an IP for each audit log event
+            public_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+        };
+        let event = SessionManagerEvent {
+            context,
+            event: SessionManagerEventType::ClientDisconnected,
+        };
+        self.session_manager_event_tx.send(event)?;
+
         Ok(())
     }
 }
