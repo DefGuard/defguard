@@ -80,8 +80,8 @@ const formSchema = z.object({
   keepalive_interval: z
     .number(m.form_error_required())
     .max(65535, m.form_error_port_max()),
-  mtu: z.number(m.form_error_required()),
-  fwmark: z.number(m.form_error_required()),
+  mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+  fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
   allowed_groups: z.array(
     z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   ),
