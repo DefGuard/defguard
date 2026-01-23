@@ -131,7 +131,7 @@ impl EventRouter {
                     error!("Internal event channel closed");
                     return Err(EventRouterError::InternalEventChannelClosed);
               },
-              event = self.receivers.session_manager.recv() => if let Some(session_manager_event) = event { Event::SessionManager(session_manager_event) } else {
+              event = self.receivers.session_manager.recv() => if let Some(session_manager_event) = event { Event::SessionManager(Box::new(session_manager_event)) } else {
                     error!("Internal event channel closed");
                     return Err(EventRouterError::InternalEventChannelClosed);
               },
@@ -146,7 +146,7 @@ impl EventRouter {
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
                 Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
                 Event::SessionManager(session_manager_event) => {
-                    self.handle_session_manager_event(session_manager_event)?
+                    self.handle_session_manager_event(*session_manager_event)?
                 }
             }
         }

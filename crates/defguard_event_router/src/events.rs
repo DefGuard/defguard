@@ -11,5 +11,5 @@ pub enum Event {
     Grpc(Box<GrpcEvent>),
     Bidi(BidiStreamEvent),
     Internal(Box<InternalEvent>),
-    SessionManager(SessionManagerEvent),
+    SessionManager(Box<SessionManagerEvent>),
 }
