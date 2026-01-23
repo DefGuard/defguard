@@ -15,42 +15,61 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{make_test_client, setup_pool};
+use super::common::{
+    client::{TestClient, TestResponse},
+    make_test_client, setup_pool,
+};
 
-fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    })
+async fn make_first_network(client: &TestClient) -> TestResponse {
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response
 }
 
-fn make_second_network() -> Value {
-    json!({
-        "name": "network-2",
-        "address": "10.6.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.6.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    })
+async fn make_second_network(client: &TestClient) -> TestResponse {
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network-2",
+            "address": "10.6.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.6.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -77,22 +96,12 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // create networks
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = make_first_network(&client).await;
     let network_1: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_1.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
-    let response = client
-        .post("/api/v1/network")
-        .json(&make_second_network())
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = make_second_network(&client).await;
     let network_2: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network_2.name, "network-2");
     let event = wg_rx.try_recv().unwrap();
@@ -303,6 +312,8 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
