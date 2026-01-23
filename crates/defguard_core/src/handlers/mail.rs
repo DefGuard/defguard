@@ -130,23 +130,43 @@ pub async fn send_support_data(
         "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
         session.user.username
     );
-    let config = dump_config(&appstate.pool).await;
-    let config =
-        serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
 
     let proxies: Vec<defguard_common::db::models::proxy::Proxy<Id>> =
         defguard_common::db::models::proxy::Proxy::all(&appstate.pool).await?;
-
-    for proxy in proxies {
-        info!(proxy.version);
-    }
-
     let gateways: Vec<defguard_common::db::models::gateway::Gateway<Id>> =
         defguard_common::db::models::gateway::Gateway::all(&appstate.pool).await?;
 
-    for gateway in gateways {
-        info!(gateway.version);
-    }
+    let components_info = json!({
+        "proxies": proxies.iter().map(|p| json!({
+            "id": p.id,
+            "name": p.name,
+            "version": p.version.as_deref().unwrap_or("unknown"),
+            "address": p.address,
+            "connected_at": p.connected_at
+        })).collect::<Vec<_>>(),
+        "gateways": gateways.iter().map(|g| json!({
+            "id": g.id,
+            "network_id": g.network_id,
+            "version": g.version.as_deref().unwrap_or("unknown"),
+            "url": g.url,
+            "has_certificate": g.has_certificate,
+            "hostname": g.hostname,
+            "connected_at": g.connected_at,
+        })).collect::<Vec<_>>(),
+    });
+
+    let components_json = serde_json::to_string_pretty(&components_info)
+        .unwrap_or("Json formatting error".to_string());
+
+    let components = Attachment {
+        filename: format!("defguard-components-{}.json", Utc::now()),
+        content: components_json.into(),
+        content_type: ContentType::TEXT_PLAIN,
+    };
+
+    let config = dump_config(&appstate.pool).await;
+    let config =
+        serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
 
     let config = Attachment {
         filename: format!("defguard-support-data-{}.json", Utc::now()),
@@ -164,37 +184,32 @@ pub async fn send_support_data(
         to: SUPPORT_EMAIL_ADDRESS.to_string(),
         subject: SUPPORT_EMAIL_SUBJECT.to_string(),
         content: support_data_mail()?,
-        attachments: vec![config, logs],
+        attachments: vec![components, config, logs],
         result_tx: Some(tx),
     };
     let (to, subject) = (mail.to.clone(), mail.subject.clone());
 
-    info!("prepared support mail");
-    Ok(ApiResponse {
-        json: json!({"debug": "Mail content logged, not sent"}),
-        status: StatusCode::OK,
-    })
-    // match appstate.mail_tx.send(mail) {{}
-    //     Ok(()) => match rx.recv().await {
-    //         Some(Ok(_)) => {
-    //             info!(
-    //                 "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
-    //                 session.user.username
-    //             );
-    //             Ok(ApiResponse {
-    //                 json: json!({}),
-    //                 status: StatusCode::OK,
-    //             })
-    //         }
-    //         Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-    //         None => Ok(internal_error(
-    //             &to,
-    //             &subject,
-    //             &String::from("None received"),
-    //         )),
-    //     },
-    //     Err(err) => Ok(internal_error(&to, &subject, &err)),
-    // }
+    match appstate.mail_tx.send(mail) {
+        Ok(()) => match rx.recv().await {
+            Some(Ok(_)) => {
+                info!(
+                    "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
+                    session.user.username
+                );
+                Ok(ApiResponse {
+                    json: json!({}),
+                    status: StatusCode::OK,
+                })
+            }
+            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
+            None => Ok(internal_error(
+                &to,
+                &subject,
+                &String::from("None received"),
+            )),
+        },
+        Err(err) => Ok(internal_error(&to, &subject, &err)),
+    }
 }
 
 pub fn send_new_device_added_email(
