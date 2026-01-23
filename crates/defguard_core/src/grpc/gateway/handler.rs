@@ -7,14 +7,14 @@ use std::{
     },
 };
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use defguard_certs::{Csr, der_to_pem};
 use defguard_common::{
     VERSION,
     db::{
         Id, NoId,
         models::{
-            Device, Settings, User, WireguardNetwork, gateway::Gateway,
+            Device, Settings, WireguardNetwork, gateway::Gateway,
             wireguard_peer_stats::WireguardPeerStats,
         },
     },
@@ -41,7 +41,6 @@ use tonic::transport::{Certificate, ClientTlsConfig, Endpoint};
 
 use crate::{
     enterprise::firewall::try_get_location_firewall_config,
-    events::GrpcRequestContext,
     grpc::{
         ClientMap, GrpcEvent, TEN_SECS,
         gateway::{GatewayError, events::GatewayEvent, get_peers, try_protos_into_stats_message},
@@ -306,25 +305,6 @@ impl GatewayHandler {
         Ok(location)
     }
 
-    /// Helper method to fetch `User` info from DB and return appropriate errors
-    async fn fetch_user_from_db(
-        &self,
-        user_id: Id,
-        public_key: &str,
-    ) -> Result<User<Id>, GatewayError> {
-        let user = match User::find_by_id(&self.pool, user_id).await? {
-            Some(user) => user,
-            None => {
-                error!("User {user_id} assigned to device with public key {public_key} not found");
-                return Err(GatewayError::NotFound(format!(
-                    "User assigned to device with public key {public_key} not found"
-                )));
-            }
-        };
-
-        Ok(user)
-    }
-
     fn emit_event(&self, event: GrpcEvent) {
         if self.grpc_event_tx.send(event).is_err() {
             warn!("Failed to send gRPC event");
@@ -545,11 +525,6 @@ impl GatewayHandler {
 
                                 // fetch user and location from DB for activity log
                                 // TODO: cache usernames since they don't change
-                                let Ok(user) =
-                                    self.fetch_user_from_db(device.user_id, &public_key).await
-                                else {
-                                    continue;
-                                };
                                 let Ok(location) =
                                     self.fetch_location_from_db(self.gateway.network_id).await
                                 else {
@@ -594,51 +569,7 @@ impl GatewayHandler {
                                                     stats.download,
                                                 );
                                             }
-                                            None => {
-                                                // don't mark inactive peers as connected
-                                                if (Utc::now().naive_utc() - stats.latest_handshake)
-                                                    < TimeDelta::seconds(
-                                                        location.peer_disconnect_threshold.into(),
-                                                    )
-                                                {
-                                                    // mark new VPN client as connected
-                                                    if client_map
-                                                        .connect_vpn_client(
-                                                            self.gateway.network_id,
-                                                            // Hostname is for logging only.
-                                                            &self
-                                                                .gateway
-                                                                .hostname
-                                                                .clone()
-                                                                .unwrap_or_default(),
-                                                            &public_key,
-                                                            &device,
-                                                            &user,
-                                                            socket_addr,
-                                                            &stats,
-                                                        )
-                                                        .is_err()
-                                                    {
-                                                        // TODO: log message
-                                                        continue;
-                                                    }
-
-                                                    // emit connection event
-                                                    let context = GrpcRequestContext::new(
-                                                        user.id,
-                                                        user.username.clone(),
-                                                        socket_addr.ip(),
-                                                        device.id,
-                                                        device.name.clone(),
-                                                        location.clone(),
-                                                    );
-                                                    self.emit_event(GrpcEvent::ClientConnected {
-                                                        context,
-                                                        location: location.clone(),
-                                                        device: device.clone(),
-                                                    });
-                                                }
-                                            }
+                                            None => {}
                                         }
 
                                         // disconnect inactive clients

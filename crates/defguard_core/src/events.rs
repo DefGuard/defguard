@@ -315,11 +315,6 @@ pub enum GrpcEvent {
     GatewayDisconnected {
         location: WireguardNetwork<Id>,
     },
-    ClientConnected {
-        context: GrpcRequestContext,
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
     ClientDisconnected {
         context: GrpcRequestContext,
         location: WireguardNetwork<Id>,

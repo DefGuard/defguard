@@ -11,16 +11,6 @@ impl EventRouter {
         match event {
             GrpcEvent::GatewayConnected { location: _ } => todo!(),
             GrpcEvent::GatewayDisconnected { location: _ } => todo!(),
-            GrpcEvent::ClientConnected {
-                context,
-                location,
-                device,
-            } => {
-                self.log_event(
-                    context.into(),
-                    LoggerEvent::Vpn(Box::new(VpnEvent::ConnectedToLocation { location, device })),
-                )?;
-            }
             GrpcEvent::ClientDisconnected {
                 context,
                 location,
