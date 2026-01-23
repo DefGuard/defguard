@@ -13,8 +13,8 @@ const formSchema = z.object({
   keepalive_interval: z
     .number(m.form_error_required())
     .max(65535, m.form_error_port_max()),
-  mtu: z.number().nullable(),
-  fwmark: z.number().nullable(),
+  mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+  fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
 });
 
 type FormFields = z.infer<typeof formSchema>;

@@ -7,8 +7,8 @@ use defguard_common::db::{
         device::WireguardNetworkDevice,
         settings::OpenIdUsernameHandling,
         wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            ServiceLocationMode,
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+            LocationMfaMode, ServiceLocationMode,
         },
     },
 };
@@ -65,8 +65,8 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -147,8 +147,8 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -231,8 +231,8 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -480,22 +480,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let network = json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client.post("/api/v1/network").json(&network).send().await;
+    let response = make_network(&client, "network").await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // network details
@@ -556,6 +541,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -839,22 +826,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let network = json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client.post("/api/v1/network").json(&network).send().await;
+    let response = make_network(&client, "network").await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // network details
@@ -903,6 +875,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -927,6 +901,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -951,6 +927,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,

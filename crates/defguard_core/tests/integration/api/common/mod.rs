@@ -187,6 +187,8 @@ pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestRespons
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
             "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
