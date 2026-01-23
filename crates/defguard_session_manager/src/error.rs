@@ -25,5 +25,11 @@ pub enum SessionManagerError {
     #[error("Received out of order peer stats update")]
     PeerStatsUpdateOutOfOrderError,
     #[error("Failed to send session manager event: {0}")]
-    SessionManagerEventError(#[from] SendError<SessionManagerEvent>),
+    SessionManagerEventError(Box<SendError<SessionManagerEvent>>),
+}
+
+impl From<SendError<SessionManagerEvent>> for SessionManagerError {
+    fn from(error: SendError<SessionManagerEvent>) -> Self {
+        Self::SessionManagerEventError(Box::new(error))
+    }
 }
