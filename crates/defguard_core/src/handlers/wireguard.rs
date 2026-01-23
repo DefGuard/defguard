@@ -53,9 +53,6 @@ use crate::{
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
-/// Default MTU for WireGuard interfaces.
-pub const WIREGUARD_MTU: i32 = 1420; // TODO: change to u32 once sqlx unsigned integers.
-
 #[derive(Serialize, ToSchema)]
 pub(crate) struct GatewayInfo {
     id: Id,
