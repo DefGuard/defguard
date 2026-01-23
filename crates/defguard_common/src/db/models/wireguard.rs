@@ -41,6 +41,8 @@ use crate::{
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
+/// Default MTU for WireGuard interfaces.
+pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: change to u32 once sqlx unsigned integers.
 
 // Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -115,8 +117,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub prvkey: String,
     pub endpoint: String,
     pub dns: Option<String>,
-    pub mtu: Option<i32>,    // Should be Option<u32>, but sqlx won't allow that.
-    pub fwmark: Option<i32>, // Should be Option<u32>, but sqlx won't allow that.
+    pub mtu: i32,    // Should be u32, but sqlx won't allow that.
+    pub fwmark: i64, // Should be u32, but sqlx won't allow that.
     #[model(ref)]
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
@@ -220,8 +222,8 @@ impl WireguardNetwork {
         port: i32,
         endpoint: String,
         dns: Option<String>,
-        mtu: Option<i32>,
-        fwmark: Option<i32>,
+        mtu: i32,
+        fwmark: i64,
         allowed_ips: Vec<IpNetwork>,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
@@ -337,13 +339,14 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let devices = match self.get_allowed_groups(&mut *transaction).await? {
-            // devices need to be filtered by allowed group
-            Some(allowed_groups) => {
-                query_as!(
+        let devices =
+            match self.get_allowed_groups(&mut *transaction).await? {
+                // devices need to be filtered by allowed group
+                Some(allowed_groups) => {
+                    query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                configured
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -354,15 +357,14 @@ impl WireguardNetwork<Id> {
                 ORDER BY d.id ASC",
                 &allowed_groups
             )
-                .fetch_all(&mut *transaction)
-                .await?
-            }
-            // all devices of enabled users are allowed
-            None => {
-                query_as!(
+                    .fetch_all(&mut *transaction)
+                    .await?
+                }
+                // all devices of enabled users are allowed
+                None => query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                    configured \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                    d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
@@ -370,9 +372,8 @@ impl WireguardNetwork<Id> {
                     ORDER BY d.id ASC"
                 )
                 .fetch_all(&mut *transaction)
-                .await?
-            }
-        };
+                .await?,
+            };
         Ok(devices)
     }
 
@@ -385,13 +386,14 @@ impl WireguardNetwork<Id> {
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
-        let devices = match self.get_allowed_groups(&mut *transaction).await? {
-            // devices need to be filtered by allowed group
-            Some(allowed_groups) => {
-                query_as!(
+        let devices =
+            match self.get_allowed_groups(&mut *transaction).await? {
+                // devices need to be filtered by allowed group
+                Some(allowed_groups) => {
+                    query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                configured
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -403,26 +405,25 @@ impl WireguardNetwork<Id> {
                 ORDER BY d.id ASC",
                 &allowed_groups, user_id
             )
-                .fetch_all(&mut *transaction)
-                .await?
-            }
-            // all devices of enabled users are allowed
-            None => {
-                query_as!(
+                    .fetch_all(&mut *transaction)
+                    .await?
+                }
+                // all devices of enabled users are allowed
+                None => query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                    configured \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                    d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
                     AND d.device_type = 'user'::device_type \
                     AND d.user_id = $1 \
-                    ORDER BY d.id ASC", user_id
+                    ORDER BY d.id ASC",
+                    user_id
                 )
                 .fetch_all(&mut *transaction)
-                .await?
-            }
-        };
+                .await?,
+            };
 
         Ok(devices)
     }
@@ -1018,7 +1019,8 @@ impl WireguardNetwork<Id> {
         query_as!(
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, \
-            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
+            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", \
+            state \"state: VpnClientSessionState\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
             self.id,
@@ -1040,8 +1042,8 @@ impl Default for WireguardNetwork {
             prvkey: String::default(),
             endpoint: String::default(),
             dns: Option::default(),
-            mtu: Option::default(),
-            fwmark: Option::default(),
+            mtu: DEFAULT_WIREGUARD_MTU,
+            fwmark: 0,
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
@@ -1497,8 +1499,8 @@ mod test {
             50051,
             String::new(),
             None,
-            None,
-            None,
+            DEFAULT_WIREGUARD_MTU,
+            0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,
@@ -1631,8 +1633,8 @@ mod test {
             50051,
             String::new(),
             None,
-            None,
-            None,
+            DEFAULT_WIREGUARD_MTU,
+            0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,
