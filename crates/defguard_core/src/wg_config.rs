@@ -6,8 +6,8 @@ use defguard_common::{
     db::models::{
         Device, WireguardNetwork,
         wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            ServiceLocationMode,
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+            LocationMfaMode, ServiceLocationMode,
         },
     },
 };
@@ -81,21 +81,17 @@ pub(crate) fn parse_wireguard_config(
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
     let dns = interface_section.get("DNS").map(ToString::to_string);
     let mtu = match interface_section.get("MTU") {
-        Some(value) => Some(
-            value
-                .parse::<i32>()
-                .map_err(|_| WireguardConfigParseError::InvalidMTU(value.to_string()))?,
-        ),
-        None => None,
+        Some(value) => value
+            .parse::<i32>()
+            .map_err(|_| WireguardConfigParseError::InvalidMTU(value.to_string()))?,
+        None => DEFAULT_WIREGUARD_MTU,
     };
     // TODO: FwMark should also accept hex values.
     let fwmark = match interface_section.get("FwMark") {
-        Some(value) => Some(
-            value
-                .parse::<i32>()
-                .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
-        ),
-        None => None,
+        Some(value) => value
+            .parse::<i64>()
+            .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
+        None => 0,
     };
     let mut addresses: Vec<IpNetwork> = Vec::new();
     for addr in address.split(',') {
@@ -229,8 +225,8 @@ mod test {
         );
         assert_eq!(network.endpoint, "");
         assert_eq!(network.dns, Some("10.0.0.2".to_string()));
-        assert_eq!(network.mtu, Some(1420));
-        assert_eq!(network.fwmark, Some(51820));
+        assert_eq!(network.mtu, 1420);
+        assert_eq!(network.fwmark, 51820);
         assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
         assert_eq!(network.connected_at, None);
 

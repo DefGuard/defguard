@@ -207,9 +207,9 @@ pub struct InitVpnLocationArgs {
     #[arg(long)]
     pub dns: Option<String>,
     #[arg(long)]
-    pub mtu: Option<u32>,
+    pub mtu: u32,
     #[arg(long)]
-    pub fwmark: Option<u32>,
+    pub fwmark: u32,
     #[arg(long)]
     pub allowed_ips: Vec<IpNetwork>,
     #[arg(long)]

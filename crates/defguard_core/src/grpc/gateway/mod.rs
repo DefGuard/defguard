@@ -4,7 +4,11 @@ use chrono::DateTime;
 use defguard_common::{
     db::{
         ChangeNotification, Id, TriggerOperation,
-        models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
+        models::{
+            WireguardNetwork,
+            gateway::Gateway,
+            wireguard::{DEFAULT_WIREGUARD_MTU, ServiceLocationMode},
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -207,8 +211,8 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
-        mtu: network.mtu.map(|i| i as u32),
-        fwmark: network.fwmark.map(|i| i as u32),
+        mtu: network.mtu as u32,
+        fwmark: network.fwmark as u32,
     }
 }
 
@@ -513,8 +517,8 @@ impl GatewayUpdatesHandler {
                     port: network.port as u32,
                     peers,
                     firewall_config,
-                    mtu: network.mtu.map(|i| i as u32),
-                    fwmark: network.fwmark.map(|i| i as u32),
+                    mtu: network.mtu as u32,
+                    fwmark: network.fwmark as u32,
                 })),
             })),
         }) {
@@ -547,8 +551,8 @@ impl GatewayUpdatesHandler {
                     port: 0,
                     peers: Vec::new(),
                     firewall_config: None,
-                    mtu: None,
-                    fwmark: None,
+                    mtu: DEFAULT_WIREGUARD_MTU as u32,
+                    fwmark: 0,
                 })),
             })),
         }) {
