@@ -29,7 +29,10 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     events::BidiStreamEvent,
-    grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer},
+    grpc::{
+        gateway::events::GatewayEvent,
+        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
+    },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 use defguard_mail::Mail;
@@ -150,6 +153,7 @@ impl ProxyManager {
     pub async fn run(self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
+        let sessions = Arc::default();
         // Retrieve proxies from DB.
         let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
             .await?
@@ -160,6 +164,7 @@ impl ProxyManager {
                     self.pool.clone(),
                     &self.tx,
                     Arc::clone(&remote_mfa_responses),
+                    Arc::clone(&sessions),
                 )
             })
             .collect::<Result<_, _>>()?;
@@ -169,7 +174,13 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy = ProxyServer::new(self.pool.clone(), url, &self.tx, remote_mfa_responses);
+            let proxy = ProxyServer::new(
+                self.pool.clone(),
+                url,
+                &self.tx,
+                remote_mfa_responses,
+                sessions,
+            );
             proxies.push(proxy);
         }
 
@@ -242,9 +253,10 @@ impl ProxyServer {
         url: Url,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx, remote_mfa_responses);
+        let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
 
         Self {
             pool,
@@ -258,9 +270,10 @@ impl ProxyServer {
         pool: PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-        Ok(Self::new(pool, url, tx, remote_mfa_responses))
+        Ok(Self::new(pool, url, tx, remote_mfa_responses, sessions))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -938,6 +951,7 @@ impl ProxyServices {
         pool: &PgPool,
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
@@ -953,6 +967,7 @@ impl ProxyServices {
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             remote_mfa_responses,
+            sessions,
         );
         let polling = PollingServer::new(pool.clone());
 

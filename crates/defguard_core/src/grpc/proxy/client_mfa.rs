@@ -53,7 +53,7 @@ impl From<ClientMfaServerError> for Status {
 }
 
 #[derive(Clone)]
-pub(crate) struct ClientLoginSession {
+pub struct ClientLoginSession {
     pub(crate) method: MfaMethod,
     pub(crate) location: WireguardNetwork<Id>,
     pub(crate) device: Device<Id>,
@@ -66,7 +66,7 @@ pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
-    pub(crate) sessions: HashMap<String, ClientLoginSession>,
+    pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
@@ -78,15 +78,16 @@ impl ClientMfaServer {
         mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
-		remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
         Self {
             pool,
             mail_tx,
             wireguard_tx,
             bidi_event_tx,
-			remote_mfa_responses,
-            sessions: HashMap::new(),
+            remote_mfa_responses,
+            sessions,
         }
     }
 
@@ -124,7 +125,11 @@ impl ClientMfaServer {
         request: ClientMfaTokenValidationRequest,
     ) -> Result<ClientMfaTokenValidationResponse, Status> {
         let pubkey = Self::parse_token(&request.token)?;
-        let session_active = self.sessions.contains_key(&pubkey);
+        let session_active = self
+            .sessions
+            .read()
+            .expect("Failed to read-lock ClientMfaServer::sessions")
+            .contains_key(&pubkey);
         Ok(ClientMfaTokenValidationResponse {
             token_valid: session_active,
         })
@@ -319,17 +324,20 @@ impl ClientMfaServer {
             .map(|challenge| challenge.challenge.clone());
 
         // store login session
-        self.sessions.insert(
-            request.pubkey,
-            ClientLoginSession {
-                method: selected_method,
-                location,
-                device,
-                user,
-                openid_auth_completed: false,
-                biometric_challenge,
-            },
-        );
+        self.sessions
+            .write()
+            .expect("Failed to write-lock ClientMfaServer::sessions")
+            .insert(
+                request.pubkey,
+                ClientLoginSession {
+                    method: selected_method,
+                    location,
+                    device,
+                    user,
+                    openid_auth_completed: false,
+                    biometric_challenge,
+                },
+            );
 
         Ok(ClientMfaStartResponse {
             token,
@@ -410,7 +418,13 @@ impl ClientMfaServer {
         let pubkey = Self::parse_token(&request.token)?;
 
         // fetch login session
-        let Some(session) = self.sessions.get(&pubkey) else {
+        let Some(session) = self
+            .sessions
+            .read()
+            .expect("Failed to read-lock ClientMfaServer::sessions")
+            .get(&pubkey)
+            .cloned()
+        else {
             error!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
@@ -467,7 +481,7 @@ impl ClientMfaServer {
                                 DesktopClientMfaEvent::Failed {
                                     location: location.clone(),
                                     device: device.clone(),
-                                    method: *method,
+                                    method,
                                     message: "Signed challenge rejected".to_string(),
                                 },
                             )),
@@ -502,7 +516,7 @@ impl ClientMfaServer {
                                 DesktopClientMfaEvent::Failed {
                                     location: location.clone(),
                                     device: device.clone(),
-                                    method: *method,
+                                    method,
                                     message: "Signed challenge rejected".to_string(),
                                 },
                             )),
@@ -522,7 +536,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                                 message: "TOTP code not provided in request".to_string(),
                             },
                         )),
@@ -537,7 +551,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                                 message: "invalid TOTP code".to_string(),
                             },
                         )),
@@ -556,7 +570,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                                 message: "email MFA code not provided in request".to_string(),
                             },
                         )),
@@ -571,7 +585,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                                 message: "invalid email MFA code".to_string(),
                             },
                         )),
@@ -580,7 +594,7 @@ impl ClientMfaServer {
                 }
             }
             MfaMethod::Oidc => {
-                if !*openid_auth_completed {
+                if !openid_auth_completed {
                     debug!(
                         "User {user} tried to finish OIDC MFA login but they haven't completed \
                         the OIDC authentication yet."
@@ -591,7 +605,7 @@ impl ClientMfaServer {
                             DesktopClientMfaEvent::Failed {
                                 location: location.clone(),
                                 device: device.clone(),
-                                method: *method,
+                                method,
                                 message: "tried to finish OIDC MFA login but they haven't \
                                     completed OIDC authentication yet"
                                     .to_string(),
@@ -669,7 +683,7 @@ impl ClientMfaServer {
                 DesktopClientMfaEvent::Connected {
                     location: location.clone(),
                     device: device.clone(),
-                    method: *method,
+                    method,
                 },
             )),
         })?;
@@ -683,7 +697,10 @@ impl ClientMfaServer {
         };
 
         // remove login session from map
-        self.sessions.remove(&pubkey);
+        self.sessions
+            .write()
+            .expect("Failed to write-lock ClientMfaServer::sessions")
+            .remove(&pubkey);
 
         // commit transaction
         transaction.commit().await.map_err(|_| {
@@ -691,7 +708,7 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-		// If there is a desktop client websocket waiting for the preshared key, send it.
+        // If there is a desktop client websocket waiting for the preshared key, send it.
         if let (Some(tx), Some(ref preshared_key)) = (
             self.remote_mfa_responses
                 .write()
@@ -699,7 +716,7 @@ impl ClientMfaServer {
                 .remove(&request.token),
             network_device.preshared_key,
         ) {
-			// TODO(jck) error handling
+            // TODO(jck) error handling
             let _ = tx.send(preshared_key.clone());
         }
 
