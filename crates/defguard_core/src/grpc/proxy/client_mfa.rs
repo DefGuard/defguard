@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use chrono::Utc;
 use defguard_common::{
@@ -17,13 +20,14 @@ use defguard_mail::Mail;
 use defguard_proto::proxy::{
     self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
     ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
-    MfaMethod,
+    ClientRemoteMfaFinishRequest, ClientRemoteMfaFinishResponse, MfaMethod,
 };
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
+    oneshot,
 };
 use tonic::{Code, Status};
 
@@ -63,6 +67,7 @@ pub struct ClientMfaServer {
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     pub(crate) sessions: HashMap<String, ClientLoginSession>,
+    remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -73,12 +78,14 @@ impl ClientMfaServer {
         mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
+		remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
     ) -> Self {
         Self {
             pool,
             mail_tx,
             wireguard_tx,
             bidi_event_tx,
+			remote_mfa_responses,
             sessions: HashMap::new(),
         }
     }
@@ -369,6 +376,30 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
+    pub async fn finish_remote_client_mfa_login(
+        &mut self,
+        request: ClientRemoteMfaFinishRequest,
+    ) -> Result<ClientRemoteMfaFinishResponse, Status> {
+        debug!("Finishing desktop client login: {request:?}");
+        let (tx, rx) = oneshot::channel();
+        self.remote_mfa_responses
+            .write()
+            .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+            .insert(request.token.clone(), tx);
+
+        // TODO(jck) do we need timeout here? memory leaks possible?
+        let preshared_key = rx.await.map_err(|err| {
+            error!("Remote MFA responses channel failed: {err:?}");
+            Status::internal("Remote MFA responses channel failed")
+        })?;
+
+        Ok(ClientRemoteMfaFinishResponse {
+            token: request.token,
+            preshared_key,
+        })
+    }
+
+    #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
         &mut self,
         request: ClientMfaFinishRequest,
@@ -616,7 +647,7 @@ impl ClientMfaServer {
             network_info: vec![DeviceNetworkInfo {
                 network_id: location.id,
                 device_wireguard_ips: network_device.wireguard_ips,
-                preshared_key: network_device.preshared_key,
+                preshared_key: network_device.preshared_key.clone(),
                 is_authorized: network_device.is_authorized,
             }],
         };
@@ -659,6 +690,18 @@ impl ClientMfaServer {
             error!("Failed to commit transaction while finishing desktop client login.");
             Status::internal("unexpected error")
         })?;
+
+		// If there is a desktop client websocket waiting for the preshared key, send it.
+        if let (Some(tx), Some(ref preshared_key)) = (
+            self.remote_mfa_responses
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+                .remove(&request.token),
+            network_device.preshared_key,
+        ) {
+			// TODO(jck) error handling
+            let _ = tx.send(preshared_key.clone());
+        }
 
         Ok(response)
     }

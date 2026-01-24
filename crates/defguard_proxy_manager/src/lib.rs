@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
@@ -50,6 +51,7 @@ use tokio::{
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
+        oneshot,
     },
     task::JoinSet,
     time::sleep,
@@ -147,11 +149,19 @@ impl ProxyManager {
     /// such as routing state and compatibility tracking.
     pub async fn run(self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
+        let remote_mfa_responses = Arc::default();
         // Retrieve proxies from DB.
         let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
             .await?
             .iter()
-            .map(|proxy| ProxyServer::from_proxy(proxy, self.pool.clone(), &self.tx))
+            .map(|proxy| {
+                ProxyServer::from_proxy(
+                    proxy,
+                    self.pool.clone(),
+                    &self.tx,
+                    Arc::clone(&remote_mfa_responses),
+                )
+            })
             .collect::<Result<_, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
 
@@ -159,7 +169,7 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy = ProxyServer::new(self.pool.clone(), url, &self.tx);
+            let proxy = ProxyServer::new(self.pool.clone(), url, &self.tx, remote_mfa_responses);
             proxies.push(proxy);
         }
 
@@ -227,9 +237,14 @@ struct ProxyServer {
 }
 
 impl ProxyServer {
-    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet) -> Self {
+    pub fn new(
+        pool: PgPool,
+        url: Url,
+        tx: &ProxyTxSet,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx);
+        let services = ProxyServices::new(&pool, tx, remote_mfa_responses);
 
         Self {
             pool,
@@ -238,9 +253,14 @@ impl ProxyServer {
         }
     }
 
-    fn from_proxy(proxy: &Proxy<Id>, pool: PgPool, tx: &ProxyTxSet) -> Result<Self, ProxyError> {
+    fn from_proxy(
+        proxy: &Proxy<Id>,
+        pool: PgPool,
+        tx: &ProxyTxSet,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-        Ok(Self::new(pool, url, tx))
+        Ok(Self::new(pool, url, tx, remote_mfa_responses))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -641,6 +661,23 @@ impl ProxyServer {
                             }
                         }
                         // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
+                        Some(core_request::Payload::ClientRemoteMfaFinish(request)) => {
+                            match self
+                                .services
+                                .client_mfa
+                                .finish_remote_client_mfa_login(request)
+                                .await
+                            {
+                                Ok(response_payload) => Some(
+                                    core_response::Payload::ClientRemoteMfaFinish(response_payload),
+                                ),
+                                Err(err) => {
+                                    error!("Client MFA finish error: {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
                         Some(core_request::Payload::ClientMfaFinish(request)) => {
                             match self
                                 .services
@@ -897,7 +934,11 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(pool: &PgPool, tx: &ProxyTxSet) -> Self {
+    pub fn new(
+        pool: &PgPool,
+        tx: &ProxyTxSet,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+    ) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),
@@ -911,6 +952,7 @@ impl ProxyServices {
             tx.mail.clone(),
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
+            remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
 
