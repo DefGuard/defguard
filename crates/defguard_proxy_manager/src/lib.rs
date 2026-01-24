@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
@@ -117,60 +116,6 @@ pub enum ProxyError {
     ConnectionTimeout(String),
 }
 
-/// Maintains routing state for proxy-specific responses by associating
-/// correlation tokens with the proxy senders that should receive them.
-#[derive(Default)]
-struct ProxyRouter {
-    response_map: HashMap<String, Vec<UnboundedSender<CoreResponse>>>,
-}
-
-impl ProxyRouter {
-    /// Records the proxy sender associated with a request that expects a routed response.
-    pub(crate) fn register_request(
-        &mut self,
-        request: &CoreRequest,
-        sender: &UnboundedSender<CoreResponse>,
-    ) {
-        match &request.payload {
-            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
-            // so it can send the preshared key.
-            // Corresponds to the `core_response::Payload::ClientMfaFinish(response)` response.
-            // https://github.com/DefGuard/defguard/issues/1700
-            Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                self.response_map
-                    .insert(request.token.clone(), vec![sender.clone()]);
-            }
-            Some(core_request::Payload::ClientMfaFinish(request)) => {
-                if let Some(senders) = self.response_map.get_mut(&request.token) {
-                    senders.push(sender.clone());
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Determines whether the given `CoreResponse` must be routed to a specific proxy instance.
-    pub(crate) fn route_response(
-        &mut self,
-        response: &CoreResponse,
-    ) -> Option<Vec<UnboundedSender<CoreResponse>>> {
-        #[allow(clippy::single_match)]
-        match &response.payload {
-            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
-            // so it can send the preshared key.
-            // Corresponds to the `core_request::Payload::ClientMfaTokenValidation(request)` request.
-            // https://github.com/DefGuard/defguard/issues/1700
-            Some(core_response::Payload::ClientMfaFinish(response)) => {
-                if let Some(ref token) = response.token {
-                    return self.response_map.remove(token);
-                }
-            }
-            _ => {}
-        }
-        None
-    }
-}
-
 /// Coordinates communication between the Core and multiple proxy instances.
 ///
 /// Responsibilities include:
@@ -181,7 +126,6 @@ pub struct ProxyManager {
     pool: PgPool,
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    router: Arc<RwLock<ProxyRouter>>,
 }
 
 impl ProxyManager {
@@ -194,7 +138,6 @@ impl ProxyManager {
             pool,
             tx,
             incompatible_components,
-            router: Arc::default(),
         }
     }
 
@@ -208,14 +151,7 @@ impl ProxyManager {
         let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
             .await?
             .iter()
-            .map(|proxy| {
-                ProxyServer::from_proxy(
-                    proxy,
-                    self.pool.clone(),
-                    &self.tx,
-                    Arc::clone(&self.router),
-                )
-            })
+            .map(|proxy| ProxyServer::from_proxy(proxy, self.pool.clone(), &self.tx))
             .collect::<Result<_, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
 
@@ -223,8 +159,7 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy =
-                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
+            let proxy = ProxyServer::new(self.pool.clone(), url, &self.tx);
             proxies.push(proxy);
         }
 
@@ -287,33 +222,25 @@ struct ProxyServer {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
-    /// Router shared between proxies and the proxy manager
-    router: Arc<RwLock<ProxyRouter>>,
     /// Proxy server gRPC URL
     url: Url,
 }
 
 impl ProxyServer {
-    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
+    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx);
 
         Self {
             pool,
             services,
-            router,
             url,
         }
     }
 
-    fn from_proxy(
-        proxy: &Proxy<Id>,
-        pool: PgPool,
-        tx: &ProxyTxSet,
-        router: Arc<RwLock<ProxyRouter>>,
-    ) -> Result<Self, ProxyError> {
+    fn from_proxy(proxy: &Proxy<Id>, pool: PgPool, tx: &ProxyTxSet) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-        Ok(Self::new(pool, url, tx, router))
+        Ok(Self::new(pool, url, tx))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -524,10 +451,6 @@ impl ProxyServer {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
-                    self.router
-                        .write()
-                        .unwrap()
-                        .register_request(&received, &tx);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -945,13 +868,7 @@ impl ProxyServer {
                         id: received.id,
                         payload,
                     };
-                    if let Some(txs) = self.router.write().unwrap().route_response(&req) {
-                        for tx in txs {
-                            let _ = tx.send(req.clone());
-                        }
-                    } else {
-                        let _ = tx.send(req);
-                    }
+                    let _ = tx.send(req);
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
