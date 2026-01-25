@@ -10,6 +10,7 @@ import { LayoutGrid } from '../../LayoutGrid/LayoutGrid';
 import type { WizardPageConfig } from '../types';
 import { WizardStepsCard } from '../WizardStepsCard/WizardStepsCard';
 import { WizardTop } from '../WizardTop/WizardTop';
+import { WizardWelcomePage } from '../WizardWelcomePage/WizardWelcomePage';
 
 type Props = HTMLProps<HTMLDivElement> &
   PropsWithChildren &
@@ -25,6 +26,8 @@ export const WizardPage = ({
   title,
   children,
   onClose,
+  welcomePageConfig,
+  showWelcome,
   ...containerProps
 }: Props) => {
   const activeStep = steps[activeStepId];
@@ -61,23 +64,29 @@ export const WizardPage = ({
       <div className="limiter">
         <div className="content-tack">
           <LayoutGrid variant="wizard">
-            <div className="side">
-              <p className="title">{title}</p>
-              <SizedBox height={ThemeSpacing.Md} />
-              <p className="description">{subtitle}</p>
-              <SizedBox height={ThemeSpacing.Xl2} />
-              <WizardStepsCard steps={visibleSteps} activeStep={activeStep} />
-            </div>
-            <div className="main">
-              <Badge variant="success" text={`Step ${activeStepIndex + 1}`} />
-              <SizedBox height={ThemeSpacing.Md} />
-              <p className="step-title">{activeStep.label}</p>
-              {isPresent(activeStep.description) && (
-                <p className="step-description">{activeStep.description}</p>
-              )}
-              <SizedBox height={ThemeSpacing.Xl2} />
-              {children}
-            </div>
+            {welcomePageConfig && showWelcome ? (
+              <WizardWelcomePage {...welcomePageConfig} />
+            ) : (
+              <>
+                <div className="side">
+                  <p className="title">{title}</p>
+                  <SizedBox height={ThemeSpacing.Md} />
+                  <p className="description">{subtitle}</p>
+                  <SizedBox height={ThemeSpacing.Xl2} />
+                  <WizardStepsCard steps={visibleSteps} activeStep={activeStep} />
+                </div>
+                <div className="main">
+                  <Badge variant="success" text={`Step ${activeStepIndex + 1}`} />
+                  <SizedBox height={ThemeSpacing.Md} />
+                  <p className="step-title">{activeStep.label}</p>
+                  {isPresent(activeStep.description) && (
+                    <p className="step-description">{activeStep.description}</p>
+                  )}
+                  <SizedBox height={ThemeSpacing.Xl2} />
+                  {children}
+                </div>
+              </>
+            )}
           </LayoutGrid>
         </div>
       </div>

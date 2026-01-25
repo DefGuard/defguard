@@ -1,0 +1,11 @@
+.wizard-card {
+  .modal-controls > .buttons {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+  }
+
+  .controls {
+    padding-top: 0;
+  }
+}

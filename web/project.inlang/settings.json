@@ -19,7 +19,8 @@
       "./messages/{locale}/webhooks.json",
       "./messages/{locale}/groups.json",
       "./messages/{locale}/openid.json",
-      "./messages/{locale}/activity.json"
+      "./messages/{locale}/activity.json",
+      "./messages/{locale}/edge_wizard.json"
     ]
   }
 }
