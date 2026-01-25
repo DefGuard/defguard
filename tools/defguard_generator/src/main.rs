@@ -4,7 +4,7 @@ use defguard_common::db::{Id, init_db};
 use defguard_generator::vpn_session_stats::{
     VpnSessionGeneratorConfig, generate_vpn_session_stats,
 };
-use tracing::Level;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(about, long_about = None)]
@@ -30,7 +30,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// generates VPN session stats
+    /// Generates fake VPN session statistics.
     VpnSessionStats {
         #[arg(long)]
         location_id: Id,
@@ -40,13 +40,23 @@ enum Commands {
         devices_per_user: u8,
         #[arg(long)]
         sessions_per_device: u8,
+        /// don't truncate sessions & stats tables before generating stats
+        #[arg(long)]
+        no_truncate: bool,
+        /// insert stats records in batches of specified size
+        #[arg(long, default_value_t = 1000)]
+        stats_batch_size: u16,
     },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
 
     // parse CLI options
     let cli = Cli::parse();
@@ -68,12 +78,16 @@ async fn main() -> Result<()> {
             num_users,
             devices_per_user,
             sessions_per_device,
+            no_truncate,
+            stats_batch_size,
         } => {
             let config = VpnSessionGeneratorConfig {
                 location_id,
                 num_users,
                 devices_per_user,
                 sessions_per_device,
+                no_truncate,
+                stats_batch_size,
             };
 
             generate_vpn_session_stats(pool, config).await?;

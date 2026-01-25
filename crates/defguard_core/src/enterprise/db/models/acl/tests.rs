@@ -1,6 +1,9 @@
 use std::ops::Bound;
 
-use defguard_common::{db::setup_pool, utils::parse_address_list};
+use defguard_common::{
+    db::{models::wireguard::DEFAULT_WIREGUARD_MTU, setup_pool},
+    utils::parse_address_list,
+};
 use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -176,8 +179,8 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         1000,
         "endpoint1".to_string(),
         None,
-        None,
-        None,
+        DEFAULT_WIREGUARD_MTU,
+        0,
         Vec::new(),
         100,
         100,
@@ -195,8 +198,8 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         2000,
         "endpoint2".to_string(),
         None,
-        None,
-        None,
+        DEFAULT_WIREGUARD_MTU,
+        0,
         Vec::new(),
         200,
         200,

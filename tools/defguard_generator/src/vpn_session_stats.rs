@@ -13,30 +13,36 @@ use defguard_common::db::{
     },
 };
 use rand::{Rng, rngs::ThreadRng};
-use sqlx::{PgConnection, PgPool};
-use tracing::info;
+use sqlx::{PgConnection, PgPool, QueryBuilder};
+use tracing::{debug, info};
 
 use crate::{user_devices::prepare_user_devices, users::prepare_users};
 
 const STATS_COLLECTION_INTERVAL: Duration = Duration::seconds(30);
 const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
 
+#[derive(Debug)]
 pub struct VpnSessionGeneratorConfig {
     pub location_id: Id,
     pub num_users: u16,
     pub devices_per_user: u8,
     pub sessions_per_device: u8,
+    pub no_truncate: bool,
+    pub stats_batch_size: u16,
 }
 
 pub async fn generate_vpn_session_stats(
     pool: PgPool,
     config: VpnSessionGeneratorConfig,
 ) -> Result<()> {
+    info!("Running VPN stats generator with config: {config:#?}");
     let mut rng = rand::thread_rng();
 
-    // clear sessions & stats tables
-    info!("Clearing existing sessions & stats");
-    truncate_with_restart(&pool).await?;
+    // clear sessions & stats tables unless disabled
+    if !config.no_truncate {
+        info!("Clearing existing sessions & stats");
+        truncate_with_restart(&pool).await?;
+    }
 
     // fetch specified location
     let location = WireguardNetwork::find_by_id(&pool, config.location_id)
@@ -52,7 +58,10 @@ pub async fn generate_vpn_session_stats(
 
     // generate sessions for each user
     for (i, user) in users.into_iter().enumerate() {
-        info!("[{i}/{user_count}] Generating VPN sessions for user {user}");
+        info!(
+            "[{}/{user_count}] Generating VPN sessions for user {user}",
+            i + 1
+        );
 
         // begin DB transaction
         let mut transaction = pool.begin().await?;
@@ -62,6 +71,7 @@ pub async fn generate_vpn_session_stats(
             prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
 
         for device in devices {
+            info!("Generating sessions for device {device}");
             // generate requested number of sessions for a device
             // we always start with a session that's currently active
             // and generate past ones as needed
@@ -90,6 +100,8 @@ pub async fn generate_vpn_session_stats(
                     session.save(&mut *transaction).await?;
                 }
 
+                debug!("Created session {session:?}");
+
                 generate_mock_session_stats(
                     &mut transaction,
                     &mut rng,
@@ -97,8 +109,11 @@ pub async fn generate_vpn_session_stats(
                     gateway.id,
                     session_start,
                     session_end,
+                    config.stats_batch_size,
                 )
                 .await?;
+
+                debug!("Finished generating mock stats for session {session:?}");
 
                 // update end timestamp for next session
                 session_end -= Duration::minutes(rng.gen_range(30..120));
@@ -141,6 +156,7 @@ async fn generate_mock_session_stats(
     gateway_id: Id,
     session_start: NaiveDateTime,
     session_end: NaiveDateTime,
+    batch_size: u16,
 ) -> Result<()> {
     let mut latest_handshake = session_start;
     let mut next_handshake = latest_handshake + HANDSHAKE_INTERVAL;
@@ -151,6 +167,9 @@ async fn generate_mock_session_stats(
     // assume the IP remains static within a single session
     let endpoint = random_socket_addr(rng).to_string();
 
+    // Vector to accumulate stats before batch insertion
+    let mut stats_batch: Vec<VpnSessionStats> = Vec::new();
+
     while collected_at <= session_end {
         // generate traffic
         let upload_diff = rng.gen_range(100..100_000);
@@ -158,7 +177,7 @@ async fn generate_mock_session_stats(
         let download_diff = rng.gen_range(100..100_000);
         total_download += download_diff;
 
-        VpnSessionStats::new(
+        let stats = VpnSessionStats::new(
             session_id,
             gateway_id,
             collected_at,
@@ -168,9 +187,15 @@ async fn generate_mock_session_stats(
             total_download,
             download_diff,
             download_diff,
-        )
-        .save(&mut *transaction)
-        .await?;
+        );
+
+        stats_batch.push(stats);
+
+        // If batch is full, insert all at once
+        if stats_batch.len() >= batch_size.into() {
+            insert_stats_batch(&mut *transaction, &stats_batch).await?;
+            stats_batch.clear();
+        }
 
         // update variables for next sample
         collected_at += STATS_COLLECTION_INTERVAL;
@@ -181,6 +206,42 @@ async fn generate_mock_session_stats(
             next_handshake = latest_handshake + HANDSHAKE_INTERVAL;
         }
     }
+
+    // Insert any remaining stats in the batch
+    if !stats_batch.is_empty() {
+        insert_stats_batch(&mut *transaction, &stats_batch).await?;
+    }
+
+    Ok(())
+}
+
+/// Insert multiple VpnSessionStats records in a single query
+async fn insert_stats_batch(
+    transaction: &mut PgConnection,
+    stats_batch: &[VpnSessionStats],
+) -> Result<()> {
+    if stats_batch.is_empty() {
+        return Ok(());
+    }
+
+    let mut query_builder = QueryBuilder::new(
+        "INSERT INTO vpn_session_stats (session_id, gateway_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff) ",
+    );
+
+    query_builder.push_values(stats_batch, |mut b, stats| {
+        b.push_bind(stats.session_id)
+            .push_bind(stats.gateway_id)
+            .push_bind(stats.collected_at)
+            .push_bind(stats.latest_handshake)
+            .push_bind(&stats.endpoint)
+            .push_bind(stats.total_upload)
+            .push_bind(stats.total_download)
+            .push_bind(stats.upload_diff)
+            .push_bind(stats.download_diff);
+    });
+
+    let query = query_builder.build();
+    query.execute(&mut *transaction).await?;
 
     Ok(())
 }
