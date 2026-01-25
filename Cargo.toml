@@ -44,6 +44,7 @@ chrono = { version = "0.4", default-features = false, features = [
 ] }
 claims = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
+futures = "0.3"
 humantime = "2.1"
 # match version used by sqlx
 ipnetwork = "0.20"

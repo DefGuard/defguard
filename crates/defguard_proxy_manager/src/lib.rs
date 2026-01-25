@@ -14,6 +14,7 @@ use defguard_common::{
         Id,
         models::{Settings, proxy::Proxy},
     },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError},
@@ -34,9 +35,8 @@ use defguard_core::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload,
-    InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
-    proxy_setup_client::ProxySetupClient,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, core_request,
+    core_response, proxy_client::ProxyClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
@@ -48,9 +48,11 @@ use semver::Version;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
+    select,
     sync::{
+        Mutex,
         broadcast::Sender,
-        mpsc::{self, UnboundedSender},
+        mpsc::{self, Receiver, UnboundedSender},
     },
     task::JoinSet,
     time::sleep,
@@ -71,7 +73,6 @@ pub(crate) mod password_reset;
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
-const PROXY_AFTER_SETUP_CONNECT_DELAY: Duration = Duration::from_secs(1);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 static COOKIE_KEY_HEADER: &str = "dg-cookie-key-bin";
 
@@ -184,6 +185,7 @@ pub struct ProxyManager {
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     router: Arc<RwLock<ProxyRouter>>,
+    proxy_control: Receiver<ProxyControlMessage>,
 }
 
 impl ProxyManager {
@@ -191,12 +193,14 @@ impl ProxyManager {
         pool: PgPool,
         tx: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        proxy_control_rx: Receiver<ProxyControlMessage>,
     ) -> Self {
         Self {
             pool,
             tx,
             incompatible_components,
             router: Arc::default(),
+            proxy_control: proxy_control_rx,
         }
     }
 
@@ -204,18 +208,22 @@ impl ProxyManager {
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
     /// such as routing state and compatibility tracking.
-    pub async fn run(self) -> Result<(), ProxyError> {
+    pub async fn run(mut self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         // Retrieve proxies from DB.
+        let mut shutdown_channels = HashMap::new();
         let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
+                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+                shutdown_channels.insert(proxy.id, shutdown_tx);
                 ProxyServer::from_proxy(
                     proxy,
                     self.pool.clone(),
                     &self.tx,
                     Arc::clone(&self.router),
+                    Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
             .collect::<Result<_, _>>()?;
@@ -225,8 +233,16 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy =
-                ProxyServer::new(self.pool.clone(), url, &self.tx, Arc::clone(&self.router));
+
+            let proxy = ProxyServer::new(
+                self.pool.clone(),
+                url,
+                &self.tx,
+                Arc::clone(&self.router),
+                // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
+                // This should be removed when we do a proper import of old proxies
+                Arc::new(Mutex::new(None)),
+            );
             proxies.push(proxy);
         }
 
@@ -236,18 +252,64 @@ impl ProxyManager {
             tokio::time::sleep(Duration::MAX).await;
             return Ok(());
         }
-
         // Connect to all proxies.
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
             debug!("Spawning proxy task for proxy {}", proxy.url);
             tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
         }
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok(Ok(())) => error!("Proxy task returned prematurely"),
-                Ok(Err(err)) => error!("Proxy task returned with error: {err}"),
-                Err(err) => error!("Proxy task execution failed: {err}"),
+
+        loop {
+            select! {
+                result = tasks.join_next() => {
+                    match result {
+                        Some(Ok(Ok(()))) => error!("Proxy task returned prematurely"),
+                        Some(Ok(Err(err))) => error!("Proxy task returned with error: {err}"),
+                        Some(Err(err)) => error!("Proxy task execution failed: {err}"),
+                        None => {
+                            debug!("All proxy tasks completed");
+                            break;
+                        }
+                    }
+                }
+                msg = self.proxy_control.recv() => {
+                    match msg {
+                        Some(ProxyControlMessage::StartConnection(id)) => {
+                            debug!("Starting proxy with ID: {id}");
+                            if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
+                                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+                                shutdown_channels.insert(id, shutdown_tx);
+                                match ProxyServer::from_proxy(
+                                    &proxy_model,
+                                    self.pool.clone(),
+                                    &self.tx,
+                                    Arc::clone(&self.router),
+                                    Arc::new(Mutex::new(Some(shutdown_rx))),
+                                ) {
+                                    Ok(proxy) => {
+                                        debug!("Spawning proxy task for proxy {}", proxy.url);
+                                        tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
+                                    }
+                                    Err(err) => error!("Failed to create proxy server: {err}"),
+                                }
+                            } else {
+                                error!("Failed to find proxy with ID: {id}");
+                            }
+                        }
+                        Some(ProxyControlMessage::ShutdownConnection(id)) => {
+                            debug!("Shutting down proxy with ID: {id}");
+                            if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
+                                let _ = shutdown_tx.send(());
+                            } else {
+                                warn!("No shutdown channel found for proxy ID: {id}");
+                            }
+                        }
+                        None => {
+                            debug!("Proxy control channel closed");
+                            break;
+                        }
+                    }
+                }
             }
         }
         Ok(())
@@ -278,6 +340,8 @@ impl ProxyTxSet {
     }
 }
 
+type ShutdownReceiver = tokio::sync::oneshot::Receiver<()>;
+
 /// Represents a single Core - Proxy connection.
 ///
 /// A `Proxy` is responsible for establishing and maintaining a gRPC
@@ -293,10 +357,17 @@ struct ProxyServer {
     router: Arc<RwLock<ProxyRouter>>,
     /// Proxy server gRPC URL
     url: Url,
+    shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
 }
 
 impl ProxyServer {
-    pub fn new(pool: PgPool, url: Url, tx: &ProxyTxSet, router: Arc<RwLock<ProxyRouter>>) -> Self {
+    pub fn new(
+        pool: PgPool,
+        url: Url,
+        tx: &ProxyTxSet,
+        router: Arc<RwLock<ProxyRouter>>,
+        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+    ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx);
 
@@ -305,6 +376,7 @@ impl ProxyServer {
             services,
             router,
             url,
+            shutdown_signal,
         }
     }
 
@@ -313,9 +385,10 @@ impl ProxyServer {
         pool: PgPool,
         tx: &ProxyTxSet,
         router: Arc<RwLock<ProxyRouter>>,
+        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-        Ok(Self::new(pool, url, tx, router))
+        Ok(Self::new(pool, url, tx, router, shutdown_signal))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -360,16 +433,6 @@ impl ProxyServer {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Result<(), ProxyError> {
         loop {
-            // TODO: When we will have proxy table, we should first check in DB if we already configured
-            // this proxy, and only perform initial setup if not.
-            if let Err(err) = self.perform_initial_setup().await {
-                warn!(
-                    "Failed to perform initial Proxy setup: {err}. Will try to connect anyway as proxy may be already setup."
-                );
-            } else {
-                sleep(PROXY_AFTER_SETUP_CONNECT_DELAY).await;
-            }
-
             let endpoint = self.endpoint(Scheme::Https)?;
 
             debug!("Connecting to proxy at {}", endpoint.uri());
@@ -435,65 +498,30 @@ impl ProxyServer {
 
             info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
-            self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
-                .await?;
-        }
-    }
 
-    /// Attempt to perform an initial setup of the target proxy.
-    /// If the proxy doesn't have signed gRPC certificates by Core yet,
-    /// this step will perform the signing. Otherwise, the step will be skipped
-    /// by instantly sending the "Done" message by both parties.
-    pub async fn perform_initial_setup(&self) -> Result<(), ProxyError> {
-        let endpoint = self.endpoint(Scheme::Http)?;
-
-        let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-        let mut client = ProxySetupClient::with_interceptor(endpoint.connect_lazy(), interceptor);
-        let Some(hostname) = self.url.host_str() else {
-            return Err(ProxyError::UrlError(
-                "Proxy URL missing hostname".to_string(),
-            ));
-        };
-
-        let csr = client
-            .start(InitialSetupInfo {
-                cert_hostname: hostname.to_string(),
-            })
-            .await?
-            .into_inner();
-
-        let csr = defguard_certs::Csr::from_der(&csr.der_data)?;
-
-        let settings = Settings::get_current_settings();
-
-        let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
-            ProxyError::MissingConfiguration(
-                "CA certificate DER not found in settings for proxy gRPC bidi stream".to_string(),
-            )
-        })?;
-        let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
-            ProxyError::MissingConfiguration(
-                "CA key pairs DER not found in settings for proxy gRPC bidi stream".to_string(),
-            )
-        })?;
-
-        let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
-            &ca_cert_der,
-            &ca_key_pair,
-        )?;
-
-        match ca.sign_csr(&csr) {
-            Ok(cert) => {
-                let response = DerPayload {
-                    der_data: cert.der().to_vec(),
-                };
-                client.send_cert(response).await?;
-                info!(
-                    "Signed CSR received from proxy during initial setup and sent back the certificate"
-                );
-            }
-            Err(err) => {
-                error!("Failed to sign CSR: {err}");
+            let shutdown_signal = self.shutdown_signal.lock().await.take();
+            if let Some(shutdown_signal) = shutdown_signal {
+                select! {
+                    res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
+                        if let Err(err) = res {
+                            error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
+                        } else {
+                            info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
+                        }
+                        sleep(TEN_SECS).await;
+                    }
+                    res = shutdown_signal => {
+                        if let Err(err) = res {
+                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
+                        } else {
+                            info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
+                        }
+                        break;
+                    }
+                }
+            } else {
+                self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
+                    .await?;
             }
         }
 

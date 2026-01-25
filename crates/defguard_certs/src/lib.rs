@@ -1,15 +1,17 @@
+use std::str::FromStr;
+
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
-    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey,
+    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
+use sqlx::types::chrono::NaiveDateTime;
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 use x509_parser::parse_x509_certificate;
 
 const CA_NAME: &str = "Defguard CA";
-const CA_ORG: &str = "Defguard";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
 const DEFAULT_CERT_VALIDITY_DAYS: i64 = 365;
 
@@ -60,17 +62,27 @@ impl CertificateAuthority<'_> {
         Ok(CertificateAuthority { issuer, cert_der })
     }
 
-    pub fn new() -> Result<Self, CertificateError> {
+    pub fn new(
+        common_name: &str,
+        email: &str,
+        valid_for_days: u32,
+    ) -> Result<Self, CertificateError> {
         let mut ca_params = CertificateParams::new(vec![CA_NAME.to_string()])?;
 
         // path length 0 to avoid issuing further CAs
         ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
         ca_params
             .distinguished_name
-            .push(rcgen::DnType::OrganizationName, CA_ORG);
+            .push(rcgen::DnType::CommonName, common_name);
+
+        let email_string = Ia5String::from_str(email)?;
         ca_params
-            .distinguished_name
-            .push(rcgen::DnType::CommonName, CA_NAME);
+            .subject_alt_names
+            .push(rcgen::SanType::Rfc822Name(email_string));
+
+        let now = OffsetDateTime::now_utc();
+        ca_params.not_before = now - NOT_BEFORE_OFFSET_SECS;
+        ca_params.not_after = now + Duration::days(i64::from(valid_for_days));
 
         let ca_key_pair = KeyPair::generate()?;
 
@@ -123,14 +135,26 @@ impl CertificateAuthority<'_> {
     pub fn key_pair_der(&self) -> &[u8] {
         self.issuer.key().serialized_der()
     }
+
+    #[must_use]
+    pub fn expiry(&self) -> Result<NaiveDateTime, CertificateError> {
+        get_certificate_expiry(&self.cert_der)
+    }
 }
 
 /// Extract the expiry date (not_after) from a certificate.
-pub fn get_certificate_expiry(cert: &Certificate) -> Result<OffsetDateTime, CertificateError> {
-    let (_, parsed) = parse_x509_certificate(cert.der())
+pub fn get_certificate_expiry(cert_der: &[u8]) -> Result<NaiveDateTime, CertificateError> {
+    let (_, parsed) = parse_x509_certificate(cert_der)
         .map_err(|e| CertificateError::ParsingError(format!("Failed to parse certificate: {e}")))?;
 
-    Ok(parsed.tbs_certificate.validity.not_after.to_datetime())
+    let expiry = parsed.tbs_certificate.validity.not_after.to_datetime();
+    Ok(chrono::DateTime::from_timestamp(expiry.unix_timestamp(), 0)
+        .ok_or_else(|| {
+            CertificateError::ParsingError(format!(
+                "Failed to convert certificate expiry {expiry} to NaiveDateTime",
+            ))
+        })?
+        .naive_utc())
 }
 
 pub struct Csr<'a> {
@@ -235,7 +259,7 @@ mod tests {
 
     #[test]
     fn test_ca_creation() {
-        let ca = CertificateAuthority::new().unwrap();
+        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
         let key = ca.issuer.key();
         let der = &ca.cert_der;
         let pem_string = cert_der_to_pem(der.as_ref()).unwrap();
@@ -246,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_sign_csr() {
-        let ca = CertificateAuthority::new().unwrap();
+        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
@@ -265,7 +289,7 @@ mod tests {
     fn test_sign_csr_with_validity() {
         use x509_parser::parse_x509_certificate;
 
-        let ca = CertificateAuthority::new().unwrap();
+        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
@@ -308,5 +332,82 @@ mod tests {
                 assert!(line.len() <= 64);
             }
         }
+    }
+
+    #[test]
+    fn test_ca_validity() {
+        use x509_parser::parse_x509_certificate;
+
+        let valid_days = 365;
+        let ca = CertificateAuthority::new("Test CA", "test@example.com", valid_days).unwrap();
+
+        let (_rem, parsed) = parse_x509_certificate(ca.cert_der()).unwrap();
+        let validity = parsed.tbs_certificate.validity;
+        let not_before = validity.not_before.to_datetime();
+        let not_after = validity.not_after.to_datetime();
+
+        let days = (not_after - not_before).whole_days();
+
+        assert!(
+            (valid_days as i64 - 1..=valid_days as i64 + 1).contains(&days),
+            "expected validity of {valid_days} days (±1), got {days} days"
+        );
+        assert!(
+            not_after > not_before,
+            "not_after should be after not_before"
+        );
+    }
+
+    #[test]
+    fn test_ca_common_name() {
+        use x509_parser::parse_x509_certificate;
+
+        let expected_cn = "My Custom CA";
+        let ca = CertificateAuthority::new(expected_cn, "admin@example.com", 365).unwrap();
+
+        let (_rem, parsed) = parse_x509_certificate(ca.cert_der()).unwrap();
+        let subject = &parsed.tbs_certificate.subject;
+
+        let cn = subject
+            .iter_common_name()
+            .next()
+            .expect("Common Name not found")
+            .as_str()
+            .expect("Failed to parse CN as string");
+
+        assert_eq!(
+            cn, expected_cn,
+            "Common Name should match the provided value"
+        );
+    }
+
+    #[test]
+    fn test_ca_email() {
+        use x509_parser::parse_x509_certificate;
+
+        let expected_email = "contact@defguard.net";
+        let ca = CertificateAuthority::new("Test CA", expected_email, 365).unwrap();
+
+        let (_rem, parsed) = parse_x509_certificate(ca.cert_der()).unwrap();
+
+        let san_ext = parsed
+            .tbs_certificate
+            .extensions()
+            .iter()
+            .find(|ext| ext.oid == x509_parser::oid_registry::OID_X509_EXT_SUBJECT_ALT_NAME)
+            .expect("Subject Alternative Name extension not found");
+
+        let san_value = san_ext.value;
+
+        let email_bytes = expected_email.as_bytes();
+        let email_found = san_value
+            .windows(email_bytes.len())
+            .any(|window| window == email_bytes);
+
+        assert!(
+            email_found,
+            "Email '{}' should be present in Subject Alternative Names",
+            expected_email
+        );
     }
 }

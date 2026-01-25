@@ -1145,6 +1145,7 @@ name = "defguard_certs"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
+ "chrono",
  "rcgen",
  "rustls-pki-types",
  "serde",
@@ -1197,6 +1198,7 @@ version = "0.0.0"
 dependencies = [
  "ammonia",
  "anyhow",
+ "async-stream",
  "axum",
  "axum-client-ip",
  "axum-extra",
@@ -1211,6 +1213,7 @@ dependencies = [
  "defguard_proto",
  "defguard_version",
  "defguard_web_ui",
+ "futures",
  "humantime",
  "hyper-util",
  "ipnetwork",

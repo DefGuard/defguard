@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt};
 
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -146,6 +147,7 @@ pub struct Settings {
     pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
     pub ca_key_der: Option<Vec<u8>>,
     pub ca_cert_der: Option<Vec<u8>>,
+    pub ca_expiry: Option<NaiveDateTime>,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -253,7 +255,7 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenidUsernameHandling\", \
-            ca_key_der, ca_cert_der \
+            ca_key_der, ca_cert_der, ca_expiry \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -332,7 +334,8 @@ impl Settings {
             ldap_sync_groups = $47, \
             openid_username_handling = $48, \
             ca_key_der = $49, \
-            ca_cert_der = $50 \
+            ca_cert_der = $50, \
+            ca_expiry = $51 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -384,6 +387,7 @@ impl Settings {
             &self.openid_username_handling as &OpenidUsernameHandling,
             &self.ca_key_der as &Option<Vec<u8>>,
             &self.ca_cert_der as &Option<Vec<u8>>,
+            &self.ca_expiry as &Option<NaiveDateTime>
         )
         .execute(executor)
         .await?;
