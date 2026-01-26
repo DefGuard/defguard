@@ -734,7 +734,6 @@ impl ClientMfaServer {
                 .remove(&request.token),
             network_device.preshared_key,
         ) {
-            // TODO(jck) error handling
             let _ = tx.send(preshared_key.clone());
         }
 
