@@ -44,18 +44,7 @@ export const SetupEdgeAdaptationStep = () => {
       common_name: edgeComponentWizardStore.common_name,
     },
     {
-      onOpen: () =>
-        setEdgeAdaptationState({
-          ...edgeAdaptationState,
-          isProcessing: true,
-        }),
       onMessage: handleEvent,
-      onError: () => {
-        setEdgeAdaptationState({
-          ...edgeAdaptationState,
-          isProcessing: false,
-        });
-      },
     },
   );
 
@@ -145,7 +134,7 @@ export const SetupEdgeAdaptationStep = () => {
     return () => {
       sse.stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/react-hooks/exhaustive-deps: only run on mount
   }, []);
 
   return (
