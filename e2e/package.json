@@ -34,7 +34,7 @@
     "@types/pg": "^8.15.5",
     "axios": "^1.12.2",
     "dotenv": "^17.2.2",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "pg": "^8.16.3",
     "playwright": "^1.55.1",
     "totp-generator": "^1.0.0"
