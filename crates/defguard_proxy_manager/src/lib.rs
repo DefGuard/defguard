@@ -245,12 +245,6 @@ impl ProxyManager {
             proxies.push(proxy);
         }
 
-        // TODO setup a channel to allow dynamic proxy connections
-        if proxies.is_empty() {
-            debug!("No proxies to connect to, waiting for changes");
-            tokio::time::sleep(Duration::MAX).await;
-            return Ok(());
-        }
         // Connect to all proxies.
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
@@ -260,14 +254,13 @@ impl ProxyManager {
 
         loop {
             select! {
-                result = tasks.join_next() => {
+                result = tasks.join_next(), if !tasks.is_empty() => {
                     match result {
                         Some(Ok(Ok(()))) => error!("Proxy task returned prematurely"),
                         Some(Ok(Err(err))) => error!("Proxy task returned with error: {err}"),
                         Some(Err(err)) => error!("Proxy task execution failed: {err}"),
                         None => {
                             debug!("All proxy tasks completed");
-                            break;
                         }
                     }
                 }

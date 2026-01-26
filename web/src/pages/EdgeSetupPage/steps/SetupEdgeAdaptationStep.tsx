@@ -145,7 +145,8 @@ export const SetupEdgeAdaptationStep = () => {
     return () => {
       sse.stop();
     };
-  }, [resetEdgeAdaptationState, sse.start, sse.stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <WizardCard>

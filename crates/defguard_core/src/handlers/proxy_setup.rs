@@ -531,7 +531,7 @@ pub async fn setup_proxy_tls_stream(
             return;
         }
 
-        debug!("Edge proxy setup completed successfully - proxy is now operational");
+        debug!("Edge proxy setup completed successfully");
 
         // Step 7: Done
         yield Ok(flow.step(ProxySetupStep::Done));
