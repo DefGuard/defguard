@@ -127,6 +127,7 @@ export const SetupEdgeAdaptationStep = () => {
     [edgeAdaptationState.errorMessage, edgeAdaptationState.currentStep],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount only
   useEffect(() => {
     resetEdgeAdaptationState();
     sse.start();
@@ -134,7 +135,6 @@ export const SetupEdgeAdaptationStep = () => {
     return () => {
       sse.stop();
     };
-    // biome-ignore lint/react-hooks/exhaustive-deps: only run on mount
   }, []);
 
   return (
