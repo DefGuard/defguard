@@ -389,7 +389,6 @@ impl ClientMfaServer {
         request: ClientRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
-        // ) -> Result<ClientRemoteMfaFinishResponse, Status> {
     ) -> Result<(), Status> {
         debug!("Finishing desktop client login: {request:?}");
         let (tx, rx) = oneshot::channel();
@@ -399,11 +398,7 @@ impl ClientMfaServer {
             .insert(request.token.clone(), tx);
 
         tokio::spawn(async move {
-            // TODO(jck) do we need timeout here? memory leaks possible?
-            // let preshared_key = rx.await.map_err(|err| {
-            //     error!("Remote MFA responses channel failed: {err:?}");
-            //     // Status::internal("Remote MFA responses channel failed")
-            // });
+            // TODO(jck) do we need a timeout here? memory leaks possible?
             match rx.await {
                 Ok(preshared_key) => {
                     let req = CoreResponse {
@@ -423,10 +418,6 @@ impl ClientMfaServer {
             }
         });
 
-        // Ok(ClientRemoteMfaFinishResponse {
-        //     token: request.token,
-        //     preshared_key,
-        // })
         Ok(())
     }
 

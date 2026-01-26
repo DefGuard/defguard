@@ -484,7 +484,6 @@ impl ProxyServer {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
-                    error!("Received message from proxy; ID={}", received.id);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -682,12 +681,9 @@ impl ProxyServer {
                                 .finish_remote_client_mfa_login(request, tx.clone(), received.id)
                                 .await
                             {
-                                // Ok(response_payload) => Some(
-                                //     core_response::Payload::ClientRemoteMfaFinish(response_payload),
-                                // ),
-                                Ok(response_payload) => None,
+                                Ok(()) => None,
                                 Err(err) => {
-                                    error!("Client MFA remote finish error: {err}");
+                                    error!("Client remote MFA finish error: {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
