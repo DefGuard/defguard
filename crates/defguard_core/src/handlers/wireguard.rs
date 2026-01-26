@@ -96,8 +96,8 @@ pub struct WireguardNetworkData {
     pub port: i32,
     pub allowed_ips: Option<String>,
     pub dns: Option<String>,
-    pub mtu: Option<i32>,
-    pub fwmark: Option<i32>,
+    pub mtu: i32,
+    pub fwmark: i64,
     pub allowed_groups: Vec<String>,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
@@ -1534,15 +1534,15 @@ pub(crate) async fn network_stats(
     Path(network_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,
 ) -> ApiResult {
-    debug!("Displaying WireGuard network stats for network {network_id}");
-    let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
+    debug!("Displaying WireGuard network stats for location {network_id}");
+    let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
         return Err(WebError::ObjectNotFound(format!(
-            "Requested network ({network_id}) not found"
+            "Requested location ({network_id}) not found"
         )));
     };
     let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation: DateTimeAggregation = get_aggregation(from)?;
-    let stats: WireguardNetworkStats = network
+    let stats: WireguardNetworkStats = location
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
     debug!("Displayed WireGuard network stats for network {network_id}");

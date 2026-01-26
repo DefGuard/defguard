@@ -11,7 +11,10 @@ use utoipa::{
 };
 
 use super::{
-    enterprise::{handlers::openid_providers, snat::handlers as snat},
+    enterprise::{
+        handlers::{acl, openid_providers},
+        snat::handlers as snat,
+    },
     error::WebError,
     handlers::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
@@ -79,6 +82,26 @@ use super::{
 		openid_providers::delete_openid_provider,
 		openid_providers::modify_openid_provider,
 		openid_providers::list_openid_providers,
+		// /acl/rule
+		acl::list_acl_rules,
+		acl::create_acl_rule,
+		acl::apply_acl_rules,
+		acl::get_acl_rule,
+		acl::update_acl_rule,
+		acl::delete_acl_rule,
+		// /acl/alias
+		acl::list_acl_aliases,
+		acl::create_acl_alias,
+		acl::get_acl_alias,
+		acl::update_acl_alias,
+		acl::delete_acl_alias,
+		acl::apply_acl_aliases,
+		// /acl/destination
+		acl::destination::list_acl_destinations,
+		acl::destination::create_acl_destination,
+		acl::destination::get_acl_destination,
+		acl::destination::update_acl_destination,
+		acl::destination::delete_acl_destination,
     ),
     components(
         schemas(
@@ -131,6 +154,8 @@ Available actions:
 - modify SNAT binding
 - delete SNAT binding
         "),
+        (name = "ACL", description = "Access Control Lists (ACL)"),
+        (name = "OpenID", description = "OpenID providers"),
     )
 )]
 pub struct ApiDoc;

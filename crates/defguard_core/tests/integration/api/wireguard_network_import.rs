@@ -4,8 +4,8 @@ use defguard_common::db::models::{
     Device, DeviceType, WireguardNetwork,
     device::UserDevice,
     wireguard::{
-        DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-        ServiceLocationMode,
+        DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+        LocationMfaMode, ServiceLocationMode,
     },
 };
 use defguard_core::{
@@ -56,8 +56,8 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         51515,
         String::new(),
         None,
-        None,
-        None,
+        DEFAULT_WIREGUARD_MTU,
+        0,
         Vec::new(),
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,

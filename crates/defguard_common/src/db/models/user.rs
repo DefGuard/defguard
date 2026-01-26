@@ -616,6 +616,24 @@ impl User<Id> {
         Ok(res)
     }
 
+    /// Return all active users.
+    pub async fn all_active<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            User,
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+            totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            FROM \"user\" \
+            WHERE is_active = true"
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Return all members of group
     pub async fn find_by_group_name(
         pool: &PgPool,

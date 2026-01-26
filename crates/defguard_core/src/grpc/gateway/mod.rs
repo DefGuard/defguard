@@ -5,14 +5,22 @@ use std::{
     time::Duration,
 };
 
-use defguard_common::db::{
-    ChangeNotification, Id, TriggerOperation,
-    models::{WireguardNetwork, gateway::Gateway, wireguard::ServiceLocationMode},
+use chrono::DateTime;
+use defguard_common::{
+    db::{
+        ChangeNotification, Id, TriggerOperation,
+        models::{
+            WireguardNetwork,
+            gateway::Gateway,
+            wireguard::{DEFAULT_WIREGUARD_MTU, ServiceLocationMode},
+        },
+    },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_mail::Mail;
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, CoreResponse, Peer, Update, core_response, update},
+    gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update},
 };
 use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
 use thiserror::Error;
@@ -27,7 +35,7 @@ use tonic::{Code, Status};
 
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_license_active},
-    events::{GrpcEvent, GrpcRequestContext},
+    events::GrpcEvent,
     grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
 };
 
@@ -85,6 +93,32 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
 //         allowed_ips: Some(proto_stats.allowed_ips),
 //     }
 // }
+
+/// Helper used to convert peer stats coming from gRPC client
+/// into an internal representation
+fn try_protos_into_stats_message(
+    proto_stats: PeerStats,
+    location_id: Id,
+    gateway_id: Id,
+    device_id: Id,
+) -> Option<PeerStatsUpdate> {
+    // try to parse endpoint
+    let endpoint = proto_stats.endpoint.parse().ok()?;
+
+    let latest_handshake = DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
+        .unwrap_or_default()
+        .naive_utc();
+
+    Some(PeerStatsUpdate::new(
+        location_id,
+        gateway_id,
+        device_id,
+        endpoint,
+        proto_stats.upload,
+        proto_stats.download,
+        latest_handshake,
+    ))
+}
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
@@ -209,8 +243,8 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
-        mtu: network.mtu.map(|i| i as u32),
-        fwmark: network.fwmark.map(|i| i as u32),
+        mtu: network.mtu as u32,
+        fwmark: network.fwmark as u32,
     }
 }
 
@@ -225,6 +259,7 @@ pub async fn run_grpc_gateway_stream(
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
     let mut abort_handles = HashMap::new();
 
@@ -238,6 +273,7 @@ pub async fn run_grpc_gateway_stream(
             events_tx.clone(),
             mail_tx.clone(),
             grpc_event_tx.clone(),
+            peer_stats_tx.clone(),
         )?;
         let abort_handle = tasks.spawn(async move {
             loop {
@@ -517,8 +553,8 @@ impl GatewayUpdatesHandler {
                     port: network.port as u32,
                     peers,
                     firewall_config,
-                    mtu: network.mtu.map(|i| i as u32),
-                    fwmark: network.fwmark.map(|i| i as u32),
+                    mtu: network.mtu as u32,
+                    fwmark: network.fwmark as u32,
                 })),
             })),
         }) {
@@ -551,8 +587,8 @@ impl GatewayUpdatesHandler {
                     port: 0,
                     peers: Vec::new(),
                     firewall_config: None,
-                    mtu: None,
-                    fwmark: None,
+                    mtu: DEFAULT_WIREGUARD_MTU as u32,
+                    fwmark: 0,
                 })),
             })),
         }) {
@@ -818,9 +854,26 @@ impl GatewayUpdatesHandler {
 //                         }
 //                     }
 
-//                     // disconnect inactive clients
-//                     client_map.disconnect_inactive_vpn_clients_for_location(&location)?
-//                 };
+// convert stats to DB storage format
+// match try_protos_into_stats_message(peer_stats.clone(), network_id, device_id) {
+//     None => {
+//         warn!(
+//             "Failed to parse peer stats update. Skipping sending message to session manager."
+//         )
+//     }
+//     Some(message) => {
+//         self.peer_stats_tx.send(message).map_err(|err| {
+//             error!("Failed to send peers stats update to session manager: {err}");
+//             Status::new(
+//                 Code::Internal,
+//                 format!("Failed to send peers stats update to session manager: {err}"),
+//             )
+//         })?;
+//     }
+// };
+
+// convert stats to DB storage format
+// let stats = protos_into_internal_stats(peer_stats, network_id, device_id);
 
 //                 // emit client disconnect events
 //                 for (device, context) in disconnected_clients {

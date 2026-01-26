@@ -5,16 +5,18 @@ use defguard_common::db::{
     models::{
         Device, WireguardNetwork,
         device::WireguardNetworkDevice,
-        settings::OpenidUsernameHandling,
+        settings::OpenIdUsernameHandling,
         wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, LocationMfaMode,
-            ServiceLocationMode,
+            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+            LocationMfaMode, ServiceLocationMode,
         },
     },
 };
 use defguard_core::{
     enterprise::{
-        db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+        },
         handlers::openid_providers::AddProviderData,
         license::{get_cached_license, set_cached_license},
     },
@@ -63,8 +65,8 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -145,8 +147,8 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -177,6 +179,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
     let provider_data = AddProviderData {
         name: "test".to_string(),
         base_url: "https://accounts.google.com".to_string(),
+        kind: OpenIdProviderKind::Custom,
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
         display_name: Some("display_name".to_string()),
@@ -192,7 +195,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
@@ -228,8 +231,8 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
         dns: None,
-        mtu: None,
-        fwmark: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -275,6 +278,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
     let provider_data = AddProviderData {
         name: "test".to_string(),
         base_url: "https://accounts.google.com".to_string(),
+        kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
         display_name: Some("display_name".to_string()),
@@ -290,7 +294,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
-        username_handling: OpenidUsernameHandling::PruneEmailDomain,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
         jumpcloud_api_key: None,
         prefetch_users: false,
     };
@@ -476,22 +480,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let network = json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client.post("/api/v1/network").json(&network).send().await;
+    let response = make_network(&client, "network").await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // network details
@@ -552,6 +541,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -835,22 +826,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::OK);
 
     // create network
-    let network = json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client.post("/api/v1/network").json(&network).send().await;
+    let response = make_network(&client, "network").await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // network details
@@ -899,6 +875,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -923,6 +901,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
@@ -947,6 +927,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
+        "mtu": 1420,
+        "fwmark": 0,
         "allowed_groups": [],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,

@@ -19,7 +19,7 @@ mod test {
     use tokio::sync::broadcast;
 
     use super::super::*;
-    use crate::enterprise::db::models::openid_provider::DirectorySyncTarget;
+    use crate::enterprise::db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind};
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")
@@ -52,8 +52,8 @@ mod test {
             1234,
             "123.123.123.123".to_string(),
             None,
-            None,
-            None,
+            1420,
+            0,
             Vec::new(),
             32,
             32,
@@ -69,6 +69,7 @@ mod test {
         OpenIdProvider::new(
             "Test".to_string(),
             "base_url".to_string(),
+            OpenIdProviderKind::Google,
             "client_id".to_string(),
             "client_secret".to_string(),
             Some("display_name".to_string()),

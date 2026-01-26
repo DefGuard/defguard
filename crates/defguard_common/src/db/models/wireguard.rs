@@ -12,7 +12,7 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    FromRow, PgConnection, PgExecutor, PgPool, Type, postgres::types::PgInterval, query, query_as,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
     query_scalar,
 };
 use thiserror::Error;
@@ -25,17 +25,24 @@ use super::{
     device::{Device, DeviceError, DeviceType, WireguardNetworkDevice},
     group::{Group, Permission},
     user::User,
-    wireguard_peer_stats::WireguardPeerStats,
 };
 use crate::{
     auth::claims::{Claims, ClaimsType},
-    db::{Id, NoId},
+    db::{
+        Id, NoId,
+        models::{
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_session_stats::VpnSessionStats,
+        },
+    },
     types::user_info::UserInfo,
     utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
+/// Default MTU for WireGuard interfaces.
+pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: change to u32 once sqlx unsigned integers.
 
 // Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -110,8 +117,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub prvkey: String,
     pub endpoint: String,
     pub dns: Option<String>,
-    pub mtu: Option<i32>,    // Should be Option<u32>, but sqlx won't allow that.
-    pub fwmark: Option<i32>, // Should be Option<u32>, but sqlx won't allow that.
+    pub mtu: i32,    // Should be u32, but sqlx won't allow that.
+    pub fwmark: i64, // Should be u32, but sqlx won't allow that.
     #[model(ref)]
     #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
@@ -215,8 +222,8 @@ impl WireguardNetwork {
         port: i32,
         endpoint: String,
         dns: Option<String>,
-        mtu: Option<i32>,
-        fwmark: Option<i32>,
+        mtu: i32,
+        fwmark: i64,
         allowed_ips: Vec<IpNetwork>,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
@@ -332,13 +339,14 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let devices = match self.get_allowed_groups(&mut *transaction).await? {
-            // devices need to be filtered by allowed group
-            Some(allowed_groups) => {
-                query_as!(
+        let devices =
+            match self.get_allowed_groups(&mut *transaction).await? {
+                // devices need to be filtered by allowed group
+                Some(allowed_groups) => {
+                    query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                configured
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -349,15 +357,14 @@ impl WireguardNetwork<Id> {
                 ORDER BY d.id ASC",
                 &allowed_groups
             )
-                .fetch_all(&mut *transaction)
-                .await?
-            }
-            // all devices of enabled users are allowed
-            None => {
-                query_as!(
+                    .fetch_all(&mut *transaction)
+                    .await?
+                }
+                // all devices of enabled users are allowed
+                None => query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                    configured \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                    d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
@@ -365,9 +372,8 @@ impl WireguardNetwork<Id> {
                     ORDER BY d.id ASC"
                 )
                 .fetch_all(&mut *transaction)
-                .await?
-            }
-        };
+                .await?,
+            };
         Ok(devices)
     }
 
@@ -380,13 +386,14 @@ impl WireguardNetwork<Id> {
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
-        let devices = match self.get_allowed_groups(&mut *transaction).await? {
-            // devices need to be filtered by allowed group
-            Some(allowed_groups) => {
-                query_as!(
+        let devices =
+            match self.get_allowed_groups(&mut *transaction).await? {
+                // devices need to be filtered by allowed group
+                Some(allowed_groups) => {
+                    query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                configured
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -398,26 +405,25 @@ impl WireguardNetwork<Id> {
                 ORDER BY d.id ASC",
                 &allowed_groups, user_id
             )
-                .fetch_all(&mut *transaction)
-                .await?
-            }
-            // all devices of enabled users are allowed
-            None => {
-                query_as!(
+                    .fetch_all(&mut *transaction)
+                    .await?
+                }
+                // all devices of enabled users are allowed
+                None => query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                    configured \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                    d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
                     AND d.device_type = 'user'::device_type \
                     AND d.user_id = $1 \
-                    ORDER BY d.id ASC", user_id
+                    ORDER BY d.id ASC",
+                    user_id
                 )
                 .fetch_all(&mut *transaction)
-                .await?
-            }
-        };
+                .await?,
+            };
 
         Ok(devices)
     }
@@ -476,43 +482,6 @@ impl WireguardNetwork<Id> {
         self.address.iter().find(|net| net.contains(addr)).copied()
     }
 
-    /// Finds when the device connected based on handshake timestamps.
-    async fn connected_at(
-        &self,
-        conn: &PgPool,
-        device_id: Id,
-    ) -> Result<Option<NaiveDateTime>, sqlx::Error> {
-        // Find a first handshake gap longer than WIREGUARD_MAX_HANDSHAKE.
-        // We assume that this gap indicates a time when the device was not connected.
-        // So, the handshake after this gap is the moment the last connection was established.
-        // If no such gap is found, the device may be connected from the beginning, return the first
-        // handshake in this case.
-        let connected_at = query_scalar!(
-            "WITH stats AS \
-            (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
-            SELECT \
-                COALESCE( \
-                    ( \
-                        SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
-                        FROM stats WHERE latest_handshake_diff > $3 \
-                        ORDER BY collected_at DESC LIMIT 1 \
-                    ), \
-                    ( \
-                        SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
-                        FROM stats ORDER BY collected_at LIMIT 1 \
-                    ) \
-                ) \
-            AS latest_handshake",
-            device_id,
-            self.id,
-            PgInterval::try_from(WIREGUARD_MAX_HANDSHAKE).unwrap()
-        )
-        .fetch_one(conn)
-        .await?;
-
-        Ok(connected_at)
-    }
-
     /// Update `connected_at` to the current time and save it to the database.
     pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
     where
@@ -541,56 +510,65 @@ impl WireguardNetwork<Id> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
-        // query_as! macro doesn't work with `... WHERE ... IN (...) `
-        // so we'll have to use format! macro
-        // https://github.com/launchbadge/sqlx/issues/875
-        // https://github.com/launchbadge/sqlx/issues/656
-        let device_ids = devices
-            .iter()
-            .map(|d| d.id.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
-        let query = format!(
-            "SELECT device_id, device.name, device.user_id, \
-            date_trunc($1, collected_at) collected_at, \
-            CAST(sum(download) AS bigint) download, \
-            CAST(sum(upload) AS bigint) upload \
-            FROM wireguard_peer_stats_view wpsv \
-            JOIN device ON wpsv.device_id = device.id \
-            WHERE device_id IN ({device_ids}) \
-            AND collected_at >= $2 \
-            AND network = $3 \
-            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4"
-        );
-        let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
-            .bind(aggregation.fstring())
-            .bind(from)
-            .bind(self.id)
-            .fetch_all(conn)
-            .await?;
+
+        let device_ids = devices.iter().map(|d| d.id).collect::<Vec<Id>>();
+
+        let stats = query_as!(
+            WireguardDeviceTransferRow,
+            "SELECT s.device_id, date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
+            CAST(sum(download_diff) AS bigint) \"download!\", CAST(sum(upload_diff) AS bigint) \"upload!\" \
+			FROM vpn_session_stats \
+            INNER JOIN vpn_client_session s ON session_id = s.id \
+            WHERE s.device_id = ANY($2) AND collected_at >= $3 AND s.location_id = $4  \
+            GROUP BY device_id, collected_at \
+            ORDER BY device_id, collected_at",
+            aggregation.fstring(),
+            &device_ids,
+            from,
+            self.id,
+        )
+        .fetch_all(conn)
+        .await?;
+
+        // split into separate stats for each device
+        let mut device_stats: HashMap<Id, Vec<WireguardDeviceTransferRow>> =
+            stats.into_iter().fold(HashMap::new(), |mut acc, item| {
+                acc.entry(item.device_id)
+                    .or_insert_with(Vec::new)
+                    .push(item);
+                acc
+            });
+
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
-            let wireguard_ips = if let Some(stats) = &latest_stats {
-                stats.trim_allowed_ips()
+            // get public IP from latest session stats
+            let maybe_latest_stats =
+                VpnSessionStats::fetch_latest_for_device(conn, device.id, self.id).await?;
+            let public_ip = maybe_latest_stats
+                .as_ref()
+                .and_then(VpnSessionStats::endpoint_without_port);
+
+            let wireguard_ips = if let Some(device_config) =
+                WireguardNetworkDevice::find(conn, self.id, self.id).await?
+            {
+                device_config
+                    .wireguard_ips
+                    .iter()
+                    .map(|ip| ip.to_string())
+                    .collect()
             } else {
                 Vec::new()
             };
+
             result.push(WireguardDeviceStatsRow {
                 id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ips,
-                public_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::endpoint_without_port),
-                connected_at: self.connected_at(conn, device.id).await?,
+                public_ip,
+                connected_at: device.last_connected_at(conn, self.id).await?,
                 // Filter stats for this device
-                stats: stats
-                    .iter()
-                    .filter(|s| s.device_id == device.id)
-                    .cloned()
-                    .collect(),
+                stats: device_stats.remove(&device.id).unwrap_or_default(),
             });
         }
         Ok(result)
@@ -602,22 +580,21 @@ impl WireguardNetwork<Id> {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
-        let oldest_handshake = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
-        // Retrieve connected devices from database
+    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+        // Retrieve currently connected devices from database
         let devices = query_as!(
             Device,
             "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
             d.description, d.device_type \"device_type: DeviceType\", d.configured \
-            FROM device d JOIN wireguard_peer_stats s ON d.id = s.device_id \
-            WHERE s.latest_handshake >= $1 AND s.network = $2 \
-            AND d.device_type = $3",
-            oldest_handshake,
+            FROM device d JOIN vpn_client_session s ON d.id = s.device_id \
+            WHERE s.state = 'connected' AND s.location_id = $1 \
+            AND d.device_type = $2",
             self.id,
             &device_type as &DeviceType,
         )
         .fetch_all(conn)
         .await?;
+
         // Retrieve data series for all active devices and assign them to users
         self.device_stats(conn, &devices, from, aggregation).await
     }
@@ -630,6 +607,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardUserStatsRow>, sqlx::Error> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+
         // Retrieve data series for all active devices and assign them to users
         let device_stats = self
             .distinct_device_stats(conn, from, aggregation, DeviceType::User)
@@ -637,6 +615,7 @@ impl WireguardNetwork<Id> {
         for stats in device_stats {
             user_map.entry(stats.user_id).or_default().push(stats);
         }
+
         // Reshape final result
         let mut stats = Vec::new();
         for u in user_map {
@@ -653,60 +632,59 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves total active users/devices since `from` timestamp
+    ///
+    /// A user/device is considered active if a session is currently connected
+    /// or it was disconnected at some point within the specified time window.
     async fn total_activity(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
-    ) -> Result<WireguardNetworkActivityStats, sqlx::Error> {
-        let activity_stats = query_as!(
+    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+        let total_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-                FROM wireguard_peer_stats s \
-                JOIN device d ON d.id = s.device_id \
-                LEFT JOIN \"user\" u ON u.id = d.user_id \
-                WHERE latest_handshake >= $1 AND s.network = $2",
-            from,
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.location_id = $1 AND (s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $2))",
             self.id,
+            from,
         )
-        .fetch_one(conn)
+        .fetch_one(pool)
         .await?;
 
-        Ok(activity_stats)
+        Ok(total_activity)
     }
 
-    /// Retrieves currently connected users
+    /// Retrieves currently connected sessions stats
     async fn current_activity(
         &self,
-        conn: &PgPool,
-    ) -> Result<WireguardNetworkActivityStats, sqlx::Error> {
-        let from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
-        let activity_stats = query_as!(
+        pool: &PgPool,
+    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+        let current_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                    COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-                FROM wireguard_peer_stats s \
-                JOIN device d ON d.id = s.device_id \
-                LEFT JOIN \"user\" u ON u.id = d.user_id \
-                WHERE latest_handshake >= $1 AND s.network = $2",
-            from,
-            self.id
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.location_id = $1 AND s.state = 'connected'",
+            self.id,
         )
-        .fetch_one(conn)
+        .fetch_one(pool)
         .await?;
 
-        Ok(activity_stats)
+        Ok(current_activity)
     }
 
     /// Retrieves network upload & download time series since `from` timestamp
     /// using `aggregation` (hour/minute) aggregation level
     async fn transfer_series(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardStatsRow>, sqlx::Error> {
@@ -714,9 +692,10 @@ impl WireguardNetwork<Id> {
             WireguardStatsRow,
             "SELECT \
                 date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
-            FROM wireguard_peer_stats_view \
-            WHERE collected_at >= $2 AND network = $3 \
+                cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
+            FROM vpn_session_stats \
+            JOIN vpn_client_session s ON session_id = s.id \
+            WHERE collected_at >= $2 AND s.location_id = $3 \
             GROUP BY 1 \
             ORDER BY 1 \
             LIMIT $4",
@@ -725,7 +704,7 @@ impl WireguardNetwork<Id> {
             self.id,
             PEER_STATS_LIMIT,
         )
-        .fetch_all(conn)
+        .fetch_all(pool)
         .await?;
 
         Ok(stats)
@@ -734,13 +713,13 @@ impl WireguardNetwork<Id> {
     /// Retrieves network stats
     pub async fn network_stats(
         &self,
-        conn: &PgPool,
+        pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<WireguardNetworkStats, sqlx::Error> {
-        let total_activity = self.total_activity(conn, from).await?;
-        let current_activity = self.current_activity(conn).await?;
-        let transfer_series = self.transfer_series(conn, from, aggregation).await?;
+    ) -> Result<WireguardNetworkStats, SqlxError> {
+        let total_activity = self.total_activity(pool, from).await?;
+        let current_activity = self.current_activity(pool).await?;
+        let transfer_series = self.transfer_series(pool, from, aggregation).await?;
         Ok(WireguardNetworkStats {
             active_users: total_activity.active_users,
             active_network_devices: total_activity.active_network_devices,
@@ -1031,6 +1010,24 @@ impl WireguardNetwork<Id> {
         );
         Ok(())
     }
+
+    /// Fetch all active VPN client sessions
+    pub async fn get_active_vpn_sessions<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<VpnClientSession<Id>>, SqlxError> {
+        query_as!(
+            VpnClientSession,
+            "SELECT id, location_id, user_id, device_id, \
+            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", \
+            state \"state: VpnClientSessionState\" \
+            FROM vpn_client_session \
+            WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]
@@ -1045,8 +1042,8 @@ impl Default for WireguardNetwork {
             prvkey: String::default(),
             endpoint: String::default(),
             dns: Option::default(),
-            mtu: Option::default(),
-            fwmark: Option::default(),
+            mtu: DEFAULT_WIREGUARD_MTU,
+            fwmark: 0,
             allowed_ips: Vec::default(),
             connected_at: Option::default(),
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
@@ -1116,45 +1113,47 @@ pub struct WireguardNetworkStats {
 }
 
 pub async fn networks_stats(
-    conn: &PgPool,
+    pool: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
-) -> Result<WireguardNetworkStats, sqlx::Error> {
+) -> Result<WireguardNetworkStats, SqlxError> {
+    // get all active users/devices within specified time window
     let total_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $1)",
         from
     )
-    .fetch_one(conn)
+    .fetch_one(pool)
     .await?;
-    let current_activity_from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
+
+    // get all currently active users/devices
     let current_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
                 COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
-        current_activity_from
+            FROM vpn_client_session s \
+            LEFT JOIN device d ON d.id = s.device_id \
+            WHERE s.state = 'connected'",
     )
-    .fetch_one(conn)
+    .fetch_one(pool)
     .await?;
+
+    // get transfer series for specified time window
     let transfer_series = query_as!(
         WireguardStatsRow,
-        "SELECT \
+            "SELECT \
                 date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
-            FROM wireguard_peer_stats_view \
+                cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
+            FROM vpn_session_stats \
+            JOIN vpn_client_session s ON session_id = s.id \
             WHERE collected_at >= $2 \
             GROUP BY 1 \
             ORDER BY 1 \
@@ -1163,7 +1162,7 @@ pub async fn networks_stats(
         from,
         PEER_STATS_LIMIT,
     )
-    .fetch_all(conn)
+    .fetch_all(pool)
     .await?;
     Ok(WireguardNetworkStats {
         current_active_users: current_activity.active_users,
@@ -1182,138 +1181,139 @@ pub async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
-    use chrono::{SubsecRound, TimeDelta, Utc};
+    use crate::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::setup_pool;
 
-    #[sqlx::test]
-    async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+    // FIXME(mwojcik): rewrite for new stats implementation
+    // #[sqlx::test]
+    // async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
+    //     let pool = setup_pool(options).await;
+    //     let mut location = WireguardNetwork::default();
+    //     location.try_set_address("10.1.1.1/29").unwrap();
+    //     let location = location.save(&pool).await.unwrap();
 
-        let user = User::new(
-            "testuser",
-            Some("hunter2"),
-            "Tester",
-            "Test",
-            "test@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-        let device = Device::new(
-            String::new(),
-            String::new(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
+    //     let user = User::new(
+    //         "testuser",
+    //         Some("hunter2"),
+    //         "Tester",
+    //         "Test",
+    //         "test@test.com",
+    //         None,
+    //     )
+    //     .save(&pool)
+    //     .await
+    //     .unwrap();
+    //     let device = Device::new(
+    //         String::new(),
+    //         String::new(),
+    //         user.id,
+    //         DeviceType::User,
+    //         None,
+    //         true,
+    //     )
+    //     .save(&pool)
+    //     .await
+    //     .unwrap();
 
-        // insert stats
-        let samples = 60; // 1 hour of samples
-        let now = Utc::now().naive_utc();
-        for i in 0..=samples {
-            // simulate connection 30 minutes ago
-            let handshake_minutes = i * if i < 31 { 1 } else { 10 };
-            WireguardPeerStats {
-                id: NoId,
-                device_id: device.id,
-                collected_at: now - TimeDelta::minutes(i),
-                network: network.id,
-                endpoint: Some("11.22.33.44".into()),
-                upload: (samples - i) * 10,
-                download: (samples - i) * 20,
-                latest_handshake: now - TimeDelta::minutes(handshake_minutes),
-                allowed_ips: Some("10.1.1.0/24".into()),
-            }
-            .save(&pool)
-            .await
-            .unwrap();
-        }
+    //     // insert stats
+    //     let samples = 60; // 1 hour of samples
+    //     let now = Utc::now().naive_utc();
+    //     for i in 0..=samples {
+    //         // simulate connection 30 minutes ago
+    //         let handshake_minutes = i * if i < 31 { 1 } else { 10 };
+    //         WireguardPeerStats {
+    //             id: NoId,
+    //             device_id: device.id,
+    //             collected_at: now - TimeDelta::minutes(i),
+    //             network: location.id,
+    //             endpoint: Some("11.22.33.44".into()),
+    //             upload: (samples - i) * 10,
+    //             download: (samples - i) * 20,
+    //             latest_handshake: now - TimeDelta::minutes(handshake_minutes),
+    //             allowed_ips: Some("10.1.1.0/24".into()),
+    //         }
+    //         .save(&pool)
+    //         .await
+    //         .unwrap();
+    //     }
 
-        let connected_at = network
-            .connected_at(&pool, device.id)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            connected_at,
-            // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-            (now - TimeDelta::minutes(30)).trunc_subsecs(6),
-        );
-    }
+    //     let connected_at = device
+    //         .last_connected_at(&pool, location.id)
+    //         .await
+    //         .unwrap()
+    //         .unwrap();
+    //     assert_eq!(
+    //         connected_at,
+    //         // PostgreSQL stores 6 sub-second digits while chrono stores 9.
+    //         (now - TimeDelta::minutes(30)).trunc_subsecs(6),
+    //     );
+    // }
 
-    #[sqlx::test]
-    async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+    // FIXME(mwojcik): rewrite for new stats implementation
+    // #[sqlx::test]
+    // async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
+    //     let pool = setup_pool(options).await;
+    //     let mut location = WireguardNetwork::default();
+    //     location.try_set_address("10.1.1.1/29").unwrap();
+    //     let location = location.save(&pool).await.unwrap();
 
-        let user = User::new(
-            "testuser",
-            Some("hunter2"),
-            "Tester",
-            "Test",
-            "test@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-        let device = Device::new(
-            String::new(),
-            String::new(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
+    //     let user = User::new(
+    //         "testuser",
+    //         Some("hunter2"),
+    //         "Tester",
+    //         "Test",
+    //         "test@test.com",
+    //         None,
+    //     )
+    //     .save(&pool)
+    //     .await
+    //     .unwrap();
+    //     let device = Device::new(
+    //         String::new(),
+    //         String::new(),
+    //         user.id,
+    //         DeviceType::User,
+    //         None,
+    //         true,
+    //     )
+    //     .save(&pool)
+    //     .await
+    //     .unwrap();
 
-        // insert stats
-        let samples = 60; // 1 hour of samples
-        let now = Utc::now().naive_utc();
-        for i in 0..=samples {
-            WireguardPeerStats {
-                id: NoId,
-                device_id: device.id,
-                collected_at: now - TimeDelta::minutes(i),
-                network: network.id,
-                endpoint: Some("11.22.33.44".into()),
-                upload: (samples - i) * 10,
-                download: (samples - i) * 20,
-                latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
-                allowed_ips: Some("10.1.1.0/24".into()),
-            }
-            .save(&pool)
-            .await
-            .unwrap();
-        }
+    //     // insert stats
+    //     let samples = 60; // 1 hour of samples
+    //     let now = Utc::now().naive_utc();
+    //     for i in 0..=samples {
+    //         WireguardPeerStats {
+    //             id: NoId,
+    //             device_id: device.id,
+    //             collected_at: now - TimeDelta::minutes(i),
+    //             network: location.id,
+    //             endpoint: Some("11.22.33.44".into()),
+    //             upload: (samples - i) * 10,
+    //             download: (samples - i) * 20,
+    //             latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
+    //             allowed_ips: Some("10.1.1.0/24".into()),
+    //         }
+    //         .save(&pool)
+    //         .await
+    //         .unwrap();
+    //     }
 
-        let connected_at = network
-            .connected_at(&pool, device.id)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            connected_at,
-            // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-            (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
-        );
-    }
+    //     let connected_at = device
+    //         .last_connected_at(&pool, location.id)
+    //         .await
+    //         .unwrap()
+    //         .unwrap();
+    //     assert_eq!(
+    //         connected_at,
+    //         // PostgreSQL stores 6 sub-second digits while chrono stores 9.
+    //         (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
+    //     );
+    // }
 
     #[sqlx::test]
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1499,8 +1499,8 @@ mod test {
             50051,
             String::new(),
             None,
-            None,
-            None,
+            DEFAULT_WIREGUARD_MTU,
+            0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,
@@ -1633,8 +1633,8 @@ mod test {
             50051,
             String::new(),
             None,
-            None,
-            None,
+            DEFAULT_WIREGUARD_MTU,
+            0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
             300,
             300,

@@ -51,8 +51,8 @@ fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
 }
 
 fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
-    let mut device: Device<Id> = rng.r#gen();
-    device.id = id;
+    let device: Device = rng.r#gen();
+    let mut device = device.with_id(id);
     device.device_type = DeviceType::Network;
     device
 }

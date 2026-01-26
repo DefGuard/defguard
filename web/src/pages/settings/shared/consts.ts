@@ -6,3 +6,10 @@ export const higherPlanBadgeProps: BadgeProps = {
   showIcon: true,
   variant: 'warning',
 };
+
+export const businessPlanBadgeProps: BadgeProps = {
+  text: 'Business feature',
+  icon: 'status-premium',
+  showIcon: true,
+  variant: 'additional',
+};

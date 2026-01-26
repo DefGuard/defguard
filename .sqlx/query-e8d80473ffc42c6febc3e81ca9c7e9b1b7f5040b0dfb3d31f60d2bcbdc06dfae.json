@@ -51,7 +51,7 @@
       {
         "ordinal": 9,
         "name": "fwmark",
-        "type_info": "Int4"
+        "type_info": "Int8"
       },
       {
         "ordinal": 10,
@@ -128,8 +128,8 @@
       false,
       false,
       true,
-      true,
-      true,
+      false,
+      false,
       false,
       true,
       false,

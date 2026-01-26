@@ -5,19 +5,18 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabProps } from '../../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { SettingsActivityLogStreamingPage } from '../SettingsActivityLogStreamingPage/SettingsActivityStreamingTab';
 import { SettingsExternalOpenIdPage } from '../SettingsExternalOpenIdPage/SettingsExternalOpenIdPage';
 import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
 
-const ActivityTab = () => null;
-
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
   notifications: <SettingsNotificationsTab />,
   openid: <SettingsExternalOpenIdPage />,
-  activity: <ActivityTab />,
+  activity: <SettingsActivityLogStreamingPage />,
   license: <SettingsLicenseTab />,
 };
 

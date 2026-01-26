@@ -1,0 +1,21 @@
+[package]
+name = "defguard_generator"
+version = "0.0.0"
+edition = "2024"
+license-file = "../../LICENSE.md"
+homepage = "https://defguard.net/"
+repository = "https://github.com/DefGuard/defguard"
+rust-version = "1.85.1"
+
+[dependencies]
+defguard_common = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio-native-tls", "chrono"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+[dev-dependencies]
