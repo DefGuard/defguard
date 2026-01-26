@@ -249,7 +249,6 @@ fn gen_config(
 }
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
-const GATEWAY_SETUP_DELAY: Duration = Duration::from_secs(1);
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
 /// Bi-directional gRPC stream for communication with Defguard Gateway.
@@ -277,16 +276,6 @@ pub async fn run_grpc_gateway_stream(
         )?;
         let abort_handle = tasks.spawn(async move {
             loop {
-                if gateway_handler.has_certificate() {
-                    info!("A certificate was already issued for Gateway, proceeding to connection");
-                } else {
-                    info!("Gateway does not have a valid certificate, proceeding to setup");
-                    if let Err(err) = gateway_handler.handle_setup().await {
-                        warn!("Gateway setup failed: {err}, will try to connect anyway...");
-                    } else {
-                        tokio::time::sleep(GATEWAY_SETUP_DELAY).await;
-                    }
-                }
                 if let Err(err) = gateway_handler.handle_connection().await {
                     error!("Gateway connection error: {err}, retrying in 5 seconds...");
                     tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;

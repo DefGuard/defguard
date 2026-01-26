@@ -47,6 +47,7 @@ use tokio::sync::{
     broadcast,
     mpsc::{channel, unbounded_channel},
 };
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[macro_use]
 extern crate tracing;
@@ -61,11 +62,13 @@ async fn main() -> Result<(), anyhow::Error> {
         .set(config.clone())
         .expect("Failed to initialize server config.");
 
-    // initialize tracing with version formatter
-    defguard_version::tracing::init(
-        defguard_version::Version::parse(VERSION)?,
+    let subscriber = tracing_subscriber::registry();
+    defguard_version::tracing::with_version_formatters(
+        &defguard_version::Version::parse(VERSION)?,
         &config.log_level,
-    )?;
+        subscriber,
+    )
+    .init();
 
     info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");

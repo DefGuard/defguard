@@ -6,7 +6,6 @@ import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
 import type { LocationDevicesStats } from '../../shared/api/types';
 import { GatewaysStatusBadge } from '../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
-import { GatewaySetupModal } from '../../shared/components/modals/GatewaySetupModal/GatewaySetupModal';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
@@ -91,7 +90,6 @@ export const LocationOverviewPage = () => {
           <DevicesSection stats={locationDevicesStats} />
         )}
       </Page>
-      <GatewaySetupModal />
     </>
   );
 };

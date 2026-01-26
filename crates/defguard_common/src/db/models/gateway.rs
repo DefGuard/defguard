@@ -118,6 +118,18 @@ impl Gateway<Id> {
 
         Ok(())
     }
+
+    // TODO: Split the URL into address and port fields just like in proxy
+    pub async fn find_by_url<'e, E>(executor: E, url: &str) -> Result<Option<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let record = query_as!(Self, "SELECT * FROM gateway WHERE url = $1", url)
+            .fetch_optional(executor)
+            .await?;
+
+        Ok(record)
+    }
 }
 
 impl fmt::Display for Gateway<Id> {

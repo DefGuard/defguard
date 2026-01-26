@@ -12,7 +12,6 @@ import type {
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
   OpenEditUserModal,
-  OpenGatewaySetupModal,
   OpenLicenseModal,
   OpenNetworkDeviceConfigModal,
   OpenNetworkDeviceTokenModal,
@@ -135,10 +134,6 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DisplayList),
     data: z.custom<OpenDisplayListModal>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.GatewaySetup),
-    data: z.custom<OpenGatewaySetupModal>(),
   }),
   z.object({
     name: z.literal(ModalName.AddLocation),

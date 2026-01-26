@@ -2,7 +2,6 @@ import './style.scss';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import api from '../../shared/api/api';
-import { GatewaySetupModal } from '../../shared/components/modals/GatewaySetupModal/GatewaySetupModal';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -82,7 +81,6 @@ export const LocationsOverviewPage = () => {
           ))}
         </ul>
       </Page>
-      <GatewaySetupModal />
     </>
   );
 };

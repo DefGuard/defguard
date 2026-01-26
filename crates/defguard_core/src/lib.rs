@@ -37,13 +37,13 @@ use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
     auth::disable_user_mfa,
+    component_setup::setup_proxy_tls_stream,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
         find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
-    proxy_setup::setup_proxy_tls_stream,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
@@ -115,6 +115,7 @@ use crate::{
             webauthn_start,
         },
         ca::create_ca,
+        component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
         group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
@@ -358,7 +359,9 @@ pub fn build_webapp(
             // Certificate authority
             .route("/ca", post(create_ca))
             // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+            // Gateway setup with SSE
+            .route("/gateway/setup/stream", get(setup_gateway_tls_stream)),
     );
 
     // Enterprise features
