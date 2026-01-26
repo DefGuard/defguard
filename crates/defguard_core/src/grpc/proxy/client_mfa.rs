@@ -404,10 +404,7 @@ impl ClientMfaServer {
                     let req = CoreResponse {
                         id: request_id,
                         payload: Some(proxy::core_response::Payload::ClientRemoteMfaFinish(
-                            ClientRemoteMfaFinishResponse {
-                                token: request.token,
-                                preshared_key,
-                            },
+                            ClientRemoteMfaFinishResponse { preshared_key },
                         )),
                     };
                     let _ = response_tx.send(req);
