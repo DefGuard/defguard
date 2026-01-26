@@ -19,14 +19,15 @@ FROM chef AS planner
 # prepare recipe
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
+COPY tools tools
 COPY proto proto
 COPY migrations migrations
-RUN cargo chef prepare --recipe-path recipe.json
+RUN cargo chef prepare --bin defguard --recipe-path recipe.json
 
 FROM chef AS builder
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
 
 # build project
 COPY --from=web /app/dist ./web/dist
