@@ -136,7 +136,6 @@ impl CertificateAuthority<'_> {
         self.issuer.key().serialized_der()
     }
 
-    #[must_use]
     pub fn expiry(&self) -> Result<NaiveDateTime, CertificateError> {
         get_certificate_expiry(&self.cert_der)
     }
