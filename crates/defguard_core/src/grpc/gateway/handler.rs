@@ -491,6 +491,7 @@ impl GatewayHandler {
                                 let device_id = device.id;
 
                                 // Convert stats to database storage format.
+                                // FIXME: remove once legacy table is removed
                                 let stats = peer_stats_from_proto(
                                     peer_stats.clone(),
                                     self.gateway.network_id,
@@ -520,6 +521,7 @@ impl GatewayHandler {
                                 };
 
                                 // Save stats to database.
+                                // FIXME: remove once legacy table is removed
                                 let stats = match stats.save(&self.pool).await {
                                     Ok(stats) => stats,
                                     Err(err) => {
