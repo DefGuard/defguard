@@ -98,7 +98,7 @@ impl SessionState {
         }
     }
 
-    fn try_get_last_stats_update<'a>(&'a self, gateway_id: Id) -> Option<&'a LastStatsUpdate> {
+    fn try_get_last_stats_update(&self, gateway_id: Id) -> Option<&LastStatsUpdate> {
         self.last_stats_update.0.get(&gateway_id)
     }
 
@@ -221,14 +221,17 @@ impl ActiveSessionsMap {
             Some(db_session) => {
                 let mut session_state = SessionState::from(&db_session);
 
-                // try to fetch latest available stats for a given session
-                // FIXME: fetch latest stats for each gateway
-                if let Some(latest_stats) = db_session.try_get_latest_stats(transaction).await? {
-                    session_state.last_stats_update.update(latest_stats);
-                };
+                // fetch latest available stats for each gateway for a given session
+                let latest_gateway_stats = db_session
+                    .get_latest_stats_for_all_gateways(transaction)
+                    .await?;
+                for stats in latest_gateway_stats {
+                    session_state.last_stats_update.update(stats);
+                }
 
                 // put session state in map
                 let maybe_existing_session = session_map.insert(device_id, session_state);
+
                 // if a session exists already there was an error in earlier logic
                 assert!(maybe_existing_session.is_none());
 
