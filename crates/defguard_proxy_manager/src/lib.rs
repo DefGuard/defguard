@@ -35,8 +35,8 @@ use defguard_core::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, DerPayload,
-    InitialInfo, InitialSetupInfo, core_request, core_response, proxy_client::ProxyClient,
+    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, InitialInfo,
+    core_request, core_response, proxy_client::ProxyClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
@@ -76,6 +76,7 @@ static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Scheme {
+    #[allow(dead_code)]
     Http,
     Https,
 }
