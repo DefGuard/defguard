@@ -1,5 +1,8 @@
 use defguard_common::db::Id;
 use thiserror::Error;
+use tokio::sync::mpsc::error::SendError;
+
+use crate::events::SessionManagerEvent;
 
 #[derive(Debug, Error)]
 pub enum SessionManagerError {
@@ -21,4 +24,12 @@ pub enum SessionManagerError {
     LocationDoesNotExistError(Id),
     #[error("Received out of order peer stats update")]
     PeerStatsUpdateOutOfOrderError,
+    #[error("Failed to send session manager event: {0}")]
+    SessionManagerEventError(Box<SendError<SessionManagerEvent>>),
+}
+
+impl From<SendError<SessionManagerEvent>> for SessionManagerError {
+    fn from(error: SendError<SessionManagerEvent>) -> Self {
+        Self::SessionManagerEventError(Box::new(error))
+    }
 }

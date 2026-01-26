@@ -4,6 +4,8 @@ export interface WizardPageConfig {
   activeStep: string | number;
   steps: WizardPageStepsConfig;
   relatedDocs?: WizardDocsLink[];
+  welcomePageConfig?: WizardWelcomePageConfig;
+  showWelcome?: boolean;
 }
 
 export interface WizardDocsLink {
@@ -17,6 +19,15 @@ export interface WizardPageStep {
   label: string;
   description?: string;
   hidden?: boolean;
+}
+
+export interface WizardWelcomePageConfig {
+  title: string;
+  subtitle: string;
+  content: React.ReactNode;
+  media: React.ReactNode;
+  docsLink?: string;
+  docsText?: string;
 }
 
 export type WizardPageStepsConfig = Record<string, WizardPageStep>;

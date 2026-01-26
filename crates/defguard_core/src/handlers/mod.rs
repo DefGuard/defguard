@@ -30,6 +30,7 @@ use crate::{
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
 pub(crate) mod auth;
+pub mod ca;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub mod mail;
@@ -37,6 +38,7 @@ pub mod network_devices;
 pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
+pub(crate) mod proxy_setup;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
@@ -92,7 +94,8 @@ impl From<WebError> for ApiResponse {
             | WebError::ClientIpError
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)
-            | WebError::ActivityLogStreamError(_) => {
+            | WebError::ActivityLogStreamError(_)
+            | WebError::CertificateError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),

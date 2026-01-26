@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
-use defguard_common::config::server_config;
+use defguard_common::{config::server_config, types::proxy::ProxyControlMessage};
 use defguard_mail::Mail;
 use reqwest::Client;
 use secrecy::ExposeSecret;
@@ -39,6 +39,7 @@ pub struct AppState {
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
     pub incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    pub proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 }
 
 impl AppState {
@@ -116,6 +117,7 @@ impl AppState {
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -146,6 +148,7 @@ impl AppState {
             key,
             event_tx,
             incompatible_components,
+            proxy_control_tx,
         }
     }
 }

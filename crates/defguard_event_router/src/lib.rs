@@ -20,11 +20,12 @@
 use std::sync::Arc;
 
 use defguard_core::{
-    events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent, InternalEvent},
     grpc::gateway::events::GatewayEvent,
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_mail::Mail;
+use defguard_session_manager::events::SessionManagerEvent;
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
@@ -40,24 +41,24 @@ mod handlers;
 
 pub struct RouterReceiverSet {
     api: UnboundedReceiver<ApiEvent>,
-    grpc: UnboundedReceiver<GrpcEvent>,
     bidi: UnboundedReceiver<BidiStreamEvent>,
     internal: UnboundedReceiver<InternalEvent>,
+    session_manager: UnboundedReceiver<SessionManagerEvent>,
 }
 
 impl RouterReceiverSet {
     #[must_use]
     pub fn new(
         api: UnboundedReceiver<ApiEvent>,
-        grpc: UnboundedReceiver<GrpcEvent>,
         bidi: UnboundedReceiver<BidiStreamEvent>,
         internal: UnboundedReceiver<InternalEvent>,
+        session_manager: UnboundedReceiver<SessionManagerEvent>,
     ) -> Self {
         Self {
             api,
-            grpc,
             bidi,
             internal,
+            session_manager,
         }
     }
 }
@@ -115,10 +116,6 @@ impl EventRouter {
                     error!("API event channel closed");
                     return Err(EventRouterError::ApiEventChannelClosed);
               },
-              event = self.receivers.grpc.recv() => if let Some(grpc_event) = event { Event::Grpc(Box::new(grpc_event)) } else {
-                    error!("gRPC event channel closed");
-                    return Err(EventRouterError::GrpcEventChannelClosed);
-              },
               event = self.receivers.bidi.recv() => if let Some(bidi_event) = event { Event::Bidi(bidi_event) } else {
                     error!("Bidi gRPC stream event channel closed");
                     return Err(EventRouterError::BidiEventChannelClosed);
@@ -127,16 +124,22 @@ impl EventRouter {
                     error!("Internal event channel closed");
                     return Err(EventRouterError::InternalEventChannelClosed);
               },
+              event = self.receivers.session_manager.recv() => if let Some(session_manager_event) = event { Event::SessionManager(Box::new(session_manager_event)) } else {
+                    error!("Internal event channel closed");
+                    return Err(EventRouterError::InternalEventChannelClosed);
+              },
             };
 
-            debug!("Received event");
+            debug!("Received event: {event:?}");
 
             // Route the event to the appropriate handler
             match event {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
-                Event::Grpc(grpc_event) => self.handle_grpc_event(*grpc_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
                 Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
+                Event::SessionManager(session_manager_event) => {
+                    self.handle_session_manager_event(*session_manager_event)?
+                }
             }
         }
     }

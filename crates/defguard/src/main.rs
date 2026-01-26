@@ -15,6 +15,7 @@ use defguard_common::{
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -24,10 +25,10 @@ use defguard_core::{
         license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
-    events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, events::GatewayEvent, run_grpc_gateway_stream},
+        gateway::{events::GatewayEvent, run_grpc_gateway_stream},
         run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
@@ -40,9 +41,12 @@ use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
-use defguard_session_manager::run_session_manager;
+use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use secrecy::ExposeSecret;
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tokio::sync::{
+    broadcast,
+    mpsc::{channel, unbounded_channel},
+};
 
 #[macro_use]
 extern crate tracing;
@@ -101,7 +105,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
     let (internal_event_tx, internal_event_rx) = unbounded_channel::<InternalEvent>();
-    let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
+    let (session_manager_event_tx, session_manager_event_rx) =
+        unbounded_channel::<SessionManagerEvent>();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -115,7 +120,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
@@ -133,7 +137,7 @@ async fn main() -> Result<(), anyhow::Error> {
             "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
         );
 
-        let ca = defguard_certs::CertificateAuthority::new()?;
+        let ca = defguard_certs::CertificateAuthority::new("Defguard", "", 10)?;
 
         let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
 
@@ -173,19 +177,22 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
-    let proxy_manager =
-        ProxyManager::new(pool.clone(), proxy_tx, Arc::clone(&incompatible_components));
+    let proxy_manager = ProxyManager::new(
+        pool.clone(),
+        proxy_tx,
+        Arc::clone(&incompatible_components),
+        proxy_control_rx,
+    );
 
     // run services
     tokio::select! {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
         res = run_grpc_gateway_stream(
             pool.clone(),
-            client_state,
             wireguard_tx.clone(),
             mail_tx.clone(),
-            grpc_event_tx,
             peer_stats_tx,
         ) => error!("Gateway gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
@@ -205,6 +212,7 @@ async fn main() -> Result<(), anyhow::Error> {
             failed_logins,
             api_event_tx,
             incompatible_components,
+            proxy_control_tx
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(
@@ -225,9 +233,9 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_event_router(
             RouterReceiverSet::new(
                 api_event_rx,
-                grpc_event_rx,
                 bidi_event_rx,
-                internal_event_rx
+                internal_event_rx,
+                session_manager_event_rx
             ),
             event_logger_tx,
             wireguard_tx,
@@ -243,7 +251,8 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Activity log stream manager returned early: {res:?}"),
         res = run_session_manager(
             pool.clone(),
-            peer_stats_rx
+            peer_stats_rx,
+            session_manager_event_tx
         ) => error!("VPN client session manager returned early: {res:?}"),
     }
 
