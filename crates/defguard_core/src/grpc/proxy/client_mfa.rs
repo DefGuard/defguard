@@ -20,7 +20,7 @@ use defguard_mail::Mail;
 use defguard_proto::proxy::{
     self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
     ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
-    ClientRemoteMfaFinishRequest, ClientRemoteMfaFinishResponse, MfaMethod,
+    ClientRemoteMfaFinishRequest, ClientRemoteMfaFinishResponse, CoreResponse, MfaMethod,
 };
 use sqlx::PgPool;
 use thiserror::Error;
@@ -387,7 +387,10 @@ impl ClientMfaServer {
     pub async fn finish_remote_client_mfa_login(
         &mut self,
         request: ClientRemoteMfaFinishRequest,
-    ) -> Result<ClientRemoteMfaFinishResponse, Status> {
+        response_tx: UnboundedSender<CoreResponse>,
+        request_id: u64,
+        // ) -> Result<ClientRemoteMfaFinishResponse, Status> {
+    ) -> Result<(), Status> {
         debug!("Finishing desktop client login: {request:?}");
         let (tx, rx) = oneshot::channel();
         self.remote_mfa_responses
@@ -395,16 +398,36 @@ impl ClientMfaServer {
             .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
             .insert(request.token.clone(), tx);
 
-        // TODO(jck) do we need timeout here? memory leaks possible?
-        let preshared_key = rx.await.map_err(|err| {
-            error!("Remote MFA responses channel failed: {err:?}");
-            Status::internal("Remote MFA responses channel failed")
-        })?;
+        tokio::spawn(async move {
+            // TODO(jck) do we need timeout here? memory leaks possible?
+            // let preshared_key = rx.await.map_err(|err| {
+            //     error!("Remote MFA responses channel failed: {err:?}");
+            //     // Status::internal("Remote MFA responses channel failed")
+            // });
+            match rx.await {
+                Ok(preshared_key) => {
+                    let req = CoreResponse {
+                        id: request_id,
+                        payload: Some(proxy::core_response::Payload::ClientRemoteMfaFinish(
+                            ClientRemoteMfaFinishResponse {
+                                token: request.token,
+                                preshared_key,
+                            },
+                        )),
+                    };
+                    let _ = response_tx.send(req);
+                }
+                Err(err) => {
+                    error!("Remote MFA responses channel failed: {err:?}");
+                }
+            }
+        });
 
-        Ok(ClientRemoteMfaFinishResponse {
-            token: request.token,
-            preshared_key,
-        })
+        // Ok(ClientRemoteMfaFinishResponse {
+        //     token: request.token,
+        //     preshared_key,
+        // })
+        Ok(())
     }
 
     #[instrument(skip_all)]

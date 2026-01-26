@@ -484,6 +484,7 @@ impl ProxyServer {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
+                    error!("Received message from proxy; ID={}", received.id);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -678,14 +679,15 @@ impl ProxyServer {
                             match self
                                 .services
                                 .client_mfa
-                                .finish_remote_client_mfa_login(request)
+                                .finish_remote_client_mfa_login(request, tx.clone(), received.id)
                                 .await
                             {
-                                Ok(response_payload) => Some(
-                                    core_response::Payload::ClientRemoteMfaFinish(response_payload),
-                                ),
+                                // Ok(response_payload) => Some(
+                                //     core_response::Payload::ClientRemoteMfaFinish(response_payload),
+                                // ),
+                                Ok(response_payload) => None,
                                 Err(err) => {
-                                    error!("Client MFA finish error: {err}");
+                                    error!("Client MFA remote finish error: {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -914,11 +916,13 @@ impl ProxyServer {
                         None => None,
                     };
 
-                    let req = CoreResponse {
-                        id: received.id,
-                        payload,
-                    };
-                    let _ = tx.send(req);
+                    if let Some(payload) = payload {
+                        let req = CoreResponse {
+                            id: received.id,
+                            payload: Some(payload),
+                        };
+                        let _ = tx.send(req);
+                    }
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
