@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, session_id, gateway_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff\n        \tFROM vpn_session_stats WHERE session_id = $1 ORDER BY collected_at DESC LIMIT 1",
+  "query": "SELECT DISTINCT ON (gateway_id) id, session_id, gateway_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff\n        \tFROM vpn_session_stats WHERE session_id = $1 ORDER BY gateway_id, collected_at DESC",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "c154aea1df6c3f273a1e7ab9c9a1c5b4da1599de659cd8315e331d6caf203fa4"
+  "hash": "b2196d15ed73268487293a74bb8fd9393571a3f98b1e323f566493e464bbf1e3"
 }
