@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock}, time::Duration,
+    sync::{Arc, RwLock},
+    time::Duration,
 };
 
 use chrono::Utc;
@@ -24,11 +25,14 @@ use defguard_proto::proxy::{
 };
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::{sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedSender, error::SendError},
-    oneshot,
-}, time};
+use tokio::{
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedSender, error::SendError},
+        oneshot,
+    },
+    time,
+};
 use tonic::{Code, Status};
 
 use crate::{
@@ -416,8 +420,8 @@ impl ClientMfaServer {
                 Ok(Err(err)) => {
                     error!("Remote MFA response channel failed: {err:?}");
                 }
-                Err(err) => {
-                    error!("Remote MFA process with request_id {request_id} timed out: {err:?}");
+                Err(_) => {
+                    warn!("Remote MFA process with request_id {request_id} timed out");
                 }
             }
         });
