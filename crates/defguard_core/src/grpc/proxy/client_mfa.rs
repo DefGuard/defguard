@@ -19,9 +19,10 @@ use defguard_common::{
 };
 use defguard_mail::Mail;
 use defguard_proto::proxy::{
-    self, ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
-    ClientMfaStartResponse, ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse,
-    ClientRemoteMfaFinishRequest, ClientRemoteMfaFinishResponse, CoreResponse, MfaMethod,
+    self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse, ClientMfaFinishRequest,
+    ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
+    ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse, MfaMethod,
+    core_response::Payload,
 };
 use sqlx::PgPool;
 use thiserror::Error;
@@ -391,9 +392,9 @@ impl ClientMfaServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn finish_remote_client_mfa_login(
+    pub async fn await_remote_mfa_login(
         &mut self,
-        request: ClientRemoteMfaFinishRequest,
+        request: AwaitRemoteMfaFinishRequest,
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
     ) -> Result<(), Status> {
@@ -410,8 +411,8 @@ impl ClientMfaServer {
                 Ok(Ok(preshared_key)) => {
                     let req = CoreResponse {
                         id: request_id,
-                        payload: Some(proxy::core_response::Payload::ClientRemoteMfaFinish(
-                            ClientRemoteMfaFinishResponse { preshared_key },
+                        payload: Some(Payload::AwaitRemoteMfaFinish(
+                            AwaitRemoteMfaFinishResponse { preshared_key },
                         )),
                     };
                     // Once the key is here, send it back to proxy.

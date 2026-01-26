@@ -673,12 +673,12 @@ impl ProxyServer {
                                 }
                             }
                         }
-                        // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
-                        Some(core_request::Payload::ClientRemoteMfaFinish(request)) => {
+                        // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
+                        Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
                             match self
                                 .services
                                 .client_mfa
-                                .finish_remote_client_mfa_login(request, tx.clone(), received.id)
+                                .await_remote_mfa_login(request, tx.clone(), received.id)
                                 .await
                             {
                                 Ok(()) => None,
