@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock}, time::Duration,
 };
 
 use chrono::Utc;
@@ -24,11 +24,11 @@ use defguard_proto::proxy::{
 };
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::sync::{
+use tokio::{sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
     oneshot,
-};
+}, time};
 use tonic::{Code, Status};
 
 use crate::{
@@ -39,6 +39,9 @@ use crate::{
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
+
+// How much time the user has to approve remote MFA with mobile device
+const REMOTE_AUTH_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Error)]
 pub enum ClientMfaServerError {
@@ -397,20 +400,24 @@ impl ClientMfaServer {
             .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
             .insert(request.token.clone(), tx);
 
+        // Spawn a task that waits for remote MFA process to conclude to get the preshared key.
         tokio::spawn(async move {
-            // TODO(jck) do we need a timeout here? memory leaks possible?
-            match rx.await {
-                Ok(preshared_key) => {
+            match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
+                Ok(Ok(preshared_key)) => {
                     let req = CoreResponse {
                         id: request_id,
                         payload: Some(proxy::core_response::Payload::ClientRemoteMfaFinish(
                             ClientRemoteMfaFinishResponse { preshared_key },
                         )),
                     };
+                    // Once the key is here, send it back to proxy.
                     let _ = response_tx.send(req);
                 }
+                Ok(Err(err)) => {
+                    error!("Remote MFA response channel failed: {err:?}");
+                }
                 Err(err) => {
-                    error!("Remote MFA responses channel failed: {err:?}");
+                    error!("Remote MFA process with request_id {request_id} timed out: {err:?}");
                 }
             }
         });
