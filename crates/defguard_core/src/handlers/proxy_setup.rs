@@ -34,7 +34,6 @@ struct TaskGuard(tokio::task::JoinHandle<()>);
 impl Drop for TaskGuard {
     fn drop(&mut self) {
         self.0.abort();
-        eprintln!("Log reader task aborted");
     }
 }
 
