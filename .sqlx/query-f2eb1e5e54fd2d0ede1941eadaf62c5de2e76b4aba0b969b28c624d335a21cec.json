@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_user_rdn_attr, ldap_sync_groups, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", ca_key_der, ca_cert_der FROM \"settings\" WHERE id = 1",
+  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_user_rdn_attr, ldap_sync_groups, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", ca_key_der, ca_cert_der, ca_expiry FROM \"settings\" WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -284,6 +284,11 @@
         "ordinal": 49,
         "name": "ca_cert_der",
         "type_info": "Bytea"
+      },
+      {
+        "ordinal": 50,
+        "name": "ca_expiry",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -339,8 +344,9 @@
       false,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "23d55f2b3d7f82c0bb6afdd4e88e64b9920b263b3d668704ecbe66d80aa7c586"
+  "hash": "f2eb1e5e54fd2d0ede1941eadaf62c5de2e76b4aba0b969b28c624d335a21cec"
 }

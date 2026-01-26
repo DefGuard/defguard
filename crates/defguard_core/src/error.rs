@@ -76,6 +76,9 @@ pub enum WebError {
     #[error("Activity log stream error: {0}")]
     #[schema(value_type=Object)]
     ActivityLogStreamError(#[from] ActivityLogStreamError),
+    #[error(transparent)]
+    #[schema(value_type=Object)]
+    CertificateError(#[from] defguard_certs::CertificateError),
 }
 
 impl From<tonic::Status> for WebError {

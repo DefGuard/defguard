@@ -28,6 +28,7 @@ use defguard_common::{
             },
         },
     },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
@@ -42,6 +43,7 @@ use handlers::{
         find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    proxy_setup::setup_proxy_tls_stream,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
@@ -112,6 +114,7 @@ use crate::{
             totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
             webauthn_start,
         },
+        ca::create_ca,
         forward_auth::forward_auth,
         group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
@@ -212,6 +215,7 @@ pub fn build_webapp(
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -350,7 +354,11 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // activity log
-            .route("/activity_log", get(get_activity_log_events)),
+            .route("/activity_log", get(get_activity_log_events))
+            // Certificate authority
+            .route("/ca", post(create_ca))
+            // Proxy setup with SSE
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );
 
     // Enterprise features
@@ -548,6 +556,7 @@ pub fn build_webapp(
             failed_logins,
             event_tx,
             incompatible_components,
+            proxy_control_tx,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -575,6 +584,7 @@ pub async fn run_web_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -587,6 +597,7 @@ pub async fn run_web_server(
         event_tx,
         Version::parse(VERSION)?,
         incompatible_components,
+        proxy_control_tx,
     );
     info!("Started web services");
     let server_config = server_config();
