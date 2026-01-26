@@ -20,6 +20,21 @@ use crate::{
     events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
 };
 
+/// Helper map to store latest stats update for each gateway in a given location
+pub(crate) struct LastGatewayUpdate(HashMap<Id, LastStatsUpdate>);
+
+impl LastGatewayUpdate {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    /// Store latest stats for a given gateway
+    fn update(&mut self, session_stats: VpnSessionStats<Id>) {
+        let gateway_id = session_stats.gateway_id;
+        unimplemented!()
+    }
+}
+
 struct LastStatsUpdate {
     collected_at: NaiveDateTime,
     latest_handshake: NaiveDateTime,
@@ -66,15 +81,19 @@ impl From<VpnSessionStats<Id>> for LastStatsUpdate {
 /// State of a specific VPN client session
 pub(crate) struct SessionState {
     session_id: Id,
-    last_stats_update: Option<LastStatsUpdate>,
+    last_stats_update: LastGatewayUpdate,
 }
 
 impl SessionState {
     fn new(session_id: Id) -> Self {
         Self {
             session_id,
-            last_stats_update: None,
+            last_stats_update: LastGatewayUpdate::new(),
         }
+    }
+
+    fn try_get_last_stats_update<'a>(&self, gateway_id: Id) -> Option<&'a LastStatsUpdate> {
+        unimplemented!()
     }
 
     /// Updates session stats based on received peer update
@@ -83,20 +102,21 @@ impl SessionState {
         transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
-        // get previous stats if available and calculate transfer change
-        let (upload_diff, download_diff) = match &self.last_stats_update {
-            Some(last_stats_update) => {
-                // validate current update against latest value
-                last_stats_update.validate_update(&peer_stats_update)?;
+        // get previous stats for a given gateway if available and calculate transfer change
+        let (upload_diff, download_diff) =
+            match self.try_get_last_stats_update(peer_stats_update.gateway_id) {
+                Some(last_stats_update) => {
+                    // validate current update against latest value
+                    last_stats_update.validate_update(&peer_stats_update)?;
 
-                // calculate transfer change
-                (
-                    peer_stats_update.upload as i64 - last_stats_update.total_upload,
-                    peer_stats_update.download as i64 - last_stats_update.total_download,
-                )
-            }
-            None => (0, 0),
-        };
+                    // calculate transfer change
+                    (
+                        peer_stats_update.upload as i64 - last_stats_update.total_upload,
+                        peer_stats_update.download as i64 - last_stats_update.total_download,
+                    )
+                }
+                None => (0, 0),
+            };
 
         let vpn_session_stats = VpnSessionStats::new(
             self.session_id,
@@ -114,7 +134,7 @@ impl SessionState {
         let stats = vpn_session_stats.save(transaction).await?;
 
         // update latest stats
-        self.last_stats_update = Some(LastStatsUpdate::from(stats));
+        self.last_stats_update.update(stats);
 
         Ok(())
     }
@@ -124,7 +144,7 @@ impl From<&VpnClientSession<Id>> for SessionState {
     fn from(value: &VpnClientSession<Id>) -> Self {
         Self {
             session_id: value.id,
-            last_stats_update: None,
+            last_stats_update: LastGatewayUpdate::new(),
         }
     }
 }
@@ -197,7 +217,7 @@ impl ActiveSessionsMap {
 
                 // try to fetch latest available stats for a given session
                 if let Some(latest_stats) = db_session.try_get_latest_stats(transaction).await? {
-                    session_state.last_stats_update = Some(LastStatsUpdate::from(latest_stats));
+                    session_state.last_stats_update.update(latest_stats);
                 };
 
                 // put session state in map
