@@ -216,6 +216,7 @@ impl ActiveSessionsMap {
                 let mut session_state = SessionState::from(&db_session);
 
                 // try to fetch latest available stats for a given session
+                // FIXME: fetch latest stats for each gateway
                 if let Some(latest_stats) = db_session.try_get_latest_stats(transaction).await? {
                     session_state.last_stats_update.update(latest_stats);
                 };
