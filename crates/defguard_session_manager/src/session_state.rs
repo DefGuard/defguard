@@ -12,9 +12,13 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use sqlx::{PgConnection, types::chrono::Utc};
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, warn};
 
-use crate::error::SessionManagerError;
+use crate::{
+    error::SessionManagerError,
+    events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
+};
 
 struct LastStatsUpdate {
     collected_at: NaiveDateTime,
@@ -214,32 +218,36 @@ impl ActiveSessionsMap {
         &mut self,
         transaction: &mut PgConnection,
         stats_update: &PeerStatsUpdate,
+        event_tx: &UnboundedSender<SessionManagerEvent>,
     ) -> Result<Option<&mut SessionState>, SessionManagerError> {
         // fetch location
         let location_id = stats_update.location_id;
-        // wrap in block to avoid multiple mutable borrows
-        let (location_name, mfa_mode) = {
-            let location = self.get_location(&mut *transaction, location_id).await?;
-            // check if a given peer is considered active and should be added to active sessions
-            if Utc::now().naive_utc() - stats_update.latest_handshake
-                > TimeDelta::seconds(location.peer_disconnect_threshold.into())
-            {
-                warn!(
-                    "Received peer stats update for an inactive peer. Skipping creating a new session..."
-                );
-                return Ok(None);
-            };
 
-            (location.name.clone(), location.location_mfa_mode.clone())
+        let location = self
+            .get_location(&mut *transaction, location_id)
+            .await?
+            .clone();
+
+        // check if a given peer is considered active and should be added to active sessions
+        if Utc::now().naive_utc() - stats_update.latest_handshake
+            > TimeDelta::seconds(location.peer_disconnect_threshold.into())
+        {
+            warn!(
+                "Received peer stats update for an inactive peer. Skipping creating a new session..."
+            );
+            return Ok(None);
         };
 
         // fetch other related objects from DB
+        // clone them because we'll need those for event context
         let device_id = stats_update.device_id;
-        // wrap in block to avoid multiple mutable borrows
-        let user_id = { self.get_device(&mut *transaction, device_id).await?.user_id };
-        let user = self.get_user(&mut *transaction, user_id).await?;
+        let device = self.get_device(&mut *transaction, device_id).await?.clone();
+        let user = self
+            .get_user(&mut *transaction, device.user_id)
+            .await?
+            .clone();
 
-        debug!("Adding new VPN client session for location {location_name}");
+        debug!("Adding new VPN client session for location {location}");
 
         // create a client session object and save it to DB
         let session = VpnClientSession::new(
@@ -247,7 +255,7 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            mfa_mode,
+            location.location_mfa_mode.clone(),
         )
         .save(transaction)
         .await?;
@@ -255,9 +263,25 @@ impl ActiveSessionsMap {
         // add to session map
         let session_state = SessionState::new(session.id);
         let session_map = self.get_or_create_location_session_map(location_id);
-        let maybe_existing_session = session_map.insert(device_id, session_state);
+        let maybe_existing_session = session_map.insert(device.id, session_state);
+
         // if a session exists already there was an error in earlier logic
         assert!(maybe_existing_session.is_none());
+
+        // emit event
+        let public_ip = stats_update.endpoint.ip();
+        let context = SessionManagerEventContext {
+            timestamp: stats_update.latest_handshake,
+            location,
+            user,
+            device,
+            public_ip,
+        };
+        let event = SessionManagerEvent {
+            context,
+            event: SessionManagerEventType::ClientConnected,
+        };
+        event_tx.send(event)?;
 
         Ok(session_map.0.get_mut(&device_id))
     }
