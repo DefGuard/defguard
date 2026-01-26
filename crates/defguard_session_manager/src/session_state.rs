@@ -29,12 +29,18 @@ impl LastGatewayUpdate {
     }
 
     /// Store latest stats for a given gateway
+    ///
+    /// We assume that at this point the update has already been validated.
     fn update(&mut self, session_stats: VpnSessionStats<Id>) {
         let gateway_id = session_stats.gateway_id;
-        unimplemented!()
+        let latest_stats = LastStatsUpdate::from(session_stats);
+
+        debug!("Replacing latest stats update for gateway {gateway_id} with {latest_stats:?}");
+        let _maybe_previous = self.0.insert(gateway_id, latest_stats);
     }
 }
 
+#[derive(Debug)]
 struct LastStatsUpdate {
     collected_at: NaiveDateTime,
     latest_handshake: NaiveDateTime,
@@ -92,8 +98,8 @@ impl SessionState {
         }
     }
 
-    fn try_get_last_stats_update<'a>(&self, gateway_id: Id) -> Option<&'a LastStatsUpdate> {
-        unimplemented!()
+    fn try_get_last_stats_update<'a>(&'a self, gateway_id: Id) -> Option<&'a LastStatsUpdate> {
+        self.last_stats_update.0.get(&gateway_id)
     }
 
     /// Updates session stats based on received peer update
