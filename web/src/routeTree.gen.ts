@@ -47,6 +47,7 @@ import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './route
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
+import { Route as AuthorizedDefaultAclDestinationsRouteImport } from './routes/_authorized/_default/acl/destinations'
 import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
 import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
@@ -259,6 +260,12 @@ const AuthorizedDefaultAclEditAliasRoute =
     path: '/acl/edit-alias',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclDestinationsRoute =
+  AuthorizedDefaultAclDestinationsRouteImport.update({
+    id: '/acl/destinations',
+    path: '/acl/destinations',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclAliasesRoute =
   AuthorizedDefaultAclAliasesRouteImport.update({
     id: '/acl/aliases',
@@ -312,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -353,6 +361,7 @@ export interface FileRoutesByTo {
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -398,6 +407,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/_authorized/_default/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
+  '/_authorized/_default/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/acl/add-alias'
     | '/acl/add-rule'
     | '/acl/aliases'
+    | '/acl/destinations'
     | '/acl/edit-alias'
     | '/acl/rules'
     | '/settings/client'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/acl/add-alias'
     | '/acl/add-rule'
     | '/acl/aliases'
+    | '/acl/destinations'
     | '/acl/edit-alias'
     | '/acl/rules'
     | '/settings/client'
@@ -527,6 +539,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/add-alias'
     | '/_authorized/_default/acl/add-rule'
     | '/_authorized/_default/acl/aliases'
+    | '/_authorized/_default/acl/destinations'
     | '/_authorized/_default/acl/edit-alias'
     | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/client'
@@ -819,6 +832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclEditAliasRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/destinations': {
+      id: '/_authorized/_default/acl/destinations'
+      path: '/acl/destinations'
+      fullPath: '/acl/destinations'
+      preLoaderRoute: typeof AuthorizedDefaultAclDestinationsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/aliases': {
       id: '/_authorized/_default/acl/aliases'
       path: '/acl/aliases'
@@ -860,6 +880,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
   AuthorizedDefaultAclAddRuleRoute: typeof AuthorizedDefaultAclAddRuleRoute
   AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
+  AuthorizedDefaultAclDestinationsRoute: typeof AuthorizedDefaultAclDestinationsRoute
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
@@ -885,6 +906,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
   AuthorizedDefaultAclAddRuleRoute: AuthorizedDefaultAclAddRuleRoute,
   AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
+  AuthorizedDefaultAclDestinationsRoute: AuthorizedDefaultAclDestinationsRoute,
   AuthorizedDefaultAclEditAliasRoute: AuthorizedDefaultAclEditAliasRoute,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
