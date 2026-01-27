@@ -14,7 +14,7 @@ use defguard_mail::{
     templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
 };
 use lettre::message::header::ContentType;
-use reqwest::{Proxy, Url};
+use reqwest::Url;
 use serde_json::json;
 use tokio::{
     fs::read_to_string,
