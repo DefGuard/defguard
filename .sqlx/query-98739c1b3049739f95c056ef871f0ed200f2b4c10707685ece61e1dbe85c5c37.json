@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" FROM vpn_client_session WHERE location_id = $1 AND device_id = $2",
+  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
   "describe": {
     "columns": [
       {
@@ -89,5 +89,5 @@
       false
     ]
   },
-  "hash": "83722331508d9f6347db04c44546ddc6c1c82aad42f16dbda45003f13a1f6e33"
+  "hash": "98739c1b3049739f95c056ef871f0ed200f2b4c10707685ece61e1dbe85c5c37"
 }

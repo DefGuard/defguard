@@ -77,7 +77,7 @@ impl VpnClientSession<Id> {
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
 	            mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
             location_id,
             device_id
         )
@@ -85,20 +85,21 @@ impl VpnClientSession<Id> {
         .await
     }
 
-    pub async fn try_get_latest_stats<'e, E: sqlx::PgExecutor<'e>>(
+    /// Returns latest stats in a given session for each gateway
+    pub async fn get_latest_stats_for_all_gateways<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
-    ) -> Result<Option<VpnSessionStats<Id>>, SqlxError> {
+    ) -> Result<Vec<VpnSessionStats<Id>>, SqlxError> {
         query_as!(
             VpnSessionStats,
-            "SELECT id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
+            "SELECT DISTINCT ON (gateway_id) id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
             	total_upload, total_download, upload_diff, download_diff
         	FROM vpn_session_stats \
         	WHERE session_id = $1 \
-        	ORDER BY collected_at DESC LIMIT 1",
+        	ORDER BY gateway_id, collected_at DESC",
             self.id
         )
-        .fetch_optional(executor)
+        .fetch_all(executor)
         .await
     }
 

@@ -20,6 +20,27 @@ use crate::{
     events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
 };
 
+/// Helper map to store latest stats update for each gateway in a given location
+pub(crate) struct LastGatewayUpdate(HashMap<Id, LastStatsUpdate>);
+
+impl LastGatewayUpdate {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    /// Store latest stats for a given gateway
+    ///
+    /// We assume that at this point the update has already been validated.
+    fn update(&mut self, session_stats: VpnSessionStats<Id>) {
+        let gateway_id = session_stats.gateway_id;
+        let latest_stats = LastStatsUpdate::from(session_stats);
+
+        debug!("Replacing latest stats update for gateway {gateway_id} with {latest_stats:?}");
+        let _maybe_previous = self.0.insert(gateway_id, latest_stats);
+    }
+}
+
+#[derive(Debug)]
 struct LastStatsUpdate {
     collected_at: NaiveDateTime,
     latest_handshake: NaiveDateTime,
@@ -66,15 +87,19 @@ impl From<VpnSessionStats<Id>> for LastStatsUpdate {
 /// State of a specific VPN client session
 pub(crate) struct SessionState {
     session_id: Id,
-    last_stats_update: Option<LastStatsUpdate>,
+    last_stats_update: LastGatewayUpdate,
 }
 
 impl SessionState {
     fn new(session_id: Id) -> Self {
         Self {
             session_id,
-            last_stats_update: None,
+            last_stats_update: LastGatewayUpdate::new(),
         }
+    }
+
+    fn try_get_last_stats_update(&self, gateway_id: Id) -> Option<&LastStatsUpdate> {
+        self.last_stats_update.0.get(&gateway_id)
     }
 
     /// Updates session stats based on received peer update
@@ -83,20 +108,21 @@ impl SessionState {
         transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
-        // get previous stats if available and calculate transfer change
-        let (upload_diff, download_diff) = match &self.last_stats_update {
-            Some(last_stats_update) => {
-                // validate current update against latest value
-                last_stats_update.validate_update(&peer_stats_update)?;
+        // get previous stats for a given gateway if available and calculate transfer change
+        let (upload_diff, download_diff) =
+            match self.try_get_last_stats_update(peer_stats_update.gateway_id) {
+                Some(last_stats_update) => {
+                    // validate current update against latest value
+                    last_stats_update.validate_update(&peer_stats_update)?;
 
-                // calculate transfer change
-                (
-                    peer_stats_update.upload as i64 - last_stats_update.total_upload,
-                    peer_stats_update.download as i64 - last_stats_update.total_download,
-                )
-            }
-            None => (0, 0),
-        };
+                    // calculate transfer change
+                    (
+                        peer_stats_update.upload as i64 - last_stats_update.total_upload,
+                        peer_stats_update.download as i64 - last_stats_update.total_download,
+                    )
+                }
+                None => (0, 0),
+            };
 
         let vpn_session_stats = VpnSessionStats::new(
             self.session_id,
@@ -114,7 +140,7 @@ impl SessionState {
         let stats = vpn_session_stats.save(transaction).await?;
 
         // update latest stats
-        self.last_stats_update = Some(LastStatsUpdate::from(stats));
+        self.last_stats_update.update(stats);
 
         Ok(())
     }
@@ -124,7 +150,7 @@ impl From<&VpnClientSession<Id>> for SessionState {
     fn from(value: &VpnClientSession<Id>) -> Self {
         Self {
             session_id: value.id,
-            last_stats_update: None,
+            last_stats_update: LastGatewayUpdate::new(),
         }
     }
 }
@@ -143,7 +169,6 @@ impl SessionMap {
     }
 }
 
-// TODO(mwojcik): handle multiple gateways per location
 /// Helper struct to hold session maps for all locations and object cache to avoid repeated DB queries
 ///
 /// Since we want to support HA core deployments this structure
@@ -195,13 +220,17 @@ impl ActiveSessionsMap {
             Some(db_session) => {
                 let mut session_state = SessionState::from(&db_session);
 
-                // try to fetch latest available stats for a given session
-                if let Some(latest_stats) = db_session.try_get_latest_stats(transaction).await? {
-                    session_state.last_stats_update = Some(LastStatsUpdate::from(latest_stats));
-                };
+                // fetch latest available stats for each gateway for a given session
+                let latest_gateway_stats = db_session
+                    .get_latest_stats_for_all_gateways(transaction)
+                    .await?;
+                for stats in latest_gateway_stats {
+                    session_state.last_stats_update.update(stats);
+                }
 
                 // put session state in map
                 let maybe_existing_session = session_map.insert(device_id, session_state);
+
                 // if a session exists already there was an error in earlier logic
                 assert!(maybe_existing_session.is_none());
 
