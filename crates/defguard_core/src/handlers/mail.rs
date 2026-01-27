@@ -131,10 +131,8 @@ pub async fn send_support_data(
         session.user.username
     );
 
-    let proxies: Vec<defguard_common::db::models::proxy::Proxy<Id>> =
-        defguard_common::db::models::proxy::Proxy::all(&appstate.pool).await?;
-    let gateways: Vec<defguard_common::db::models::gateway::Gateway<Id>> =
-        defguard_common::db::models::gateway::Gateway::all(&appstate.pool).await?;
+    let proxies = defguard_common::db::models::proxy::Proxy::all(&appstate.pool).await?;
+    let gateways = defguard_common::db::models::gateway::Gateway::all(&appstate.pool).await?;
 
     let components_info = json!({
         "proxies": proxies.iter().map(|p| json!({
