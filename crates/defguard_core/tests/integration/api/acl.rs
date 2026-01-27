@@ -81,6 +81,9 @@ fn make_alias() -> EditAclAlias {
         destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
 }
 
@@ -134,6 +137,9 @@ fn edit_alias_data_into_api_response(
         ports: data.ports,
         protocols: data.protocols,
         rules,
+        any_destination: data.any_destination,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }
 

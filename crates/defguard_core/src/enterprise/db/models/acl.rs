@@ -1338,6 +1338,9 @@ pub(crate) struct AclAliasInfo<I = NoId> {
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<AclRule<Id>>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl<I> AclAliasInfo<I> {
@@ -1472,9 +1475,9 @@ impl AclAlias {
             kind,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
-            any_destination: true,
-            any_port: true,
-            any_protocol: true,
+            any_destination: alias.any_destination,
+            any_port: alias.any_port,
+            any_protocol: alias.any_protocol,
         })
     }
 
@@ -1793,6 +1796,9 @@ impl AclAlias<Id> {
             protocols: self.protocols.clone(),
             destination_ranges,
             rules,
+            any_destination: self.any_destination,
+            any_port: self.any_port,
+            any_protocol: self.any_protocol,
         })
     }
 

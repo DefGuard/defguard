@@ -165,6 +165,9 @@ pub struct ApiAclAlias {
     pub ports: String,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<Id>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl From<AclAliasInfo<Id>> for ApiAclAlias {
@@ -179,6 +182,9 @@ impl From<AclAliasInfo<Id>> for ApiAclAlias {
             state: info.state,
             protocols: info.protocols,
             rules: info.rules.iter().map(|v| v.id).collect(),
+            any_destination: info.any_destination,
+            any_port: info.any_port,
+            any_protocol: info.any_protocol,
         }
     }
 }
@@ -190,6 +196,9 @@ pub struct EditAclAlias {
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
