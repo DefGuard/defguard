@@ -398,6 +398,14 @@ impl GatewayHandler {
             };
             info!("Connected to Defguard Gateway {uri}");
 
+            let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
+            let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
+
+            if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
+                gateway.version = Some(version.to_string());
+                gateway.save(&self.pool).await?;
+            }
+
             let mut resp_stream = response.into_inner();
             let mut config_sent = false;
 

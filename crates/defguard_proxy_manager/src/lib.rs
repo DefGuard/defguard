@@ -48,7 +48,7 @@ use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlo
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
-use sqlx::PgPool;
+use sqlx::{PgPool, types::chrono::Utc};
 use thiserror::Error;
 use tokio::{
     select,
@@ -192,6 +192,7 @@ impl ProxyManager {
                 // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
                 // This should be removed when we do a proper import of old proxies
                 Arc::new(Mutex::new(None)),
+                None,
             );
             proxies.push(proxy);
         }
@@ -300,6 +301,7 @@ struct ProxyServer {
     /// Proxy server gRPC URL
     url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+    proxy_id: Option<Id>,
 }
 
 impl ProxyServer {
@@ -310,6 +312,7 @@ impl ProxyServer {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        proxy_id: Option<Id>,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
@@ -319,6 +322,7 @@ impl ProxyServer {
             services,
             url,
             shutdown_signal,
+            proxy_id,
         }
     }
 
@@ -331,6 +335,7 @@ impl ProxyServer {
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
+        let proxy_id = proxy.id;
         Ok(Self::new(
             pool,
             url,
@@ -338,6 +343,7 @@ impl ProxyServer {
             remote_mfa_responses,
             sessions,
             shutdown_signal,
+            Some(proxy_id),
         ))
     }
 
@@ -417,6 +423,21 @@ impl ProxyServer {
             // Check proxy version and continue if it's not supported.
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
+
+            if let Some(proxy_id) = self.proxy_id {
+                if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
+                    proxy.version = Some(version.to_string());
+                    proxy.connected_at = Some(Utc::now().naive_utc());
+                    proxy.save(&self.pool).await?;
+                } else {
+                    warn!("Couldn't find proxy by id, URL: {} ", self.url);
+                }
+            } else {
+                warn!(
+                    "Couldn't obtain proxy id, check if proxy exists in database. URL: {}",
+                    self.url
+                );
+            }
 
             let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);

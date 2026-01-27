@@ -17,6 +17,7 @@ pub struct Gateway<I = NoId> {
     pub disconnected_at: Option<NaiveDateTime>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+    pub version: Option<String>,
 }
 
 impl<I> Gateway<I> {
@@ -43,6 +44,7 @@ impl Gateway {
             disconnected_at: None,
             has_certificate: false,
             certificate_expiry: None,
+            version: None,
         }
     }
 }

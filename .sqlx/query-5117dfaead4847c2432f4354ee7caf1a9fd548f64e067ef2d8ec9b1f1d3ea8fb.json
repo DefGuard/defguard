@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"gateway\" (\"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+  "query": "INSERT INTO \"proxy\" (\"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\",\"version\",\"has_certificate\",\"certificate_expiry\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,11 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
+        "Text",
+        "Int4",
         "Text",
         "Timestamp",
         "Timestamp",
+        "Text",
         "Bool",
         "Timestamp"
       ]
@@ -24,5 +26,5 @@
       false
     ]
   },
-  "hash": "95cc72beeb57a84ed791fcc6873b1033ff78a115ae0a3f4882c28b3becb3d0a5"
+  "hash": "5117dfaead4847c2432f4354ee7caf1a9fd548f64e067ef2d8ec9b1f1d3ea8fb"
 }
