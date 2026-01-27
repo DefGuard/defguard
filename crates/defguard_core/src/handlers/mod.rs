@@ -39,7 +39,6 @@ pub mod network_devices;
 pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
-pub(crate) mod proxy_setup;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;

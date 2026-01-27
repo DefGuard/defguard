@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
@@ -272,48 +272,6 @@ impl GatewayHandler {
     ) -> Result<Option<Device<Id>>, GatewayError> {
         let device = Device::find_by_pubkey(&self.pool, public_key).await?;
         Ok(device)
-    }
-
-    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
-    async fn fetch_location_from_db(
-        &self,
-        location_id: Id,
-    ) -> Result<WireguardNetwork<Id>, GatewayError> {
-        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await? {
-            Some(location) => location,
-            None => {
-                error!("Location {location_id} not found");
-                return Err(GatewayError::NotFound(format!(
-                    "Location {location_id} not found"
-                )));
-            }
-        };
-        Ok(location)
-    }
-
-    /// Helper method to fetch `User` info from DB and return appropriate errors
-    async fn fetch_user_from_db(
-        &self,
-        user_id: Id,
-        public_key: &str,
-    ) -> Result<User<Id>, GatewayError> {
-        let user = match User::find_by_id(&self.pool, user_id).await? {
-            Some(user) => user,
-            None => {
-                error!("User {user_id} assigned to device with public key {public_key} not found");
-                return Err(GatewayError::NotFound(format!(
-                    "User assigned to device with public key {public_key} not found"
-                )));
-            }
-        };
-
-        Ok(user)
-    }
-
-    fn emit_event(&self, event: GrpcEvent) {
-        if self.grpc_event_tx.send(event).is_err() {
-            warn!("Failed to send gRPC event");
-        }
     }
 
     /// Connect to Gateway and handle its messages through gRPC.
