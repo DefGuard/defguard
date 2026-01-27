@@ -26,7 +26,6 @@ import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as AuthorizedWizardSetupWizardRouteImport } from './routes/_authorized/_wizard/setup-wizard'
-import { Route as AuthorizedWizardGatewayWizardRouteImport } from './routes/_authorized/_wizard/gateway-wizard'
 import { Route as AuthorizedWizardEdgeWizardRouteImport } from './routes/_authorized/_wizard/edge-wizard'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
@@ -135,12 +134,6 @@ const AuthorizedWizardSetupWizardRoute =
   AuthorizedWizardSetupWizardRouteImport.update({
     id: '/_wizard/setup-wizard',
     path: '/setup-wizard',
-    getParentRoute: () => AuthorizedRoute,
-  } as any)
-const AuthorizedWizardGatewayWizardRoute =
-  AuthorizedWizardGatewayWizardRouteImport.update({
-    id: '/_wizard/gateway-wizard',
-    path: '/gateway-wizard',
     getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardEdgeWizardRoute =
@@ -311,7 +304,6 @@ export interface FileRoutesByFullPath {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
-  '/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
   '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -353,7 +345,6 @@ export interface FileRoutesByTo {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
-  '/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
   '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -399,7 +390,6 @@ export interface FileRoutesById {
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/_authorized/_wizard/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
-  '/_authorized/_wizard/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
   '/_authorized/_wizard/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -444,7 +434,6 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/edge-wizard'
-    | '/gateway-wizard'
     | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -486,7 +475,6 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/edge-wizard'
-    | '/gateway-wizard'
     | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -531,7 +519,6 @@ export interface FileRouteTypes {
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
     | '/_authorized/_wizard/edge-wizard'
-    | '/_authorized/_wizard/gateway-wizard'
     | '/_authorized/_wizard/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -683,13 +670,6 @@ declare module '@tanstack/react-router' {
       path: '/setup-wizard'
       fullPath: '/setup-wizard'
       preLoaderRoute: typeof AuthorizedWizardSetupWizardRouteImport
-      parentRoute: typeof AuthorizedRoute
-    }
-    '/_authorized/_wizard/gateway-wizard': {
-      id: '/_authorized/_wizard/gateway-wizard'
-      path: '/gateway-wizard'
-      fullPath: '/gateway-wizard'
-      preLoaderRoute: typeof AuthorizedWizardGatewayWizardRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/edge-wizard': {
@@ -934,7 +914,6 @@ interface AuthorizedRouteChildren {
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardEdgeWizardRoute: typeof AuthorizedWizardEdgeWizardRoute
-  AuthorizedWizardGatewayWizardRoute: typeof AuthorizedWizardGatewayWizardRoute
   AuthorizedWizardSetupWizardRoute: typeof AuthorizedWizardSetupWizardRoute
 }
 
@@ -944,7 +923,6 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
   AuthorizedWizardEdgeWizardRoute: AuthorizedWizardEdgeWizardRoute,
-  AuthorizedWizardGatewayWizardRoute: AuthorizedWizardGatewayWizardRoute,
   AuthorizedWizardSetupWizardRoute: AuthorizedWizardSetupWizardRoute,
 }
 

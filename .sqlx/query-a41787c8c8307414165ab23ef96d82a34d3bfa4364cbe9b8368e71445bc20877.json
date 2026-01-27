@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM proxy WHERE address = $1 AND port = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "public_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "disconnected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_certificate",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "certificate_expiry",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "a41787c8c8307414165ab23ef96d82a34d3bfa4364cbe9b8368e71445bc20877"
+}

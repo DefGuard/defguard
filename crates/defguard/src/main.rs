@@ -25,10 +25,10 @@ use defguard_core::{
         license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
-    events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent, InternalEvent},
     grpc::{
         WorkerState,
-        gateway::{client_state::ClientMap, events::GatewayEvent, run_grpc_gateway_stream},
+        gateway::{events::GatewayEvent, run_grpc_gateway_stream},
         run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
@@ -41,7 +41,7 @@ use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
-use defguard_session_manager::run_session_manager;
+use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast,
@@ -108,7 +108,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
     let (internal_event_tx, internal_event_rx) = unbounded_channel::<InternalEvent>();
-    let (grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
+    let (session_manager_event_tx, session_manager_event_rx) =
+        unbounded_channel::<SessionManagerEvent>();
 
     // Activity log stream setup
     let (activity_log_messages_tx, activity_log_messages_rx) = broadcast::channel::<Bytes>(100);
@@ -122,7 +123,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let client_state = Arc::new(Mutex::new(ClientMap::new()));
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
@@ -194,10 +194,8 @@ async fn main() -> Result<(), anyhow::Error> {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
         res = run_grpc_gateway_stream(
             pool.clone(),
-            client_state,
             wireguard_tx.clone(),
             mail_tx.clone(),
-            grpc_event_tx,
             peer_stats_tx,
         ) => error!("Gateway gRPC stream returned early: {res:?}"),
         res = run_grpc_server(
@@ -238,9 +236,9 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_event_router(
             RouterReceiverSet::new(
                 api_event_rx,
-                grpc_event_rx,
                 bidi_event_rx,
-                internal_event_rx
+                internal_event_rx,
+                session_manager_event_rx
             ),
             event_logger_tx,
             wireguard_tx,
@@ -256,7 +254,8 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Activity log stream manager returned early: {res:?}"),
         res = run_session_manager(
             pool.clone(),
-            peer_stats_rx
+            peer_stats_rx,
+            session_manager_event_tx
         ) => error!("VPN client session manager returned early: {res:?}"),
     }
 

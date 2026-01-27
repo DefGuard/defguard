@@ -44,6 +44,7 @@ use handlers::{
         find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    proxy_setup::setup_proxy_tls_stream,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,

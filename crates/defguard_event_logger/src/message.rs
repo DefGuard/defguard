@@ -19,6 +19,7 @@ use defguard_core::{
         InternalEventContext,
     },
 };
+use defguard_session_manager::events::SessionManagerEventContext;
 
 /// Messages that can be sent to the event logger
 pub struct EventLoggerMessage {
@@ -58,7 +59,7 @@ impl EventContext {
     ) -> Self {
         let location = location.map(|location| location.name);
 
-        EventContext {
+        Self {
             timestamp: val.timestamp,
             user_id: val.user_id,
             username: val.username,
@@ -75,7 +76,7 @@ impl EventContext {
     ) -> Self {
         let location = location.map(|location| location.name);
 
-        EventContext {
+        Self {
             timestamp: val.timestamp,
             user_id: val.user_id,
             username: val.username,
@@ -92,12 +93,24 @@ impl EventContext {
     ) -> Self {
         let location = location.map(|location| location.name);
 
-        EventContext {
+        Self {
             timestamp: val.timestamp,
             user_id: val.user_id,
             username: val.username,
             location,
             ip: val.ip,
+            device: format!("{} (ID {})", val.device.name, val.device.id),
+        }
+    }
+
+    #[must_use]
+    pub fn from_session_manager_context(val: SessionManagerEventContext) -> Self {
+        Self {
+            timestamp: val.timestamp,
+            user_id: val.user.id,
+            username: val.user.username,
+            location: Some(val.location.name),
+            ip: val.public_ip,
             device: format!("{} (ID {})", val.device.name, val.device.id),
         }
     }

@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    net::IpAddr,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{collections::HashMap, net::IpAddr, time::Duration};
 
 use chrono::DateTime;
 use defguard_common::{
@@ -36,10 +31,9 @@ use tonic::{Code, Status};
 use crate::{
     enterprise::{firewall::FirewallError, is_enterprise_license_active},
     events::GrpcEvent,
-    grpc::gateway::{client_state::ClientMap, events::GatewayEvent, handler::GatewayHandler},
+    grpc::gateway::{events::GatewayEvent, handler::GatewayHandler},
 };
 
-pub mod client_state;
 pub mod events;
 pub(crate) mod handler;
 // #[cfg(test)]
@@ -67,32 +61,6 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
         send_wireguard_event(event, wg_tx);
     }
 }
-
-// Helper used to convert peer stats coming from gRPC client
-// into an internal representation
-// fn protos_into_internal_stats(
-//     proto_stats: PeerStats,
-//     location_id: Id,
-//     device_id: Id,
-// ) -> WireguardPeerStats {
-//     let endpoint = match proto_stats.endpoint {
-//         endpoint if endpoint.is_empty() => None,
-//         _ => Some(proto_stats.endpoint),
-//     };
-//     WireguardPeerStats {
-//         id: NoId,
-//         network: location_id,
-//         endpoint,
-//         device_id,
-//         collected_at: Utc::now().naive_utc(),
-//         upload: proto_stats.upload as i64,
-//         download: proto_stats.download as i64,
-//         latest_handshake: DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
-//             .unwrap_or_default()
-//             .naive_utc(),
-//         allowed_ips: Some(proto_stats.allowed_ips),
-//     }
-// }
 
 /// Helper used to convert peer stats coming from gRPC client
 /// into an internal representation
@@ -254,10 +222,8 @@ const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 /// Bi-directional gRPC stream for communication with Defguard Gateway.
 pub async fn run_grpc_gateway_stream(
     pool: PgPool,
-    client_state: Arc<Mutex<ClientMap>>,
     events_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    grpc_event_tx: UnboundedSender<GrpcEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
     let mut abort_handles = HashMap::new();
@@ -268,10 +234,8 @@ pub async fn run_grpc_gateway_stream(
         let mut gateway_handler = GatewayHandler::new(
             gateway,
             pool.clone(),
-            Arc::clone(&client_state),
             events_tx.clone(),
             mail_tx.clone(),
-            grpc_event_tx.clone(),
             peer_stats_tx.clone(),
         )?;
         let abort_handle = tasks.spawn(async move {
