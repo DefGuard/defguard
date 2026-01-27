@@ -77,7 +77,7 @@ impl VpnClientSession<Id> {
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
 	            mfa_mode \"mfa_mode: LocationMfaMode\", state \"state: VpnClientSessionState\" \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
             location_id,
             device_id
         )
