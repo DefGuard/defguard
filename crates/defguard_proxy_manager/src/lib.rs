@@ -192,6 +192,7 @@ impl ProxyManager {
                 // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
                 // This should be removed when we do a proper import of old proxies
                 Arc::new(Mutex::new(None)),
+                None,
             );
             proxies.push(proxy);
         }
@@ -339,7 +340,7 @@ impl ProxyServer {
             pool,
             url,
             tx,
-            router,
+            remote_mfa_responses,
             sessions,
             shutdown_signal,
             Some(proxy_id),
@@ -423,7 +424,7 @@ impl ProxyServer {
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
 
-            if let (Some(proxy_id)) = self.proxy_id {
+            if let Some(proxy_id) = self.proxy_id {
                 if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
                     proxy.version = Some(version.to_string());
                     proxy.connected_at = Some(Utc::now().naive_utc());
