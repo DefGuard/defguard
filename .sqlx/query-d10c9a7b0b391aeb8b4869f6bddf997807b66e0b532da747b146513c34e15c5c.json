@@ -45,26 +45,14 @@
       },
       {
         "ordinal": 8,
-        "name": "name",
+        "name": "version",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": ["Int8"]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      true,
-      true,
-      true,
-      false,
-      true,
-      false
-    ]
+    "nullable": [false, false, false, true, true, true, false, true, true]
   },
   "hash": "d10c9a7b0b391aeb8b4869f6bddf997807b66e0b532da747b146513c34e15c5c"
 }

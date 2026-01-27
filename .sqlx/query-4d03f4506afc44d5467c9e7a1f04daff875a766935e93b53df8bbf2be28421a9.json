@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\" FROM \"proxy\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\",\"version\",\"has_certificate\",\"certificate_expiry\" FROM \"proxy\"",
   "describe": {
     "columns": [
       {
@@ -40,19 +40,22 @@
       },
       {
         "ordinal": 7,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "has_certificate",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -62,9 +65,10 @@
       false,
       true,
       true,
+      true,
       false,
       true
     ]
   },
-  "hash": "ee66d9ce46f283c78402efcd27385327ebeecbefa97c0af2273f7147dab098be"
+  "hash": "4d03f4506afc44d5467c9e7a1f04daff875a766935e93b53df8bbf2be28421a9"
 }

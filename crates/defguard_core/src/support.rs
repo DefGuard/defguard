@@ -52,6 +52,39 @@ pub async fn dump_config(db: &PgPool) -> Value {
     };
     let users_diagnostic_data = unwrap_json(User::all_without_sensitive_data(db).await);
 
+    let proxies = match defguard_common::db::models::proxy::Proxy::<Id>::all(db).await {
+        Ok(proxies) => json!(
+            proxies
+                .iter()
+                .map(|p| json!({
+                    "id": p.id,
+                    "name": p.name,
+                    "version": p.version.as_deref().unwrap_or("unknown"),
+                    "address": p.address,
+                    "connected_at": p.connected_at
+                }))
+                .collect::<Vec<_>>()
+        ),
+        Err(err) => json!({"error": err.to_string()}),
+    };
+
+    let gateways = match defguard_common::db::models::gateway::Gateway::<Id>::all(db).await {
+        Ok(gateways) => json!(
+            gateways
+                .iter()
+                .map(|g| json!({
+                    "id": g.id,
+                    "network_id": g.network_id,
+                    "version": g.version.as_deref().unwrap_or("unknown"),
+                    "url": g.url,
+                    "hostname": g.hostname,
+                    "connected_at": g.connected_at,
+                }))
+                .collect::<Vec<_>>()
+        ),
+        Err(err) => json!({"error": err.to_string()}),
+    };
+
     json!({
         "settings": settings,
         "networks": networks,
@@ -59,5 +92,7 @@ pub async fn dump_config(db: &PgPool) -> Value {
         "devices": devices,
         "users": users_diagnostic_data,
         "config": server_config(),
+        "proxies": proxies,
+        "gateways": gateways,
     })
 }
