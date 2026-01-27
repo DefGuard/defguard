@@ -2,57 +2,57 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { SetupStepId } from './steps/types';
-import { EdgeSetupStep, type EdgeSetupStepValue } from './types';
+import { GatewaySetupStep, type GatewaySetupStepValue } from './types';
 
-type EdgeAdaptationState = {
+type GatewayAdaptationState = {
   isProcessing: boolean;
   isComplete: boolean;
   currentStep: SetupStepId | null;
   errorMessage: string | null;
-  proxyVersion: string | null;
-  proxyLogs: string[];
+  gatewayVersion: string | null;
+  gatewayLogs: string[];
 };
 
 type StoreValues = {
-  activeStep: EdgeSetupStepValue;
+  activeStep: GatewaySetupStepValue;
   showWelcome: boolean;
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
-  public_domain: string;
-  edgeAdaptationState: EdgeAdaptationState;
+  network_id: number | null;
+  gatewayAdaptationState: GatewayAdaptationState;
 };
 
 type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
-  setActiveStep: (step: EdgeSetupStepValue) => void;
+  setActiveStep: (step: GatewaySetupStepValue) => void;
   setShowWelcome: (show: boolean) => void;
   updateValues: (values: Partial<StoreValues>) => void;
-  resetEdgeAdaptationState: () => void;
-  setEdgeAdaptationState: (state: EdgeAdaptationState) => void;
+  resetGatewayAdaptationState: () => void;
+  setGatewayAdaptationState: (state: GatewayAdaptationState) => void;
 };
 
-const edgeAdaptationStateDefaults: EdgeAdaptationState = {
+const gatewayAdaptationStateDefaults: GatewayAdaptationState = {
   isProcessing: false,
   isComplete: false,
   currentStep: null,
   errorMessage: null,
-  proxyVersion: null,
-  proxyLogs: [],
+  gatewayVersion: null,
+  gatewayLogs: [],
 };
 
 const defaults: StoreValues = {
-  activeStep: EdgeSetupStep.EdgeComponent,
+  activeStep: GatewaySetupStep.GatewayComponent,
   showWelcome: true,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
-  public_domain: '',
-  edgeAdaptationState: edgeAdaptationStateDefaults,
+  grpc_port: 50066,
+  network_id: null,
+  gatewayAdaptationState: gatewayAdaptationStateDefaults,
 };
 
-export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
+export const useGatewayWizardStore = create<StoreMethods & StoreValues>()(
   persist(
     (set) => ({
       ...defaults,
@@ -66,17 +66,17 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
       setActiveStep: (step) => set({ activeStep: step }),
       setShowWelcome: (show) => set({ showWelcome: show }),
       updateValues: (values) => set(values),
-      resetEdgeAdaptationState: () =>
+      resetGatewayAdaptationState: () =>
         set(() => ({
-          edgeAdaptationState: { ...edgeAdaptationStateDefaults },
+          gatewayAdaptationState: { ...gatewayAdaptationStateDefaults },
         })),
-      setEdgeAdaptationState: (state: Partial<EdgeAdaptationState>) =>
+      setGatewayAdaptationState: (state: Partial<GatewayAdaptationState>) =>
         set((s) => ({
-          edgeAdaptationState: { ...s.edgeAdaptationState, ...state },
+          gatewayAdaptationState: { ...s.gatewayAdaptationState, ...state },
         })),
     }),
     {
-      name: 'edge-wizard-store',
+      name: 'gateway-wizard-store',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) =>
         omit(state, [

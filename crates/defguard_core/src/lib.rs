@@ -37,13 +37,13 @@ use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
     auth::disable_user_mfa,
+    component_setup::setup_proxy_tls_stream,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
         find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
-    proxy_setup::setup_proxy_tls_stream,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
@@ -115,6 +115,7 @@ use crate::{
             webauthn_start,
         },
         ca::create_ca,
+        component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
         group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
@@ -146,11 +147,10 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_gateway, add_user_devices, change_gateway, create_network,
-            create_network_token, delete_device, delete_network, devices_stats, download_config,
-            gateway_status, get_device, import_network, list_devices, list_networks,
-            list_user_devices, modify_device, modify_network, network_details, network_stats,
-            remove_gateway,
+            add_device, add_user_devices, change_gateway, create_network, create_network_token,
+            delete_device, delete_network, devices_stats, download_config, gateway_status,
+            get_device, import_network, list_devices, list_networks, list_user_devices,
+            modify_device, modify_network, network_details, network_stats, remove_gateway,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -501,8 +501,12 @@ pub fn build_webapp(
                     .delete(delete_network)
                     .get(network_details),
             )
+            // Gateway adding (uses SSE)
+            .route(
+                "/network/{network_id}/gateways/setup",
+                get(setup_gateway_tls_stream),
+            )
             .route("/network/{network_id}/gateways", get(gateway_status))
-            .route("/network/{network_id}/gateways", post(add_gateway))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
                 put(change_gateway).delete(remove_gateway),

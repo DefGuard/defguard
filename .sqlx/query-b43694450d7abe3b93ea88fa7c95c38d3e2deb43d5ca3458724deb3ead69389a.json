@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\" FROM \"proxy\"",
+  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\",\"version\",\"name\" FROM \"gateway\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -10,59 +10,67 @@
       },
       {
         "ordinal": 1,
-        "name": "name",
-        "type_info": "Text"
+        "name": "network_id",
+        "type_info": "Int8"
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "url",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "port",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 4,
-        "name": "public_address",
+        "name": "hostname",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "has_certificate",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
       false,
       false,
-      false,
+      true,
+      true,
+      true,
       false,
       true,
       true,
-      false,
-      true
+      false
     ]
   },
-  "hash": "b48534fac2ea138d617f3653168c692e787fd1187d3dd2b8c128134c3d83cf92"
+  "hash": "b43694450d7abe3b93ea88fa7c95c38d3e2deb43d5ca3458724deb3ead69389a"
 }

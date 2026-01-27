@@ -598,27 +598,6 @@ pub(crate) struct GatewayData {
     url: String,
 }
 
-/// Add gateway (POST).
-pub(crate) async fn add_gateway(
-    Path(network_id): Path<Id>,
-    _role: AdminRole,
-    State(appstate): State<AppState>,
-    Json(data): Json<GatewayData>,
-) -> ApiResult {
-    debug!("Adding gateway in network {network_id}");
-
-    let gateway = Gateway::new(network_id, data.url)
-        .save(&appstate.pool)
-        .await?;
-
-    info!("Added gateway in network {network_id}");
-
-    Ok(ApiResponse {
-        json: json!(GatewayInfo::from(gateway)),
-        status: StatusCode::CREATED,
-    })
-}
-
 /// Change gateway (PUT).
 pub(crate) async fn change_gateway(
     Path((network_id, gateway_id)): Path<(Id, Id)>,

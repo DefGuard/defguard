@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { useSSEController } from '../../../hooks/useSSEController';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
@@ -11,7 +12,6 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
-import { useSSEController } from './useSSEController';
 
 export const SetupEdgeAdaptationStep = () => {
   const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
@@ -26,7 +26,7 @@ export const SetupEdgeAdaptationStep = () => {
         currentStep: event.step,
         isComplete: event.step === 'Done',
         isProcessing: event.step !== 'Done' && !event.error,
-        proxyVersion: event.proxy_version ?? null,
+        proxyVersion: event.version ?? null,
         errorMessage: event.error
           ? event.message || m.edge_setup_adaptation_error_default()
           : null,
@@ -127,7 +127,7 @@ export const SetupEdgeAdaptationStep = () => {
     [edgeAdaptationState.errorMessage, edgeAdaptationState.currentStep],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mount only
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
   useEffect(() => {
     resetEdgeAdaptationState();
     sse.start();

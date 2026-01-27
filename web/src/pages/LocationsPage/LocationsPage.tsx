@@ -4,7 +4,6 @@ import { LocationsTable } from './components/LocationsTable';
 import './style.scss';
 import { useEffect } from 'react';
 import api from '../../shared/api/api';
-import { GatewaySetupModal } from '../../shared/components/modals/GatewaySetupModal/GatewaySetupModal';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -39,7 +38,6 @@ export const LocationsPage = () => {
       <Page title="Locations" id="locations-page">
         <LocationsTable locations={locations} />
       </Page>
-      <GatewaySetupModal />
       <AddLocationModal />
     </>
   );

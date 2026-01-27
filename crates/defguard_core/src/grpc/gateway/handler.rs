@@ -4,7 +4,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use defguard_certs::{Csr, der_to_pem};
+use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     db::{
@@ -18,8 +18,7 @@ use defguard_common::{
 };
 use defguard_mail::Mail;
 use defguard_proto::gateway::{
-    CoreResponse, DerPayload, InitialSetupInfo, PeerStats, core_request, core_response,
-    gateway_client, gateway_setup_client,
+    CoreResponse, PeerStats, core_request, core_response, gateway_client,
 };
 use defguard_version::client::ClientVersionInterceptor;
 use reqwest::Url;
@@ -46,6 +45,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Scheme {
+    #[allow(dead_code)]
     Http,
     Https,
 }
@@ -116,10 +116,6 @@ impl GatewayHandler {
             mail_tx,
             peer_stats_tx,
         })
-    }
-
-    pub const fn has_certificate(&self) -> bool {
-        self.gateway.has_certificate
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, GatewayError> {
@@ -278,94 +274,6 @@ impl GatewayHandler {
         Ok(device)
     }
 
-    pub(crate) async fn handle_setup(&mut self) -> Result<(), GatewayError> {
-        debug!("Handling initial setup for Gateway {}", self.gateway);
-        let endpoint = self.endpoint(Scheme::Http)?;
-        let uri = endpoint.uri().to_string();
-
-        let hostname = self
-            .url
-            .host_str()
-            .ok_or_else(|| {
-                error!("Failed to get hostname from Gateway URL {}", self.url);
-                GatewayError::EndpointError(format!(
-                    "Failed to get hostname from Gateway URL {}",
-                    self.url
-                ))
-            })?
-            .to_string();
-
-        #[cfg(not(test))]
-        let channel = endpoint.connect_lazy();
-        #[cfg(test)]
-        let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
-            |_: tonic::transport::Uri| async {
-                Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                    tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
-                ))
-            },
-        ));
-
-        debug!("Connecting to Gateway {uri}");
-        let interceptor = ClientVersionInterceptor::new(
-            Version::parse(VERSION).expect("failed to parse self version"),
-        );
-        let mut client =
-            gateway_setup_client::GatewaySetupClient::with_interceptor(channel, interceptor);
-
-        let request = InitialSetupInfo {
-            cert_hostname: hostname,
-        };
-
-        let response = client.start(request).await?;
-        let response = response.into_inner();
-
-        let csr = Csr::from_der(&response.der_data)?;
-
-        let settings = Settings::get_current_settings();
-
-        let ca_cert_der = settings.ca_cert_der.ok_or_else(|| {
-            GatewayError::ConfigurationError(
-                "CA certificate DER not found in settings for Gateway setup".to_string(),
-            )
-        })?;
-        let ca_key_pair = settings.ca_key_der.ok_or_else(|| {
-            GatewayError::ConfigurationError(
-                "CA key pairs DER not found in settings for Gateway setup".to_string(),
-            )
-        })?;
-
-        let ca = defguard_certs::CertificateAuthority::from_cert_der_key_pair(
-            &ca_cert_der,
-            &ca_key_pair,
-        )?;
-
-        match ca.sign_csr(&csr) {
-            Ok(cert) => {
-                let req = DerPayload {
-                    der_data: cert.der().to_vec(),
-                };
-
-                client.send_cert(req).await?;
-
-                self.gateway.has_certificate = true;
-                self.gateway.certificate_expiry =
-                    Some(defguard_certs::get_certificate_expiry(cert.der())?);
-                self.gateway.save(&self.pool).await?;
-            }
-            Err(err) => {
-                error!("Failed to sign CSR: {err}");
-            }
-        }
-
-        debug!(
-            "Saving information about issued certificate to the database for Gateway {}",
-            self.gateway
-        );
-
-        Ok(())
-    }
-
     /// Connect to Gateway and handle its messages through gRPC.
     pub(crate) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
         let endpoint = self.endpoint(Scheme::Https)?;
@@ -397,6 +305,14 @@ impl GatewayHandler {
                 }
             };
             info!("Connected to Defguard Gateway {uri}");
+
+            let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
+            let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
+
+            if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
+                gateway.version = Some(version.to_string());
+                gateway.save(&self.pool).await?;
+            }
 
             let mut resp_stream = response.into_inner();
             let mut config_sent = false;

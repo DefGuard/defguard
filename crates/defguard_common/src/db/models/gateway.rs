@@ -17,6 +17,8 @@ pub struct Gateway<I = NoId> {
     pub disconnected_at: Option<NaiveDateTime>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+    pub version: Option<String>,
+    pub name: String,
 }
 
 impl<I> Gateway<I> {
@@ -33,7 +35,7 @@ impl<I> Gateway<I> {
 
 impl Gateway {
     #[must_use]
-    pub fn new<S: Into<String>>(network_id: Id, url: S) -> Self {
+    pub fn new<S: Into<String>>(network_id: Id, url: S, name: S) -> Self {
         Self {
             id: NoId,
             network_id,
@@ -43,6 +45,8 @@ impl Gateway {
             disconnected_at: None,
             has_certificate: false,
             certificate_expiry: None,
+            version: None,
+            name: name.into(),
         }
     }
 }
@@ -117,6 +121,18 @@ impl Gateway<Id> {
         .await?;
 
         Ok(())
+    }
+
+    // TODO: Split the URL into address and port fields just like in proxy
+    pub async fn find_by_url<'e, E>(executor: E, url: &str) -> Result<Option<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let record = query_as!(Self, "SELECT * FROM gateway WHERE url = $1", url)
+            .fetch_optional(executor)
+            .await?;
+
+        Ok(record)
     }
 }
 

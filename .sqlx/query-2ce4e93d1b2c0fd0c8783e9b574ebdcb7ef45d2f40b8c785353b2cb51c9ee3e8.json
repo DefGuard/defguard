@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\" FROM \"gateway\"",
+  "query": "SELECT id, \"name\",\"address\",\"port\",\"public_address\",\"connected_at\",\"disconnected_at\",\"version\",\"has_certificate\",\"certificate_expiry\" FROM \"proxy\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -10,44 +10,58 @@
       },
       {
         "ordinal": 1,
-        "name": "network_id",
-        "type_info": "Int8"
+        "name": "name",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "url",
+        "name": "address",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "hostname",
-        "type_info": "Text"
+        "name": "port",
+        "type_info": "Int4"
       },
       {
         "ordinal": 4,
+        "name": "public_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "has_certificate",
         "type_info": "Bool"
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
+      false,
+      false,
       false,
       false,
       false,
@@ -58,5 +72,5 @@
       true
     ]
   },
-  "hash": "a0818064c80739debc8a8788dfa8c23bff66bc40eafba7400a7d7db49ab36e2e"
+  "hash": "2ce4e93d1b2c0fd0c8783e9b574ebdcb7ef45d2f40b8c785353b2cb51c9ee3e8"
 }

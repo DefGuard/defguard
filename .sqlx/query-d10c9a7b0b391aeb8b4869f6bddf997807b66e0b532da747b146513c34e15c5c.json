@@ -42,6 +42,16 @@
         "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "version",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -55,6 +65,8 @@
       false,
       true,
       true,
+      true,
+      false,
       true,
       false,
       true

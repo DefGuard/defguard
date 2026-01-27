@@ -7,19 +7,19 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import addMoreImage from '../assets/add_more.svg';
-import { useEdgeWizardStore } from '../useEdgeWizardStore';
+import { useGatewayWizardStore } from '../useGatewayWizardStore';
 
 export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    useEdgeWizardStore.getState().reset();
+    useGatewayWizardStore.getState().reset();
   };
 
   const handleFinish = () => {
-    navigate({ to: '/vpn-overview', replace: true }).then(() => {
+    navigate({ to: '/locations', replace: true }).then(() => {
       setTimeout(() => {
-        useEdgeWizardStore.getState().reset();
+        useGatewayWizardStore.getState().reset();
       }, 100);
     });
   };
@@ -31,18 +31,18 @@ export const SetupConfirmationStep = () => {
       <p>{m.edge_setup_confirmation_subtitle()}</p>
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
-        title={m.edge_setup_add_multiple_edge_components_title()}
-        subtitle={m.edge_setup_add_multiple_edge_components_subtitle()}
+        title={m.gateway_setup_add_multiple_gateways_title()}
+        subtitle={m.gateway_setup_add_multiple_gateways_subtitle()}
         imageSrc={addMoreImage}
       />
       <ModalControls
         cancelProps={{
-          text: m.edge_setup_controls_add_another_edge_component(),
+          text: m.gateway_setup_controls_add_another_gateway(),
           onClick: handleBack,
           variant: 'outlined',
         }}
         submitProps={{
-          text: m.edge_setup_controls_go_to_edge_components(),
+          text: m.gateway_setup_controls_go_to_locations(),
           onClick: handleFinish,
         }}
       />

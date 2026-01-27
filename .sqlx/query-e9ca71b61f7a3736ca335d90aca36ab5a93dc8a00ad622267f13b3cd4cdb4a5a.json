@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM proxy WHERE address = $1 AND port = $2",
+  "query": "SELECT * FROM gateway WHERE url = $1",
   "describe": {
     "columns": [
       {
@@ -10,43 +10,43 @@
       },
       {
         "ordinal": 1,
-        "name": "name",
-        "type_info": "Text"
+        "name": "network_id",
+        "type_info": "Int8"
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "url",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "port",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 4,
-        "name": "public_address",
+        "name": "hostname",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "has_certificate",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "name",
+        "type_info": "Text"
       },
       {
         "ordinal": 9,
@@ -56,22 +56,21 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Int4"
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
       false,
-      false,
-      false,
       true,
       true,
+      true,
       false,
       true,
+      false,
       true
     ]
   },
-  "hash": "a41787c8c8307414165ab23ef96d82a34d3bfa4364cbe9b8368e71445bc20877"
+  "hash": "e9ca71b61f7a3736ca335d90aca36ab5a93dc8a00ad622267f13b3cd4cdb4a5a"
 }

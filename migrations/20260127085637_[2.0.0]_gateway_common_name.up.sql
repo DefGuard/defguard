@@ -1,0 +1,1 @@
+ALTER TABLE gateway ADD COLUMN name TEXT NOT NULL;

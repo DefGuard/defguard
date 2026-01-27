@@ -30,7 +30,10 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     events::BidiStreamEvent,
-    grpc::{gateway::events::GatewayEvent, proxy::client_mfa::ClientMfaServer},
+    grpc::{
+        gateway::events::GatewayEvent,
+        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
+    },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 use defguard_mail::Mail;
@@ -45,7 +48,7 @@ use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlo
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
-use sqlx::PgPool;
+use sqlx::{PgPool, types::chrono::Utc};
 use thiserror::Error;
 use tokio::{
     select,
@@ -53,6 +56,7 @@ use tokio::{
         Mutex,
         broadcast::Sender,
         mpsc::{self, Receiver, UnboundedSender},
+        oneshot,
     },
     task::JoinSet,
     time::sleep,
@@ -119,60 +123,6 @@ pub enum ProxyError {
     ConnectionTimeout(String),
 }
 
-/// Maintains routing state for proxy-specific responses by associating
-/// correlation tokens with the proxy senders that should receive them.
-#[derive(Default)]
-struct ProxyRouter {
-    response_map: HashMap<String, Vec<UnboundedSender<CoreResponse>>>,
-}
-
-impl ProxyRouter {
-    /// Records the proxy sender associated with a request that expects a routed response.
-    pub(crate) fn register_request(
-        &mut self,
-        request: &CoreRequest,
-        sender: &UnboundedSender<CoreResponse>,
-    ) {
-        match &request.payload {
-            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
-            // so it can send the preshared key.
-            // Corresponds to the `core_response::Payload::ClientMfaFinish(response)` response.
-            // https://github.com/DefGuard/defguard/issues/1700
-            Some(core_request::Payload::ClientMfaTokenValidation(request)) => {
-                self.response_map
-                    .insert(request.token.clone(), vec![sender.clone()]);
-            }
-            Some(core_request::Payload::ClientMfaFinish(request)) => {
-                if let Some(senders) = self.response_map.get_mut(&request.token) {
-                    senders.push(sender.clone());
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Determines whether the given `CoreResponse` must be routed to a specific proxy instance.
-    pub(crate) fn route_response(
-        &mut self,
-        response: &CoreResponse,
-    ) -> Option<Vec<UnboundedSender<CoreResponse>>> {
-        #[allow(clippy::single_match)]
-        match &response.payload {
-            // Mobile-assisted MFA completion responses must go to the proxy that owns the WebSocket
-            // so it can send the preshared key.
-            // Corresponds to the `core_request::Payload::ClientMfaTokenValidation(request)` request.
-            // https://github.com/DefGuard/defguard/issues/1700
-            Some(core_response::Payload::ClientMfaFinish(response)) => {
-                if let Some(ref token) = response.token {
-                    return self.response_map.remove(token);
-                }
-            }
-            _ => {}
-        }
-        None
-    }
-}
-
 /// Coordinates communication between the Core and multiple proxy instances.
 ///
 /// Responsibilities include:
@@ -183,7 +133,6 @@ pub struct ProxyManager {
     pool: PgPool,
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    router: Arc<RwLock<ProxyRouter>>,
     proxy_control: Receiver<ProxyControlMessage>,
 }
 
@@ -198,7 +147,6 @@ impl ProxyManager {
             pool,
             tx,
             incompatible_components,
-            router: Arc::default(),
             proxy_control: proxy_control_rx,
         }
     }
@@ -209,6 +157,8 @@ impl ProxyManager {
     /// such as routing state and compatibility tracking.
     pub async fn run(mut self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
+        let remote_mfa_responses = Arc::default();
+        let sessions = Arc::default();
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
         let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
@@ -221,7 +171,8 @@ impl ProxyManager {
                     proxy,
                     self.pool.clone(),
                     &self.tx,
-                    Arc::clone(&self.router),
+                    Arc::clone(&remote_mfa_responses),
+                    Arc::clone(&sessions),
                     Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
@@ -232,15 +183,16 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-
             let proxy = ProxyServer::new(
                 self.pool.clone(),
                 url,
                 &self.tx,
-                Arc::clone(&self.router),
+                Arc::clone(&remote_mfa_responses),
+                Arc::clone(&sessions),
                 // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
                 // This should be removed when we do a proper import of old proxies
                 Arc::new(Mutex::new(None)),
+                None,
             );
             proxies.push(proxy);
         }
@@ -275,7 +227,8 @@ impl ProxyManager {
                                     &proxy_model,
                                     self.pool.clone(),
                                     &self.tx,
-                                    Arc::clone(&self.router),
+                                    Arc::clone(&remote_mfa_responses),
+                                    Arc::clone(&sessions),
                                     Arc::new(Mutex::new(Some(shutdown_rx))),
                                 ) {
                                     Ok(proxy) => {
@@ -345,11 +298,10 @@ struct ProxyServer {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
-    /// Router shared between proxies and the proxy manager
-    router: Arc<RwLock<ProxyRouter>>,
     /// Proxy server gRPC URL
     url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+    proxy_id: Option<Id>,
 }
 
 impl ProxyServer {
@@ -357,18 +309,20 @@ impl ProxyServer {
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
-        router: Arc<RwLock<ProxyRouter>>,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        proxy_id: Option<Id>,
     ) -> Self {
         // Instantiate gRPC servers.
-        let services = ProxyServices::new(&pool, tx);
+        let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
 
         Self {
             pool,
             services,
-            router,
             url,
             shutdown_signal,
+            proxy_id,
         }
     }
 
@@ -376,11 +330,21 @@ impl ProxyServer {
         proxy: &Proxy<Id>,
         pool: PgPool,
         tx: &ProxyTxSet,
-        router: Arc<RwLock<ProxyRouter>>,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
-        Ok(Self::new(pool, url, tx, router, shutdown_signal))
+        let proxy_id = proxy.id;
+        Ok(Self::new(
+            pool,
+            url,
+            tx,
+            remote_mfa_responses,
+            sessions,
+            shutdown_signal,
+            Some(proxy_id),
+        ))
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -459,6 +423,21 @@ impl ProxyServer {
             // Check proxy version and continue if it's not supported.
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
+
+            if let Some(proxy_id) = self.proxy_id {
+                if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
+                    proxy.version = Some(version.to_string());
+                    proxy.connected_at = Some(Utc::now().naive_utc());
+                    proxy.save(&self.pool).await?;
+                } else {
+                    warn!("Couldn't find proxy by id, URL: {} ", self.url);
+                }
+            } else {
+                warn!(
+                    "Couldn't obtain proxy id, check if proxy exists in database. URL: {}",
+                    self.url
+                );
+            }
 
             let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
@@ -545,10 +524,6 @@ impl ProxyServer {
                 }
                 Ok(Some(received)) => {
                     debug!("Received message from proxy; ID={}", received.id);
-                    self.router
-                        .write()
-                        .unwrap()
-                        .register_request(&received, &tx);
                     let payload = match received.payload {
                         // rpc CodeMfaSetupStart return (CodeMfaSetupStartResponse)
                         Some(core_request::Payload::CodeMfaSetupStart(request)) => {
@@ -734,6 +709,21 @@ impl ProxyServer {
                                 }
                                 Err(err) => {
                                     error!("client MFA start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
+                        Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
+                            match self
+                                .services
+                                .client_mfa
+                                .await_remote_mfa_login(request, tx.clone(), received.id)
+                                .await
+                            {
+                                Ok(()) => None,
+                                Err(err) => {
+                                    error!("Client remote MFA finish error: {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -962,15 +952,11 @@ impl ProxyServer {
                         None => None,
                     };
 
-                    let req = CoreResponse {
-                        id: received.id,
-                        payload,
-                    };
-                    if let Some(txs) = self.router.write().unwrap().route_response(&req) {
-                        for tx in txs {
-                            let _ = tx.send(req.clone());
-                        }
-                    } else {
+                    if let Some(payload) = payload {
+                        let req = CoreResponse {
+                            id: received.id,
+                            payload: Some(payload),
+                        };
                         let _ = tx.send(req);
                     }
                 }
@@ -1001,7 +987,12 @@ struct ProxyServices {
 }
 
 impl ProxyServices {
-    pub fn new(pool: &PgPool, tx: &ProxyTxSet) -> Self {
+    pub fn new(
+        pool: &PgPool,
+        tx: &ProxyTxSet,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
+    ) -> Self {
         let enrollment = EnrollmentServer::new(
             pool.clone(),
             tx.wireguard.clone(),
@@ -1015,6 +1006,8 @@ impl ProxyServices {
             tx.mail.clone(),
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
+            remote_mfa_responses,
+            sessions,
         );
         let polling = PollingServer::new(pool.clone());
 

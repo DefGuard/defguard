@@ -42,7 +42,13 @@ impl ClientMfaServer {
         let pubkey = Self::parse_token(&token)?;
 
         // fetch login session
-        let Some(session) = self.sessions.get(&pubkey).cloned() else {
+        let Some(session) = self
+            .sessions
+            .read()
+            .expect("Failed to read-lock ClientMfaServer::sessions")
+            .get(&pubkey)
+            .cloned()
+        else {
             debug!("Client login session not found");
             return Err(Status::invalid_argument("login session not found"));
         };
@@ -62,7 +68,10 @@ impl ClientMfaServer {
 
         if method != MfaMethod::Oidc {
             debug!("Invalid MFA method for OIDC authentication: {method:?}");
-            self.sessions.remove(&pubkey);
+            self.sessions
+                .write()
+                .expect("Failed to write-lock ClientMfaServer::sessions")
+                .remove(&pubkey);
             return Err(Status::invalid_argument("invalid MFA method"));
         }
 
@@ -81,7 +90,10 @@ impl ClientMfaServer {
         }) {
             Ok(url) => url,
             Err(status) => {
-                self.sessions.remove(&pubkey);
+                self.sessions
+                    .write()
+                    .expect("Failed to write-lock ClientMfaServer::sessions")
+                    .remove(&pubkey);
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -102,7 +114,10 @@ impl ClientMfaServer {
                 // if thats not our user, prevent login
                 if claims_user.id != user.id {
                     info!("User {claims_user} tried to use OIDC MFA for another user: {user}");
-                    self.sessions.remove(&pubkey);
+                    self.sessions
+                        .write()
+                        .expect("Failed to write-lock ClientMfaServer::sessions")
+                        .remove(&pubkey);
                     self.emit_event(BidiStreamEvent {
                         context,
                         event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -123,7 +138,10 @@ impl ClientMfaServer {
             }
             Err(err) => {
                 info!("Failed to verify OIDC code: {err}");
-                self.sessions.remove(&pubkey);
+                self.sessions
+                    .write()
+                    .expect("Failed to write-lock ClientMfaServer::sessions")
+                    .remove(&pubkey);
                 self.emit_event(BidiStreamEvent {
                     context,
                     event: BidiStreamEventType::DesktopClientMfa(Box::new(
@@ -139,17 +157,20 @@ impl ClientMfaServer {
             }
         }
 
-        self.sessions.insert(
-            pubkey.clone(),
-            ClientLoginSession {
-                method,
-                device: device.clone(),
-                location: location.clone(),
-                user: user.clone(),
-                openid_auth_completed: true,
-                biometric_challenge: None,
-            },
-        );
+        self.sessions
+            .write()
+            .expect("Failed to write-lock ClientMfaServer::sessions")
+            .insert(
+                pubkey.clone(),
+                ClientLoginSession {
+                    method,
+                    device: device.clone(),
+                    location: location.clone(),
+                    user: user.clone(),
+                    openid_auth_completed: true,
+                    biometric_challenge: None,
+                },
+            );
 
         Ok(())
     }

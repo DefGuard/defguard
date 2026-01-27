@@ -28,6 +28,7 @@ import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
+import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 
 type Props = {
   locations: NetworkLocation[];
@@ -201,10 +202,9 @@ export const LocationsTable = ({ locations }: Props) => {
                         icon: 'network-settings',
                         text: 'Gateway setup',
                         onClick: async () => {
-                          const { data } = await api.location.getGatewayToken(row.id);
-                          openModal(ModalName.GatewaySetup, {
-                            data: data,
-                            networkId: row.id,
+                          useGatewayWizardStore.getState().start({ network_id: row.id });
+                          navigate({
+                            to: '/gateway-wizard',
                           });
                         },
                       },
