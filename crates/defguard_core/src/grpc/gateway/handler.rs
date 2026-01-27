@@ -348,19 +348,9 @@ impl GatewayHandler {
 
                 client.send_cert(req).await?;
 
-                let expiry = defguard_certs::get_certificate_expiry(&cert)?;
-
                 self.gateway.has_certificate = true;
-                self.gateway.certificate_expiry = Some(
-                    chrono::DateTime::from_timestamp(expiry.unix_timestamp(), 0)
-                        .ok_or_else(|| {
-                            GatewayError::ConversionError(format!(
-                                "Failed to convert certificate expiry timestamp {} to DateTime",
-                                expiry.unix_timestamp()
-                            ))
-                        })?
-                        .naive_utc(),
-                );
+                self.gateway.certificate_expiry =
+                    Some(defguard_certs::get_certificate_expiry(cert.der())?);
                 self.gateway.save(&self.pool).await?;
             }
             Err(err) => {

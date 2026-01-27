@@ -15,6 +15,7 @@ use defguard_common::{
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -42,7 +43,10 @@ use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use secrecy::ExposeSecret;
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tokio::sync::{
+    broadcast,
+    mpsc::{channel, unbounded_channel},
+};
 
 #[macro_use]
 extern crate tracing;
@@ -133,7 +137,7 @@ async fn main() -> Result<(), anyhow::Error> {
             "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
         );
 
-        let ca = defguard_certs::CertificateAuthority::new()?;
+        let ca = defguard_certs::CertificateAuthority::new("Defguard", "", 10)?;
 
         let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
 
@@ -173,9 +177,14 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
-    let proxy_manager =
-        ProxyManager::new(pool.clone(), proxy_tx, Arc::clone(&incompatible_components));
+    let proxy_manager = ProxyManager::new(
+        pool.clone(),
+        proxy_tx,
+        Arc::clone(&incompatible_components),
+        proxy_control_rx,
+    );
 
     // run services
     tokio::select! {
@@ -203,6 +212,7 @@ async fn main() -> Result<(), anyhow::Error> {
             failed_logins,
             api_event_tx,
             incompatible_components,
+            proxy_control_tx
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(
