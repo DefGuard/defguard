@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\" FROM \"gateway\"",
+  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\",\"name\" FROM \"gateway\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -42,10 +42,17 @@
         "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -55,8 +62,9 @@
       true,
       true,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "a0818064c80739debc8a8788dfa8c23bff66bc40eafba7400a7d7db49ab36e2e"
+  "hash": "992d8cd450771193260a05f5004fd1a91d77d98584e1cdc95f2a3c9f71439515"
 }
