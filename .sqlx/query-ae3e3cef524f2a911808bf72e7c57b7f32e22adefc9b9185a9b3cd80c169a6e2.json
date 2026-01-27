@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
+  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\",\"version\",\"name\" FROM \"gateway\"",
   "describe": {
     "columns": [
       {
@@ -45,19 +45,17 @@
       },
       {
         "ordinal": 8,
-        "name": "name",
+        "name": "version",
         "type_info": "Text"
       },
       {
         "ordinal": 9,
-        "name": "version",
+        "name": "name",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -68,9 +66,9 @@
       true,
       false,
       true,
-      false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "d10c9a7b0b391aeb8b4869f6bddf997807b66e0b532da747b146513c34e15c5c"
+  "hash": "ae3e3cef524f2a911808bf72e7c57b7f32e22adefc9b9185a9b3cd80c169a6e2"
 }

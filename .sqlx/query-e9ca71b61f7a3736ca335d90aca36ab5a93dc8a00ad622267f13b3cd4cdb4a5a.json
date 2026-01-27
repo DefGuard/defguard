@@ -47,6 +47,11 @@
         "ordinal": 8,
         "name": "name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "version",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -63,7 +68,8 @@
       true,
       false,
       true,
-      false
+      false,
+      true
     ]
   },
   "hash": "e9ca71b61f7a3736ca335d90aca36ab5a93dc8a00ad622267f13b3cd4cdb4a5a"
