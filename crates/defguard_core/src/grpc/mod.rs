@@ -27,8 +27,6 @@ use crate::{
         },
         is_business_license_active,
     },
-    events::GrpcEvent,
-    grpc::gateway::client_state::ClientMap,
     server_config,
 };
 

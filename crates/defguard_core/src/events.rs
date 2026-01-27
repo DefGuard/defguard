@@ -309,22 +309,8 @@ pub struct ApiEvent {
 /// Events from gRPC server
 #[derive(Debug)]
 pub enum GrpcEvent {
-    GatewayConnected {
-        location: WireguardNetwork<Id>,
-    },
-    GatewayDisconnected {
-        location: WireguardNetwork<Id>,
-    },
-    ClientConnected {
-        context: GrpcRequestContext,
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-    ClientDisconnected {
-        context: GrpcRequestContext,
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
+    GatewayConnected { location: WireguardNetwork<Id> },
+    GatewayDisconnected { location: WireguardNetwork<Id> },
 }
 
 /// Shared context for every event generated from a user request in the bi-directional gRPC stream.

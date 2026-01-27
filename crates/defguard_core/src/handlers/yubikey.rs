@@ -3,16 +3,16 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::YubiKey;
+use defguard_common::db::{Id, models::YubiKey};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
 
-pub async fn delete_yubikey(
+pub(crate) async fn delete_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path((username, key_id)): Path<(String, i64)>,
+    Path((username, key_id)): Path<(String, Id)>,
 ) -> ApiResult {
     debug!("Deleting yubikey {key_id} by {:?}", &session.user.id);
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
@@ -35,19 +35,19 @@ pub async fn delete_yubikey(
     })
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct RenameRequest {
+#[derive(Deserialize)]
+pub(crate) struct RenameRequest {
     name: String,
 }
 
-pub async fn rename_yubikey(
+pub(crate) async fn rename_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path((username, key_id)): Path<(String, i64)>,
+    Path((username, key_id)): Path<(String, Id)>,
     Json(data): Json<RenameRequest>,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    debug!("User {} attempts to rename yubikey {}", user.id, key_id);
+    debug!("User {} attempts to rename yubikey {key_id}", user.id);
     let Some(mut yubikey) = YubiKey::find_by_id(&appstate.pool, key_id).await? else {
         error!("Yubikey with id {key_id} not found");
         return Err(WebError::ObjectNotFound("YubiKey not found".into()));

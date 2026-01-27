@@ -4,8 +4,6 @@ use thiserror::Error;
 pub enum EventRouterError {
     #[error("API event channel closed")]
     ApiEventChannelClosed,
-    #[error("gRPC event channel closed")]
-    GrpcEventChannelClosed,
     #[error("Bidi gRPC stream event channel closed")]
     BidiEventChannelClosed,
     #[error("Internal event channel closed")]

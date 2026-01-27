@@ -33,7 +33,7 @@ use tokio::{
     net::TcpListener,
     sync::{
         broadcast::{self, Receiver},
-        mpsc::{UnboundedReceiver, unbounded_channel},
+        mpsc::{UnboundedReceiver, channel, unbounded_channel},
     },
 };
 
@@ -117,6 +117,8 @@ pub(crate) async fn make_base_client(
         config.clone(),
     );
 
+    let (proxy_control_tx, _proxy_control_rx) = channel(10);
+
     // Uncomment this to enable tracing in tests.
     // It only works for running a single test, so leave it commented out for running all tests.
     // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -139,6 +141,7 @@ pub(crate) async fn make_base_client(
         api_event_tx,
         Version::parse(VERSION).unwrap(),
         Arc::default(),
+        proxy_control_tx,
     );
 
     (
@@ -187,6 +190,8 @@ pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestRespons
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
             "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,

@@ -14,5 +14,6 @@ serde.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 rustls-pki-types.workspace = true
+chrono.workspace = true
 time = "0.3"
 x509-parser = "0.18"
