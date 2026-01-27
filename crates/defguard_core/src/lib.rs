@@ -79,14 +79,16 @@ use crate::{
     enterprise::{
         handlers::{
             acl::{
-                apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
-                delete_acl_alias, delete_acl_rule,
+                alias::{
+                    create_acl_alias, delete_acl_alias, get_acl_alias, list_acl_aliases,
+                    update_acl_alias,
+                },
+                apply_acl_aliases, apply_acl_rules, create_acl_rule, delete_acl_rule,
                 destination::{
                     create_acl_destination, delete_acl_destination, get_acl_destination,
                     list_acl_destinations, update_acl_destination,
                 },
-                get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias,
-                update_acl_rule,
+                get_acl_rule, list_acl_rules, update_acl_rule,
             },
             activity_log_stream::{
                 create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,

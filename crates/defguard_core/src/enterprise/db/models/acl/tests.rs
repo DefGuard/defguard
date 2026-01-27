@@ -31,6 +31,9 @@ async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
         destination.clone(),
         ports.clone(),
         vec![20, 30],
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -334,6 +337,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -345,6 +351,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await

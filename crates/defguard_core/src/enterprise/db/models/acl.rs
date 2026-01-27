@@ -939,7 +939,7 @@ impl AclRule<Id> {
         query_as!(
             AclAlias,
             "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", \
-            destination, ports, protocols \
+            destination, ports, protocols, any_destination, any_port, any_protocol \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1425,6 +1425,9 @@ pub struct AclAlias<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl AclAlias {
@@ -1436,6 +1439,9 @@ impl AclAlias {
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         protocols: Vec<Protocol>,
+        any_destination: bool,
+        any_port: bool,
+        any_protocol: bool,
     ) -> Self {
         Self {
             id: NoId,
@@ -1446,6 +1452,9 @@ impl AclAlias {
             destination,
             ports,
             protocols,
+            any_destination,
+            any_port,
+            any_protocol,
         }
     }
 
@@ -1463,6 +1472,9 @@ impl AclAlias {
             kind,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
+            any_destination: true,
+            any_port: true,
+            any_protocol: true,
         })
     }
 

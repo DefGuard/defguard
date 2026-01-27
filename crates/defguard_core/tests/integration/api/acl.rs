@@ -488,6 +488,9 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -499,6 +502,9 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -637,6 +643,9 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&state.pool)
     .await

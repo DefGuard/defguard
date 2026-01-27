@@ -90,11 +90,11 @@ use super::{
 		acl::update_acl_rule,
 		acl::delete_acl_rule,
 		// /acl/alias
-		acl::list_acl_aliases,
-		acl::create_acl_alias,
-		acl::get_acl_alias,
-		acl::update_acl_alias,
-		acl::delete_acl_alias,
+		acl::alias::list_acl_aliases,
+		acl::alias::create_acl_alias,
+		acl::alias::get_acl_alias,
+		acl::alias::update_acl_alias,
+		acl::alias::delete_acl_alias,
 		acl::apply_acl_aliases,
 		// /acl/destination
 		acl::destination::list_acl_destinations,
