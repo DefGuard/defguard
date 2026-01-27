@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { SSEHookOptions } from './types';
+
+// biome-ignore lint/suspicious/noExplicitAny: SSE hook accepts various data types
+export interface SSEHookOptions<T = any> {
+  onMessage?: (data: T) => void;
+  onError?: (error: Event) => void;
+  onOpen?: () => void;
+  parseJSON?: boolean;
+  params?: Record<string, string | number | boolean>;
+}
 
 // SSE (Server-Sent Events) controller hook for processing real-time events received from the backend.
 // biome-ignore lint/suspicious/noExplicitAny: SSE hook accepts various data types
 export function useSSEController<T = any>(
   url: string,
-  params: Record<string, string | number | boolean>,
+  params: Record<string, string | number | boolean | null>,
   options: SSEHookOptions<T> = {},
 ) {
   const eventSourceRef = useRef<EventSource | null>(null);

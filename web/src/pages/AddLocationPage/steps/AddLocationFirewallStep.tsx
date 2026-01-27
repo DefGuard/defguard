@@ -13,7 +13,7 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useLocationsPageStore } from '../../LocationsPage/hooks/useLocationsPage';
+import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
@@ -32,15 +32,19 @@ export const AddLocationFirewallStep = () => {
     },
     onSuccess: ({ data }) => {
       if (showGateway) {
-        useLocationsPageStore.setState({
-          networkGatewayStartup: data.id,
+        useGatewayWizardStore.getState().start({ network_id: data.id });
+        navigate({ to: '/gateway-wizard', replace: true }).then(() => {
+          setTimeout(() => {
+            useAddLocationStore.getState().reset();
+          }, 100);
+        });
+      } else {
+        navigate({ to: '/locations', replace: true }).then(() => {
+          setTimeout(() => {
+            useAddLocationStore.getState().reset();
+          }, 100);
         });
       }
-      navigate({ to: '/locations', replace: true }).then(() => {
-        setTimeout(() => {
-          useAddLocationStore.getState().reset();
-        }, 100);
-      });
     },
   });
 

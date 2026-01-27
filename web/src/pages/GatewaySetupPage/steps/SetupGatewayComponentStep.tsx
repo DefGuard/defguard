@@ -9,8 +9,8 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { EdgeSetupStep } from '../types';
-import { useEdgeWizardStore } from '../useEdgeWizardStore';
+import { GatewaySetupStep } from '../types';
+import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import './style.scss';
 import { validateIpOrDomain } from '../../../shared/validators';
 
@@ -20,19 +20,17 @@ type StoreValues = {
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
-  public_domain: string;
 };
 
-export const SetupEdgeComponentStep = () => {
-  const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
+export const SetupGatewayComponentStep = () => {
+  const setActiveStep = useGatewayWizardStore((s) => s.setActiveStep);
   const navigate = useNavigate();
-  const defaultValues = useEdgeWizardStore(
+  const defaultValues = useGatewayWizardStore(
     useShallow(
       (s): FormFields => ({
         common_name: s.common_name,
         ip_or_domain: s.ip_or_domain,
         grpc_port: s.grpc_port,
-        public_domain: s.public_domain,
       }),
     ),
   );
@@ -42,9 +40,9 @@ export const SetupEdgeComponentStep = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '/edge-wizard', replace: true }).then(() => {
+    navigate({ to: '/locations', replace: true }).then(() => {
       setTimeout(() => {
-        useEdgeWizardStore.getState().reset();
+        useGatewayWizardStore.getState().reset();
       }, 100);
     });
   };
@@ -63,9 +61,6 @@ export const SetupEdgeComponentStep = () => {
           .number()
           .min(1, m.edge_setup_component_error_grpc_port_required())
           .max(65535, m.edge_setup_component_error_grpc_port_max()),
-        public_domain: z
-          .string()
-          .min(1, m.edge_setup_component_error_public_domain_required()),
       }),
     [],
   );
@@ -78,10 +73,10 @@ export const SetupEdgeComponentStep = () => {
       onChange: formSchema,
     },
     onSubmit: ({ value }) => {
-      useEdgeWizardStore.setState({
+      useGatewayWizardStore.setState({
         ...value,
       });
-      setActiveStep(EdgeSetupStep.EdgeAdaptation);
+      setActiveStep(GatewaySetupStep.GatewayAdaptation);
     },
   });
 
@@ -99,7 +94,7 @@ export const SetupEdgeComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.edge_setup_component_label_common_name()}
+                label={m.gateway_setup_component_label_common_name()}
                 type="text"
               />
             )}
@@ -109,7 +104,7 @@ export const SetupEdgeComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.edge_setup_component_label_ip_or_domain()}
+                label={m.gateway_setup_component_label_ip_or_domain()}
                 type="text"
               />
             )}
@@ -119,31 +114,22 @@ export const SetupEdgeComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.edge_setup_component_label_grpc_port()}
+                label={m.gateway_setup_component_label_grpc_port()}
                 type="number"
               />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="public_domain">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.edge_setup_component_label_public_domain()}
-                type="text"
-              />
-            )}
-          </form.AppField>
         </form.AppForm>
       </form>
       <ModalControls
         cancelProps={{
-          text: m.edge_setup_component_controls_back(),
+          text: m.gateway_setup_component_controls_back(),
           onClick: handleBack,
           variant: 'outlined',
         }}
         submitProps={{
-          text: m.edge_setup_component_controls_submit(),
+          text: m.gateway_setup_component_controls_submit(),
           onClick: handleNext,
           type: 'submit',
         }}

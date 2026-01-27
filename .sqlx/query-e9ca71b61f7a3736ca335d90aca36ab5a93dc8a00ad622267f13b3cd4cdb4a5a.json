@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
+  "query": "SELECT * FROM gateway WHERE url = $1",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -72,5 +72,5 @@
       true
     ]
   },
-  "hash": "d10c9a7b0b391aeb8b4869f6bddf997807b66e0b532da747b146513c34e15c5c"
+  "hash": "e9ca71b61f7a3736ca335d90aca36ab5a93dc8a00ad622267f13b3cd4cdb4a5a"
 }

@@ -91,10 +91,9 @@ use tracing_subscriber::{
     },
     layer::{Context, SubscriberExt},
     registry::LookupSpan,
-    util::SubscriberInitExt,
 };
 
-use crate::{ComponentInfo, DefguardComponent, DefguardVersionError, SystemInfo};
+use crate::{ComponentInfo, DefguardComponent, SystemInfo};
 
 /// Container for version information extracted from tracing span hierarchy.
 ///
@@ -404,7 +403,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
     }
 }
 
-/// Initializes tracing with custom formatter that conditionally displays version information.
+/// Adds a custom formatter that conditionally displays version information to a given subscriber.
 ///
 /// The formatter will:
 /// - For ERROR level logs: display own and remote component version and system-info
@@ -421,10 +420,22 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 ///
 /// # Examples
 /// ```
-/// defguard_version::tracing::init(defguard_version::Version::new(1, 5, 0), "info");
+/// let subscriber = tracing_subscriber::registry();
+/// defguard_version::tracing::with_version_formatter(
+///     &defguard_version::Version::new(1, 5, 0),
+///     "info",
+///     subscriber,
+/// );
 /// ```
-pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), DefguardVersionError> {
-    tracing_subscriber::registry()
+pub fn with_version_formatters<S>(
+    own_version: &crate::Version,
+    log_level: &str,
+    subscriber: S,
+) -> impl tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a> + Send + Sync
+where
+    S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a> + Send + Sync,
+{
+    subscriber
         .with(
             EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
@@ -434,12 +445,9 @@ pub fn init(own_version: crate::Version, log_level: &str) -> Result<(), Defguard
             tracing_subscriber::fmt::layer()
                 .with_ansi(true)
                 .event_format(VersionSuffixFormat::new(
-                    own_version,
+                    crate::Version::new(own_version.major, own_version.minor, own_version.patch),
                     Format::default().with_ansi(true),
                 ))
                 .fmt_fields(VersionFilteredFields),
         )
-        .init();
-
-    Ok(())
 }

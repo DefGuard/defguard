@@ -81,10 +81,10 @@ export const EdgeSetupPage = () => {
     <WizardPage
       activeStep={activeStep}
       onClose={() => {
-        useEdgeWizardStore.getState().reset();
-        navigate({
-          to: '/settings',
-          replace: true,
+        navigate({ to: '/vpn-overview', replace: true }).then(() => {
+          setTimeout(() => {
+            useEdgeWizardStore.getState().reset();
+          }, 100);
         });
       }}
       subtitle={m.edge_setup_page_subtitle()}
