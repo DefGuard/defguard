@@ -42,10 +42,10 @@ export const SetupEdgeComponentStep = () => {
   };
 
   const handleBack = () => {
-    useEdgeWizardStore.getState().reset();
-    navigate({
-      to: '/edge-wizard',
-      replace: true,
+    navigate({ to: '/edge-wizard', replace: true }).then(() => {
+      setTimeout(() => {
+        useEdgeWizardStore.getState().reset();
+      }, 100);
     });
   };
 

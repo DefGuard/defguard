@@ -72,10 +72,10 @@ export const GatewaySetupPage = () => {
     <WizardPage
       activeStep={activeStep}
       onClose={() => {
-        useGatewayWizardStore.getState().reset();
-        navigate({
-          to: '/settings',
-          replace: true,
+        navigate({ to: '/locations', replace: true }).then(() => {
+          setTimeout(() => {
+            useGatewayWizardStore.getState().reset();
+          }, 100);
         });
       }}
       subtitle={m.gateway_setup_page_subtitle()}

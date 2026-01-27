@@ -1,7 +1,7 @@
 use std::{convert::Infallible, time::Duration};
 
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     response::sse::{Event, KeepAlive, Sse},
 };
 use defguard_certs::{der_to_pem, get_certificate_expiry};
@@ -56,9 +56,9 @@ pub struct ProxySetupRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GatewaySetupRequest {
+    pub common_name: String,
     pub ip_or_domain: String,
     pub grpc_port: u16,
-    pub network_id: Id,
 }
 
 #[derive(Debug, Serialize, Copy, Clone)]
@@ -564,6 +564,7 @@ pub async fn setup_gateway_tls_stream(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Query(request): Query<GatewaySetupRequest>,
+    Path(network_id): Path<Id>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -908,8 +909,9 @@ pub async fn setup_gateway_tls_stream(
         debug!("Certificate expiry date determined: {}", expiry);
 
         let mut gateway = Gateway::new(
-            request.network_id,
+            network_id,
             url_str,
+            request.common_name,
         );
 
         gateway.has_certificate = true;

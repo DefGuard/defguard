@@ -17,8 +17,11 @@ export const SetupConfirmationStep = () => {
   };
 
   const handleFinish = () => {
-    useGatewayWizardStore.getState().reset();
-    navigate({ to: '/locations' });
+    navigate({ to: '/locations', replace: true }).then(() => {
+      setTimeout(() => {
+        useGatewayWizardStore.getState().reset();
+      }, 100);
+    });
   };
 
   return (

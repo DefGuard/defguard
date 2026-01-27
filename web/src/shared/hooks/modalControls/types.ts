@@ -1,7 +1,6 @@
 import type {
   AvailableLocationIpResponse,
   Device,
-  GatewayTokenResponse,
   GroupInfo,
   NetworkDevice,
   NetworkLocation,

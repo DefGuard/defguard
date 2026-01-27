@@ -24,8 +24,6 @@ export const SetupGatewayAdaptationStep = () => {
     (s) => s.resetGatewayAdaptationState,
   );
 
-  // take networkid from params of wizard start
-
   const handleEvent = useCallback(
     (event: SetupEvent) => {
       setGatewayAdaptationState({
@@ -43,7 +41,7 @@ export const SetupGatewayAdaptationStep = () => {
   );
 
   const sse = useSSEController<SetupEvent>(
-    '/api/v1/gateway/setup/stream',
+    `/api/v1/network/${gatewayComponentWizardStore.network_id}/gateways/setup`,
     {
       ip_or_domain: gatewayComponentWizardStore.ip_or_domain,
       grpc_port: gatewayComponentWizardStore.grpc_port,
@@ -72,12 +70,17 @@ export const SetupGatewayAdaptationStep = () => {
       },
       {
         id: 'CheckingAvailability',
-        title: `Checking if Gateway is available at: ${gatewayComponentWizardStore.ip_or_domain}:${gatewayComponentWizardStore.grpc_port}`,
+        title: m.gateway_setup_adaptation_checking_availability({
+          ip_or_domain: gatewayComponentWizardStore.ip_or_domain,
+          grpc_port: String(gatewayComponentWizardStore.grpc_port),
+        }),
       },
       {
         id: 'CheckingVersion',
         title: gatewayAdaptationState.gatewayVersion
-          ? `Checking Gateway version: ${gatewayAdaptationState.gatewayVersion}`
+          ? m.gateway_setup_adaptation_checking_version_with_value({
+              gatewayVersion: gatewayAdaptationState.gatewayVersion,
+            })
           : m.gateway_setup_adaptation_checking_version(),
       },
       {

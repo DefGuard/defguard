@@ -59,38 +59,34 @@ export const LocationOverviewPage = () => {
   });
 
   return (
-    <>
-      <Page title="VPN Overview" id="location-overview-page">
-        <SizedBox height={ThemeSpacing.Xl3} />
-        <div className="info">
-          <div className="top">
-            <div className="left">
-              <p className="subtitle">{location.name}</p>
-              {isPresent(gateways) && <GatewaysStatusBadge data={gateways ?? []} />}
-            </div>
-            <div className="right">
-              <OverviewPeriodSelect
-                period={search.period}
-                onChange={(value) => {
-                  navigate({
-                    search: {
-                      period: value,
-                    },
-                  });
-                }}
-              />
-            </div>
+    <Page title="VPN Overview" id="location-overview-page">
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <div className="info">
+        <div className="top">
+          <div className="left">
+            <p className="subtitle">{location.name}</p>
+            {isPresent(gateways) && <GatewaysStatusBadge data={gateways ?? []} />}
           </div>
-          {isPresent(locationStats) && (
-            <OverviewCard expanded statsPeriod={search.period} data={locationStats} />
-          )}
+          <div className="right">
+            <OverviewPeriodSelect
+              period={search.period}
+              onChange={(value) => {
+                navigate({
+                  search: {
+                    period: value,
+                  },
+                });
+              }}
+            />
+          </div>
         </div>
-        <SizedBox height={ThemeSpacing.Xl4} />
-        {isPresent(locationDevicesStats) && (
-          <DevicesSection stats={locationDevicesStats} />
+        {isPresent(locationStats) && (
+          <OverviewCard expanded statsPeriod={search.period} data={locationStats} />
         )}
-      </Page>
-    </>
+      </div>
+      <SizedBox height={ThemeSpacing.Xl4} />
+      {isPresent(locationDevicesStats) && <DevicesSection stats={locationDevicesStats} />}
+    </Page>
   );
 };
 

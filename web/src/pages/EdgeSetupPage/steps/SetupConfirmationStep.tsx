@@ -17,8 +17,11 @@ export const SetupConfirmationStep = () => {
   };
 
   const handleFinish = () => {
-    useEdgeWizardStore.getState().reset();
-    navigate({ to: '/vpn-overview' });
+    navigate({ to: '/vpn-overview', replace: true }).then(() => {
+      setTimeout(() => {
+        useEdgeWizardStore.getState().reset();
+      }, 100);
+    });
   };
 
   return (

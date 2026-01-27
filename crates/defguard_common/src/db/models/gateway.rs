@@ -17,6 +17,7 @@ pub struct Gateway<I = NoId> {
     pub disconnected_at: Option<NaiveDateTime>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+    pub name: String,
 }
 
 impl<I> Gateway<I> {
@@ -33,7 +34,7 @@ impl<I> Gateway<I> {
 
 impl Gateway {
     #[must_use]
-    pub fn new<S: Into<String>>(network_id: Id, url: S) -> Self {
+    pub fn new<S: Into<String>>(network_id: Id, url: S, name: S) -> Self {
         Self {
             id: NoId,
             network_id,
@@ -43,6 +44,7 @@ impl Gateway {
             disconnected_at: None,
             has_certificate: false,
             certificate_expiry: None,
+            name: name.into(),
         }
     }
 }

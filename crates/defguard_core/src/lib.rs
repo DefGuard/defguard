@@ -147,11 +147,10 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_gateway, add_user_devices, change_gateway, create_network,
-            create_network_token, delete_device, delete_network, devices_stats, download_config,
-            gateway_status, get_device, import_network, list_devices, list_networks,
-            list_user_devices, modify_device, modify_network, network_details, network_stats,
-            remove_gateway,
+            add_device, add_user_devices, change_gateway, create_network, create_network_token,
+            delete_device, delete_network, devices_stats, download_config, gateway_status,
+            get_device, import_network, list_devices, list_networks, list_user_devices,
+            modify_device, modify_network, network_details, network_stats, remove_gateway,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -359,9 +358,7 @@ pub fn build_webapp(
             // Certificate authority
             .route("/ca", post(create_ca))
             // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-            // Gateway setup with SSE
-            .route("/gateway/setup/stream", get(setup_gateway_tls_stream)),
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );
 
     // Enterprise features
@@ -504,8 +501,12 @@ pub fn build_webapp(
                     .delete(delete_network)
                     .get(network_details),
             )
+            // Gateway adding (uses SSE)
+            .route(
+                "/network/{network_id}/gateways/setup",
+                get(setup_gateway_tls_stream),
+            )
             .route("/network/{network_id}/gateways", get(gateway_status))
-            .route("/network/{network_id}/gateways", post(add_gateway))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
                 put(change_gateway).delete(remove_gateway),

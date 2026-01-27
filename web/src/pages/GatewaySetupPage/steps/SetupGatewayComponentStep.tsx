@@ -40,10 +40,10 @@ export const SetupGatewayComponentStep = () => {
   };
 
   const handleBack = () => {
-    useGatewayWizardStore.getState().reset();
-    navigate({
-      to: '/edge-wizard',
-      replace: true,
+    navigate({ to: '/locations', replace: true }).then(() => {
+      setTimeout(() => {
+        useGatewayWizardStore.getState().reset();
+      }, 100);
     });
   };
 
