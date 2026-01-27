@@ -155,8 +155,8 @@ pub async fn send_support_data(
         })).collect::<Vec<_>>(),
     });
 
-    let components_json = serde_json::to_string_pretty(&components_info)
-        .unwrap_or("Json formatting error".to_string());
+    let components_json =
+        serde_json::to_string(&components_info).unwrap_or("JSON formatting error".to_string());
 
     let components = Attachment {
         filename: format!("defguard-components-{}.json", Utc::now()),
@@ -166,7 +166,7 @@ pub async fn send_support_data(
 
     let config = dump_config(&appstate.pool).await;
     let config =
-        serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
+        serde_json::to_string_pretty(&config).unwrap_or("JSON formatting error".to_string());
 
     let config = Attachment {
         filename: format!("defguard-support-data-{}.json", Utc::now()),
