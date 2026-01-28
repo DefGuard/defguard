@@ -12,6 +12,7 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, DeviceNetworkInfo, User, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
+            vpn_client_session::VpnClientSession,
             wireguard::LocationMfaMode,
         },
     },
@@ -710,6 +711,22 @@ impl ClientMfaServer {
                 },
             )),
         })?;
+
+        // create new VPN client session
+        let vpn_client_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            None,
+            location.location_mfa_mode.clone(),
+        )
+        .save(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
+                Status::internal("unexpected error")
+            })?;
+        debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let response = ClientMfaFinishResponse {
             preshared_key: key.public,
