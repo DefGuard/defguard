@@ -74,19 +74,20 @@ const formSchema = z.object({
   ports: aclPortsValidator,
   destination: aclDestinationValidator,
   protocols: z.set(z.enum(AclProtocol)),
+  any_destination: z.boolean(),
+  any_port: z.boolean(),
+  any_protocol: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
 const FormContent = ({ alias }: { alias?: AclAlias }) => {
   const [allDestinations, setAllDestinations] = useState<boolean>(
-    isPresent(alias) ? alias.destination.length === 0 : true,
+    isPresent(alias) && alias.any_destination,
   );
-  const [allPorts, setAllPorts] = useState<boolean>(
-    isPresent(alias) ? alias.ports.length === 0 : true,
-  );
+  const [allPorts, setAllPorts] = useState<boolean>(isPresent(alias) && alias.any_port);
   const [allProtocols, setAllProtocols] = useState<boolean>(
-    isPresent(alias) ? alias.protocols.length === 0 : true,
+    isPresent(alias) && alias.any_protocol,
   );
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(alias)) {
@@ -96,6 +97,9 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
         kind: alias.kind,
         ports: alias.ports,
         protocols: new Set(alias.protocols),
+        any_destination: alias.any_destination,
+        any_port: alias.any_port,
+        any_protocol: alias.any_protocol,
       };
     }
     return {
@@ -104,6 +108,9 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       kind: AclAliasKind.Component,
       ports: '',
       protocols: new Set(),
+      any_destination: true,
+      any_port: true,
+      any_protocol: true,
     };
   }, [alias]);
 
@@ -134,16 +141,10 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       const toSend: AddAclAliasRequest = {
         ...cloneDeep(value),
         protocols: Array.from(value.protocols),
+        any_destination: allDestinations,
+        any_port: allPorts,
+        any_protocol: allProtocols,
       };
-      if (allDestinations) {
-        toSend.destination = '';
-      }
-      if (allProtocols) {
-        toSend.protocols = [];
-      }
-      if (allPorts) {
-        toSend.ports = '';
-      }
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
       } else {

@@ -182,6 +182,10 @@ pub struct AclRuleInfo<I = NoId> {
     pub aliases: Vec<AclAlias<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
+    pub manual_settings: bool,
 }
 
 impl<I> AclRuleInfo<I> {
@@ -252,6 +256,10 @@ pub struct AclRule<I = NoId> {
     pub protocols: Vec<Protocol>,
     pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
+    pub manual_settings: bool,
 }
 
 impl AclRule {
@@ -270,7 +278,7 @@ impl AclRule {
         rule.create_related_objects(&mut transaction, api_rule)
             .await?;
 
-        let result: ApiAclRule = rule.to_info(&mut transaction).await?.into();
+        let result = ApiAclRule::from(rule.to_info(&mut transaction).await?);
 
         transaction.commit().await?;
 
@@ -837,6 +845,10 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             protocols: rule.protocols,
             enabled: rule.enabled,
             expires: rule.expires,
+            any_destination: rule.any_destination,
+            any_port: rule.any_port,
+            any_protocol: rule.any_protocol,
+            manual_settings: true,
         })
     }
 }
@@ -939,7 +951,7 @@ impl AclRule<Id> {
         query_as!(
             AclAlias,
             "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", \
-            destination, ports, protocols \
+            destination, ports, protocols, any_destination, any_port, any_protocol \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1153,6 +1165,10 @@ impl AclRule<Id> {
             denied_groups,
             allowed_devices,
             denied_devices,
+            any_destination: self.any_destination,
+            any_port: self.any_port,
+            any_protocol: self.any_protocol,
+            manual_settings: false,
         })
     }
 }
@@ -1338,6 +1354,9 @@ pub(crate) struct AclAliasInfo<I = NoId> {
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<AclRule<Id>>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl<I> AclAliasInfo<I> {
@@ -1425,6 +1444,9 @@ pub struct AclAlias<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl AclAlias {
@@ -1436,6 +1458,9 @@ impl AclAlias {
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         protocols: Vec<Protocol>,
+        any_destination: bool,
+        any_port: bool,
+        any_protocol: bool,
     ) -> Self {
         Self {
             id: NoId,
@@ -1446,6 +1471,9 @@ impl AclAlias {
             destination,
             ports,
             protocols,
+            any_destination,
+            any_port,
+            any_protocol,
         }
     }
 
@@ -1463,6 +1491,9 @@ impl AclAlias {
             kind,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
+            any_destination: alias.any_destination,
+            any_port: alias.any_port,
+            any_protocol: alias.any_protocol,
         })
     }
 
@@ -1753,8 +1784,9 @@ impl AclAlias<Id> {
         query_as!(
             AclRule,
             "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-            deny_all_users, allow_all_network_devices, deny_all_network_devices, \
-            all_networks, destination, ports, protocols, enabled, expires \
+            deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
+            destination, ports, protocols, enabled, expires, any_destination, any_port, \
+            any_protocol, manual_settings \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",
@@ -1781,6 +1813,9 @@ impl AclAlias<Id> {
             protocols: self.protocols.clone(),
             destination_ranges,
             rules,
+            any_destination: self.any_destination,
+            any_port: self.any_port,
+            any_protocol: self.any_protocol,
         })
     }
 
