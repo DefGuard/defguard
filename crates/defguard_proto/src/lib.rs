@@ -24,6 +24,7 @@ use defguard_common::{
         Id,
         models::{
             Device, DeviceConfig, User,
+            vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
@@ -62,6 +63,18 @@ impl Serialize for MfaMethod {
             Self::MobileApprove => {
                 serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
             }
+        }
+    }
+}
+
+impl Into<VpnClientMfaMethod> for MfaMethod {
+    fn into(self) -> VpnClientMfaMethod {
+        match self {
+            Self::Totp => VpnClientMfaMethod::Totp,
+            Self::Email => VpnClientMfaMethod::Email,
+            Self::Oidc => VpnClientMfaMethod::Oidc,
+            Self::Biometric => VpnClientMfaMethod::Biometric,
+            Self::MobileApprove => VpnClientMfaMethod::MobileApprove,
         }
     }
 }

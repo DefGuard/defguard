@@ -284,7 +284,7 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            location.location_mfa_mode.clone(),
+            None,
         )
         .save(transaction)
         .await?;

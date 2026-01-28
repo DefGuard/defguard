@@ -718,7 +718,7 @@ impl ClientMfaServer {
             user.id,
             device.id,
             None,
-            location.location_mfa_mode.clone(),
+            Some(method.into()),
         )
         .save(&mut *transaction)
             .await
