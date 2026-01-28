@@ -71,6 +71,7 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
         any_destination: true,
         any_port: true,
         any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -176,6 +177,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         any_destination: true,
         any_port: true,
         any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -563,6 +565,7 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
         any_destination: true,
         any_port: true,
         any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -681,6 +684,7 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
         any_destination: true,
         any_port: true,
         any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await

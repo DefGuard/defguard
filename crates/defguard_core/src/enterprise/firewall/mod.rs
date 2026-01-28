@@ -874,7 +874,8 @@ pub(crate) async fn get_location_active_acl_rules(
     let rules: Vec<AclRule<Id>> = query_as(
         "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
         allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
-        expires, enabled, parent_id, state, any_destination, any_port, any_protocol \
+        expires, enabled, parent_id, state, any_destination, any_port, any_protocol,
+        manual_settings \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
         WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \

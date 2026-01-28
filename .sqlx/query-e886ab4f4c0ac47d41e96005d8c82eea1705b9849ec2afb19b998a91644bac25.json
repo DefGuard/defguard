@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE aclrule SET state = 'expired'::aclrule_state WHERE state = 'applied'::aclrule_state AND expires < NOW() RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires, any_destination, any_port, any_protocol",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\",\"manual_settings\" FROM \"aclrule\"",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "state: RuleState",
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "aclrule_state",
@@ -63,17 +63,17 @@
       },
       {
         "ordinal": 9,
-        "name": "destination",
+        "name": "destination: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 10,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 11,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
@@ -100,6 +100,11 @@
         "ordinal": 16,
         "name": "any_protocol",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "manual_settings",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -122,8 +127,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "143237e0af5b5f5999e92e975c345f09734b2912b9a93821169c036baeab2c67"
+  "hash": "e886ab4f4c0ac47d41e96005d8c82eea1705b9849ec2afb19b998a91644bac25"
 }

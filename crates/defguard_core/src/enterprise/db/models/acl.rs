@@ -259,6 +259,7 @@ pub struct AclRule<I = NoId> {
     pub any_destination: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+    pub manual_settings: bool,
 }
 
 impl AclRule {
@@ -847,6 +848,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             any_destination: rule.any_destination,
             any_port: rule.any_port,
             any_protocol: rule.any_protocol,
+            manual_settings: true,
         })
     }
 }
@@ -1784,7 +1786,7 @@ impl AclAlias<Id> {
             "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
             deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
             destination, ports, protocols, enabled, expires, any_destination, any_port, \
-            any_protocol \
+            any_protocol, manual_settings \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",

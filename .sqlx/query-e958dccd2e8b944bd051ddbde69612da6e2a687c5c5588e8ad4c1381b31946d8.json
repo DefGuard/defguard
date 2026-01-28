@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires, any_destination, any_port, any_protocol FROM aclrulealias ara JOIN aclrule ar ON ar.id = ara.rule_id WHERE ara.alias_id = $1",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\",\"manual_settings\" FROM \"aclrule\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "state: RuleState",
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "aclrule_state",
@@ -63,17 +63,17 @@
       },
       {
         "ordinal": 9,
-        "name": "destination",
+        "name": "destination: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 10,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 11,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
@@ -100,6 +100,11 @@
         "ordinal": 16,
         "name": "any_protocol",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "manual_settings",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -124,8 +129,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "19df2773b606e41acceb8d7b842c1a8cc2642c32bf6ff816f0906cc1befbad11"
+  "hash": "e958dccd2e8b944bd051ddbde69612da6e2a687c5c5588e8ad4c1381b31946d8"
 }
