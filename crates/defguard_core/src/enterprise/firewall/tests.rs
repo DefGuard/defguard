@@ -1101,6 +1101,9 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -1143,6 +1146,9 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();
@@ -1523,6 +1529,9 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -1565,6 +1574,9 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();
@@ -1988,6 +2000,9 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -2030,6 +2045,9 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();

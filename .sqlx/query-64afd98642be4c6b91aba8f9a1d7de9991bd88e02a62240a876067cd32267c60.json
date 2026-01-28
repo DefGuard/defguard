@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"enabled\",\"expires\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id",
+  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -36,12 +36,15 @@
         "Int4RangeArray",
         "Int4Array",
         "Bool",
-        "Timestamp"
+        "Timestamp",
+        "Bool",
+        "Bool",
+        "Bool"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "53519f3e0d48fc874cea22517c0bd17d38d45c862924b8bf423edc7734c8cac1"
+  "hash": "64afd98642be4c6b91aba8f9a1d7de9991bd88e02a62240a876067cd32267c60"
 }

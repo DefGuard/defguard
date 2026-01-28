@@ -105,6 +105,9 @@ pub struct EditAclRule {
     pub aliases: Vec<Id>,
     pub ports: String,
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl EditAclRule {
@@ -147,6 +150,9 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
             enabled: info.enabled,
+            any_destination: info.any_destination,
+            any_port: info.any_port,
+            any_protocol: info.any_protocol,
         }
     }
 }

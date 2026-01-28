@@ -68,6 +68,9 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
     .save(&pool)
     .await
@@ -170,6 +173,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
     .save(&pool)
     .await
@@ -554,6 +560,9 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
     .save(&pool)
     .await
@@ -669,6 +678,9 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
     .save(&pool)
     .await

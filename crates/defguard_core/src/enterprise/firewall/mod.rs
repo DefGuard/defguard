@@ -833,7 +833,8 @@ async fn generate_user_snat_bindings_for_location(
 
         if source_addrs.is_empty() {
             debug!(
-                "No compatible device IPs found for user {user_id} in location {location_id} with public IP {}, skipping SNAT binding",
+                "No compatible device IPs found for user {user_id} in location {location_id} with \
+                public IP {}, skipping SNAT binding",
                 user_binding.public_ip
             );
             continue;
@@ -872,14 +873,13 @@ pub(crate) async fn get_location_active_acl_rules(
     debug!("Fetching active ACL rules for location {location}");
     let rules: Vec<AclRule<Id>> = query_as(
         "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
-            allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
-            expires, enabled, parent_id, state \
-            FROM aclrule a \
-            LEFT JOIN aclrulenetwork an \
-            ON a.id = an.rule_id \
-            WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
-            AND state = 'applied'::aclrule_state \
-            AND (expires IS NULL OR expires > NOW())",
+        allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
+        expires, enabled, parent_id, state, any_destination, any_port, any_protocol \
+        FROM aclrule a \
+        LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
+        WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
+        AND state = 'applied'::aclrule_state \
+        AND (expires IS NULL OR expires > NOW())",
     )
     .bind(location.id)
     .fetch_all(&mut *conn)
@@ -908,7 +908,7 @@ pub async fn try_get_location_firewall_config(
     if !is_business_license_active() {
         debug!(
             "Enterprise features are disabled, skipping generating firewall config for \
-                location {location}"
+            location {location}"
         );
         return Ok(None);
     }

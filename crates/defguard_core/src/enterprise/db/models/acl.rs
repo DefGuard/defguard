@@ -182,6 +182,9 @@ pub struct AclRuleInfo<I = NoId> {
     pub aliases: Vec<AclAlias<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl<I> AclRuleInfo<I> {
@@ -252,6 +255,9 @@ pub struct AclRule<I = NoId> {
     pub protocols: Vec<Protocol>,
     pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
+    pub any_destination: bool,
+    pub any_port: bool,
+    pub any_protocol: bool,
 }
 
 impl AclRule {
@@ -837,6 +843,9 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             protocols: rule.protocols,
             enabled: rule.enabled,
             expires: rule.expires,
+            any_destination: rule.any_destination,
+            any_port: rule.any_port,
+            any_protocol: rule.any_protocol,
         })
     }
 }
@@ -1153,6 +1162,9 @@ impl AclRule<Id> {
             denied_groups,
             allowed_devices,
             denied_devices,
+            any_destination: self.any_destination,
+            any_port: self.any_port,
+            any_protocol: self.any_protocol,
         })
     }
 }
@@ -1768,8 +1780,9 @@ impl AclAlias<Id> {
         query_as!(
             AclRule,
             "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-            deny_all_users, allow_all_network_devices, deny_all_network_devices, \
-            all_networks, destination, ports, protocols, enabled, expires \
+            deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
+            destination, ports, protocols, enabled, expires, any_destination, any_port, \
+            any_protocol \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",

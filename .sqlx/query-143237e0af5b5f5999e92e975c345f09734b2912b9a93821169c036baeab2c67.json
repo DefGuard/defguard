@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\" WHERE id = $1",
+  "query": "UPDATE aclrule SET state = 'expired'::aclrule_state WHERE state = 'applied'::aclrule_state AND expires < NOW() RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires, any_destination, any_port, any_protocol",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "state: _",
+        "name": "state: RuleState",
         "type_info": {
           "Custom": {
             "name": "aclrule_state",
@@ -63,17 +63,17 @@
       },
       {
         "ordinal": 9,
-        "name": "destination: _",
+        "name": "destination",
         "type_info": "InetArray"
       },
       {
         "ordinal": 10,
-        "name": "ports: _",
+        "name": "ports",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 11,
-        "name": "protocols: _",
+        "name": "protocols",
         "type_info": "Int4Array"
       },
       {
@@ -85,12 +85,25 @@
         "ordinal": 13,
         "name": "expires",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 14,
+        "name": "any_destination",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "any_port",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "any_protocol",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -106,8 +119,11 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "2517a3b667c7220342315c25baa3ed994e621a2c9b105705bfb3d3381c367218"
+  "hash": "143237e0af5b5f5999e92e975c345f09734b2912b9a93821169c036baeab2c67"
 }

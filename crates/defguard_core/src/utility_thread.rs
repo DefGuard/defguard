@@ -241,7 +241,8 @@ async fn expired_acl_rules_check(
         WHERE state = 'applied'::aclrule_state AND expires < NOW() \
         RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
             deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
-            destination, ports, protocols, enabled, expires"
+            destination, ports, protocols, enabled, expires, any_destination, any_port, \
+            any_protocol"
     )
     .fetch_all(pool)
     .await?;

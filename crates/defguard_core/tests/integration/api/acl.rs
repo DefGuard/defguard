@@ -65,6 +65,9 @@ fn make_rule() -> EditAclRule {
         enabled: true,
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
 }
 
