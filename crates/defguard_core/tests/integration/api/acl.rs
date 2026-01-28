@@ -119,6 +119,9 @@ fn edit_rule_data_into_api_response(
         aliases: data.aliases.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
+        any_destination: data.any_destination,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }
 

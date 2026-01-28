@@ -278,7 +278,7 @@ impl AclRule {
         rule.create_related_objects(&mut transaction, api_rule)
             .await?;
 
-        let result: ApiAclRule = rule.to_info(&mut transaction).await?.into();
+        let result = ApiAclRule::from(rule.to_info(&mut transaction).await?);
 
         transaction.commit().await?;
 
