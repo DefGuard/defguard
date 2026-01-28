@@ -185,6 +185,7 @@ pub struct AclRuleInfo<I = NoId> {
     pub any_destination: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+    pub manual_settings: bool,
 }
 
 impl<I> AclRuleInfo<I> {
@@ -1165,6 +1166,7 @@ impl AclRule<Id> {
             any_destination: self.any_destination,
             any_port: self.any_port,
             any_protocol: self.any_protocol,
+            manual_settings: false,
         })
     }
 }
