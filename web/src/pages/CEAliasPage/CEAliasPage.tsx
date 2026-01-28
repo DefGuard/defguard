@@ -1,35 +1,38 @@
 import { useMutation } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
 import { cloneDeep } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
-  type AclAlias,
-  AclAliasKind,
+  type AclDestination,
   AclProtocol,
   AclProtocolName,
+  type AclProtocolValue,
   type AddAclAliasRequest,
+  aclProtocolValues,
 } from '../../shared/api/types';
-import { CheckboxGroup } from '../../shared/components/CheckboxGroup/CheckboxGroup';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 
+const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protocol];
+
 interface Props {
-  alias?: AclAlias;
+  alias?: AclDestination;
 }
 
 export const CEAliasPage = ({ alias }: Props) => {
@@ -70,7 +73,6 @@ export const CEAliasPage = ({ alias }: Props) => {
 
 const formSchema = z.object({
   name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-  kind: z.enum(AclAliasKind),
   ports: aclPortsValidator,
   destination: aclDestinationValidator,
   protocols: z.set(z.enum(AclProtocol)),
@@ -78,22 +80,22 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const FormContent = ({ alias }: { alias?: AclAlias }) => {
-  const [allDestinations, setAllDestinations] = useState<boolean>(
-    isPresent(alias) ? alias.destination.length === 0 : true,
+const anyComponentDefined = (fields: FormFields): boolean => {
+  return (
+    fields.ports.trim().length > 0 ||
+    fields.destination.trim().length > 0 ||
+    fields.protocols.size > 0
   );
-  const [allPorts, setAllPorts] = useState<boolean>(
-    isPresent(alias) ? alias.ports.length === 0 : true,
-  );
-  const [allProtocols, setAllProtocols] = useState<boolean>(
-    isPresent(alias) ? alias.protocols.length === 0 : true,
-  );
+};
+
+const FormContent = ({ alias }: { alias?: AclDestination }) => {
+  const isEdit = isPresent(alias);
+
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(alias)) {
       return {
         name: alias.name,
         destination: alias.destination,
-        kind: alias.kind,
         ports: alias.ports,
         protocols: new Set(alias.protocols),
       };
@@ -101,7 +103,6 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
     return {
       name: '',
       destination: '',
-      kind: AclAliasKind.Component,
       ports: '',
       protocols: new Set(),
     };
@@ -135,15 +136,6 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
         ...cloneDeep(value),
         protocols: Array.from(value.protocols),
       };
-      if (allDestinations) {
-        toSend.destination = '';
-      }
-      if (allProtocols) {
-        toSend.protocols = [];
-      }
-      if (allPorts) {
-        toSend.ports = '';
-      }
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
       } else {
@@ -173,99 +165,50 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
             <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle
-            active={allDestinations}
-            label={`All IP addresses`}
-            testId="radio-addresses"
-            onClick={() => {
-              setAllDestinations((s) => !s);
-            }}
-          />
-          <Fold open={!allDestinations}>
-            <SizedBox height={ThemeSpacing.Xl} />
-            <form.AppField name="destination">
-              {(field) => (
-                <field.FormInput
-                  notNull
-                  label={`IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)`}
-                />
-              )}
-            </form.AppField>
-          </Fold>
+          <form.AppField name="destination">
+            {(field) => (
+              <field.FormInput
+                notNull
+                label={`IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)`}
+              />
+            )}
+          </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title="Ports">
             <p>{`You may specify the exact ports accessible to users in this location.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle
-            active={allPorts}
-            label={`All ports`}
-            testId="radio-ports"
-            onClick={() => {
-              setAllPorts((s) => !s);
-            }}
-          />
-          <Fold open={!allPorts}>
-            <SizedBox height={ThemeSpacing.Xl} />
-            <form.AppField name="ports">
-              {(field) => (
-                <field.FormInput
-                  notNull
-                  label={`Manually defined ports (or multiple values separated by commas)`}
-                />
-              )}
-            </form.AppField>
-          </Fold>
+          <form.AppField name="ports">
+            {(field) => (
+              <field.FormInput
+                notNull
+                label={`Manually defined ports (or multiple values separated by commas)`}
+              />
+            )}
+          </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title="Protocols">
             <p>{`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must be selected.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle
-            active={allProtocols}
-            label={`All protocols`}
-            testId="radio-protocols"
-            onClick={() => {
-              setAllProtocols((s) => !s);
-            }}
-          />
-          <Fold open={!allProtocols}>
-            <SizedBox height={ThemeSpacing.Xl} />
-            <CheckboxGroup>
-              <form.AppField name="protocols">
-                {(field) => (
-                  <field.FormCheckbox
-                    value={AclProtocol.UDP}
-                    text={AclProtocolName[AclProtocol.UDP]}
-                  />
-                )}
-              </form.AppField>
-              <form.AppField name="protocols">
-                {(field) => (
-                  <field.FormCheckbox
-                    value={AclProtocol.TCP}
-                    text={AclProtocolName[AclProtocol.TCP]}
-                  />
-                )}
-              </form.AppField>
-              <form.AppField name="protocols">
-                {(field) => (
-                  <field.FormCheckbox
-                    value={AclProtocol.ICMP}
-                    text={AclProtocolName[AclProtocol.ICMP]}
-                  />
-                )}
-              </form.AppField>
-            </CheckboxGroup>
-          </Fold>
+          <form.AppField name="protocols">
+            {(field) => (
+              <field.FormCheckboxGroup
+                values={aclProtocolValues}
+                getLabel={getProtocolLabel}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Lg} />
         </MarkedSection>
         <form.Subscribe
           selector={(s) => ({
             isDefault: s.isDefaultValue || s.isPristine,
             isSubmitting: s.isSubmitting,
+            isEmpty: !anyComponentDefined(s.values),
           })}
         >
-          {({ isSubmitting }) => (
+          {({ isSubmitting, isEmpty }) => (
             <Controls>
               <div className="right">
                 <Button
@@ -275,7 +218,21 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
                     router.history.back();
                   }}
                 />
-                <Button type="submit" text={'Add alias'} loading={isSubmitting} />
+                <TooltipProvider disabled={!isEmpty}>
+                  <TooltipTrigger>
+                    <div>
+                      <Button
+                        type="submit"
+                        text={isEdit ? 'Edit alias' : 'Add alias'}
+                        loading={isSubmitting}
+                        disabled={isEmpty}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{`At least one component is required.`}</p>
+                  </TooltipContent>
+                </TooltipProvider>
               </div>
             </Controls>
           )}

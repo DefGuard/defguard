@@ -3,7 +3,7 @@ import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
-  AclAlias,
+  AclDestination,
   AclRule,
   ActivityLogEvent,
   ActivityLogRequestParams,
@@ -355,9 +355,9 @@ const api = {
   },
   acl: {
     alias: {
-      getAliases: () => client.get<AclAlias[]>('/acl/alias'),
+      getAliases: () => client.get<AclDestination[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>
-        client.get<AclAlias>(`/acl/alias/${aliasId}`),
+        client.get<AclDestination>(`/acl/alias/${aliasId}`),
       addAlias: (data: AddAclAliasRequest) => client.post(`/acl/alias`, data),
       editAlias: (data: EditAclAliasRequest) => client.put(`/acl/alias/${data.id}`, data),
       deleteAlias: (aliasId: number | string) => client.delete(`/acl/alias/${aliasId}`),

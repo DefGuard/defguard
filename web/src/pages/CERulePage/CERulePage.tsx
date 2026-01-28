@@ -4,7 +4,11 @@ import { intersection } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
-import { AclProtocol, AclProtocolName } from '../../shared/api/types';
+import {
+  AclProtocolName,
+  type AclProtocolValue,
+  aclProtocolValues,
+} from '../../shared/api/types';
 import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
@@ -34,7 +38,7 @@ import {
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 
-const availableProtocols = Object.keys(AclProtocol) as Array<keyof typeof AclProtocol>;
+const getProtocolName = (key: AclProtocolValue) => AclProtocolName[key];
 
 export const CERulePage = () => {
   return (
@@ -412,17 +416,14 @@ const Content = () => {
               />
               <Fold open={!destinationAllProtocols}>
                 <SizedBox height={ThemeSpacing.Xl2} />
-                <div className="protocols-selection">
-                  {availableProtocols.map((protocolKey) => {
-                    const value = AclProtocol[protocolKey];
-                    const name = AclProtocolName[value];
-                    return (
-                      <form.AppField name="protocols" key={protocolKey}>
-                        {(field) => <field.FormCheckbox value={value} text={name} />}
-                      </form.AppField>
-                    );
-                  })}
-                </div>
+                <form.AppField name="protocols">
+                  {(field) => (
+                    <field.FormCheckboxGroup
+                      values={aclProtocolValues}
+                      getLabel={getProtocolName}
+                    />
+                  )}
+                </form.AppField>
               </Fold>
             </Card>
           </Fold>

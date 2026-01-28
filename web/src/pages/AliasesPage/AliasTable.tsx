@@ -9,7 +9,7 @@ import {
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type AclAlias, AclProtocolName } from '../../shared/api/types';
+import { type AclDestination, AclProtocolName } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
@@ -18,7 +18,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 
-type RowData = AclAlias;
+type RowData = AclDestination;
 
 const columnHelper = createColumnHelper<RowData>();
 

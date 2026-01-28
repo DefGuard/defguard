@@ -785,6 +785,8 @@ export const AclProtocol = {
   ICMP: 1,
 } as const;
 
+export const aclProtocolValues = Object.values(AclProtocol);
+
 export type AclProtocolValue = (typeof AclProtocol)[keyof typeof AclProtocol];
 
 export const AclProtocolName: Record<AclProtocolValue, string> = {
@@ -793,34 +795,33 @@ export const AclProtocolName: Record<AclProtocolValue, string> = {
   '17': 'UDP',
 };
 
-export const AclKind = {
-  Destination: 'Destination',
-  Component: 'Component',
-} as const;
-
-export type AclKindValue = (typeof AclKind)[keyof typeof AclKind];
-
-export const AclAliasKind = {
-  Destination: AclKind.Destination,
-  Component: AclKind.Component,
-} as const;
-
-export type AclAliasKindValue = (typeof AclAliasKind)[keyof typeof AclAliasKind];
-
-export interface AclAlias {
+export interface AclDestination {
   id: number;
   name: string;
-  kind: AclAliasKindValue;
-  state: AclAliasStatusValue;
+  state: AclDeploymentStateValue;
   destination: string;
   ports: string;
   protocols: AclProtocolValue[];
   rules: number[];
 }
 
-export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
+export type AddAclDestination = Omit<AclDestination, 'id' | 'state' | 'rules'>;
 
-export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;
+export type EditAclDestination = Omit<AclDestination, 'state' | 'rules'>;
+
+export interface AclDestination {
+  id: number;
+  name: string;
+  state: AclDeploymentStateValue;
+  destination: string;
+  ports: string;
+  protocols: AclProtocolValue[];
+  rules: number[];
+}
+
+export type AddAclAliasRequest = Omit<AclDestination, 'id' | 'state' | 'rules'>;
+
+export type EditAclAliasRequest = Omit<AclDestination, 'state' | 'rules'>;
 
 export interface AclRule {
   id: number;

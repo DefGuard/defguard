@@ -39,7 +39,7 @@ export const LocationOverviewCard = ({
   showTop = false,
   children,
 }: Props) => {
-  const navigate = useNavigate({ from: '/vpn-overview' });
+  const navigate = useNavigate({ from: '/vpn-overview/' });
   const [isOpen, setOpen] = useState(initialExpanded);
   const { data: stats } = useQuery({
     queryFn: () =>
