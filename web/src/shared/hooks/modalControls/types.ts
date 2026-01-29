@@ -59,6 +59,7 @@ export interface OpenEnrollmentTokenModal {
   appInfo: {
     smtp_enabled: boolean;
   };
+  enrollmentResponse: StartEnrollmentResponse;
 }
 
 export interface OpenCEWebhookModal {

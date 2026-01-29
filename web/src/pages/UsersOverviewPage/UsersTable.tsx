@@ -244,10 +244,17 @@ export const UsersTable = ({ users }: Props) => {
                   {
                     text: m.users_row_menu_initiate_self_enrollment(),
                     icon: IconKind.AddUser,
-                    onClick: () => {
+                    onClick: async () => {
+                      const enrollmentResponse = (
+                        await api.user.startEnrollment({
+                          send_enrollment_notification: false,
+                          username: rowData.username,
+                        })
+                      ).data;
                       openModal(ModalName.EnrollmentToken, {
                         user: rowData,
                         appInfo,
+                        enrollmentResponse,
                       });
                     },
                   },

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
@@ -60,7 +60,7 @@ export const EnrollmentTokenModal = () => {
   );
 };
 
-const ModalContent = ({ user, appInfo }: ModalData) => {
+const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
   const [sendEmail, setSendEmail] = useState(false);
 
   const { mutateAsync: sendEnrollmentEmail } = useMutation({
@@ -68,21 +68,6 @@ const ModalContent = ({ user, appInfo }: ModalData) => {
     onSuccess: () => {
       closeModal(modalName);
     },
-  });
-
-  const { data: enrollmentData } = useQuery({
-    queryFn: async () => {
-      const response = await api.user.startEnrollment({
-        username: user.username,
-        send_enrollment_notification: false,
-      });
-      return {
-        enrollment_url: response.data.enrollment_url,
-        enrollment_token: response.data.enrollment_token,
-      };
-    },
-    queryKey: ['enrollment-token', user.username],
-    refetchOnWindowFocus: false,
   });
 
   const formSchema = useMemo(
@@ -133,10 +118,6 @@ const ModalContent = ({ user, appInfo }: ModalData) => {
     }
   }, [form.state.isPristine, form.validateAllFields]);
 
-  if (!isPresent(enrollmentData)) {
-    return;
-  }
-
   return (
     <>
       <div className="enrollment-info">
@@ -153,14 +134,14 @@ const ModalContent = ({ user, appInfo }: ModalData) => {
         copyTooltip={m.misc_clipboard_copy()}
         label={m.modal_add_user_enrollment_form_label_instance_url()}
         data-testid="activation-url-field"
-        text={enrollmentData.enrollment_url}
+        text={enrollmentResponse.enrollment_url}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <CopyField
         label={m.modal_add_user_enrollment_form_label_token()}
         copyTooltip={m.misc_clipboard_copy()}
         data-testid="activation-token-field"
-        text={enrollmentData.enrollment_token}
+        text={enrollmentResponse.enrollment_token}
       />
       {appInfo.smtp_enabled && (
         <>
