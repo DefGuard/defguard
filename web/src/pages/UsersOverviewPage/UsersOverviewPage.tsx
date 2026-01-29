@@ -10,8 +10,8 @@ import { getUsersQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
-import { UsersTable } from './UsersTable';
 import { EnrollmentTokenModal } from './modals/EnrollmentTokenModal/EnrollmentTokenModal';
+import { UsersTable } from './UsersTable';
 
 export const UsersOverviewPage = () => {
   const { data: users } = useQuery(getUsersQueryOptions);

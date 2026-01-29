@@ -190,10 +190,7 @@ const ModalContent = ({ user }: ModalData) => {
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="email">
                   {(field) => (
-                    <field.FormInput
-                      required={sendEmail}
-                      label={m.form_label_email()}
-                    />
+                    <field.FormInput required={sendEmail} label={m.form_label_email()} />
                   )}
                 </form.AppField>
               </>
