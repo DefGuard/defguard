@@ -6,6 +6,7 @@ use defguard_common::db::{
         WireguardNetwork,
         group::Group,
         oauth2client::OAuth2Client,
+        proxy::Proxy,
         settings::{LdapSyncStatus, OpenIdUsernameHandling, SmtpEncryption},
         user::User,
     },
@@ -563,4 +564,10 @@ pub struct UserSnatBindingModifiedMetadata {
     pub user: UserNoSecrets,
     pub before: UserSnatBinding<Id>,
     pub after: UserSnatBinding<Id>,
+}
+
+#[derive(Serialize)]
+pub struct ProxyModifiedMetadata {
+    pub before: Proxy<Id>,
+    pub after: Proxy<Id>,
 }

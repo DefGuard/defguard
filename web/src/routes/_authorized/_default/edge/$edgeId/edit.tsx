@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EdgeEditPage } from '../../../../../pages/EdgeEditPage/EdgeEditPage';
+import { EditEdgePage } from '../../../../../pages/EditEdgePage/EditEdgePage';
 import { getEdgeQueryOptions } from '../../../../../shared/query';
 
 export const Route = createFileRoute('/_authorized/_default/edge/$edgeId/edit')({
@@ -7,5 +7,5 @@ export const Route = createFileRoute('/_authorized/_default/edge/$edgeId/edit')(
     const parsedId = parseInt(params.edgeId, 10);
     return context.queryClient.ensureQueryData(getEdgeQueryOptions(parsedId));
   },
-  component: EdgeEditPage,
+  component: EditEdgePage,
 });

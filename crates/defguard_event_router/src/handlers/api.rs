@@ -389,6 +389,10 @@ impl EventRouter {
                 })),
                 Some(location),
             ),
+            ApiEventType::ProxyModified { before, after } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::ProxyModified { before, after })),
+                None,
+            ),
         };
         self.log_event(
             EventContext::from_api_context(event.context, location),

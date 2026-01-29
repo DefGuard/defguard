@@ -913,7 +913,7 @@ export interface Edge {
   name: string;
   address: string;
   port: number;
-  publicAddress: string;
+  public_address: string;
 }
 
 export interface PaginationParams {
