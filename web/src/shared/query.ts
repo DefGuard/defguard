@@ -28,6 +28,13 @@ export const getLocationsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getEdgeQueryOptions = (id: number) =>
+  queryOptions({
+    queryFn: () => api.edge.getEdge(id),
+    queryKey: ['edge', id],
+    select: (resp) => resp.data,
+  });
+
 export const getNetworkDevicesQueryOptions = queryOptions({
   queryFn: api.network_device.getDevices,
   queryKey: ['device', 'network'],

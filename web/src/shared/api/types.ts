@@ -908,6 +908,14 @@ export type ActivityLogSortKey =
   | 'module'
   | 'device';
 
+export interface Edge {
+  id: number;
+  name: string;
+  address: string;
+  port: number;
+  publicAddress: string;
+}
+
 export interface PaginationParams {
   page?: number;
 }

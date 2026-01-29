@@ -36,6 +36,7 @@ import type {
   DeleteAuthKeyRequest,
   DeleteGatewayRequest,
   Device,
+  Edge,
   EditAclAliasRequest,
   EditAclRuleRequest,
   EditGroupRequest,
@@ -352,6 +353,9 @@ const api = {
   },
   mail: {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  edge: {
+    getEdge: (edgeId: number) => client.get<Edge>(`/edge/${edgeId}`),
   },
   acl: {
     alias: {

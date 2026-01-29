@@ -53,6 +53,7 @@ import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_autho
 import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
+import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_authorized/_default/edge/$edgeId/edit'
 
 const SnackbarRoute = SnackbarRouteImport.update({
   id: '/snackbar',
@@ -297,6 +298,12 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
     path: '/locations/$locationId/edit',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultEdgeEdgeIdEditRoute =
+  AuthorizedDefaultEdgeEdgeIdEditRouteImport.update({
+    id: '/edge/$edgeId/edit',
+    path: '/edge/$edgeId/edit',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
@@ -340,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -383,6 +391,7 @@ export interface FileRoutesByTo {
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesById {
@@ -430,6 +439,7 @@ export interface FileRoutesById {
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
   '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/_authorized/_default/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/_authorized/_default/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRouteTypes {
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/settings'
     | '/vpn-overview'
+    | '/edge/$edgeId/edit'
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -519,6 +530,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/settings'
     | '/vpn-overview'
+    | '/edge/$edgeId/edit'
     | '/locations/$locationId/edit'
   id:
     | '__root__'
@@ -565,6 +577,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/locations/'
     | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
+    | '/_authorized/_default/edge/$edgeId/edit'
     | '/_authorized/_default/locations/$locationId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -887,6 +900,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultLocationsLocationIdEditRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/edge/$edgeId/edit': {
+      id: '/_authorized/_default/edge/$edgeId/edit'
+      path: '/edge/$edgeId/edit'
+      fullPath: '/edge/$edgeId/edit'
+      preLoaderRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
   }
 }
 
@@ -913,6 +933,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
   AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
+  AuthorizedDefaultEdgeEdgeIdEditRoute: typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   AuthorizedDefaultLocationsLocationIdEditRoute: typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 
@@ -944,6 +965,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsIndexRoute: AuthorizedDefaultSettingsIndexRoute,
   AuthorizedDefaultVpnOverviewIndexRoute:
     AuthorizedDefaultVpnOverviewIndexRoute,
+  AuthorizedDefaultEdgeEdgeIdEditRoute: AuthorizedDefaultEdgeEdgeIdEditRoute,
   AuthorizedDefaultLocationsLocationIdEditRoute:
     AuthorizedDefaultLocationsLocationIdEditRoute,
 }
