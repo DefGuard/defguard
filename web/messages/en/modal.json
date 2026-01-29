@@ -86,6 +86,7 @@
   "modal_add_log_streaming_destination_title": "Add destination",
   "modal_add_user_groups_title": "Assign user to group(s)",
   "modal_initiate_self_enrollment_title": "Initiate self-enrollment for user",
+  "modal_add_user_enroll_title": "Start enrollment for user",
   "modal_add_user_choice_enroll_title": "Add user with self-enrollment option",
   "modal_add_user_choice_enroll_content": "User will be able to configure their account during the setup of their desktop client (e.g., set their own password, etc.).",
   "modal_add_user_choice_manual_title": "Add user manually",
