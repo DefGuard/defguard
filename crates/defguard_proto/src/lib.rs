@@ -67,14 +67,14 @@ impl Serialize for MfaMethod {
     }
 }
 
-impl Into<VpnClientMfaMethod> for MfaMethod {
-    fn into(self) -> VpnClientMfaMethod {
-        match self {
-            Self::Totp => VpnClientMfaMethod::Totp,
-            Self::Email => VpnClientMfaMethod::Email,
-            Self::Oidc => VpnClientMfaMethod::Oidc,
-            Self::Biometric => VpnClientMfaMethod::Biometric,
-            Self::MobileApprove => VpnClientMfaMethod::MobileApprove,
+impl From<MfaMethod> for VpnClientMfaMethod {
+    fn from(val: MfaMethod) -> Self {
+        match val {
+            MfaMethod::Totp => VpnClientMfaMethod::Totp,
+            MfaMethod::Email => VpnClientMfaMethod::Email,
+            MfaMethod::Oidc => VpnClientMfaMethod::Oidc,
+            MfaMethod::Biometric => VpnClientMfaMethod::Biometric,
+            MfaMethod::MobileApprove => VpnClientMfaMethod::MobileApprove,
         }
     }
 }
