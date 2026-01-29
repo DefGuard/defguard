@@ -8,7 +8,7 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Device, Settings, WireguardNetwork, gateway::Gateway},
+        models::{Settings, WireguardNetwork, gateway::Gateway},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -239,15 +239,6 @@ impl GatewayHandler {
         }
     }
 
-    /// Helper method to fetch `Device` info from DB by pubkey and return appropriate errors
-    async fn fetch_device_from_db(
-        &self,
-        public_key: &str,
-    ) -> Result<Option<Device<Id>>, GatewayError> {
-        let device = Device::find_by_pubkey(&self.pool, public_key).await?;
-        Ok(device)
-    }
-
     /// Connect to Gateway and handle its messages through gRPC.
     pub(crate) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
         let endpoint = self.endpoint(Scheme::Https)?;
@@ -353,28 +344,11 @@ impl GatewayHandler {
                                     continue;
                                 }
 
-                                let public_key = peer_stats.public_key.clone();
-
-                                // Fetch device from database.
-                                // otherwise
-                                let Ok(Some(device)) = self.fetch_device_from_db(&public_key).await
-                                else {
-                                    warn!(
-                                        "Received stats update for a device which does not \
-                                        exist: {public_key}, skipping."
-                                    );
-                                    continue;
-                                };
-
-                                // copy device ID for easier reference later
-                                let device_id = device.id;
-
                                 // convert stats to DB storage format
                                 match try_protos_into_stats_message(
                                     peer_stats.clone(),
                                     self.gateway.network_id,
                                     self.gateway.id,
-                                    device_id,
                                 ) {
                                     None => {
                                         warn!(

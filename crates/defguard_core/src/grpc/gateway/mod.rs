@@ -68,7 +68,6 @@ fn try_protos_into_stats_message(
     proto_stats: PeerStats,
     location_id: Id,
     gateway_id: Id,
-    device_id: Id,
 ) -> Option<PeerStatsUpdate> {
     // try to parse endpoint
     let endpoint = proto_stats.endpoint.parse().ok()?;
@@ -80,7 +79,7 @@ fn try_protos_into_stats_message(
     Some(PeerStatsUpdate::new(
         location_id,
         gateway_id,
-        device_id,
+        proto_stats.public_key,
         endpoint,
         proto_stats.upload,
         proto_stats.download,

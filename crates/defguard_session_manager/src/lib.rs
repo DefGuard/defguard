@@ -135,17 +135,26 @@ impl SessionManager {
         // check if a session exists already for a given peer
         // and attempt to add one if necessary
         let maybe_session = match active_sessions
-            .try_get_peer_session(transaction, message.location_id, message.device_id)
+            .try_get_peer_session(
+                transaction,
+                message.location_id,
+                message.device_pubkey.clone(),
+            )
             .await?
         {
             Some(session) => Some(session),
             None => {
                 debug!(
-                    "No active session found for device {} in location {}. Creating a new session",
-                    message.device_id, message.location_id
+                    "No active session found for device with pubkey {} in location {}. Creating a new session",
+                    message.device_pubkey, message.location_id
                 );
                 active_sessions
-                    .try_add_new_session(transaction, &message, &self.session_manager_event_tx)
+                    .try_add_new_session(
+                        transaction,
+                        &message,
+                        &message.device_pubkey,
+                        &self.session_manager_event_tx,
+                    )
                     .await?
             }
         };

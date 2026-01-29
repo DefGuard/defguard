@@ -21,6 +21,8 @@ pub enum SessionManagerError {
     UserDoesNotExistError(Id),
     #[error("Device with ID {0} does not exist")]
     DeviceDoesNotExistError(Id),
+    #[error("Device with pubkey {0} does not exist")]
+    DevicePubkeyDoesNotExistError(String),
     #[error("Location with ID {0} does not exist")]
     LocationDoesNotExistError(Id),
     #[error("VPN client session with ID {0} does not exist")]
