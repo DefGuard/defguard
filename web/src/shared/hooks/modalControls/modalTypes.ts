@@ -51,7 +51,6 @@ export const ModalName = {
   EditLogStreaming: 'editLogStreaming',
   DeleteLogStreaming: 'deleteLogStreaming',
   SelfEnrollmentToken: 'selfEnrollmentToken',
-
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
