@@ -11,6 +11,7 @@ import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
 import { UsersTable } from './UsersTable';
+import { EnrollmentTokenModal } from './modals/EnrollmentTokenModal/EnrollmentTokenModal';
 
 export const UsersOverviewPage = () => {
   const { data: users } = useQuery(getUsersQueryOptions);
@@ -23,6 +24,7 @@ export const UsersOverviewPage = () => {
       </Page>
       <AddUserModal />
       <EditUserModal />
+      <EnrollmentTokenModal />
       <AddAuthKeyModal />
       <ChangePasswordModal />
       <AssignUsersToGroupsModal />

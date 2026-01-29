@@ -1,22 +1,23 @@
 import z from 'zod';
 import type { ActivityLogStream, AddDeviceResponse, User } from '../../api/types';
-import type {
-  OpenAddApiTokenModal,
-  OpenAddNetworkDeviceModal,
-  OpenAssignUsersToGroupsModal,
-  OpenAuthKeyRenameModal,
-  OpenCEGroupModal,
-  OpenCEOpenIdClientModal,
-  OpenCEWebhookModal,
-  OpenDisplayListModal,
-  OpenEditDeviceModal,
-  OpenEditNetworkDeviceModal,
-  OpenEditUserModal,
-  OpenLicenseModal,
-  OpenNetworkDeviceConfigModal,
-  OpenNetworkDeviceTokenModal,
-  OpenRenameApiTokenModal,
-  OpenUpgradeLicenseModal,
+import {
+  type OpenAddApiTokenModal,
+  type OpenAddNetworkDeviceModal,
+  type OpenAssignUsersToGroupsModal,
+  type OpenAuthKeyRenameModal,
+  type OpenCEGroupModal,
+  type OpenCEOpenIdClientModal,
+  type OpenCEWebhookModal,
+  type OpenDisplayListModal,
+  type OpenEditDeviceModal,
+  type OpenEditNetworkDeviceModal,
+  type OpenEditUserModal,
+  type OpenLicenseModal,
+  type OpenEnrollmentTokenModal,
+  type OpenNetworkDeviceConfigModal,
+  type OpenNetworkDeviceTokenModal,
+  type OpenRenameApiTokenModal,
+  type OpenUpgradeLicenseModal,
 } from './types';
 
 export const ModalName = {
@@ -49,6 +50,7 @@ export const ModalName = {
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
   DeleteLogStreaming: 'deleteLogStreaming',
+  EnrollmentToken: 'enrollmentToken',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -99,6 +101,7 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
     name: z.literal(ModalName.EditUserModal),
     data: z.custom<OpenEditUserModal>(),
   }),
+  z.object({name: z.literal(ModalName.EnrollmentToken), data: z.custom<OpenEnrollmentTokenModal>()}),
   z.object({
     name: z.literal(ModalName.EditUserModal),
     data: z.custom<OpenEditUserModal>(),

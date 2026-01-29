@@ -242,6 +242,7 @@ export const UsersTable = ({ users }: Props) => {
                 menuItems={[
                   {
                     items: [
+                                        
                       {
                         text: m.users_row_menu_edit(),
                         icon: 'edit',
@@ -293,6 +294,21 @@ export const UsersTable = ({ users }: Props) => {
                         },
                       },
                     ],
+                  },
+                  {
+                    items: [    ...(!rowData.enrolled
+                        ? [
+                            {
+                              text: m.users_row_menu_initiate_self_enrollment(),
+                              icon: 'add-user' as const,
+                              onClick: () => {
+                                openModal(ModalName.EnrollmentToken, {
+                                  user: rowData,
+                                });
+                              },
+                            },
+                          ]
+                        : []),]
                   },
                   {
                     items: [

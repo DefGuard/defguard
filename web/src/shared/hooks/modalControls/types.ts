@@ -54,6 +54,10 @@ export interface OpenCEOpenIdClientModal {
   reservedNames: string[];
 }
 
+export interface OpenEnrollmentTokenModal {
+  user: User;
+}
+
 export interface OpenCEWebhookModal {
   webhook?: Webhook;
 }
