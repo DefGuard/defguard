@@ -29,10 +29,7 @@ use tokio::{
     time::sleep,
 };
 
-use crate::{
-    events::{InternalEvent, InternalEventContext},
-    grpc::gateway::events::GatewayEvent,
-};
+use crate::grpc::gateway::events::GatewayEvent;
 
 // How long to sleep between loop iterations
 const DISCONNECT_LOOP_SLEEP: Duration = Duration::from_secs(60); // 1 minute
@@ -47,8 +44,6 @@ pub enum PeerDisconnectError {
     WireguardError(#[from] WireguardNetworkError),
     #[error("Failed to send gateway event: {0}")]
     GatewayEventError(#[from] broadcast::error::SendError<GatewayEvent>),
-    #[error("Failed to send internal event: {0}")]
-    InternalEventError(#[from] mpsc::error::SendError<InternalEvent>),
 }
 
 #[derive(Debug)]
@@ -86,7 +81,6 @@ impl From<DeviceWithEndpoint> for Device<Id> {
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
-    internal_event_tx: UnboundedSender<InternalEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
     loop {
@@ -174,14 +168,6 @@ pub async fn run_periodic_peer_disconnect(
                         // endpoint is a `text` column in the db so we have to
                         // handle potential parsing issues here
                         .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
-                    let event = InternalEvent::DesktopClientMfaDisconnected {
-                        context: InternalEventContext::new(user.id, user.username, ip, device),
-                        location: location.clone(),
-                    };
-                    internal_event_tx.send(event).map_err(|err| {
-                        error!("Error sending internal event: {err}");
-                        PeerDisconnectError::InternalEventError(err)
-                    })?;
                 } else {
                     error!(
                         "Network config for device {device} in location {location} not found. Skipping device..."

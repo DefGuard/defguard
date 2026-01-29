@@ -25,7 +25,7 @@ use defguard_core::{
         license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
-    events::{ApiEvent, BidiStreamEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent},
     grpc::{
         WorkerState,
         gateway::{events::GatewayEvent, run_grpc_gateway_stream},
@@ -107,7 +107,6 @@ async fn main() -> Result<(), anyhow::Error> {
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
-    let (internal_event_tx, internal_event_rx) = unbounded_channel::<InternalEvent>();
     let (session_manager_event_tx, session_manager_event_rx) =
         unbounded_channel::<SessionManagerEvent>();
 
@@ -222,7 +221,6 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_periodic_peer_disconnect(
             pool.clone(),
             gateway_tx.clone(),
-            internal_event_tx.clone()
         ) => error!("Periodic peer disconnect task returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
@@ -238,7 +236,6 @@ async fn main() -> Result<(), anyhow::Error> {
             RouterReceiverSet::new(
                 api_event_rx,
                 bidi_event_rx,
-                internal_event_rx,
                 session_manager_event_rx
             ),
             event_logger_tx,

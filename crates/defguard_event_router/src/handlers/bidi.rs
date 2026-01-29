@@ -50,7 +50,7 @@ impl EventRouter {
                     device,
                     method,
                 } => (
-                    LoggerEvent::Vpn(Box::new(VpnEvent::ConnectedToMfaLocation {
+                    LoggerEvent::Vpn(Box::new(VpnEvent::ClientMfaSuccess {
                         location: location.clone(),
                         device,
                         method,
@@ -63,7 +63,7 @@ impl EventRouter {
                     method,
                     message,
                 } => (
-                    LoggerEvent::Vpn(Box::new(VpnEvent::MfaFailed {
+                    LoggerEvent::Vpn(Box::new(VpnEvent::ClientMfaFailed {
                         location: location.clone(),
                         device,
                         method,
