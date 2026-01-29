@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
@@ -63,6 +63,13 @@ export const EnrollmentTokenModal = () => {
 const ModalContent = ({ user, appInfo }: ModalData) => {
   const [sendEmail, setSendEmail] = useState(false);
 
+  const { mutateAsync: sendEnrollmentEmail } = useMutation({
+    mutationFn: api.user.startEnrollment,
+    onSuccess: () => {
+      closeModal(modalName);
+    },
+  });
+
   const { data: enrollmentData } = useQuery({
     queryFn: async () => {
       const response = await api.user.startEnrollment({
@@ -112,12 +119,11 @@ const ModalContent = ({ user, appInfo }: ModalData) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await api.user.startEnrollment({
+      await sendEnrollmentEmail({
         username: user.username,
         send_enrollment_notification: true,
         email: value.email,
       });
-      closeModal(modalName);
     },
   });
 
