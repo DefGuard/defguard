@@ -704,7 +704,7 @@ impl ClientMfaServer {
         self.emit_event(BidiStreamEvent {
             context,
             event: BidiStreamEventType::DesktopClientMfa(Box::new(
-                DesktopClientMfaEvent::Connected {
+                DesktopClientMfaEvent::Success {
                     location: location.clone(),
                     device: device.clone(),
                     method,

@@ -45,7 +45,7 @@ impl EventRouter {
                 ),
             },
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
-                DesktopClientMfaEvent::Connected {
+                DesktopClientMfaEvent::Success {
                     location,
                     device,
                     method,

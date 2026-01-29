@@ -374,7 +374,7 @@ pub type ClientMFAMethod = MfaMethod;
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
-    Connected {
+    Success {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
