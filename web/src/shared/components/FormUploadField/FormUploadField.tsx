@@ -9,5 +9,12 @@ export const FormUploadField = (
   const field = useFieldContext<File | null>();
   const error = useFormFieldError();
 
-  return <UploadField error={error} value={field.state.value} {...props} />;
+  return (
+    <UploadField
+      error={error}
+      value={field.state.value}
+      onChange={(value) => field.handleChange(value)}
+      {...props}
+    />
+  );
 };

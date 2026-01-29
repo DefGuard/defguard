@@ -19,6 +19,7 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
+import './style.scss';
 
 const modalNameValue = ModalName.AddLogStreaming;
 
@@ -136,7 +137,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
         url: z.string().trim().min(1, m.form_error_required()),
         username: z.string().optional(),
         password: z.string().optional(),
-        certificate: z.string().optional(),
+        certificate: z.file().nullable().optional(),
       }),
     [],
   );
@@ -149,7 +150,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       url: '',
       username: '',
       password: '',
-      certificate: '',
+      certificate: null,
     }),
     [],
   );
@@ -162,6 +163,17 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      let certificateContent: string | undefined = undefined;
+      
+      if (value.certificate) {
+        try {
+          certificateContent = await value.certificate.text();
+        } catch (error) {
+          console.error('Failed to read certificate file:', error);
+        }
+      }
+      console.log(certificateContent); // todo: delete
+
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
         stream_type:
@@ -172,7 +184,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
           url: value.url,
           username: value.username || undefined,
           password: value.password || undefined,
-          cert: value.certificate || undefined,
+          cert: certificateContent,
         },
       };
 
@@ -216,7 +228,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="certificate">
-            {(field) => <field.FormInput label="Certificate" />}
+            {(field) => <field.FormUploadField title='Upload certificate file' />}
           </form.AppField>
         </form.AppForm>
       </form>

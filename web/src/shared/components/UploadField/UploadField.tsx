@@ -19,6 +19,7 @@ export const UploadField = ({
   loading,
   disabled,
   testId,
+  title,
   onChange,
 }: UploadFieldProps) => {
   const valuePresent = isPresent(value);
@@ -51,7 +52,7 @@ export const UploadField = ({
           <Button
             iconLeft="upload"
             variant="outlined"
-            text={m.cmp_file_upload_button()}
+            text={title ?? m.cmp_file_upload_button()}
             loading={loading || isPending}
             disabled={disabled}
             onClick={() => {
