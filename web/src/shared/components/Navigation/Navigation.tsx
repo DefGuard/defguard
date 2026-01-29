@@ -74,6 +74,12 @@ const navigationConfig: NavGroupProps[] = [
         link: '/acl/rules',
       },
       {
+        id: 'destinations',
+        icon: 'gateway',
+        label: m.cmp_nav_item_destinations(),
+        link: '/acl/destinations',
+      },
+      {
         id: 'aliases',
         icon: 'access-settings',
         label: m.cmp_nav_item_aliases(),

@@ -3,12 +3,14 @@ import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
+  AclAlias,
   AclDestination,
   AclRule,
   ActivityLogEvent,
   ActivityLogRequestParams,
   ActivityLogStream,
   AddAclAliasRequest,
+  AddAclDestination,
   AddAclRuleRequest,
   AddApiTokenRequest,
   AddApiTokenResponse,
@@ -37,6 +39,7 @@ import type {
   DeleteGatewayRequest,
   Device,
   EditAclAliasRequest,
+  EditAclDestination,
   EditAclRuleRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
@@ -354,10 +357,24 @@ const api = {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
   },
   acl: {
+    destination: {
+      getDestinations: () => client.get<AclDestination[]>('/acl/destination'),
+      getDestination: (destinationId: number | string) =>
+        client.get<AclDestination>(`/acl/destination/${destinationId}`),
+      addAlias: (data: AddAclDestination) => client.post(`/acl/destination`, data),
+      editAlias: (data: EditAclDestination) =>
+        client.put(`/acl/destination/${data.id}`, data),
+      deleteAlias: (destinationId: number | string) =>
+        client.delete(`/acl/destination/${destinationId}`),
+      applyDestinations: (destinations: number[]) =>
+        client.put(`/acl/destination/apply`, {
+          aliases: destinations,
+        }),
+    },
     alias: {
-      getAliases: () => client.get<AclDestination[]>('/acl/alias'),
+      getAliases: () => client.get<AclAlias[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>
-        client.get<AclDestination>(`/acl/alias/${aliasId}`),
+        client.get<AclAlias>(`/acl/alias/${aliasId}`),
       addAlias: (data: AddAclAliasRequest) => client.post(`/acl/alias`, data),
       editAlias: (data: EditAclAliasRequest) => client.put(`/acl/alias/${data.id}`, data),
       deleteAlias: (aliasId: number | string) => client.delete(`/acl/alias/${aliasId}`),

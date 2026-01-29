@@ -809,7 +809,7 @@ export type AddAclDestination = Omit<AclDestination, 'id' | 'state' | 'rules'>;
 
 export type EditAclDestination = Omit<AclDestination, 'state' | 'rules'>;
 
-export interface AclDestination {
+export interface AclAlias {
   id: number;
   name: string;
   state: AclDeploymentStateValue;
