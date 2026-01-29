@@ -188,21 +188,23 @@ impl SessionManager {
 
             // get all sessions which were created but have never connected
             // this is only relevant for MFA locations
-            let unused_sessions =
-                VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
+            if location.mfa_enabled() {
+                let unused_sessions =
+                    VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
 
-            debug!(
-                "Found {} new VPN sessions which have not connected within required time in location {location}",
-                unused_sessions.len()
-            );
-
-            for session in unused_sessions {
                 debug!(
-                    "Disconnecting never connected session for user {}, device {} in location {location}",
-                    session.user_id, session.device_id
+                    "Found {} new VPN sessions which have not connected within required time in location {location}",
+                    unused_sessions.len()
                 );
-                self.disconnect_session(&mut transaction, session, &location)
-                    .await?;
+
+                for session in unused_sessions {
+                    debug!(
+                        "Disconnecting never connected session for user {}, device {} in location {location}",
+                        session.user_id, session.device_id
+                    );
+                    self.disconnect_session(&mut transaction, session, &location)
+                        .await?;
+                }
             }
         }
 
@@ -238,6 +240,11 @@ impl SessionManager {
             .ok_or(SessionManagerError::DeviceDoesNotExistError(
                 session.device_id,
             ))?;
+
+        // remove peers from GW for MFA locations
+        if location.mfa_enabled() {
+            unimplemented!()
+        }
 
         // emit event
         let context = SessionManagerEventContext {
