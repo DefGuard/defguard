@@ -35,6 +35,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableFlexCell } from '../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -244,18 +245,23 @@ export const UsersTable = ({ users }: Props) => {
                   {
                     text: m.users_row_menu_initiate_self_enrollment(),
                     icon: IconKind.AddUser,
-                    onClick: async () => {
-                      const enrollmentResponse = (
-                        await api.user.startEnrollment({
+                    onClick: () => {
+                      api.user
+                        .startEnrollment({
                           send_enrollment_notification: false,
                           username: rowData.username,
                         })
-                      ).data;
-                      openModal(ModalName.EnrollmentToken, {
-                        user: rowData,
-                        appInfo,
-                        enrollmentResponse,
-                      });
+                        .then((response) => {
+                          openModal(ModalName.EnrollmentToken, {
+                            user: rowData,
+                            appInfo,
+                            enrollmentResponse: response.data,
+                          });
+                        })
+                        .catch((error) => {
+                          Snackbar.error('Failed to initiate enrollment');
+                          console.error(error);
+                        });
                     },
                   },
                 ],
