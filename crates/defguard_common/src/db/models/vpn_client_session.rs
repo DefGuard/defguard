@@ -7,7 +7,7 @@ use crate::db::{
     models::{WireguardNetwork, vpn_session_stats::VpnSessionStats},
 };
 
-#[derive(Debug, Default, Type)]
+#[derive(Clone, Debug, Default, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
 pub enum VpnClientSessionState {
     #[default]
