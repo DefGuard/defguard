@@ -34,7 +34,6 @@ use defguard_core::{
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
-    wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
@@ -218,10 +217,6 @@ async fn main() -> Result<(), anyhow::Error> {
             proxy_control_tx
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
-        res = run_periodic_peer_disconnect(
-            pool.clone(),
-            gateway_tx.clone(),
-        ) => error!("Periodic peer disconnect task returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
             config.stats_purge_frequency.into(),

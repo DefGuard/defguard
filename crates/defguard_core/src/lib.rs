@@ -177,7 +177,6 @@ pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;
-pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
 
 #[macro_use]
