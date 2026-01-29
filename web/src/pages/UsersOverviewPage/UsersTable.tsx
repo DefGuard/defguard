@@ -352,7 +352,7 @@ export const UsersTable = ({ users }: Props) => {
                         username: rowData.username,
                       })
                       .then((response) => {
-                        openModal(ModalName.EnrollmentToken, {
+                        openModal(ModalName.SelfEnrollmentToken, {
                           user: rowData,
                           appInfo,
                           enrollmentResponse: response.data,

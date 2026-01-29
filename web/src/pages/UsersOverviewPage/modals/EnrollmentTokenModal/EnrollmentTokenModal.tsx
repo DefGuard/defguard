@@ -26,7 +26,7 @@ import {
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenEnrollmentTokenModal } from '../../../../shared/hooks/modalControls/types';
 
-const modalName = ModalName.EnrollmentToken;
+const modalName = ModalName.SelfEnrollmentToken;
 
 type ModalData = OpenEnrollmentTokenModal;
 
