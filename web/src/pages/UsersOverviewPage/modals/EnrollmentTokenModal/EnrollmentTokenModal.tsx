@@ -9,6 +9,7 @@ import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/C
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import {
   TextStyle,
   ThemeSpacing,
@@ -66,7 +67,12 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
   const { mutateAsync: sendEnrollmentEmail } = useMutation({
     mutationFn: api.user.startEnrollment,
     onSuccess: () => {
+      Snackbar.success(m.sucessfull_enrollment_email());
       closeModal(modalName);
+    },
+    onError: (error) => {
+      Snackbar.error(m.failed_to_start_enrollment());
+      console.error(error);
     },
   });
 

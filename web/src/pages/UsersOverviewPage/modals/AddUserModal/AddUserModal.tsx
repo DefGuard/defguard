@@ -358,13 +358,19 @@ const AddUserModalForm = () => {
         data: { groups },
       } = await api.group.getGroups();
       if (enrollmentEnabled) {
-        const enrollmentResponse = (
-          await api.user.startEnrollment({
-            send_enrollment_notification: false,
-            username: created.username,
-          })
-        ).data;
-        useAddUserModal.setState({ enrollResponse: enrollmentResponse, user: created });
+        try {
+          const enrollmentResponse = (
+            await api.user.startEnrollment({
+              send_enrollment_notification: false,
+              username: created.username,
+            })
+          ).data;
+          useAddUserModal.setState({ enrollResponse: enrollmentResponse, user: created });
+        } catch (error) {
+          console.error(m.failed_to_start_enrollment(), error);
+          useAddUserModal.setState({ isOpen: false });
+          return;
+        }
       }
       if (assignToGroups) {
         useAddUserModal.setState({
