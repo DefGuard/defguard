@@ -104,6 +104,23 @@ impl SessionState {
         transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
+        // mark new MFA session as connected if necessary
+        if self.state == VpnClientSessionState::New {
+            // fetch DB session
+            let mut db_session = VpnClientSession::find_by_id(&mut *transaction, self.session_id)
+                .await?
+                .ok_or(SessionManagerError::SessionDoesNotExistError(
+                    self.session_id,
+                ))?;
+            // update DB session
+            db_session.state = VpnClientSessionState::Connected;
+            db_session.connected_at = Some(peer_stats_update.latest_handshake);
+            db_session.save(&mut *transaction).await?;
+
+            // update local session state
+            self.state = VpnClientSessionState::Connected;
+        }
+
         // get previous stats for a given gateway if available and calculate transfer change
         let (upload_diff, download_diff) =
             match self.try_get_last_stats_update(peer_stats_update.gateway_id) {

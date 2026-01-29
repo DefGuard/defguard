@@ -22,6 +22,8 @@ pub enum SessionManagerError {
     DeviceDoesNotExistError(Id),
     #[error("Location with ID {0} does not exist")]
     LocationDoesNotExistError(Id),
+    #[error("VPN client session with ID {0} does not exist")]
+    SessionDoesNotExistError(Id),
     #[error("Received out of order peer stats update")]
     PeerStatsUpdateOutOfOrderError,
     #[error("Failed to send session manager event: {0}")]
