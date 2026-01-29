@@ -149,7 +149,7 @@ const EnrollmentStep = () => {
       <SizedBox height={ThemeSpacing.Xl2} />
       <CopyField
         copyTooltip={m.misc_clipboard_copy()}
-        label={m.modal_add_user_enrollment_form_label_url()}
+        label={m.modal_add_user_enrollment_form_label_instance_url()}
         data-testid="activation-url-field"
         text={enrollResponse.enrollment_url}
       />
