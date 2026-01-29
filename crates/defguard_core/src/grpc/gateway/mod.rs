@@ -475,6 +475,13 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
+                GatewayEvent::MfaSessionDisconnected(location_id, device) => {
+                    if location_id == self.network_id {
+                        self.send_peer_delete(&device.wireguard_pubkey)
+                    } else {
+                        Ok(())
+                    }
+                }
             };
             if result.is_err() {
                 error!(

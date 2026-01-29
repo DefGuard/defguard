@@ -8,9 +8,13 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_core::grpc::gateway::events::GatewayEvent;
 use sqlx::{PgConnection, PgPool};
 use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
     time::{Duration, interval},
 };
 use tracing::{debug, error, info, trace, warn};
@@ -32,12 +36,13 @@ pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+    gateway_tx: Sender<GatewayEvent>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
 
     // initialize session manager
-    let mut session_manager = SessionManager::new(pool, session_manager_event_tx);
+    let mut session_manager = SessionManager::new(pool, session_manager_event_tx, gateway_tx);
 
     loop {
         // receive next batch of peer stats messages
@@ -69,13 +74,19 @@ pub async fn run_session_manager(
 struct SessionManager {
     pool: PgPool,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+    gateway_tx: Sender<GatewayEvent>,
 }
 
 impl SessionManager {
-    fn new(pool: PgPool, session_manager_event_tx: UnboundedSender<SessionManagerEvent>) -> Self {
+    fn new(
+        pool: PgPool,
+        session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+        gateway_tx: Sender<GatewayEvent>,
+    ) -> Self {
         Self {
             pool,
             session_manager_event_tx,
+            gateway_tx,
         }
     }
 
@@ -243,7 +254,7 @@ impl SessionManager {
 
         // remove peers from GW for MFA locations
         if location.mfa_enabled() {
-            unimplemented!()
+            self.send_peer_disconnect_message(location, &device)?;
         }
 
         // emit event
@@ -261,6 +272,19 @@ impl SessionManager {
         };
         self.session_manager_event_tx.send(event)?;
 
+        Ok(())
+    }
+
+    fn send_peer_disconnect_message(
+        &self,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+    ) -> Result<(), SessionManagerError> {
+        debug!(
+            "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
+        );
+        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        self.gateway_tx.send(event)?;
         Ok(())
     }
 }

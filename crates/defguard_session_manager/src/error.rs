@@ -1,6 +1,7 @@
 use defguard_common::db::Id;
+use defguard_core::grpc::gateway::events::GatewayEvent;
 use thiserror::Error;
-use tokio::sync::mpsc::error::SendError;
+use tokio::sync::{broadcast::error::SendError as BroadcastSendError, mpsc::error::SendError};
 
 use crate::events::SessionManagerEvent;
 
@@ -28,10 +29,17 @@ pub enum SessionManagerError {
     PeerStatsUpdateOutOfOrderError,
     #[error("Failed to send session manager event: {0}")]
     SessionManagerEventError(Box<SendError<SessionManagerEvent>>),
+    #[error("Failed to send gateway manager event: {0}")]
+    GatewayManagerEventError(Box<BroadcastSendError<GatewayEvent>>),
 }
 
 impl From<SendError<SessionManagerEvent>> for SessionManagerError {
     fn from(error: SendError<SessionManagerEvent>) -> Self {
         Self::SessionManagerEventError(Box::new(error))
+    }
+}
+impl From<BroadcastSendError<GatewayEvent>> for SessionManagerError {
+    fn from(error: BroadcastSendError<GatewayEvent>) -> Self {
+        Self::GatewayManagerEventError(Box::new(error))
     }
 }

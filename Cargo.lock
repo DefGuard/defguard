@@ -1379,6 +1379,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "defguard_common",
+ "defguard_core",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
