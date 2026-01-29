@@ -3,23 +3,17 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use chrono::{DateTime, Utc};
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     db::{
-        Id, NoId,
-        models::{
-            Device, Settings, WireguardNetwork, gateway::Gateway,
-            wireguard_peer_stats::WireguardPeerStats,
-        },
+        Id,
+        models::{Device, Settings, WireguardNetwork, gateway::Gateway},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_mail::Mail;
-use defguard_proto::gateway::{
-    CoreResponse, PeerStats, core_request, core_response, gateway_client,
-};
+use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
 use reqwest::Url;
 use semver::Version;
@@ -57,26 +51,6 @@ impl Scheme {
             Self::Http => "http",
             Self::Https => "https",
         }
-    }
-}
-
-fn peer_stats_from_proto(stats: PeerStats, network_id: Id, device_id: Id) -> WireguardPeerStats {
-    let endpoint = match stats.endpoint {
-        endpoint if endpoint.is_empty() => None,
-        _ => Some(stats.endpoint),
-    };
-    WireguardPeerStats {
-        id: NoId,
-        network: network_id,
-        endpoint,
-        device_id,
-        collected_at: Utc::now().naive_utc(),
-        upload: stats.upload as i64,
-        download: stats.download as i64,
-        latest_handshake: DateTime::from_timestamp(stats.latest_handshake as i64, 0)
-            .unwrap_or_default()
-            .naive_utc(),
-        allowed_ips: Some(stats.allowed_ips),
     }
 }
 
@@ -382,7 +356,6 @@ impl GatewayHandler {
                                 let public_key = peer_stats.public_key.clone();
 
                                 // Fetch device from database.
-                                // TODO: fetch only when device has changed and use client state
                                 // otherwise
                                 let Ok(Some(device)) = self.fetch_device_from_db(&public_key).await
                                 else {
@@ -395,14 +368,6 @@ impl GatewayHandler {
 
                                 // copy device ID for easier reference later
                                 let device_id = device.id;
-
-                                // Convert stats to database storage format.
-                                // FIXME: remove once legacy table is removed
-                                let stats = peer_stats_from_proto(
-                                    peer_stats.clone(),
-                                    self.gateway.network_id,
-                                    device_id,
-                                );
 
                                 // convert stats to DB storage format
                                 match try_protos_into_stats_message(
@@ -425,20 +390,6 @@ impl GatewayHandler {
                                         };
                                     }
                                 };
-
-                                // Save stats to database.
-                                // FIXME: remove once legacy table is removed
-                                let stats = match stats.save(&self.pool).await {
-                                    Ok(stats) => stats,
-                                    Err(err) => {
-                                        error!(
-                                            "Saving WireGuard peer stats to database failed: {err}"
-                                        );
-                                        continue;
-                                    }
-                                };
-                                info!("Saved WireGuard peer stats to database.");
-                                debug!("WireGuard peer stats: {stats:?}");
                             }
                             None => (),
                         }
