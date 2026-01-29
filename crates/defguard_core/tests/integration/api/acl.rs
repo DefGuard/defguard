@@ -65,6 +65,9 @@ fn make_rule() -> EditAclRule {
         enabled: true,
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
 }
 
@@ -81,6 +84,9 @@ fn make_alias() -> EditAclAlias {
         destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
 }
 
@@ -113,6 +119,9 @@ fn edit_rule_data_into_api_response(
         aliases: data.aliases.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
+        any_destination: data.any_destination,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }
 
@@ -134,6 +143,9 @@ fn edit_alias_data_into_api_response(
         ports: data.ports,
         protocols: data.protocols,
         rules,
+        any_destination: data.any_destination,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }
 
@@ -488,6 +500,9 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -499,6 +514,9 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -637,6 +655,9 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&state.pool)
     .await

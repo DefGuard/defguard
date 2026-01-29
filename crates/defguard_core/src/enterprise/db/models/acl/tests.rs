@@ -31,6 +31,9 @@ async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
         destination.clone(),
         ports.clone(),
         vec![20, 30],
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -65,6 +68,10 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -167,6 +174,10 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -334,6 +345,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -345,6 +359,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -545,6 +562,10 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -660,6 +681,10 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await

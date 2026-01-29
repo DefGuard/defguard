@@ -816,6 +816,9 @@ export interface AclAlias {
   ports: string;
   protocols: AclProtocolValue[];
   rules: number[];
+  any_destination: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
 }
 
 export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;

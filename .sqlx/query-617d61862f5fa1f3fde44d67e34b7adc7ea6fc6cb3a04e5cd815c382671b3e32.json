@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires FROM aclrulealias ara JOIN aclrule ar ON ar.id = ara.rule_id WHERE ara.alias_id = $1",
+  "query": "UPDATE aclrule SET state = 'expired'::aclrule_state WHERE state = 'applied'::aclrule_state AND expires < NOW() RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires, any_destination, any_port, any_protocol, manual_settings",
   "describe": {
     "columns": [
       {
@@ -85,12 +85,30 @@
         "ordinal": 13,
         "name": "expires",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 14,
+        "name": "any_destination",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "any_port",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "any_protocol",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "manual_settings",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -106,8 +124,12 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "5e765af5f354caaeb952fe3a79a81eb462ad45ebb09e70e4dbfe316ee338d89a"
+  "hash": "617d61862f5fa1f3fde44d67e34b7adc7ea6fc6cb3a04e5cd815c382671b3e32"
 }
