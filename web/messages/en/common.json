@@ -50,5 +50,7 @@
   "search_empty_common_title": "Nothing is found.",
   "search_empty_common_subtitle": "Try adjusting your filters or search terms.",
   "search_users": "Find users",
-  "select_users_all": "All users"
+  "select_users_all": "All users",
+  "sucessfull_enrollment_email": "Enrollment email sent successfully",
+  "failed_to_start_enrollment": "Failed to start enrollment"
 }

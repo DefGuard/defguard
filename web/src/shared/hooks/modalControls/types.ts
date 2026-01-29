@@ -54,6 +54,14 @@ export interface OpenCEOpenIdClientModal {
   reservedNames: string[];
 }
 
+export interface OpenEnrollmentTokenModal {
+  user: User;
+  appInfo: {
+    smtp_enabled: boolean;
+  };
+  enrollmentResponse: StartEnrollmentResponse;
+}
+
 export interface OpenCEWebhookModal {
   webhook?: Webhook;
 }
