@@ -79,7 +79,6 @@ const ModalContent = ({ user }: ModalData) => {
     },
     queryKey: ['enrollment-token', user.username],
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
   });
 
   const formSchema = useMemo(
@@ -118,7 +117,7 @@ const ModalContent = ({ user }: ModalData) => {
 
   const form = useAppForm({
     defaultValues: {
-      email: user?.email ?? '',
+      email: user.email ?? '',
     },
     validationLogic: formChangeLogic,
     validators: {
@@ -169,46 +168,30 @@ const ModalContent = ({ user }: ModalData) => {
         text={enrollmentData.enrollment_token}
       />
       {appInfo.smtp_enabled && (
-        <form
-          onSubmit={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
+        <>
           <SizedBox height={ThemeSpacing.Xl3} />
           <form.AppForm>
             <Checkbox
               text={m.modal_add_user_enrollment_form_label_send()}
               active={sendEmail}
-              onClick={() => {
-                setSendEmail((s) => !s);
-              }}
+              onClick={() => setSendEmail((s) => !s)}
             />
             {sendEmail && (
               <>
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="email">
-                  {(field) => (
-                    <field.FormInput required={sendEmail} label={m.form_label_email()} />
-                  )}
+                  {(field) => <field.FormInput label={m.form_label_email()} />}
                 </form.AppField>
               </>
             )}
           </form.AppForm>
-        </form>
+        </>
       )}
       <ModalControls
         submitProps={{
           text: sendEmail ? m.controls_send_email() : m.controls_close(),
           loading: isSubmitting,
-          onClick: () => {
-            if (sendEmail) {
-              form.handleSubmit();
-            } else {
-              closeModal(modalName);
-            }
-          },
+          onClick: sendEmail ? form.handleSubmit : () => closeModal(modalName),
         }}
       />
     </>

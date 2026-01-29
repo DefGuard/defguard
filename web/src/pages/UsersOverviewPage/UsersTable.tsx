@@ -294,10 +294,10 @@ export const UsersTable = ({ users }: Props) => {
                       },
                     ],
                   },
-                  {
-                    items: [
-                      ...(!rowData.enrolled
-                        ? [
+                  ...(!rowData.enrolled
+                    ? [
+                        {
+                          items: [
                             {
                               text: m.users_row_menu_initiate_self_enrollment(),
                               icon: 'add-user' as const,
@@ -307,10 +307,10 @@ export const UsersTable = ({ users }: Props) => {
                                 });
                               },
                             },
-                          ]
-                        : []),
-                    ],
-                  },
+                          ],
+                        },
+                      ]
+                    : []),
                   {
                     items: [
                       {
