@@ -355,7 +355,7 @@ const api = {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
   },
   edge: {
-    getEdge: (edgeId: number) => client.get<Edge>(`/edge/${edgeId}`),
+    getEdge: (edgeId: number) => client.get<Edge>(`/proxy/${edgeId}`),
   },
   acl: {
     alias: {

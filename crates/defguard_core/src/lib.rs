@@ -109,52 +109,36 @@ use crate::{
     },
     grpc::{WorkerState, gateway::events::GatewayEvent},
     handlers::{
-        app_info::get_app_info,
-        auth::{
+        app_info::get_app_info, auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
             logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
             totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
             webauthn_start,
-        },
-        ca::create_ca,
-        component_setup::setup_gateway_tls_stream,
-        forward_auth::forward_auth,
-        group::{
+        }, ca::create_ca, component_setup::setup_gateway_tls_stream, forward_auth::forward_auth, group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
-        },
-        mail::{send_support_data, test_mail},
-        openid_clients::{
+        }, mail::{send_support_data, test_mail}, openid_clients::{
             add_openid_client, change_openid_client, change_openid_client_state,
             delete_openid_client, get_openid_client, list_openid_clients,
-        },
-        openid_flow::{
+        }, openid_flow::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
-        },
-        settings::{
+        }, proxy::proxy_details, settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
-        },
-        ssh_authorized_keys::get_authorized_keys,
-        support::{configuration, logs},
-        updates::outdated_components,
-        user::{
+        }, ssh_authorized_keys::get_authorized_keys, support::{configuration, logs}, updates::outdated_components, user::{
             add_user, change_password, change_self_password, delete_authorized_app,
             delete_security_key, delete_user, get_user, list_users, me, modify_user,
             reset_password, start_enrollment, start_remote_desktop_configuration,
             username_available,
-        },
-        webhooks::{
+        }, webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
-        },
-        wireguard::{
+        }, wireguard::{
             add_device, add_user_devices, change_gateway, create_network, create_network_token,
             delete_device, delete_network, devices_stats, download_config, gateway_status,
             get_device, import_network, list_devices, list_networks, list_user_devices,
             modify_device, modify_network, network_details, network_stats, remove_gateway,
-        },
-        worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
+        }, worker::{create_job, create_worker_token, job_status, list_workers, remove_worker}
     },
     location_management::sync_location_allowed_devices,
     version::IncompatibleComponents,
@@ -359,6 +343,8 @@ pub fn build_webapp(
             .route("/activity_log", get(get_activity_log_events))
             // Certificate authority
             .route("/ca", post(create_ca))
+			// Proxy routes
+			.route("/proxy/{proxy_id}", get(proxy_details))
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );

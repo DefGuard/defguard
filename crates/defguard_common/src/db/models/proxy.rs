@@ -1,10 +1,12 @@
 use chrono::NaiveDateTime;
 use model_derive::Model;
+use serde::Serialize;
 use sqlx::PgPool;
+use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Model)]
+#[derive(Model, Serialize, ToSchema)]
 pub struct Proxy<I = NoId> {
     pub id: I,
     pub name: String,

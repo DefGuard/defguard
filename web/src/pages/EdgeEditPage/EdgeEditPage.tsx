@@ -1,5 +1,8 @@
 import { Link } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { getEdgeQueryOptions } from '../../shared/query';
 
 const breadcrumbsLinks = [
   <Link
@@ -17,13 +20,17 @@ const breadcrumbsLinks = [
 ];
 
 export const EdgeEditPage = () => {
+  const { edgeId: paramsId } = useParams({
+    from: '/_authorized/_default/edge/$edgeId/edit',
+  });
+  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(paramsId)));
   return (
     <EditPage
-      pageTitle="Edit Edge component"
+      pageTitle="Edge component"
       links={breadcrumbsLinks}
       headerProps={{ title: 'Edit Edge component' }}
     >
-      TODO
+      ID: {paramsId} name: {edge.name}
     </EditPage>
   );
 };
