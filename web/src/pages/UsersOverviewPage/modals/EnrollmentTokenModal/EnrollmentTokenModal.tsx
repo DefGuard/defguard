@@ -1,5 +1,4 @@
-import { useStore } from '@tanstack/react-form';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
@@ -25,7 +24,6 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenEnrollmentTokenModal } from '../../../../shared/hooks/modalControls/types';
-import { useApp } from '../../../../shared/hooks/useApp';
 
 const modalName = ModalName.EnrollmentToken;
 
@@ -62,9 +60,8 @@ export const EnrollmentTokenModal = () => {
   );
 };
 
-const ModalContent = ({ user }: ModalData) => {
+const ModalContent = ({ user, appInfo }: ModalData) => {
   const [sendEmail, setSendEmail] = useState(false);
-  const appInfo = useApp((s) => s.appInfo);
 
   const { data: enrollmentData } = useQuery({
     queryFn: async () => {
@@ -105,16 +102,6 @@ const ModalContent = ({ user }: ModalData) => {
     [sendEmail],
   );
 
-  const { mutateAsync: sendEnrollmentEmail } = useMutation({
-    mutationFn: async (email: string) => {
-      return api.user.startEnrollment({
-        username: user.username,
-        send_enrollment_notification: true,
-        email,
-      });
-    },
-  });
-
   const form = useAppForm({
     defaultValues: {
       email: user.email ?? '',
@@ -125,12 +112,14 @@ const ModalContent = ({ user }: ModalData) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await sendEnrollmentEmail(value.email);
+      await api.user.startEnrollment({
+        username: user.username,
+        send_enrollment_notification: true,
+        email: value.email,
+      });
       closeModal(modalName);
     },
   });
-
-  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (!form.state.isPristine) {
@@ -187,13 +176,16 @@ const ModalContent = ({ user }: ModalData) => {
           </form.AppForm>
         </>
       )}
-      <ModalControls
-        submitProps={{
-          text: sendEmail ? m.controls_send_email() : m.controls_close(),
-          loading: isSubmitting,
-          onClick: sendEmail ? form.handleSubmit : () => closeModal(modalName),
-        }}
-      />
+      <form.Subscribe>
+        {() => (
+          <ModalControls
+            submitProps={{
+              text: sendEmail ? m.controls_send_email() : m.controls_close(),
+              onClick: sendEmail ? form.handleSubmit : () => closeModal(modalName),
+            }}
+          />
+        )}
+      </form.Subscribe>
     </>
   );
 };

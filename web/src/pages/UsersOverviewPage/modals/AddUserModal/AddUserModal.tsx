@@ -364,7 +364,7 @@ const AddUserModalForm = () => {
             username: created.username,
           })
         ).data;
-        useAddUserModal.setState({ enrollResponse: enrollmentResponse });
+        useAddUserModal.setState({ enrollResponse: enrollmentResponse, user: created });
       }
       if (assignToGroups) {
         useAddUserModal.setState({

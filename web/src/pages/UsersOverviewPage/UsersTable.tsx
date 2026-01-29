@@ -26,7 +26,7 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { Icon } from '../../shared/defguard-ui/components/Icon';
+import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
@@ -38,6 +38,7 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { useApp } from '../../shared/hooks/useApp';
 import { getGroupsInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
@@ -51,6 +52,7 @@ type RowData = UsersListItem;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = ({ users }: Props) => {
+  const appInfo = useApp((s) => s.appInfo);
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
@@ -235,6 +237,24 @@ export const UsersTable = ({ users }: Props) => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+
+          const enrollmentSection = !rowData.enrolled
+            ? {
+                items: [
+                  {
+                    text: m.users_row_menu_initiate_self_enrollment(),
+                    icon: IconKind.AddUser,
+                    onClick: () => {
+                      openModal(ModalName.EnrollmentToken, {
+                        user: rowData,
+                        appInfo,
+                      });
+                    },
+                  },
+                ],
+              }
+            : null;
+
           return (
             <TableCell>
               <IconButtonMenu
@@ -294,23 +314,7 @@ export const UsersTable = ({ users }: Props) => {
                       },
                     ],
                   },
-                  ...(!rowData.enrolled
-                    ? [
-                        {
-                          items: [
-                            {
-                              text: m.users_row_menu_initiate_self_enrollment(),
-                              icon: 'add-user' as const,
-                              onClick: () => {
-                                openModal(ModalName.EnrollmentToken, {
-                                  user: rowData,
-                                });
-                              },
-                            },
-                          ],
-                        },
-                      ]
-                    : []),
+                  ...(enrollmentSection ? [enrollmentSection] : []),
                   {
                     items: [
                       {
@@ -369,6 +373,7 @@ export const UsersTable = ({ users }: Props) => {
       groupsOptions,
       handleEditGroups,
       groups,
+      appInfo,
     ],
   );
 

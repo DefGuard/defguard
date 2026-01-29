@@ -56,6 +56,9 @@ export interface OpenCEOpenIdClientModal {
 
 export interface OpenEnrollmentTokenModal {
   user: User;
+  appInfo: {
+    smtp_enabled: boolean;
+  };
 }
 
 export interface OpenCEWebhookModal {
