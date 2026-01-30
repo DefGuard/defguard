@@ -7,5 +7,6 @@
   "edge_edit_address": "IP or Domain",
   "edge_edit_port": "gRPC port",
   "edge_edit_public_address": "Public domain",
-  "edge_edit_delete": "Delete"
+  "edge_edit_delete": "Delete",
+  "edge_edit_success": "Edge component updated"
 }
