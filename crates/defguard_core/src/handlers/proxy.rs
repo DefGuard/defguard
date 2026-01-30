@@ -5,6 +5,7 @@ use axum::{
 use defguard_common::db::models::proxy::Proxy;
 use reqwest::StatusCode;
 use serde_json::{Value, json};
+use utoipa::ToSchema;
 
 use crate::{
     appstate::AppState,
@@ -12,6 +13,11 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
+
+#[derive(Deserialize, ToSchema)]
+pub(crate) struct ProxyUpdateData {
+    name: String,
+}
 
 #[utoipa::path(
     get,
@@ -55,7 +61,7 @@ pub(crate) async fn proxy_details(
     path = "/api/v1/proxy/{proxy_id}",
     request_body = Proxy,
     responses(
-        (status = 200, description = "Successfully modified edge.", body = Proxy),
+        (status = 200, description = "Successfully modified edge.", body = ProxyUpdateData),
         (status = 401, description = "Unauthorized to modify edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to modify an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
@@ -66,13 +72,13 @@ pub(crate) async fn proxy_details(
         ("api_token" = [])
     )
 )]
-pub(crate) async fn modify_proxy(
+pub(crate) async fn update_proxy(
     _role: AdminRole,
     Path(proxy_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
-    Json(data): Json<Proxy>,
+    Json(data): Json<ProxyUpdateData>,
 ) -> ApiResult {
     debug!("User {} updating proxy {proxy_id}", session.user.username);
     let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
