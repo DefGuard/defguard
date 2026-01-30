@@ -1,20 +1,33 @@
 import './style.scss';
+import { useStore } from '@tanstack/react-form';
 import { useQuery } from '@tanstack/react-query';
 import { intersection } from 'lodash-es';
+import { flat } from 'radashi';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
-import { AclProtocol, AclProtocolName } from '../../shared/api/types';
+import {
+  type AclDestination,
+  AclProtocolName,
+  type AclProtocolValue,
+  aclProtocolValues,
+} from '../../shared/api/types';
 import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
+import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
+import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import type {
+  SelectionOption,
+  SelectionSectionCustomRender,
+} from '../../shared/components/SelectionSection/type';
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
@@ -25,8 +38,11 @@ import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
   getAliasesQueryOptions,
+  getDestinationsQueryOptions,
   getGroupsInfoQueryOptions,
   getNetworkDevicesQueryOptions,
   getUsersQueryOptions,
@@ -34,7 +50,26 @@ import {
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 
-const availableProtocols = Object.keys(AclProtocol) as Array<keyof typeof AclProtocol>;
+const getProtocolName = (key: AclProtocolValue) => AclProtocolName[key];
+
+const renderDestinationSelectionItem: SelectionSectionCustomRender<
+  number,
+  AclDestination
+> = ({ active, onClick, option }) => (
+  <div className="destination-selection-item" onClick={onClick}>
+    <CheckboxIndicator active={active} />
+    {isPresent(option.meta) && (
+      <DestinationLabel
+        name={option.meta.name}
+        ips={option.meta.destination}
+        ports={option.meta.ports}
+        protocols={option.meta.protocols
+          .map((protocol) => AclProtocolName[protocol])
+          .join(',')}
+      />
+    )}
+  </div>
+);
 
 export const CERulePage = () => {
   return (
@@ -73,6 +108,20 @@ const Content = () => {
     }
   }, [users]);
 
+  const { data: destinations } = useQuery(getDestinationsQueryOptions);
+
+  const destinationsOptions = useMemo(() => {
+    if (isPresent(destinations)) {
+      return destinations.map(
+        (destination): SelectionOption<number> => ({
+          id: destination.id,
+          label: destination.name,
+          meta: destination,
+        }),
+      );
+    }
+  }, [destinations]);
+
   const { data: aliases } = useQuery(getAliasesQueryOptions);
 
   const aliasesOptions = useMemo(() => {
@@ -86,6 +135,7 @@ const Content = () => {
         [],
       );
     }
+    return [];
   }, [aliases]);
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
@@ -99,6 +149,7 @@ const Content = () => {
         }),
       );
     }
+    return [];
   }, [groups]);
 
   const { data: networkDevices } = useQuery(getNetworkDevicesQueryOptions);
@@ -112,6 +163,7 @@ const Content = () => {
         }),
       );
     }
+    return [];
   }, [networkDevices]);
 
   const [restrictionsPresent, setRestrictionsPresent] = useState(false);
@@ -136,7 +188,8 @@ const Content = () => {
           denied_groups: z.number().array(),
           allowed_devices: z.number().array(),
           denied_devices: z.number().array(),
-          aliases: z.number().array(),
+          destinations: z.set(z.number()),
+          aliases: z.set(z.number()),
           protocols: z.set(z.number()),
           destination: aclDestinationValidator,
           ports: aclPortsValidator,
@@ -232,7 +285,8 @@ const Content = () => {
       name: '',
       destination: '',
       ports: '',
-      aliases: [],
+      aliases: new Set(),
+      destinations: new Set(),
       allowed_devices: [],
       allowed_groups: [],
       allowed_users: [],
@@ -260,6 +314,11 @@ const Content = () => {
       onChange: formSchema,
     },
   });
+
+  const selectedAliases = useStore(
+    form.store,
+    (s) => aliases?.filter((alias) => s.values.aliases.has(alias.id)) ?? [],
+  );
 
   return (
     <form
@@ -290,7 +349,64 @@ const Content = () => {
           <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
             {`You can add additional destinations to this rule to extend its scope. These destinations are configured separately in the 'Destinations' section.`}
           </AppText>
-          <Divider text="or/and" spacing={ThemeSpacing.Lg} />
+          <SizedBox height={ThemeSpacing.Xl2} />
+          {isPresent(destinations) && destinations.length > 0 && (
+            <>
+              <form.AppField name="destinations">
+                {(field) => {
+                  const selectedDestinations =
+                    destinations?.filter((destination) =>
+                      field.state.value.has(destination.id),
+                    ) ?? [];
+                  return (
+                    <>
+                      <Button
+                        variant="outlined"
+                        text="Select predefined destination(s)"
+                        onClick={() => {
+                          useSelectionModal.setState({
+                            title: 'Select predefined destination(s)',
+                            isOpen: true,
+                            options: destinationsOptions ?? [],
+                            onSubmit: (selection) =>
+                              field.handleChange(new Set(selection as number[])),
+                            // @ts-expect-error
+                            renderItem: renderDestinationSelectionItem,
+                          });
+                        }}
+                      />
+                      {selectedDestinations.length > 0 && (
+                        <div className="selected-destinations">
+                          <div className="top">
+                            <p>{`Selected destinations`}</p>
+                          </div>
+                          <div className="items-track">
+                            {selectedDestinations.map((destination) => (
+                              <DestinationDismissibleBox
+                                key={destination.id}
+                                name={destination.name}
+                                ips={destination.destination}
+                                ports={destination.ports}
+                                protocols={destination.protocols
+                                  .map((p) => AclProtocolName[p])
+                                  .join(',')}
+                                onClick={() => {
+                                  const newValue = new Set(field.state.value);
+                                  newValue.delete(destination.id);
+                                  field.handleChange(newValue);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                }}
+              </form.AppField>
+              <Divider text="or/and" spacing={ThemeSpacing.Lg} />
+            </>
+          )}
           <DescriptionBlock title={`Define destination manually`}>
             <p>{`Manually configure destinations parameters for this rule.`}</p>
           </DescriptionBlock>
@@ -331,7 +447,7 @@ const Content = () => {
                               useSelectionModal.setState({
                                 isOpen: true,
                                 onSubmit: (selected) => {
-                                  field.handleChange(selected as number[]);
+                                  field.handleChange(new Set(selected as number[]));
                                 },
                                 options: aliasesOptions,
                                 selected: new Set(field.state.value),
@@ -343,9 +459,18 @@ const Content = () => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         {isPresent(aliasesOptions) &&
                           aliasesOptions
-                            .filter((alias) => field.state.value.includes(alias.id))
+                            .filter((alias) => field.state.value.has(alias.id))
                             .map((option) => (
-                              <Chip size="sm" text={option.label} key={option.id} />
+                              <Chip
+                                size="sm"
+                                text={option.label}
+                                key={option.id}
+                                onDismiss={() => {
+                                  const newState = new Set(field.state.value);
+                                  newState.delete(option.id);
+                                  field.handleChange(newState);
+                                }}
+                              />
                             ))}
                       </>
                     )}
@@ -373,6 +498,11 @@ const Content = () => {
                     <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
                   )}
                 </form.AppField>
+                <AliasDataBlock
+                  values={flat(
+                    selectedAliases.map((alias) => alias.destination.split(',')),
+                  )}
+                />
               </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Ports">
@@ -395,6 +525,9 @@ const Content = () => {
                     <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
                   )}
                 </form.AppField>
+                <AliasDataBlock
+                  values={flat(selectedAliases.map((alias) => alias.ports.split(',')))}
+                />
               </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Protocols">
@@ -412,17 +545,21 @@ const Content = () => {
               />
               <Fold open={!destinationAllProtocols}>
                 <SizedBox height={ThemeSpacing.Xl2} />
-                <div className="protocols-selection">
-                  {availableProtocols.map((protocolKey) => {
-                    const value = AclProtocol[protocolKey];
-                    const name = AclProtocolName[value];
-                    return (
-                      <form.AppField name="protocols" key={protocolKey}>
-                        {(field) => <field.FormCheckbox value={value} text={name} />}
-                      </form.AppField>
-                    );
-                  })}
-                </div>
+                <form.AppField name="protocols">
+                  {(field) => (
+                    <field.FormCheckboxGroup
+                      values={aclProtocolValues}
+                      getLabel={getProtocolName}
+                    />
+                  )}
+                </form.AppField>
+                <AliasDataBlock
+                  values={flat(
+                    selectedAliases.map((alias) =>
+                      alias.protocols.map((protocol) => AclProtocolName[protocol]),
+                    ),
+                  )}
+                />
               </Fold>
             </Card>
           </Fold>
@@ -548,5 +685,36 @@ const Content = () => {
         </Controls>
       </form.AppForm>
     </form>
+  );
+};
+
+type AliasDataBlockProps = {
+  values: string[];
+};
+
+const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
+  return (
+    <div className="alias-data-block">
+      <div className="top">
+        <p>{`Data from aliases`}</p>
+      </div>
+      <div className="content-track">
+        {values.map((value) => (
+          <Chip key={value} text={value} />
+        ))}
+        {values.length > 4 && (
+          <button
+            onClick={() => {
+              openModal(ModalName.DisplayList, {
+                title: 'Data from aliases',
+                data: values,
+              });
+            }}
+          >
+            <span>{`Show all`}</span>
+          </button>
+        )}
+      </div>
+    </div>
   );
 };

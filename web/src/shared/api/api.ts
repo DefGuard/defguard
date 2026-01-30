@@ -4,11 +4,13 @@ import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
   AclAlias,
+  AclDestination,
   AclRule,
   ActivityLogEvent,
   ActivityLogRequestParams,
   ActivityLogStream,
   AddAclAliasRequest,
+  AddAclDestination,
   AddAclRuleRequest,
   AddApiTokenRequest,
   AddApiTokenResponse,
@@ -38,6 +40,7 @@ import type {
   Device,
   Edge,
   EditAclAliasRequest,
+  EditAclDestination,
   EditAclRuleRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
@@ -360,6 +363,20 @@ const api = {
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
   },
   acl: {
+    destination: {
+      getDestinations: () => client.get<AclDestination[]>('/acl/destination'),
+      getDestination: (destinationId: number | string) =>
+        client.get<AclDestination>(`/acl/destination/${destinationId}`),
+      addDestination: (data: AddAclDestination) => client.post(`/acl/destination`, data),
+      editDestination: (data: EditAclDestination) =>
+        client.put(`/acl/destination/${data.id}`, data),
+      deleteDestination: (destinationId: number | string) =>
+        client.delete(`/acl/destination/${destinationId}`),
+      applyDestinations: (destinations: number[]) =>
+        client.put(`/acl/destination/apply`, {
+          aliases: destinations,
+        }),
+    },
     alias: {
       getAliases: () => client.get<AclAlias[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>

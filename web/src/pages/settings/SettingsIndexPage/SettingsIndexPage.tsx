@@ -36,7 +36,7 @@ const tabToTitle = (tab: SettingsTabValue): string => {
 };
 
 export const SettingsIndexPage = () => {
-  const navigateTab = useNavigate({ from: '/settings' });
+  const navigateTab = useNavigate({ from: '/settings/' });
   const search = useSearch({ from: '/_authorized/_default/settings/' });
 
   const tabs: TabProps[] = useMemo(

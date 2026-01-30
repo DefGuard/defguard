@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { range, sum } from 'lodash-es';
 import React from 'react';
 import { SectionMarker } from '../../defguard-ui/components/SectionMarker/SectionMarker';
+import { ThemeVariable } from '../../defguard-ui/types';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 
 interface Props {
@@ -96,6 +97,9 @@ const ArrowIcon = () => {
       <path
         d="M16.8536 7.85355C17.0488 7.65829 17.0488 7.34171 16.8536 7.14645L13.6716 3.96447C13.4763 3.7692 13.1597 3.7692 12.9645 3.96447C12.7692 4.15973 12.7692 4.47631 12.9645 4.67157L15.7929 7.5L12.9645 10.3284C12.7692 10.5237 12.7692 10.8403 12.9645 11.0355C13.1597 11.2308 13.4763 11.2308 13.6716 11.0355L16.8536 7.85355ZM0.5 0H0V1.5H0.5H1V0H0.5ZM6.5 7.5V8H16.5V7.5V7H6.5V7.5ZM0.5 1.5H0C0 5.08985 2.91015 8 6.5 8V7.5V7C3.46243 7 1 4.53757 1 1.5H0.5Z"
         fill="#DFE3E9"
+        style={{
+          fill: ThemeVariable.BorderMuted,
+        }}
       />
     </svg>
   );
