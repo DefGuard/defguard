@@ -1,3 +1,5 @@
+import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -5,6 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import type { AclDestination } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -35,6 +38,14 @@ export const DestinationsTable = ({
   search,
 }: Props) => {
   const [searchValue, setSearchValue] = useState<string>('');
+  const navigate = useNavigate();
+
+  const { mutate: deleteDestination } = useMutation({
+    mutationFn: api.acl.destination.deleteDestination,
+    meta: {
+      invalidate: ['acl', 'destination'],
+    },
+  });
 
   const columns = useMemo(
     () => [
@@ -50,19 +61,31 @@ export const DestinationsTable = ({
       columnHelper.display({
         id: 'edit',
         size: tableEditColumnSize,
+        enableResizing: false,
         cell: (info) => {
-          const _row = info.row.original;
+          const row = info.row.original;
           const menuItems: MenuItemsGroup[] = [
             {
               items: [
                 {
                   text: m.controls_edit(),
                   icon: 'edit',
+                  onClick: () => {
+                    navigate({
+                      to: '/acl/edit-destination',
+                      search: {
+                        destination: row.id,
+                      },
+                    });
+                  },
                 },
                 {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  onClick: () => {
+                    deleteDestination(row.id);
+                  },
                 },
               ],
             },
@@ -75,7 +98,7 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [],
+    [navigate, deleteDestination],
   );
 
   const transformedData = useMemo(() => {

@@ -361,10 +361,10 @@ const api = {
       getDestinations: () => client.get<AclDestination[]>('/acl/destination'),
       getDestination: (destinationId: number | string) =>
         client.get<AclDestination>(`/acl/destination/${destinationId}`),
-      addAlias: (data: AddAclDestination) => client.post(`/acl/destination`, data),
-      editAlias: (data: EditAclDestination) =>
+      addDestination: (data: AddAclDestination) => client.post(`/acl/destination`, data),
+      editDestination: (data: EditAclDestination) =>
         client.put(`/acl/destination/${data.id}`, data),
-      deleteAlias: (destinationId: number | string) =>
+      deleteDestination: (destinationId: number | string) =>
         client.delete(`/acl/destination/${destinationId}`),
       applyDestinations: (destinations: number[]) =>
         client.put(`/acl/destination/apply`, {

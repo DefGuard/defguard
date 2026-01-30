@@ -1,7 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import {
   type AclDestination,
   AclProtocol,
@@ -18,6 +20,7 @@ import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -73,6 +76,34 @@ export const CEDestinationPage = ({ destination }: Props) => {
   const router = useRouter();
   const isEdit = isPresent(destination);
 
+  const { mutateAsync: addDestination } = useMutation({
+    mutationFn: api.acl.destination.addDestination,
+    onSuccess: () => {
+      Snackbar.success('Destination added');
+    },
+    onError: (e) => {
+      Snackbar.error('Error occurred');
+      console.error(e);
+    },
+    meta: {
+      invalidate: ['acl', 'destination'],
+    },
+  });
+
+  const { mutateAsync: editDestination } = useMutation({
+    mutationFn: api.acl.destination.editDestination,
+    onSuccess: () => {
+      Snackbar.success('Destination modified');
+    },
+    onError: (e) => {
+      Snackbar.error('Error occurred');
+      console.error(e);
+    },
+    meta: {
+      invalidate: ['acl', 'destination'],
+    },
+  });
+
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(destination)) {
       return {
@@ -103,6 +134,22 @@ export const CEDestinationPage = ({ destination }: Props) => {
     validators: {
       onSubmit: formSchema,
       onChange: formSchema,
+    },
+    onSubmit: async ({ value }) => {
+      const toSend = { ...value, protocols: Array.from(value.protocols) };
+      try {
+        if (isPresent(destination)) {
+          await editDestination({
+            ...toSend,
+            id: destination.id,
+          });
+        } else {
+          await addDestination(toSend);
+        }
+        router.history.back();
+      } catch (e) {
+        console.error(e);
+      }
     },
   });
 
@@ -223,6 +270,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
               <Button
                 variant="primary"
                 text={isEdit ? 'Save changes' : 'Add destination'}
+                type="submit"
               />
             </div>
           </Controls>
