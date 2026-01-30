@@ -212,10 +212,7 @@ pub(crate) async fn list_acl_destinations(
         api_aliases.push(info.into());
     }
     info!("User {} listed ACL destinations", session.user.username);
-    Ok(ApiResponse {
-        json: json!(api_aliases),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(api_aliases, StatusCode::OK))
 }
 
 /// Get ACL destination.
@@ -258,10 +255,7 @@ pub(crate) async fn get_acl_destination(
         "User {} retrieved ACL destination {id}",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: alias,
-        status,
-    })
+    Ok(ApiResponse::new(alias, status))
 }
 
 /// Create ACL destination.
@@ -295,10 +289,7 @@ pub(crate) async fn create_acl_destination(
         "User {} created ACL destination {}",
         session.user.username, alias.id
     );
-    Ok(ApiResponse {
-        json: json!(alias),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(alias, StatusCode::CREATED))
 }
 
 /// Update ACL destination.
@@ -332,10 +323,7 @@ pub(crate) async fn update_acl_destination(
             err
         })?;
     info!("User {} updated ACL destination", session.user.username);
-    Ok(ApiResponse {
-        json: json!(alias),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(alias, StatusCode::OK))
 }
 
 /// Delete ACL destination.

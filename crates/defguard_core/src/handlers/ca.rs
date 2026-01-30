@@ -1,7 +1,6 @@
 use axum::{Json, extract::State};
 use defguard_common::db::models::{Settings, settings::update_current_settings};
 use reqwest::StatusCode;
-use serde_json::json;
 
 use crate::{
     appstate::AppState,
@@ -36,8 +35,5 @@ pub async fn create_ca(
 
     update_current_settings(&appstate.pool, settings).await?;
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }

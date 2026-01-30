@@ -1,7 +1,13 @@
 .table-page-layout {
   .flexible-empty-state,
   .table-top,
-  .table {
+  .table,
+  .tabs {
     grid-column: 1 / 13;
+  }
+
+  .tabs {
+    padding-bottom: var(--spacing-3xl);
+    padding-top: var(--spacing-md);
   }
 }

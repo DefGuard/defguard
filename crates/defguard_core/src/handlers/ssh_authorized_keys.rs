@@ -7,7 +7,6 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, AuthenticationKeyType, User, group::Group},
 };
-use serde_json::json;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
 
@@ -216,10 +215,7 @@ pub async fn add_authentication_key(
         event: Box::new(ApiEventType::AuthenticationKeyAdded { key }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 // GET on user, returns AuthenticationKeyInfo vector in JSON
@@ -231,10 +227,7 @@ pub async fn fetch_authentication_keys(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let keys_info = AuthenticationKeyInfo::find_by_user_id(&appstate.pool, user.id).await?;
 
-    Ok(ApiResponse {
-        json: json!(keys_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(keys_info, StatusCode::OK))
 }
 
 pub async fn delete_authentication_key(
@@ -262,10 +255,7 @@ pub async fn delete_authentication_key(
         return Err(WebError::BadRequest("Key not found".into()));
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -319,8 +309,5 @@ pub async fn rename_authentication_key(
         return Err(WebError::ObjectNotFound(String::new()));
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }

@@ -888,7 +888,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply rule
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -900,7 +900,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // cannot apply the same rule again
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -914,7 +914,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // still cannot apply the same rule again
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -922,7 +922,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![2] }))
+        .json(&json!({ "rules": [2] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -950,7 +950,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![3] }))
+        .json(&json!({ "rules": [3] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -982,7 +982,7 @@ async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOpt
     // apply multiple rules
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1, 3] }))
+        .json(&json!({ "rules": [1, 3] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1165,7 +1165,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     // cannot apply already applied alias
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![1] }))
+        .json(&json!({ "aliases": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -1173,7 +1173,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![2] }))
+        .json(&json!({ "aliases": [2] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1240,7 +1240,7 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
     // apply multiple aliases
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![4, 6] }))
+        .json(&json!({ "aliases": [4, 6] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);

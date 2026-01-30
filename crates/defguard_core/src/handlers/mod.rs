@@ -55,14 +55,31 @@ pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
-    pub json: Value,
+    json: Value,
     #[schema(value_type = u16)]
-    pub status: StatusCode,
+    status: StatusCode,
 }
 
 impl ApiResponse {
+    /// Build a new [`ApiResponse`].
     #[must_use]
     pub fn new(json: Value, status: StatusCode) -> Self {
+        Self { json, status }
+    }
+
+    /// Response with `json` set to "{}", and a status code.
+    #[must_use]
+    pub fn with_status(status: StatusCode) -> Self {
+        Self {
+            json: Value::Object(serde_json::Map::new()),
+            status,
+        }
+    }
+
+    /// Response with serializable value for JSON, and a status code.
+    #[must_use]
+    pub fn json<T: serde::Serialize>(value: T, status: StatusCode) -> Self {
+        let json = serde_json::to_value(value).expect("Failed to convert value to JSON");
         Self { json, status }
     }
 }
@@ -71,19 +88,19 @@ impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> ApiResponse {
         match web_error {
             WebError::ObjectNotFound(msg) => {
-                ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+                ApiResponse::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
             }
             WebError::ObjectAlreadyExists(msg) => {
-                ApiResponse::new(json!({ "msg": msg }), StatusCode::CONFLICT)
+                ApiResponse::new(json!({"msg": msg}), StatusCode::CONFLICT)
             }
             WebError::Authorization(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({ "msg": msg }), StatusCode::UNAUTHORIZED)
+                ApiResponse::new(json!({"msg": msg}), StatusCode::UNAUTHORIZED)
             }
-            WebError::Authentication => ApiResponse::new(json!({}), StatusCode::UNAUTHORIZED),
+            WebError::Authentication => ApiResponse::with_status(StatusCode::UNAUTHORIZED),
             WebError::Forbidden(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({ "msg": msg }), StatusCode::FORBIDDEN)
+                ApiResponse::new(json!({"msg": msg}), StatusCode::FORBIDDEN)
             }
             WebError::DbError(_)
             | WebError::Grpc(_)
@@ -154,19 +171,19 @@ impl From<WebError> for ApiResponse {
             WebError::Http(status) => {
                 error!("{status}");
                 ApiResponse::new(
-                    json!({ "msg": status.canonical_reason().unwrap_or_default() }),
+                    json!({"msg": status.canonical_reason().unwrap_or_default()}),
                     status,
                 )
             }
             WebError::TooManyLoginAttempts(_) => ApiResponse::new(
-                json!({ "msg": "Too many login attempts" }),
+                json!({"msg": "Too many login attempts"}),
                 StatusCode::TOO_MANY_REQUESTS,
             ),
             WebError::PubkeyValidation(msg)
             | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
             }
             WebError::TemplateError(err) => {
                 error!("Template error: {err}");
@@ -178,22 +195,22 @@ impl From<WebError> for ApiResponse {
             WebError::LicenseError(err) => match err {
                 LicenseError::DecodeError(msg) | LicenseError::InvalidLicense(msg) => {
                     warn!(msg);
-                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::SignatureMismatch => {
                     let msg = "License signature doesn't match its content";
                     warn!(msg);
-                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::InvalidSignature => {
                     let msg = "License signature is malformed and couldn't be read";
                     warn!(msg);
-                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::LicenseNotFound => {
                     let msg = "License not found";
                     warn!(msg);
-                    ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+                    ApiResponse::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
                 }
                 _ => {
                     error!("License error: {err}");
@@ -209,8 +226,7 @@ impl From<WebError> for ApiResponse {
 
 impl IntoResponse for WebError {
     fn into_response(self) -> Response {
-        let api_response = ApiResponse::from(self);
-        api_response.into_response()
+        ApiResponse::from(self).into_response()
     }
 }
 
