@@ -38,10 +38,10 @@ pub struct DeviceConfig {
     pub network_id: Id,
     pub network_name: String,
     pub config: String,
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub address: Vec<IpAddr>,
     pub endpoint: String,
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub allowed_ips: Vec<IpNetwork>,
     pub pubkey: String,
     pub dns: Option<String>,

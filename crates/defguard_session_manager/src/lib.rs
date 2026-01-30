@@ -142,7 +142,7 @@ impl SessionManager {
         if let Some(session) = maybe_session {
             // update session stats
             session.update_stats(transaction, message).await?;
-        };
+        }
 
         trace!("Finished processing peer stats update");
         Ok(())
