@@ -9,11 +9,11 @@ import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { getEdgeQueryOptions } from '../../shared/query';
-import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 
 export const EditEdgePage = () => {
   const { edgeId } = useParams({
@@ -106,9 +106,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="address">
-            {(field) => (
-              <field.FormInput disabled label={m.edge_edit_address()} />
-            )}
+            {(field) => <field.FormInput disabled label={m.edge_edit_address()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
@@ -116,9 +114,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="public_address">
-            {(field) => (
-              <field.FormInput disabled label={m.edge_edit_public_address()} />
-            )}
+            {(field) => <field.FormInput disabled label={m.edge_edit_public_address()} />}
           </form.AppField>
         </EditPageFormSection>
         <form.Subscribe
