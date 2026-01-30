@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import type { AclDestination } from '../../../shared/api/types';
+import type { AclAlias } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -10,7 +10,7 @@ import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/
 import { AliasTable } from '../AliasTable';
 
 type Props = {
-  aliases: AclDestination[];
+  aliases: AclAlias[];
 };
 
 export const AliasesDeployedTab = ({ aliases }: Props) => {

@@ -822,9 +822,9 @@ export interface AclAlias {
   rules: number[];
 }
 
-export type AddAclAliasRequest = Omit<AclDestination, 'id' | 'state' | 'rules'>;
+export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
 
-export type EditAclAliasRequest = Omit<AclDestination, 'state' | 'rules'>;
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;
 
 export interface AclRule {
   id: number;

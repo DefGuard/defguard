@@ -6,7 +6,7 @@ import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
-  type AclDestination,
+  type AclAlias,
   AclProtocol,
   AclProtocolName,
   type AclProtocolValue,
@@ -32,7 +32,7 @@ import { aclDestinationValidator, aclPortsValidator } from '../../shared/validat
 const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protocol];
 
 interface Props {
-  alias?: AclDestination;
+  alias?: AclAlias;
 }
 
 export const CEAliasPage = ({ alias }: Props) => {
@@ -88,7 +88,7 @@ const anyComponentDefined = (fields: FormFields): boolean => {
   );
 };
 
-const FormContent = ({ alias }: { alias?: AclDestination }) => {
+const FormContent = ({ alias }: { alias?: AclAlias }) => {
   const isEdit = isPresent(alias);
 
   const defaultValues = useMemo((): FormFields => {

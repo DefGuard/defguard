@@ -1,13 +1,13 @@
 import { useMutation } from '@tanstack/react-query';
 import api from '../../../shared/api/api';
-import type { AclDestination } from '../../../shared/api/types';
+import type { AclAlias } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { AliasTable } from '../AliasTable';
 
 type Props = {
-  aliases: AclDestination[];
+  aliases: AclAlias[];
 };
 
 export const AliasesPendingTab = ({ aliases }: Props) => {
