@@ -1,5 +1,4 @@
 use axum::{Json, extract::State, http::StatusCode};
-use serde_json::json;
 use struct_patch::Patch;
 
 use super::LicenseInfo;
@@ -23,10 +22,7 @@ pub async fn get_enterprise_settings(
         "User {} retrieved enterprise settings",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: json!(settings),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(settings, StatusCode::OK))
 }
 
 pub async fn patch_enterprise_settings(

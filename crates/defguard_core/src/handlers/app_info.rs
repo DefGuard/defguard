@@ -3,7 +3,6 @@ use defguard_common::{
     VERSION,
     db::models::{Settings, WireguardNetwork},
 };
-use serde_json::json;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
@@ -84,5 +83,5 @@ pub(crate) async fn get_app_info(
         external_openid_enabled,
     };
 
-    Ok(ApiResponse::new(json!(res), StatusCode::OK))
+    Ok(ApiResponse::json(res, StatusCode::OK))
 }

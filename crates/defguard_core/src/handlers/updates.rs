@@ -22,10 +22,7 @@ pub(crate) async fn check_new_version(_admin: AdminRole, session: SessionInfo) -
         // Front-end expects empty JSON.
         Value::Null
     };
-    Ok(ApiResponse {
-        json,
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json, StatusCode::OK))
 }
 
 // FIXME: Switch to SSE and generally make it better.
@@ -39,8 +36,5 @@ pub(crate) async fn outdated_components(
         .read()
         .expect("Failed to lock appstate.incompatible_components"))
     .clone();
-    Ok(ApiResponse::new(
-        json!(incompatible_components),
-        StatusCode::OK,
-    ))
+    Ok(ApiResponse::json(incompatible_components, StatusCode::OK))
 }

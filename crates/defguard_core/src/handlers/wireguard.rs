@@ -271,10 +271,7 @@ pub(crate) async fn create_network(
     })?;
     update_counts(&appstate.pool).await?;
 
-    Ok(ApiResponse {
-        json: json!(network),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(network, StatusCode::CREATED))
 }
 
 async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, WebError> {
@@ -382,10 +379,7 @@ pub(crate) async fn modify_network(
             after: network.clone(),
         }),
     })?;
-    Ok(ApiResponse {
-        json: json!(network),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(network, StatusCode::OK))
 }
 
 /// Delete network
@@ -484,10 +478,7 @@ pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppSt
     }
     debug!("Listed WireGuard networks");
 
-    Ok(ApiResponse {
-        json: json!(network_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(network_info, StatusCode::OK))
 }
 
 /// Details of network
@@ -530,15 +521,9 @@ pub(crate) async fn network_details(
                 gateways: gateways.into_iter().map(Into::into).collect(),
                 allowed_groups,
             };
-            ApiResponse {
-                json: json!(network_info),
-                status: StatusCode::OK,
-            }
+            ApiResponse::json(network_info, StatusCode::OK)
         }
-        None => ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        },
+        None => ApiResponse::new(Value::Null, StatusCode::NOT_FOUND),
     };
     debug!("Displayed network details for network {network_id}");
 
@@ -564,10 +549,7 @@ pub(crate) async fn gateway_status(
 
     debug!("Displayed gateway status for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(gateways),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(gateways, StatusCode::OK))
 }
 
 /// Returns state of gateways for all networks
@@ -587,10 +569,7 @@ pub(crate) async fn all_gateways_status(
         entry.push(gateway.into());
     }
 
-    Ok(ApiResponse {
-        json: json!(map),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(map, StatusCode::OK))
 }
 
 #[derive(Deserialize)]
@@ -612,19 +591,16 @@ pub(crate) async fn change_gateway(
             gateway.url = data.url;
             gateway.save(&appstate.pool).await?;
             info!("Changed gateway");
-            return Ok(ApiResponse {
-                json: json!(GatewayInfo::from(gateway)),
-                status: StatusCode::OK,
-            });
+            return Ok(ApiResponse::json(
+                GatewayInfo::from(gateway),
+                StatusCode::OK,
+            ));
         }
     }
 
     info!("Changed gateway {gateway_id} in network {network_id}");
 
-    Ok(ApiResponse {
-        json: Value::Null,
-        status: StatusCode::NOT_FOUND,
-    })
+    Ok(ApiResponse::new(Value::Null, StatusCode::NOT_FOUND))
 }
 
 /// Remove gateway (DELETE).
@@ -639,10 +615,7 @@ pub(crate) async fn remove_gateway(
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 
-    Ok(ApiResponse {
-        json: Value::Null,
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(Value::Null, StatusCode::OK))
 }
 
 pub(crate) async fn import_network(
@@ -695,10 +668,10 @@ pub(crate) async fn import_network(
     })?;
     update_counts(&appstate.pool).await?;
 
-    Ok(ApiResponse {
-        json: json!(ImportedNetworkData { network, devices }),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(
+        ImportedNetworkData { network, devices },
+        StatusCode::CREATED,
+    ))
 }
 
 // This is used exclusively for the wizard to map imported devices to users.
@@ -721,10 +694,7 @@ pub(crate) async fn add_user_devices(
     // finish early if no devices were provided in request
     if mapped_devices.is_empty() {
         debug!("No devices provided in request, skipping mapping");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NO_CONTENT,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::NO_CONTENT));
     }
 
     if let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
@@ -740,10 +710,7 @@ pub(crate) async fn add_user_devices(
         );
         update_counts(&appstate.pool).await?;
 
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::CREATED,
-        })
+        Ok(ApiResponse::with_status(StatusCode::CREATED))
     } else {
         error!("Failed to map devices, network {network_id} not found");
         Err(WebError::ObjectNotFound(format!(
@@ -860,10 +827,7 @@ pub(crate) async fn add_device(
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     if networks.is_empty() {
         error!("Failed to add device {device_name}, no networks found");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     Device::validate_pubkey(&add_device.wireguard_pubkey).map_err(WebError::PubkeyValidation)?;
@@ -979,10 +943,7 @@ pub(crate) async fn add_device(
         }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(result),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
 /// Modify device
@@ -1052,10 +1013,7 @@ pub(crate) async fn modify_device(
 
     if networks.is_empty() {
         error!("Failed to update device {device_id}, no networks found");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     // check pubkeys
@@ -1064,10 +1022,10 @@ pub(crate) async fn modify_device(
             error!(
                 "Failed to update device {device_id}, device's pubkey must be different from server's pubkey"
             );
-            return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::new(
+                json!({"msg": "device's pubkey must be different from server's pubkey"}),
+                StatusCode::BAD_REQUEST,
+            ));
         }
     }
 
@@ -1110,10 +1068,7 @@ pub(crate) async fn modify_device(
         }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(device),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
 /// Get device
@@ -1157,10 +1112,7 @@ pub(crate) async fn get_device(
     debug!("Retrieving device with id: {device_id}");
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     debug!("Retrieved device with id: {device_id}");
-    Ok(ApiResponse {
-        json: json!(device),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(device, StatusCode::OK))
 }
 
 /// Delete device
@@ -1311,10 +1263,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
     let devices = Device::all(&appstate.pool).await?;
     info!("Listed {} devices", devices.len());
 
-    Ok(ApiResponse {
-        json: json!(devices),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
 /// List user devices
@@ -1368,10 +1317,7 @@ pub(crate) async fn list_user_devices(
     let devices = Device::all_for_username(&appstate.pool, &username).await?;
     info!("Listed {} devices for user: {username}", devices.len());
 
-    Ok(ApiResponse {
-        json: json!(devices),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
 pub(crate) async fn download_config(
@@ -1426,10 +1372,10 @@ pub(crate) async fn create_network_token(
         ))
     })?;
     info!("Generated a new token for network ID {network_id}");
-    Ok(ApiResponse {
-        json: json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
+        StatusCode::OK,
+    ))
 }
 
 /// Returns appropriate aggregation level depending on the `from` date param
@@ -1497,10 +1443,7 @@ pub(crate) async fn devices_stats(
 
     debug!("Displayed WireGuard user stats for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(response),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
 /// Returns statistics for requested network
@@ -1526,10 +1469,7 @@ pub(crate) async fn network_stats(
         .await?;
     debug!("Displayed WireGuard network stats for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(stats),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(stats, StatusCode::OK))
 }
 
 /// Returns statistics for all networks
@@ -1546,8 +1486,5 @@ pub(crate) async fn networks_overview_stats(
     let aggregation = get_aggregation(from)?;
     let all_networks_stats = networks_stats(&appstate.pool, &from, &aggregation).await?;
     debug!("Finished processing networks overview stats");
-    Ok(ApiResponse {
-        json: json!(all_networks_stats),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(all_networks_stats, StatusCode::OK))
 }

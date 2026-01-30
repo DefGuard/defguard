@@ -73,6 +73,9 @@ jobs:
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@0.33.1
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           image-ref: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
           format: "table"

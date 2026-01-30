@@ -1,4 +1,4 @@
-pub(crate) mod alias;
+pub mod alias;
 pub(crate) mod destination;
 
 use axum::{
@@ -15,9 +15,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::acl::{
-        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasKind, AliasState, Protocol, RuleState,
-    },
+    enterprise::db::models::acl::{AclAlias, AclRule, AclRuleInfo, Protocol, RuleState},
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -163,63 +161,13 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
     }
 }
 
-/// API representation of [`AclAlias`]
-/// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct ApiAclAlias {
-    #[serde(default)]
-    pub id: Id,
-    pub parent_id: Option<Id>,
-    pub name: String,
-    pub kind: AliasKind,
-    pub state: AliasState,
-    pub destination: String,
-    pub ports: String,
-    pub protocols: Vec<Protocol>,
-    pub rules: Vec<Id>,
-    pub any_destination: bool,
-    pub any_port: bool,
-    pub any_protocol: bool,
-}
-
-impl From<AclAliasInfo<Id>> for ApiAclAlias {
-    fn from(info: AclAliasInfo<Id>) -> Self {
-        Self {
-            destination: info.format_destination(),
-            ports: info.format_ports(),
-            id: info.id,
-            parent_id: info.parent_id,
-            name: info.name,
-            kind: info.kind,
-            state: info.state,
-            protocols: info.protocols,
-            rules: info.rules.iter().map(|v| v.id).collect(),
-            any_destination: info.any_destination,
-            any_port: info.any_port,
-            any_protocol: info.any_protocol,
-        }
-    }
-}
-
-/// API representation of [`AclAlias`] used in API requests for modification operations
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
-pub struct EditAclAlias {
-    pub name: String,
-    pub destination: String,
-    pub ports: String,
-    pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
-    pub any_port: bool,
-    pub any_protocol: bool,
-}
-
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct ApplyAclRulesData {
+pub(crate) struct ApplyAclRulesData {
     rules: Vec<Id>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct ApplyAclAliasesData {
+pub(crate) struct ApplyAclAliasesData {
     aliases: Vec<Id>,
 }
 
@@ -251,10 +199,7 @@ pub(crate) async fn list_acl_rules(
         api_rules.push(info.into());
     }
     info!("User {} listed ACL rules", session.user.username);
-    Ok(ApiResponse {
-        json: json!(api_rules),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(api_rules, StatusCode::OK))
 }
 
 /// Get ACL rule.
@@ -327,10 +272,7 @@ pub(crate) async fn create_acl_rule(
         "User {} created ACL rule {}",
         session.user.username, rule.id
     );
-    Ok(ApiResponse {
-        json: json!(rule),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(rule, StatusCode::CREATED))
 }
 
 /// Update ACL rule.
@@ -366,10 +308,7 @@ pub(crate) async fn update_acl_rule(
             err
         })?;
     info!("User {} updated ACL rule", session.user.username);
-    Ok(ApiResponse {
-        json: json!(rule),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(rule, StatusCode::OK))
 }
 
 /// Delete ACL rule.
