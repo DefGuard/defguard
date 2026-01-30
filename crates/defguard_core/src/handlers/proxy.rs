@@ -37,9 +37,13 @@ pub(crate) struct ProxyUpdateData {
 pub(crate) async fn proxy_details(
     Path(proxy_id): Path<i64>,
     _role: AdminRole,
+    session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    debug!("Displaying details for proxy {proxy_id}");
+    debug!(
+        "User {} displaying details for proxy {proxy_id}",
+        session.user.username
+    );
     let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
     let response = match proxy {
         Some(proxy) => ApiResponse {
@@ -51,7 +55,10 @@ pub(crate) async fn proxy_details(
             status: StatusCode::NOT_FOUND,
         },
     };
-    debug!("Displayed details for proxy {proxy_id}");
+    info!(
+        "User {} displayed details for proxy {proxy_id}",
+        session.user.username
+    );
 
     Ok(response)
 }
