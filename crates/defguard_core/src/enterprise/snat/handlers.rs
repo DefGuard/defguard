@@ -10,7 +10,6 @@ use defguard_common::db::{
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use utoipa::ToSchema;
 
 use crate::{
@@ -69,10 +68,7 @@ pub async fn list_snat_bindings(
 
     let bindings = UserSnatBinding::all_for_location(&appstate.pool, location.id).await?;
 
-    Ok(ApiResponse {
-        json: json!(bindings),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(bindings, StatusCode::OK))
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -170,10 +166,7 @@ pub async fn create_snat_binding(
         }
     }
 
-    Ok(ApiResponse {
-        json: json!(binding),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(binding, StatusCode::CREATED))
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -274,10 +267,7 @@ pub async fn modify_snat_binding(
         }
     }
 
-    Ok(ApiResponse {
-        json: json!(snat_binding),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(snat_binding, StatusCode::OK))
 }
 
 /// Delete an existing SNAT binding for a user in a WireGuard location

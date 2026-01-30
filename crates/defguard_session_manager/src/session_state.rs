@@ -265,7 +265,7 @@ impl ActiveSessionsMap {
                 "Received peer stats update for an inactive peer. Skipping creating a new session..."
             );
             return Ok(None);
-        };
+        }
 
         // fetch other related objects from DB
         // clone them because we'll need those for event context

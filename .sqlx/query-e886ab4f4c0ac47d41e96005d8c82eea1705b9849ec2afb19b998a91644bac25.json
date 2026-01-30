@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\" WHERE id = $1",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\",\"manual_settings\" FROM \"aclrule\"",
   "describe": {
     "columns": [
       {
@@ -85,12 +85,30 @@
         "ordinal": 13,
         "name": "expires",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 14,
+        "name": "any_destination",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "any_port",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "any_protocol",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "manual_settings",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -106,8 +124,12 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "2517a3b667c7220342315c25baa3ed994e621a2c9b105705bfb3d3381c367218"
+  "hash": "e886ab4f4c0ac47d41e96005d8c82eea1705b9849ec2afb19b998a91644bac25"
 }

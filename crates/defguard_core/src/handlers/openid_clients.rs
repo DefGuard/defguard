@@ -58,10 +58,10 @@ pub async fn add_openid_client(
             "User {} attempted to create openid client with name containing HTML: {}",
             session.user.username, data.name
         );
-        return Ok(ApiResponse {
-            json: json!({"msg": "invalid name"}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::new(
+            json!({"msg": "invalid name"}),
+            StatusCode::BAD_REQUEST,
+        ));
     }
     let client: OAuth2Client = data.into();
     let client = client.save(&appstate.pool).await?;
@@ -75,18 +75,12 @@ pub async fn add_openid_client(
             app: client.clone(),
         }),
     })?;
-    Ok(ApiResponse {
-        json: json!(client),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(client, StatusCode::CREATED))
 }
 
 pub async fn list_openid_clients(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let clients = OAuth2Client::all(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(clients),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(clients, StatusCode::OK))
 }
 
 pub async fn get_openid_client(
@@ -97,21 +91,15 @@ pub async fn get_openid_client(
     match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(client) => {
             if session.is_admin {
-                Ok(ApiResponse {
-                    json: json!(client),
-                    status: StatusCode::OK,
-                })
+                Ok(ApiResponse::json(client, StatusCode::OK))
             } else {
-                Ok(ApiResponse {
-                    json: json!(OAuth2ClientSafe::from(client)),
-                    status: StatusCode::OK,
-                })
+                Ok(ApiResponse::json(
+                    OAuth2ClientSafe::from(client),
+                    StatusCode::OK,
+                ))
             }
         }
-        None => Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        }),
+        None => Ok(ApiResponse::with_status(StatusCode::NOT_FOUND)),
     }
 }
 
@@ -132,10 +120,10 @@ pub async fn change_openid_client(
             "User {} attempted to edit openid client with name containing HTML: {}",
             session.user.username, data.name
         );
-        return Ok(ApiResponse {
-            json: json!({"msg": "invalid name"}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::new(
+            json!({"msg": "invalid name"}),
+            StatusCode::BAD_REQUEST,
+        ));
     }
     let mut transaction = appstate.pool.begin().await?;
     let status = match OAuth2Client::find_by_client_id(&mut *transaction, &client_id).await? {
@@ -166,10 +154,7 @@ pub async fn change_openid_client(
         }
         None => StatusCode::NOT_FOUND,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 pub async fn change_openid_client_state(
@@ -203,10 +188,7 @@ pub async fn change_openid_client_state(
         }
         None => StatusCode::NOT_FOUND,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 pub async fn delete_openid_client(
@@ -235,8 +217,5 @@ pub async fn delete_openid_client(
         }
         None => StatusCode::NOT_FOUND,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }

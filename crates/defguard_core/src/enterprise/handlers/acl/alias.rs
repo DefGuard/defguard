@@ -1,9 +1,9 @@
 use axum::{
     Json,
     extract::{Path, State},
+    http::StatusCode,
 };
 use defguard_common::db::{Id, NoId};
-use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, PgPool, query};
 use utoipa::ToSchema;
@@ -19,19 +19,16 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-/// API representation of [`AclAlias`] used in API requests for modification operations
+/// API representation of [`AclAlias`] used in API requests for modification operations.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
-pub(crate) struct EditAclDestination {
+pub struct EditAclAlias {
     pub name: String,
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
-    pub any_port: bool,
-    pub any_protocol: bool,
 }
 
-impl EditAclDestination {
+impl EditAclAlias {
     /// Creates relation objects for a given [`AclAlias`] based on [`AclAliasInfo`] object.
     pub(crate) async fn create_related_objects(
         &self,
@@ -56,10 +53,10 @@ impl EditAclDestination {
     }
 }
 
-/// API representation of [`AclAlias`] for "Destination" (not "Alias Component").
+/// API representation of [`AclAlias`] for "Alias Component" (not "Destination").
 /// All relations represented as arrays of IDs.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
-pub(crate) struct ApiAclDestination {
+pub struct ApiAclAlias {
     #[serde(default)]
     pub id: Id,
     pub parent_id: Option<Id>,
@@ -70,16 +67,13 @@ pub(crate) struct ApiAclDestination {
     pub ports: String,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<Id>,
-    pub any_destination: bool,
-    pub any_port: bool,
-    pub any_protocol: bool,
 }
 
-impl ApiAclDestination {
+impl ApiAclAlias {
     /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`].
     pub(crate) async fn create_from_api(
         pool: &PgPool,
-        api_alias: &EditAclDestination,
+        api_alias: &EditAclAlias,
     ) -> Result<Self, AclError> {
         let mut transaction = pool.begin().await?;
 
@@ -100,7 +94,7 @@ impl ApiAclDestination {
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
-        api_alias: &EditAclDestination,
+        api_alias: &EditAclAlias,
     ) -> Result<Self, AclError> {
         let mut transaction = pool.begin().await?;
 
@@ -166,7 +160,7 @@ impl ApiAclDestination {
     }
 }
 
-impl From<AclAliasInfo> for ApiAclDestination {
+impl From<AclAliasInfo> for ApiAclAlias {
     fn from(info: AclAliasInfo) -> Self {
         Self {
             destination: info.format_destination(),
@@ -178,71 +172,65 @@ impl From<AclAliasInfo> for ApiAclDestination {
             state: info.state,
             protocols: info.protocols,
             rules: info.rules.iter().map(|v| v.id).collect(),
-            any_destination: info.any_destination,
-            any_port: info.any_port,
-            any_protocol: info.any_protocol,
         }
     }
 }
 
-/// List ACL destinations.
+/// List all ACL aliases.
 #[utoipa::path(
     get,
-    path = "/api/v1/acl/destination",
+    path = "/api/v1/acl/alias",
     tag = "ACL",
     responses(
-        (status = OK, description = "ACL destination", body = Vec<ApiAclDestination>),
-    )
+        (status = OK, description = "ACL alias", body = Vec<ApiAclAlias>),
+    ),
 )]
-pub(crate) async fn list_acl_destinations(
+pub(crate) async fn list_acl_aliases(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> ApiResult {
-    debug!("User {} listing ACL destinations", session.user.username);
+    debug!("User {} listing ACL aliases", session.user.username);
     let aliases = AclAlias::all(&appstate.pool).await?;
-    let mut api_aliases = Vec::<ApiAclDestination>::with_capacity(aliases.len());
+    let mut api_aliases = Vec::<ApiAclAlias>::with_capacity(aliases.len());
     for alias in &aliases {
         // TODO: may require optimisation wrt. sql queries
         let info = alias.to_info(&appstate.pool).await.map_err(|err| {
-            error!("Error retrieving ACL destination {alias:?}: {err}");
+            error!("Error retrieving ACL alias {alias:?}: {err}");
             err
         })?;
         api_aliases.push(info.into());
     }
-    info!("User {} listed ACL destinations", session.user.username);
+    info!("User {} listed ACL aliases", session.user.username);
     Ok(ApiResponse::json(api_aliases, StatusCode::OK))
 }
 
-/// Get ACL destination.
+/// Get ACL alias.
 #[utoipa::path(
     get,
-    path = "/api/v1/acl/destination/{id}",
+    path = "/api/v1/acl/alias/{id}",
     tag = "ACL",
     params(
-        ("id" = Id, Path, description = "ID of ACL destination")
+        ("id" = Id, Path, description = "ID of ACL alias",)
     ),
     responses(
-        (status = OK, description = "ACL destination", body = ApiAclDestination),
+        (status = OK, description = "ACL alias", body = ApiAclAlias),
     )
 )]
-pub(crate) async fn get_acl_destination(
+pub(crate) async fn get_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(id): Path<Id>,
 ) -> ApiResult {
-    debug!(
-        "User {} retrieving ACL destination {id}",
-        session.user.username
-    );
+    debug!("User {} retrieving ACL alias {id}", session.user.username);
     let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
         Some(alias) => (
-            json!(ApiAclDestination::from(
+            json!(ApiAclAlias::from(
                 alias.to_info(&appstate.pool).await.map_err(|err| {
-                    error!("Error retrieving ACL destination {alias:?}: {err}");
+                    error!("Error retrieving ACL alias {alias:?}: {err}");
                     err
                 })?
             )),
@@ -251,113 +239,98 @@ pub(crate) async fn get_acl_destination(
         None => (Value::Null, StatusCode::NOT_FOUND),
     };
 
-    info!(
-        "User {} retrieved ACL destination {id}",
-        session.user.username
-    );
+    info!("User {} retrieved ACL alias {id}", session.user.username);
     Ok(ApiResponse::new(alias, status))
 }
 
-/// Create ACL destination.
+/// Create ACL alias.
 #[utoipa::path(
     post,
-    path = "/api/v1/acl/destination",
+    path = "/api/v1/acl/alias",
     tag = "ACL",
-    request_body = EditAclDestination,
+    request_body = EditAclAlias,
     responses(
-        (status = CREATED, description = "ACL destination", body = ApiAclDestination),
+        (status = CREATED, description = "ACL alias", body = ApiAclAlias),
     )
 )]
-pub(crate) async fn create_acl_destination(
+pub(crate) async fn create_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<EditAclDestination>,
+    Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
-    debug!(
-        "User {} creating ACL destination {data:?}",
-        session.user.username
-    );
-    let alias = ApiAclDestination::create_from_api(&appstate.pool, &data)
+    debug!("User {} creating ACL alias {data:?}", session.user.username);
+    let alias = ApiAclAlias::create_from_api(&appstate.pool, &data)
         .await
         .map_err(|err| {
-            error!("Error creating ACL destination {data:?}: {err}");
+            error!("Error creating ACL alias {data:?}: {err}");
             err
         })?;
     info!(
-        "User {} created ACL destination {}",
+        "User {} created ACL alias {}",
         session.user.username, alias.id
     );
     Ok(ApiResponse::json(alias, StatusCode::CREATED))
 }
 
-/// Update ACL destination.
+/// Update ACL alias.
 #[utoipa::path(
     put,
-    path = "/api/v1/acl/destination/{id}",
+    path = "/api/v1/acl/alias/{id}",
     tag = "ACL",
     params(
-        ("id" = Id, Path, description = "ID of ACL destination",)
+        ("id" = Id, Path, description = "ID of ACL alias",)
     ),
+    request_body = EditAclAlias,
     responses(
-        (status = OK, description = "ACL destination", body = ApiAclDestination),
+        (status = OK, description = "ACL alias", body = ApiAclAlias),
     )
 )]
-pub(crate) async fn update_acl_destination(
+pub(crate) async fn update_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(id): Path<Id>,
-    Json(data): Json<EditAclDestination>,
+    Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
-    debug!(
-        "User {} updating ACL destination {data:?}",
-        session.user.username
-    );
-    let alias = ApiAclDestination::update_from_api(&appstate.pool, id, &data)
+    debug!("User {} updating ACL alias {data:?}", session.user.username);
+    let alias = ApiAclAlias::update_from_api(&appstate.pool, id, &data)
         .await
         .map_err(|err| {
-            error!("Error updating ACL destination {data:?}: {err}");
+            error!("Error updating ACL alias {data:?}: {err}");
             err
         })?;
-    info!("User {} updated ACL destination", session.user.username);
+    info!("User {} updated ACL alias", session.user.username);
     Ok(ApiResponse::json(alias, StatusCode::OK))
 }
 
-/// Delete ACL destination.
+/// Delete ACL alias.
 #[utoipa::path(
     delete,
-    path = "/api/v1/acl/destination/{id}",
-    tag = "ACL",
+    path = "/api/v1/acl/alias/{id}",
     params(
-        ("id" = Id, Path, description = "ID of ACL destination",)
+        ("id" = Id, Path, description = "ID of ACL alias",)
     ),
     responses(
-        (status = OK, description = "ACL destination"),
+        (status = OK, description = "ACL alias"),
     )
 )]
-pub(crate) async fn delete_acl_destination(
+pub(crate) async fn delete_acl_alias(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(id): Path<Id>,
+    Path(id): Path<i64>,
 ) -> ApiResult {
-    debug!(
-        "User {} deleting ACL destination {id}",
-        session.user.username
-    );
+    debug!("User {} deleting ACL alias {id}", session.user.username);
     AclAlias::delete_from_api(&appstate.pool, id)
         .await
         .map_err(|err| {
-            error!("Error deleting ACL destination {id}: {err}");
+            error!("Error deleting ACL alias {id}: {err}");
             err
         })?;
-    info!(
-        "User {} deleted ACL destination {id}",
-        session.user.username
-    );
+    info!("User {} deleted ACL alias {id}", session.user.username);
     Ok(ApiResponse::default())
 }

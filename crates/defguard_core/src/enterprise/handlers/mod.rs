@@ -98,26 +98,21 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                     }),
             });
 
-            serde_json::json!(
-                {
-                    "free": is_enterprise_free(),
-                    "valid_until": license.valid_until,
-                    "subscription": license.subscription,
-                    "expired": license.is_max_overdue(),
-                    "limits_exceeded": counts.is_over_license_limits(license),
-                    "tier": license.tier,
-                    "limits": limits_info,
-                }
-            )
+            serde_json::json!({
+                "free": is_enterprise_free(),
+                "valid_until": license.valid_until,
+                "subscription": license.subscription,
+                "expired": license.is_max_overdue(),
+                "limits_exceeded": counts.is_over_license_limits(license),
+                "tier": license.tier,
+                "limits": limits_info,
+
+            })
         });
-    Ok(ApiResponse {
-        json: serde_json::json!(
-            {
-                "license_info": license_info,
-            }
-        ),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(
+        serde_json::json!({"license_info": license_info}),
+        StatusCode::OK,
+    ))
 }
 
 impl<S> FromRequestParts<S> for CanManageDevices

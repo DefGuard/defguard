@@ -200,10 +200,7 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
     for user in all_users {
         users.push(UserInfo::from_user(&appstate.pool, &user).await?);
     }
-    Ok(ApiResponse {
-        json: json!(users),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(users, StatusCode::OK))
 }
 
 /// Get user
@@ -262,10 +259,7 @@ pub async fn get_user(
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
-    Ok(ApiResponse {
-        json: json!(user_details),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(user_details, StatusCode::OK))
 }
 
 /// Add user
@@ -324,10 +318,7 @@ pub async fn add_user(
     // check username
     if let Err(err) = check_username(&username) {
         debug!("Username {username} rejected: {err}");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     // check if email doesn't already exist
@@ -336,20 +327,14 @@ pub async fn add_user(
         .is_some()
     {
         debug!("User with email {} already exists", user_data.email);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     // check phone number
     if let Some(ref phone) = user_data.phone {
         if !is_valid_phone_number(phone) {
             debug!("Invalid phone number for new user {username}: {phone}");
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
     }
 
@@ -358,10 +343,7 @@ pub async fn add_user(
             // check password strength
             if let Err(err) = check_password_strength(password) {
                 debug!("Password not strong enough: {err}");
-                return Ok(ApiResponse {
-                    json: json!({}),
-                    status: StatusCode::BAD_REQUEST,
-                });
+                return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
             }
             Some(password.as_str())
         }
@@ -395,10 +377,7 @@ pub async fn add_user(
         context,
         event: Box::new(ApiEventType::UserAdded { user }),
     })?;
-    Ok(ApiResponse {
-        json: json!(&user_info),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(&user_info, StatusCode::CREATED))
 }
 
 /// Trigger enrollment process manually
@@ -514,10 +493,10 @@ pub async fn start_enrollment(
         event: Box::new(ApiEventType::EnrollmentTokenAdded { user }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
+        StatusCode::CREATED,
+    ))
 }
 
 /// Start remote desktop configuration
@@ -618,10 +597,10 @@ pub async fn start_remote_desktop_configuration(
         event: Box::new(ApiEventType::ClientConfigurationTokenAdded { user }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        StatusCode::CREATED,
+    ))
 }
 
 /// Verify if the user is available
@@ -658,10 +637,7 @@ pub async fn username_available(
 ) -> ApiResult {
     if let Err(err) = check_username(&data.username) {
         debug!("Username {} rejected: {err}", data.username);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
     let status = match User::find_by_username(&appstate.pool, &data.username).await? {
         Some(_) => {
@@ -670,10 +646,7 @@ pub async fn username_available(
         }
         None => StatusCode::OK,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 /// Modify user
@@ -723,20 +696,14 @@ pub async fn modify_user(
     let old_username = user.username.clone();
     if let Err(err) = check_username(&user_info.username) {
         debug!("Username {} rejected: {err}", user_info.username);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     // check phone number
     if let Some(ref phone) = user_info.phone {
         if !is_valid_phone_number(phone) {
             debug!("Invalid phone number for user {username}: {phone}");
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
     }
 
@@ -766,10 +733,7 @@ pub async fn modify_user(
         // prevent admin from disabling himself
         if session.user.username == username && !user_info.is_active {
             debug!("Admin {username} attempted to disable himself");
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
 
         // update VPN gateway config if user status or groups have changed
@@ -904,10 +868,7 @@ pub async fn delete_user(
     debug!("User {} deleting user {username}", session.user.username);
     if session.user.username == username {
         debug!("User {username} attempted to delete himself");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
     if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
         // Get rid of all devices of the deleted user from networks first
@@ -977,18 +938,12 @@ pub async fn change_self_password(
     debug!("User {} is changing his password.", session.user.username);
     let mut user = session.user;
     if user.verify_password(&data.old_password).is_err() {
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     if let Err(err) = check_password_strength(&data.new_password) {
         debug!("User {} password change failed: {err}", user.username);
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     user.set_password(&data.new_password);
@@ -1002,10 +957,7 @@ pub async fn change_self_password(
         event: Box::new(ApiEventType::PasswordChanged),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 /// Change user password
@@ -1053,25 +1005,16 @@ pub async fn change_password(
 
     if session.user.username == username {
         debug!("Cannot change own ({username}) password with this endpoint.");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     if let Err(err) = check_password_strength(&data.new_password) {
         debug!("Password for user {username} not strong enough: {err}");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
     if let Err(err) = check_username(&username) {
         debug!("Invalid username ({username}): {err}");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     let user = User::find_by_username(&appstate.pool, &username).await?;
@@ -1091,10 +1034,7 @@ pub async fn change_password(
         Ok(ApiResponse::default())
     } else {
         debug!("Can't change password for user {username}, user not found");
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -1139,10 +1079,7 @@ pub async fn reset_password(
 
     if session.user.username == username {
         debug!("Cannot reset own ({username}) password with this endpoint.");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
     }
 
     let user = User::find_by_username(&appstate.pool, &username).await?;
@@ -1205,10 +1142,7 @@ pub async fn reset_password(
         Ok(ApiResponse::default())
     } else {
         debug!("Can't reset password for user {username}, user not found");
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -1321,10 +1255,7 @@ pub async fn delete_security_key(
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
-    Ok(ApiResponse {
-        json: json!(user_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
 
 /// Delete OAuth token.

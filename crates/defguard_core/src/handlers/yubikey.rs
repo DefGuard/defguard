@@ -4,7 +4,6 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::{Id, models::YubiKey};
-use serde_json::json;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
 use crate::{appstate::AppState, auth::SessionInfo, error::WebError};
@@ -29,10 +28,7 @@ pub(crate) async fn delete_yubikey(
     }
     yubikey.delete(&appstate.pool).await?;
     info!("Yubikey {key_id} deleted by user {}", user.id);
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 #[derive(Deserialize)]
@@ -62,8 +58,5 @@ pub(crate) async fn rename_yubikey(
     yubikey.name = data.name;
     yubikey.save(&appstate.pool).await?;
     info!("Yubikey {} renamed by user {}", yubikey.id, user.id);
-    Ok(ApiResponse {
-        json: json!(yubikey),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(yubikey, StatusCode::OK))
 }

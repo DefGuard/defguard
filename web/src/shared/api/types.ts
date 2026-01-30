@@ -803,6 +803,9 @@ export interface AclDestination {
   ports: string;
   protocols: AclProtocolValue[];
   rules: number[];
+  any_destination: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
 }
 
 export type AddAclDestination = Omit<AclDestination, 'id' | 'state' | 'rules'>;
@@ -892,9 +895,9 @@ export interface CreateActivityLogStreamRequest {
 
 export interface ActivityLogStreamConfig {
   url: string;
-  username?: string;
-  password?: string;
-  cert?: string;
+  username: string | null;
+  password: string | null;
+  cert: string | null;
 }
 
 export type ActivityLogSortKey =
