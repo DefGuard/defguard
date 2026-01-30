@@ -1,4 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "edge_list_title": "Edge components"
+  "edge_title": "Edge components",
+  "edge_edit_title": "Edit edge component",
+  "edge_edit_general_info": "General information",
+  "edge_edit_name": "Name",
+  "edge_edit_address": "IP or Domain",
+  "edge_edit_port": "gRPC port",
+  "edge_edit_public_address": "Public domain",
+  "edge_edit_delete": "Delete"
 }

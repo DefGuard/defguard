@@ -30,9 +30,9 @@ export const EditEdgePage = () => {
   const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(paramsId)));
   return (
     <EditPage
-      pageTitle="Edge component"
+      pageTitle={m.edge_title()}
       links={breadcrumbsLinks}
-      headerProps={{ title: 'Edit Edge component' }}
+      headerProps={{ title: m.edge_edit_title() }}
     >
       <EditEdgeForm edge={edge} />
     </EditPage>
@@ -71,8 +71,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
     onSuccess: () => {
       navigate({
-        // TODO(jck)
-        to: '/locations',
+        to: '/edge',
         replace: true,
       });
     },
@@ -104,21 +103,25 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
       }}
     >
       <form.AppForm>
-        <EditPageFormSection label="General information">
+        <EditPageFormSection label={m.edge_edit_general_info()}>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label="Name" />}
+            {(field) => <field.FormInput required label={m.edge_edit_name()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="address">
-            {(field) => <field.FormInput required disabled label="IP or Domain" />}
+            {(field) => (
+              <field.FormInput required disabled label={m.edge_edit_address()} />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput required disabled label="gRPC port" />}
+            {(field) => <field.FormInput required disabled label={m.edge_edit_port()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="public_address">
-            {(field) => <field.FormInput required disabled label="Public domain" />}
+            {(field) => (
+              <field.FormInput required disabled label={m.edge_edit_public_address()} />
+            )}
           </form.AppField>
         </EditPageFormSection>
         <form.Subscribe
@@ -130,7 +133,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
           {({ isDefault, isSubmitting }) => (
             <EditPageControls
               deleteProps={{
-                text: 'Delete',
+                text: m.edge_edit_delete(),
                 onClick: () => {
                   deleteEdge();
                 },

@@ -4,7 +4,7 @@ import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLa
 
 export const EdgeListPage = () => {
   return (
-    <Page title={m.edge_list_title()}>
+    <Page title={m.edge_title()}>
       <TablePageLayout>TODO</TablePageLayout>
     </Page>
   );
