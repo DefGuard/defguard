@@ -894,9 +894,9 @@ export interface CreateActivityLogStreamRequest {
 
 export interface ActivityLogStreamConfig {
   url: string;
-  username?: string;
-  password?: string;
-  cert?: string;
+  username: string | null;
+  password: string | null;
+  cert: string | null;
 }
 
 export type ActivityLogSortKey =
