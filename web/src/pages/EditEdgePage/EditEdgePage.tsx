@@ -1,32 +1,25 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
-import { useParams } from '@tanstack/react-router';
-import { EditPage } from '../../shared/components/EditPage/EditPage';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { getEdgeQueryOptions } from '../../shared/query';
 import api from '../../shared/api/api';
 import type { Edge } from '../../shared/api/types';
-import { useMemo } from 'react';
-import { useAppForm } from '../../shared/form';
-import { formChangeLogic } from '../../shared/formLogic';
+import { EditPage } from '../../shared/components/EditPage/EditPage';
+import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
+import { useAppForm } from '../../shared/form';
+import { formChangeLogic } from '../../shared/formLogic';
+import { getEdgeQueryOptions } from '../../shared/query';
 
 const breadcrumbsLinks = [
-  <Link
-    to="/settings"
-    search={{
-      tab: 'notifications',
-    }}
-    key={0}
-  >
-    Notifications
+  <Link key={0} to="/edge">
+    Edge components
   </Link>,
-  <Link key={1} to="/settings/smtp">
-    SMTP Configuration
+  <Link key={1} to="/edge">
+    Edit
   </Link>,
 ];
 
@@ -65,8 +58,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
     onSuccess: () => {
       navigate({
-        // TODO(jck)
-        to: '/locations',
+        to: '/edge',
         replace: true,
       });
     },
@@ -86,10 +78,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
   });
 
-  const defaultValues = useMemo(
-    (): FormFields => ({ ...edge }),
-    [edge],
-  );
+  const defaultValues = useMemo((): FormFields => ({ ...edge }), [edge]);
 
   const form = useAppForm({
     defaultValues,
@@ -150,7 +139,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
               }}
               cancelProps={{
                 onClick: () => {
-                  window.history.back();
+                  navigate({to: "/edge"});
                 },
               }}
               submitProps={{

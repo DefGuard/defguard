@@ -356,8 +356,7 @@ const api = {
   },
   edge: {
     getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
-    editEdge: (data: Edge) =>
-      client.put(`/proxy/${data.id}`, data),
+    editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
   },
   acl: {
