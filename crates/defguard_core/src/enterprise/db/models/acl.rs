@@ -1543,7 +1543,7 @@ impl AclAlias {
     /// # Errors
     ///
     /// - `AclError::AliasNotFoundError`
-    pub async fn apply_aliases(aliases: &[Id], appstate: &AppState) -> Result<(), AclError> {
+    pub(crate) async fn apply_aliases(aliases: &[Id], appstate: &AppState) -> Result<(), AclError> {
         debug!("Applying {} ACL aliases: {aliases:?}", aliases.len());
         let mut transaction = appstate.pool.begin().await?;
 
@@ -1576,8 +1576,7 @@ impl AclAlias {
             }
         }
 
-        let affected_locations: Vec<WireguardNetwork<Id>> =
-            affected_locations.into_iter().collect();
+        let affected_locations = affected_locations.into_iter().collect::<Vec<_>>();
         debug!(
             "{} locations affected by applied ACL aliases. Sending gateway firewall update events \
             for each location",

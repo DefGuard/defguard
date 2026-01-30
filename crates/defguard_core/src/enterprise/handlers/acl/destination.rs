@@ -21,7 +21,7 @@ use crate::{
 
 /// API representation of [`AclAlias`] used in API requests for modification operations
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
-pub struct EditAclDestination {
+pub(crate) struct EditAclDestination {
     pub name: String,
     pub destination: String,
     pub ports: String,

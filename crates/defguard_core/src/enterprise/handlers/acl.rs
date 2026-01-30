@@ -162,12 +162,12 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct ApplyAclRulesData {
+pub(crate) struct ApplyAclRulesData {
     rules: Vec<Id>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct ApplyAclAliasesData {
+pub(crate) struct ApplyAclAliasesData {
     aliases: Vec<Id>,
 }
 
