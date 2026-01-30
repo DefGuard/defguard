@@ -6,6 +6,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import './style.scss';
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
+import z from 'zod';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
 import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
@@ -38,6 +39,8 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { SuggestedIpInput } from '../../shared/defguard-ui/components/SuggestedIPInput/SuggestedIPInput';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { useAppForm } from '../../shared/form';
+import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { FoldableRadioSection } from '../FoldableRadioSection/FoldableRadioSection';
@@ -200,6 +203,8 @@ export const PlaygroundPage = () => {
           {m.test_placeholder_long()}
         </Helper>
       </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
+      <TestFileUpload />
     </div>
   );
 };
@@ -419,6 +424,45 @@ const TestSelectionSection = () => {
         selection={selected}
         id="playground-selection-section-test"
       />
+    </Card>
+  );
+};
+
+const TestFileUpload = () => {
+  const testFormSchema = z.object({
+    test_field: z.file(m.form_error_required()).nullable(),
+  });
+
+  type FormFields = z.infer<typeof testFormSchema>;
+
+  const defaultValues: FormFields = {
+    test_field: null,
+  };
+
+  const form = useAppForm({
+    defaultValues,
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: testFormSchema,
+      onChange: testFormSchema,
+    },
+  });
+
+  return (
+    <Card>
+      <form
+        onSubmit={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppForm>
+          <form.AppField name="test_field">
+            {(field) => <field.FormUploadField />}
+          </form.AppField>
+        </form.AppForm>
+      </form>
     </Card>
   );
 };

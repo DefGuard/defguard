@@ -41,7 +41,7 @@ export const LocationsOverviewPage = () => {
           <OverviewPeriodSelect
             onChange={(value) => {
               navigate({
-                from: '/vpn-overview',
+                from: '/vpn-overview/',
                 search: {
                   period: value,
                 },

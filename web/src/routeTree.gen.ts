@@ -47,10 +47,12 @@ import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } fro
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
+import { Route as AuthorizedDefaultAclEditDestinationRouteImport } from './routes/_authorized/_default/acl/edit-destination'
 import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
 import { Route as AuthorizedDefaultAclDestinationsRouteImport } from './routes/_authorized/_default/acl/destinations'
 import { Route as AuthorizedDefaultAclAliasesRouteImport } from './routes/_authorized/_default/acl/aliases'
 import { Route as AuthorizedDefaultAclAddRuleRouteImport } from './routes/_authorized/_default/acl/add-rule'
+import { Route as AuthorizedDefaultAclAddDestinationRouteImport } from './routes/_authorized/_default/acl/add-destination'
 import { Route as AuthorizedDefaultAclAddAliasRouteImport } from './routes/_authorized/_default/acl/add-alias'
 import { Route as AuthorizedDefaultLocationsLocationIdEditRouteImport } from './routes/_authorized/_default/locations/$locationId/edit'
 
@@ -261,6 +263,12 @@ const AuthorizedDefaultAclRulesRoute =
     path: '/acl/rules',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclEditDestinationRoute =
+  AuthorizedDefaultAclEditDestinationRouteImport.update({
+    id: '/acl/edit-destination',
+    path: '/acl/edit-destination',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclEditAliasRoute =
   AuthorizedDefaultAclEditAliasRouteImport.update({
     id: '/acl/edit-alias',
@@ -285,6 +293,12 @@ const AuthorizedDefaultAclAddRuleRoute =
     path: '/acl/add-rule',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclAddDestinationRoute =
+  AuthorizedDefaultAclAddDestinationRouteImport.update({
+    id: '/acl/add-destination',
+    path: '/acl/add-destination',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclAddAliasRoute =
   AuthorizedDefaultAclAddAliasRouteImport.update({
     id: '/acl/add-alias',
@@ -300,6 +314,7 @@ const AuthorizedDefaultLocationsLocationIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
+  '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
@@ -325,10 +340,12 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
@@ -337,13 +354,14 @@ export interface FileRoutesByFullPath {
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/locations': typeof AuthorizedDefaultLocationsIndexRoute
-  '/settings': typeof AuthorizedDefaultSettingsIndexRoute
-  '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
+  '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
+  '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
+  '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
@@ -368,10 +386,12 @@ export interface FileRoutesByTo {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
@@ -415,10 +435,12 @@ export interface FileRoutesById {
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
   '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
+  '/_authorized/_default/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/_authorized/_default/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
   '/_authorized/_default/acl/aliases': typeof AuthorizedDefaultAclAliasesRoute
   '/_authorized/_default/acl/destinations': typeof AuthorizedDefaultAclDestinationsRoute
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
+  '/_authorized/_default/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
@@ -436,6 +458,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/404'
+    | '/'
     | '/auth'
     | '/consent'
     | '/playground'
@@ -461,10 +484,12 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/acl/add-alias'
+    | '/acl/add-destination'
     | '/acl/add-rule'
     | '/acl/aliases'
     | '/acl/destinations'
     | '/acl/edit-alias'
+    | '/acl/edit-destination'
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
@@ -473,13 +498,14 @@ export interface FileRouteTypes {
     | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
-    | '/locations'
-    | '/settings'
-    | '/vpn-overview'
+    | '/locations/'
+    | '/settings/'
+    | '/vpn-overview/'
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
+    | '/'
     | '/consent'
     | '/playground'
     | '/snackbar'
@@ -504,10 +530,12 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/acl/add-alias'
+    | '/acl/add-destination'
     | '/acl/add-rule'
     | '/acl/aliases'
     | '/acl/destinations'
     | '/acl/edit-alias'
+    | '/acl/edit-destination'
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
@@ -550,10 +578,12 @@ export interface FileRouteTypes {
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
     | '/_authorized/_default/acl/add-alias'
+    | '/_authorized/_default/acl/add-destination'
     | '/_authorized/_default/acl/add-rule'
     | '/_authorized/_default/acl/aliases'
     | '/_authorized/_default/acl/destinations'
     | '/_authorized/_default/acl/edit-alias'
+    | '/_authorized/_default/acl/edit-destination'
     | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
@@ -610,7 +640,7 @@ declare module '@tanstack/react-router' {
     '/_authorized': {
       id: '/_authorized'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -659,7 +689,7 @@ declare module '@tanstack/react-router' {
     '/_authorized/_default': {
       id: '/_authorized/_default'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthorizedDefaultRouteImport
       parentRoute: typeof AuthorizedRoute
     }
@@ -771,21 +801,21 @@ declare module '@tanstack/react-router' {
     '/_authorized/_default/vpn-overview/': {
       id: '/_authorized/_default/vpn-overview/'
       path: '/vpn-overview'
-      fullPath: '/vpn-overview'
+      fullPath: '/vpn-overview/'
       preLoaderRoute: typeof AuthorizedDefaultVpnOverviewIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/settings/': {
       id: '/_authorized/_default/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
-      fullPath: '/locations'
+      fullPath: '/locations/'
       preLoaderRoute: typeof AuthorizedDefaultLocationsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
@@ -845,6 +875,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclRulesRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/edit-destination': {
+      id: '/_authorized/_default/acl/edit-destination'
+      path: '/acl/edit-destination'
+      fullPath: '/acl/edit-destination'
+      preLoaderRoute: typeof AuthorizedDefaultAclEditDestinationRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/edit-alias': {
       id: '/_authorized/_default/acl/edit-alias'
       path: '/acl/edit-alias'
@@ -873,6 +910,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclAddRuleRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/add-destination': {
+      id: '/_authorized/_default/acl/add-destination'
+      path: '/acl/add-destination'
+      fullPath: '/acl/add-destination'
+      preLoaderRoute: typeof AuthorizedDefaultAclAddDestinationRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/add-alias': {
       id: '/_authorized/_default/acl/add-alias'
       path: '/acl/add-alias'
@@ -898,10 +942,12 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
+  AuthorizedDefaultAclAddDestinationRoute: typeof AuthorizedDefaultAclAddDestinationRoute
   AuthorizedDefaultAclAddRuleRoute: typeof AuthorizedDefaultAclAddRuleRoute
   AuthorizedDefaultAclAliasesRoute: typeof AuthorizedDefaultAclAliasesRoute
   AuthorizedDefaultAclDestinationsRoute: typeof AuthorizedDefaultAclDestinationsRoute
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
+  AuthorizedDefaultAclEditDestinationRoute: typeof AuthorizedDefaultAclEditDestinationRoute
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
@@ -924,10 +970,14 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
+  AuthorizedDefaultAclAddDestinationRoute:
+    AuthorizedDefaultAclAddDestinationRoute,
   AuthorizedDefaultAclAddRuleRoute: AuthorizedDefaultAclAddRuleRoute,
   AuthorizedDefaultAclAliasesRoute: AuthorizedDefaultAclAliasesRoute,
   AuthorizedDefaultAclDestinationsRoute: AuthorizedDefaultAclDestinationsRoute,
   AuthorizedDefaultAclEditAliasRoute: AuthorizedDefaultAclEditAliasRoute,
+  AuthorizedDefaultAclEditDestinationRoute:
+    AuthorizedDefaultAclEditDestinationRoute,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:

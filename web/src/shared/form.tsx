@@ -2,6 +2,7 @@ import { createFormHook, createFormHookContexts } from '@tanstack/react-form';
 import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMultiple';
 import { FormUploadField } from './components/FormUploadField/FormUploadField';
 import { FormCheckbox } from './defguard-ui/components/form/FormCheckbox/FormCheckbox';
+import { FormCheckboxGroup } from './defguard-ui/components/form/FormCheckboxGroup/FormCheckboxGroup';
 import { FormInput } from './defguard-ui/components/form/FormInput/FormInput';
 import { FormInteractiveBlock } from './defguard-ui/components/form/FormInteractiveBlock/FormInteractiveBlock';
 import { FormRadio } from './defguard-ui/components/form/FormRadio/FormRadio';
@@ -28,6 +29,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
     FormSelectMultiple,
     FormInteractiveBlock,
     FormUploadField,
+    FormCheckboxGroup,
   },
   formComponents: {
     FormSubmitButton,

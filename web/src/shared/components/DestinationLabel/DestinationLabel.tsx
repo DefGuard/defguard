@@ -17,7 +17,7 @@ export const DestinationLabel = ({
       <SizedBox height={1} width={ThemeSpacing.Sm} />
       <span className="separator">{`•`}</span>
       <SizedBox height={1} width={ThemeSpacing.Sm} />
-      {isPresent(ports) && (
+      {isPresent(ports) && ports.length > 0 && (
         <>
           <Icon icon="globe" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
@@ -25,7 +25,7 @@ export const DestinationLabel = ({
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(protocols) && (
+      {isPresent(protocols) && protocols.length > 0 && (
         <>
           <Icon icon="activity-notes" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
@@ -33,7 +33,7 @@ export const DestinationLabel = ({
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(ips) && (
+      {isPresent(ips) && ips.length > 0 && (
         <>
           <Icon icon="ip-suggest" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />

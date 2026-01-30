@@ -36,6 +36,8 @@ export const SelectionModal = () => {
 const ModalContent = () => {
   const options = useSelectionModal((s) => s.options);
   const initialSelected = useSelectionModal((s) => s.selected);
+  const renderItem = useSelectionModal((s) => s.renderItem);
+  const orderItems = useSelectionModal((s) => s.orderItems);
 
   const [internalSelection, setInternalSelection] =
     useState<Set<SelectionKey>>(initialSelected);
@@ -46,6 +48,8 @@ const ModalContent = () => {
         options={options}
         selection={internalSelection}
         onChange={setInternalSelection}
+        renderItem={renderItem}
+        orderItems={orderItems}
       />
       <ModalControls
         cancelProps={{

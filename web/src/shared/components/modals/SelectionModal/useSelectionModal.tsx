@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { SelectionKey, SelectionOption } from '../../SelectionSection/type';
+import type {
+  SelectionKey,
+  SelectionOption,
+  SelectionSectionProps,
+} from '../../SelectionSection/type';
+
+type SectionProps = SelectionSectionProps<SelectionKey, unknown>;
 
 interface StoreValues {
   title: string;
@@ -7,6 +13,8 @@ interface StoreValues {
   selected: Set<number> | Set<string>;
   isOpen: boolean;
   onSubmit?: (values: Array<SelectionKey>) => void;
+  orderItems?: SectionProps['orderItems'];
+  renderItem?: SectionProps['renderItem'];
 }
 
 const defaultValues: StoreValues = {
