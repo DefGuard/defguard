@@ -11,7 +11,6 @@ import {
 import { Modal } from '../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../../shared/form';
@@ -21,15 +20,11 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
+import { processCertificateFile } from '../../../../../shared/utils/processCertificateFile';
 
 const modalNameValue = ModalName.EditLogStreaming;
 
 type ModalData = ActivityLogStream;
-
-const processCertificate = async (file: File) => {
-  const content = await file.text();
-  return content.replace(/\r\n/g, '\n').trim();
-};
 
 export const EditLogStreamingModal = () => {
   const [isOpen, setOpen] = useState(false);
@@ -120,16 +115,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      let certificateContent;
-
-      if (value.certificate) {
-        try {
-          certificateContent = await processCertificate(value.certificate);
-        } catch (error) {
-          Snackbar.error('Failed to read certificate file');
-          console.error('Failed to read certificate file:', error);
-        }
-      }
+      const certificateContent = await processCertificateFile(value.certificate);
 
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,

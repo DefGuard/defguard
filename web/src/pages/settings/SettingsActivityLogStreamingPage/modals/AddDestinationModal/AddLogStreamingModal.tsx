@@ -19,8 +19,7 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
-import './style.scss';
-import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { processCertificateFile } from '../../../../../shared/utils/processCertificateFile';
 
 const modalNameValue = ModalName.AddLogStreaming;
 
@@ -164,16 +163,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      let certificateContent: string | undefined;
-
-      if (value.certificate) {
-        try {
-          certificateContent = await value.certificate.text();
-        } catch (error) {
-          Snackbar.error('Failed to read certificate file');
-          console.error('Failed to read certificate file:', error);
-        }
-      }
+      const certificateContent = await processCertificateFile(value.certificate);
 
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
