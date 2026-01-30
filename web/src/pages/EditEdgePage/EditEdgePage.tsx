@@ -139,7 +139,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
               }}
               cancelProps={{
                 onClick: () => {
-                  navigate({to: "/edge"});
+                  window.history.back();
                 },
               }}
               submitProps={{
