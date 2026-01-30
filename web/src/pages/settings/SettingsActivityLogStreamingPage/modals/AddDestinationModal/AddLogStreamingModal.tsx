@@ -20,6 +20,7 @@ import {
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
 import './style.scss';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 
 const modalNameValue = ModalName.AddLogStreaming;
 
@@ -169,6 +170,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
         try {
           certificateContent = await value.certificate.text();
         } catch (error) {
+          Snackbar.error('Failed to read certificate file');
           console.error('Failed to read certificate file:', error);
         }
       }
