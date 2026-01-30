@@ -70,10 +70,7 @@ pub async fn create_job(
             "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
             session.user.username,
         );
-        Ok(ApiResponse {
-            json: json!(Jobid { id }),
-            status: StatusCode::CREATED,
-        })
+        Ok(ApiResponse::json(Jobid { id }, StatusCode::CREATED))
     } else {
         error!("Failed to create job, user {} not found", job_data.username);
         Err(WebError::ObjectNotFound(format!(
@@ -93,10 +90,10 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     )
     .to_jwt()
     .map_err(|_| WebError::Authorization("Failed to create bridge token".into()))?;
-    Ok(ApiResponse {
-        json: json!({ "token": token }),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!({ "token": token }),
+        StatusCode::CREATED,
+    ))
 }
 
 pub async fn list_workers(
@@ -107,10 +104,7 @@ pub async fn list_workers(
     let state = worker_state.lock().unwrap();
     let workers = state.list_workers();
     debug!("Listed workers");
-    Ok(ApiResponse {
-        json: json!(workers),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(workers, StatusCode::OK))
 }
 
 pub async fn remove_worker(
@@ -156,27 +150,21 @@ pub async fn job_status(
         }
         if response.success {
             debug!("Fetched job status for job {id}");
-            Ok(ApiResponse {
-                json: json!(job_response),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::json(job_response, StatusCode::OK))
         } else {
             error!(
                 "Failed to fetch job status for job {id}: {}",
                 response.error
             );
-            Ok(ApiResponse {
-                json: json!(JobResponseError {
-                    message: response.error.clone()
-                }),
-                status: StatusCode::NOT_FOUND,
-            })
+            Ok(ApiResponse::json(
+                JobResponseError {
+                    message: response.error.clone(),
+                },
+                StatusCode::NOT_FOUND,
+            ))
         }
     } else {
         debug!("Fetched job status for job {id}");
-        Ok(ApiResponse {
-            json: json!(job_response),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::json(job_response, StatusCode::OK))
     }
 }

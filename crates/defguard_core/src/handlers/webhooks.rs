@@ -2,7 +2,6 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use serde_json::json;
 
 use super::{ApiResponse, ApiResult, WebHookData};
 use crate::{
@@ -34,20 +33,14 @@ pub async fn add_webhook(
         Err(_) => StatusCode::BAD_REQUEST,
     };
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 // TODO: paginate
 pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let webhooks = WebHook::all(&appstate.pool).await?;
 
-    Ok(ApiResponse {
-        json: json!(webhooks),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(webhooks, StatusCode::OK))
 }
 
 pub async fn get_webhook(
@@ -56,14 +49,8 @@ pub async fn get_webhook(
     Path(id): Path<i64>,
 ) -> ApiResult {
     match WebHook::find_by_id(&appstate.pool, id).await? {
-        Some(webhook) => Ok(ApiResponse {
-            json: json!(webhook),
-            status: StatusCode::OK,
-        }),
-        None => Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        }),
+        Some(webhook) => Ok(ApiResponse::json(webhook, StatusCode::OK)),
+        None => Ok(ApiResponse::with_status(StatusCode::NOT_FOUND)),
     }
 }
 
@@ -102,10 +89,7 @@ pub async fn change_webhook(
         None => StatusCode::NOT_FOUND,
     };
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 pub async fn delete_webhook(
@@ -128,10 +112,7 @@ pub async fn delete_webhook(
         }
         None => StatusCode::NOT_FOUND,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }
 
 #[derive(Deserialize)]
@@ -170,8 +151,5 @@ pub async fn change_enabled(
         }
         None => StatusCode::NOT_FOUND,
     };
-    Ok(ApiResponse {
-        json: json!({}),
-        status,
-    })
+    Ok(ApiResponse::with_status(status))
 }

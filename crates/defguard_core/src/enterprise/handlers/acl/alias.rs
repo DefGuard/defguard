@@ -203,10 +203,7 @@ pub(crate) async fn list_acl_aliases(
         api_aliases.push(info.into());
     }
     info!("User {} listed ACL aliases", session.user.username);
-    Ok(ApiResponse {
-        json: json!(api_aliases),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(api_aliases, StatusCode::OK))
 }
 
 /// Get ACL alias.
@@ -243,10 +240,7 @@ pub(crate) async fn get_acl_alias(
     };
 
     info!("User {} retrieved ACL alias {id}", session.user.username);
-    Ok(ApiResponse {
-        json: alias,
-        status,
-    })
+    Ok(ApiResponse::new(alias, status))
 }
 
 /// Create ACL alias.
@@ -277,10 +271,7 @@ pub(crate) async fn create_acl_alias(
         "User {} created ACL alias {}",
         session.user.username, alias.id
     );
-    Ok(ApiResponse {
-        json: json!(alias),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(alias, StatusCode::CREATED))
 }
 
 /// Update ACL alias.
@@ -312,10 +303,7 @@ pub(crate) async fn update_acl_alias(
             err
         })?;
     info!("User {} updated ACL alias", session.user.username);
-    Ok(ApiResponse {
-        json: json!(alias),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(alias, StatusCode::OK))
 }
 
 /// Delete ACL alias.

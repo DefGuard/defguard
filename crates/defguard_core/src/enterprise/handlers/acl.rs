@@ -199,10 +199,7 @@ pub(crate) async fn list_acl_rules(
         api_rules.push(info.into());
     }
     info!("User {} listed ACL rules", session.user.username);
-    Ok(ApiResponse {
-        json: json!(api_rules),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(api_rules, StatusCode::OK))
 }
 
 /// Get ACL rule.
@@ -275,10 +272,7 @@ pub(crate) async fn create_acl_rule(
         "User {} created ACL rule {}",
         session.user.username, rule.id
     );
-    Ok(ApiResponse {
-        json: json!(rule),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(rule, StatusCode::CREATED))
 }
 
 /// Update ACL rule.
@@ -314,10 +308,7 @@ pub(crate) async fn update_acl_rule(
             err
         })?;
     info!("User {} updated ACL rule", session.user.username);
-    Ok(ApiResponse {
-        json: json!(rule),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(rule, StatusCode::OK))
 }
 
 /// Delete ACL rule.

@@ -71,10 +71,10 @@ pub async fn add_api_token(
             event: Box::new(ApiEventType::ApiTokenAdded { owner, token }),
         })?;
     }
-    Ok(ApiResponse {
-        json: json!({"token": token_string}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!({"token": token_string}),
+        StatusCode::CREATED,
+    ))
 }
 
 // GET on user, returns ApiTokenInfo vector in JSON
@@ -92,10 +92,7 @@ pub async fn fetch_api_tokens(
         .map(Into::into)
         .collect();
 
-    Ok(ApiResponse {
-        json: json!(tokens_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(tokens_info, StatusCode::OK))
 }
 
 pub async fn delete_api_token(
@@ -131,10 +128,7 @@ pub async fn delete_api_token(
         return Err(WebError::BadRequest("Key not found".into()));
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -181,8 +175,5 @@ pub async fn rename_api_token(
         return Err(WebError::ObjectNotFound(String::new()));
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }

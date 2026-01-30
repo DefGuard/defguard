@@ -21,7 +21,6 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use defguard_mail::Mail;
-use serde_json::json;
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
@@ -263,10 +262,7 @@ pub(crate) async fn authenticate(
         return Ok((
             cookies,
             private_cookies,
-            ApiResponse {
-                json: json!(mfa_info),
-                status: StatusCode::CREATED,
-            },
+            ApiResponse::json(mfa_info, StatusCode::CREATED),
         ));
     }
 
@@ -294,13 +290,13 @@ pub(crate) async fn authenticate(
         Ok((
             cookies,
             private_cookies,
-            ApiResponse {
-                json: json!(AuthResponse {
+            ApiResponse::json(
+                AuthResponse {
                     user: user_info,
-                    url
-                }),
-                status: StatusCode::OK,
-            },
+                    url,
+                },
+                StatusCode::OK,
+            ),
         ))
     } else {
         unimplemented!("Impossible to get here");
@@ -433,10 +429,7 @@ pub async fn webauthn_init(
                 "Initialized WebAuthn registration for user {}",
                 user.username
             );
-            Ok(ApiResponse {
-                json: json!(ccr),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::json(ccr, StatusCode::OK))
         }
         Err(err) => Err(WebError::WebauthnRegistration(err.to_string())),
     }
@@ -478,7 +471,7 @@ pub async fn webauthn_finish(
             .get_allowed_origins()
             .iter()
             .map(ToString::to_string)
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
     );
 
     let passkey = appstate
@@ -509,10 +502,7 @@ pub async fn webauthn_finish(
         event: Box::new(ApiEventType::MfaSecurityKeyAdded { key: webauthn }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(recovery_codes),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(recovery_codes, StatusCode::OK))
 }
 
 /// Start WebAuthn authentication
@@ -527,10 +517,7 @@ pub async fn webauthn_start(
             session
                 .set_passkey_authentication(&appstate.pool, &passkey_reg)
                 .await?;
-            Ok(ApiResponse {
-                json: json!(rcr),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::json(rcr, StatusCode::OK))
         }
         Err(_err) => Err(WebError::Http(StatusCode::BAD_REQUEST)),
     }
@@ -590,24 +577,24 @@ pub async fn webauthn_end(
                         let private_cookies = private_cookies.remove(openid_cookie);
                         Ok((
                             private_cookies,
-                            ApiResponse {
-                                json: json!(AuthResponse {
+                            ApiResponse::json(
+                                AuthResponse {
                                     user: user_info,
                                     url: Some(redirect_url),
-                                }),
-                                status: StatusCode::OK,
-                            },
+                                },
+                                StatusCode::OK,
+                            ),
                         ))
                     } else {
                         Ok((
                             private_cookies,
-                            ApiResponse {
-                                json: json!(AuthResponse {
+                            ApiResponse::json(
+                                AuthResponse {
                                     user: user_info,
                                     url: None,
-                                }),
-                                status: StatusCode::OK,
-                            },
+                                },
+                                StatusCode::OK,
+                            ),
                         ))
                     }
                 } else {
@@ -646,10 +633,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
 
     let secret = user.new_totp_secret(&appstate.pool).await?;
     info!("Generated new TOTP secret for user {}", user.username);
-    Ok(ApiResponse {
-        json: json!(AuthTotp::new(secret)),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(AuthTotp::new(secret), StatusCode::OK))
 }
 
 /// Enable TOTP
@@ -680,10 +664,7 @@ pub async fn totp_enable(
             context,
             event: Box::new(ApiEventType::MfaTotpEnabled),
         })?;
-        Ok(ApiResponse {
-            json: json!(recovery_codes),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::json(recovery_codes, StatusCode::OK))
     } else {
         Err(WebError::ObjectNotFound("Invalid TOTP code".into()))
     }
@@ -748,24 +729,24 @@ pub async fn totp_code(
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
                     private_cookies,
-                    ApiResponse {
-                        json: json!(AuthResponse {
+                    ApiResponse::json(
+                        AuthResponse {
                             user: user_info,
                             url: Some(redirect_url),
-                        }),
-                        status: StatusCode::OK,
-                    },
+                        },
+                        StatusCode::OK,
+                    ),
                 ))
             } else {
                 Ok((
                     private_cookies,
-                    ApiResponse {
-                        json: json!(AuthResponse {
+                    ApiResponse::json(
+                        AuthResponse {
                             user: user_info,
                             url: None,
-                        }),
-                        status: StatusCode::OK,
-                    },
+                        },
+                        StatusCode::OK,
+                    ),
                 ))
             }
         } else {
@@ -848,10 +829,7 @@ pub async fn email_mfa_enable(
             context,
             event: Box::new(ApiEventType::MfaEmailEnabled),
         })?;
-        Ok(ApiResponse {
-            json: json!(recovery_codes),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::json(recovery_codes, StatusCode::OK))
     } else {
         Err(WebError::ObjectNotFound("Invalid email code".into()))
     }
@@ -936,24 +914,24 @@ pub async fn email_mfa_code(
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
                     private_cookies,
-                    ApiResponse {
-                        json: json!(AuthResponse {
+                    ApiResponse::json(
+                        AuthResponse {
                             user: user_info,
                             url: Some(redirect_url),
-                        }),
-                        status: StatusCode::OK,
-                    },
+                        },
+                        StatusCode::OK,
+                    ),
                 ))
             } else {
                 Ok((
                     private_cookies,
-                    ApiResponse {
-                        json: json!(AuthResponse {
+                    ApiResponse::json(
+                        AuthResponse {
                             user: user_info,
                             url: None,
-                        }),
-                        status: StatusCode::OK,
-                    },
+                        },
+                        StatusCode::OK,
+                    ),
                 ))
             }
         } else {
@@ -1026,25 +1004,25 @@ pub async fn recovery_code(
                 let private_cookies = private_cookies.remove(openid_cookie);
                 return Ok((
                     private_cookies,
-                    ApiResponse {
-                        json: json!(AuthResponse {
+                    ApiResponse::json(
+                        AuthResponse {
                             user: user_info,
                             url: Some(redirect_url),
-                        }),
-                        status: StatusCode::OK,
-                    },
+                        },
+                        StatusCode::OK,
+                    ),
                 ));
             }
 
             return Ok((
                 private_cookies,
-                ApiResponse {
-                    json: json!(AuthResponse {
+                ApiResponse::json(
+                    AuthResponse {
                         user: user_info,
                         url: None,
-                    }),
-                    status: StatusCode::OK,
-                },
+                    },
+                    StatusCode::OK,
+                ),
             ));
         }
     }

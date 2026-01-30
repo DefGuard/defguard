@@ -162,10 +162,7 @@ pub async fn get_network_device(
             let network_device_info =
                 NetworkDeviceInfo::from_device(device, &mut transaction).await?;
             transaction.commit().await?;
-            return Ok(ApiResponse {
-                json: json!(network_device_info),
-                status: StatusCode::OK,
-            });
+            return Ok(ApiResponse::json(network_device_info, StatusCode::OK));
         }
     }
     error!(
@@ -200,10 +197,7 @@ pub(crate) async fn list_network_devices(
     transaction.commit().await?;
 
     info!("Listed {} network devices", devices_response.len());
-    Ok(ApiResponse {
-        json: json!(devices_response),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(devices_response, StatusCode::OK))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -312,10 +306,7 @@ pub(crate) async fn check_ip_availability(
         }
     }
 
-    Ok(ApiResponse {
-        json: json!(validation_results),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(validation_results, StatusCode::OK))
 }
 
 pub(crate) async fn find_available_ips(
@@ -361,19 +352,13 @@ pub(crate) async fn find_available_ips(
             "Found addresses {:?} for new device i network {} ({:?})",
             split_ips, network.name, network.address
         );
-        Ok(ApiResponse {
-            json: json!(split_ips),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::json(split_ips, StatusCode::OK))
     } else {
         warn!(
             "Failed to find available IPs for new device in network {} ({:?})",
             network.name, network.address
         );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -487,10 +472,10 @@ pub(crate) async fn start_network_device_setup(
 
     transaction.commit().await?;
 
-    Ok(ApiResponse {
-        json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        StatusCode::CREATED,
+    ))
 }
 
 // Make a new CLI configuration token for an already added network device
@@ -550,13 +535,13 @@ pub(crate) async fn start_network_device_setup_for_device(
         device {} with ID {}: {configuration_token}",
         device.name, device.id
     );
-    Ok(ApiResponse {
-        json: json!({
+    Ok(ApiResponse::new(
+        json!({
             "enrollment_token": configuration_token,
             "enrollment_url": config.enrollment_url.to_string()
         }),
-        status: StatusCode::CREATED,
-    })
+        StatusCode::CREATED,
+    ))
 }
 
 pub(crate) async fn add_network_device(
@@ -677,10 +662,7 @@ pub(crate) async fn add_network_device(
         }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(result),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
 #[derive(Debug, Deserialize)]
@@ -771,10 +753,7 @@ pub async fn modify_network_device(
             after: device,
         }),
     })?;
-    Ok(ApiResponse {
-        json: json!(network_device_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(network_device_info, StatusCode::OK))
 }
 
 #[derive(Debug, Serialize)]

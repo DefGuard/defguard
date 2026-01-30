@@ -191,10 +191,7 @@ pub(crate) async fn add_openid_provider(
         }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 /// Get OpenID provider by name.
@@ -226,21 +223,15 @@ pub(crate) async fn get_openid_provider(
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
             provider.okta_private_jwk = None;
-            Ok(ApiResponse {
-                json: json!({
-                    "provider": json!(provider),
-                    "settings": settings_json,
-                }),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::new(
+                json!({"provider": provider, "settings": settings_json}),
+                StatusCode::OK,
+            ))
         }
-        None => Ok(ApiResponse {
-            json: json!({
-                "provider": null,
-                "settings": settings_json,
-            }),
-            status: StatusCode::NO_CONTENT,
-        }),
+        None => Ok(ApiResponse::new(
+            json!({"provider": null, "settings": settings_json}),
+            StatusCode::NO_CONTENT,
+        )),
     }
 }
 
@@ -298,19 +289,13 @@ pub(crate) async fn delete_openid_provider(
             context,
             event: Box::new(ApiEventType::OpenIdProviderRemoved { provider }),
         })?;
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::with_status(StatusCode::OK))
     } else {
         warn!(
             "User {} failed to delete OpenID provider {name}. Such provider does not exist.",
             session.user.username,
         );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -358,19 +343,13 @@ pub(crate) async fn modify_openid_provider(
             event: Box::new(ApiEventType::OpenIdProviderModified { provider }),
         })?;
 
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::with_status(StatusCode::OK))
     } else {
         warn!(
             "User {} failed to modify OpenID client {}. Such client does not exist.",
             session.user.username, provider_data.name
         );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
     }
 }
 
@@ -392,10 +371,7 @@ pub(crate) async fn list_openid_providers(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let providers = OpenIdProvider::all(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(providers),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(providers, StatusCode::OK))
 }
 
 pub(crate) async fn test_dirsync_connection(
@@ -414,17 +390,17 @@ pub(crate) async fn test_dirsync_connection(
             "User {} tested directory sync connection, the connection failed: {err}",
             session.user.username,
         );
-        return Ok(ApiResponse {
-            json: json!({"message": err.to_string(), "success": false}),
-            status: StatusCode::OK,
-        });
+        return Ok(ApiResponse::new(
+            json!({"message": err.to_string(), "success": false}),
+            StatusCode::OK,
+        ));
     }
     debug!(
         "User {} tested directory sync connection, the connection was successful",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: json!({"message": "Connection successful", "success": true}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!({"message": "Connection successful", "success": true}),
+        StatusCode::OK,
+    ))
 }

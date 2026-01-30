@@ -11,7 +11,6 @@ use defguard_common::db::{
         group::{Group, Permission},
     },
 };
-use serde_json::json;
 use sqlx::query_as;
 use utoipa::ToSchema;
 
@@ -141,10 +140,7 @@ pub(crate) async fn bulk_assign_to_groups(
         event: Box::new(ApiEventType::GroupsBulkAssigned { users, groups }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 /// Retrieve all groups info
@@ -198,10 +194,7 @@ pub(crate) async fn list_groups_info(
     )
     .fetch_all(&appstate.pool)
     .await?;
-    Ok(ApiResponse {
-        json: json!(q_result),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(q_result, StatusCode::OK))
 }
 
 /// Retrieve all groups.
@@ -237,10 +230,7 @@ pub(crate) async fn list_groups(
         .map(|group| group.name)
         .collect();
     info!("User {} listed groups", &session.user.username);
-    Ok(ApiResponse {
-        json: json!(Groups::new(groups)),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(Groups::new(groups), StatusCode::OK))
 }
 
 /// Retrieve group with name
@@ -287,16 +277,10 @@ pub(crate) async fn get_group(
             .has_permission(&appstate.pool, Permission::IsAdmin)
             .await?;
         info!("Retrieved group {name}");
-        Ok(ApiResponse {
-            json: json!(GroupInfo::new(
-                group.id,
-                name,
-                members,
-                vpn_locations,
-                is_admin
-            )),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::json(
+            GroupInfo::new(group.id, name, members, vpn_locations, is_admin),
+            StatusCode::OK,
+        ))
     } else {
         let msg = format!("Group {name} not found");
         error!(msg);
@@ -391,10 +375,7 @@ pub(crate) async fn create_group(
         event: Box::new(ApiEventType::GroupAdded { group }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(group_info),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::json(group_info, StatusCode::CREATED))
 }
 
 /// Modify group
@@ -460,10 +441,7 @@ pub(crate) async fn modify_group(
                 "Can't remove admin permissions from the last admin group: {}",
                 name
             );
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
     }
 
@@ -597,10 +575,7 @@ pub(crate) async fn delete_group(
                 .len();
             if admin_group_count == 1 {
                 error!("Cannot delete the last admin group: {name}");
-                return Ok(ApiResponse {
-                    json: json!({}),
-                    status: StatusCode::BAD_REQUEST,
-                });
+                return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
             }
         }
         group.clone().delete(&appstate.pool).await?;
@@ -731,10 +706,7 @@ pub(crate) async fn remove_group_member(
                 context,
                 event: Box::new(ApiEventType::GroupMemberRemoved { group, user }),
             })?;
-            Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::with_status(StatusCode::OK))
         } else {
             let msg = format!("User {username} not found");
             error!(msg);
