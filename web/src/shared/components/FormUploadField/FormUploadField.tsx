@@ -13,7 +13,7 @@ export const FormUploadField = (
     <UploadField
       error={error}
       value={field.state.value}
-      onChange={(value) => field.handleChange(value)}
+      onChange={field.handleChange}
       {...props}
     />
   );
