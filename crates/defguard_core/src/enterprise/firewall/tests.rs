@@ -824,99 +824,79 @@ async fn create_acl_rule(
     // create related objects
     // locations
     for location_id in locations {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id,
-            network_id: location_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleNetwork::new(rule_id, location_id)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // allowed users
     for user_id in allowed_users {
-        let obj = AclRuleUser {
-            id: NoId,
-            allow: true,
-            rule_id,
-            user_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleUser::new(rule_id, user_id, true)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // denied users
     for user_id in denied_users {
-        let obj = AclRuleUser {
-            id: NoId,
-            allow: false,
-            rule_id,
-            user_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleUser::new(rule_id, user_id, false)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // allowed groups
     for group_id in allowed_groups {
-        let obj = AclRuleGroup {
-            id: NoId,
-            allow: true,
-            rule_id,
-            group_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleGroup::new(rule_id, group_id, true)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // denied groups
     for group_id in denied_groups {
-        let obj = AclRuleGroup {
-            id: NoId,
-            allow: false,
-            rule_id,
-            group_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleGroup::new(rule_id, group_id, false)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // allowed devices
     for device_id in allowed_network_devices {
-        let obj = AclRuleDevice {
-            id: NoId,
-            allow: true,
-            rule_id,
-            device_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleDevice::new(rule_id, device_id, true)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // denied devices
     for device_id in denied_network_devices {
-        let obj = AclRuleDevice {
-            id: NoId,
-            allow: false,
-            rule_id,
-            device_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleDevice::new(rule_id, device_id, false)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // destination ranges
     for range in destination_ranges {
-        let obj = AclRuleDestinationRange {
+        AclRuleDestinationRange {
             id: NoId,
             rule_id,
             start: range.0,
             end: range.1,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        }
+        .save(&mut *conn)
+        .await
+        .unwrap();
     }
 
     // aliases
     for alias_id in aliases {
-        let obj = AclRuleAlias {
-            id: NoId,
-            rule_id,
-            alias_id,
-        };
-        obj.save(&mut *conn).await.unwrap();
+        AclRuleAlias::new(rule_id, alias_id)
+            .save(&mut *conn)
+            .await
+            .unwrap();
     }
 
     // convert to output format
@@ -2479,12 +2459,10 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2548,12 +2526,10 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2620,12 +2596,10 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2688,12 +2662,10 @@ async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOption
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2757,12 +2729,10 @@ async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOption
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2829,12 +2799,10 @@ async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConn
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2897,12 +2865,10 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -2966,12 +2932,10 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -3038,12 +3002,10 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
 
     // assign rules to location
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -3184,20 +3146,16 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // assign rules to locations
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_1.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_1.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
     for rule in [&acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_2.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_2.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -3344,20 +3302,16 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // assign rules to locations
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_1.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_1.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
     for rule in [&acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_2.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_2.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -3518,20 +3472,16 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // assign rules to locations
     for rule in [&acl_rule_1, &acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_1.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_1.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
     for rule in [&acl_rule_2] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: rule.id,
-            network_id: location_2.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleNetwork::new(rule.id, location_2.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     let mut conn = pool.acquire().await.unwrap();
@@ -3645,21 +3595,17 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     for alias in [&destination_alias, &component_alias] {
-        let obj = AclRuleAlias {
-            id: NoId,
-            rule_id: acl_rule.id,
-            alias_id: alias.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleAlias::new(acl_rule.id, alias.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     // assign rule to location
-    let obj = AclRuleNetwork {
-        id: NoId,
-        rule_id: acl_rule.id,
-        network_id: location.id,
-    };
-    obj.save(&pool).await.unwrap();
+    AclRuleNetwork::new(acl_rule.id, location.id)
+        .save(&pool)
+        .await
+        .unwrap();
 
     let mut conn = pool.acquire().await.unwrap();
     let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
@@ -3840,21 +3786,17 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     .await
     .unwrap();
     for alias in [&destination_alias_1, &destination_alias_2] {
-        let obj = AclRuleAlias {
-            id: NoId,
-            rule_id: acl_rule.id,
-            alias_id: alias.id,
-        };
-        obj.save(&pool).await.unwrap();
+        AclRuleAlias::new(acl_rule.id, alias.id)
+            .save(&pool)
+            .await
+            .unwrap();
     }
 
     // assign rule to location
-    let obj = AclRuleNetwork {
-        id: NoId,
-        rule_id: acl_rule.id,
-        network_id: location.id,
-    };
-    obj.save(&pool).await.unwrap();
+    AclRuleNetwork::new(acl_rule.id, location.id)
+        .save(&pool)
+        .await
+        .unwrap();
 
     let mut conn = pool.acquire().await.unwrap();
     let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)

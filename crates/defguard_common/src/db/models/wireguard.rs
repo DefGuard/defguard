@@ -109,7 +109,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub address: Vec<IpNetwork>,
     pub port: i32, // Should be u16
     pub pubkey: String,
@@ -120,7 +120,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub mtu: i32,    // Should be u32, but sqlx won't allow that.
     pub fwmark: i64, // Should be u32, but sqlx won't allow that.
     #[model(ref)]
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub acl_enabled: bool,

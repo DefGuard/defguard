@@ -130,7 +130,7 @@ impl EventRouter {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
                 Event::SessionManager(session_manager_event) => {
-                    self.handle_session_manager_event(*session_manager_event)?
+                    self.handle_session_manager_event(*session_manager_event)?;
                 }
             }
         }
