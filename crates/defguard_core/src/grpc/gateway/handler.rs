@@ -32,9 +32,10 @@ use crate::{
     enterprise::firewall::try_get_location_firewall_config,
     grpc::{
         TEN_SECS,
-        gateway::{GatewayError, events::GatewayEvent, get_peers, try_protos_into_stats_message},
+        gateway::{GatewayError, events::GatewayEvent, try_protos_into_stats_message},
     },
     handlers::mail::send_gateway_disconnected_email,
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -166,7 +167,7 @@ impl GatewayHandler {
             );
         }
 
-        let peers = get_peers(&network, &self.pool).await?;
+        let peers = get_location_allowed_peers(&network, &self.pool).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
         let payload = Some(core_response::Payload::Config(super::gen_config(
