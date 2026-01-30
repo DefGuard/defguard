@@ -14,20 +14,19 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { getEdgeQueryOptions } from '../../shared/query';
 
-const breadcrumbsLinks = [
-  <Link key={0} to="/edge">
-    Edge components
-  </Link>,
-  <Link key={1} to="/edge">
-    Edit
-  </Link>,
-];
-
 export const EditEdgePage = () => {
-  const { edgeId: paramsId } = useParams({
+  const { edgeId } = useParams({
     from: '/_authorized/_default/edge/$edgeId/edit',
   });
-  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(paramsId)));
+  const breadcrumbsLinks = [
+    <Link key={0} to="/edge">
+      Edge components
+    </Link>,
+    <Link key={1} to="/edge/$edgeId/edit" params={{ edgeId }}>
+      Edit
+    </Link>,
+  ];
+  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(edgeId)));
   return (
     <EditPage
       pageTitle={m.edge_title()}
