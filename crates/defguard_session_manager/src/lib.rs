@@ -4,7 +4,10 @@ use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
-        models::{Device, User, WireguardNetwork, vpn_client_session::VpnClientSession},
+        models::{
+            Device, User, WireguardNetwork, device::WireguardNetworkDevice,
+            vpn_client_session::VpnClientSession,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -263,6 +266,15 @@ impl SessionManager {
 
         // remove peers from GW for MFA locations
         if location.mfa_enabled() {
+            // FIXME: remove one MFA-related data is no longer stored here
+            // update device network config
+            if let Some(mut device_network_info) =
+                WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
+            {
+                device_network_info.is_authorized = false;
+                device_network_info.preshared_key = None;
+                device_network_info.update(&mut *transaction).await?;
+            };
             self.send_peer_disconnect_message(location, &device)?;
         }
 
