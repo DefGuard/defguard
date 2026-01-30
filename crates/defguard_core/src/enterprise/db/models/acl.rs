@@ -610,12 +610,8 @@ impl AclRule<Id> {
         // save related networks
         debug!("Creating related networks for ACL rule {rule_id}");
         for network_id in &api_rule.networks {
-            let obj = AclRuleNetwork {
-                id: NoId,
-                rule_id,
-                network_id: *network_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleNetwork::new(rule_id, *network_id)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "WireguardNetwork", *network_id))?;
         }
@@ -623,13 +619,8 @@ impl AclRule<Id> {
         // allowed users
         debug!("Creating related allowed users for ACL rule {rule_id}");
         for user_id in &api_rule.allowed_users {
-            let obj = AclRuleUser {
-                id: NoId,
-                allow: true,
-                rule_id,
-                user_id: *user_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleUser::new(rule_id, *user_id, true)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "User", *user_id))?;
         }
@@ -637,13 +628,8 @@ impl AclRule<Id> {
         // denied users
         debug!("Creating related denied users for ACL rule {rule_id}");
         for user_id in &api_rule.denied_users {
-            let obj = AclRuleUser {
-                id: NoId,
-                allow: false,
-                rule_id,
-                user_id: *user_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleUser::new(rule_id, *user_id, false)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "User", *user_id))?;
         }
@@ -651,13 +637,8 @@ impl AclRule<Id> {
         // allowed groups
         debug!("Creating related allowed groups for ACL rule {rule_id}");
         for group_id in &api_rule.allowed_groups {
-            let obj = AclRuleGroup {
-                id: NoId,
-                allow: true,
-                rule_id,
-                group_id: *group_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleGroup::new(rule_id, *group_id, true)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "Group", *group_id))?;
         }
@@ -665,13 +646,8 @@ impl AclRule<Id> {
         // denied groups
         debug!("Creating related denied groups for ACL rule {rule_id}");
         for group_id in &api_rule.denied_groups {
-            let obj = AclRuleGroup {
-                id: NoId,
-                allow: false,
-                rule_id,
-                group_id: *group_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleGroup::new(rule_id, *group_id, false)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "Group", *group_id))?;
         }
@@ -697,12 +673,8 @@ impl AclRule<Id> {
             ));
         }
         for alias_id in &api_rule.aliases {
-            let obj = AclRuleAlias {
-                id: NoId,
-                rule_id,
-                alias_id: *alias_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleAlias::new(rule_id, *alias_id)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "AclAlias", *alias_id))?;
         }
@@ -710,13 +682,8 @@ impl AclRule<Id> {
         // allowed devices
         debug!("Creating related allowed devices for ACL rule {rule_id}");
         for device_id in &api_rule.allowed_devices {
-            let obj = AclRuleDevice {
-                id: NoId,
-                allow: true,
-                rule_id,
-                device_id: *device_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleDevice::new(rule_id, *device_id, true)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "Device", *device_id))?;
         }
@@ -724,13 +691,8 @@ impl AclRule<Id> {
         // denied devices
         debug!("Creating related denied devices for ACL rule {rule_id}");
         for device_id in &api_rule.denied_devices {
-            let obj = AclRuleDevice {
-                id: NoId,
-                allow: false,
-                rule_id,
-                device_id: *device_id,
-            };
-            obj.save(&mut *transaction)
+            AclRuleDevice::new(rule_id, *device_id, false)
+                .save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "Device", *device_id))?;
         }
@@ -1789,45 +1751,108 @@ impl AclAlias<Id> {
     }
 }
 
-#[derive(Clone, Debug, Model, PartialEq)]
-pub struct AclRuleNetwork<I = NoId> {
-    pub id: I,
-    pub rule_id: Id,
-    pub network_id: Id,
+#[derive(Model)]
+pub(crate) struct AclRuleNetwork<I = NoId> {
+    #[allow(dead_code)]
+    id: I,
+    rule_id: Id,
+    network_id: Id,
 }
 
-#[derive(Clone, Debug, Model, PartialEq)]
-pub struct AclRuleUser<I = NoId> {
-    pub id: I,
-    pub rule_id: Id,
-    pub user_id: Id,
-    pub allow: bool,
+impl AclRuleNetwork {
+    #[must_use]
+    pub(crate) fn new(rule_id: Id, network_id: Id) -> Self {
+        Self {
+            id: NoId,
+            rule_id,
+            network_id,
+        }
+    }
 }
 
-#[derive(Clone, Debug, Model, PartialEq)]
-pub struct AclRuleGroup<I = NoId> {
-    pub id: I,
-    pub rule_id: Id,
-    pub group_id: Id,
-    pub allow: bool,
+#[derive(Model)]
+pub(crate) struct AclRuleUser<I = NoId> {
+    #[allow(dead_code)]
+    id: I,
+    rule_id: Id,
+    user_id: Id,
+    allow: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq)]
-pub struct AclRuleAlias<I = NoId> {
-    pub id: I,
-    pub rule_id: Id,
-    pub alias_id: Id,
+impl AclRuleUser {
+    #[must_use]
+    pub(crate) fn new(rule_id: Id, user_id: Id, allow: bool) -> Self {
+        Self {
+            id: NoId,
+            rule_id,
+            user_id,
+            allow,
+        }
+    }
 }
 
-#[derive(Clone, Debug, Model, PartialEq)]
-pub struct AclRuleDevice<I = NoId> {
-    pub id: I,
-    pub rule_id: Id,
-    pub device_id: Id,
-    pub allow: bool,
+#[derive(Model)]
+pub(crate) struct AclRuleGroup<I = NoId> {
+    #[allow(dead_code)]
+    id: I,
+    rule_id: Id,
+    group_id: Id,
+    allow: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+impl AclRuleGroup {
+    #[must_use]
+    pub(crate) fn new(rule_id: Id, group_id: Id, allow: bool) -> Self {
+        Self {
+            id: NoId,
+            rule_id,
+            group_id,
+            allow,
+        }
+    }
+}
+
+#[derive(Model)]
+pub(crate) struct AclRuleAlias<I = NoId> {
+    #[allow(dead_code)]
+    id: I,
+    rule_id: Id,
+    alias_id: Id,
+}
+
+impl AclRuleAlias {
+    #[must_use]
+    pub(crate) fn new(rule_id: Id, alias_id: Id) -> Self {
+        Self {
+            id: NoId,
+            rule_id,
+            alias_id,
+        }
+    }
+}
+
+#[derive(Model)]
+pub(crate) struct AclRuleDevice<I = NoId> {
+    #[allow(dead_code)]
+    id: I,
+    rule_id: Id,
+    device_id: Id,
+    allow: bool,
+}
+
+impl AclRuleDevice {
+    #[must_use]
+    pub(crate) fn new(rule_id: Id, device_id: Id, allow: bool) -> Self {
+        Self {
+            id: NoId,
+            rule_id,
+            device_id,
+            allow,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
     pub rule_id: Id,
@@ -1835,7 +1860,7 @@ pub struct AclRuleDestinationRange<I = NoId> {
     pub end: IpAddr,
 }
 
-impl AclRuleDestinationRange<NoId> {
+impl AclRuleDestinationRange {
     pub async fn save<'e, E>(self, executor: E) -> Result<AclRuleDestinationRange<Id>, SqlxError>
     where
         E: PgExecutor<'e>,

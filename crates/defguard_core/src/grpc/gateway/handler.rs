@@ -413,8 +413,9 @@ impl GatewayHandler {
                                 ) {
                                     None => {
                                         warn!(
-                                            "Failed to parse peer stats update. Skipping sending message to session manager."
-                                        )
+                                            "Failed to parse peer stats update. Skipping sending \
+                                            message to session manager."
+                                        );
                                     }
                                     Some(message) => {
                                         if let Err(err) = self.peer_stats_tx.send(message) {
