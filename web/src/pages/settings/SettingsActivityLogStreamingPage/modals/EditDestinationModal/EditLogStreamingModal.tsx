@@ -11,6 +11,7 @@ import {
 import { Modal } from '../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../../shared/form';
@@ -20,7 +21,6 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
-import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 
 const modalNameValue = ModalName.EditLogStreaming;
 
@@ -115,15 +115,15 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      let certificateContent: string | undefined = undefined;
+      let certificateContent: string | undefined;
 
       if (value.certificate) {
         try {
           certificateContent = await value.certificate.text();
           if (certificateContent)
-          certificateContent = certificateContent.replace(/\r\n/g, '\n').trim();
+            certificateContent = certificateContent.replace(/\r\n/g, '\n').trim();
         } catch (error) {
-          Snackbar.error("Failed to read certificate file");
+          Snackbar.error('Failed to read certificate file');
           console.error('Failed to read certificate file:', error);
         }
       }

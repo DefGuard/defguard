@@ -163,8 +163,8 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      let certificateContent: string | undefined = undefined;
-      
+      let certificateContent: string | undefined;
+
       if (value.certificate) {
         try {
           certificateContent = await value.certificate.text();
@@ -172,7 +172,6 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
           console.error('Failed to read certificate file:', error);
         }
       }
-      console.log(certificateContent); // todo: delete
 
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
@@ -228,7 +227,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="certificate">
-            {(field) => <field.FormUploadField title='Upload certificate file' />}
+            {(field) => <field.FormUploadField title="Upload certificate file" />}
           </form.AppField>
         </form.AppForm>
       </form>
