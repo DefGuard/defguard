@@ -63,7 +63,7 @@ impl AppState {
                     AppEvent::UserCreated(user) => (json!(user), "user_created"),
                     AppEvent::UserModified(user) => (json!(user), "user_modified"),
                     AppEvent::UserDeleted(username) => {
-                        (json!({ "username": username }), "user_deleted")
+                        (json!({"username": username}), "user_deleted")
                     }
                     AppEvent::HWKeyProvision(data) => (json!(data), "user_keys"),
                 };

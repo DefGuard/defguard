@@ -56,12 +56,10 @@ pub struct TestMail {
 /// Handles logging the error and returns ApiResponse that contains it
 fn internal_error(to: &str, subject: &str, error: &impl Display) -> ApiResponse {
     error!("Error sending mail to {to}, subject: {subject}, error: {error}");
-    ApiResponse {
-        json: json!({
-            "error": error.to_string(),
-        }),
-        status: StatusCode::INTERNAL_SERVER_ERROR,
-    }
+    ApiResponse::new(
+        json!({"error": error.to_string()}),
+        StatusCode::INTERNAL_SERVER_ERROR,
+    )
 }
 
 pub async fn test_mail(
@@ -91,10 +89,7 @@ pub async fn test_mail(
                     "User {} sent test mail to {}",
                     session.user.username, data.to
                 );
-                Ok(ApiResponse {
-                    json: json!({}),
-                    status: StatusCode::OK,
-                })
+                Ok(ApiResponse::with_status(StatusCode::OK))
             }
             Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
             None => Ok(internal_error(
@@ -194,10 +189,7 @@ pub async fn send_support_data(
                     "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
                     session.user.username
                 );
-                Ok(ApiResponse {
-                    json: json!({}),
-                    status: StatusCode::OK,
-                })
+                Ok(ApiResponse::with_status(StatusCode::OK))
             }
             Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
             None => Ok(internal_error(

@@ -1900,7 +1900,7 @@ pub(crate) struct AclAliasDestinationRange<I = NoId> {
     pub end: IpAddr,
 }
 
-impl AclAliasDestinationRange<NoId> {
+impl AclAliasDestinationRange {
     pub async fn save<'e, E>(self, executor: E) -> Result<AclAliasDestinationRange<Id>, SqlxError>
     where
         E: PgExecutor<'e>,
