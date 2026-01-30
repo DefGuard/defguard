@@ -422,9 +422,9 @@ impl GatewayHandler {
                                                 "Failed to send peers stats update to session manager: {err}"
                                             );
                                             continue;
-                                        };
+                                        }
                                     }
-                                };
+                                }
 
                                 // Save stats to database.
                                 // FIXME: remove once legacy table is removed
