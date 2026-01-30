@@ -9,6 +9,7 @@ mod group;
 mod oauth;
 mod openid;
 mod openid_login;
+mod proxy;
 mod settings;
 mod snat;
 mod user;

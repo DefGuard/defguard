@@ -2,13 +2,13 @@ use std::fmt;
 
 use chrono::NaiveDateTime;
 use model_derive::Model;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Debug, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
     pub id: I,
     pub name: String,

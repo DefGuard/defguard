@@ -14,9 +14,9 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
-#[derive(Deserialize, ToSchema)]
-pub(crate) struct ProxyUpdateData {
-    name: String,
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ProxyUpdateData {
+    pub name: String,
 }
 
 #[utoipa::path(
