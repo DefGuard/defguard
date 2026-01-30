@@ -911,9 +911,9 @@ export type ActivityLogSortKey =
 export interface Edge {
   id: number;
   name: string;
-  address: string;
-  port: number;
-  public_address: string;
+  address: string | null;
+  port: number | null;
+  public_address: string | null;
 }
 
 export interface PaginationParams {

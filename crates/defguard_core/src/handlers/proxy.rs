@@ -112,8 +112,5 @@ pub(crate) async fn update_proxy(
         }),
     })?;
 
-    Ok(ApiResponse {
-        json: json!(proxy),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(proxy, StatusCode::OK))
 }

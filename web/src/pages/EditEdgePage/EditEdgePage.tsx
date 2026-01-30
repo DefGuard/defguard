@@ -41,9 +41,9 @@ export const EditEdgePage = () => {
 
 const formSchema = z.object({
   name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-  address: z.string(),
-  port: z.number(),
-  public_address: z.string(),
+  address: z.string().nullable(),
+  port: z.number().nullable(),
+  public_address: z.string().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -58,6 +58,9 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
     onSuccess: () => {
       Snackbar.success(m.edge_edit_success());
+    },
+    onError: () => {
+      Snackbar.error(m.edge_edit_failed());
     },
   });
 

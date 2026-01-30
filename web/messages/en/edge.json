@@ -8,5 +8,6 @@
   "edge_edit_port": "gRPC port",
   "edge_edit_public_address": "Public domain",
   "edge_edit_delete": "Delete",
-  "edge_edit_success": "Edge component updated"
+  "edge_edit_success": "Edge component updated",
+  "edge_edit_failed": "Failed to update edge component"
 }
