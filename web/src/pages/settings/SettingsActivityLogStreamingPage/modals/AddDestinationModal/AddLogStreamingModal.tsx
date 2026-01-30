@@ -136,9 +136,9 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       z.object({
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
-        username: z.string().nullable().optional(),
-        password: z.string().nullable().optional(),
-        certificate: z.file().nullable().optional(),
+        username: z.string().nullable(),
+        password: z.string().nullable(),
+        certificate: z.file().nullable(),
       }),
     [],
   );
@@ -183,8 +183,8 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
             : ActivityLogStreamType.VectorHttp,
         stream_config: {
           url: value.url,
-          username: value.username || undefined,
-          password: value.password || undefined,
+          username: value.username,
+          password: value.password,
           cert: certificateContent,
         },
       };

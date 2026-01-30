@@ -26,6 +26,11 @@ const modalNameValue = ModalName.EditLogStreaming;
 
 type ModalData = ActivityLogStream;
 
+const processCertificate = async (file: File) => {
+  const content = await file.text();
+  return content.replace(/\r\n/g, '\n').trim();
+};
+
 export const EditLogStreamingModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -85,9 +90,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       z.object({
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
-        username: z.string().nullable().optional(),
-        password: z.string().nullable().optional(),
-        certificate: z.file().nullable().optional(),
+        username: z.string().nullable(),
+        password: z.string().nullable(),
+        certificate: z.file().nullable(),
       }),
     [],
   );
@@ -98,8 +103,8 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
     (): FormFields => ({
       name: modalData.name,
       url: modalData.config.url,
-      username: modalData.config.username || '',
-      password: modalData.config.password || '',
+      username: modalData.config.username,
+      password: modalData.config.password,
       certificate: modalData.config.cert
         ? new File([modalData.config.cert], 'certificate.pem')
         : null,
@@ -115,13 +120,11 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      let certificateContent: string | undefined;
+      let certificateContent;
 
       if (value.certificate) {
         try {
-          certificateContent = await value.certificate.text();
-          if (certificateContent)
-            certificateContent = certificateContent.replace(/\r\n/g, '\n').trim();
+          certificateContent = await processCertificate(value.certificate);
         } catch (error) {
           Snackbar.error('Failed to read certificate file');
           console.error('Failed to read certificate file:', error);
@@ -133,9 +136,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
         stream_type: modalData.stream_type,
         stream_config: {
           url: value.url,
-          username: value.username || undefined,
-          password: value.password || undefined,
-          cert: certificateContent || undefined,
+          username: value.username,
+          password: value.password,
+          cert: certificateContent,
         },
       };
 

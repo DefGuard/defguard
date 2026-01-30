@@ -1,7 +1,7 @@
 .upload-field {
   & > .inner-track {
     display: flex;
-    flex-flow: column;
+    flex-flow: row;
     align-items: flex-start;
     justify-content: flex-start;
     padding: 1px;
@@ -11,6 +11,7 @@
     }
 
     .file-row {
+      flex: 1;
       box-sizing: border-box;
       padding: var(--spacing-sm);
       display: grid;
