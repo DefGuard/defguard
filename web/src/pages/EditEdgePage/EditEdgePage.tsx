@@ -18,15 +18,15 @@ export const EditEdgePage = () => {
   const { edgeId } = useParams({
     from: '/_authorized/_default/edge/$edgeId/edit',
   });
+  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(edgeId)));
   const breadcrumbsLinks = [
     <Link key={0} to="/edge">
       Edge components
     </Link>,
     <Link key={1} to="/edge/$edgeId/edit" params={{ edgeId }}>
-      Edit
+      {edge.name}
     </Link>,
   ];
-  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(edgeId)));
   return (
     <EditPage
       pageTitle={m.edge_title()}
