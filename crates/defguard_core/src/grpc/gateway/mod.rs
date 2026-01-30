@@ -387,6 +387,8 @@ impl GatewayUpdatesHandler {
                         .find(|info| info.network_id == self.network_id)
                     {
                         Some(network_info) => {
+                            // FIXME: this shouldn't happen, since when the device is created
+                            // it's impossible for MFA authorization to already be completed
                             if self.network.mfa_enabled() && !network_info.is_authorized {
                                 debug!(
                                     "Created WireGuard device {} is not authorized to connect to \
@@ -477,6 +479,43 @@ impl GatewayUpdatesHandler {
                 GatewayEvent::MfaSessionDisconnected(location_id, device) => {
                     if location_id == self.network_id {
                         self.send_peer_delete(&device.wireguard_pubkey)
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::MfaSessionAuthorized(location_id, device, network_device) => {
+                    if location_id == self.network_id {
+                        // validate that network info is for the correct location
+                        if network_device.wireguard_network_id != location_id {
+                            error!(
+                                "Received MFA authorization success event for location {location_id} with invalid device config: {network_device:?}"
+                            );
+                            continue;
+                        }
+
+                        // FIXME: at this point the device authorization should already have been verified
+                        if self.network.mfa_enabled() && !network_device.is_authorized {
+                            debug!(
+                                "Created WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
+                                device.name, self.network.name
+                            );
+                            continue;
+                        }
+
+                        self.send_peer_update(
+                            Peer {
+                                pubkey: device.wireguard_pubkey,
+                                allowed_ips: network_device
+                                    .wireguard_ips
+                                    .iter()
+                                    .map(IpAddr::to_string)
+                                    .collect(),
+                                preshared_key: network_device.preshared_key.clone(),
+                                keepalive_interval: Some(self.network.keepalive_interval as u32),
+                            },
+                            0,
+                        )
                     } else {
                         Ok(())
                     }

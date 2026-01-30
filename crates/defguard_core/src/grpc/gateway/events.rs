@@ -1,6 +1,9 @@
 use defguard_common::db::{
     Id,
-    models::{Device, WireguardNetwork, device::DeviceInfo},
+    models::{
+        Device, WireguardNetwork,
+        device::{DeviceInfo, WireguardNetworkDevice},
+    },
 };
 use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::Peer};
 
@@ -22,5 +25,6 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(LocationId, FirewallConfig),
     FirewallDisabled(LocationId),
+    MfaSessionAuthorized(LocationId, Device<Id>, WireguardNetworkDevice),
     MfaSessionDisconnected(LocationId, Device<Id>),
 }

@@ -10,9 +10,8 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            BiometricAuth, BiometricChallenge, Device, DeviceNetworkInfo, User, WireguardNetwork,
-            device::{DeviceInfo, WireguardNetworkDevice},
-            vpn_client_session::VpnClientSession,
+            BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
+            device::WireguardNetworkDevice, vpn_client_session::VpnClientSession,
             wireguard::LocationMfaMode,
         },
     },
@@ -680,16 +679,7 @@ impl ClientMfaServer {
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
-        let device_info = DeviceInfo {
-            device: device.clone(),
-            network_info: vec![DeviceNetworkInfo {
-                network_id: location.id,
-                device_wireguard_ips: network_device.wireguard_ips,
-                preshared_key: network_device.preshared_key.clone(),
-                is_authorized: network_device.is_authorized,
-            }],
-        };
-        let event = GatewayEvent::DeviceCreated(device_info);
+        let event = GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), network_device);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -729,7 +719,7 @@ impl ClientMfaServer {
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let response = ClientMfaFinishResponse {
-            preshared_key: key.public,
+            preshared_key: key.public.clone(),
             token: match method {
                 MfaMethod::MobileApprove => Some(request.token.clone()),
                 _ => None,
@@ -749,14 +739,13 @@ impl ClientMfaServer {
         })?;
 
         // If there is a desktop client websocket waiting for the preshared key, send it.
-        if let (Some(tx), Some(ref preshared_key)) = (
-            self.remote_mfa_responses
-                .write()
-                .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
-                .remove(&request.token),
-            network_device.preshared_key,
-        ) {
-            let _ = tx.send(preshared_key.clone());
+        if let Some(tx) = self
+            .remote_mfa_responses
+            .write()
+            .expect("Failed to write-lock ClientMfaServer::remote_mfa_responses")
+            .remove(&request.token)
+        {
+            let _ = tx.send(key.public.clone());
         }
 
         Ok(response)
