@@ -135,8 +135,8 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       z.object({
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
-        username: z.string().optional(),
-        password: z.string().optional(),
+        username: z.string().nullable().optional(),
+        password: z.string().nullable().optional(),
         certificate: z.file().nullable().optional(),
       }),
     [],

@@ -20,6 +20,7 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 
 const modalNameValue = ModalName.EditLogStreaming;
 
@@ -40,7 +41,7 @@ export const EditLogStreamingModal = () => {
   }, [modalData]);
 
   useEffect(() => {
-    const openSub = subscribeOpenModal(modalNameValue, (data) => {
+    const openSub = subscribeOpenModal(modalNameValue, (data: ModalData) => {
       setModalData(data);
       setOpen(true);
     });
@@ -58,7 +59,9 @@ export const EditLogStreamingModal = () => {
       onClose={() => setOpen(false)}
       afterClose={() => setModalData(null)}
     >
-      {isPresent(modalData) && <ModalContent modalData={modalData} setOpen={setOpen} />}
+      {isPresent(modalData) && (
+        <ModalContent key={modalData.id} modalData={modalData} setOpen={setOpen} />
+      )}
     </Modal>
   );
 };
@@ -82,9 +85,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       z.object({
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
-        username: z.string().optional(),
-        password: z.string().optional(),
-        certificate: z.string().optional(),
+        username: z.string().nullable().optional(),
+        password: z.string().nullable().optional(),
+        certificate: z.file().nullable().optional(),
       }),
     [],
   );
@@ -97,7 +100,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       url: modalData.config.url,
       username: modalData.config.username || '',
       password: modalData.config.password || '',
-      certificate: modalData.config.cert || '',
+      certificate: modalData.config.cert
+        ? new File([modalData.config.cert], 'certificate.pem')
+        : null,
     }),
     [modalData],
   );
@@ -110,6 +115,19 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      let certificateContent: string | undefined = undefined;
+
+      if (value.certificate) {
+        try {
+          certificateContent = await value.certificate.text();
+          if (certificateContent)
+          certificateContent = certificateContent.replace(/\r\n/g, '\n').trim();
+        } catch (error) {
+          Snackbar.error("Failed to read certificate file");
+          console.error('Failed to read certificate file:', error);
+        }
+      }
+
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
         stream_type: modalData.stream_type,
@@ -117,7 +135,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
           url: value.url,
           username: value.username || undefined,
           password: value.password || undefined,
-          cert: value.certificate || undefined,
+          cert: certificateContent || undefined,
         },
       };
 
@@ -161,7 +179,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="certificate">
-            {(field) => <field.FormInput label="Certificate" />}
+            {(field) => <field.FormUploadField title="Upload certificate file" />}
           </form.AppField>
         </form.AppForm>
       </form>
