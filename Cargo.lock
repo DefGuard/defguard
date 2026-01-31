@@ -1135,6 +1135,7 @@ dependencies = [
  "defguard_proxy_manager",
  "defguard_session_manager",
  "defguard_version",
+ "defguard_vpn_stats_purge",
  "dotenvy",
  "secrecy",
  "tokio",
@@ -1400,6 +1401,18 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "defguard_vpn_stats_purge"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "defguard_common",
+ "humantime",
+ "sqlx",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
