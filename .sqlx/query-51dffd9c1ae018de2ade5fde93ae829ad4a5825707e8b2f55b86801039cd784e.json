@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"vpn_client_session\" SET \"location_id\" = $2,\"user_id\" = $3,\"device_id\" = $4,\"created_at\" = $5,\"connected_at\" = $6,\"disconnected_at\" = $7,\"mfa_mode\" = $8,\"state\" = $9 WHERE id = $1",
+  "query": "UPDATE \"vpn_client_session\" SET \"location_id\" = $2,\"user_id\" = $3,\"device_id\" = $4,\"created_at\" = $5,\"connected_at\" = $6,\"disconnected_at\" = $7,\"mfa_method\" = $8,\"state\" = $9 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -14,12 +14,14 @@
         "Timestamp",
         {
           "Custom": {
-            "name": "location_mfa_mode",
+            "name": "vpn_client_mfa_method",
             "kind": {
               "Enum": [
-                "disabled",
-                "internal",
-                "external"
+                "totp",
+                "email",
+                "oidc",
+                "biometric",
+                "mobileapprove"
               ]
             }
           }
@@ -40,5 +42,5 @@
     },
     "nullable": []
   },
-  "hash": "c9808451bd3653635dfb455c6125a7d392cee6a69bd7cbf6479cc2cf5294319c"
+  "hash": "51dffd9c1ae018de2ade5fde93ae829ad4a5825707e8b2f55b86801039cd784e"
 }

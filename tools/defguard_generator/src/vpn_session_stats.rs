@@ -88,7 +88,7 @@ pub async fn generate_vpn_session_stats(
                     device.user_id,
                     device.id,
                     Some(session_start),
-                    LocationMfaMode::Disabled,
+                    None,
                 )
                 .save(&mut *transaction)
                 .await?;
