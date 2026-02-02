@@ -105,12 +105,13 @@ impl ApiAclDestination {
         let mut transaction = pool.begin().await?;
 
         // find existing alias
-        let existing_alias = AclAlias::find_by_id(&mut *transaction, id)
-            .await?
-            .ok_or_else(|| {
-                warn!("Update of nonexistent alias ({id}) failed");
-                AclError::AliasNotFoundError(id)
-            })?;
+        let existing_alias =
+            AclAlias::find_by_id_and_kind(&mut *transaction, id, AliasKind::Destination)
+                .await?
+                .ok_or_else(|| {
+                    warn!("Update of nonexistent alias ({id}) failed");
+                    AclError::AliasNotFoundError(id)
+                })?;
 
         // Convert alias from API to model.
         let mut alias = AclAlias::try_from(api_alias)?;
@@ -238,18 +239,19 @@ pub(crate) async fn get_acl_destination(
         "User {} retrieving ACL destination {id}",
         session.user.username
     );
-    let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
-        Some(alias) => (
-            json!(ApiAclDestination::from(
-                alias.to_info(&appstate.pool).await.map_err(|err| {
-                    error!("Error retrieving ACL destination {alias:?}: {err}");
-                    err
-                })?
-            )),
-            StatusCode::OK,
-        ),
-        None => (Value::Null, StatusCode::NOT_FOUND),
-    };
+    let (alias, status) =
+        match AclAlias::find_by_id_and_kind(&appstate.pool, id, AliasKind::Destination).await? {
+            Some(alias) => (
+                json!(ApiAclDestination::from(
+                    alias.to_info(&appstate.pool).await.map_err(|err| {
+                        error!("Error retrieving ACL destination {alias:?}: {err}");
+                        err
+                    })?
+                )),
+                StatusCode::OK,
+            ),
+            None => (Value::Null, StatusCode::NOT_FOUND),
+        };
 
     info!(
         "User {} retrieved ACL destination {id}",

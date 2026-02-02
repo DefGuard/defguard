@@ -1610,6 +1610,26 @@ impl AclAlias<Id> {
         .fetch_all(executor)
         .await
     }
+
+    pub async fn find_by_id_and_kind<'e, E>(
+        executor: E,
+        id: Id,
+        kind: AliasKind,
+    ) -> Result<Option<Self>, sqlx::Error>
+    where
+        E: sqlx::PgExecutor<'e>,
+    {
+        sqlx::query_as!(
+            Self,
+            "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", \
+            destination, ports, protocols, any_destination, any_port, any_protocol \
+            FROM aclalias WHERE id = $1 AND kind = $2",
+            id,
+            kind as AliasKind
+        )
+        .fetch_optional(executor)
+        .await
+    }
 }
 
 impl TryFrom<&EditAclDestination> for AclAlias {
