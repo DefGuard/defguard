@@ -867,10 +867,7 @@ impl EnrollmentServer {
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(
-                instance_info
-                .into(),
-            ),
+            instance: Some(instance_info.into()),
             token: Some(token.token),
         };
 

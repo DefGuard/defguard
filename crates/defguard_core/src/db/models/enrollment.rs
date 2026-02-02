@@ -69,9 +69,7 @@ impl From<TokenError> for Status {
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
-            | TokenError::TemplateErrorInternal(_) => {
-                (Code::Internal, unexpected_err_msg.as_str())
-            }
+            | TokenError::TemplateErrorInternal(_) => (Code::Internal, unexpected_err_msg.as_str()),
             TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
                 (Code::Unauthenticated, "invalid token")
             }

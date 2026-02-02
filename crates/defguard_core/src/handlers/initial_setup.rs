@@ -3,10 +3,8 @@ use std::sync::{Arc, Mutex};
 use axum::{Extension, Json};
 use defguard_certs::{der_to_pem, parse_certificate_info, parse_pem_certificate};
 use defguard_common::db::models::{
-        Settings, User,
-        group::Group,
-        settings::update_current_settings,
-    };
+    Settings, User, group::Group, settings::update_current_settings,
+};
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::PgPool;
@@ -104,7 +102,10 @@ pub async fn set_general_config(
             group.save(&pool).await?;
             group
         } else {
-            debug!("Admin group {} not found, creating", default_admin_group_name);
+            debug!(
+                "Admin group {} not found, creating",
+                default_admin_group_name
+            );
             let mut group = Group::new(&default_admin_group_name);
             group.is_admin = true;
             group.save(&pool).await?
@@ -223,7 +224,6 @@ pub async fn upload_ca(
     })
 }
 
-
 pub async fn finish_setup(
     _: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,
@@ -233,7 +233,11 @@ pub async fn finish_setup(
     let mut settings = Settings::get_current_settings();
     settings.initial_setup_completed = true;
     update_current_settings(&pool, settings).await?;
-    if let Some(tx) = setup_shutdown_tx.lock().expect("Failed to lock setup shutdown sender").take() {
+    if let Some(tx) = setup_shutdown_tx
+        .lock()
+        .expect("Failed to lock setup shutdown sender")
+        .take()
+    {
         let _ = tx.send(());
         info!("Initial setup completed and shutdown signal sent");
     } else {
