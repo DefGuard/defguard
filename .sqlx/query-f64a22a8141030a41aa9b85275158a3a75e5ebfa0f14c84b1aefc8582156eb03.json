@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", vs.latest_handshake \"latest_handshake?\", vs.state \"state?: VpnClientSessionState\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, state, location_id, endpoint, latest_handshake FROM vpn_client_session LEFT JOIN LATERAL ( SELECT session_id, endpoint, latest_handshake FROM vpn_session_stats WHERE session_id = vpn_client_session.id ORDER BY collected_at DESC LIMIT 1 ) vss ON vss.session_id = vpn_client_session.id WHERE location_id = n.id and device_id = $1 ORDER BY created_at DESC LIMIT 1 ) vs ON vs.location_id = n.id WHERE wnd.device_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "network_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "network_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "gateway_endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_wireguard_ips: Vec<IpAddr>",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "device_endpoint?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "latest_handshake?",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "state?: VpnClientSessionState",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f64a22a8141030a41aa9b85275158a3a75e5ebfa0f14c84b1aefc8582156eb03"
+}

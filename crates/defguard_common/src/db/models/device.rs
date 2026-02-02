@@ -11,8 +11,8 @@ use rand::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    postgres::types::PgInterval, query, query_as, query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
+    query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, error, info};
@@ -26,9 +26,8 @@ use crate::{
         models::{
             ModelError, WireguardNetwork,
             user::User,
-            wireguard::{
-                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WIREGUARD_MAX_HANDSHAKE,
-            },
+            vpn_client_session::VpnClientSessionState,
+            wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
         },
     },
 };
@@ -195,30 +194,35 @@ pub struct UserDeviceNetworkInfo {
     pub network_gateway_ip: String,
     pub device_wireguard_ips: Vec<String>,
     pub last_connected_ip: Option<String>,
-    pub last_connected_location: Option<String>,
     pub last_connected_at: Option<NaiveDateTime>,
     pub is_active: bool,
 }
 
 impl UserDevice {
     pub async fn from_device(pool: &PgPool, device: Device<Id>) -> Result<Option<Self>, SqlxError> {
-        // fetch device config and connection info for all networks
+        // fetch device config and connection info for all allowed networks
         let result = query!(
-            "WITH stats AS ( \
-                SELECT DISTINCT ON (network) network, endpoint, latest_handshake \
-                FROM wireguard_peer_stats \
-                WHERE device_id = $2 \
-                ORDER BY network, collected_at DESC \
-            ) \
-            SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", stats.endpoint device_endpoint, \
-            stats.latest_handshake \"latest_handshake?\", \
-            COALESCE((NOW() - stats.latest_handshake) < $1, FALSE) \"is_active!\" \
+            "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
+	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", \
+	            vs.latest_handshake \"latest_handshake?\", \
+	            vs.state \"state?: VpnClientSessionState\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
-            LEFT JOIN stats ON n.id = stats.network \
-            WHERE wnd.device_id = $2",
-            PgInterval::try_from(WIREGUARD_MAX_HANDSHAKE).unwrap(),
+            LEFT JOIN LATERAL ( \
+				SELECT id, state, location_id, endpoint, latest_handshake \
+				FROM vpn_client_session \
+	            LEFT JOIN LATERAL ( \
+					SELECT session_id, endpoint, latest_handshake \
+					FROM vpn_session_stats \
+					WHERE session_id = vpn_client_session.id \
+					ORDER BY collected_at DESC \
+					LIMIT 1 \
+	            ) vss ON vss.session_id = vpn_client_session.id \
+				WHERE location_id = n.id and device_id = $1 \
+				ORDER BY created_at DESC \
+				LIMIT 1 \
+            ) vs ON vs.location_id = n.id \
+            WHERE wnd.device_id = $1",
             device.id,
         )
         .fetch_all(pool)
@@ -227,7 +231,7 @@ impl UserDevice {
         let networks_info: Vec<UserDeviceNetworkInfo> = result
             .into_iter()
             .map(|r| {
-                // TODO: merge below enclosure with WireguardPeerStats::endpoint_without_port().
+                // extract latest public IP from stats endpoint
                 let device_ip = r.device_endpoint.and_then(|endpoint| {
                     let mut addr = endpoint.rsplit_once(':')?.0;
                     // Strip square brackets.
@@ -237,6 +241,12 @@ impl UserDevice {
                     }
                     Some(addr.to_owned())
                 });
+
+                let is_active = match r.state {
+                    Some(session_state) => session_state == VpnClientSessionState::Connected,
+                    None => false,
+                };
+
                 UserDeviceNetworkInfo {
                     network_id: r.network_id,
                     network_name: r.network_name,
@@ -247,9 +257,8 @@ impl UserDevice {
                         .map(IpAddr::to_string)
                         .collect(),
                     last_connected_ip: device_ip,
-                    last_connected_location: None,
                     last_connected_at: r.latest_handshake,
-                    is_active: r.is_active,
+                    is_active,
                 }
             })
             .collect();
