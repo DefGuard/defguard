@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
 import { cloneDeep, flat } from 'radashi';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -385,12 +385,7 @@ const Content = () => {
     },
     onSubmit: async ({ value }) => {
       const toSend = cloneDeep(value);
-      // assign flags
-      if (toSend.networks.length > 0) {
-        toSend.all_networks = false;
-      } else {
-        toSend.all_networks = true;
-      }
+      toSend.all_networks = !(toSend.networks.length > 0);
       if (restrictionsPresent) {
         toSend.deny_all_network_devices = toSend.denied_devices.length === 0;
         toSend.deny_all_users = toSend.denied_users.length === 0;
@@ -422,12 +417,6 @@ const Content = () => {
     form.store,
     (s) => aliases?.filter((alias) => s.values.aliases.has(alias.id)) ?? [],
   );
-
-  const formErrors = useStore(form.store, (s) => s.errorMap);
-
-  useEffect(() => {
-    console.log(formErrors);
-  }, [formErrors]);
 
   return (
     <form
