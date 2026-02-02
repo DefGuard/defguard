@@ -5,7 +5,7 @@ use defguard_common::db::{
     Id,
     models::{
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group, oauth2client::OAuth2Client,
+        group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
 };
 use defguard_proto::proxy::MfaMethod;
@@ -296,6 +296,10 @@ pub enum ApiEventType {
         location: WireguardNetwork<Id>,
         before: UserSnatBinding<Id>,
         after: UserSnatBinding<Id>,
+    },
+    ProxyModified {
+        before: Proxy<Id>,
+        after: Proxy<Id>,
     },
 }
 
