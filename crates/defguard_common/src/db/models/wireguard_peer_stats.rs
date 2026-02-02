@@ -1,12 +1,8 @@
-use std::time::Duration;
-
-use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use humantime::format_duration;
+use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
-use tracing::{debug, info};
+use sqlx::{PgPool, query_as};
 
 use crate::db::{Id, NoId};
 
@@ -26,90 +22,6 @@ pub struct WireguardPeerStats<I = NoId> {
     pub latest_handshake: NaiveDateTime,
     // FIXME: can contain multiple IP addresses
     pub allowed_ips: Option<String>,
-}
-
-impl WireguardPeerStats {
-    /// Delete stats older than a configured threshold.
-    /// This is done to prevent unnecessary table growth.
-    /// At least one record is retained for each device and network combination,
-    /// even when older than set threshold.
-    pub async fn purge_old_stats(
-        pool: &PgPool,
-        stats_purge_threshold: Duration,
-    ) -> Result<(), sqlx::Error> {
-        let start = Utc::now();
-        info!(
-            "Purging stats older than {}",
-            format_duration(stats_purge_threshold)
-        );
-
-        let threshold = (Utc::now()
-            - TimeDelta::from_std(stats_purge_threshold).expect("Failed to parse duration"))
-        .naive_utc();
-        let result = query!(
-            "DELETE FROM wireguard_peer_stats \
-            WHERE collected_at < $1 \
-            AND (device_id, network, collected_at) NOT IN ( \
-                SELECT device_id, network, MAX(collected_at) \
-                FROM wireguard_peer_stats \
-                GROUP BY device_id, network)",
-            threshold
-        )
-        .execute(pool)
-        .await?;
-
-        let end = Utc::now();
-        let rows_count = result.rows_affected();
-
-        info!("Removed {rows_count} old records from wireguard_peer_stats",);
-
-        // Store successful stats purge in database.
-        Self::record_stats_purge(pool, start, end, threshold, rows_count as i64).await?;
-
-        Ok(())
-    }
-
-    // Check how much time has elapsed since last recorded stats purge
-    pub async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<Duration>, sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        debug!("Checking time since last stats purge");
-
-        let timestamp = query_scalar!("SELECT MAX(started_at) FROM wireguard_stats_purge")
-            .fetch_one(executor)
-            .await?;
-
-        match timestamp {
-            Some(timestamp) => {
-                let time_since = Utc::now().signed_duration_since(timestamp.and_utc());
-                let time_since = time_since.to_std().expect("Failed to parse duration");
-                debug!(
-                    "Time since last stats purge: {}",
-                    format_duration(time_since)
-                );
-                Ok(Some(time_since))
-            }
-            None => Ok(None),
-        }
-    }
-
-    async fn record_stats_purge<'e, E>(
-        executor: E,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-        removal_threshold: NaiveDateTime,
-        records_removed: i64,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        debug!("Recording successful stats purge in database");
-        query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",
-        start.naive_utc(), end.naive_utc(), removal_threshold, records_removed).execute(executor).await?;
-
-        Ok(())
-    }
 }
 
 impl WireguardPeerStats<Id> {
@@ -167,6 +79,8 @@ impl WireguardPeerStats<Id> {
 
 #[cfg(test)]
 mod test {
+    use chrono::Utc;
+
     use super::*;
 
     #[test]
