@@ -1,15 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use axum::{Extension, Json, extract::State};
+use axum::{Extension, Json};
 use defguard_certs::{der_to_pem, parse_certificate_info, parse_pem_certificate};
-use defguard_common::db::{
-    Id,
-    models::{
+use defguard_common::db::models::{
         Settings, User,
-        group::{Group, Permission},
+        group::Group,
         settings::update_current_settings,
-    },
-};
+    };
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::PgPool;
@@ -17,8 +14,7 @@ use tokio::sync::oneshot;
 use tracing::{debug, info};
 
 use crate::{
-    appstate::AppState,
-    auth::{AdminOrSetupRole, AdminRole},
+    auth::AdminOrSetupRole,
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };

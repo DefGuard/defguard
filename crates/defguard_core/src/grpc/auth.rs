@@ -12,10 +12,7 @@ use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
-use crate::{
-    auth::failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
-    server_config,
-};
+use crate::auth::failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt};
 
 pub struct AuthServer {
     pool: PgPool,

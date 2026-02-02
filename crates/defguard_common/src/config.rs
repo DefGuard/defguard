@@ -82,10 +82,8 @@ pub struct DefGuardConfig {
         default_value = "pass123"
     )]
     #[serde(skip_serializing)]
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use initial setup to configure admin user password"
-    )]
+    // TODO: Deprecate this, since we have initial setup now.
+    // We use it in some dev/test scenarios still so the approach will need to be changed there.
     pub default_admin_password: SecretString,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
@@ -256,7 +254,7 @@ impl DefGuardConfig {
                     .expect("Unable to parse server URL.")
                     .domain()
                     .expect("Unable to get domain for server URL.")
-                    .to_string()
+                    .to_string(),
             );
         }
     }

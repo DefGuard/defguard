@@ -8,7 +8,7 @@ use defguard_common::db::models::{Session, Settings};
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
-use crate::{appstate::AppState, error::WebError, server_config};
+use crate::{appstate::AppState, error::WebError};
 
 // Header names
 static FORWARDED_HOST: &str = "x-forwarded-host";

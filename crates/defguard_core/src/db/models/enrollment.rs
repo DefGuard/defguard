@@ -1,7 +1,6 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
-    config::server_config,
     db::{
         Id,
         models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},

@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
     serve,
 };
-use defguard_common::{VERSION, config::server_config, types::proxy::ProxyControlMessage};
+use defguard_common::VERSION;
 use defguard_web_ui::{index, svg, web_asset};
 use semver::Version;
 use sqlx::PgPool;

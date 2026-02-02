@@ -14,7 +14,7 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -524,7 +524,7 @@ pub async fn authorization(
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
     } else {
         // Don't allow open redirects (DG25-17)
-        server_config().url.clone()
+        Settings::url()?
     };
     {
         let mut query_pairs = url.query_pairs_mut();

@@ -2,7 +2,7 @@ use std::{convert::Infallible, time::Duration};
 
 use axum::{
     Extension,
-    extract::{Path, Query, State},
+    extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
 use defguard_certs::{der_to_pem, parse_certificate_info};
@@ -33,7 +33,7 @@ use tonic::{
 };
 
 use crate::{
-    auth::{AdminOrSetupRole, AdminRole},
+    auth::AdminOrSetupRole,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
