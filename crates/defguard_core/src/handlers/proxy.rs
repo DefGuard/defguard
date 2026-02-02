@@ -114,3 +114,53 @@ pub(crate) async fn update_proxy(
 
     Ok(ApiResponse::json(proxy, StatusCode::OK))
 }
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/proxy/{proxy_id}",
+    request_body = Proxy,
+    responses(
+        (status = 200, description = "Successfully deleted edge.", body = ProxyUpdateData),
+        (status = 401, description = "Unauthorized to delete edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission delete an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
+        (status = 500, description = "Unable to delete edge.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn delete_proxy(
+    _role: AdminRole,
+    Path(proxy_id): Path<i64>,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+) -> ApiResult {
+    debug!("User {} deleteing proxy {proxy_id}", session.user.username);
+    let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
+
+    let Some(proxy) = proxy else {
+        warn!("Proxy {proxy_id} not found");
+        return Ok(ApiResponse {
+            json: Value::Null,
+            status: StatusCode::NOT_FOUND,
+        });
+    };
+
+    proxy.delete(&appstate.pool).await?;
+
+    info!("User {} deleted proxy {proxy_id}", session.user.username);
+
+	// TODO(jck) ProxyDeleted event
+    // appstate.emit_event(ApiEvent {
+    //     context,
+    //     event: Box::new(ApiEventType::ProxyModified {
+    //         before,
+    //         after: proxy.clone(),
+    //     }),
+    // })?;
+
+    Ok(ApiResponse::default())
+}
