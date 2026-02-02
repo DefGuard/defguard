@@ -4,7 +4,7 @@ use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard_common::db::{
     Id,
-    models::{OAuth2AuthorizedApp, User, oauth2client::OAuth2Client},
+    models::{OAuth2AuthorizedApp, Settings, User, oauth2client::OAuth2Client},
 };
 use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
@@ -264,9 +264,8 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let fallback_url = state
-        .config
-        .url
+    let fallback_url = Settings::url()
+        .unwrap()
         .to_string()
         .trim_end_matches('/')
         .to_string();
@@ -476,7 +475,7 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
     let (client, state) = make_test_client(pool).await;
     let config = state.config;
 
-    let issuer_url = IssuerUrl::from_url(config.url.clone());
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
     // discover OpenID service
     let provider_metadata =
@@ -581,7 +580,7 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
     let (client, state) = make_test_client(pool).await;
     let config = state.config;
 
-    let issuer_url = IssuerUrl::from_url(config.url.clone());
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
     // discover OpenID service
     let provider_metadata =
@@ -688,7 +687,7 @@ async fn dg25_25_openid_disabled_client_userinfo_fails(
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
-    let issuer_url = IssuerUrl::from_url(config.url.clone());
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
     // discover OpenID service
     let provider_metadata =
@@ -819,7 +818,7 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
-    let issuer_url = IssuerUrl::from_url(config.url.clone());
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
     // discover OpenID service
     let provider_metadata =
@@ -1112,9 +1111,8 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
             .ascii_serialization()
     }
 
-    let fallback_url = state
-        .config
-        .url
+    let fallback_url = Settings::url()
+        .unwrap()
         .to_string()
         .trim_end_matches('/')
         .to_string();
@@ -1277,7 +1275,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
-    let issuer_url = IssuerUrl::from_url(config.url.clone());
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
     // discover OpenID service
     let provider_metadata =

@@ -219,7 +219,11 @@ impl EnrollmentServer {
                 &user.username,
                 &enterprise_settings,
                 openid_provider,
-            );
+            )
+            .map_err(|err| {
+                error!("Failed to create instance info: {err}");
+                Status::internal("unexpected error")
+            })?;
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -849,16 +853,22 @@ impl EnrollmentServer {
                 Status::internal(format!("unexpected error: {err}"))
             })?;
 
+        let instance_info = InstanceInfo::new(
+            settings,
+            &user.username,
+            &enterprise_settings,
+            openid_provider,
+        )
+        .map_err(|err| {
+            error!("Failed to create instance info: {err}");
+            Status::internal("unexpected error")
+        })?;
+
         let response = DeviceConfigResponse {
             device: Some(device.clone().into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(
-                InstanceInfo::new(
-                    settings,
-                    &user.username,
-                    &enterprise_settings,
-                    openid_provider,
-                )
+                instance_info
                 .into(),
             ),
             token: Some(token.token),

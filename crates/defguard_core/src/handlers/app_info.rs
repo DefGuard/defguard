@@ -48,6 +48,7 @@ pub struct AppInfo {
     license_info: LicenseInfo,
     ldap_info: LdapInfo,
     external_openid_enabled: bool,
+    initial_setup_completed: bool,
 }
 
 pub(crate) async fn get_app_info(
@@ -82,6 +83,7 @@ pub(crate) async fn get_app_info(
             ad: settings.ldap_uses_ad,
         },
         external_openid_enabled,
+        initial_setup_completed: settings.initial_setup_completed,
     };
 
     Ok(ApiResponse::new(json!(res), StatusCode::OK))

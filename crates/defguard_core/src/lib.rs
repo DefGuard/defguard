@@ -114,7 +114,6 @@ use crate::{
             totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
             webauthn_start,
         },
-        ca::create_ca,
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
         group::{
@@ -169,6 +168,7 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod location_management;
+pub mod setup;
 pub mod support;
 pub mod updates;
 pub mod user_management;
@@ -355,8 +355,6 @@ pub fn build_webapp(
             .route("/ldap/test", get(test_ldap_settings))
             // activity log
             .route("/activity_log", get(get_activity_log_events))
-            // Certificate authority
-            .route("/ca", post(create_ca))
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );
@@ -552,7 +550,7 @@ pub fn build_webapp(
 
     webapp
         .with_state(AppState::new(
-            pool,
+            pool.clone(),
             webhook_tx,
             webhook_rx,
             wireguard_tx,
@@ -560,8 +558,10 @@ pub fn build_webapp(
             failed_logins,
             event_tx,
             incompatible_components,
-            proxy_control_tx,
+            proxy_control_tx.clone(),
         ))
+        .layer(Extension(pool))
+        .layer(Extension(proxy_control_tx))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

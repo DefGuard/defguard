@@ -30,10 +30,10 @@ use crate::{
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
 pub(crate) mod auth;
-pub mod ca;
 pub(crate) mod component_setup;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
+pub(crate) mod initial_setup;
 pub mod mail;
 pub mod network_devices;
 pub mod openid_clients;
@@ -95,6 +95,7 @@ impl From<WebError> for ApiResponse {
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)
             | WebError::ActivityLogStreamError(_)
+            | WebError::UrlParseError(_)
             | WebError::CertificateError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(

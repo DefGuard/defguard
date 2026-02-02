@@ -1,7 +1,12 @@
+use std::time::Duration;
+
 use chrono::{TimeDelta, Utc};
 use sqlx::{Error as SqlxError, PgPool, query, query_as};
 
-use crate::{config::server_config, db::Id, random::gen_alphanumeric};
+use crate::{
+    db::{Id, models::Settings},
+    random::gen_alphanumeric,
+};
 
 pub struct OAuth2Token {
     pub oauth2authorizedapp_id: Id,
@@ -15,7 +20,8 @@ pub struct OAuth2Token {
 impl OAuth2Token {
     #[must_use]
     pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
-        let timeout = server_config().session_timeout;
+        let settings = Settings::get_current_settings();
+        let timeout = Duration::from_hours(settings.authentication_period_days as u64 * 24);
         let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
         Self {
             oauth2authorizedapp_id,
@@ -29,7 +35,8 @@ impl OAuth2Token {
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
     pub async fn refresh_and_save(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
-        let timeout = server_config().session_timeout;
+        let settings = Settings::get_current_settings();
+        let timeout = Duration::from_hours(settings.authentication_period_days as u64 * 24);
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
         let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);

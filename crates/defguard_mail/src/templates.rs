@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use chrono::{Datelike, NaiveDateTime, Utc};
 use defguard_common::{
     VERSION,
-    config::server_config,
     db::{
         Id,
         models::{
-            Session,
+            Session, Settings,
             user::{MFAMethod, User},
         },
     },
+    types::UrlParseError,
 };
 use reqwest::Url;
 use serde::Serialize;
@@ -51,6 +51,8 @@ pub enum TemplateError {
     MfaError,
     #[error(transparent)]
     TemplateError(#[from] tera::Error),
+    #[error(transparent)]
+    UrlParseError(#[from] UrlParseError),
 }
 
 struct NoOp(&'static str);
@@ -152,7 +154,7 @@ pub fn enrollment_start_mail(
 
     // add required context
     context.insert("enrollment_url", &enrollment_service_url.to_string());
-    context.insert("defguard_url", &server_config().url);
+    context.insert("defguard_url", &Settings::url()?);
     context.insert("token", enrollment_token);
 
     // prepare enrollment service URL
@@ -290,7 +292,7 @@ pub fn new_device_ocid_login_mail(
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
 
-    let url = format!("{}me", server_config().url);
+    let url = format!("{}me", Settings::url()?);
 
     context.insert("oauth2client_name", &oauth2client_name);
     context.insert("profile_url", &url);
@@ -331,7 +333,10 @@ pub fn email_mfa_activation_mail(
     session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
-    let timeout = server_config().mfa_code_timeout;
+    let settings = Settings::get_current_settings();
+    let timeout = humantime::format_duration(std::time::Duration::from_secs(
+        settings.mfa_code_timeout_seconds as u64,
+    ));
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
@@ -347,7 +352,10 @@ pub fn email_mfa_code_mail(
     session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
-    let timeout = server_config().mfa_code_timeout;
+    let settings = Settings::get_current_settings();
+    let timeout = humantime::format_duration(std::time::Duration::from_secs(
+        settings.mfa_code_timeout_seconds as u64,
+    ));
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
@@ -366,7 +374,7 @@ pub fn email_password_reset_mail(
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
 
     context.insert("enrollment_url", &service_url.to_string());
-    context.insert("defguard_url", &server_config().url);
+    context.insert("defguard_url", &Settings::url()?);
     context.insert("token", password_reset_token);
 
     service_url.set_path("/password-reset");

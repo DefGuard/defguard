@@ -38,6 +38,7 @@ utoipa.workspace = true
 uuid.workspace = true
 webauthn-rs.workspace = true
 x25519-dalek.workspace = true
+url = "2.5"
 
 [dev-dependencies]
 matches.workspace = true

@@ -7,6 +7,7 @@ use defguard_common::{
         models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
     },
     random::gen_alphanumeric,
+    types::UrlParseError,
 };
 use defguard_mail::{
     Mail,
@@ -51,11 +52,14 @@ pub enum TokenError {
     TemplateErrorInternal(#[from] tera::Error),
     #[error(transparent)]
     TemplateError(#[from] TemplateError),
+    #[error(transparent)]
+    UrlParseError(#[from] UrlParseError),
 }
 
 impl From<TokenError> for Status {
     fn from(err: TokenError) -> Self {
         error!("{err}");
+        let unexpected_err_msg = format!("Unexpected error: {err}");
         let (code, msg) = match err {
             TokenError::DbError(_)
             | TokenError::AdminNotFound
@@ -65,7 +69,10 @@ impl From<TokenError> for Status {
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
-            | TokenError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
+            | TokenError::UrlParseError(_)
+            | TokenError::TemplateErrorInternal(_) => {
+                (Code::Internal, unexpected_err_msg.as_str())
+            }
             TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
                 (Code::Unauthenticated, "invalid token")
             }
@@ -327,12 +334,12 @@ impl Token {
 
         let user = self.fetch_user(&mut *transaction).await?;
         let admin = self.fetch_admin(&mut *transaction).await?;
-
+        let url = Settings::url()?;
         let mut context = Context::new();
         context.insert("first_name", &user.first_name);
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
-        context.insert("defguard_url", &server_config().url);
+        context.insert("defguard_url", &url);
         context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {

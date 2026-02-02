@@ -1,8 +1,13 @@
+use std::time::Duration;
+
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
-use crate::{config::server_config, db::Id, random::gen_alphanumeric};
+use crate::{
+    db::{Id, models::Settings},
+    random::gen_alphanumeric,
+};
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
@@ -36,7 +41,8 @@ impl Session {
         device_info: Option<String>,
     ) -> Self {
         let now = Utc::now();
-        let timeout = server_config().session_timeout;
+        let settings = Settings::get_current_settings();
+        let timeout = Duration::from_hours(settings.authentication_period_days as u64 * 24);
         Self {
             id: gen_alphanumeric(24),
             user_id,

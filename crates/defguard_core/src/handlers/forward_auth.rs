@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::cookie::CookieJar;
-use defguard_common::db::models::Session;
+use defguard_common::db::models::{Session, Settings};
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
@@ -90,7 +90,7 @@ pub async fn forward_auth(
 }
 
 fn login_redirect(headers: ForwardAuthHeaders) -> Result<ForwardAuthResponse, WebError> {
-    let server_url = &server_config().url; // prepare redirect URL for login page
+    let server_url = Settings::url()?;
     let mut location = server_url.join("/auth/login").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)

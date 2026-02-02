@@ -2,7 +2,9 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
-use defguard_common::{config::server_config, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    config::server_config, db::models::Settings, types::proxy::ProxyControlMessage,
+};
 use defguard_mail::Mail;
 use reqwest::Client;
 use secrecy::ExposeSecret;
@@ -122,12 +124,13 @@ impl AppState {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
         let config = server_config();
+        let url = Settings::url().expect("Invalid DefGuard URL configuration");
         let webauthn_builder = WebauthnBuilder::new(
             config
                 .webauthn_rp_id
                 .as_ref()
                 .expect("Webauth RP ID configuration is required"),
-            &config.url,
+            &url,
         )
         .expect("Invalid WebAuthn configuration");
         let webauthn = Arc::new(

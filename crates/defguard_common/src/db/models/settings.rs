@@ -6,6 +6,7 @@ use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
 use tracing::{debug, info, warn};
+use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -148,6 +149,11 @@ pub struct Settings {
     pub ca_key_der: Option<Vec<u8>>,
     pub ca_cert_der: Option<Vec<u8>>,
     pub ca_expiry: Option<NaiveDateTime>,
+    pub initial_setup_completed: bool,
+    pub defguard_url: String,
+    pub default_admin_group_name: String,
+    pub authentication_period_days: i32,
+    pub mfa_code_timeout_seconds: i32,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -225,6 +231,15 @@ impl fmt::Debug for Settings {
                 "gateway_disconnect_notifications_reconnect_notification_enabled",
                 &self.gateway_disconnect_notifications_reconnect_notification_enabled,
             )
+            .field("ca_expiry", &self.ca_expiry)
+            .field("initial_setup_completed", &self.initial_setup_completed)
+            .field("defguard_url", &self.defguard_url)
+            .field("default_admin_group_name", &self.default_admin_group_name)
+            .field(
+                "authentication_period_days",
+                &self.authentication_period_days,
+            )
+            .field("mfa_code_timeout_seconds", &self.mfa_code_timeout_seconds)
             .finish_non_exhaustive()
     }
 }
@@ -255,7 +270,8 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            ca_key_der, ca_cert_der, ca_expiry \
+            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, \
+            defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -335,7 +351,12 @@ impl Settings {
             openid_username_handling = $48, \
             ca_key_der = $49, \
             ca_cert_der = $50, \
-            ca_expiry = $51 \
+            ca_expiry = $51, \
+            initial_setup_completed = $52, \
+            defguard_url = $53, \
+            default_admin_group_name = $54, \
+            authentication_period_days = $55, \
+            mfa_code_timeout_seconds = $56 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -387,7 +408,12 @@ impl Settings {
             &self.openid_username_handling as &OpenIdUsernameHandling,
             &self.ca_key_der as &Option<Vec<u8>>,
             &self.ca_cert_der as &Option<Vec<u8>>,
-            &self.ca_expiry as &Option<NaiveDateTime>
+            &self.ca_expiry as &Option<NaiveDateTime>,
+            self.initial_setup_completed,
+            self.defguard_url,
+            self.default_admin_group_name,
+            self.authentication_period_days,
+            self.mfa_code_timeout_seconds
         )
         .execute(executor)
         .await?;
@@ -446,6 +472,12 @@ impl Settings {
             .as_deref()
             .is_none_or(|rdn| rdn.is_empty() || Some(rdn) == self.ldap_username_attr.as_deref())
     }
+
+    /// Get the DefGuard URL from the current settings
+    pub fn url() -> Result<Url, url::ParseError> {
+        let settings = Settings::get_current_settings();
+        Url::parse(&settings.defguard_url)
+    }
 }
 
 #[derive(Serialize)]
@@ -457,6 +489,7 @@ pub struct SettingsEssentials {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub openid_enabled: bool,
+    pub initial_setup_completed: bool,
 }
 
 impl SettingsEssentials {
@@ -467,7 +500,7 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled \
+            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed \
             FROM settings WHERE id = 1"
         )
         .fetch_one(executor)
@@ -485,6 +518,7 @@ impl From<Settings> for SettingsEssentials {
             nav_logo_url: settings.nav_logo_url,
             instance_name: settings.instance_name,
             main_logo_url: settings.main_logo_url,
+            initial_setup_completed: settings.initial_setup_completed,
         }
     }
 }

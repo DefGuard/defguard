@@ -1,8 +1,11 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
-    db::models::User,
+    db::models::{Settings, User},
 };
 use defguard_proto::auth::{AuthenticateRequest, AuthenticateResponse, auth_service_server};
 use jsonwebtoken::errors::Error as JWTError;
@@ -30,7 +33,8 @@ impl AuthServer {
 
     /// Creates JWT token for specified user
     fn create_jwt(uid: &str) -> Result<String, JWTError> {
-        let timeout = server_config().session_timeout;
+        let settings = Settings::get_current_settings();
+        let timeout = Duration::from_hours(settings.authentication_period_days as u64 * 24);
         Claims::new(
             ClaimsType::Auth,
             uid.into(),
