@@ -192,7 +192,7 @@ pub(crate) async fn list_acl_aliases(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} listing ACL aliases", session.user.username);
-    let aliases = AclAlias::all(&appstate.pool).await?;
+    let aliases = AclAlias::all_of_kind(&appstate.pool, AliasKind::Component).await?;
     let mut api_aliases = Vec::<ApiAclAlias>::with_capacity(aliases.len());
     for alias in &aliases {
         // TODO: may require optimisation wrt. sql queries

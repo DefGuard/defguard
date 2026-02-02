@@ -201,7 +201,7 @@ pub(crate) async fn list_acl_destinations(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} listing ACL destinations", session.user.username);
-    let aliases = AclAlias::all(&appstate.pool).await?;
+    let aliases = AclAlias::all_of_kind(&appstate.pool, AliasKind::Destination).await?;
     let mut api_aliases = Vec::<ApiAclDestination>::with_capacity(aliases.len());
     for alias in &aliases {
         // TODO: may require optimisation wrt. sql queries
