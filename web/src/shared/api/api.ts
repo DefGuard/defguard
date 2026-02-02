@@ -38,6 +38,7 @@ import type {
   DeleteAuthKeyRequest,
   DeleteGatewayRequest,
   Device,
+  Edge,
   EditAclAliasRequest,
   EditAclDestination,
   EditAclRuleRequest,
@@ -355,6 +356,11 @@ const api = {
   },
   mail: {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+  },
+  edge: {
+    getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
+    editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
+    deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
   },
   acl: {
     destination: {

@@ -257,6 +257,9 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             "Public IP bound to devices owned by user {user} changed from {} to {}",
             before.public_ip, after.public_ip
         )),
+        DefguardEvent::ProxyModified { before: _, after } => {
+            Some(format!("Modified proxy {after}"))
+        }
     }
 }
 
