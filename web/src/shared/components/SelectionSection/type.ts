@@ -26,6 +26,7 @@ export interface SelectionSectionProps<T extends SelectionKey, M = unknown> {
   options: SelectionOption<T, M>[];
   orderItems?: (items: SelectionOption<T, M>[]) => SelectionOption<T, M>[];
   renderItem?: SelectionSectionCustomRender<T, M>;
+  enableDividers?: boolean;
   itemHeight?: number;
   itemGap?: number;
   className?: string;

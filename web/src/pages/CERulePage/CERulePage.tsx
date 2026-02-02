@@ -1,16 +1,19 @@
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
-import { flat } from 'radashi';
-import { useMemo, useState } from 'react';
+import { cloneDeep, flat } from 'radashi';
+import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import {
   type AclDestination,
   AclProtocolName,
   type AclProtocolValue,
   aclProtocolValues,
+  type NetworkLocation,
 } from '../../shared/api/types';
 import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
@@ -31,9 +34,14 @@ import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxI
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
+import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -44,6 +52,7 @@ import {
   getAliasesQueryOptions,
   getDestinationsQueryOptions,
   getGroupsInfoQueryOptions,
+  getLocationsQueryOptions,
   getNetworkDevicesQueryOptions,
   getUsersQueryOptions,
 } from '../../shared/query';
@@ -71,6 +80,41 @@ const renderDestinationSelectionItem: SelectionSectionCustomRender<
   </div>
 );
 
+const renderLocationSelectionItem: SelectionSectionCustomRender<
+  number,
+  NetworkLocation
+> = ({ active, onClick, option }) => {
+  const icon: IconKindValue = 'check';
+  return (
+    <div className="item location-selection-item" onClick={onClick}>
+      <CheckboxIndicator active={active} />
+      {isPresent(option.meta) && (
+        <>
+          <div className="content-track">
+            <p className="item-label">{option.meta?.name}</p>
+          </div>
+          <TooltipProvider>
+            <TooltipTrigger>
+              <Icon icon={icon} size={16} />
+            </TooltipTrigger>
+            <TooltipContent>
+              {!option.meta.acl_enabled && (
+                <p>{`Location access unmanaged (ACL disabled)`}</p>
+              )}
+              {option.meta.acl_enabled && option.meta.acl_default_allow && (
+                <p>{`Location access allowed by default - network traffic not explicitly defined by the rules will be passed.`}</p>
+              )}
+              {option.meta.acl_enabled && !option.meta.acl_default_allow && (
+                <p>{`Location access denied by default - network traffic not explicitly defined by the rules will be blocked.`}</p>
+              )}
+            </TooltipContent>
+          </TooltipProvider>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const CERulePage = () => {
   return (
     <EditPage
@@ -88,6 +132,28 @@ export const CERulePage = () => {
 };
 
 const Content = () => {
+  const router = useRouter();
+  const { mutateAsync: addRule } = useMutation({
+    mutationFn: api.acl.rule.addRule,
+    meta: {
+      invalidate: ['acl'],
+    },
+    onSuccess: () => {
+      Snackbar.success('Rule added');
+      router.history.back();
+    },
+  });
+
+  // const { mutateAsync: editRule } = useMutation({
+  //   mutationFn: api.acl.rule.editRule,
+  //   meta: {
+  //     invalidate: ['acl'],
+  //   },
+  //   onSuccess: () => {
+  //     Snackbar.success('Rule changed');
+  //   },
+  // });
+
   const [destinationAllAddresses, setDestinationAllAddresses] = useState<boolean>(true);
   const [destinationAllPorts, setDestinationAllPorts] = useState<boolean>(true);
   const [destinationAllProtocols, setDestinationAllProtocols] = useState<boolean>(true);
@@ -121,6 +187,21 @@ const Content = () => {
       );
     }
   }, [destinations]);
+
+  const { data: locations } = useQuery(getLocationsQueryOptions);
+
+  const locationsOptions = useMemo(() => {
+    if (isPresent(locations)) {
+      return locations.map(
+        (location): SelectionOption<number> => ({
+          id: location.id,
+          label: location.name,
+          meta: location,
+        }),
+      );
+    }
+    return [];
+  }, [locations]);
 
   const { data: aliases } = useQuery(getAliasesQueryOptions);
 
@@ -247,12 +328,6 @@ const Content = () => {
             vals.allowed_devices.length !== 0;
           if (!isAllowConfigured) {
             const message = 'Must configure some allowed users, groups or devices';
-
-            ctx.addIssue({
-              path: ['allow_all_users'],
-              code: 'custom',
-              message,
-            });
             ctx.addIssue({
               path: ['allowed_users'],
               code: 'custom',
@@ -260,11 +335,6 @@ const Content = () => {
             });
             ctx.addIssue({
               path: ['allowed_groups'],
-              code: 'custom',
-              message,
-            });
-            ctx.addIssue({
-              path: ['allow_all_network_devices'],
               code: 'custom',
               message,
             });
@@ -313,12 +383,51 @@ const Content = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
+    onSubmit: async ({ value }) => {
+      const toSend = cloneDeep(value);
+      // assign flags
+      if (toSend.networks.length > 0) {
+        toSend.all_networks = false;
+      } else {
+        toSend.all_networks = true;
+      }
+      if (restrictionsPresent) {
+        toSend.deny_all_network_devices = toSend.denied_devices.length === 0;
+        toSend.deny_all_users = toSend.denied_users.length === 0;
+      } else {
+        toSend.deny_all_network_devices = false;
+        toSend.deny_all_users = false;
+        toSend.denied_devices = [];
+        toSend.denied_groups = [];
+        toSend.denied_users = [];
+      }
+      if (destinationAllAddresses) {
+        toSend.destination = '';
+      }
+      if (destinationAllPorts) {
+        toSend.ports = '';
+      }
+      if (destinationAllProtocols) {
+        toSend.protocols = new Set();
+      }
+      await addRule({
+        ...toSend,
+        protocols: Array.from(toSend.protocols),
+        aliases: Array.from(toSend.aliases),
+      });
+    },
   });
 
   const selectedAliases = useStore(
     form.store,
     (s) => aliases?.filter((alias) => s.values.aliases.has(alias.id)) ?? [],
   );
+
+  const formErrors = useStore(form.store, (s) => s.errorMap);
+
+  useEffect(() => {
+    console.log(formErrors);
+  }, [formErrors]);
 
   return (
     <form
@@ -340,7 +449,18 @@ const Content = () => {
             <p>{`Specify which locations this rule applies to. You can select all available locations or choose specific ones based on your requirements.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle active={false} disabled label="Include all locations" />
+          <form.AppField name="networks">
+            {(field) => (
+              <field.FormSelectMultiple
+                options={locationsOptions}
+                counterText={(counter) => `Locations ${counter}`}
+                editText="Edit locations"
+                modalTitle="Select locations"
+                toggleText="Include all locations"
+                selectionCustomItemRender={renderLocationSelectionItem}
+              />
+            )}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
@@ -368,6 +488,8 @@ const Content = () => {
                             title: 'Select predefined destination(s)',
                             isOpen: true,
                             options: destinationsOptions ?? [],
+                            itemGap: 12,
+                            enableDividers: true,
                             onSubmit: (selection) =>
                               field.handleChange(new Set(selection as number[])),
                             // @ts-expect-error
@@ -660,7 +782,7 @@ const Content = () => {
             )}
             <Divider spacing={ThemeSpacing.Lg} />
             {isPresent(networkDevicesOptions) && (
-              <form.AppField name="denied_groups">
+              <form.AppField name="denied_devices">
                 {(field) => (
                   <field.FormSelectMultiple
                     options={networkDevicesOptions}
@@ -675,14 +797,18 @@ const Content = () => {
           </Fold>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
-        <Controls>
-          <form.AppField name="enabled">
-            {(field) => <field.FormToggle label="Enable rule" />}
-          </form.AppField>
-          <div className="right">
-            <Button text="Create rule" disabled />
-          </div>
-        </Controls>
+        <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
+          {({ isSubmitting }) => (
+            <Controls>
+              <form.AppField name="enabled">
+                {(field) => <field.FormToggle label="Enable rule" />}
+              </form.AppField>
+              <div className="right">
+                <Button text="Create rule" type="submit" loading={isSubmitting} />
+              </div>
+            </Controls>
+          )}
+        </form.Subscribe>
       </form.AppForm>
     </form>
   );
@@ -693,6 +819,7 @@ type AliasDataBlockProps = {
 };
 
 const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
+  if (values.length === 0) return null;
   return (
     <div className="alias-data-block">
       <div className="top">

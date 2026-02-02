@@ -22,6 +22,7 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   id,
   renderItem,
   orderItems,
+  enableDividers = false,
   itemGap = 8,
   itemHeight = 24,
 }: SelectionSectionProps<T, M>) => {
@@ -75,7 +76,16 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
     [onChange, onlySelected],
   );
 
-  const maxHeight = useMemo(() => itemHeight * 10 + itemGap * 9, [itemGap, itemHeight]);
+  const maxHeight = useMemo(() => {
+    let res = itemHeight * 10;
+    // add gaps
+    if (enableDividers) {
+      res += (itemGap * 2 + 1) * 9;
+    } else {
+      res += itemGap * 9;
+    }
+    return res;
+  }, [itemGap, itemHeight, enableDividers]);
 
   return (
     <div className={clsx('selection-section', className)} id={id}>
@@ -123,36 +133,46 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
           <div
             className="inner"
             style={{
-              rowGap: itemGap,
+              rowGap: enableDividers ? 0 : itemGap,
             }}
           >
-            {visibleOptions.map((option) => {
+            {visibleOptions.map((option, index) => {
+              const isLast = index === visibleOptions.length - 1;
               const selected = selection.has(option.id);
               const handleClick = () => {
                 handleSelect(option, selected, selection);
               };
               return (
-                <div
-                  className="item"
-                  key={option.id}
-                  style={{
-                    minHeight: itemHeight,
-                  }}
-                >
-                  {!isPresent(renderItem) && (
-                    <Checkbox
-                      active={selected}
-                      text={option.label}
-                      onClick={handleClick}
-                    />
+                <>
+                  <div
+                    className="item"
+                    key={option.id}
+                    style={{
+                      minHeight: itemHeight,
+                    }}
+                  >
+                    {!isPresent(renderItem) && (
+                      <Checkbox
+                        active={selected}
+                        text={option.label}
+                        onClick={handleClick}
+                      />
+                    )}
+                    {isPresent(renderItem) &&
+                      renderItem({
+                        option,
+                        active: selected,
+                        onClick: handleClick,
+                      })}
+                  </div>
+                  {!isLast && enableDividers && (
+                    <>
+                      <SizedBox height={itemGap} />
+                      <Divider />
+                      <SizedBox height={itemGap} />
+                    </>
                   )}
-                  {isPresent(renderItem) &&
-                    renderItem({
-                      option,
-                      active: selected,
-                      onClick: handleClick,
-                    })}
-                </div>
+                </>
               );
             })}
           </div>

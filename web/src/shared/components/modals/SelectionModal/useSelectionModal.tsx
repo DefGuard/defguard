@@ -12,6 +12,8 @@ interface StoreValues {
   options: SelectionOption<SelectionKey>[];
   selected: Set<number> | Set<string>;
   isOpen: boolean;
+  itemGap: number;
+  enableDividers: boolean;
   onSubmit?: (values: Array<SelectionKey>) => void;
   orderItems?: SectionProps['orderItems'];
   renderItem?: SectionProps['renderItem'];
@@ -22,6 +24,11 @@ const defaultValues: StoreValues = {
   options: [],
   selected: new Set<number>(),
   isOpen: false,
+  itemGap: 8,
+  enableDividers: false,
+  onSubmit: undefined,
+  orderItems: undefined,
+  renderItem: undefined,
 };
 
 interface Store extends StoreValues {

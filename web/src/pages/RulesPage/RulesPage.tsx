@@ -54,6 +54,7 @@ export const RulesPage = () => {
     <Page title="Rules" id="rules-page">
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
+      <SizedBox height={ThemeSpacing.Xl2} />
       <TablePageLayout>
         {activeTab === RulesPageTab.Deployed && isPresent(deployed) && (
           <RulesDeployedTab rules={deployed} />
