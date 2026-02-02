@@ -9,16 +9,16 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
-import { EdgeSetupStep } from '../types';
-import { useEdgeWizardStore } from '../useEdgeWizardStore';
-import type { SetupEvent, SetupStep, SetupStepId } from './types';
+import type { SetupEvent, SetupStep, SetupStepId } from '../../EdgeSetupPage/steps/types';
+import { SetupPageStep } from '../types';
+import { useSetupWizardStore } from '../useSetupWizardStore';
 
 export const SetupEdgeAdaptationStep = () => {
-  const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
-  const edgeComponentWizardStore = useEdgeWizardStore((s) => s);
-  const edgeAdaptationState = useEdgeWizardStore((s) => s.edgeAdaptationState);
-  const setEdgeAdaptationState = useEdgeWizardStore((s) => s.setEdgeAdaptationState);
-  const resetEdgeAdaptationState = useEdgeWizardStore((s) => s.resetEdgeAdaptationState);
+  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
+  const setupWizardStore = useSetupWizardStore((s) => s);
+  const edgeAdaptationState = useSetupWizardStore((s) => s.edgeAdaptationState);
+  const setEdgeAdaptationState = useSetupWizardStore((s) => s.setEdgeAdaptationState);
+  const resetEdgeAdaptationState = useSetupWizardStore((s) => s.resetEdgeAdaptationState);
 
   const handleEvent = useCallback(
     (event: SetupEvent) => {
@@ -39,9 +39,9 @@ export const SetupEdgeAdaptationStep = () => {
   const sse = useSSEController<SetupEvent>(
     '/api/v1/proxy/setup/stream',
     {
-      ip_or_domain: edgeComponentWizardStore.ip_or_domain,
-      grpc_port: edgeComponentWizardStore.grpc_port,
-      common_name: edgeComponentWizardStore.common_name,
+      ip_or_domain: setupWizardStore.ip_or_domain,
+      grpc_port: setupWizardStore.grpc_port,
+      common_name: setupWizardStore.common_name,
     },
     {
       onMessage: handleEvent,
@@ -49,12 +49,12 @@ export const SetupEdgeAdaptationStep = () => {
   );
 
   const handleBack = () => {
-    useEdgeWizardStore.getState().resetEdgeAdaptationState();
-    setActiveStep(EdgeSetupStep.EdgeComponent);
+    useSetupWizardStore.getState().resetEdgeAdaptationState();
+    setActiveStep(SetupPageStep.EdgeComponent);
   };
 
   const handleNext = () => {
-    setActiveStep(EdgeSetupStep.Confirmation);
+    setActiveStep(SetupPageStep.Confirmation);
   };
 
   const steps: SetupStep[] = useMemo(
@@ -66,8 +66,8 @@ export const SetupEdgeAdaptationStep = () => {
       {
         id: 'CheckingAvailability',
         title: m.edge_setup_adaptation_checking_availability({
-          ip_or_domain: edgeComponentWizardStore.ip_or_domain,
-          grpc_port: edgeComponentWizardStore.grpc_port.toString(),
+          ip_or_domain: setupWizardStore.ip_or_domain,
+          grpc_port: setupWizardStore.grpc_port.toString(),
         }),
       },
       {
@@ -91,7 +91,7 @@ export const SetupEdgeAdaptationStep = () => {
         title: m.edge_setup_adaptation_configuring_tls(),
       },
     ],
-    [edgeComponentWizardStore, edgeAdaptationState.proxyVersion],
+    [setupWizardStore, edgeAdaptationState.proxyVersion],
   );
 
   const stepDone = useCallback(
@@ -140,9 +140,9 @@ export const SetupEdgeAdaptationStep = () => {
   return (
     <WizardCard>
       <div>
-        {steps.map((step, index) => (
+        {steps.map((step) => (
           <LoadingStep
-            key={index}
+            key={step.id}
             title={step.title}
             loading={stepLoading(step.id)}
             success={stepDone(step.id)}

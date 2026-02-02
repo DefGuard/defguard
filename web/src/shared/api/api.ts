@@ -31,6 +31,8 @@ import type {
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
   CreateActivityLogStreamRequest,
+  CreateAdminRequest,
+  CreateCARequest,
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
@@ -46,6 +48,7 @@ import type {
   EnableMfaMethodResponse,
   GatewayStatus,
   GatewayTokenResponse,
+  GetCAResponse,
   GroupInfo,
   GroupsResponse,
   IpValidation,
@@ -65,12 +68,15 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
+  SettingsEssentials,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  UploadCARequest,
   User,
   UserChangePasswordRequest,
   UserDevice,
@@ -96,6 +102,16 @@ const api = {
       });
     }
     return res;
+  },
+  initial_setup: {
+    createCA: (data: CreateCARequest) => client.post('/initial_setup/ca', data),
+    getCA: () => client.get<GetCAResponse>('/initial_setup/ca'),
+    uploadCA: (data: UploadCARequest) => client.post('/initial_setup/ca/upload', data),
+    createAdminUser: (data: CreateAdminRequest) =>
+      client.post('/initial_setup/admin', data),
+    setGeneralConfig: (data: SetGeneralConfigRequest) =>
+      client.post('/initial_setup/general_config', data),
+    finishSetup: () => client.post('/initial_setup/finish'),
   },
   openid: {
     authInfo: () => client.get<OpenIdAuthInfo>(`/openid/auth_info`),
@@ -340,6 +356,7 @@ const api = {
     getEnterpriseSettings: () => client.get<SettingsEnterprise>('/settings_enterprise'),
     patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
       client.patch('/settings_enterprise', data),
+    getSettingsEssentials: () => client.get<SettingsEssentials>('/settings_essentials'),
   },
   openIdProvider: {
     getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),

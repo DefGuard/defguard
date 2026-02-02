@@ -1,17 +1,11 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { SetupStepId } from './steps/types';
-import { EdgeSetupStep, type EdgeSetupStepValue } from './types';
-
-type EdgeAdaptationState = {
-  isProcessing: boolean;
-  isComplete: boolean;
-  currentStep: SetupStepId | null;
-  errorMessage: string | null;
-  proxyVersion: string | null;
-  proxyLogs: string[];
-};
+import {
+  type EdgeAdaptationState,
+  EdgeSetupStep,
+  type EdgeSetupStepValue,
+} from './types';
 
 type StoreValues = {
   activeStep: EdgeSetupStepValue;

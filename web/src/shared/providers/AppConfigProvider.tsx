@@ -24,5 +24,22 @@ export const AppConfigProvider = ({ children }: PropsWithChildren) => {
     }
   }, [appInfoResponse]);
 
+  const { data: settingsEssentials } = useQuery({
+    queryFn: api.settings.getSettingsEssentials,
+    queryKey: ['settings-essentials'],
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchOnMount: true,
+  });
+
+  useEffect(() => {
+    if (isPresent(settingsEssentials)) {
+      useApp.setState({
+        settingsEssentials: settingsEssentials.data,
+      });
+    }
+  }, [settingsEssentials]);
+
   return <>{children}</>;
 };
