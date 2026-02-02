@@ -84,6 +84,8 @@
   column-gap: var(--spacing-md);
   width: 100%;
   overflow: hidden;
+  user-select: none;
+  cursor: pointer;
 
   &:not(.active, .disabled, .error):hover .box {
     --border: var(--border-emphasis);

@@ -851,9 +851,9 @@ export interface AclRule {
   parent_id: number | null;
 }
 
-export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;
 
-export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+export type AddAclRuleRequest = Omit<AclRule, 'state' | 'parent_id' | 'id'>;
 
 export interface OpenIdAuthInfo {
   url: string;
