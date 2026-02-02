@@ -9,7 +9,6 @@ use defguard_common::db::{
         gateway::Gateway,
         vpn_client_session::{VpnClientSession, VpnClientSessionState},
         vpn_session_stats::VpnSessionStats,
-        wireguard::LocationMfaMode,
     },
 };
 use rand::{Rng, rngs::ThreadRng};

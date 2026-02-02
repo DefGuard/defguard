@@ -26,6 +26,7 @@ use crate::{
         models::{
             ModelError, WireguardNetwork,
             user::User,
+            vpn_client_session::VpnClientSessionState,
             wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
         },
     },
@@ -202,25 +203,25 @@ impl UserDevice {
         // fetch device config and connection info for all allowed networks
         let result = query!(
             "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vss.endpoint device_endpoint, \
-	            vss.latest_handshake \"latest_handshake?\", \
-	            COALESCE(vs.state = 'connected', FALSE) \"is_active!\" \
+	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", \
+	            vs.latest_handshake \"latest_handshake?\", \
+	            vs.state \"state?: VpnClientSessionState\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
-				SELECT id, state, location_id \
+				SELECT id, state, location_id, endpoint, latest_handshake \
 				FROM vpn_client_session \
-				WHERE location_id = n.id \
+	            LEFT JOIN LATERAL ( \
+					SELECT session_id, endpoint, latest_handshake \
+					FROM vpn_session_stats \
+					WHERE session_id = vpn_client_session.id \
+					ORDER BY collected_at DESC \
+					LIMIT 1 \
+	            ) vss ON vss.session_id = vpn_client_session.id \
+				WHERE location_id = n.id and device_id = $1 \
 				ORDER BY created_at DESC \
 				LIMIT 1 \
             ) vs ON vs.location_id = n.id \
-            LEFT JOIN LATERAL ( \
-				SELECT session_id, endpoint, latest_handshake \
-				FROM vpn_session_stats \
-				WHERE session_id = vs.id \
-				ORDER BY collected_at DESC \
-				LIMIT 1 \
-            ) vss ON vss.session_id = vs.id \
             WHERE wnd.device_id = $1",
             device.id,
         )
@@ -231,14 +232,20 @@ impl UserDevice {
             .into_iter()
             .map(|r| {
                 // extract latest public IP from stats endpoint
-                let device_ip = r.device_endpoint.rsplit_once(':').map(|(mut addr, _port)| {
+                let device_ip = r.device_endpoint.and_then(|endpoint| {
+                    let mut addr = endpoint.rsplit_once(':')?.0;
                     // Strip square brackets.
                     if addr.starts_with('[') && addr.ends_with(']') {
                         let end = addr.len() - 1;
                         addr = &addr[1..end];
                     }
-                    addr.to_owned()
+                    Some(addr.to_owned())
                 });
+
+                let is_active = match r.state {
+                    Some(session_state) => session_state == VpnClientSessionState::Connected,
+                    None => false,
+                };
 
                 UserDeviceNetworkInfo {
                     network_id: r.network_id,
@@ -251,7 +258,7 @@ impl UserDevice {
                         .collect(),
                     last_connected_ip: device_ip,
                     last_connected_at: r.latest_handshake,
-                    is_active: r.is_active,
+                    is_active,
                 }
             })
             .collect();
