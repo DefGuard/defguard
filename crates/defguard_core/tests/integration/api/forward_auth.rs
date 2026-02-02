@@ -1,6 +1,6 @@
-use defguard_common::{config::SERVER_CONFIG, db::models::Settings};
+use defguard_common::db::models::Settings;
 use defguard_core::handlers::Auth;
-use reqwest::{StatusCode, Url};
+use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{X_FORWARDED_HOST, X_FORWARDED_URI, make_client, setup_pool};
