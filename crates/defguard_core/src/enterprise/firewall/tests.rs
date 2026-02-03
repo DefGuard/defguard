@@ -3113,6 +3113,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         state: RuleState::Applied,
         destination: vec!["192.168.1.0/24".parse().unwrap()],
+        manual_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -3125,6 +3126,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         all_networks: true,
         state: RuleState::Applied,
+        manual_settings: false,
         ..Default::default()
     }
     .save(&pool)
@@ -3138,6 +3140,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: false,
         ..Default::default()
     }
     .save(&pool)
@@ -3439,6 +3442,7 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
             "192.168.1.0/24".parse().unwrap(),
             "fc00::0/112".parse().unwrap(),
         ],
+        manual_settings: true,
         ..Default::default()
     }
     .save(&pool)
