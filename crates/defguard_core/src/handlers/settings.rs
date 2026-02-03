@@ -7,7 +7,6 @@ use defguard_common::db::models::{
     Settings, SettingsEssentials,
     settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
 };
-use serde_json::json;
 use sqlx::PgPool;
 use struct_patch::Patch;
 

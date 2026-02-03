@@ -49,7 +49,6 @@ use crate::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
     },
-    server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
