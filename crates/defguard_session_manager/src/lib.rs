@@ -194,7 +194,8 @@ impl SessionManager {
 
             // get all connected sessions which have become inactive
             let inactive_sessions =
-                VpnClientSession::get_inactive(&mut *transaction, &location).await?;
+                VpnClientSession::get_all_inactive_for_location(&mut *transaction, &location)
+                    .await?;
 
             debug!(
                 "Found {} inactive VPN sessions in location {location}",

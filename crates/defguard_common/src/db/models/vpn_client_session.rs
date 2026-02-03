@@ -113,7 +113,7 @@ impl VpnClientSession<Id> {
     }
 
     /// Fetch active sessions which have become inactive for a specific location
-    pub async fn get_inactive<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn get_all_inactive_for_location<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
     ) -> Result<Vec<Self>, SqlxError> {
@@ -126,7 +126,7 @@ impl VpnClientSession<Id> {
 				SELECT latest_handshake \
 				FROM vpn_session_stats \
 				WHERE session_id = s.id \
-				ORDER BY collected_at DESC \
+				ORDER BY latest_handshake DESC \
 				LIMIT 1 \
 			) ss ON true \
 			WHERE location_id = $1 AND state = 'connected' \
