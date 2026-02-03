@@ -3,20 +3,7 @@ use defguard_common::db::NoId;
 use defguard_core::db::models::activity_log::{
     ActivityLogEvent, ActivityLogModule, EventType,
     metadata::{
-        ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
-        ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
-        ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
-        GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
-        GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata, MfaLoginMetadata,
-        MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
-        OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
-        OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
-        ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
-        UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-        UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-        VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
-        WebHookModifiedMetadata, WebHookStateChangedMetadata,
+        ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata, ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata, ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata, EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata, WebHookStateChangedMetadata
     },
 };
 use description::{
@@ -471,6 +458,10 @@ pub async fn run_event_logger(
                             DefguardEvent::ProxyModified { before, after } => (
                                 EventType::ProxyModified,
                                 serde_json::to_value(ProxyModifiedMetadata { before, after }).ok(),
+                            ),
+                            DefguardEvent::ProxyDeleted { proxy } => (
+                                EventType::ProxyModified,
+                                serde_json::to_value(ProxyDeletedMetadata { proxy }).ok(),
                             ),
                         };
                         (module, event_type, description, metadata)

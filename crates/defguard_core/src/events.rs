@@ -301,6 +301,9 @@ pub enum ApiEventType {
         before: Proxy<Id>,
         after: Proxy<Id>,
     },
+    ProxyDeleted {
+        proxy: Proxy<Id>,
+    },
 }
 
 /// Events from Web API

@@ -163,18 +163,16 @@ pub(crate) async fn delete_proxy(
 	// TODO
 	// 1. Add proxy cert to CRL
 	// 2. Remove cert files on deleted proxy
-    proxy.delete(&appstate.pool).await?;
+    proxy.clone().delete(&appstate.pool).await?;
 
     info!("User {} deleted proxy {proxy_id}", session.user.username);
 
-    // TODO(jck) ProxyDeleted event
-    // appstate.emit_event(ApiEvent {
-    //     context,
-    //     event: Box::new(ApiEventType::ProxyModified {
-    //         before,
-    //         after: proxy.clone(),
-    //     }),
-    // })?;
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::ProxyDeleted {
+            proxy,
+        }),
+    })?;
 
     Ok(ApiResponse::default())
 }
