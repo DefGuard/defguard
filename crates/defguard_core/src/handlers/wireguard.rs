@@ -1411,27 +1411,6 @@ pub(crate) async fn download_config(
     }
 }
 
-pub(crate) async fn create_network_token(
-    _role: AdminRole,
-    State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
-) -> ApiResult {
-    debug!("Generating a new token for network ID {network_id}");
-    let network = find_network(network_id, &appstate.pool).await?;
-    let token = network.generate_gateway_token().map_err(|_| {
-        error!("Failed to create token for gateway {}", network.name);
-        WebError::Authorization(format!(
-            "Failed to create token for gateway {}",
-            network.name
-        ))
-    })?;
-    info!("Generated a new token for network ID {network_id}");
-    Ok(ApiResponse {
-        json: json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
-        status: StatusCode::OK,
-    })
-}
-
 /// Returns appropriate aggregation level depending on the `from` date param
 /// If `from` is >= than 6 hours ago, returns `Hour` aggregation
 /// Otherwise returns `Minute` aggregation
