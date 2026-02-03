@@ -15,7 +15,7 @@ use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
-use crate::{db::models::Settings, types::UrlParseError};
+use crate::db::models::Settings;
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -243,28 +243,25 @@ impl DefGuardConfig {
 
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
-        self.initialize_rp_id();
-        self.initialize_cookie_domain();
+        let url = Settings::url().expect("Unable to parse Defguard URL.");
+        self.initialize_rp_id(&url);
+        self.initialize_cookie_domain(&url);
     }
 
-    fn initialize_rp_id(&mut self) {
+    fn initialize_rp_id(&mut self, url: &Url) {
         if self.webauthn_rp_id.is_none() {
             self.webauthn_rp_id = Some(
-                Settings::url()
-                    .expect("Unable to parse server URL.")
-                    .domain()
+                url.domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             );
         }
     }
 
-    fn initialize_cookie_domain(&mut self) {
+    fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
             self.cookie_domain = Some(
-                Settings::url()
-                    .expect("Unable to parse server URL.")
-                    .domain()
+                url.domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             );
@@ -333,17 +330,6 @@ impl DefGuardConfig {
         }
     }
 
-    /// Returns configured URL with "auth/callback" appended to the path.
-    #[must_use]
-    pub fn callback_url(&self) -> Result<Url, UrlParseError> {
-        let mut url = Settings::url()?;
-        // Append "auth/callback" to the URL.
-        if let Ok(mut path_segments) = url.path_segments_mut() {
-            path_segments.extend(&["auth", "callback"]);
-        }
-        Ok(url)
-    }
-
     /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
     pub fn grpc_client_tls_config(&self) -> Result<Option<ClientTlsConfig>, io::Error> {
         if self.grpc_ca.is_none() && (self.grpc_cert.is_none() || self.grpc_key.is_none()) {
@@ -386,10 +372,11 @@ mod tests {
     fn test_generate_rp_id() {
         unsafe {
             env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
         }
 
-        let config = DefGuardConfig::new();
+        let url = Url::parse("https://defguard.example.com").unwrap();
+        let mut config = DefGuardConfig::new();
+        config.initialize_rp_id(&url);
 
         assert_eq!(
             config.webauthn_rp_id,
@@ -412,7 +399,9 @@ mod tests {
             env::set_var("DEFGUARD_URL", "https://defguard.example.com");
         }
 
-        let config = DefGuardConfig::new();
+        let url = Url::parse("https://defguard.example.com").unwrap();
+        let mut config = DefGuardConfig::new();
+        config.initialize_cookie_domain(&url);
 
         assert_eq!(
             config.cookie_domain,
@@ -426,26 +415,5 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.cookie_domain, Some("example.com".to_string()));
-    }
-
-    #[test]
-    fn test_callback_url() {
-        unsafe {
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
-        }
-        let config = DefGuardConfig::new();
-        assert_eq!(
-            config.callback_url().unwrap().as_str(),
-            "https://defguard.example.com/auth/callback"
-        );
-
-        unsafe {
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com:8443/path");
-        }
-        let config = DefGuardConfig::new();
-        assert_eq!(
-            config.callback_url().unwrap().as_str(),
-            "https://defguard.example.com:8443/path/auth/callback"
-        );
     }
 }

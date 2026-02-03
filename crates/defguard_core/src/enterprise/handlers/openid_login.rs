@@ -472,7 +472,8 @@ pub(crate) async fn get_auth_info(
     };
 
     let config = server_config();
-    let (_client_id, client) = make_oidc_client(config.callback_url()?, &provider).await?;
+    let settings = Settings::get_current_settings();
+    let (_client_id, client) = make_oidc_client(settings.callback_url()?, &provider).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let mut authorize_url_builder = client
@@ -566,11 +567,12 @@ pub(crate) async fn auth_callback(
         .remove(Cookie::from(CSRF_COOKIE_NAME));
 
     let config = server_config();
+    let settings = Settings::get_current_settings();
     let mut user = user_from_claims(
         &appstate.pool,
         Nonce::new(cookie_nonce),
         payload.code,
-        config.callback_url()?,
+        settings.callback_url()?,
     )
     .await?;
 

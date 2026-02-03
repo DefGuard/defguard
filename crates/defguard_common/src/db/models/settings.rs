@@ -478,6 +478,16 @@ impl Settings {
         let settings = Settings::get_current_settings();
         Url::parse(&settings.defguard_url)
     }
+
+    /// Returns configured URL with "auth/callback" appended to the path.
+    pub fn callback_url(&self) -> Result<Url, url::ParseError> {
+        let mut url = Url::parse(&self.defguard_url)?;
+        // Append "auth/callback" to the URL.
+        if let Ok(mut path_segments) = url.path_segments_mut() {
+            path_segments.extend(&["auth", "callback"]);
+        }
+        Ok(url)
+    }
 }
 
 #[derive(Serialize)]
@@ -603,5 +613,21 @@ mod test {
         let debug = format!("{settings:?}");
         assert!(!debug.contains("license"));
         assert!(!debug.contains(key));
+    }
+
+    #[test]
+    fn test_callback_url() {
+        let mut s = Settings::default();
+        s.defguard_url = "https://defguard.example.com".into();
+        assert_eq!(
+            s.callback_url().unwrap().as_str(),
+            "https://defguard.example.com/auth/callback"
+        );
+
+        s.defguard_url = "https://defguard.example.com:8443/path".into();
+        assert_eq!(
+            s.callback_url().unwrap().as_str(),
+            "https://defguard.example.com:8443/path/auth/callback"
+        );
     }
 }

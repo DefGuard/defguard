@@ -403,7 +403,14 @@ pub fn email_password_reset_success_mail(
 #[cfg(test)]
 mod test {
     use claims::assert_ok;
-    use defguard_common::config::{DefGuardConfig, SERVER_CONFIG};
+    use defguard_common::{
+        config::{DefGuardConfig, SERVER_CONFIG},
+        db::{
+            models::settings::{initialize_current_settings, update_current_settings},
+            setup_pool,
+        },
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
 
@@ -419,6 +426,15 @@ mod test {
         context.insert("admin_email", "test_email");
         context.insert("admin_phone", "test_phone");
         context
+    }
+
+    async fn init_config(pool: &sqlx::PgPool) {
+        let mut config = DefGuardConfig::new_test_config();
+        initialize_current_settings(pool)
+            .await
+            .expect("Could not initialize current settings in the database");
+        config.initialize_post_settings();
+        let _ = SERVER_CONFIG.set(config.clone());
     }
 
     #[test]
@@ -443,9 +459,10 @@ mod test {
         assert_ok!(test_mail(None));
     }
 
-    #[test]
-    fn test_enrollment_start_mail() {
-        let _ = SERVER_CONFIG.set(DefGuardConfig::new_test_config());
+    #[sqlx::test]
+    async fn test_enrollment_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),
@@ -453,8 +470,10 @@ mod test {
         ));
     }
 
-    #[test]
-    fn test_enrollment_welcome_mail() {
+    #[sqlx::test]
+    async fn test_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         assert_ok!(enrollment_welcome_mail(
             "Hi there! Welcome to DefGuard.",
             None,
@@ -462,16 +481,20 @@ mod test {
         ));
     }
 
-    #[test]
-    fn test_desktop_start_mail() {
+    #[sqlx::test]
+    async fn test_desktop_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         let external_context = get_welcome_context();
         let url = Url::parse("http://127.0.0.1:8080").unwrap();
         let token = "TestToken";
         assert_ok!(desktop_start_mail(external_context, &url, token));
     }
 
-    #[test]
-    fn test_new_device_added_mail() {
+    #[sqlx::test]
+    async fn test_new_device_added_mail(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         let template_locations: Vec<TemplateLocation> = vec![
             TemplateLocation {
                 name: "Test 01".into(),
@@ -490,8 +513,10 @@ mod test {
             None,
         ));
     }
-    #[test]
-    fn test_gateway_disconnected() {
+    #[sqlx::test]
+    async fn test_gateway_disconnected(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         assert_ok!(gateway_disconnected_mail(
             "Gateway A",
             "127.0.0.1",
@@ -499,8 +524,10 @@ mod test {
         ));
     }
 
-    #[test]
-    fn test_enrollment_admin_notification() {
+    #[sqlx::test]
+    async fn test_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        init_config(&pool).await;
         let test_user = UserContext {
             last_name: "test_last".into(),
             first_name: "test_first".into(),

@@ -103,7 +103,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_test_client(pool).await;
+    let (client, _) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -472,8 +472,7 @@ static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
 async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_test_client(pool).await;
-    let config = state.config;
+    let (client, _) = make_test_client(pool).await;
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
@@ -577,8 +576,7 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
 ) {
     let pool = setup_pool(options).await;
 
-    let (client, state) = make_test_client(pool).await;
-    let config = state.config;
+    let (client, _) = make_test_client(pool).await;
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 

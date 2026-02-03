@@ -1,8 +1,10 @@
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
-    db::models::{Settings, User, settings::update_current_settings},
+    db::models::{
+        Settings, User,
+        settings::{initialize_current_settings, update_current_settings},
+    },
 };
-use reqwest::Url;
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
@@ -14,15 +16,16 @@ pub(crate) async fn init_config(
 ) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let mut config = DefGuardConfig::new_test_config();
-    config.url = Url::parse(url).unwrap();
-    let _ = SERVER_CONFIG.set(config.clone());
-
+    initialize_current_settings(pool)
+        .await
+        .expect("Could not initialize current settings in the database");
     let mut settings = Settings::get_current_settings();
     settings.defguard_url = url.to_string();
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
-
+    config.initialize_post_settings();
+    let _ = SERVER_CONFIG.set(config.clone());
     config
 }
 
