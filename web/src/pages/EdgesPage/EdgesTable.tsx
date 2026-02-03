@@ -99,17 +99,16 @@ export const EdgesTable = ({ edges }: Props) => {
 
   const [selected, setSelected] = useState<RowSelectionState>({});
 
-  // const transformedData = useMemo(() => {
-  //   let data = users;
-  //   if (search.length) {
-  //     data = data.filter(
-  //       (u) =>
-  //         u.first_name.toLowerCase().includes(search.toLowerCase()) ||
-  //         u.last_name.toLowerCase().includes(search.toLowerCase()),
-  //     );
-  //   }
-  //   return data;
-  // }, [users, search.length, search.toLowerCase]);
+  const transformedData = useMemo(() => {
+    let data = edges;
+    if (search.length) {
+      data = data.filter(
+        (u) =>
+          u.name.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+    return data;
+  }, [edges, search.length, search.toLowerCase]);
 
   const columns = useMemo(
     () => [
@@ -303,7 +302,7 @@ export const EdgesTable = ({ edges }: Props) => {
       columnFilters: columnFilters,
     },
     columns,
-    data: edges,
+    data: transformedData,
     enableRowSelection: true,
     enableExpanding: true,
     columnResizeMode: 'onChange',
