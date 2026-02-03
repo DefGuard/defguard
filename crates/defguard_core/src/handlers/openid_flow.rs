@@ -48,7 +48,9 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
     error::WebError,
-    handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
+    handlers::{
+        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email,
+    },
     server_config,
 };
 
@@ -369,7 +371,7 @@ fn login_redirect(
     .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
-    .max_age(time::Duration::minutes(10));
+    .max_age(SIGN_IN_COOKIE_MAX_AGE);
     Ok(redirect_to("/login", private_cookies.add(cookie)))
 }
 
@@ -442,7 +444,7 @@ pub async fn authorization(
                                             "MFA not verified for user id {}, redirecting to login",
                                             session.user_id
                                         );
-                                        return Ok(login_redirect(&data, private_cookies)?);
+                                        return login_redirect(&data, private_cookies);
                                     }
 
                                     // If session is present check if app is in user authorized

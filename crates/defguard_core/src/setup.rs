@@ -64,6 +64,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
 pub async fn run_setup_web_server(
     pool: PgPool,
     http_bind_address: Option<IpAddr>,
+    http_port: u16,
 ) -> Result<(), anyhow::Error> {
     let (setup_shutdown_tx, setup_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     let setup_webapp = build_setup_webapp(
@@ -72,10 +73,10 @@ pub async fn run_setup_web_server(
         setup_shutdown_tx,
     );
 
-    info!("Starting initial setup web server on port 8080",);
+    info!("Starting initial setup web server on port {http_port}");
     let addr = SocketAddr::new(
         http_bind_address.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        8000,
+        http_port,
     );
     let listener = TcpListener::bind(&addr).await?;
     serve(

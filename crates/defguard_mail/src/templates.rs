@@ -405,10 +405,7 @@ mod test {
     use claims::assert_ok;
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::{
-            models::settings::{initialize_current_settings, update_current_settings},
-            setup_pool,
-        },
+        db::{models::settings::initialize_current_settings, setup_pool},
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

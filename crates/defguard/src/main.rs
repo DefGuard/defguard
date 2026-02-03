@@ -108,7 +108,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut settings = Settings::get_current_settings();
 
     if !settings.initial_setup_completed {
-        if let Err(err) = run_setup_web_server(pool.clone(), config.http_bind_address).await {
+        if let Err(err) =
+            run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
+        {
             error!("Setup web server exited with error: {err}");
         }
     }

@@ -47,10 +47,7 @@ pub async fn create_admin(
 
     info!("Initial admin user created");
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -127,10 +124,7 @@ pub async fn set_general_config(
 
     info!("Initial general configuration applied");
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -166,10 +160,7 @@ pub async fn create_ca(
 
     info!("Certificate authority created and stored");
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 pub async fn get_ca() -> ApiResult {
@@ -185,10 +176,10 @@ pub async fn get_ca() -> ApiResult {
             info.subject_common_name, valid_for_days
         );
 
-        Ok(ApiResponse {
-            json: json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::new(
+            json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
+            StatusCode::OK,
+        ))
     } else {
         Err(WebError::ObjectNotFound(
             "CA certificate not found".to_string(),
@@ -218,10 +209,7 @@ pub async fn upload_ca(
 
     info!("Certificate authority uploaded and stored");
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 pub async fn finish_setup(
@@ -245,8 +233,5 @@ pub async fn finish_setup(
             "Setup shutdown sender no longer available".to_string(),
         ));
     }
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
