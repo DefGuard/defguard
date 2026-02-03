@@ -21,7 +21,7 @@ export const EditEdgePage = () => {
   });
   const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(edgeId)));
   const breadcrumbsLinks = [
-    <Link key={0} to="/edge">
+    <Link key={0} to="/edges">
       Edge components
     </Link>,
     <Link key={1} to="/edge/$edgeId/edit" params={{ edgeId }}>
@@ -71,7 +71,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
     onSuccess: () => {
       navigate({
-        to: '/edge',
+        to: '/edges',
         replace: true,
       });
     },

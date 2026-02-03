@@ -9,5 +9,16 @@
   "edge_edit_public_address": "Public domain",
   "edge_edit_delete": "Delete",
   "edge_edit_success": "Edge component updated",
-  "edge_edit_failed": "Failed to update edge component"
+  "edge_edit_failed": "Failed to update edge component",
+  "edges_col_name": "Name",
+  "edges_col_address": "Address",
+  "edges_col_port": "gRPC port",
+  "edges_col_version": "Version",
+  "edges_col_last_modified": "Last modified",
+  "edges_col_modified_by": "Modified by",
+  "edges_col_status": "Status",
+  "edges_row_menu_edit": "Edit",
+  "edges_empty_title": "No edge components added yet.",
+  "edges_empty_subtitle": "Add edge components by clicking the button below.",
+  "edges_search_placeholder": "Search"
 }

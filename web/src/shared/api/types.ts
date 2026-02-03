@@ -915,6 +915,7 @@ export interface Edge {
   address: string | null;
   port: number | null;
   public_address: string | null;
+  version: string | null;
 }
 
 export interface PaginationParams {

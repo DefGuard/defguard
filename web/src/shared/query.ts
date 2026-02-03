@@ -28,6 +28,14 @@ export const getLocationsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getEdgesQueryOptions = queryOptions({
+  queryFn: api.edge.getEdges,
+  queryKey: ['edge'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+});
+
 export const getEdgeQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.edge.getEdge(id),
