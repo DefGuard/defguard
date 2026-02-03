@@ -47,7 +47,7 @@ export const DestinationsPage = () => {
   );
 
   const pending = useMemo(
-    () => destinationsData?.filter((item) => item.state === AclDeploymentState.Applied),
+    () => destinationsData?.filter((item) => item.state === AclDeploymentState.Modified),
     [destinationsData],
   );
 

@@ -1,4 +1,6 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import api from '../../../../shared/api/api';
 import type { AclDestination } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -9,15 +11,25 @@ type Props = {
 };
 
 export const DestinationPendingTab = ({ destinations }: Props) => {
+  const { mutate, isPending } = useMutation({
+    mutationFn: api.acl.destination.applyDestinations,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
+
   const deployPending = useMemo(
     (): ButtonProps => ({
-      text: 'Deploy all pending',
+      text: `Deploy all pending (${destinations.length})`,
       iconLeft: 'deploy',
-      onClick: () => {},
-      disabled: true,
+      loading: isPending,
+      onClick: () => {
+        mutate(destinations.map((destination) => destination.id));
+      },
     }),
-    [],
+    [isPending, mutate, destinations],
   );
+
   return (
     <>
       {destinations.length === 0 && (
