@@ -111,9 +111,7 @@ export const SetupAdminUserStep = () => {
         last_name: z
           .string()
           .min(1, m.initial_setup_admin_user_error_last_name_required()),
-        username: z
-          .string()
-          .min(3, m.initial_setup_admin_user_error_username_min()),
+        username: z.string().min(3, m.initial_setup_admin_user_error_username_min()),
         email: z
           .email(m.initial_setup_admin_user_error_email_invalid())
           .min(1, m.initial_setup_admin_user_error_email_required()),

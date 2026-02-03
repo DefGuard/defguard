@@ -95,7 +95,10 @@ export const SetupPage = () => {
     <div className="left">
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
-        <Button text={m.initial_setup_welcome_button_configure()} onClick={handleStartWizard} />
+        <Button
+          text={m.initial_setup_welcome_button_configure()}
+          onClick={handleStartWizard}
+        />
       </Controls>
     </div>
   );

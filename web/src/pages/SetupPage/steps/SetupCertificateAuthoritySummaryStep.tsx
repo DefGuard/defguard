@@ -83,9 +83,7 @@ export const SetupCertificateAuthoritySummaryStep = () => {
     return (
       <ActionCard
         title={m.initial_setup_ca_validated_title()}
-        subtitle={
-          m.initial_setup_ca_validated_subtitle()
-        }
+        subtitle={m.initial_setup_ca_validated_subtitle()}
         imageSrc={caIcon}
       >
         <div className="ca-info">
