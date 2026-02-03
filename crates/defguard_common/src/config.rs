@@ -268,34 +268,6 @@ impl DefGuardConfig {
         }
     }
 
-    // // Check if RP ID value was provided.
-    // // If not generate it based on URL.
-    // fn validate_rp_id(&mut self) {
-    //     if self.webauthn_rp_id.is_none() {
-    //         self.webauthn_rp_id = Some(
-    //             self.url
-    //                 .expect("Unable to parse server URL.")
-    //                 .domain()
-    //                 .expect("Unable to get domain for server URL.")
-    //                 .to_string(),
-    //         );
-    //     }
-    // }
-
-    // // Check if cookie domain value was provided.
-    // // If not, generate it based on URL.
-    // fn validate_cookie_domain(&mut self) {
-    //     if self.cookie_domain.is_none() {
-    //         self.cookie_domain = Some(
-    //             self.url
-    //                 .expect("Unable to parse server URL.")
-    //                 .domain()
-    //                 .expect("Unable to get domain for server URL.")
-    //                 .to_string(),
-    //         );
-    //     }
-    // }
-
     fn validate_secret_key(&self) {
         let secret_key = self.secret_key.expose_secret();
         assert!(
