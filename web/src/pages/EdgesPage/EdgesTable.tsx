@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
@@ -61,8 +62,24 @@ export const EdgesTable = ({ edges }: Props) => {
           u.name.toLowerCase().includes(search.toLowerCase()),
       );
     }
+
     return data;
   }, [edges, search.length, search.toLowerCase]);
+
+  const connectionStatus = (edge: Edge) => {
+    const connected = dayjs.utc(edge.connected_at);
+    const disconnected = dayjs.utc(edge.disconnected_at);
+
+    if (connected > disconnected) {
+      return (
+        <span>Connected</span>
+      );
+    } else {
+      return (
+        <span>Disconnected</span>
+      );
+    }
+  }
 
   const columns = useMemo(
     () => [
@@ -132,14 +149,15 @@ export const EdgesTable = ({ edges }: Props) => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('port', {
+      columnHelper.display({
+        id: 'status',
         size: 175,
         minSize: 175,
         header: m.edges_col_status(),
         enableSorting: false,
-        cell: () => (
+        cell: (info) => (
           <TableCell>
-            <span>TODO</span>
+            <span>{connectionStatus(info.row.original)}</span>
           </TableCell>
         ),
       }),

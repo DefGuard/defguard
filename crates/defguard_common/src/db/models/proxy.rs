@@ -1,6 +1,6 @@
 use std::fmt;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -66,4 +66,26 @@ impl Proxy<Id> {
         .fetch_optional(pool)
         .await
     }
+
+    pub async fn mark_connected(
+		&mut self,
+        pool: &PgPool,
+        version: &str,
+    ) -> sqlx::Result<()> {
+		self.version = Some(version.to_string());
+		self.connected_at = Some(Utc::now().naive_utc());
+		self.save(pool).await?;
+
+		Ok(())
+    }
+
+    pub async fn mark_disconnected(
+		&mut self,
+        pool: &PgPool,
+    ) -> sqlx::Result<()> {
+		self.disconnected_at = Some(Utc::now().naive_utc());
+		self.save(pool).await?;
+
+		Ok(())
+	}
 }

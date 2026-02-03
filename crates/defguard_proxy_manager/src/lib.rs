@@ -426,9 +426,7 @@ impl ProxyServer {
 
             if let Some(proxy_id) = self.proxy_id {
                 if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
-                    proxy.version = Some(version.to_string());
-                    proxy.connected_at = Some(Utc::now().naive_utc());
-                    proxy.save(&self.pool).await?;
+					proxy.mark_connected(&self.pool, &version.to_string()).await?;
                 } else {
                     warn!("Couldn't find proxy by id, URL: {} ", self.url);
                 }
