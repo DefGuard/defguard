@@ -120,7 +120,7 @@ pub(crate) async fn update_proxy(
     path = "/api/v1/proxy/{proxy_id}",
     request_body = Proxy,
     responses(
-        (status = 200, description = "Successfully deleted edge.", body = ProxyUpdateData),
+        (status = 200, description = "Successfully deleted edge.", body = ApiResponse),
         (status = 401, description = "Unauthorized to delete edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission delete an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
