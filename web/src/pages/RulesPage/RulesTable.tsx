@@ -1,45 +1,259 @@
+import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { flat } from 'radashi';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
-import type { AclRule } from '../../shared/api/types';
+import api from '../../shared/api/api';
+import type {
+  AclAlias,
+  AclRule,
+  GroupInfo,
+  NetworkDevice,
+  NetworkLocation,
+  ResourceById,
+  User,
+} from '../../shared/api/types';
+import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
+import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
+import { BadgeVariant } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
+import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+
+const displayUser = (user?: User): string => {
+  if (!isPresent(user)) return '~';
+
+  if (user.first_name || user.last_name) {
+    return `${user.first_name} ${user.last_name}`;
+  }
+  return user.username;
+};
 
 type RowData = AclRule;
 
 const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
+  aliases: ResourceById<AclAlias>;
+  groups: ResourceById<GroupInfo>;
+  users: ResourceById<User>;
+  devices: ResourceById<NetworkDevice>;
+  locations: ResourceById<NetworkLocation>;
   data: AclRule[];
   title: string;
   buttonProps: ButtonProps;
   enableSearch?: boolean;
 };
 
-export const RulesTable = ({ title, buttonProps, enableSearch, data }: Props) => {
+export const RulesTable = ({
+  title,
+  buttonProps,
+  enableSearch,
+  aliases,
+  devices,
+  groups,
+  users,
+  locations,
+  data,
+}: Props) => {
+  const { mutate: deleteRule } = useMutation({
+    mutationFn: api.acl.rule.deleteRule,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
   const [search, setSearch] = useState('');
+
+  const renderPermissionCell = useCallback(
+    (
+      permission: 'deny' | 'allow',
+      permissionUsers: boolean,
+      permissionGroup: boolean,
+      permissionDevice: boolean,
+      includedUsers: number[],
+      includedGroups: number[],
+      includedDevices: number[],
+    ) => {
+      if (permissionDevice && permissionGroup && permissionUsers) {
+        return (
+          <TableCell>
+            {permission === 'allow' && (
+              <Badge
+                variant={BadgeVariant.Success}
+                icon="check-filled"
+                text="All allowed"
+              />
+            )}
+            {permission === 'deny' && (
+              <Badge
+                variant={BadgeVariant.Warning}
+                icon="status-important"
+                text="All denied"
+              />
+            )}
+          </TableCell>
+        );
+      }
+      const displayValues: string[][] = [];
+      if (!permissionGroup) {
+        displayValues.push(includedGroups.map((groupId) => groups[groupId]?.name ?? ''));
+      }
+      if (!permissionUsers) {
+        displayValues.push(includedUsers.map((userId) => displayUser(users[userId])));
+      }
+      if (!permissionDevice) {
+        displayValues.push(
+          includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
+        );
+      }
+      const display = flat(displayValues).filter((value) => !value.length);
+
+      return <TableValuesListCell values={display} />;
+    },
+    [users, devices, groups],
+  );
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
         header: 'Rule name',
+        minSize: 210,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
           </TableCell>
         ),
       }),
+      columnHelper.display({
+        id: 'destination',
+        header: 'Destination',
+        minSize: 350,
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <TableCell>
+              <span>{row.destination}</span>
+              {row.aliases.map((aliasId) => {
+                const alias = aliases[aliasId];
+                if (!alias) return null;
+                return <Badge variant="neutral" text={alias.name} key={aliasId} />;
+              })}
+            </TableCell>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'permissions',
+        header: 'Permissions',
+        minSize: 220,
+        cell: (info) => {
+          const row = info.row.original;
+          return renderPermissionCell(
+            'allow',
+            row.allow_all_users,
+            row.allowed_groups.length === 0,
+            row.allow_all_network_devices,
+            row.allowed_users,
+            row.allowed_groups,
+            row.allowed_devices,
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'restrictions',
+        header: 'Restrictions',
+        minSize: 220,
+        cell: (info) => {
+          const row = info.row.original;
+          return renderPermissionCell(
+            'deny',
+            row.deny_all_users,
+            row.denied_groups.length === 0,
+            row.deny_all_network_devices,
+            row.denied_users,
+            row.denied_groups,
+            row.denied_devices,
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'locations',
+        header: 'Locations',
+        minSize: 220,
+        cell: (info) => {
+          const row = info.row.original;
+          if (row.all_networks) {
+            return (
+              <TableCell>
+                <Badge
+                  variant={BadgeVariant.Success}
+                  text="All locations"
+                  icon="check-filled"
+                />
+              </TableCell>
+            );
+          }
+          const locationNames = row.networks
+            .map((locationId) => locations[locationId]?.name ?? '')
+            .filter((name) => name.length);
+
+          return <TableValuesListCell values={locationNames} />;
+        },
+      }),
+      columnHelper.accessor('enabled', {
+        header: 'Status',
+        cell: (info) => {
+          const value = info.getValue();
+          return (
+            <TableCell>
+              {!value && <Badge variant={BadgeVariant.Critical} text="Disabled" />}
+              {value && <Badge variant={BadgeVariant.Success} text="Active" />}
+            </TableCell>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'edit',
+        header: '',
+        size: tableEditColumnSize,
+        enableResizing: false,
+        cell: (info) => {
+          const row = info.row.original;
+          const menuItems: MenuItemsGroup[] = [
+            {
+              items: [
+                {
+                  icon: 'delete',
+                  variant: 'danger',
+                  text: m.controls_delete(),
+                  onClick: () => {
+                    deleteRule(row.id);
+                  },
+                },
+              ],
+            },
+          ];
+          return (
+            <TableCell>
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
+            </TableCell>
+          );
+        },
+      }),
     ],
-    [],
+    [aliases, renderPermissionCell, deleteRule, locations],
   );
 
   const visibleRules = useMemo(() => {

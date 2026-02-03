@@ -3,6 +3,12 @@ import type {
   ActivityLogModuleValue,
 } from './activity-log-types';
 
+export type Resource = object & { id: number };
+
+export type ResourceById<T extends object> = {
+  [id: number]: T | undefined;
+};
+
 export interface GatewayTokenResponse {
   grpc_url: string;
   token: string;
@@ -849,6 +855,9 @@ export interface AclRule {
   protocols: number[];
   expires: string | null;
   parent_id: number | null;
+  any_destination: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
 }
 
 export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;

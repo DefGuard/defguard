@@ -47,22 +47,21 @@ function RouteComponent() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: rxjs sub
   useEffect(() => {
     const sub = loginSubject.subscribe((state) => {
-      const authState = useAuth.getState();
       const basicResult = basicSchema.safeParse(state);
       const basicResponse = basicResult.data;
       if (isPresent(basicResponse) && basicResult.success) {
         void queryClient.invalidateQueries({
           queryKey: ['me'],
         });
-        authState.setUser(basicResponse.user);
+        useAuth.getState().setUser(basicResponse.user);
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);
           return;
         }
         setTimeout(() => {
-          if (isPresent(authState.consentData)) {
+          if (isPresent(useAuth.getState().consentData)) {
             //@ts-expect-error
-            navigate({ to: '/consent', search: authState.consentData });
+            navigate({ to: '/consent', search: useAuth.getState().consentData });
           } else {
             navigateToAuthorized(basicResponse.user);
           }
