@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
@@ -31,53 +32,54 @@ type StoreValues = {
 const passwordRules = [
   {
     id: 'required',
-    label: 'Field is required',
-    message: 'Password is required',
+    label: m.initial_setup_admin_user_password_rule_required_label(),
+    message: m.initial_setup_admin_user_password_rule_required_message(),
     test: (value: string) => value.length > 0,
-    apply: (schema: z.ZodString) => schema.min(1, 'Password is required'),
+    apply: (schema: z.ZodString) =>
+      schema.min(1, m.initial_setup_admin_user_password_rule_required_message()),
   },
   {
     id: 'min',
-    label: 'Minimum length of 8',
-    message: 'Password must be at least 8 characters',
+    label: m.initial_setup_admin_user_password_rule_min_label(),
+    message: m.initial_setup_admin_user_password_rule_min_message(),
     test: (value: string) => value.length >= 8,
     apply: (schema: z.ZodString) =>
-      schema.min(8, 'Password must be at least 8 characters'),
+      schema.min(8, m.initial_setup_admin_user_password_rule_min_message()),
   },
   {
     id: 'number',
-    label: 'At least one number required',
-    message: 'Password must contain at least one number',
+    label: m.initial_setup_admin_user_password_rule_number_label(),
+    message: m.initial_setup_admin_user_password_rule_number_message(),
     test: (value: string) => /[0-9]/.test(value),
     apply: (schema: z.ZodString) =>
-      schema.regex(/[0-9]/, 'Password must contain at least one number'),
+      schema.regex(/[0-9]/, m.initial_setup_admin_user_password_rule_number_message()),
   },
   {
     id: 'special',
-    label: 'At least one special character',
-    message: 'Password must contain at least one special character',
+    label: m.initial_setup_admin_user_password_rule_special_label(),
+    message: m.initial_setup_admin_user_password_rule_special_message(),
     test: (value: string) => /[!@#$%^&*(),.?":{}|<>]/.test(value),
     apply: (schema: z.ZodString) =>
       schema.regex(
         /[!@#$%^&*(),.?":{}|<>]/,
-        'Password must contain at least one special character',
+        m.initial_setup_admin_user_password_rule_special_message(),
       ),
   },
   {
     id: 'lower',
-    label: 'At least one lowercase character',
-    message: 'Password must contain at least one lowercase letter',
+    label: m.initial_setup_admin_user_password_rule_lower_label(),
+    message: m.initial_setup_admin_user_password_rule_lower_message(),
     test: (value: string) => /[a-z]/.test(value),
     apply: (schema: z.ZodString) =>
-      schema.regex(/[a-z]/, 'Password must contain at least one lowercase letter'),
+      schema.regex(/[a-z]/, m.initial_setup_admin_user_password_rule_lower_message()),
   },
   {
     id: 'upper',
-    label: 'At least one uppercase character',
-    message: 'Password must contain at least one uppercase letter',
+    label: m.initial_setup_admin_user_password_rule_upper_label(),
+    message: m.initial_setup_admin_user_password_rule_upper_message(),
     test: (value: string) => /[A-Z]/.test(value),
     apply: (schema: z.ZodString) =>
-      schema.regex(/[A-Z]/, 'Password must contain at least one uppercase letter'),
+      schema.regex(/[A-Z]/, m.initial_setup_admin_user_password_rule_upper_message()),
   },
 ];
 
@@ -103,10 +105,18 @@ export const SetupAdminUserStep = () => {
   const formSchema = useMemo(
     () =>
       z.object({
-        first_name: z.string().min(1, 'First name is required'),
-        last_name: z.string().min(1, 'Last name is required'),
-        username: z.string().min(3, 'Username must be at least 3 characters'),
-        email: z.email('Invalid email address').min(1, 'Email is required'),
+        first_name: z
+          .string()
+          .min(1, m.initial_setup_admin_user_error_first_name_required()),
+        last_name: z
+          .string()
+          .min(1, m.initial_setup_admin_user_error_last_name_required()),
+        username: z
+          .string()
+          .min(3, m.initial_setup_admin_user_error_username_min()),
+        email: z
+          .email(m.initial_setup_admin_user_error_email_invalid())
+          .min(1, m.initial_setup_admin_user_error_email_required()),
         password: passwordSchema,
       }),
     [],
@@ -121,7 +131,7 @@ export const SetupAdminUserStep = () => {
       setActiveStep(SetupPageStep.GeneralConfig);
     },
     onError: (error) => {
-      Snackbar.error('Failed to create admin user. Please try again.');
+      Snackbar.error(m.initial_setup_admin_user_error_create_failed());
       console.error('Failed to create admin user:', error);
     },
   });
@@ -168,20 +178,49 @@ export const SetupAdminUserStep = () => {
         <form.AppForm>
           <div className="admin-user-form-grid">
             <form.AppField name="first_name">
-              {(field) => <field.FormInput required label="First Name" type="text" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.initial_setup_admin_user_label_first_name()}
+                  type="text"
+                />
+              )}
             </form.AppField>
             <form.AppField name="last_name">
-              {(field) => <field.FormInput required label="Last Name" type="text" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.initial_setup_admin_user_label_last_name()}
+                  type="text"
+                />
+              )}
             </form.AppField>
             <form.AppField name="username">
-              {(field) => <field.FormInput required label="Username" type="text" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.initial_setup_admin_user_label_username()}
+                  type="text"
+                />
+              )}
             </form.AppField>
             <form.AppField name="email">
-              {(field) => <field.FormInput required label="Email" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.initial_setup_admin_user_label_email()}
+                />
+              )}
             </form.AppField>
             <div className="full-row">
               <form.AppField name="password">
-                {(field) => <field.FormInput required label="Password" type="password" />}
+                {(field) => (
+                  <field.FormInput
+                    required
+                    label={m.initial_setup_admin_user_label_password()}
+                    type="password"
+                  />
+                )}
               </form.AppField>
               <SizedBox height={ThemeSpacing.Xl} />
               <PasswordChecklist form={form} />
@@ -191,7 +230,11 @@ export const SetupAdminUserStep = () => {
         </form.AppForm>
       </form>
       <ModalControls
-        submitProps={{ text: 'Next', onClick: handleNext, loading: isPending }}
+        submitProps={{
+          text: m.initial_setup_controls_next(),
+          onClick: handleNext,
+          loading: isPending,
+        }}
       />
     </WizardCard>
   );
@@ -220,7 +263,7 @@ const PasswordChecklist = withForm({
 
     return (
       <div className="password-checklist">
-        <p>Your password must include:</p>
+        <p>{m.initial_setup_admin_user_password_checklist_title()}</p>
         <ul>
           {checks.map((item) => {
             const checked = !isPristine && item.passed;

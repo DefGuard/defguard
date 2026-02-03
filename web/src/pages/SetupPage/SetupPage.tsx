@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
@@ -29,48 +30,44 @@ export const SetupPage = () => {
       adminUser: {
         id: SetupPageStep.AdminUser,
         order: 1,
-        label: 'Create Admin User',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.initial_setup_step_admin_user_label(),
+        description: m.initial_setup_step_admin_user_description(),
       },
       generalConfig: {
         id: SetupPageStep.GeneralConfig,
         order: 2,
-        label: 'General Configuration',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.initial_setup_step_general_config_label(),
+        description: m.initial_setup_step_general_config_description(),
       },
       certificateAuthority: {
         id: SetupPageStep.CertificateAuthority,
         order: 3,
-        label: 'Certificate Authority',
-        description: 'Securing component communication',
+        label: m.initial_setup_step_certificate_authority_label(),
+        description: m.initial_setup_step_certificate_authority_description(),
       },
       certificateAuthoritySummary: {
         id: SetupPageStep.CASummary,
         order: 4,
-        label: 'Certificate Authority Summary',
-        description: 'Securing component communication',
+        label: m.initial_setup_step_certificate_authority_summary_label(),
+        description: m.initial_setup_step_certificate_authority_summary_description(),
       },
       edgeComponent: {
         id: SetupPageStep.EdgeComponent,
         order: 5,
-        label: 'Edge Component',
-        description:
-          'Set up your VPN proxy quickly and ensure secure, optimized traffic flow for your users.',
+        label: m.initial_setup_step_edge_component_label(),
+        description: m.initial_setup_step_edge_component_description(),
       },
       edgeAdaptation: {
         id: SetupPageStep.EdgeAdaptation,
         order: 6,
-        label: 'Edge Component Adaptation',
-        description:
-          'Review the system’s checks and see if any issues need attention before deployment.',
+        label: m.initial_setup_step_edge_adaptation_label(),
+        description: m.initial_setup_step_edge_adaptation_description(),
       },
       confirmation: {
         id: SetupPageStep.Confirmation,
         order: 7,
-        label: 'Confirmation',
-        description: 'Your configuration was successful. You’re all set.',
+        label: m.initial_setup_step_confirmation_label(),
+        description: m.initial_setup_step_confirmation_description(),
       },
     }),
     [],
@@ -98,7 +95,7 @@ export const SetupPage = () => {
     <div className="left">
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
-        <Button text={'Configure Defguard'} onClick={handleStartWizard} />
+        <Button text={m.initial_setup_welcome_button_configure()} onClick={handleStartWizard} />
       </Controls>
     </div>
   );
@@ -113,15 +110,14 @@ export const SetupPage = () => {
     <WizardPage
       activeStep={activeStep}
       onClose={() => {}}
-      subtitle="This wizard will guide you through the initial configuration of your Defguard instance."
-      title="Initial Setup Wizard"
+      subtitle={m.initial_setup_wizard_subtitle()}
+      title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
       id="setup-wizard"
       showWelcome={showWelcome}
       welcomePageConfig={{
-        title: 'Welcome to Defguard initial configuration wizard.',
-        subtitle:
-          'This wizard walks you through the steps to configure your VPN connection with a simple and intuitive setup process.',
+        title: m.initial_setup_welcome_title(),
+        subtitle: m.initial_setup_welcome_subtitle(),
         content: <WelcomePageContent />,
         media: <img src={worldMap} />,
       }}

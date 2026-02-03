@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -38,16 +39,18 @@ export const SetupGeneralConfigStep = () => {
   const formSchema = useMemo(
     () =>
       z.object({
-        defguard_url: z.url('Invalid URL').min(1, 'Defguard URL is required'),
+        defguard_url: z
+          .url(m.initial_setup_general_config_error_invalid_url())
+          .min(1, m.initial_setup_general_config_error_defguard_url_required()),
         default_admin_group_name: z
           .string()
-          .min(1, 'Default admin group name is required'),
+          .min(1, m.initial_setup_general_config_error_admin_group_required()),
         default_authentication: z
           .number()
-          .min(1, 'Authentication period must be at least 1 day'),
+          .min(1, m.initial_setup_general_config_error_auth_period_min()),
         default_mfa_code_lifetime: z
           .number()
-          .min(60, 'MFA code timeout must be at least 60 seconds'),
+          .min(60, m.initial_setup_general_config_error_mfa_timeout_min()),
       }),
     [],
   );
@@ -61,7 +64,7 @@ export const SetupGeneralConfigStep = () => {
       setActiveStep(SetupPageStep.CertificateAuthority);
     },
     onError: (error) => {
-      Snackbar.error('Failed to create admin user. Please try again.');
+      Snackbar.error(m.initial_setup_general_config_error_save_failed());
       console.error('Failed to create admin user:', error);
     },
   });
@@ -105,12 +108,22 @@ export const SetupGeneralConfigStep = () => {
       >
         <form.AppForm>
           <form.AppField name="defguard_url">
-            {(field) => <field.FormInput required label="Defguard URL" type="text" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.initial_setup_general_config_label_defguard_url()}
+                type="text"
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="default_admin_group_name">
             {(field) => (
-              <field.FormInput required label="Default Admin Group Name" type="text" />
+              <field.FormInput
+                required
+                label={m.initial_setup_general_config_label_admin_group()}
+                type="text"
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -118,7 +131,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label="Default Authentication Period (days)"
+                label={m.initial_setup_general_config_label_auth_period()}
                 type="number"
               />
             )}
@@ -128,7 +141,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label="Default MFA Code Timeout (seconds)"
+                label={m.initial_setup_general_config_label_mfa_timeout()}
                 type="number"
               />
             )}
@@ -137,7 +150,11 @@ export const SetupGeneralConfigStep = () => {
         </form.AppForm>
       </form>
       <ModalControls
-        submitProps={{ text: 'Next', onClick: handleNext, loading: isPending }}
+        submitProps={{
+          text: m.initial_setup_controls_next(),
+          onClick: handleNext,
+          loading: isPending,
+        }}
       />
     </WizardCard>
   );

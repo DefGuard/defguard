@@ -45,14 +45,14 @@ export const SetupCertificateAuthoritySummaryStep = () => {
   const downloadCA = () => {
     return (
       <ActionCard
-        title="Certificate Authority Generated"
-        subtitle="The system created all required certificate files, including the root certificate and private key. You can download these files and continue with the configuration."
+        title={m.initial_setup_ca_generated_title()}
+        subtitle={m.initial_setup_ca_generated_subtitle()}
         imageSrc={caIcon}
       >
         <Button
           iconLeft="download"
           variant="outlined"
-          text={`${m.controls_download()} CA certificate`}
+          text={m.initial_setup_ca_download_button()}
           onClick={handleDownloadCA}
           loading={isFetching}
           disabled={!isPresent(caData?.ca_cert_pem) || isFetching}
@@ -61,14 +61,16 @@ export const SetupCertificateAuthoritySummaryStep = () => {
     );
   };
   const getValidityString = (validForDays?: number) => {
-    if (!validForDays) return '—';
+    if (!validForDays) return m.initial_setup_ca_validity_unknown();
     try {
       const years = Math.round(validForDays / 365);
-      if (years <= 0) return 'Less than a year';
-      return years === 1 ? '1 year' : `${years} years`;
+      if (years <= 0) return m.initial_setup_ca_validity_less_than_year();
+      return years === 1
+        ? m.initial_setup_ca_validity_one_year()
+        : m.initial_setup_ca_validity_years({ years });
     } catch (e) {
       console.error('Error calculating validity string:', e);
-      return '—';
+      return m.initial_setup_ca_validity_unknown();
     }
   };
 
@@ -80,20 +82,24 @@ export const SetupCertificateAuthoritySummaryStep = () => {
 
     return (
       <ActionCard
-        title={'Certificate Authority Validated'}
+        title={m.initial_setup_ca_validated_title()}
         subtitle={
-          'Your uploaded Certificate Authority has been successfully validated. All required files were checked and confirmed as correct and ready for use. You can download the validated CA files if needed for your setup.'
+          m.initial_setup_ca_validated_subtitle()
         }
         imageSrc={caIcon}
       >
         <div className="ca-info">
-          <p className="ca-info-title">Information extracted from uploaded file</p>
+          <p className="ca-info-title">{m.initial_setup_ca_info_title()}</p>
           <Divider spacing={ThemeSpacing.Md} />
           <div className="ca-info-grid">
-            <div className="ca-info-label">Common Name</div>
+            <div className="ca-info-label">
+              {m.initial_setup_ca_info_label_common_name()}
+            </div>
             <div className="ca-info-value">{commonName}</div>
 
-            <div className="ca-info-label">Validity</div>
+            <div className="ca-info-label">
+              {m.initial_setup_ca_info_label_validity()}
+            </div>
             <div className="ca-info-value">{validity}</div>
           </div>
         </div>
@@ -106,8 +112,12 @@ export const SetupCertificateAuthoritySummaryStep = () => {
       {caOption === CAOption.Create && downloadCA()}
       {caOption === CAOption.UseOwn && displayCAInfo()}
       <ModalControls
-        cancelProps={{ text: 'Back', onClick: handleBack, variant: 'outlined' }}
-        submitProps={{ text: 'Next', onClick: handleNext }}
+        cancelProps={{
+          text: m.initial_setup_controls_back(),
+          onClick: handleBack,
+          variant: 'outlined',
+        }}
+        submitProps={{ text: m.initial_setup_controls_next(), onClick: handleNext }}
       />
     </WizardCard>
   );

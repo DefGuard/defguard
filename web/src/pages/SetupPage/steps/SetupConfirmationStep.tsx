@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
@@ -20,7 +21,7 @@ export const SetupConfirmationStep = () => {
     mutationFn: api.initial_setup.finishSetup,
     onError: (error) => {
       console.error('Failed to finish setup:', error);
-      Snackbar.error('Failed to finish setup. Please try again.');
+      Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
     },
     meta: {
       invalidate: ['settings-essentials'],
@@ -40,36 +41,33 @@ export const SetupConfirmationStep = () => {
     <WizardCard>
       <div className="confirmation">
         <div className="header">
-          <h4>General system settings are complete.</h4>
+          <h4>{m.initial_setup_confirmation_header()}</h4>
           <SizedBox height={ThemeSpacing.Sm} />
-          <p>
-            You've completed the first stage of the setup. Defguard is almost ready to go.
-          </p>
+          <p>{m.initial_setup_confirmation_lead()}</p>
         </div>
         <Divider spacing={ThemeSpacing.Xl2} />
         <div className="content">
-          <p className="title">In order to fully deploy Defguard you need:</p>
+          <p className="title">{m.initial_setup_confirmation_title()}</p>
           <SizedBox height={ThemeSpacing.Md} />
           <ActionCard
-            title="Create first location."
-            subtitle="To organize users, manage access, track users activity and device monitoring."
+            title={m.initial_setup_confirmation_action_title()}
+            subtitle={m.initial_setup_confirmation_action_subtitle()}
             imageSrc={location}
           >
             <Icon icon={'transactions'} />
-            <p>Around 3 minutes</p>
+            <p>{m.initial_setup_confirmation_action_time()}</p>
           </ActionCard>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <p className="subtitle">
-            Once you create your first location, the only step left will be to connect a
-            gateway — and the system will be fully ready to use. This usually takes about
-            n 10–15 minutes, depending on the complexity of your VPN configuration.
-          </p>
+          <p className="subtitle">{m.initial_setup_confirmation_footer()}</p>
         </div>
       </div>
       <ModalControls
         // Temporarily disabled
         // cancelProps={{ text: "I'll do this later", onClick: handleBack }}
-        submitProps={{ text: 'Finish', onClick: handleFinish }}
+        submitProps={{
+          text: m.initial_setup_controls_finish(),
+          onClick: handleFinish,
+        }}
       />
     </WizardCard>
   );

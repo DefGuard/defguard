@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
@@ -20,11 +21,11 @@ import './style.scss';
 type ValidityValue = 1 | 2 | 3 | 5 | 10;
 
 const validityOptions: SelectOption<ValidityValue>[] = [
-  { key: 1, label: '1 year', value: 1 },
-  { key: 2, label: '2 years', value: 2 },
-  { key: 3, label: '3 years', value: 3 },
-  { key: 5, label: '5 years', value: 5 },
-  { key: 10, label: '10 years', value: 10 },
+  { key: 1, label: m.initial_setup_ca_validity_one_year(), value: 1 },
+  { key: 2, label: m.initial_setup_ca_validity_years({ years: 2 }), value: 2 },
+  { key: 3, label: m.initial_setup_ca_validity_years({ years: 3 }), value: 3 },
+  { key: 5, label: m.initial_setup_ca_validity_years({ years: 5 }), value: 5 },
+  { key: 10, label: m.initial_setup_ca_validity_years({ years: 10 }), value: 10 },
 ];
 
 type CreateCAFormFields = CreateCAStoreValues;
@@ -74,11 +75,15 @@ export const SetupCertificateAuthorityStep = () => {
   const createFormSchema = useMemo(
     () =>
       z.object({
-        ca_common_name: z.string().min(1, 'Common name is required'),
-        ca_email: z.email('Invalid email address').min(1, 'Email is required'),
+        ca_common_name: z
+          .string()
+          .min(1, m.initial_setup_ca_error_common_name_required()),
+        ca_email: z
+          .email(m.initial_setup_ca_error_email_invalid())
+          .min(1, m.initial_setup_ca_error_email_required()),
         ca_validity_period_years: z
           .number()
-          .min(1, 'Validity period must be at least 1 year'),
+          .min(1, m.initial_setup_ca_error_validity_min()),
       }),
     [],
   );
@@ -88,7 +93,7 @@ export const SetupCertificateAuthorityStep = () => {
       z.object({
         ca_cert_file: z
           .file()
-          .refine((file) => isPresent(file), 'Certificate file is required'),
+          .refine((file) => isPresent(file), m.initial_setup_ca_error_cert_required()),
       }),
     [],
   );
@@ -100,7 +105,7 @@ export const SetupCertificateAuthorityStep = () => {
     },
     onError: (error) => {
       console.error('Failed to create CA:', error);
-      Snackbar.error('Failed to create CA. Please review the information and try again.');
+      Snackbar.error(m.initial_setup_ca_error_create_failed());
     },
     meta: {
       invalidate: ['initial_setup', 'ca'],
@@ -114,9 +119,7 @@ export const SetupCertificateAuthorityStep = () => {
     },
     onError: (error) => {
       console.error('Failed to upload CA:', error);
-      Snackbar.error(
-        'Failed to upload CA. Please ensure the certificate file is valid and try again.',
-      );
+      Snackbar.error(m.initial_setup_ca_error_upload_failed());
     },
     meta: {
       invalidate: ['initial_setup', 'ca'],
@@ -174,16 +177,20 @@ export const SetupCertificateAuthorityStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label="Common Name"
+                  label={m.initial_setup_ca_label_common_name()}
                   type="text"
-                  placeholder="Defguard Certificate Authority"
+                  placeholder={m.initial_setup_ca_placeholder_common_name()}
                 />
               )}
             </form.AppField>
 
             <form.AppField name="ca_email">
               {(field) => (
-                <field.FormInput required label="Email" placeholder="email@example.com" />
+                <field.FormInput
+                  required
+                  label={m.initial_setup_ca_label_email()}
+                  placeholder={m.initial_setup_ca_placeholder_email()}
+                />
               )}
             </form.AppField>
 
@@ -191,7 +198,7 @@ export const SetupCertificateAuthorityStep = () => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="Validity Period"
+                  label={m.initial_setup_ca_label_validity()}
                   options={validityOptions}
                 />
               )}
@@ -239,10 +246,10 @@ export const SetupCertificateAuthorityStep = () => {
   return (
     <WizardCard>
       <InteractiveBlock
-        title="Certificate Authority Setup"
+        title={m.initial_setup_ca_option_create_title()}
         value={caOption === CAOption.Create}
         onClick={() => setCAOption(CAOption.Create)}
-        content="By choosing this option, Defguard will create its own certificate authority and automatically configure all components to use its certificates — no manual setup required."
+        content={m.initial_setup_ca_option_create_description()}
       >
         <SizedBox height={ThemeSpacing.Xl2} />
 
@@ -263,13 +270,13 @@ export const SetupCertificateAuthorityStep = () => {
 
       <ModalControls
         cancelProps={{
-          text: 'Back',
+          text: m.initial_setup_controls_back(),
           onClick: handleBack,
           disabled: isPending,
           variant: 'outlined',
         }}
         submitProps={{
-          text: 'Continue',
+          text: m.initial_setup_controls_continue(),
           onClick: handleNext,
           loading: isPending,
           disabled: isPending || !isPresent(caOption),
