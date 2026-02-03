@@ -12,11 +12,12 @@ use defguard_core::db::models::activity_log::{
         MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
         OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
         OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
-        ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
-        UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
-        UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
-        VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
-        WebHookModifiedMetadata, WebHookStateChangedMetadata,
+        ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
+        UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
+        UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
+        VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
+        VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
+        WebHookStateChangedMetadata,
     },
 };
 use description::{
@@ -471,6 +472,10 @@ pub async fn run_event_logger(
                             DefguardEvent::ProxyModified { before, after } => (
                                 EventType::ProxyModified,
                                 serde_json::to_value(ProxyModifiedMetadata { before, after }).ok(),
+                            ),
+                            DefguardEvent::ProxyDeleted { proxy } => (
+                                EventType::ProxyModified,
+                                serde_json::to_value(ProxyDeletedMetadata { proxy }).ok(),
                             ),
                         };
                         (module, event_type, description, metadata)
