@@ -20,6 +20,7 @@ import {
   subscribeOpenModal,
 } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
+import { processCertificateFile } from '../../../../../shared/utils/processCertificateFile';
 
 const modalNameValue = ModalName.EditLogStreaming;
 
@@ -40,7 +41,7 @@ export const EditLogStreamingModal = () => {
   }, [modalData]);
 
   useEffect(() => {
-    const openSub = subscribeOpenModal(modalNameValue, (data) => {
+    const openSub = subscribeOpenModal(modalNameValue, (data: ModalData) => {
       setModalData(data);
       setOpen(true);
     });
@@ -58,7 +59,9 @@ export const EditLogStreamingModal = () => {
       onClose={() => setOpen(false)}
       afterClose={() => setModalData(null)}
     >
-      {isPresent(modalData) && <ModalContent modalData={modalData} setOpen={setOpen} />}
+      {isPresent(modalData) && (
+        <ModalContent key={modalData.id} modalData={modalData} setOpen={setOpen} />
+      )}
     </Modal>
   );
 };
@@ -82,9 +85,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       z.object({
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
-        username: z.string().optional(),
-        password: z.string().optional(),
-        certificate: z.string().optional(),
+        username: z.string().nullable(),
+        password: z.string().nullable(),
+        certificate: z.file().nullable(),
       }),
     [],
   );
@@ -95,9 +98,11 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
     (): FormFields => ({
       name: modalData.name,
       url: modalData.config.url,
-      username: modalData.config.username || '',
-      password: modalData.config.password || '',
-      certificate: modalData.config.cert || '',
+      username: modalData.config.username,
+      password: modalData.config.password,
+      certificate: modalData.config.cert
+        ? new File([modalData.config.cert], 'certificate.pem')
+        : null,
     }),
     [modalData],
   );
@@ -110,14 +115,16 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const certificateContent = await processCertificateFile(value.certificate);
+
       const requestData: CreateActivityLogStreamRequest = {
         name: value.name,
         stream_type: modalData.stream_type,
         stream_config: {
           url: value.url,
-          username: value.username || undefined,
-          password: value.password || undefined,
-          cert: value.certificate || undefined,
+          username: value.username,
+          password: value.password,
+          cert: certificateContent,
         },
       };
 
@@ -161,7 +168,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="certificate">
-            {(field) => <field.FormInput label="Certificate" />}
+            {(field) => <field.FormUploadField title="Upload certificate file" />}
           </form.AppField>
         </form.AppForm>
       </form>

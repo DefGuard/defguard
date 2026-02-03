@@ -9,7 +9,6 @@ use defguard_common::db::{
         gateway::Gateway,
         vpn_client_session::{VpnClientSession, VpnClientSessionState},
         vpn_session_stats::VpnSessionStats,
-        wireguard::LocationMfaMode,
     },
 };
 use rand::{Rng, rngs::ThreadRng};
@@ -88,7 +87,7 @@ pub async fn generate_vpn_session_stats(
                     device.user_id,
                     device.id,
                     Some(session_start),
-                    LocationMfaMode::Disabled,
+                    None,
                 )
                 .save(&mut *transaction)
                 .await?;
@@ -141,7 +140,7 @@ async fn prepare_gateway(pool: &PgPool, location_id: Id) -> Result<Gateway<Id>> 
     match existing_gateways.into_iter().next() {
         Some(gateway) => Ok(gateway),
         None => {
-            let gateway = Gateway::new(location_id, "http://localhost:50055")
+            let gateway = Gateway::new(location_id, "http://localhost:50055", "gateway")
                 .save(pool)
                 .await?;
             Ok(gateway)

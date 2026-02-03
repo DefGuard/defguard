@@ -12,11 +12,11 @@ use defguard_core::db::models::activity_log::{
         MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
         OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
         OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
-        SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata,
-        UserModifiedMetadata, UserSnatBindingMetadata, UserSnatBindingModifiedMetadata,
-        VpnClientMetadata, VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
-        VpnLocationModifiedMetadata, WebHookMetadata, WebHookModifiedMetadata,
-        WebHookStateChangedMetadata,
+        ProxyModifiedMetadata, SettingsUpdateMetadata, UserGroupsModifiedMetadata, UserMetadata,
+        UserMfaDisabledMetadata, UserModifiedMetadata, UserSnatBindingMetadata,
+        UserSnatBindingModifiedMetadata, VpnClientMetadata, VpnClientMfaFailedMetadata,
+        VpnClientMfaMetadata, VpnLocationMetadata, VpnLocationModifiedMetadata, WebHookMetadata,
+        WebHookModifiedMetadata, WebHookStateChangedMetadata,
     },
 };
 use description::{
@@ -468,6 +468,10 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
+                            DefguardEvent::ProxyModified { before, after } => (
+                                EventType::ProxyModified,
+                                serde_json::to_value(ProxyModifiedMetadata { before, after }).ok(),
+                            ),
                         };
                         (module, event_type, description, metadata)
                     }
@@ -476,7 +480,7 @@ pub async fn run_event_logger(
                         let description = get_vpn_event_description(&event);
 
                         let (event_type, metadata) = match *event {
-                            VpnEvent::MfaFailed {
+                            VpnEvent::ClientMfaFailed {
                                 location,
                                 device,
                                 method,
@@ -491,22 +495,18 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
-                            VpnEvent::ConnectedToMfaLocation {
+                            VpnEvent::ClientMfaSuccess {
                                 location,
                                 device,
                                 method,
                             } => (
-                                EventType::VpnClientConnectedMfa,
+                                EventType::VpnClientMfaSuccess,
                                 serde_json::to_value(VpnClientMfaMetadata {
                                     location,
                                     device,
                                     method,
                                 })
                                 .ok(),
-                            ),
-                            VpnEvent::DisconnectedFromMfaLocation { location, device } => (
-                                EventType::VpnClientDisconnectedMfa,
-                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
                             ),
                             VpnEvent::ConnectedToLocation { location, device } => (
                                 EventType::VpnClientConnected,

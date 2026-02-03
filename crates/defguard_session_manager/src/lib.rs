@@ -4,13 +4,20 @@ use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
-        models::{Device, User, WireguardNetwork, vpn_client_session::VpnClientSession},
+        models::{
+            Device, User, WireguardNetwork, device::WireguardNetworkDevice,
+            vpn_client_session::VpnClientSession,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_core::grpc::gateway::events::GatewayEvent;
 use sqlx::{PgConnection, PgPool};
 use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
     time::{Duration, interval},
 };
 use tracing::{debug, error, info, trace, warn};
@@ -32,12 +39,13 @@ pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+    gateway_tx: Sender<GatewayEvent>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
 
     // initialize session manager
-    let mut session_manager = SessionManager::new(pool, session_manager_event_tx);
+    let mut session_manager = SessionManager::new(pool, session_manager_event_tx, gateway_tx);
 
     loop {
         // receive next batch of peer stats messages
@@ -69,13 +77,19 @@ pub async fn run_session_manager(
 struct SessionManager {
     pool: PgPool,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+    gateway_tx: Sender<GatewayEvent>,
 }
 
 impl SessionManager {
-    fn new(pool: PgPool, session_manager_event_tx: UnboundedSender<SessionManagerEvent>) -> Self {
+    fn new(
+        pool: PgPool,
+        session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
+        gateway_tx: Sender<GatewayEvent>,
+    ) -> Self {
         Self {
             pool,
             session_manager_event_tx,
+            gateway_tx,
         }
     }
 
@@ -124,17 +138,26 @@ impl SessionManager {
         // check if a session exists already for a given peer
         // and attempt to add one if necessary
         let maybe_session = match active_sessions
-            .try_get_peer_session(transaction, message.location_id, message.device_id)
+            .try_get_peer_session(
+                transaction,
+                message.location_id,
+                message.device_pubkey.clone(),
+            )
             .await?
         {
             Some(session) => Some(session),
             None => {
                 debug!(
-                    "No active session found for device {} in location {}. Creating a new session",
-                    message.device_id, message.location_id
+                    "No active session found for device with pubkey {} in location {}. Creating a new session",
+                    message.device_pubkey, message.location_id
                 );
                 active_sessions
-                    .try_add_new_session(transaction, &message, &self.session_manager_event_tx)
+                    .try_add_new_session(
+                        transaction,
+                        &message,
+                        &message.device_pubkey,
+                        &self.session_manager_event_tx,
+                    )
                     .await?
             }
         };
@@ -142,7 +165,7 @@ impl SessionManager {
         if let Some(session) = maybe_session {
             // update session stats
             session.update_stats(transaction, message).await?;
-        };
+        }
 
         trace!("Finished processing peer stats update");
         Ok(())
@@ -188,21 +211,23 @@ impl SessionManager {
 
             // get all sessions which were created but have never connected
             // this is only relevant for MFA locations
-            let unused_sessions =
-                VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
+            if location.mfa_enabled() {
+                let unused_sessions =
+                    VpnClientSession::get_never_connected(&mut *transaction, &location).await?;
 
-            debug!(
-                "Found {} new VPN sessions which have not connected within required time in location {location}",
-                unused_sessions.len()
-            );
-
-            for session in unused_sessions {
                 debug!(
-                    "Disconnecting never connected session for user {}, device {} in location {location}",
-                    session.user_id, session.device_id
+                    "Found {} new VPN sessions which have not connected within required time in location {location}",
+                    unused_sessions.len()
                 );
-                self.disconnect_session(&mut transaction, session, &location)
-                    .await?;
+
+                for session in unused_sessions {
+                    debug!(
+                        "Disconnecting never connected session for user {}, device {} in location {location}",
+                        session.user_id, session.device_id
+                    );
+                    self.disconnect_session(&mut transaction, session, &location)
+                        .await?;
+                }
             }
         }
 
@@ -239,6 +264,20 @@ impl SessionManager {
                 session.device_id,
             ))?;
 
+        // remove peers from GW for MFA locations
+        if location.mfa_enabled() {
+            // FIXME: remove one MFA-related data is no longer stored here
+            // update device network config
+            if let Some(mut device_network_info) =
+                WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
+            {
+                device_network_info.is_authorized = false;
+                device_network_info.preshared_key = None;
+                device_network_info.update(&mut *transaction).await?;
+            };
+            self.send_peer_disconnect_message(location, &device)?;
+        }
+
         // emit event
         let context = SessionManagerEventContext {
             timestamp: disconnect_timestamp,
@@ -254,6 +293,19 @@ impl SessionManager {
         };
         self.session_manager_event_tx.send(event)?;
 
+        Ok(())
+    }
+
+    fn send_peer_disconnect_message(
+        &self,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+    ) -> Result<(), SessionManagerError> {
+        debug!(
+            "Sending MFA session disconnect event for device {device} in location {location} to gateway manager"
+        );
+        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        self.gateway_tx.send(event)?;
         Ok(())
     }
 }

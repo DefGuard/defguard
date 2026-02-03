@@ -4,6 +4,8 @@ import { m } from '../../../paraglide/messages';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { AddLocationPageStep } from '../types';
@@ -63,11 +65,13 @@ export const AddLocationNetworkStep = () => {
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="mtu">
             {(field) => (
               <field.FormInput label="Maximum Transmission Unit (MTU)" type="number" />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">
             {(field) => <field.FormInput label="Firewall Mark (FwMark)" type="number" />}
           </form.AppField>

@@ -79,14 +79,16 @@ use crate::{
     enterprise::{
         handlers::{
             acl::{
-                apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule,
-                delete_acl_alias, delete_acl_rule,
+                alias::{
+                    create_acl_alias, delete_acl_alias, get_acl_alias, list_acl_aliases,
+                    update_acl_alias,
+                },
+                apply_acl_aliases, apply_acl_rules, create_acl_rule, delete_acl_rule,
                 destination::{
                     create_acl_destination, delete_acl_destination, get_acl_destination,
                     list_acl_destinations, update_acl_destination,
                 },
-                get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias,
-                update_acl_rule,
+                get_acl_rule, list_acl_rules, update_acl_rule,
             },
             activity_log_stream::{
                 create_activity_log_stream, delete_activity_log_stream, get_activity_log_stream,
@@ -129,6 +131,7 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
+        proxy::{proxy_details, update_proxy},
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -175,8 +178,6 @@ pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;
-pub mod wireguard_peer_disconnect;
-pub mod wireguard_stats_purge;
 
 #[macro_use]
 extern crate tracing;
@@ -355,6 +356,8 @@ pub fn build_webapp(
             .route("/ldap/test", get(test_ldap_settings))
             // activity log
             .route("/activity_log", get(get_activity_log_events))
+            // Proxy routes
+            .route("/proxy/{proxy_id}", get(proxy_details).put(update_proxy))
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );

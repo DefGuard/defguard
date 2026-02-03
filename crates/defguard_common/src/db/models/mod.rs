@@ -19,7 +19,6 @@ pub mod vpn_client_session;
 pub mod vpn_session_stats;
 pub mod webauthn;
 pub mod wireguard;
-pub mod wireguard_peer_stats;
 pub mod yubikey;
 
 pub use auth_code::AuthCode;

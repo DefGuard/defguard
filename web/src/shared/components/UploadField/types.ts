@@ -7,5 +7,6 @@ export interface UploadFieldProps {
   disabled?: boolean;
   acceptedExtensions?: string[];
   testId?: string;
+  title?: string;
   onChange?: (value: File | null) => void;
 }

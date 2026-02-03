@@ -9,6 +9,9 @@ rust-version.workspace = true
 
 [dependencies]
 defguard_common.workspace = true
+# TODO: remove this dependency once gateway events are moved
+defguard_core.workspace = true
+
 chrono.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true

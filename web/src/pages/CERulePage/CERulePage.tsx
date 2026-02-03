@@ -1,40 +1,119 @@
 import './style.scss';
-import { useQuery } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-form';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { cloneDeep, flat } from 'radashi';
+import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
-import { AclProtocol, AclProtocolName } from '../../shared/api/types';
+import api from '../../shared/api/api';
+import {
+  type AclDestination,
+  AclProtocolName,
+  type AclProtocolValue,
+  aclProtocolValues,
+  type NetworkLocation,
+} from '../../shared/api/types';
 import { Card } from '../../shared/components/Card/Card';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
+import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
+import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import type {
+  SelectionOption,
+  SelectionSectionCustomRender,
+} from '../../shared/components/SelectionSection/type';
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
+import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
   getAliasesQueryOptions,
+  getDestinationsQueryOptions,
   getGroupsInfoQueryOptions,
+  getLocationsQueryOptions,
   getNetworkDevicesQueryOptions,
   getUsersQueryOptions,
 } from '../../shared/query';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 
-const availableProtocols = Object.keys(AclProtocol) as Array<keyof typeof AclProtocol>;
+const getProtocolName = (key: AclProtocolValue) => AclProtocolName[key];
+
+const renderDestinationSelectionItem: SelectionSectionCustomRender<
+  number,
+  AclDestination
+> = ({ active, onClick, option }) => (
+  <div className="destination-selection-item" onClick={onClick}>
+    <CheckboxIndicator active={active} />
+    {isPresent(option.meta) && (
+      <DestinationLabel
+        name={option.meta.name}
+        ips={option.meta.destination}
+        ports={option.meta.ports}
+        protocols={option.meta.protocols
+          .map((protocol) => AclProtocolName[protocol])
+          .join(',')}
+      />
+    )}
+  </div>
+);
+
+const renderLocationSelectionItem: SelectionSectionCustomRender<
+  number,
+  NetworkLocation
+> = ({ active, onClick, option }) => {
+  const icon: IconKindValue = 'check';
+  return (
+    <div className="item location-selection-item" onClick={onClick}>
+      <CheckboxIndicator active={active} />
+      {isPresent(option.meta) && (
+        <>
+          <div className="content-track">
+            <p className="item-label">{option.meta?.name}</p>
+          </div>
+          <TooltipProvider>
+            <TooltipTrigger>
+              <Icon icon={icon} size={16} />
+            </TooltipTrigger>
+            <TooltipContent>
+              {!option.meta.acl_enabled && (
+                <p>{`Location access unmanaged (ACL disabled)`}</p>
+              )}
+              {option.meta.acl_enabled && option.meta.acl_default_allow && (
+                <p>{`Location access allowed by default - network traffic not explicitly defined by the rules will be passed.`}</p>
+              )}
+              {option.meta.acl_enabled && !option.meta.acl_default_allow && (
+                <p>{`Location access denied by default - network traffic not explicitly defined by the rules will be blocked.`}</p>
+              )}
+            </TooltipContent>
+          </TooltipProvider>
+        </>
+      )}
+    </div>
+  );
+};
 
 export const CERulePage = () => {
   return (
@@ -53,6 +132,28 @@ export const CERulePage = () => {
 };
 
 const Content = () => {
+  const router = useRouter();
+  const { mutateAsync: addRule } = useMutation({
+    mutationFn: api.acl.rule.addRule,
+    meta: {
+      invalidate: ['acl'],
+    },
+    onSuccess: () => {
+      Snackbar.success('Rule added');
+      router.history.back();
+    },
+  });
+
+  // const { mutateAsync: editRule } = useMutation({
+  //   mutationFn: api.acl.rule.editRule,
+  //   meta: {
+  //     invalidate: ['acl'],
+  //   },
+  //   onSuccess: () => {
+  //     Snackbar.success('Rule changed');
+  //   },
+  // });
+
   const [destinationAllAddresses, setDestinationAllAddresses] = useState<boolean>(true);
   const [destinationAllPorts, setDestinationAllPorts] = useState<boolean>(true);
   const [destinationAllProtocols, setDestinationAllProtocols] = useState<boolean>(true);
@@ -73,6 +174,35 @@ const Content = () => {
     }
   }, [users]);
 
+  const { data: destinations } = useQuery(getDestinationsQueryOptions);
+
+  const destinationsOptions = useMemo(() => {
+    if (isPresent(destinations)) {
+      return destinations.map(
+        (destination): SelectionOption<number> => ({
+          id: destination.id,
+          label: destination.name,
+          meta: destination,
+        }),
+      );
+    }
+  }, [destinations]);
+
+  const { data: locations } = useQuery(getLocationsQueryOptions);
+
+  const locationsOptions = useMemo(() => {
+    if (isPresent(locations)) {
+      return locations.map(
+        (location): SelectionOption<number> => ({
+          id: location.id,
+          label: location.name,
+          meta: location,
+        }),
+      );
+    }
+    return [];
+  }, [locations]);
+
   const { data: aliases } = useQuery(getAliasesQueryOptions);
 
   const aliasesOptions = useMemo(() => {
@@ -86,6 +216,7 @@ const Content = () => {
         [],
       );
     }
+    return [];
   }, [aliases]);
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
@@ -99,6 +230,7 @@ const Content = () => {
         }),
       );
     }
+    return [];
   }, [groups]);
 
   const { data: networkDevices } = useQuery(getNetworkDevicesQueryOptions);
@@ -112,6 +244,7 @@ const Content = () => {
         }),
       );
     }
+    return [];
   }, [networkDevices]);
 
   const [restrictionsPresent, setRestrictionsPresent] = useState(false);
@@ -136,7 +269,8 @@ const Content = () => {
           denied_groups: z.number().array(),
           allowed_devices: z.number().array(),
           denied_devices: z.number().array(),
-          aliases: z.number().array(),
+          destinations: z.set(z.number()),
+          aliases: z.set(z.number()),
           protocols: z.set(z.number()),
           destination: aclDestinationValidator,
           ports: aclPortsValidator,
@@ -194,12 +328,6 @@ const Content = () => {
             vals.allowed_devices.length !== 0;
           if (!isAllowConfigured) {
             const message = 'Must configure some allowed users, groups or devices';
-
-            ctx.addIssue({
-              path: ['allow_all_users'],
-              code: 'custom',
-              message,
-            });
             ctx.addIssue({
               path: ['allowed_users'],
               code: 'custom',
@@ -207,11 +335,6 @@ const Content = () => {
             });
             ctx.addIssue({
               path: ['allowed_groups'],
-              code: 'custom',
-              message,
-            });
-            ctx.addIssue({
-              path: ['allow_all_network_devices'],
               code: 'custom',
               message,
             });
@@ -232,7 +355,8 @@ const Content = () => {
       name: '',
       destination: '',
       ports: '',
-      aliases: [],
+      aliases: new Set(),
+      destinations: new Set(),
       allowed_devices: [],
       allowed_groups: [],
       allowed_users: [],
@@ -259,7 +383,51 @@ const Content = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
+    onSubmit: async ({ value }) => {
+      const toSend = cloneDeep(value);
+      // assign flags
+      if (toSend.networks.length > 0) {
+        toSend.all_networks = false;
+      } else {
+        toSend.all_networks = true;
+      }
+      if (restrictionsPresent) {
+        toSend.deny_all_network_devices = toSend.denied_devices.length === 0;
+        toSend.deny_all_users = toSend.denied_users.length === 0;
+      } else {
+        toSend.deny_all_network_devices = false;
+        toSend.deny_all_users = false;
+        toSend.denied_devices = [];
+        toSend.denied_groups = [];
+        toSend.denied_users = [];
+      }
+      if (destinationAllAddresses) {
+        toSend.destination = '';
+      }
+      if (destinationAllPorts) {
+        toSend.ports = '';
+      }
+      if (destinationAllProtocols) {
+        toSend.protocols = new Set();
+      }
+      await addRule({
+        ...toSend,
+        protocols: Array.from(toSend.protocols),
+        aliases: Array.from(toSend.aliases),
+      });
+    },
   });
+
+  const selectedAliases = useStore(
+    form.store,
+    (s) => aliases?.filter((alias) => s.values.aliases.has(alias.id)) ?? [],
+  );
+
+  const formErrors = useStore(form.store, (s) => s.errorMap);
+
+  useEffect(() => {
+    console.log(formErrors);
+  }, [formErrors]);
 
   return (
     <form
@@ -281,7 +449,18 @@ const Content = () => {
             <p>{`Specify which locations this rule applies to. You can select all available locations or choose specific ones based on your requirements.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Toggle active={false} disabled label="Include all locations" />
+          <form.AppField name="networks">
+            {(field) => (
+              <field.FormSelectMultiple
+                options={locationsOptions}
+                counterText={(counter) => `Locations ${counter}`}
+                editText="Edit locations"
+                modalTitle="Select locations"
+                toggleText="Include all locations"
+                selectionCustomItemRender={renderLocationSelectionItem}
+              />
+            )}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
@@ -290,7 +469,66 @@ const Content = () => {
           <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
             {`You can add additional destinations to this rule to extend its scope. These destinations are configured separately in the 'Destinations' section.`}
           </AppText>
-          <Divider text="or/and" spacing={ThemeSpacing.Lg} />
+          <SizedBox height={ThemeSpacing.Xl2} />
+          {isPresent(destinations) && destinations.length > 0 && (
+            <>
+              <form.AppField name="destinations">
+                {(field) => {
+                  const selectedDestinations =
+                    destinations?.filter((destination) =>
+                      field.state.value.has(destination.id),
+                    ) ?? [];
+                  return (
+                    <>
+                      <Button
+                        variant="outlined"
+                        text="Select predefined destination(s)"
+                        onClick={() => {
+                          useSelectionModal.setState({
+                            title: 'Select predefined destination(s)',
+                            isOpen: true,
+                            options: destinationsOptions ?? [],
+                            itemGap: 12,
+                            enableDividers: true,
+                            onSubmit: (selection) =>
+                              field.handleChange(new Set(selection as number[])),
+                            // @ts-expect-error
+                            renderItem: renderDestinationSelectionItem,
+                          });
+                        }}
+                      />
+                      {selectedDestinations.length > 0 && (
+                        <div className="selected-destinations">
+                          <div className="top">
+                            <p>{`Selected destinations`}</p>
+                          </div>
+                          <div className="items-track">
+                            {selectedDestinations.map((destination) => (
+                              <DestinationDismissibleBox
+                                key={destination.id}
+                                name={destination.name}
+                                ips={destination.destination}
+                                ports={destination.ports}
+                                protocols={destination.protocols
+                                  .map((p) => AclProtocolName[p])
+                                  .join(',')}
+                                onClick={() => {
+                                  const newValue = new Set(field.state.value);
+                                  newValue.delete(destination.id);
+                                  field.handleChange(newValue);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                }}
+              </form.AppField>
+              <Divider text="or/and" spacing={ThemeSpacing.Lg} />
+            </>
+          )}
           <DescriptionBlock title={`Define destination manually`}>
             <p>{`Manually configure destinations parameters for this rule.`}</p>
           </DescriptionBlock>
@@ -331,7 +569,7 @@ const Content = () => {
                               useSelectionModal.setState({
                                 isOpen: true,
                                 onSubmit: (selected) => {
-                                  field.handleChange(selected as number[]);
+                                  field.handleChange(new Set(selected as number[]));
                                 },
                                 options: aliasesOptions,
                                 selected: new Set(field.state.value),
@@ -343,9 +581,18 @@ const Content = () => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         {isPresent(aliasesOptions) &&
                           aliasesOptions
-                            .filter((alias) => field.state.value.includes(alias.id))
+                            .filter((alias) => field.state.value.has(alias.id))
                             .map((option) => (
-                              <Chip size="sm" text={option.label} key={option.id} />
+                              <Chip
+                                size="sm"
+                                text={option.label}
+                                key={option.id}
+                                onDismiss={() => {
+                                  const newState = new Set(field.state.value);
+                                  newState.delete(option.id);
+                                  field.handleChange(newState);
+                                }}
+                              />
                             ))}
                       </>
                     )}
@@ -373,6 +620,11 @@ const Content = () => {
                     <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
                   )}
                 </form.AppField>
+                <AliasDataBlock
+                  values={flat(
+                    selectedAliases.map((alias) => alias.destination.split(',')),
+                  )}
+                />
               </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Ports">
@@ -395,6 +647,9 @@ const Content = () => {
                     <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
                   )}
                 </form.AppField>
+                <AliasDataBlock
+                  values={flat(selectedAliases.map((alias) => alias.ports.split(',')))}
+                />
               </Fold>
               <Divider spacing={ThemeSpacing.Xl} />
               <DescriptionBlock title="Protocols">
@@ -412,17 +667,21 @@ const Content = () => {
               />
               <Fold open={!destinationAllProtocols}>
                 <SizedBox height={ThemeSpacing.Xl2} />
-                <div className="protocols-selection">
-                  {availableProtocols.map((protocolKey) => {
-                    const value = AclProtocol[protocolKey];
-                    const name = AclProtocolName[value];
-                    return (
-                      <form.AppField name="protocols" key={protocolKey}>
-                        {(field) => <field.FormCheckbox value={value} text={name} />}
-                      </form.AppField>
-                    );
-                  })}
-                </div>
+                <form.AppField name="protocols">
+                  {(field) => (
+                    <field.FormCheckboxGroup
+                      values={aclProtocolValues}
+                      getLabel={getProtocolName}
+                    />
+                  )}
+                </form.AppField>
+                <AliasDataBlock
+                  values={flat(
+                    selectedAliases.map((alias) =>
+                      alias.protocols.map((protocol) => AclProtocolName[protocol]),
+                    ),
+                  )}
+                />
               </Fold>
             </Card>
           </Fold>
@@ -523,7 +782,7 @@ const Content = () => {
             )}
             <Divider spacing={ThemeSpacing.Lg} />
             {isPresent(networkDevicesOptions) && (
-              <form.AppField name="denied_groups">
+              <form.AppField name="denied_devices">
                 {(field) => (
                   <field.FormSelectMultiple
                     options={networkDevicesOptions}
@@ -538,15 +797,51 @@ const Content = () => {
           </Fold>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
-        <Controls>
-          <form.AppField name="enabled">
-            {(field) => <field.FormToggle label="Enable rule" />}
-          </form.AppField>
-          <div className="right">
-            <Button text="Create rule" disabled />
-          </div>
-        </Controls>
+        <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
+          {({ isSubmitting }) => (
+            <Controls>
+              <form.AppField name="enabled">
+                {(field) => <field.FormToggle label="Enable rule" />}
+              </form.AppField>
+              <div className="right">
+                <Button text="Create rule" type="submit" loading={isSubmitting} />
+              </div>
+            </Controls>
+          )}
+        </form.Subscribe>
       </form.AppForm>
     </form>
+  );
+};
+
+type AliasDataBlockProps = {
+  values: string[];
+};
+
+const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
+  if (values.length === 0) return null;
+  return (
+    <div className="alias-data-block">
+      <div className="top">
+        <p>{`Data from aliases`}</p>
+      </div>
+      <div className="content-track">
+        {values.map((value) => (
+          <Chip key={value} text={value} />
+        ))}
+        {values.length > 4 && (
+          <button
+            onClick={() => {
+              openModal(ModalName.DisplayList, {
+                title: 'Data from aliases',
+                data: values,
+              });
+            }}
+          >
+            <span>{`Show all`}</span>
+          </button>
+        )}
+      </div>
+    </div>
   );
 };

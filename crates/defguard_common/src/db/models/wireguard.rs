@@ -31,7 +31,7 @@ use crate::{
     db::{
         Id, NoId,
         models::{
-            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
         },
     },
@@ -109,7 +109,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub address: Vec<IpNetwork>,
     pub port: i32, // Should be u16
     pub pubkey: String,
@@ -120,7 +120,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub mtu: i32,    // Should be u32, but sqlx won't allow that.
     pub fwmark: i64, // Should be u32, but sqlx won't allow that.
     #[model(ref)]
-    #[schema(value_type = String)]
+    #[schema(value_type = Vec<String>)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub acl_enabled: bool,
@@ -1019,7 +1019,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, \
-            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", \
+            created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", \
             state \"state: VpnClientSessionState\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",

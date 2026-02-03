@@ -4,7 +4,6 @@ use axum::{
 };
 use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
-use serde_json::json;
 
 use super::LicenseInfo;
 use crate::{
@@ -32,10 +31,7 @@ pub async fn get_activity_log_stream(
         "User {} retrieved activity log streams",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: json!(streams),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(streams, StatusCode::OK))
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,10 +66,7 @@ pub async fn create_activity_log_stream(
         event: Box::new(ApiEventType::ActivityLogStreamCreated { stream }),
     })?;
     debug!("ActivityLogStreamCreated api event sent");
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
 
 pub async fn modify_activity_log_stream(

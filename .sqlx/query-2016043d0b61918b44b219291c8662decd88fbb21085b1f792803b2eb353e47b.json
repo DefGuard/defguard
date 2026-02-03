@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM vpn_client_session WHERE created_at < $1 AND (device_id, location_id, created_at) NOT IN ( SELECT device_id, location_id, MAX(created_at) FROM vpn_client_session GROUP BY device_id, location_id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2016043d0b61918b44b219291c8662decd88fbb21085b1f792803b2eb353e47b"
+}

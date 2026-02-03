@@ -31,6 +31,9 @@ async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
         destination.clone(),
         ports.clone(),
         vec![20, 30],
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -65,6 +68,10 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -75,44 +82,22 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
         .save(&pool)
         .await
         .unwrap();
-    let _ = AclRuleUser {
-        id: NoId,
-        rule_id: rule.id,
-        user_id: user.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let result = AclRuleUser {
-        id: NoId,
-        rule_id: rule.id,
-        user_id: user.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await;
+    AclRuleUser::new(rule.id, user.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
+    let result = AclRuleUser::new(rule.id, user.id, false).save(&pool).await;
     assert!(result.is_ok());
 
     // group
     let group = Group::new("group1").save(&pool).await.unwrap();
-    let _ = AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let result = AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await;
+    AclRuleGroup::new(rule.id, group.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
+    let result = AclRuleGroup::new(rule.id, group.id, false)
+        .save(&pool)
+        .await;
     assert!(result.is_ok());
 
     // device
@@ -127,23 +112,13 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
     .save(&pool)
     .await
     .unwrap();
-    let _ = AclRuleDevice {
-        id: NoId,
-        rule_id: rule.id,
-        device_id: device.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let result = AclRuleDevice {
-        id: NoId,
-        rule_id: rule.id,
-        device_id: device.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await;
+    AclRuleDevice::new(rule.id, device.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
+    let result = AclRuleDevice::new(rule.id, device.id, false)
+        .save(&pool)
+        .await;
     assert!(result.is_ok());
 }
 
@@ -167,6 +142,10 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -213,14 +192,10 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // rule only applied to network1
-    let _rn = AclRuleNetwork {
-        id: NoId,
-        rule_id: rule.id,
-        network_id: network1.id,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleNetwork::new(rule.id, network1.id)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // create 2 users
     let mut user1 = User::new("user1", None, "", "", "u1@mail.com", None)
@@ -233,52 +208,32 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // user1 allowed
-    let _ru1 = AclRuleUser {
-        id: NoId,
-        rule_id: rule.id,
-        user_id: user1.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleUser::new(rule.id, user1.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // user2 denied
-    let mut ru2 = AclRuleUser {
-        id: NoId,
-        rule_id: rule.id,
-        user_id: user2.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let mut ru2 = AclRuleUser::new(rule.id, user2.id, false)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // create 2 grups
     let group1 = Group::new("group1").save(&pool).await.unwrap();
     let group2 = Group::new("group2").save(&pool).await.unwrap();
 
     // group1 allowed
-    let _rg = AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group1.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleGroup::new(rule.id, group1.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // group2 denied
-    let _rg = AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group2.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleGroup::new(rule.id, group2.id, false)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // create 2 devices
     let device1 = Device::new(
@@ -305,26 +260,16 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // device1 allowed
-    let _rd = AclRuleDevice {
-        id: NoId,
-        rule_id: rule.id,
-        device_id: device1.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleDevice::new(rule.id, device1.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // device2 denied
-    let _rd = AclRuleDevice {
-        id: NoId,
-        rule_id: rule.id,
-        device_id: device2.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleDevice::new(rule.id, device2.id, false)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // create 2 aliases
     let alias1 = AclAlias::new(
@@ -334,6 +279,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -345,20 +293,19 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
     .unwrap();
 
     // only alias1 applies to the rule
-    let _ra = AclRuleAlias {
-        id: NoId,
-        rule_id: rule.id,
-        alias_id: alias1.id,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleAlias::new(rule.id, alias1.id)
+        .save(&pool)
+        .await
+        .unwrap();
 
     let mut conn = pool.acquire().await.unwrap();
 
@@ -545,6 +492,10 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -561,15 +512,10 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group_2.id,
-        allow: true,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleGroup::new(rule.id, group_2.id, true)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // Get rule info
     let mut conn = pool.acquire().await.unwrap();
@@ -660,6 +606,10 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
+        manual_settings: true,
     }
     .save(&pool)
     .await
@@ -685,15 +635,10 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    AclRuleGroup {
-        id: NoId,
-        rule_id: rule.id,
-        group_id: group_1.id,
-        allow: false,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    AclRuleGroup::new(rule.id, group_1.id, false)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // Get rule info
     let mut conn = pool.acquire().await.unwrap();

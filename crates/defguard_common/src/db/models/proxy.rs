@@ -1,10 +1,14 @@
+use std::fmt;
+
 use chrono::NaiveDateTime;
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use utoipa::ToSchema;
 
 use crate::db::{Id, NoId};
 
-#[derive(Model)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
     pub id: I,
     pub name: String,
@@ -16,6 +20,18 @@ pub struct Proxy<I = NoId> {
     pub version: Option<String>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+}
+
+impl fmt::Display for Proxy<NoId> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl fmt::Display for Proxy<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ID {}] {}", self.id, self.name)
+    }
 }
 
 impl Proxy {

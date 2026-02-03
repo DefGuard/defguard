@@ -5,7 +5,7 @@ use defguard_common::db::{
     Id,
     models::{
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group, oauth2client::OAuth2Client,
+        group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
 };
 use defguard_proto::proxy::MfaMethod;
@@ -297,6 +297,10 @@ pub enum ApiEventType {
         before: UserSnatBinding<Id>,
         after: UserSnatBinding<Id>,
     },
+    ProxyModified {
+        before: Proxy<Id>,
+        after: Proxy<Id>,
+    },
 }
 
 /// Events from Web API
@@ -374,7 +378,7 @@ pub type ClientMFAMethod = MfaMethod;
 
 #[derive(Debug)]
 pub enum DesktopClientMfaEvent {
-    Connected {
+    Success {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
@@ -384,40 +388,5 @@ pub enum DesktopClientMfaEvent {
         location: WireguardNetwork<Id>,
         method: ClientMFAMethod,
         message: String,
-    },
-}
-
-/// Shared context for every internally-triggered event.
-///
-/// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the activity log.
-#[derive(Debug)]
-pub struct InternalEventContext {
-    pub timestamp: NaiveDateTime,
-    pub user_id: Id,
-    pub username: String,
-    pub ip: IpAddr,
-    pub device: Device<Id>,
-}
-
-impl InternalEventContext {
-    #[must_use]
-    pub fn new(user_id: Id, username: String, ip: IpAddr, device: Device<Id>) -> Self {
-        let timestamp = Utc::now().naive_utc();
-        Self {
-            timestamp,
-            user_id,
-            username,
-            ip,
-            device,
-        }
-    }
-}
-
-/// Events emmited by background threads, not triggered directly by users
-#[derive(Debug)]
-pub enum InternalEvent {
-    DesktopClientMfaDisconnected {
-        context: InternalEventContext,
-        location: WireguardNetwork<Id>,
     },
 }

@@ -933,7 +933,7 @@ pub async fn setup_gateway_tls_stream(
         if let Err(err) = gateway.save(&pool).await {
             yield Ok(flow.error(&format!("Failed to save Gateway to database: {err}")));
             return;
-        };
+        }
 
         debug!("Gateway setup completed successfully");
 

@@ -37,6 +37,17 @@
       & > .item {
         display: flex;
         flex: none;
+        cursor: pointer;
+        user-select: none;
+
+        .item-label {
+          font: var(--t-body-sm-400);
+          color: var(--fg-default);
+        }
+
+        &:not(.disabled, .error):hover .box {
+          --border: var(--border-emphasis);
+        }
       }
     }
   }

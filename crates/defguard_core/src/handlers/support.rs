@@ -17,10 +17,7 @@ pub async fn configuration(
     debug!("User {} dumping app configuration", session.user.username);
     let config = dump_config(&appstate.pool).await;
     info!("User {} dumped app configuration", session.user.username);
-    Ok(ApiResponse {
-        json: config,
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(config, StatusCode::OK))
 }
 
 pub async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {

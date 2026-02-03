@@ -26,8 +26,9 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { Icon } from '../../shared/defguard-ui/components/Icon';
+import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
+import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -35,9 +36,11 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableFlexCell } from '../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { useApp } from '../../shared/hooks/useApp';
 import { getGroupsInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
@@ -51,6 +54,7 @@ type RowData = UsersListItem;
 const columnHelper = createColumnHelper<RowData>();
 
 export const UsersTable = ({ users }: Props) => {
+  const appInfo = useApp((s) => s.appInfo);
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
@@ -235,109 +239,138 @@ export const UsersTable = ({ users }: Props) => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+
+          const menuItems: MenuItemsGroup[] = [
+            {
+              items: [
+                {
+                  text: m.users_row_menu_edit(),
+                  icon: 'edit',
+                  onClick: () => {
+                    openModal(ModalName.EditUserModal, {
+                      user: rowData,
+                      reservedEmails,
+                      reservedUsernames,
+                    });
+                  },
+                },
+                {
+                  text: m.users_row_menu_change_password(),
+                  icon: 'lock-open',
+                  testId: 'change-password',
+                  onClick: () => {
+                    openModal(ModalName.ChangePassword, {
+                      adminForm: true,
+                      user: rowData,
+                    });
+                  },
+                },
+                {
+                  text: m.users_row_menu_go_profile(),
+                  icon: 'profile',
+                  onClick: () => {
+                    navigate({
+                      to: '/user/$username',
+                      params: {
+                        username: rowData.username,
+                      },
+                    });
+                  },
+                },
+                {
+                  text: m.users_row_menu_edit_groups(),
+                  icon: 'add-group',
+                  testId: 'edit-groups',
+                  onClick: () => {
+                    useSelectionModal.setState({
+                      isOpen: true,
+                      options: groupsOptions,
+                      title: m.modal_edit_user_groups_title(),
+                      selected: new Set(rowData.groups),
+                      onSubmit: (selected) => {
+                        handleEditGroups(rowData, selected as string[]);
+                      },
+                    });
+                  },
+                },
+              ],
+            },
+            {
+              items: [
+                {
+                  text: m.users_row_menu_add_auth(),
+                  icon: 'key',
+                  onClick: () => {
+                    openModal(ModalName.AddAuthKey, {
+                      username: rowData.username,
+                    });
+                  },
+                },
+              ],
+            },
+            {
+              items: [
+                {
+                  text: rowData.is_active
+                    ? m.users_row_menu_disable()
+                    : m.users_row_menu_enable(),
+                  icon: rowData.is_active ? 'disabled' : 'check-circle',
+                  testId: 'change-account-status',
+                  onClick: () => {
+                    changeAccountActiveState({
+                      active: !rowData.is_active,
+                      username: rowData.username,
+                    });
+                  },
+                },
+              ],
+            },
+            {
+              items: [
+                {
+                  text: m.users_row_menu_delete(),
+                  icon: 'delete',
+                  variant: 'danger',
+                  onClick: () => {
+                    deleteUser(rowData.username);
+                  },
+                },
+              ],
+            },
+          ];
+
+          if (!rowData.enrolled) {
+            menuItems.splice(1, 0, {
+              items: [
+                {
+                  text: m.users_row_menu_initiate_self_enrollment(),
+                  icon: IconKind.AddUser,
+                  onClick: () => {
+                    api.user
+                      .startEnrollment({
+                        send_enrollment_notification: false,
+                        username: rowData.username,
+                      })
+                      .then((response) => {
+                        openModal(ModalName.SelfEnrollmentToken, {
+                          user: rowData,
+                          appInfo,
+                          enrollmentResponse: response.data,
+                        });
+                      })
+                      .catch((error) => {
+                        Snackbar.error('Failed to initiate enrollment');
+                        console.error(error);
+                      });
+                  },
+                },
+              ],
+            });
+          }
+
           return (
             <TableCell>
-              <IconButtonMenu
-                icon="menu"
-                menuItems={[
-                  {
-                    items: [
-                      {
-                        text: m.users_row_menu_edit(),
-                        icon: 'edit',
-                        onClick: () => {
-                          openModal(ModalName.EditUserModal, {
-                            user: rowData,
-                            reservedEmails,
-                            reservedUsernames,
-                          });
-                        },
-                      },
-                      {
-                        text: m.users_row_menu_change_password(),
-                        icon: 'lock-open',
-                        testId: 'change-password',
-                        onClick: () => {
-                          openModal(ModalName.ChangePassword, {
-                            adminForm: true,
-                            user: rowData,
-                          });
-                        },
-                      },
-                      {
-                        text: m.users_row_menu_go_profile(),
-                        icon: 'profile',
-                        onClick: () => {
-                          navigate({
-                            to: '/user/$username',
-                            params: {
-                              username: rowData.username,
-                            },
-                          });
-                        },
-                      },
-                      {
-                        text: m.users_row_menu_edit_groups(),
-                        icon: 'add-group',
-                        testId: 'edit-groups',
-                        onClick: () => {
-                          useSelectionModal.setState({
-                            isOpen: true,
-                            options: groupsOptions,
-                            title: m.modal_edit_user_groups_title(),
-                            selected: new Set(rowData.groups),
-                            onSubmit: (selected) => {
-                              handleEditGroups(rowData, selected as string[]);
-                            },
-                          });
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    items: [
-                      {
-                        text: m.users_row_menu_add_auth(),
-                        icon: 'key',
-                        onClick: () => {
-                          openModal(ModalName.AddAuthKey, {
-                            username: rowData.username,
-                          });
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    items: [
-                      {
-                        text: rowData.is_active
-                          ? m.users_row_menu_disable()
-                          : m.users_row_menu_enable(),
-                        icon: rowData.is_active ? 'disabled' : 'check-circle',
-                        testId: 'change-account-status',
-                        onClick: () => {
-                          changeAccountActiveState({
-                            active: !rowData.is_active,
-                            username: rowData.username,
-                          });
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    items: [
-                      {
-                        text: m.users_row_menu_delete(),
-                        icon: 'delete',
-                        variant: 'danger',
-                        onClick: () => {
-                          deleteUser(rowData.username);
-                        },
-                      },
-                    ],
-                  },
-                ]}
-              />
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
             </TableCell>
           );
         },
@@ -352,6 +385,7 @@ export const UsersTable = ({ users }: Props) => {
       groupsOptions,
       handleEditGroups,
       groups,
+      appInfo,
     ],
   );
 

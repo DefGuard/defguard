@@ -20,7 +20,7 @@
 use std::sync::Arc;
 
 use defguard_core::{
-    events::{ApiEvent, BidiStreamEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent},
     grpc::gateway::events::GatewayEvent,
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
@@ -42,7 +42,6 @@ mod handlers;
 pub struct RouterReceiverSet {
     api: UnboundedReceiver<ApiEvent>,
     bidi: UnboundedReceiver<BidiStreamEvent>,
-    internal: UnboundedReceiver<InternalEvent>,
     session_manager: UnboundedReceiver<SessionManagerEvent>,
 }
 
@@ -51,13 +50,11 @@ impl RouterReceiverSet {
     pub fn new(
         api: UnboundedReceiver<ApiEvent>,
         bidi: UnboundedReceiver<BidiStreamEvent>,
-        internal: UnboundedReceiver<InternalEvent>,
         session_manager: UnboundedReceiver<SessionManagerEvent>,
     ) -> Self {
         Self {
             api,
             bidi,
-            internal,
             session_manager,
         }
     }
@@ -120,10 +117,6 @@ impl EventRouter {
                     error!("Bidi gRPC stream event channel closed");
                     return Err(EventRouterError::BidiEventChannelClosed);
               },
-              event = self.receivers.internal.recv() => if let Some(internal_event) = event { Event::Internal(Box::new(internal_event)) } else {
-                    error!("Internal event channel closed");
-                    return Err(EventRouterError::InternalEventChannelClosed);
-              },
               event = self.receivers.session_manager.recv() => if let Some(session_manager_event) = event { Event::SessionManager(Box::new(session_manager_event)) } else {
                     error!("Internal event channel closed");
                     return Err(EventRouterError::InternalEventChannelClosed);
@@ -136,9 +129,8 @@ impl EventRouter {
             match event {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
-                Event::Internal(internal_event) => self.handle_internal_event(*internal_event)?,
                 Event::SessionManager(session_manager_event) => {
-                    self.handle_session_manager_event(*session_manager_event)?
+                    self.handle_session_manager_event(*session_manager_event)?;
                 }
             }
         }

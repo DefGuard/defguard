@@ -10,7 +10,7 @@ use defguard_common::{
     VERSION,
     config::DefGuardConfig,
     db::{
-        Id, NoId,
+        Id,
         models::{Device, User, WireguardNetwork, settings::initialize_current_settings},
     },
 };
@@ -26,8 +26,7 @@ use defguard_core::{
 use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
-use serde::de::DeserializeOwned;
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
@@ -204,12 +203,6 @@ pub(crate) async fn make_network(client: &TestClient, name: &str) -> TestRespons
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     response
-}
-
-/// Replaces id field in json response with NoId
-pub(crate) fn omit_id<T: DeserializeOwned>(mut value: Value) -> T {
-    *value.get_mut("id").unwrap() = json!(NoId);
-    serde_json::from_value(value).unwrap()
 }
 
 pub(crate) async fn make_client(pool: PgPool) -> TestClient {

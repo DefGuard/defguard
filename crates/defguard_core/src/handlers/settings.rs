@@ -32,10 +32,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         if settings.main_logo_url.is_empty() {
             settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
         }
-        return Ok(ApiResponse {
-            json: json!(settings),
-            status: StatusCode::OK,
-        });
+        return Ok(ApiResponse::json(settings, StatusCode::OK));
     }
     debug!("Retrieved settings");
     Ok(ApiResponse::default())
@@ -82,10 +79,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
 
     info!("Retrieved essential settings");
 
-    Ok(ApiResponse {
-        json: json!(settings),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(settings, StatusCode::OK))
 }
 
 pub async fn set_default_branding(
@@ -114,10 +108,7 @@ pub async fn set_default_branding(
                 context,
                 event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
             })?;
-            Ok(ApiResponse {
-                json: json!(settings),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::json(settings, StatusCode::OK))
         }
         None => Err(WebError::DbError("Cannot restore settings".into())),
     }
@@ -178,17 +169,11 @@ pub async fn test_ldap_settings(_admin: AdminRole) -> ApiResult {
     match LDAPConnection::create().await {
         Ok(_) => {
             debug!("LDAP connected successfully");
-            Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::OK,
-            })
+            Ok(ApiResponse::with_status(StatusCode::OK))
         }
         Err(err) => {
             debug!("LDAP connection rejected: {err}");
-            Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::BAD_REQUEST,
-            })
+            Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
         }
     }
 }

@@ -13,7 +13,10 @@ use defguard_common::{
 use defguard_core::{
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
-        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
+        handlers::acl::{
+            ApiAclRule, EditAclRule,
+            alias::{ApiAclAlias, EditAclAlias},
+        },
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
@@ -28,7 +31,7 @@ use tokio::net::TcpListener;
 
 use super::common::{
     authenticate_admin, client::TestClient, exceed_enterprise_limits, make_base_client,
-    make_test_client, omit_id, setup_pool,
+    make_test_client, setup_pool,
 };
 use crate::common::{init_config, initialize_users};
 
@@ -65,6 +68,9 @@ fn make_rule() -> EditAclRule {
         enabled: true,
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        any_destination: true,
+        any_port: true,
+        any_protocol: true,
     }
 }
 
@@ -113,6 +119,9 @@ fn edit_rule_data_into_api_response(
         aliases: data.aliases.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
+        any_destination: data.any_destination,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }
 
@@ -484,10 +493,13 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     AclAlias::new(
         "alias1",
         AliasState::Applied,
-        AliasKind::Destination,
+        AliasKind::Component,
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -495,10 +507,13 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     AclAlias::new(
         "alias2",
         AliasState::Applied,
-        AliasKind::Destination,
+        AliasKind::Component,
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&pool)
     .await
@@ -515,20 +530,20 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     // create
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response_rule: EditAclRule = response.json().await;
+    let response_rule = response.json::<EditAclRule>().await;
     assert_eq!(response_rule, rule);
 
     // retrieve
     let response = client.get("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_rule: EditAclRule = omit_id(response.json().await);
+    let response_rule = response.json::<EditAclRule>().await;
     assert_eq!(response_rule, rule);
 
     // related rules in alias details
     let response = client.get("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_alias: ApiAclAlias = response.json().await;
-    assert_eq!(response_alias.rules, vec![1]);
+    let response_alias = response.json::<ApiAclAlias>().await;
+    assert_eq!(response_alias.rules, [1]);
 
     // add another rule
     let mut rule = make_rule();
@@ -538,12 +553,12 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_alias: ApiAclAlias = response.json().await;
-    assert_eq!(response_alias.rules, vec![1, 2]);
+    let response_alias = response.json::<ApiAclAlias>().await;
+    assert_eq!(response_alias.rules, [1, 2]);
     let response = client.get("/api/v1/acl/alias/2").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_alias: ApiAclAlias = response.json().await;
-    assert_eq!(response_alias.rules, vec![1]);
+    let response_alias = response.json::<ApiAclAlias>().await;
+    assert_eq!(response_alias.rules, [1]);
 }
 
 #[sqlx::test]
@@ -637,6 +652,9 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        true,
+        true,
+        true,
     )
     .save(&state.pool)
     .await
@@ -870,7 +888,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply rule
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -882,7 +900,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // cannot apply the same rule again
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -896,7 +914,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // still cannot apply the same rule again
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1] }))
+        .json(&json!({ "rules": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -904,7 +922,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![2] }))
+        .json(&json!({ "rules": [2] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -932,7 +950,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![3] }))
+        .json(&json!({ "rules": [3] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -964,7 +982,7 @@ async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOpt
     // apply multiple rules
     let response = client
         .put("/api/v1/acl/rule/apply")
-        .json(&json!({ "rules": vec![1, 3] }))
+        .json(&json!({ "rules": [1, 3] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1147,7 +1165,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     // cannot apply already applied alias
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![1] }))
+        .json(&json!({ "aliases": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -1155,7 +1173,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     // apply modification
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![2] }))
+        .json(&json!({ "aliases": [2] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -1222,7 +1240,7 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
     // apply multiple aliases
     let response = client
         .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![4, 6] }))
+        .json(&json!({ "aliases": [4, 6] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);

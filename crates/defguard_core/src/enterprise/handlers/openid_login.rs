@@ -519,12 +519,10 @@ pub(crate) async fn get_auth_info(
 
     Ok((
         private_cookies,
-        ApiResponse {
-            json: json!(
-                {"url": authorize_url, "button_display_name": provider.display_name}
-            ),
-            status: StatusCode::OK,
-        },
+        ApiResponse::new(
+            json!({"url": authorize_url, "button_display_name": provider.display_name}),
+            StatusCode::OK,
+        ),
     ))
 }
 
@@ -619,10 +617,7 @@ pub(crate) async fn auth_callback(
         return Ok((
             cookies,
             private_cookies,
-            ApiResponse {
-                json: json!(mfa_info),
-                status: StatusCode::CREATED,
-            },
+            ApiResponse::json(mfa_info, StatusCode::CREATED),
         ));
     }
 
@@ -640,13 +635,13 @@ pub(crate) async fn auth_callback(
         Ok((
             cookies,
             private_cookies,
-            ApiResponse {
-                json: json!(AuthResponse {
+            ApiResponse::json(
+                AuthResponse {
                     user: user_info,
-                    url
-                }),
-                status: StatusCode::OK,
-            },
+                    url,
+                },
+                StatusCode::OK,
+            ),
         ))
     } else {
         unimplemented!("Impossible to get here");

@@ -10,7 +10,7 @@ use crate::db::Id;
 pub struct PeerStatsUpdate {
     pub location_id: Id,
     pub gateway_id: Id,
-    pub device_id: Id,
+    pub device_pubkey: String,
     pub collected_at: NaiveDateTime,
     pub endpoint: SocketAddr,
     // bytes sent to peer
@@ -24,7 +24,7 @@ impl PeerStatsUpdate {
     pub fn new(
         location_id: Id,
         gateway_id: Id,
-        device_id: Id,
+        device_pubkey: String,
         endpoint: SocketAddr,
         upload: u64,
         download: u64,
@@ -34,7 +34,7 @@ impl PeerStatsUpdate {
         Self {
             location_id,
             gateway_id,
-            device_id,
+            device_pubkey,
             collected_at,
             endpoint,
             upload,

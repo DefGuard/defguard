@@ -41,7 +41,6 @@ use serde::{
     de::{Deserialize, Deserializer, Error as DeError, Unexpected, Visitor},
     ser::{Serialize, Serializer},
 };
-use serde_json::json;
 use sqlx::PgPool;
 
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
@@ -98,10 +97,10 @@ pub async fn discovery_keys() -> ApiResult {
         keys.push(openid_key.as_verification_key());
     }
 
-    Ok(ApiResponse {
-        json: json!(CoreJsonWebKeySet::new(keys)),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(
+        CoreJsonWebKeySet::new(keys),
+        StatusCode::OK,
+    ))
 }
 pub type DefguardIdTokenFields = IdTokenFields<
     GroupClaims,
@@ -835,10 +834,7 @@ pub async fn token(
                                 None,
                                 None,
                             );
-                            return Ok(ApiResponse {
-                                json: json!(response),
-                                status: StatusCode::BAD_REQUEST,
-                            });
+                            return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
                         }
 
                         if let Some(user) =
@@ -894,10 +890,7 @@ pub async fn token(
                                             "Issued new token for user {} client {}",
                                             user.username, client.name
                                         );
-                                        return Ok(ApiResponse {
-                                            json: json!(response),
-                                            status: StatusCode::OK,
-                                        });
+                                        return Ok(ApiResponse::json(response, StatusCode::OK));
                                     }
                                     Err(err) => {
                                         error!(
@@ -908,10 +901,10 @@ pub async fn token(
                                             StandardErrorResponse::<CoreErrorResponseType>::new(
                                                 err, None, None,
                                             );
-                                        return Ok(ApiResponse {
-                                            json: json!(response),
-                                            status: StatusCode::BAD_REQUEST,
-                                        });
+                                        return Ok(ApiResponse::json(
+                                            response,
+                                            StatusCode::BAD_REQUEST,
+                                        ));
                                     }
                                 }
                             }
@@ -945,10 +938,7 @@ pub async fn token(
                         let err = CoreErrorResponseType::InvalidClient;
                         let response =
                             StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-                        return Ok(ApiResponse {
-                            json: json!(response),
-                            status: StatusCode::BAD_REQUEST,
-                        });
+                        return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
                     };
 
                     if !client.enabled {
@@ -958,19 +948,13 @@ pub async fn token(
                             None,
                             None,
                         );
-                        return Ok(ApiResponse {
-                            json: json!(response),
-                            status: StatusCode::BAD_REQUEST,
-                        });
+                        return Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST));
                     }
 
                     token.refresh_and_save(&appstate.pool).await?;
                     let response = TokenRequest::refresh_token_flow(&token);
                     token.save(&appstate.pool).await?;
-                    return Ok(ApiResponse {
-                        json: json!(response),
-                        status: StatusCode::OK,
-                    });
+                    return Ok(ApiResponse::json(response, StatusCode::OK));
                 }
             }
         }
@@ -978,10 +962,7 @@ pub async fn token(
     }
     let err = CoreErrorResponseType::UnsupportedGrantType;
     let response = StandardErrorResponse::<CoreErrorResponseType>::new(err, None, None);
-    Ok(ApiResponse {
-        json: json!(response),
-        status: StatusCode::BAD_REQUEST,
-    })
+    Ok(ApiResponse::json(response, StatusCode::BAD_REQUEST))
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
@@ -1026,10 +1007,10 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
 
     let user_claims = UserClaims::from_user(&user, &client, &oauth2token);
 
-    Ok(ApiResponse {
-        json: json!(StandardClaims::<CoreGenderClaim>::from(&user_claims)),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(
+        StandardClaims::<CoreGenderClaim>::from(&user_claims),
+        StatusCode::OK,
+    ))
 }
 
 // Must be served under /.well-known/openid-configuration
@@ -1076,8 +1057,5 @@ pub async fn openid_configuration() -> ApiResult {
         url.join("api/v1/oauth/userinfo")?,
     )));
 
-    Ok(ApiResponse {
-        json: json!(provider_metadata),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::json(provider_metadata, StatusCode::OK))
 }

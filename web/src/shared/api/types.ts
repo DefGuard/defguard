@@ -824,6 +824,8 @@ export const AclProtocol = {
   ICMP: 1,
 } as const;
 
+export const aclProtocolValues = Object.values(AclProtocol);
+
 export type AclProtocolValue = (typeof AclProtocol)[keyof typeof AclProtocol];
 
 export const AclProtocolName: Record<AclProtocolValue, string> = {
@@ -832,25 +834,27 @@ export const AclProtocolName: Record<AclProtocolValue, string> = {
   '17': 'UDP',
 };
 
-export const AclKind = {
-  Destination: 'Destination',
-  Component: 'Component',
-} as const;
+export interface AclDestination {
+  id: number;
+  name: string;
+  state: AclDeploymentStateValue;
+  destination: string;
+  ports: string;
+  protocols: AclProtocolValue[];
+  rules: number[];
+  any_destination: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
+}
 
-export type AclKindValue = (typeof AclKind)[keyof typeof AclKind];
+export type AddAclDestination = Omit<AclDestination, 'id' | 'state' | 'rules'>;
 
-export const AclAliasKind = {
-  Destination: AclKind.Destination,
-  Component: AclKind.Component,
-} as const;
-
-export type AclAliasKindValue = (typeof AclAliasKind)[keyof typeof AclAliasKind];
+export type EditAclDestination = Omit<AclDestination, 'state' | 'rules'>;
 
 export interface AclAlias {
   id: number;
   name: string;
-  kind: AclAliasKindValue;
-  state: AclAliasStatusValue;
+  state: AclDeploymentStateValue;
   destination: string;
   ports: string;
   protocols: AclProtocolValue[];
@@ -886,9 +890,9 @@ export interface AclRule {
   parent_id: number | null;
 }
 
-export type EditAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;
 
-export type AddAclRuleRequest = Omit<AclRule, 'sate' | 'parent_id'>;
+export type AddAclRuleRequest = Omit<AclRule, 'state' | 'parent_id' | 'id'>;
 
 export interface OpenIdAuthInfo {
   url: string;
@@ -930,9 +934,9 @@ export interface CreateActivityLogStreamRequest {
 
 export interface ActivityLogStreamConfig {
   url: string;
-  username?: string;
-  password?: string;
-  cert?: string;
+  username: string | null;
+  password: string | null;
+  cert: string | null;
 }
 
 export type ActivityLogSortKey =
@@ -943,6 +947,14 @@ export type ActivityLogSortKey =
   | 'event'
   | 'module'
   | 'device';
+
+export interface Edge {
+  id: number;
+  name: string;
+  address: string | null;
+  port: number | null;
+  public_address: string | null;
+}
 
 export interface PaginationParams {
   page?: number;

@@ -75,8 +75,7 @@ pub enum EventType {
     // VPN client events
     VpnClientConnected,
     VpnClientDisconnected,
-    VpnClientConnectedMfa,
-    VpnClientDisconnectedMfa,
+    VpnClientMfaSuccess,
     VpnClientMfaFailed,
     // Enrollment events
     EnrollmentTokenAdded,
@@ -115,6 +114,8 @@ pub enum EventType {
     UserSnatBindingAdded,
     UserSnatBindingRemoved,
     UserSnatBindingModified,
+    // Proxy management
+    ProxyModified,
 }
 
 #[derive(Model, FromRow, Serialize)]
