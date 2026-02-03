@@ -260,9 +260,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         DefguardEvent::ProxyModified { before: _, after } => {
             Some(format!("Modified proxy {after}"))
         }
-        DefguardEvent::ProxyDeleted { proxy } => {
-            Some(format!("Deleted proxy {proxy}"))
-        }
+        DefguardEvent::ProxyDeleted { proxy } => Some(format!("Deleted proxy {proxy}")),
     }
 }
 

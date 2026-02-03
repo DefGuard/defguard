@@ -150,7 +150,7 @@ pub(crate) async fn delete_proxy(
         });
     };
 
-	// Disconnect the proxy
+    // Disconnect the proxy
     appstate
         .proxy_control_tx
         .send(ProxyControlMessage::ShutdownConnection(proxy.id))
@@ -160,18 +160,16 @@ pub(crate) async fn delete_proxy(
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })?;
 
-	// TODO
-	// 1. Add proxy cert to CRL
-	// 2. Remove cert files on deleted proxy
+    // TODO
+    // 1. Add proxy cert to CRL
+    // 2. Remove cert files on deleted proxy
     proxy.clone().delete(&appstate.pool).await?;
 
     info!("User {} deleted proxy {proxy_id}", session.user.username);
 
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::ProxyDeleted {
-            proxy,
-        }),
+        event: Box::new(ApiEventType::ProxyDeleted { proxy }),
     })?;
 
     Ok(ApiResponse::default())
