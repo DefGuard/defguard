@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { ApplicationInfo } from '../api/types';
+import type { ApplicationInfo, SettingsEssentials } from '../api/types';
 
 type StoreValues = {
   navigationOpen: boolean;
   appInfo: ApplicationInfo;
+  settingsEssentials: SettingsEssentials;
 };
 
 type Store = StoreValues;
@@ -29,6 +30,9 @@ const defaults: StoreValues = {
     network_present: false,
     smtp_enabled: false,
     version: '',
+  },
+  settingsEssentials: {
+    initial_setup_completed: false,
   },
 };
 

@@ -13,7 +13,7 @@ use x509_parser::parse_x509_certificate;
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
-const DEFAULT_CERT_VALIDITY_DAYS: i64 = 365;
+const DEFAULT_CERT_VALIDITY_DAYS: i64 = 1825;
 
 #[derive(Debug, Error)]
 pub enum CertificateError {
@@ -137,23 +137,53 @@ impl CertificateAuthority<'_> {
     }
 
     pub fn expiry(&self) -> Result<NaiveDateTime, CertificateError> {
-        get_certificate_expiry(&self.cert_der)
+        let CertificateInfo { not_after, .. } = parse_certificate_info(&self.cert_der)?;
+        Ok(not_after)
     }
 }
 
-/// Extract the expiry date (not_after) from a certificate.
-pub fn get_certificate_expiry(cert_der: &[u8]) -> Result<NaiveDateTime, CertificateError> {
+pub struct CertificateInfo {
+    pub subject_common_name: String,
+    pub not_before: NaiveDateTime,
+    pub not_after: NaiveDateTime,
+}
+
+pub fn parse_certificate_info(cert_der: &[u8]) -> Result<CertificateInfo, CertificateError> {
     let (_, parsed) = parse_x509_certificate(cert_der)
         .map_err(|e| CertificateError::ParsingError(format!("Failed to parse certificate: {e}")))?;
 
-    let expiry = parsed.tbs_certificate.validity.not_after.to_datetime();
-    Ok(chrono::DateTime::from_timestamp(expiry.unix_timestamp(), 0)
-        .ok_or_else(|| {
-            CertificateError::ParsingError(format!(
-                "Failed to convert certificate expiry {expiry} to NaiveDateTime",
-            ))
-        })?
-        .naive_utc())
+    let subject = &parsed.tbs_certificate.subject;
+
+    let cn = subject
+        .iter_common_name()
+        .next()
+        .ok_or_else(|| CertificateError::ParsingError("Common Name not found".to_string()))?
+        .as_str()
+        .map_err(|e| {
+            CertificateError::ParsingError(format!("Failed to parse CN as string: {e}"))
+        })?;
+
+    let validity = &parsed.tbs_certificate.validity;
+    let not_before = validity.not_before.to_datetime();
+    let not_after = validity.not_after.to_datetime();
+
+    Ok(CertificateInfo {
+        subject_common_name: cn.to_string(),
+        not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
+            .ok_or_else(|| {
+                CertificateError::ParsingError(format!(
+                    "Failed to convert certificate not_before {not_before} to NaiveDateTime",
+                ))
+            })?
+            .naive_utc(),
+        not_after: chrono::DateTime::from_timestamp(not_after.unix_timestamp(), 0)
+            .ok_or_else(|| {
+                CertificateError::ParsingError(format!(
+                    "Failed to convert certificate not_after {not_after} to NaiveDateTime",
+                ))
+            })?
+            .naive_utc(),
+    })
 }
 
 pub struct Csr<'a> {
@@ -233,6 +263,12 @@ pub fn cert_der_to_pem(cert_der: &[u8]) -> Result<String, CertificateError> {
 pub fn generate_key_pair() -> Result<KeyPair, CertificateError> {
     let key_pair = KeyPair::generate()?;
     Ok(key_pair)
+}
+
+pub fn parse_pem_certificate(pem_str: &str) -> Result<CertificateDer<'_>, CertificateError> {
+    let cert_der = CertificateDer::from_pem_slice(pem_str.as_bytes())
+        .map_err(|e| CertificateError::ParsingError(e.to_string()))?;
+    Ok(cert_der)
 }
 
 pub type DnType = rcgen::DnType;
@@ -408,5 +444,16 @@ mod tests {
             "Email '{}' should be present in Subject Alternative Names",
             expected_email
         );
+    }
+
+    #[test]
+    fn test_parse_pem_certificate() {
+        // Create a CA and get its PEM representation
+        let ca = CertificateAuthority::new("Defguard CA", "test@example.com", 365).unwrap();
+        let pem = ca.cert_pem().unwrap();
+
+        // Parse the PEM back to DER and ensure it matches the original
+        let parsed = parse_pem_certificate(&pem).unwrap();
+        assert_eq!(parsed, ca.cert_der);
     }
 }

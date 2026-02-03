@@ -20,13 +20,13 @@ import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types
 import { InteractionBox } from '../../defguard-ui/components/InteractionBox/InteractionBox';
 import './style.scss';
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { useGatewayWizardStore } from '../../../pages/GatewaySetupPage/useGatewayWizardStore';
 import api from '../../api/api';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { Icon } from '../../defguard-ui/components/Icon';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
-import { openModal } from '../../hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../hooks/modalControls/modalTypes';
 
 type Status = 'all' | 'none' | 'some';
 
@@ -148,16 +148,7 @@ const FloatingMenu = ({
   const networkId = status[0].network_id as number;
   const connected = useMemo(() => status.filter((gw) => gw.connected), [status]);
   const disconnected = useMemo(() => status.filter((gw) => !gw.connected), [status]);
-
-  const { mutate: getToken, isPending } = useMutation({
-    mutationFn: api.location.getGatewayToken,
-    onSuccess: ({ data }) => {
-      openModal(ModalName.GatewaySetup, {
-        data: data,
-        networkId,
-      });
-    },
-  });
+  const navigate = useNavigate();
 
   const { mutate: removeGw } = useMutation({
     mutationFn: api.location.deleteGateway,
@@ -223,9 +214,9 @@ const FloatingMenu = ({
         size="big"
         variant="outlined"
         text="Add more gateways"
-        loading={isPending}
         onClick={() => {
-          getToken(networkId);
+          useGatewayWizardStore.getState().start({ network_id: networkId });
+          navigate({ to: '/gateway-wizard', replace: true });
         }}
       />
     </div>

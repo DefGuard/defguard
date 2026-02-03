@@ -5,8 +5,10 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, User, WireguardNetwork, vpn_client_session::VpnClientSession,
+            Device, User, WireguardNetwork,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
+            wireguard::LocationMfaMode,
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -87,17 +89,11 @@ impl From<VpnSessionStats<Id>> for LastStatsUpdate {
 /// State of a specific VPN client session
 pub(crate) struct SessionState {
     session_id: Id,
+    state: VpnClientSessionState,
     last_stats_update: LastGatewayUpdate,
 }
 
 impl SessionState {
-    fn new(session_id: Id) -> Self {
-        Self {
-            session_id,
-            last_stats_update: LastGatewayUpdate::new(),
-        }
-    }
-
     fn try_get_last_stats_update(&self, gateway_id: Id) -> Option<&LastStatsUpdate> {
         self.last_stats_update.0.get(&gateway_id)
     }
@@ -108,6 +104,23 @@ impl SessionState {
         transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
     ) -> Result<(), SessionManagerError> {
+        // mark new MFA session as connected if necessary
+        if self.state == VpnClientSessionState::New {
+            // fetch DB session
+            let mut db_session = VpnClientSession::find_by_id(&mut *transaction, self.session_id)
+                .await?
+                .ok_or(SessionManagerError::SessionDoesNotExistError(
+                    self.session_id,
+                ))?;
+            // update DB session
+            db_session.state = VpnClientSessionState::Connected;
+            db_session.connected_at = Some(peer_stats_update.latest_handshake);
+            db_session.save(&mut *transaction).await?;
+
+            // update local session state
+            self.state = VpnClientSessionState::Connected;
+        }
+
         // get previous stats for a given gateway if available and calculate transfer change
         let (upload_diff, download_diff) =
             match self.try_get_last_stats_update(peer_stats_update.gateway_id) {
@@ -150,6 +163,7 @@ impl From<&VpnClientSession<Id>> for SessionState {
     fn from(value: &VpnClientSession<Id>) -> Self {
         Self {
             session_id: value.id,
+            state: value.state.clone(),
             last_stats_update: LastGatewayUpdate::new(),
         }
     }
@@ -180,7 +194,7 @@ pub(crate) struct ActiveSessionsMap {
     sessions: HashMap<Id, SessionMap>,
     locations: HashMap<Id, WireguardNetwork<Id>>,
     users: HashMap<Id, User<Id>>,
-    devices: HashMap<Id, Device<Id>>,
+    devices: HashMap<String, Device<Id>>,
 }
 
 impl ActiveSessionsMap {
@@ -202,8 +216,11 @@ impl ActiveSessionsMap {
         &mut self,
         transaction: &mut PgConnection,
         location_id: Id,
-        device_id: Id,
+        device_pubkey: String,
     ) -> Result<Option<&mut SessionState>, SessionManagerError> {
+        // translate pubkey into device ID
+        let device_id = self.get_device(&mut *transaction, device_pubkey).await?.id;
+
         // try to get session from current map
         let session_map = self.get_or_create_location_session_map(location_id);
         if session_map.0.contains_key(&device_id) {
@@ -241,12 +258,16 @@ impl ActiveSessionsMap {
 
     /// Attempts to create a new VPN client session, add it to curent state and persists it in DB
     ///
+    /// This should only happen for non-MFA sessions since MFA sessions (with `new` state) should be created once the authorization is completed
+    /// in the proxy handler.
+    ///
     /// We assume that at this point it's been checked that a session for this client does not exist yet,
     /// but we do check if given peer can be considered active based on a given locations peer disconnect threshold.
     pub(crate) async fn try_add_new_session(
         &mut self,
         transaction: &mut PgConnection,
         stats_update: &PeerStatsUpdate,
+        device_pubkey: &str,
         event_tx: &UnboundedSender<SessionManagerEvent>,
     ) -> Result<Option<&mut SessionState>, SessionManagerError> {
         // fetch location
@@ -256,6 +277,15 @@ impl ActiveSessionsMap {
             .get_location(&mut *transaction, location_id)
             .await?
             .clone();
+
+        // check location MFA mode since MFA sessions should be created elsewhere
+        // once MFA auth is successful
+        if location.location_mfa_mode != LocationMfaMode::Disabled {
+            warn!(
+                "Received peer stats update for MFA-enabled location {location}, but VPN session does not exist yet. Skipping creating a new session..."
+            );
+            return Ok(None);
+        }
 
         // check if a given peer is considered active and should be added to active sessions
         if Utc::now().naive_utc() - stats_update.latest_handshake
@@ -269,8 +299,11 @@ impl ActiveSessionsMap {
 
         // fetch other related objects from DB
         // clone them because we'll need those for event context
-        let device_id = stats_update.device_id;
-        let device = self.get_device(&mut *transaction, device_id).await?.clone();
+        let device = self
+            .get_device(&mut *transaction, device_pubkey.into())
+            .await?
+            .clone();
+        let device_id = device.id;
         let user = self
             .get_user(&mut *transaction, device.user_id)
             .await?
@@ -284,13 +317,13 @@ impl ActiveSessionsMap {
             user.id,
             device_id,
             Some(stats_update.latest_handshake),
-            location.location_mfa_mode.clone(),
+            None,
         )
         .save(transaction)
         .await?;
 
         // add to session map
-        let session_state = SessionState::new(session.id);
+        let session_state = SessionState::from(&session);
         let session_map = self.get_or_create_location_session_map(location_id);
         let maybe_existing_session = session_map.insert(device.id, session_state);
 
@@ -356,16 +389,20 @@ impl ActiveSessionsMap {
     async fn get_device<'e, E: sqlx::PgExecutor<'e>>(
         &mut self,
         executor: E,
-        device_id: Id,
+        device_pubkey: String,
     ) -> Result<&Device<Id>, SessionManagerError> {
         // first try to find device in object cache
-        let device_entry = match self.devices.entry(device_id) {
+        let device_entry = match self.devices.entry(device_pubkey.clone()) {
             Entry::Occupied(occupied_entry) => occupied_entry,
             Entry::Vacant(vacant_entry) => {
-                debug!("Device {device_id} not found in object cache. Trying to fetch from DB.");
-                let device = Device::find_by_id(executor, device_id)
+                debug!(
+                    "Device {device_pubkey} not found in object cache. Trying to fetch from DB."
+                );
+                let device = Device::find_by_pubkey(executor, &device_pubkey)
                     .await?
-                    .ok_or(SessionManagerError::DeviceDoesNotExistError(device_id))?;
+                    .ok_or(SessionManagerError::DevicePubkeyDoesNotExistError(
+                        device_pubkey,
+                    ))?;
                 // update object cache
                 vacant_entry.insert_entry(device)
             }

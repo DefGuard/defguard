@@ -15,6 +15,8 @@ use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
+use crate::db::models::Settings;
+
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
 pub fn server_config() -> &'static DefGuardConfig {
@@ -80,6 +82,8 @@ pub struct DefGuardConfig {
         default_value = "pass123"
     )]
     #[serde(skip_serializing)]
+    // TODO: Deprecate this, since we have initial setup now.
+    // We use it in some dev/test scenarios still so the approach will need to be changed there.
     pub default_admin_password: SecretString,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
@@ -90,6 +94,7 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
     pub webauthn_rp_id: Option<String>,
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
     #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse, default_value = "http://localhost:50055")]
@@ -115,10 +120,15 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT", default_value = "60s")]
     #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.default_mfa_code_lifetime instead"
+    )]
     pub mfa_code_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
     #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
     pub session_timeout: Duration,
 
     #[arg(
@@ -219,9 +229,7 @@ pub struct InitVpnLocationArgs {
 impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
-        let mut config = Self::parse();
-        config.validate_rp_id();
-        config.validate_cookie_domain();
+        let config = Self::parse();
         config.validate_secret_key();
         config
     }
@@ -229,32 +237,30 @@ impl DefGuardConfig {
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     #[must_use]
     pub fn new_test_config() -> Self {
-        let mut config = Self::parse_from::<[_; 0], String>([]);
-        config.validate_rp_id();
-        config.validate_cookie_domain();
-        config
+        Self::parse_from::<[_; 0], String>([])
     }
 
-    // Check if RP ID value was provided.
-    // If not generate it based on URL.
-    fn validate_rp_id(&mut self) {
+    /// Initialize values that depend on Settings.
+    pub fn initialize_post_settings(&mut self) {
+        let url = Settings::url().expect("Unable to parse Defguard URL.");
+        self.initialize_rp_id(&url);
+        self.initialize_cookie_domain(&url);
+    }
+
+    fn initialize_rp_id(&mut self, url: &Url) {
         if self.webauthn_rp_id.is_none() {
             self.webauthn_rp_id = Some(
-                self.url
-                    .domain()
+                url.domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             );
         }
     }
 
-    // Check if cookie domain value was provided.
-    // If not, generate it based on URL.
-    fn validate_cookie_domain(&mut self) {
+    fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
             self.cookie_domain = Some(
-                self.url
-                    .domain()
+                url.domain()
                     .expect("Unable to get domain for server URL.")
                     .to_string(),
             );
@@ -293,17 +299,6 @@ impl DefGuardConfig {
         } else {
             None
         }
-    }
-
-    /// Returns configured URL with "auth/callback" appended to the path.
-    #[must_use]
-    pub fn callback_url(&self) -> Url {
-        let mut url = self.url.clone();
-        // Append "auth/callback" to the URL.
-        if let Ok(mut path_segments) = url.path_segments_mut() {
-            path_segments.extend(&["auth", "callback"]);
-        }
-        url
     }
 
     /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
@@ -348,10 +343,11 @@ mod tests {
     fn test_generate_rp_id() {
         unsafe {
             env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
         }
 
-        let config = DefGuardConfig::new();
+        let url = Url::parse("https://defguard.example.com").unwrap();
+        let mut config = DefGuardConfig::new();
+        config.initialize_rp_id(&url);
 
         assert_eq!(
             config.webauthn_rp_id,
@@ -371,10 +367,11 @@ mod tests {
     fn test_generate_cookie_domain() {
         unsafe {
             env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
         }
 
-        let config = DefGuardConfig::new();
+        let url = Url::parse("https://defguard.example.com").unwrap();
+        let mut config = DefGuardConfig::new();
+        config.initialize_cookie_domain(&url);
 
         assert_eq!(
             config.cookie_domain,
@@ -388,26 +385,5 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.cookie_domain, Some("example.com".to_string()));
-    }
-
-    #[test]
-    fn test_callback_url() {
-        unsafe {
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
-        }
-        let config = DefGuardConfig::new();
-        assert_eq!(
-            config.callback_url().as_str(),
-            "https://defguard.example.com/auth/callback"
-        );
-
-        unsafe {
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com:8443/path");
-        }
-        let config = DefGuardConfig::new();
-        assert_eq!(
-            config.callback_url().as_str(),
-            "https://defguard.example.com:8443/path/auth/callback"
-        );
     }
 }

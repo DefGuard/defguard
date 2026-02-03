@@ -17,7 +17,9 @@ defguard_mail = { workspace = true }
 defguard_proxy_manager = { workspace = true }
 defguard_session_manager = { workspace = true }
 defguard_version = { workspace = true }
+defguard_vpn_stats_purge = { workspace = true }
 defguard_certs = { workspace = true }
+defguard_setup = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }

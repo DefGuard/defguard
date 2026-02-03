@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"vpn_client_session\" (\"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"mfa_method\",\"state\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "vpn_client_mfa_method",
+            "kind": {
+              "Enum": [
+                "totp",
+                "email",
+                "oidc",
+                "biometric",
+                "mobileapprove"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dd0190b514cf61ba7c444d14f9c47bda3869b74fcb598ec6f2cf8352424f87d6"
+}

@@ -116,7 +116,6 @@ use crate::{
             totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
             webauthn_start,
         },
-        ca::create_ca,
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
         group::{
@@ -132,7 +131,7 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{proxy_details, update_proxy},
+        proxy::{delete_proxy, proxy_details, update_proxy},
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -150,10 +149,10 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_user_devices, change_gateway, create_network, create_network_token,
-            delete_device, delete_network, devices_stats, download_config, gateway_status,
-            get_device, import_network, list_devices, list_networks, list_user_devices,
-            modify_device, modify_network, network_details, network_stats, remove_gateway,
+            add_device, add_user_devices, change_gateway, create_network, delete_device,
+            delete_network, devices_stats, download_config, gateway_status, get_device,
+            import_network, list_devices, list_networks, list_user_devices, modify_device,
+            modify_network, network_details, network_stats, remove_gateway,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -166,7 +165,7 @@ pub mod auth;
 pub mod db;
 pub mod enrollment_management;
 pub mod enterprise;
-mod error;
+pub mod error;
 pub mod events;
 pub mod grpc;
 pub mod handlers;
@@ -178,8 +177,6 @@ pub mod user_management;
 pub mod utility_thread;
 pub mod version;
 pub mod wg_config;
-pub mod wireguard_peer_disconnect;
-pub mod wireguard_stats_purge;
 
 #[macro_use]
 extern crate tracing;
@@ -195,11 +192,11 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 mod openapi;
 
 /// Simple health-check.
-async fn health_check() -> &'static str {
+pub async fn health_check() -> &'static str {
     "alive"
 }
 
-async fn handle_404() -> (StatusCode, &'static str) {
+pub async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
@@ -358,10 +355,11 @@ pub fn build_webapp(
             .route("/ldap/test", get(test_ldap_settings))
             // activity log
             .route("/activity_log", get(get_activity_log_events))
-            // Certificate authority
-            .route("/ca", post(create_ca))
             // Proxy routes
-            .route("/proxy/{proxy_id}", get(proxy_details).put(update_proxy))
+            .route(
+                "/proxy/{proxy_id}",
+                get(proxy_details).put(update_proxy).delete(delete_proxy),
+            )
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );
@@ -521,7 +519,6 @@ pub fn build_webapp(
                 "/network/{network_id}/device/{device_id}/config",
                 get(download_config),
             )
-            .route("/network/{network_id}/token", get(create_network_token))
             .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(network_stats))
             .route(
@@ -557,7 +554,7 @@ pub fn build_webapp(
 
     webapp
         .with_state(AppState::new(
-            pool,
+            pool.clone(),
             webhook_tx,
             webhook_rx,
             wireguard_tx,
@@ -565,8 +562,10 @@ pub fn build_webapp(
             failed_logins,
             event_tx,
             incompatible_components,
-            proxy_control_tx,
+            proxy_control_tx.clone(),
         ))
+        .layer(Extension(pool))
+        .layer(Extension(proxy_control_tx))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

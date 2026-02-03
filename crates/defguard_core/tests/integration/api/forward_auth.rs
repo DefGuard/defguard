@@ -1,4 +1,4 @@
-use defguard_common::config::SERVER_CONFIG;
+use defguard_common::db::models::Settings;
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -20,13 +20,10 @@ async fn test_forward_auth(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
     let headers = response.headers();
+    let url = Settings::url().unwrap();
     assert_eq!(
         headers.get("location").unwrap().to_str().unwrap(),
-        format!(
-            "{}auth/login?r={}",
-            SERVER_CONFIG.get().unwrap().url,
-            "http://app.example.com/test"
-        )
+        format!("{}auth/login?r={}", url, "http://app.example.com/test")
     );
 
     // login

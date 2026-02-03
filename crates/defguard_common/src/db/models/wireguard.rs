@@ -31,7 +31,7 @@ use crate::{
     db::{
         Id, NoId,
         models::{
-            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
         },
     },
@@ -1019,7 +1019,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, \
-            created_at, connected_at, disconnected_at, mfa_mode \"mfa_mode: LocationMfaMode\", \
+            created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", \
             state \"state: VpnClientSessionState\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
@@ -1181,11 +1181,11 @@ pub async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
-    use crate::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
+    use crate::db::setup_pool;
 
     // FIXME(mwojcik): rewrite for new stats implementation
     // #[sqlx::test]

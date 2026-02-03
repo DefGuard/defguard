@@ -84,7 +84,7 @@ export const AddLocationMfaStep = () => {
       )}
       <ModalControls
         submitProps={{
-          text: m.controls_finish(),
+          text: m.controls_continue(),
           testId: 'finish',
           disabled: isPresent(error),
           onClick: () => {

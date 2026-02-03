@@ -17,7 +17,7 @@ pub async fn get_location_allowed_peers<'e, E>(
 where
     E: PgExecutor<'e>,
 {
-    debug!("Fetching all peers for network {}", location.id);
+    debug!("Fetching all allowed peers for location {}", location.id);
 
     if should_prevent_service_location_usage(location) {
         warn!(

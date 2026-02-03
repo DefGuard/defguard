@@ -30,8 +30,7 @@ use crate::{
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
 pub(crate) mod auth;
-pub mod ca;
-pub(crate) mod component_setup;
+pub mod component_setup;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub mod mail;
@@ -40,7 +39,7 @@ pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub mod proxy;
-pub(crate) mod settings;
+pub mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
 pub(crate) mod updates;
@@ -52,6 +51,7 @@ pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
 pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
 
 #[derive(Default, ToSchema)]
@@ -113,6 +113,7 @@ impl From<WebError> for ApiResponse {
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)
             | WebError::ActivityLogStreamError(_)
+            | WebError::UrlParseError(_)
             | WebError::CertificateError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(

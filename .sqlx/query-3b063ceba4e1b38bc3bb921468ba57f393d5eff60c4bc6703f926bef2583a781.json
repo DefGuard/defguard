@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY collected_at DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "disconnected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "mfa_method: VpnClientMfaMethod",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_mfa_method",
+            "kind": {
+              "Enum": [
+                "totp",
+                "email",
+                "oidc",
+                "biometric",
+                "mobileapprove"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "state: VpnClientSessionState",
+        "type_info": {
+          "Custom": {
+            "name": "vpn_client_session_state",
+            "kind": {
+              "Enum": [
+                "new",
+                "connected",
+                "disconnected"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "3b063ceba4e1b38bc3bb921468ba57f393d5eff60c4bc6703f926bef2583a781"
+}
