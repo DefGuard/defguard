@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};

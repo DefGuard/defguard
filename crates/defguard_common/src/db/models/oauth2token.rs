@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use chrono::{TimeDelta, Utc};
 use sqlx::{Error as SqlxError, PgPool, query, query_as};
 
