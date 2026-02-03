@@ -7,7 +7,7 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useApp } from '../../shared/hooks/useApp';
-import worldMap from './assets/world_map.png';
+import worldMap from './assets/world-map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
 import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
 import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAuthoritySummaryStep';

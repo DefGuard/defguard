@@ -9,7 +9,7 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import location from '../assets/location.svg';
+import location from '../assets/location.png';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
 export const SetupConfirmationStep = () => {

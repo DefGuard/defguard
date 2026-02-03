@@ -13,7 +13,7 @@ export const LocationsPage = () => {
       <Page title="Locations" id="locations-page">
         <LocationsTable locations={locations} />
       </Page>
-  <AddLocationModal />
+      <AddLocationModal />
     </>
   );
 };

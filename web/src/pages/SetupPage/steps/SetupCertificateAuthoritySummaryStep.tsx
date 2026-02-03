@@ -10,7 +10,7 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../shared/utils/download';
-import caIcon from '../assets/ca.svg';
+import caIcon from '../assets/ca.png';
 import { CAOption, SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 import './style.scss';
