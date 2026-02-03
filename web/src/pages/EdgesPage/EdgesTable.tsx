@@ -126,8 +126,8 @@ export const EdgesTable = ({ edges }: Props) => {
       }),
       columnHelper.accessor('address', {
         header: m.edges_col_address(),
-        size: 100,
-        minSize: 100,
+        size: 175,
+        minSize: 175,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -203,7 +203,7 @@ export const EdgesTable = ({ edges }: Props) => {
             {
               items: [
                 {
-                  text: m.users_row_menu_edit(),
+                  text: m.edges_row_menu_edit(),
                   icon: 'edit',
                   onClick: () => {
                     navigate({
@@ -326,7 +326,7 @@ export const EdgesTable = ({ edges }: Props) => {
 
   return (
     <>
-      <TableTop text={m.users_header_title()}>
+      <TableTop text={m.edges_header_title()}>
         <Search
           placeholder={m.edges_search_placeholder()}
           initialValue={search}

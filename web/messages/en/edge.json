@@ -10,6 +10,7 @@
   "edge_edit_delete": "Delete",
   "edge_edit_success": "Edge component updated",
   "edge_edit_failed": "Failed to update edge component",
+  "edges_header_title": "All components",
   "edges_col_name": "Name",
   "edges_col_address": "Address",
   "edges_col_port": "gRPC port",
