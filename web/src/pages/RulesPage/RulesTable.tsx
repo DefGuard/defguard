@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -68,12 +69,14 @@ export const RulesTable = ({
   locations,
   data,
 }: Props) => {
+  const navigate = useNavigate();
   const { mutate: deleteRule } = useMutation({
     mutationFn: api.acl.rule.deleteRule,
     meta: {
       invalidate: ['acl'],
     },
   });
+
   const [search, setSearch] = useState('');
 
   const renderPermissionCell = useCallback(
@@ -235,6 +238,22 @@ export const RulesTable = ({
             {
               items: [
                 {
+                  icon: 'edit',
+                  text: m.controls_edit(),
+                  onClick: () => {
+                    navigate({
+                      to: '/acl/edit-rule',
+                      search: {
+                        rule: row.id,
+                      },
+                    });
+                  },
+                },
+              ],
+            },
+            {
+              items: [
+                {
                   icon: 'delete',
                   variant: 'danger',
                   text: m.controls_delete(),
@@ -253,7 +272,7 @@ export const RulesTable = ({
         },
       }),
     ],
-    [aliases, renderPermissionCell, deleteRule, locations],
+    [aliases, renderPermissionCell, deleteRule, locations, navigate],
   );
 
   const visibleRules = useMemo(() => {

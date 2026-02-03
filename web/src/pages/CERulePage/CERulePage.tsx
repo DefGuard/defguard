@@ -3,7 +3,7 @@ import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
-import { cloneDeep, flat } from 'radashi';
+import { cloneDeep, flat, omit } from 'radashi';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
@@ -12,6 +12,7 @@ import {
   type AclDestination,
   AclProtocolName,
   type AclProtocolValue,
+  type AclRule,
   aclProtocolValues,
   type NetworkLocation,
 } from '../../shared/api/types';
@@ -115,24 +116,31 @@ const renderLocationSelectionItem: SelectionSectionCustomRender<
   );
 };
 
-export const CERulePage = () => {
+type Props = {
+  rule?: AclRule;
+};
+
+export const CERulePage = ({ rule }: Props) => {
+  const isEdit = isPresent(rule);
+
   return (
     <EditPage
       id="ce-rule-page"
       pageTitle="Rules"
       headerProps={{
         icon: 'add-rule',
-        title: `Create rule for firewall`,
+        title: isEdit ? `Edit firewall rule` : `Create rule for firewall`,
         subtitle: `Define who can access specific locations and which IPs, ports, and protocols are allowed. Use firewall rules to grant or restrict access for users and groups, ensuring your network stays secure and controlled.`,
       }}
     >
-      <Content />
+      <Content rule={rule} />
     </EditPage>
   );
 };
 
-const Content = () => {
+const Content = ({ rule: initialRule }: Props) => {
   const router = useRouter();
+
   const { mutateAsync: addRule } = useMutation({
     mutationFn: api.acl.rule.addRule,
     meta: {
@@ -144,19 +152,16 @@ const Content = () => {
     },
   });
 
-  // const { mutateAsync: editRule } = useMutation({
-  //   mutationFn: api.acl.rule.editRule,
-  //   meta: {
-  //     invalidate: ['acl'],
-  //   },
-  //   onSuccess: () => {
-  //     Snackbar.success('Rule changed');
-  //   },
-  // });
-
-  const [destinationAllAddresses, _setDestinationAllAddresses] = useState<boolean>(true);
-  const [destinationAllPorts, _setDestinationAllPorts] = useState<boolean>(true);
-  const [destinationAllProtocols, _setDestinationAllProtocols] = useState<boolean>(true);
+  const { mutateAsync: editRule } = useMutation({
+    mutationFn: api.acl.rule.editRule,
+    meta: {
+      invalidate: ['acl'],
+    },
+    onSuccess: () => {
+      Snackbar.success('Rule changed');
+      router.history.back();
+    },
+  });
 
   const { data: users } = useQuery(getUsersQueryOptions);
 
@@ -353,8 +358,18 @@ const Content = () => {
 
   type FormFields = z.infer<typeof formSchema>;
 
-  const defaultValues = useMemo(
-    (): FormFields => ({
+  const defaultValues = useMemo((): FormFields => {
+    if (isPresent(initialRule)) {
+      return {
+        ...omit(initialRule, ['id', 'state', 'expires', 'parent_id']),
+        aliases: new Set(initialRule.aliases),
+        destinations: new Set(),
+        protocols: new Set(initialRule.protocols),
+        expires: null,
+      };
+    }
+
+    return {
       name: '',
       destination: '',
       ports: '',
@@ -378,9 +393,8 @@ const Content = () => {
       any_destination: true,
       any_port: true,
       any_protocol: true,
-    }),
-    [],
-  );
+    };
+  }, [initialRule]);
 
   const form = useAppForm({
     defaultValues,
@@ -402,23 +416,35 @@ const Content = () => {
         toSend.denied_groups = [];
         toSend.denied_users = [];
       }
-      if (destinationAllAddresses) {
+      if (toSend.any_destination) {
         toSend.destination = '';
       }
-      if (destinationAllPorts) {
+      if (toSend.any_port) {
         toSend.ports = '';
       }
-      if (destinationAllProtocols) {
+      if (toSend.any_protocol) {
         toSend.protocols = new Set();
       }
-      await addRule({
-        ...toSend,
-        any_destination: true,
-        any_port: true,
-        any_protocol: true,
-        protocols: Array.from(toSend.protocols),
-        aliases: Array.from(toSend.aliases),
-      });
+      if (isPresent(initialRule)) {
+        await editRule({
+          ...toSend,
+          any_destination: true,
+          any_port: true,
+          any_protocol: true,
+          protocols: Array.from(toSend.protocols),
+          aliases: Array.from(toSend.aliases),
+          id: initialRule.id,
+        });
+      } else {
+        await addRule({
+          ...toSend,
+          any_destination: true,
+          any_port: true,
+          any_protocol: true,
+          protocols: Array.from(toSend.protocols),
+          aliases: Array.from(toSend.aliases),
+        });
+      }
     },
   });
 
