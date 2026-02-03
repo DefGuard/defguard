@@ -1134,6 +1134,7 @@ dependencies = [
  "defguard_mail",
  "defguard_proxy_manager",
  "defguard_session_manager",
+ "defguard_setup",
  "defguard_version",
  "defguard_vpn_stats_purge",
  "dotenvy",
@@ -1188,6 +1189,7 @@ dependencies = [
  "tonic",
  "totp-lite",
  "tracing",
+ "url",
  "utoipa",
  "uuid",
  "vergen-git2",
@@ -1326,6 +1328,7 @@ dependencies = [
  "chrono",
  "claims",
  "defguard_common",
+ "humantime",
  "lettre",
  "pulldown-cmark",
  "reqwest",
@@ -1383,6 +1386,27 @@ dependencies = [
  "defguard_core",
  "sqlx",
  "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "defguard_setup"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "defguard_certs",
+ "defguard_common",
+ "defguard_core",
+ "defguard_version",
+ "defguard_web_ui",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "sqlx",
  "tokio",
  "tracing",
 ]

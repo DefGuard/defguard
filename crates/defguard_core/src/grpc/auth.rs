@@ -2,17 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
-    db::models::User,
+    db::models::{Settings, User},
 };
 use defguard_proto::auth::{AuthenticateRequest, AuthenticateResponse, auth_service_server};
 use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
-use crate::{
-    auth::failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
-    server_config,
-};
+use crate::auth::failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt};
 
 pub struct AuthServer {
     pool: PgPool,
@@ -30,7 +27,8 @@ impl AuthServer {
 
     /// Creates JWT token for specified user
     fn create_jwt(uid: &str) -> Result<String, JWTError> {
-        let timeout = server_config().session_timeout;
+        let settings = Settings::get_current_settings();
+        let timeout = settings.authentication_timeout();
         Claims::new(
             ClaimsType::Auth,
             uid.into(),

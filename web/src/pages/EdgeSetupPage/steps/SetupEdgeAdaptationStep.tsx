@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useSSEController } from '../../../hooks/useSSEController';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
@@ -9,6 +8,7 @@ import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCa
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useSSEController } from '../../../shared/hooks/useSSEController';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';

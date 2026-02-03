@@ -20,12 +20,12 @@ import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as WizardSetupWizardRouteImport } from './routes/_wizard/setup-wizard'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
-import { Route as AuthorizedWizardSetupWizardRouteImport } from './routes/_authorized/_wizard/setup-wizard'
 import { Route as AuthorizedWizardGatewayWizardRouteImport } from './routes/_authorized/_wizard/gateway-wizard'
 import { Route as AuthorizedWizardEdgeWizardRouteImport } from './routes/_authorized/_wizard/edge-wizard'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
@@ -112,6 +112,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const WizardSetupWizardRoute = WizardSetupWizardRouteImport.update({
+  id: '/_wizard/setup-wizard',
+  path: '/setup-wizard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
   id: '/_default',
   getParentRoute: () => AuthorizedRoute,
@@ -136,12 +141,6 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
-const AuthorizedWizardSetupWizardRoute =
-  AuthorizedWizardSetupWizardRouteImport.update({
-    id: '/_wizard/setup-wizard',
-    path: '/setup-wizard',
-    getParentRoute: () => AuthorizedRoute,
-  } as any)
 const AuthorizedWizardGatewayWizardRoute =
   AuthorizedWizardGatewayWizardRouteImport.update({
     id: '/_wizard/gateway-wizard',
@@ -328,11 +327,11 @@ const AuthorizedDefaultEdgeEdgeIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
+  '/setup-wizard': typeof WizardSetupWizardRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -348,7 +347,6 @@ export interface FileRoutesByFullPath {
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
   '/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
-  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -368,19 +366,19 @@ export interface FileRoutesByFullPath {
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/edge/': typeof AuthorizedDefaultEdgeIndexRoute
-  '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
-  '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
-  '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
+  '/edge': typeof AuthorizedDefaultEdgeIndexRoute
+  '/locations': typeof AuthorizedDefaultLocationsIndexRoute
+  '/settings': typeof AuthorizedDefaultSettingsIndexRoute
+  '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
   '/edge/$edgeId/edit': typeof AuthorizedDefaultEdgeEdgeIdEditRoute
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
   '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
+  '/setup-wizard': typeof WizardSetupWizardRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -396,7 +394,6 @@ export interface FileRoutesByTo {
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
   '/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
-  '/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -432,6 +429,7 @@ export interface FileRoutesById {
   '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
+  '/_wizard/setup-wizard': typeof WizardSetupWizardRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
@@ -447,7 +445,6 @@ export interface FileRoutesById {
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/_authorized/_wizard/edge-wizard': typeof AuthorizedWizardEdgeWizardRoute
   '/_authorized/_wizard/gateway-wizard': typeof AuthorizedWizardGatewayWizardRoute
-  '/_authorized/_wizard/setup-wizard': typeof AuthorizedWizardSetupWizardRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
@@ -478,11 +475,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/404'
-    | '/'
     | '/auth'
     | '/consent'
     | '/playground'
     | '/snackbar'
+    | '/setup-wizard'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -498,7 +495,6 @@ export interface FileRouteTypes {
     | '/add-location'
     | '/edge-wizard'
     | '/gateway-wizard'
-    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -518,19 +514,19 @@ export interface FileRouteTypes {
     | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
-    | '/edge/'
-    | '/locations/'
-    | '/settings/'
-    | '/vpn-overview/'
+    | '/edge'
+    | '/locations'
+    | '/settings'
+    | '/vpn-overview'
     | '/edge/$edgeId/edit'
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
-    | '/'
     | '/consent'
     | '/playground'
     | '/snackbar'
+    | '/setup-wizard'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -546,7 +542,6 @@ export interface FileRouteTypes {
     | '/add-location'
     | '/edge-wizard'
     | '/gateway-wizard'
-    | '/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -581,6 +576,7 @@ export interface FileRouteTypes {
     | '/playground'
     | '/snackbar'
     | '/_authorized/_default'
+    | '/_wizard/setup-wizard'
     | '/auth/callback'
     | '/auth/loading'
     | '/auth/login'
@@ -596,7 +592,6 @@ export interface FileRouteTypes {
     | '/_authorized/_wizard/add-location'
     | '/_authorized/_wizard/edge-wizard'
     | '/_authorized/_wizard/gateway-wizard'
-    | '/_authorized/_wizard/setup-wizard'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
@@ -631,6 +626,7 @@ export interface RootRouteChildren {
   ConsentRoute: typeof ConsentRoute
   PlaygroundRoute: typeof PlaygroundRoute
   SnackbarRoute: typeof SnackbarRoute
+  WizardSetupWizardRoute: typeof WizardSetupWizardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -666,7 +662,7 @@ declare module '@tanstack/react-router' {
     '/_authorized': {
       id: '/_authorized'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof AuthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -712,10 +708,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_wizard/setup-wizard': {
+      id: '/_wizard/setup-wizard'
+      path: '/setup-wizard'
+      fullPath: '/setup-wizard'
+      preLoaderRoute: typeof WizardSetupWizardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authorized/_default': {
       id: '/_authorized/_default'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof AuthorizedDefaultRouteImport
       parentRoute: typeof AuthorizedRoute
     }
@@ -746,13 +749,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/mfa/email'
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
-    }
-    '/_authorized/_wizard/setup-wizard': {
-      id: '/_authorized/_wizard/setup-wizard'
-      path: '/setup-wizard'
-      fullPath: '/setup-wizard'
-      preLoaderRoute: typeof AuthorizedWizardSetupWizardRouteImport
-      parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/gateway-wizard': {
       id: '/_authorized/_wizard/gateway-wizard'
@@ -827,28 +823,28 @@ declare module '@tanstack/react-router' {
     '/_authorized/_default/vpn-overview/': {
       id: '/_authorized/_default/vpn-overview/'
       path: '/vpn-overview'
-      fullPath: '/vpn-overview/'
+      fullPath: '/vpn-overview'
       preLoaderRoute: typeof AuthorizedDefaultVpnOverviewIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/settings/': {
       id: '/_authorized/_default/settings/'
       path: '/settings'
-      fullPath: '/settings/'
+      fullPath: '/settings'
       preLoaderRoute: typeof AuthorizedDefaultSettingsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/locations/': {
       id: '/_authorized/_default/locations/'
       path: '/locations'
-      fullPath: '/locations/'
+      fullPath: '/locations'
       preLoaderRoute: typeof AuthorizedDefaultLocationsIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/edge/': {
       id: '/_authorized/_default/edge/'
       path: '/edge'
-      fullPath: '/edge/'
+      fullPath: '/edge'
       preLoaderRoute: typeof AuthorizedDefaultEdgeIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
@@ -1051,7 +1047,6 @@ interface AuthorizedRouteChildren {
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardEdgeWizardRoute: typeof AuthorizedWizardEdgeWizardRoute
   AuthorizedWizardGatewayWizardRoute: typeof AuthorizedWizardGatewayWizardRoute
-  AuthorizedWizardSetupWizardRoute: typeof AuthorizedWizardSetupWizardRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -1061,7 +1056,6 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
   AuthorizedWizardEdgeWizardRoute: AuthorizedWizardEdgeWizardRoute,
   AuthorizedWizardGatewayWizardRoute: AuthorizedWizardGatewayWizardRoute,
-  AuthorizedWizardSetupWizardRoute: AuthorizedWizardSetupWizardRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
@@ -1110,6 +1104,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConsentRoute: ConsentRoute,
   PlaygroundRoute: PlaygroundRoute,
   SnackbarRoute: SnackbarRoute,
+  WizardSetupWizardRoute: WizardSetupWizardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

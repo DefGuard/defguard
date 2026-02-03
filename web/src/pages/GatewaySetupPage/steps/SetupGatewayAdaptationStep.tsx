@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useSSEController } from '../../../hooks/useSSEController';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
@@ -9,6 +8,7 @@ import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCa
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useSSEController } from '../../../shared/hooks/useSSEController';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
@@ -146,9 +146,9 @@ export const SetupGatewayAdaptationStep = () => {
   return (
     <WizardCard>
       <div>
-        {steps.map((step, index) => (
+        {steps.map((step) => (
           <LoadingStep
-            key={index}
+            key={step.id}
             title={step.title}
             loading={stepLoading(step.id)}
             success={stepDone(step.id)}

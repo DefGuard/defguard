@@ -1,7 +1,8 @@
 pub mod failed_login;
 
 use axum::{
-    extract::{FromRef, FromRequestParts, OptionalFromRequestParts},
+    Extension,
+    extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
 };
 use axum_client_ip::InsecureClientIp;
@@ -13,15 +14,15 @@ use axum_extra::{
 use defguard_common::db::{
     Id,
     models::{
-        OAuth2Token, Session, SessionState,
+        OAuth2Token, Session, SessionState, Settings,
         group::{Group, Permission},
         oauth2client::OAuth2Client,
         user::User,
     },
 };
+use sqlx::PgPool;
 
 use crate::{
-    appstate::AppState,
     enterprise::{db::models::api_tokens::ApiToken, is_business_license_active},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
@@ -32,12 +33,12 @@ pub struct SessionExtractor(pub Session);
 impl<S> FromRequestParts<S> for SessionExtractor
 where
     S: Send + Sync,
-    AppState: FromRef<S>,
 {
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let appstate = AppState::from_ref(state);
+        // let appstate = AppState::from_ref(state);
+        let pool = extract_pool(parts, state).await?;
 
         // first try to authenticate by API token if one is found in header
         if is_business_license_active() {
@@ -51,7 +52,7 @@ where
             if let Some(header) = maybe_auth_header {
                 let token_string = header.token();
                 debug!("Trying to authorize request using API token: {token_string}");
-                return match ApiToken::try_find_by_auth_token(&appstate.pool, token_string).await {
+                return match ApiToken::try_find_by_auth_token(&pool, token_string).await {
                     Ok(Some(api_token)) => {
                         // create a dummy session and don't store it in the DB
                         // since each request needs to be authorized anyway
@@ -77,10 +78,10 @@ where
         let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;
         if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
             return {
-                match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
+                match Session::find_by_id(&pool, session_cookie.value()).await {
                     Ok(Some(session)) => {
                         if session.expired() {
-                            let _result = session.delete(&appstate.pool).await;
+                            let _result = session.delete(&pool).await;
                             Err(WebError::Authorization("Session expired".into()))
                         } else {
                             Ok(Self(session))
@@ -108,7 +109,7 @@ pub struct SessionInfo {
 
 impl SessionInfo {
     #[must_use]
-    pub fn new(session: Session, user: User<Id>, is_admin: bool) -> Self {
+    pub const fn new(session: Session, user: User<Id>, is_admin: bool) -> Self {
         Self {
             session,
             user,
@@ -127,14 +128,13 @@ impl SessionInfo {
 impl<S> FromRequestParts<S> for SessionInfo
 where
     S: Send + Sync,
-    AppState: FromRef<S>,
 {
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let session = SessionExtractor::from_request_parts(parts, state).await?.0;
-        let appstate = AppState::from_ref(state);
-        let user = User::find_by_id(&appstate.pool, session.user_id).await?;
+        let pool = extract_pool(parts, state).await?;
+        let user = User::find_by_id(&pool, session.user_id).await?;
 
         if let Some(user) = user {
             if user.mfa_enabled
@@ -143,10 +143,10 @@ where
             {
                 return Err(WebError::Authorization("MFA not verified".into()));
             }
-            let Ok(groups) = user.member_of(&appstate.pool).await else {
+            let Ok(groups) = user.member_of(&pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
-            let is_admin = user.is_admin(&appstate.pool).await?;
+            let is_admin = user.is_admin(&pool).await?;
 
             // non-admin users are not allowed to use token auth
             if !is_admin && session.state == SessionState::ApiTokenVerified {
@@ -156,7 +156,7 @@ where
             }
 
             // Store session info into request extensions so future extractors can use it
-            let session_info = SessionInfo {
+            let session_info = Self {
                 session,
                 user,
                 is_admin,
@@ -178,7 +178,6 @@ macro_rules! role {
         impl<S> FromRequestParts<S> for $name
         where
             S: Send + Sync,
-            AppState: FromRef<S>,
         {
             type Rejection = WebError;
 
@@ -190,10 +189,10 @@ macro_rules! role {
                 if !session_info.user.is_active {
                     return Err(WebError::Forbidden("user is disabled".into()));
                 }
-                let appstate = AppState::from_ref(state);
+                let pool = extract_pool(parts, state).await?;
                 $(
                 let groups_with_permission = Group::find_by_permission(
-                    &appstate.pool,
+                    &pool,
                     $permission,
                 ).await?;
                 let group_names = groups_with_permission.iter().map(|group| group.name.as_str()).collect::<Vec<_>>();
@@ -208,6 +207,51 @@ macro_rules! role {
 }
 
 role!(AdminRole, Permission::IsAdmin);
+
+/// Special role that allows access if the user is admin or if the initial setup is not yet completed.
+pub struct AdminOrSetupRole;
+
+impl<S> FromRequestParts<S> for AdminOrSetupRole
+where
+    S: Send + Sync,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let settings = Settings::get_current_settings();
+        if !settings.initial_setup_completed {
+            return Ok(Self {});
+        }
+        let session_info = SessionInfo::from_request_parts(parts, state).await?;
+        if !session_info.user.is_active {
+            return Err(WebError::Forbidden("user is disabled".into()));
+        }
+        let pool = extract_pool(parts, state).await?;
+        let groups_with_permission = Group::find_by_permission(&pool, Permission::IsAdmin).await?;
+        let group_names = groups_with_permission
+            .iter()
+            .map(|group| group.name.as_str())
+            .collect::<Vec<_>>();
+        if session_info.contains_any_group(&group_names) {
+            return Ok(Self {});
+        }
+        Err(WebError::Forbidden("access denied".into()))
+    }
+}
+
+async fn extract_pool<S>(parts: &mut Parts, state: &S) -> Result<PgPool, WebError>
+where
+    S: Send + Sync,
+{
+    let Extension(pool) =
+        <Extension<PgPool> as FromRequestParts<S>>::from_request_parts(parts, state)
+            .await
+            .map_err(|err| {
+                error!("Failed to extract database pool: {err:?}");
+                WebError::ObjectNotFound("Database pool not found".into())
+            })?;
+    Ok(pool)
+}
 
 #[derive(Debug)]
 pub(crate) struct UserClaims {

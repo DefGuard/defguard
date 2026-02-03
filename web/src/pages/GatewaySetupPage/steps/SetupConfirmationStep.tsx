@@ -26,9 +26,9 @@ export const SetupConfirmationStep = () => {
 
   return (
     <WizardCard>
-      <h2>{m.edge_setup_confirmation_title()}</h2>
+      <h2>{m.gateway_setup_confirmation_title()}</h2>
       <SizedBox height={ThemeSpacing.Sm} />
-      <p>{m.edge_setup_confirmation_subtitle()}</p>
+      <p>{m.gateway_setup_confirmation_subtitle()}</p>
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
         title={m.gateway_setup_add_multiple_gateways_title()}

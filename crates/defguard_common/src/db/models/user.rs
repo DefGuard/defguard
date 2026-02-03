@@ -1,4 +1,7 @@
-use std::{fmt, time::SystemTime};
+use std::{
+    fmt,
+    time::{Duration, SystemTime},
+};
 
 use argon2::{
     Argon2,
@@ -25,13 +28,12 @@ use utoipa::ToSchema;
 
 use super::{
     device::{Device, DeviceType, UserDevice},
-    group::{Group, Permission},
+    group::Group,
 };
 use crate::{
-    config::server_config,
     db::{
         Id, NoId,
-        models::{MFAInfo, Session, WebAuthn},
+        models::{MFAInfo, Session, Settings, WebAuthn, group::Permission},
     },
     random::{gen_alphanumeric, gen_totp_secret},
     types::user_info::OAuth2AuthorizedAppInfo,
@@ -681,7 +683,8 @@ impl User<Id> {
     /// NOTE: This code will be valid for two time frames. See comment for verify_email_mfa_code().
     pub fn generate_email_mfa_code(&self) -> Result<String, UserError> {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
-            let timeout = &server_config().mfa_code_timeout;
+            let settings = Settings::get_current_settings();
+            let timeout = Duration::from_secs(settings.mfa_code_timeout_seconds as u64);
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
                 let code = totp_custom::<Sha1>(
                     timeout.as_secs(),
@@ -717,7 +720,8 @@ impl User<Id> {
     #[must_use]
     pub fn verify_email_mfa_code(&self, code: &str) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
-            let timeout = server_config().mfa_code_timeout.as_secs();
+            let settings = Settings::get_current_settings();
+            let timeout = settings.mfa_code_timeout_seconds as u64;
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
                 let expected_code = totp_custom::<Sha1>(
                     timeout,

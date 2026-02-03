@@ -1181,11 +1181,11 @@ pub async fn networks_stats(
 mod test {
     use std::str::FromStr;
 
-    use crate::db::setup_pool;
     use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
+    use crate::db::setup_pool;
 
     // FIXME(mwojcik): rewrite for new stats implementation
     // #[sqlx::test]

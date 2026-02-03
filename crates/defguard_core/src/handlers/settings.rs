@@ -1,4 +1,5 @@
 use axum::{
+    Extension,
     extract::{Json, Path, State},
     http::StatusCode,
 };
@@ -6,6 +7,7 @@ use defguard_common::db::models::{
     Settings, SettingsEssentials,
     settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
 };
+use sqlx::PgPool;
 use struct_patch::Patch;
 
 use super::{ApiResponse, ApiResult};
@@ -64,9 +66,9 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-pub async fn get_settings_essentials(State(appstate): State<AppState>) -> ApiResult {
+pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Retrieving essential settings");
-    let mut settings = SettingsEssentials::get_settings_essentials(&appstate.pool).await?;
+    let mut settings = SettingsEssentials::get_settings_essentials(&pool).await?;
     if settings.nav_logo_url.is_empty() {
         settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
     }
