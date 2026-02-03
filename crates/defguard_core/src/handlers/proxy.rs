@@ -4,7 +4,7 @@ use axum::{
 };
 use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use reqwest::StatusCode;
-use serde_json::{Value, json};
+use serde_json::Value;
 use utoipa::ToSchema;
 
 use crate::{
@@ -46,14 +46,8 @@ pub(crate) async fn proxy_details(
     );
     let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
     let response = match proxy {
-        Some(proxy) => ApiResponse {
-            json: json!(proxy),
-            status: StatusCode::OK,
-        },
-        None => ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        },
+        Some(proxy) => ApiResponse::json(proxy, StatusCode::OK),
+        None => ApiResponse::json(Value::Null, StatusCode::NOT_FOUND),
     };
     info!(
         "User {} displayed details for proxy {proxy_id}",
@@ -92,10 +86,7 @@ pub(crate) async fn update_proxy(
 
     let Some(mut proxy) = proxy else {
         warn!("Proxy {proxy_id} not found");
-        return Ok(ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        });
+        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
     let before = proxy.clone();
 
@@ -143,10 +134,7 @@ pub(crate) async fn delete_proxy(
 
     let Some(proxy) = proxy else {
         warn!("Proxy {proxy_id} not found");
-        return Ok(ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        });
+        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
 
     // Disconnect the proxy
