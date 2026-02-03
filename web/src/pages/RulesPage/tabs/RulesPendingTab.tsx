@@ -1,5 +1,10 @@
+import { useMutation } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import api from '../../../shared/api/api';
 import type { AclRule } from '../../../shared/api/types';
+import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { RulesTable } from '../RulesTable';
 
 type Props = {
   rules: AclRule[];
@@ -7,6 +12,27 @@ type Props = {
 
 export const RulesPendingTab = ({ rules }: Props) => {
   const isEmpty = rules.length === 0;
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: api.acl.rule.applyRules,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
+
+  const buttonProps = useMemo(
+    (): ButtonProps => ({
+      text: `Deploy all pending (${rules.length})`,
+      iconLeft: 'deploy',
+      variant: 'primary',
+      loading: isPending,
+      onClick: () => {
+        mutate(rules.map((rule) => rule.id));
+      },
+    }),
+    [isPending, mutate, rules],
+  );
+
   return (
     <>
       {isEmpty && (
@@ -16,6 +42,7 @@ export const RulesPendingTab = ({ rules }: Props) => {
           subtitle={`They will appear here once your create your first rule.`}
         />
       )}
+      <RulesTable data={rules} buttonProps={buttonProps} title="Pending rules" />
     </>
   );
 };

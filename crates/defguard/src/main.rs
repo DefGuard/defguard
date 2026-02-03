@@ -25,7 +25,7 @@ use defguard_core::{
         license::{License, run_periodic_license_check, set_cached_license},
         limits::update_counts,
     },
-    events::{ApiEvent, BidiStreamEvent, InternalEvent},
+    events::{ApiEvent, BidiStreamEvent},
     grpc::{
         WorkerState,
         gateway::{events::GatewayEvent, run_grpc_gateway_stream},
@@ -34,14 +34,13 @@ use defguard_core::{
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
-    wireguard_peer_disconnect::run_periodic_peer_disconnect,
-    wireguard_stats_purge::run_periodic_stats_purge,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
+use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
     broadcast,
@@ -107,7 +106,6 @@ async fn main() -> Result<(), anyhow::Error> {
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
-    let (internal_event_tx, internal_event_rx) = unbounded_channel::<InternalEvent>();
     let (session_manager_event_tx, session_manager_event_rx) =
         unbounded_channel::<SessionManagerEvent>();
 
@@ -117,7 +115,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // setup communication channels for services
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
+    // RX is discarded here since it can be derived from TX later on
+    let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayEvent>(256);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
@@ -181,7 +180,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
-    let proxy_tx = ProxyTxSet::new(wireguard_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
+    let proxy_tx = ProxyTxSet::new(gateway_tx.clone(), mail_tx.clone(), bidi_event_tx.clone());
     let proxy_manager = ProxyManager::new(
         pool.clone(),
         proxy_tx,
@@ -194,7 +193,7 @@ async fn main() -> Result<(), anyhow::Error> {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
         res = run_grpc_gateway_stream(
             pool.clone(),
-            wireguard_tx.clone(),
+            gateway_tx.clone(),
             mail_tx.clone(),
             peer_stats_tx,
         ) => error!("Gateway gRPC stream returned early: {res:?}"),
@@ -209,7 +208,7 @@ async fn main() -> Result<(), anyhow::Error> {
             worker_state,
             webhook_tx,
             webhook_rx,
-            wireguard_tx.clone(),
+            gateway_tx.clone(),
             mail_tx.clone(),
             pool.clone(),
             failed_logins,
@@ -218,11 +217,6 @@ async fn main() -> Result<(), anyhow::Error> {
             proxy_control_tx
         ) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
-        res = run_periodic_peer_disconnect(
-            pool.clone(),
-            wireguard_tx.clone(),
-            internal_event_tx.clone()
-        ) => error!("Periodic peer disconnect task returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
             config.stats_purge_frequency.into(),
@@ -231,17 +225,16 @@ async fn main() -> Result<(), anyhow::Error> {
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) =>
             error!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, wireguard_tx.clone()) =>
+        res = run_utility_thread(&pool, gateway_tx.clone()) =>
             error!("Utility thread returned early: {res:?}"),
         res = run_event_router(
             RouterReceiverSet::new(
                 api_event_rx,
                 bidi_event_rx,
-                internal_event_rx,
                 session_manager_event_rx
             ),
             event_logger_tx,
-            wireguard_tx,
+            gateway_tx.clone(),
             mail_tx,
             activity_log_stream_reload_notify.clone()
         ) => error!("Event router returned early: {res:?}"),
@@ -255,7 +248,8 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_session_manager(
             pool.clone(),
             peer_stats_rx,
-            session_manager_event_tx
+            session_manager_event_tx,
+            gateway_tx
         ) => error!("VPN client session manager returned early: {res:?}"),
     }
 

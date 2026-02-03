@@ -267,17 +267,14 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
 #[must_use]
 pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
     match event {
-        VpnEvent::ConnectedToMfaLocation {
+        VpnEvent::ClientMfaSuccess {
             location,
             device,
             method,
         } => Some(format!(
-            "Device {device} connected to MFA location {location} using {method}"
+            "Device {device} completed MFA authorization for location {location} using {method}"
         )),
-        VpnEvent::DisconnectedFromMfaLocation { location, device } => Some(format!(
-            "Device {device} disconnected from MFA location {location}"
-        )),
-        VpnEvent::MfaFailed {
+        VpnEvent::ClientMfaFailed {
             location,
             device,
             method,

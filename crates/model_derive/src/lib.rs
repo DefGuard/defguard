@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Ident, Path, Type, TypePath,
-    meta::parser, parse::Parser, parse_macro_input,
+    Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, GenericArgument, Ident, Path,
+    PathArguments, Type, TypePath, meta::parser, parse::Parser, parse_macro_input,
 };
 
 /// Try to find the value of `model` attribute, e.g. `#[model(model_type)]`.
@@ -42,8 +42,29 @@ fn field_type(ty: &Type) -> Option<&Ident> {
         ..
     }) = ty
     {
-        if let Some(segment) = segments.first() {
+        if let Some(segment) = segments.last() {
             return Some(&segment.ident);
+        }
+    }
+    None
+}
+
+fn option_field_type(ty: &Type) -> Option<&Ident> {
+    if let Type::Path(TypePath {
+        path: Path { segments, .. },
+        ..
+    }) = ty
+    {
+        if let Some(segment) = segments.last() {
+            if segment.ident == "Option" {
+                // Extract the generic arguments
+                if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                    // Get the first generic argument (the T in Option<T>)
+                    if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
+                        return field_type(inner_ty);
+                    }
+                }
+            }
         }
     }
     None
@@ -125,6 +146,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
                         cs_aliased_fields.push_str("?: SecretString\"");
                     } else if field_type == "ip" {
                         cs_aliased_fields.push_str(": IpAddr\"");
+                    } else if field_type == "option" {
+                        cs_aliased_fields.push_str("?: _\"");
                     } else {
                         cs_aliased_fields.push_str(": _\"");
                     }
@@ -151,6 +174,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     if tokens == "enum" {
                         if let Some(field_type) = field_type(&field.ty) {
                             return Some(quote! { &self.#name as &#field_type });
+                        }
+                    } else if tokens == "option" {
+                        if let Some(field_type) = option_field_type(&field.ty) {
+                            return Some(quote! { &self.#name as &Option<#field_type> });
                         }
                     } else if tokens == "secret" {
                         // FIXME: hard-coded struct name

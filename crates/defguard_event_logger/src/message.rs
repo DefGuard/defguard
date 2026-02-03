@@ -14,10 +14,7 @@ use defguard_core::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
         openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
-    events::{
-        ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext,
-        InternalEventContext,
-    },
+    events::{ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext},
 };
 use defguard_session_manager::events::SessionManagerEventContext;
 
@@ -83,23 +80,6 @@ impl EventContext {
             location,
             ip: val.ip,
             device: val.device_name,
-        }
-    }
-
-    #[must_use]
-    pub fn from_internal_context(
-        val: InternalEventContext,
-        location: Option<WireguardNetwork<Id>>,
-    ) -> Self {
-        let location = location.map(|location| location.name);
-
-        Self {
-            timestamp: val.timestamp,
-            user_id: val.user_id,
-            username: val.username,
-            location,
-            ip: val.ip,
-            device: format!("{} (ID {})", val.device.name, val.device.id),
         }
     }
 
@@ -354,16 +334,12 @@ pub enum ClientEvent {
 
 /// Represents activity log events related to VPN
 pub enum VpnEvent {
-    ConnectedToMfaLocation {
+    ClientMfaSuccess {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
         method: ClientMFAMethod,
     },
-    DisconnectedFromMfaLocation {
-        location: WireguardNetwork<Id>,
-        device: Device<Id>,
-    },
-    MfaFailed {
+    ClientMfaFailed {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
         method: ClientMFAMethod,

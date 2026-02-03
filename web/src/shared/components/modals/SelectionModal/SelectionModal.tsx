@@ -38,6 +38,8 @@ const ModalContent = () => {
   const initialSelected = useSelectionModal((s) => s.selected);
   const renderItem = useSelectionModal((s) => s.renderItem);
   const orderItems = useSelectionModal((s) => s.orderItems);
+  const itemGap = useSelectionModal((s) => s.itemGap);
+  const enableDividers = useSelectionModal((s) => s.enableDividers);
 
   const [internalSelection, setInternalSelection] =
     useState<Set<SelectionKey>>(initialSelected);
@@ -50,6 +52,8 @@ const ModalContent = () => {
         onChange={setInternalSelection}
         renderItem={renderItem}
         orderItems={orderItems}
+        itemGap={itemGap}
+        enableDividers={enableDividers}
       />
       <ModalControls
         cancelProps={{
