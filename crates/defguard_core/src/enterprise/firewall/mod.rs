@@ -41,6 +41,9 @@ pub enum FirewallError {
 /// - ALLOW which determines which devices can access a destination
 /// - DENY which stops all other traffic to a given destination
 ///
+/// Additionally a separate set of rules is created for each pre-defined `Destination` used
+/// as part of the rule.
+///
 /// In the resulting list all ALLOW rules are placed first and then DENY rules are added to the
 /// end. This way we can avoid conflicts when some ACLs are overlapping.
 pub async fn generate_firewall_rules_from_acls(
@@ -61,48 +64,9 @@ pub async fn generate_firewall_rules_from_acls(
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
         debug!("Processing ACL rule: {acl:?}");
-        // fetch allowed users
-        let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
-
-        // fetch denied users
-        let denied_users = acl.get_all_denied_users(&mut *conn).await?;
-
-        // get relevant users for determining source IPs
-        let users = get_source_users(allowed_users, &denied_users);
-        // prepare a list of user IDs
-        let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
-
-        // get network IPs for devices belonging to those users
-        let user_device_ips = get_user_device_ips(&user_ids, location_id, &mut *conn).await?;
-        // separate IPv4 and IPv6 user-device addresses
-        let user_device_ips = user_device_ips
-            .iter()
-            .flatten()
-            .partition(|ip| ip.is_ipv4());
-
-        // fetch allowed network devices
-        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
-
-        // fetch denied network devices
-        let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
-
-        // get network device IPs for rule source
-        let network_devices =
-            get_source_network_devices(allowed_network_devices, &denied_network_devices);
-        let network_device_ips =
-            get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
-
-        // separate IPv4 and IPv6 network-device addresses
-        let network_device_ips = network_device_ips
-            .iter()
-            .flatten()
-            .partition(|ip| ip.is_ipv4());
-
-        // convert device IPs into source addresses for a firewall rule
-        let ipv4_source_addrs =
-            get_source_addrs(user_device_ips.0, network_device_ips.0, IpVersion::Ipv4);
-        let ipv6_source_addrs =
-            get_source_addrs(user_device_ips.1, network_device_ips.1, IpVersion::Ipv6);
+        // prepare source IPs
+        let (ipv4_source_addrs, ipv6_source_addrs) =
+            get_source_ips(&mut *conn, location_id, &acl).await?;
 
         // extract destination parameters from ACL rule
         let AclRuleInfo {
@@ -260,6 +224,68 @@ pub async fn generate_firewall_rules_from_acls(
 
     // combine both rule lists
     Ok(allow_rules.into_iter().chain(deny_rules).collect())
+}
+
+/// Prepare two lists of source IPs split between IPv4 and IPv6.
+///
+/// This is achieved on first determining allowed users and network devices
+/// and then getting assigned IP addresses of their devices.
+async fn get_source_ips(
+    conn: &mut PgConnection,
+    location_id: Id,
+    acl: &AclRuleInfo<Id>,
+) -> Result<(Vec<IpAddress>, Vec<IpAddress>), FirewallError> {
+    // fetch allowed users
+    let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
+
+    // fetch denied users
+    let denied_users = acl.get_all_denied_users(&mut *conn).await?;
+
+    // get relevant users for determining source IPs
+    let source_users = get_source_users(allowed_users, &denied_users);
+
+    // prepare a list of user IDs
+    let source_user_ids: Vec<Id> = source_users.iter().map(|user| user.id).collect();
+
+    // get network IPs for devices belonging to those users
+    let source_user_device_ips =
+        get_user_device_ips(&source_user_ids, location_id, &mut *conn).await?;
+    // separate IPv4 and IPv6 user-device addresses
+    let source_user_device_ips = source_user_device_ips
+        .iter()
+        .flatten()
+        .partition(|ip| ip.is_ipv4());
+
+    // fetch allowed network devices
+    let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
+
+    // fetch denied network devices
+    let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
+
+    // get network device IPs for rule source
+    let source_network_devices =
+        get_source_network_devices(allowed_network_devices, &denied_network_devices);
+    let source_network_device_ips =
+        get_network_device_ips(&source_network_devices, location_id, &mut *conn).await?;
+
+    // separate IPv4 and IPv6 network-device addresses
+    let source_network_device_ips = source_network_device_ips
+        .iter()
+        .flatten()
+        .partition(|ip| ip.is_ipv4());
+
+    // convert device IPs into source addresses for a firewall rule
+    let ipv4_source_addrs = get_source_addrs(
+        source_user_device_ips.0,
+        source_network_device_ips.0,
+        IpVersion::Ipv4,
+    );
+    let ipv6_source_addrs = get_source_addrs(
+        source_user_device_ips.1,
+        source_network_device_ips.1,
+        IpVersion::Ipv6,
+    );
+    Ok((ipv4_source_addrs, ipv6_source_addrs))
 }
 
 /// Creates ALLOW and DENY rules for given set of source, destination
