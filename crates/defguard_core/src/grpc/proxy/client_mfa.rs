@@ -705,7 +705,7 @@ impl ClientMfaServer {
 
         // create new VPN client session
         let vpn_client_session = self.create_new_mfa_session(
-        	&mut *transaction,
+        	&mut transaction,
             &location,
             &user,
             &device,
