@@ -53,12 +53,15 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   const handleSelectAll = useCallback(() => {
     const allSelected = selection.size === options.length;
     if (allSelected) {
+      if (onlySelected) {
+        setOnlySelected(false);
+      }
       onChange(new Set());
     } else {
       const all = options.map((o) => o.id);
       onChange(new Set(all));
     }
-  }, [selection.size, onChange, options]);
+  }, [selection.size, onChange, options, onlySelected]);
 
   const handleSelect = useCallback(
     (option: SelectionOption<T>, selected: boolean, selection: Set<T>) => {

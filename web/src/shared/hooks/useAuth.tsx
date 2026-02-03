@@ -26,6 +26,7 @@ const defaults: Values = {
   user: undefined,
   mfaLogin: undefined,
   authSubject: new Subject(),
+  consentData: undefined,
 };
 
 export const useAuth = create<Store>()(

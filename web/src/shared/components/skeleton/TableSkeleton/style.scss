@@ -1,0 +1,16 @@
+.table-skeleton-wrapper {
+  display: flex;
+  flex-flow: column;
+  box-sizing: border-box;
+  padding: 0 var(--spacing-xl);
+
+  .table-skeleton > span {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .table-skeleton .react-loading-skeleton {
+    height: inherit;
+  }
+}
