@@ -10,7 +10,6 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
@@ -151,14 +150,16 @@ pub(crate) async fn delete_proxy(
     };
 
     // Disconnect the proxy
-    appstate
+    if let Err(err) = appstate
         .proxy_control_tx
         .send(ProxyControlMessage::ShutdownConnection(proxy.id))
         .await
-        .map_err(|err| {
-            error!("Error sending proxy control message: {err:?}");
-            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
-        })?;
+    {
+        error!(
+            "Error shutting down proxy {}, it may be disconnected: {err:?}",
+            proxy.id
+        );
+    }
 
     // TODO
     // 1. Add proxy cert to CRL

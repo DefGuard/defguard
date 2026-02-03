@@ -5,8 +5,38 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{make_test_client, setup_pool};
 
+
 #[sqlx::test]
-async fn test_update_proxy(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool.clone()).await;
+
+    // Authorize as an administrator.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create new proxy.
+    let proxy = Proxy::new("test", "localhost", 50051, "public.net")
+        .save(&pool)
+        .await
+        .unwrap();
+
+	// Get proxy via API
+    let response = client
+        .get(format!("/api/v1/proxy/{}", proxy.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify proxy is correct
+    let proxy_from_api: Proxy<Id> = response.json().await;
+    assert_eq!(proxy, proxy_from_api);
+}
+
+#[sqlx::test]
+async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let (client, _) = make_test_client(pool.clone()).await;
@@ -52,4 +82,37 @@ async fn test_update_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let proxy_updated: Proxy<Id> = response.json().await;
     assert_eq!(proxy_before_mods, proxy_updated);
+}
+
+#[sqlx::test]
+async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool.clone()).await;
+
+    // Authorize as an administrator.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create new proxy.
+    let proxy = Proxy::new("test", "localhost", 50051, "public.net")
+        .save(&pool)
+        .await
+        .unwrap();
+
+	// Delete proxy via API
+    let response = client
+        .delete(format!("/api/v1/proxy/{}", proxy.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+	// Verify proxy is deleted
+    let response = client
+        .get(format!("/api/v1/proxy/{}", proxy.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+	assert_eq!(Proxy::all(&pool).await.unwrap().len(), 0);
 }
