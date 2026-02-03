@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
@@ -5,6 +6,7 @@ import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { useApp } from '../../shared/hooks/useApp';
 import worldMap from './assets/world_map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
 import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
@@ -13,9 +15,6 @@ import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdaptationStep } from './steps/SetupEdgeAdaptationStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
-import './style.scss';
-import { useNavigate } from '@tanstack/react-router';
-import { useApp } from '../../shared/hooks/useApp';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
 

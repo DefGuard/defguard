@@ -2,8 +2,7 @@
   .admin-user-form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    column-gap: var(--spacing-lg);
-    row-gap: var(--spacing-lg);
+    gap: var(--spacing-lg);
 
     & > :nth-child(odd):last-child {
       grid-column: 1 / -1;
@@ -37,25 +36,26 @@
       row-gap: var(--spacing-sm);
 
       li {
-        --color: var(--fg-muted);
         display: flex;
         flex-flow: row;
         align-items: center;
         column-gap: var(--spacing-sm);
 
+        span {
+          font: var(--t-body-sm-500);
+          color: var(--fg-muted);
+        }
+
         &.active {
-          --color: var(--fg-success);
+          span {
+            color: var(--fg-success);
+          }
         }
 
         .icon[data-kind='check-filled'] {
           path {
             fill: var(--fg-success);
           }
-        }
-
-        span {
-          font: var(--t-body-sm-500);
-          color: var(--color);
         }
       }
     }
@@ -69,8 +69,7 @@
     .ca-info-grid {
       display: grid;
       grid-template-columns: 180px 1fr;
-      column-gap: var(--spacing-lg);
-      row-gap: var(--spacing-md);
+      gap: var(--spacing-md) var(--spacing-lg);
       align-items: center;
     }
 
@@ -93,8 +92,7 @@
     form {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      column-gap: var(--spacing-md);
-      row-gap: var(--spacing-xl);
+      gap: var(--spacing-xl) var(--spacing-md);
 
       & > :nth-child(odd):last-child {
         grid-column: span 2;

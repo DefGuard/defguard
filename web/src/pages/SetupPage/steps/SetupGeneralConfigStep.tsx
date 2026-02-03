@@ -90,10 +90,6 @@ export const SetupGeneralConfigStep = () => {
     },
   });
 
-  const _handleBack = () => {
-    setActiveStep(SetupPageStep.AdminUser);
-  };
-
   const handleNext = () => {
     form.handleSubmit();
   };

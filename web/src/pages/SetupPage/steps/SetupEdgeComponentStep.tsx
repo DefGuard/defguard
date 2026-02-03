@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -24,7 +23,6 @@ type StoreValues = {
 
 export const SetupEdgeComponentStep = () => {
   const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
-  const _navigate = useNavigate();
 
   const defaultValues = useSetupWizardStore(
     useShallow(
@@ -36,10 +34,6 @@ export const SetupEdgeComponentStep = () => {
       }),
     ),
   );
-
-  const _handleBack = () => {
-    setActiveStep(SetupPageStep.CASummary);
-  };
 
   const handleNext = () => {
     form.handleSubmit();
