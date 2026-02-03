@@ -113,7 +113,7 @@ impl VpnClientSession<Id> {
     }
 
     /// Fetch active sessions which have become inactive for a specific location
-    pub async fn get_inactive<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn get_all_inactive_for_location<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
     ) -> Result<Vec<Self>, SqlxError> {
@@ -126,7 +126,7 @@ impl VpnClientSession<Id> {
 				SELECT latest_handshake \
 				FROM vpn_session_stats \
 				WHERE session_id = s.id \
-				ORDER BY collected_at DESC \
+				ORDER BY latest_handshake DESC \
 				LIMIT 1 \
 			) ss ON true \
 			WHERE location_id = $1 AND state = 'connected' \
@@ -150,6 +150,23 @@ impl VpnClientSession<Id> {
             AND (NOW() - created_at) > $2 * interval '1 second'",
 			location.id,
 			f64::from(location.peer_disconnect_threshold)
+    	).fetch_all(executor).await
+    }
+
+    /// Fetch all active sessions for a given device in a given location
+    pub async fn get_all_active_device_sessions_in_location<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        location_id: Id,
+        device_id: Id,
+    ) -> Result<Vec<Self>, SqlxError> {
+        query_as!(
+    		Self,
+            "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+			FROM vpn_client_session \
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
+			location_id,
+			device_id,
     	).fetch_all(executor).await
     }
 }
