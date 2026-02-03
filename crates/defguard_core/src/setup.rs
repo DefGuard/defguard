@@ -24,6 +24,7 @@ use crate::{
         },
         settings::get_settings_essentials,
     },
+    health_check,
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
@@ -36,6 +37,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
         .nest(
             "/api/v1",
             Router::<()>::new()
+                .route("/health", get(health_check))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .route(
