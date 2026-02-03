@@ -74,6 +74,10 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
         to: '/edges',
         replace: true,
       });
+      Snackbar.success(m.edge_delete_success());
+    },
+    onError: () => {
+      Snackbar.error(m.edge_delete_failed());
     },
   });
 

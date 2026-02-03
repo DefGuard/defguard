@@ -2,9 +2,9 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use defguard_common::db::models::proxy::Proxy;
+use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use reqwest::StatusCode;
-use serde_json::{Value, json};
+use serde_json::Value;
 use utoipa::ToSchema;
 
 use crate::{
@@ -72,14 +72,8 @@ pub(crate) async fn proxy_details(
     );
     let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
     let response = match proxy {
-        Some(proxy) => ApiResponse {
-            json: json!(proxy),
-            status: StatusCode::OK,
-        },
-        None => ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        },
+        Some(proxy) => ApiResponse::json(proxy, StatusCode::OK),
+        None => ApiResponse::json(Value::Null, StatusCode::NOT_FOUND),
     };
     info!(
         "User {} displayed details for proxy {proxy_id}",
@@ -118,10 +112,7 @@ pub(crate) async fn update_proxy(
 
     let Some(mut proxy) = proxy else {
         warn!("Proxy {proxy_id} not found");
-        return Ok(ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        });
+        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
     let before = proxy.clone();
 
@@ -139,4 +130,62 @@ pub(crate) async fn update_proxy(
     })?;
 
     Ok(ApiResponse::json(proxy, StatusCode::OK))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/proxy/{proxy_id}",
+    request_body = Proxy,
+    responses(
+        (status = 200, description = "Successfully deleted edge.", body = ApiResponse),
+        (status = 401, description = "Unauthorized to delete edge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission delete an edge.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Edge not found", body = ApiResponse, example = json!({"msg": "proxy not found"})),
+        (status = 500, description = "Unable to delete edge.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn delete_proxy(
+    _role: AdminRole,
+    Path(proxy_id): Path<i64>,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    context: ApiRequestContext,
+) -> ApiResult {
+    debug!("User {} deleteing proxy {proxy_id}", session.user.username);
+    let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
+
+    let Some(proxy) = proxy else {
+        warn!("Proxy {proxy_id} not found");
+        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
+    };
+
+    // Disconnect the proxy
+    if let Err(err) = appstate
+        .proxy_control_tx
+        .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+        .await
+    {
+        error!(
+            "Error shutting down proxy {}, it may be disconnected: {err:?}",
+            proxy.id
+        );
+    }
+
+    // TODO
+    // 1. Add proxy cert to CRL
+    // 2. Remove cert files on deleted proxy
+    proxy.clone().delete(&appstate.pool).await?;
+
+    info!("User {} deleted proxy {proxy_id}", session.user.username);
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::ProxyDeleted { proxy }),
+    })?;
+
+    Ok(ApiResponse::default())
 }

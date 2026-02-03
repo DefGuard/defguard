@@ -20,5 +20,7 @@
   "edges_row_menu_edit": "Edit",
   "edges_empty_title": "No edge components added yet.",
   "edges_empty_subtitle": "Add edge components by clicking the button below.",
-  "edges_search_placeholder": "Search"
+  "edges_search_placeholder": "Search",
+  "edge_delete_success": "Edge component deleted",
+  "edge_delete_failed": "Failed to delete edge component"
 }

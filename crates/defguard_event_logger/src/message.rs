@@ -321,6 +321,9 @@ pub enum DefguardEvent {
         before: Proxy<Id>,
         after: Proxy<Id>,
     },
+    ProxyDeleted {
+        proxy: Proxy<Id>,
+    },
 }
 
 /// Represents activity log events related to client applications

@@ -571,3 +571,8 @@ pub struct ProxyModifiedMetadata {
     pub before: Proxy<Id>,
     pub after: Proxy<Id>,
 }
+
+#[derive(Serialize)]
+pub struct ProxyDeletedMetadata {
+    pub proxy: Proxy<Id>,
+}
