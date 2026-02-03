@@ -2,7 +2,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use defguard_common::db::models::proxy::Proxy;
+use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use utoipa::ToSchema;
@@ -10,6 +10,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
@@ -149,11 +150,24 @@ pub(crate) async fn delete_proxy(
         });
     };
 
+	// Disconnect the proxy
+    appstate
+        .proxy_control_tx
+        .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+        .await
+        .map_err(|err| {
+            error!("Error sending proxy control message: {err:?}");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
+
+	// TODO
+	// 1. Add proxy cert to CRL
+	// 2. Remove cert files on deleted proxy
     proxy.delete(&appstate.pool).await?;
 
     info!("User {} deleted proxy {proxy_id}", session.user.username);
 
-	// TODO(jck) ProxyDeleted event
+    // TODO(jck) ProxyDeleted event
     // appstate.emit_event(ApiEvent {
     //     context,
     //     event: Box::new(ApiEventType::ProxyModified {
