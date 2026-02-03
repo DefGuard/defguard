@@ -623,7 +623,7 @@ mod test {
     #[test]
     fn test_callback_url() {
         let mut s = Settings {
-            defguard_url: "http://localhost:8080".into(),
+            defguard_url: "https://defguard.example.com".into(),
             ..Default::default()
         };
         assert_eq!(

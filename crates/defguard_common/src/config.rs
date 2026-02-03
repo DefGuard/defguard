@@ -367,7 +367,6 @@ mod tests {
     fn test_generate_cookie_domain() {
         unsafe {
             env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-            env::set_var("DEFGUARD_URL", "https://defguard.example.com");
         }
 
         let url = Url::parse("https://defguard.example.com").unwrap();
