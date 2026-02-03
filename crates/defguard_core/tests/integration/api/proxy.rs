@@ -5,7 +5,6 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{make_test_client, setup_pool};
 
-
 #[sqlx::test]
 async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -23,7 +22,7 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-	// Get proxy via API
+    // Get proxy via API
     let response = client
         .get(format!("/api/v1/proxy/{}", proxy.id))
         .send()
@@ -101,18 +100,18 @@ async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-	// Delete proxy via API
+    // Delete proxy via API
     let response = client
         .delete(format!("/api/v1/proxy/{}", proxy.id))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-	// Verify proxy is deleted
+    // Verify proxy is deleted
     let response = client
         .get(format!("/api/v1/proxy/{}", proxy.id))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
-	assert_eq!(Proxy::all(&pool).await.unwrap().len(), 0);
+    assert_eq!(Proxy::all(&pool).await.unwrap().len(), 0);
 }
