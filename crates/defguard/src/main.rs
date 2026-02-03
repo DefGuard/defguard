@@ -9,10 +9,7 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{
-            Settings,
-            settings::{initialize_current_settings, update_current_settings},
-        },
+        models::{Settings, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -111,8 +108,10 @@ async fn main() -> Result<(), anyhow::Error> {
         if let Err(err) =
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {
-            error!("Setup web server exited with error: {err}");
+            anyhow::bail!("Setup web server exited with error: {err}");
         }
+
+        settings = Settings::get_current_settings();
     }
 
     config.initialize_post_settings();
@@ -144,18 +143,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
     if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        info!(
-            "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
-        );
-
-        let ca = defguard_certs::CertificateAuthority::new("Defguard", "", 10)?;
-
-        let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
-
-        settings.ca_cert_der = Some(cert_der);
-        settings.ca_key_der = Some(key_der);
-
-        update_current_settings(&pool, settings).await?;
+        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
     }
 
     // read grpc TLS cert and key
