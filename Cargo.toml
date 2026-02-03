@@ -33,7 +33,7 @@ axum-extra = { version = "0.10", features = [
 ] }
 base32 = "0.5"
 base64 = "0.22"
-bytes = { version = "1.6", features = ["serde"] }
+bytes = { version = "1.11", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
