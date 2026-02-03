@@ -33,7 +33,6 @@ type RowData = Edge;
 const columnHelper = createColumnHelper<RowData>();
 
 export const EdgesTable = ({ edges }: Props) => {
-  // const appInfo = useApp((s) => s.appInfo);
   const navigate = useNavigate();
 
   const addButtonProps = useMemo(
@@ -52,51 +51,6 @@ export const EdgesTable = ({ edges }: Props) => {
 
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-
-  // const { data: groups } = useQuery(getGroupsInfoQueryOptions);
-
-  // const groupsOptions = useMemo(
-  //   (): SelectionOption<string>[] =>
-  //     groups?.map((g) => ({
-  //       id: g.name,
-  //       label: g.name,
-  //     })) ?? [],
-  //   [groups?.map],
-  // );
-
-  // const { mutate: deleteUser } = useMutation({
-  //   mutationFn: api.user.deleteUser,
-  //   meta: {
-  //     invalidate: ['user'],
-  //   },
-  // });
-
-  // const { mutate: changeAccountActiveState } = useMutation({
-  //   mutationFn: api.user.activeStateChange,
-  //   meta: {
-  //     invalidate: ['user'],
-  //   },
-  // });
-
-  // const { mutate: editUser } = useMutation({
-  //   mutationFn: api.user.editUser,
-  //   meta: {
-  //     invalidate: ['user'],
-  //   },
-  // });
-
-  // const handleEditGroups = useCallback(
-  //   async (user: RowData, groups: string[]) => {
-  //     const freshUser = (await api.user.getUser(user.username)).data.user;
-  //     freshUser.groups = groups;
-  //     editUser({
-  //       username: freshUser.username,
-  //       body: freshUser,
-  //     });
-  //   },
-  //   [editUser],
-  // );
-
   const [selected, setSelected] = useState<RowSelectionState>({});
 
   const transformedData = useMemo(() => {
@@ -225,68 +179,6 @@ export const EdgesTable = ({ edges }: Props) => {
     ],
     [navigate],
   );
-
-  // const expandedHeader = useMemo(
-  //   () => [
-  //     m.users_col_assigned(),
-  //     '',
-  //     m.users_col_ip(),
-  //     m.users_col_connected_through(),
-  //     m.users_col_connected_date(),
-  //     '',
-  //     '',
-  //   ],
-  //   [],
-  // );
-
-  // const renderExpanded = useCallback(
-  //   (row: Row<RowData>, isLast = false) =>
-  //     row.original.devices.map((device) => {
-  //       const latestNetwork = orderBy(
-  //         device.networks.filter((n) => isPresent(n.last_connected_at)),
-  //         (d) => d.last_connected_at,
-  //         ['desc'],
-  //       )[0];
-  //       const neverConnected = m.profile_devices_col_never_connected();
-  //       const ip = latestNetwork?.last_connected_ip ?? neverConnected;
-  //       const locationName = latestNetwork?.last_connected_at
-  //         ? latestNetwork.network_name
-  //         : neverConnected;
-  //       const connectionDate = latestNetwork?.last_connected_at
-  //         ? displayDate(latestNetwork.last_connected_at)
-  //         : neverConnected;
-  //       return (
-  //         <TableRowContainer
-  //           className={clsx({ last: isLast })}
-  //           key={device.id}
-  //           assignColumnSizing
-  //         >
-  //           <TableCell empty />
-  //           <TableCell alignContent="center" noPadding>
-  //             <Icon icon="enter" />
-  //           </TableCell>
-  //           <TableCell className="device-name-cell">
-  //             <Icon icon="devices" />
-  //             <span>{device.name}</span>
-  //           </TableCell>
-  //           <TableCell empty />
-  //           <TableCell>
-  //             <span>{ip}</span>
-  //           </TableCell>
-  //           <TableCell>
-  //             <span>{locationName}</span>
-  //           </TableCell>
-  //           <TableCell>
-  //             <span>{connectionDate}</span>
-  //           </TableCell>
-  //           <TableCell empty />
-  //           <TableCell empty />
-  //           <TableFlexCell />
-  //         </TableRowContainer>
-  //       );
-  //     }),
-  //   [],
-  // );
 
   const table = useReactTable({
     initialState: {
