@@ -21,6 +21,32 @@ pub struct ProxyUpdateData {
 
 #[utoipa::path(
     get,
+    path = "/api/v1/proxy",
+    responses(
+        (status = 200, description = "Edge list", body = [Proxy]),
+        (status = 401, description = "Unauthorized to get edge list.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get edge list.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to get edge list.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn proxy_list(
+    _role: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!("User {} displaying proxy list", session.user.username);
+    let proxies = Proxy::all(&appstate.pool).await?;
+    info!("User {} displayed proxy list", session.user.username);
+
+    Ok(ApiResponse::json(proxies, StatusCode::OK))
+}
+
+#[utoipa::path(
+    get,
     path = "/api/v1/proxy/{proxy_id}",
     responses(
         (status = 200, description = "Edge details", body = Proxy),
