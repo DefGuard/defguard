@@ -41,7 +41,7 @@ export const EdgesTable = ({ edges }: Props) => {
       variant: 'primary',
       text: 'Add Edge component',
       // TODO(jck)
-      iconLeft: 'add-user',
+      iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
         navigate({ to: '/edge-wizard' });
