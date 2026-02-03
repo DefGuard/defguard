@@ -31,7 +31,7 @@ impl AuthServer {
     /// Creates JWT token for specified user
     fn create_jwt(uid: &str) -> Result<String, JWTError> {
         let settings = Settings::get_current_settings();
-        let timeout = Duration::from_hours(settings.authentication_period_days as u64 * 24);
+        let timeout = settings.authentication_timeout();
         Claims::new(
             ClaimsType::Auth,
             uid.into(),

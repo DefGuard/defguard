@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -488,6 +488,11 @@ impl Settings {
         }
         Ok(url)
     }
+
+    #[must_use]
+    pub fn authentication_timeout(&self) -> Duration {
+        Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
+    }
 }
 
 #[derive(Serialize)]
@@ -617,8 +622,10 @@ mod test {
 
     #[test]
     fn test_callback_url() {
-        let mut s = Settings::default();
-        s.defguard_url = "https://defguard.example.com".into();
+        let mut s = Settings {
+            defguard_url: "http://localhost:8080".into(),
+            ..Default::default()
+        };
         assert_eq!(
             s.callback_url().unwrap().as_str(),
             "https://defguard.example.com/auth/callback"

@@ -719,9 +719,7 @@ impl TokenRequest {
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
                 let settings = Settings::get_current_settings();
-                let timeout = std::time::Duration::from_hours(
-                    settings.authentication_period_days as u64 * 24,
-                );
+                let timeout = settings.authentication_timeout();
                 let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),

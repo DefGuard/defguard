@@ -237,8 +237,7 @@ impl DefGuardConfig {
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     #[must_use]
     pub fn new_test_config() -> Self {
-        let config = Self::parse_from::<[_; 0], String>([]);
-        config
+        Self::parse_from::<[_; 0], String>([])
     }
 
     /// Initialize values that depend on Settings.
