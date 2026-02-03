@@ -10,21 +10,19 @@ use axum::{
     serve,
 };
 use defguard_common::VERSION;
+use defguard_core::{
+    handle_404,
+    handlers::{component_setup::setup_proxy_tls_stream, settings::get_settings_essentials},
+    health_check,
+};
 use defguard_web_ui::{index, svg, web_asset};
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::oneshot::Sender};
+use tracing::{info, instrument};
 
-use crate::{
-    handle_404,
-    handlers::{
-        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream},
-        initial_setup::{
-            create_admin, create_ca, finish_setup, get_ca, set_general_config, upload_ca,
-        },
-        settings::get_settings_essentials,
-    },
-    health_check,
+use crate::handlers::{
+    create_admin, create_ca, finish_setup, get_ca, set_general_config, upload_ca,
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
@@ -40,10 +38,6 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                 .route("/health", get(health_check))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-                .route(
-                    "/network/{network_id}/gateways/setup",
-                    get(setup_gateway_tls_stream),
-                )
                 .nest(
                     "/initial_setup",
                     Router::<()>::new()

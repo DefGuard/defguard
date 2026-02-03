@@ -165,13 +165,12 @@ pub mod auth;
 pub mod db;
 pub mod enrollment_management;
 pub mod enterprise;
-mod error;
+pub mod error;
 pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod location_management;
-pub mod setup;
 pub mod support;
 pub mod updates;
 pub mod user_management;
@@ -193,11 +192,11 @@ static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 mod openapi;
 
 /// Simple health-check.
-async fn health_check() -> &'static str {
+pub async fn health_check() -> &'static str {
     "alive"
 }
 
-async fn handle_404() -> (StatusCode, &'static str) {
+pub async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 

@@ -32,7 +32,6 @@ use defguard_core::{
         run_grpc_server,
     },
     init_dev_env, init_vpn_location, run_web_server,
-    setup::run_setup_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
@@ -41,6 +40,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
+use defguard_setup::setup::run_setup_web_server;
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
