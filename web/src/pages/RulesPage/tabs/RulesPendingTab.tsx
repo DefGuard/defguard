@@ -2,9 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import api from '../../../shared/api/api';
 import type { AclRule } from '../../../shared/api/types';
+import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { RulesTable } from '../RulesTable';
+import { useRuleDeps } from '../useRuleDeps';
 
 type Props = {
   rules: AclRule[];
@@ -33,6 +36,8 @@ export const RulesPendingTab = ({ rules }: Props) => {
     [isPending, mutate, rules],
   );
 
+  const { aliases, groups, locations, users, devices, loading } = useRuleDeps();
+
   return (
     <>
       {isEmpty && (
@@ -42,7 +47,24 @@ export const RulesPendingTab = ({ rules }: Props) => {
           subtitle={`They will appear here once your create your first rule.`}
         />
       )}
-      <RulesTable data={rules} buttonProps={buttonProps} title="Pending rules" />
+      {!isEmpty && loading && <TableSkeleton />}
+      {!isEmpty &&
+        isPresent(aliases) &&
+        isPresent(groups) &&
+        isPresent(locations) &&
+        isPresent(users) &&
+        isPresent(devices) && (
+          <RulesTable
+            title="Pending rules"
+            buttonProps={buttonProps}
+            data={rules}
+            aliases={aliases}
+            groups={groups}
+            devices={devices}
+            users={users}
+            locations={locations}
+          />
+        )}
     </>
   );
 };

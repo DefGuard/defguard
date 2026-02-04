@@ -11,7 +11,8 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
-            device::WireguardNetworkDevice, vpn_client_session::VpnClientSession,
+            device::WireguardNetworkDevice,
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
         },
     },
@@ -24,7 +25,7 @@ use defguard_proto::proxy::{
     ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse, MfaMethod,
     core_response::Payload,
 };
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -703,14 +704,13 @@ impl ClientMfaServer {
         })?;
 
         // create new VPN client session
-        let vpn_client_session = VpnClientSession::new(
-            location.id,
-            user.id,
-            device.id,
-            None,
-            Some(method.into()),
+        let vpn_client_session = self.create_new_mfa_session(
+        	&mut transaction,
+            &location,
+            &user,
+            &device,
+            method.into(),
         )
-        .save(&mut *transaction)
             .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
@@ -749,5 +749,98 @@ impl ClientMfaServer {
         }
 
         Ok(response)
+    }
+
+    /// Helper used to close all existing active sessions while creating a new MFA session
+    /// and send relevant gateway updates
+    async fn create_new_mfa_session(
+        &self,
+        conn: &mut PgConnection,
+        location: &WireguardNetwork<Id>,
+        user: &User<Id>,
+        device: &Device<Id>,
+        mfa_method: VpnClientMfaMethod,
+    ) -> Result<VpnClientSession<Id>, Status> {
+        debug!(
+            "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
+        );
+
+        // find all active sessions for a given device and location
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(&mut *conn, location.id, device.id).await
+            .map_err(|err| {
+                error!("Failed to fetch active VPN sessions for device {device} in location {location}: {err}");
+                Status::internal("unexpected error")
+            })?;
+        if !active_sessions.is_empty() {
+            info!(
+                "Found {} active sessions for device {device} in location {location}. Disconnecting them before creating a new MFA session",
+                active_sessions.len()
+            );
+        }
+
+        // disconnect all active sessions
+        for session in active_sessions {
+            debug!("Disconnecting previous active MFA VPN session {session:?}.");
+            self.disconnect_session(&mut *conn, session, location, device)
+                .await?;
+        }
+
+        // create new MFA session
+        VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method)).save(conn).await
+            .map_err(|err| {
+                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
+                Status::internal("unexpected error")
+            })
+    }
+
+    /// Update session state as disconnected and send relevant gateway update
+    async fn disconnect_session(
+        &self,
+        conn: &mut PgConnection,
+        mut session: VpnClientSession<Id>,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+    ) -> Result<(), Status> {
+        // update session state in DB
+        let disconnect_timestamp = Utc::now().naive_utc();
+        session.disconnected_at = Some(disconnect_timestamp);
+        session.state = VpnClientSessionState::Disconnected;
+        session.save(&mut *conn).await.map_err(|err| {
+            error!("Failed to update VPN session {session:?}: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // FIXME: remove once MFA-related data is no longer stored here
+        // update device network config
+        if let Some(mut device_network_info) = WireguardNetworkDevice::find(
+            &mut *conn,
+            device.id,
+            location.id,
+        )
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to fetch WireGuard config for device {device} in location {location}: {err}"
+            );
+            Status::internal("unexpected error")
+        })? {
+            device_network_info.is_authorized = false;
+            device_network_info.preshared_key = None;
+            device_network_info.update(&mut *conn).await.map_err(|err| {
+            error!(
+                "Failed to update WireGuard config for device {device} in location {location}: {err}"
+            );
+            Status::internal("unexpected error")
+        })?;
+        };
+        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+        self.wireguard_tx.send(event).map_err(|err| {
+            error!("Error sending WireGuard event: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // FIXME: add audit log event
+
+        Ok(())
     }
 }

@@ -41,7 +41,7 @@ export const getNetworkDevicesQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
-export const userMeQueryOptions = queryOptions({
+export const getUserMeQueryOptions = queryOptions({
   queryFn: () => api.user.getMe,
   queryKey: ['me'],
   staleTime: 60_000,

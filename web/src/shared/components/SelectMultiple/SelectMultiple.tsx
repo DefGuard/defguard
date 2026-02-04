@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import './style.scss';
 import { Chip } from '../../defguard-ui/components/Chip/Chip';
 import { FieldError } from '../../defguard-ui/components/FieldError/FieldError';
@@ -15,14 +15,26 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
   editText,
   modalTitle,
   toggleText,
-  onChange,
   options,
   selected,
   error,
+  toggleValue,
+  onSelectionChange,
+  onToggleChange,
 }: SelectMultipleProps<T, M>) => {
   const selectedOptions = useMemo(
     () => options.filter((o) => selected.has(o.id)),
     [options, selected],
+  );
+
+  const handleSelectionInternal = useCallback(
+    (value: T[]) => {
+      if (value.length) {
+        onToggleChange(!toggleValue);
+      }
+      onSelectionChange(value);
+    },
+    [onSelectionChange, onToggleChange, toggleValue],
   );
 
   const handleEdit = () => {
@@ -33,7 +45,7 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
       //@ts-expect-error
       selected: selected,
       //@ts-expect-error
-      onSubmit: onChange,
+      onSubmit: handleSelectionInternal,
     });
   };
 
@@ -42,17 +54,17 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
       {isPresent(toggleText) && (
         <Toggle
           label={toggleText}
-          active={selected.size === 0}
+          active={toggleValue}
           onClick={() => {
             if (selected.size === 0) {
               handleEdit();
             } else {
-              onChange([]);
+              onToggleChange(!toggleValue);
             }
           }}
         />
       )}
-      <Fold open={selected.size > 0 || !isPresent(toggleText)}>
+      <Fold open={!toggleValue}>
         {isPresent(toggleText) && <SizedBox height={ThemeSpacing.Xl} />}
         <div className="selected">
           {selectedOptions.map((o) => (

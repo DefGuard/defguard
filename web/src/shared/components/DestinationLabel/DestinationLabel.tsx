@@ -17,27 +17,29 @@ export const DestinationLabel = ({
       <SizedBox height={1} width={ThemeSpacing.Sm} />
       <span className="separator">{`•`}</span>
       <SizedBox height={1} width={ThemeSpacing.Sm} />
-      {isPresent(ports) && ports.length > 0 && (
+      {isPresent(ports) && (
         <>
           <Icon icon="globe" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info">{ports}</span>
+          <span className="info">{ports.length > 0 ? ports : `All ports`}</span>
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(protocols) && protocols.length > 0 && (
+      {isPresent(protocols) && (
         <>
           <Icon icon="activity-notes" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info">{protocols}</span>
+          <span className="info">
+            {protocols.length > 0 ? protocols : `All protocols`}
+          </span>
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(ips) && ips.length > 0 && (
+      {isPresent(ips) && (
         <>
           <Icon icon="ip-suggest" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info wrap">{ips}</span>
+          <span className="info wrap">{ips.length > 0 ? ips : `Any IP address`}</span>
         </>
       )}
     </div>

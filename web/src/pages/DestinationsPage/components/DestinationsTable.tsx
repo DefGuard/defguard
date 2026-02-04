@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -8,7 +8,8 @@ import {
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import type { AclDestination } from '../../../shared/api/types';
+import { type AclDestination, AclProtocolName } from '../../../shared/api/types';
+import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -19,6 +20,8 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { getRulesQueryOptions } from '../../../shared/query';
+import { resourceById } from '../../../shared/utils/resourceById';
 
 type Props = {
   title: string;
@@ -37,6 +40,8 @@ export const DestinationsTable = ({
   title,
   search,
 }: Props) => {
+  const { data: rules } = useQuery(getRulesQueryOptions);
+  const rulesById = useMemo(() => resourceById(rules), [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
 
@@ -59,7 +64,68 @@ export const DestinationsTable = ({
         ),
       }),
       columnHelper.display({
+        id: 'destinations',
+        header: 'IP4/6 CIDR range addresses',
+        minSize: 300,
+        cell: (info) => {
+          const row = info.row.original;
+          if (row.any_destination) {
+            return (
+              <TableCell>
+                <span>{`Any`}</span>
+              </TableCell>
+            );
+          }
+          return <TableValuesListCell values={row.destination.split(',')} />;
+        },
+      }),
+      columnHelper.display({
+        id: 'ports',
+        header: 'Ports',
+        minSize: 230,
+        cell: (info) => {
+          const row = info.row.original;
+          if (row.any_port) {
+            return (
+              <TableCell>
+                <span>{`Any port`}</span>
+              </TableCell>
+            );
+          }
+          return <TableValuesListCell values={row.ports.split(',')} />;
+        },
+      }),
+      columnHelper.display({
+        id: 'protocols',
+        header: 'Protocols',
+        minSize: 230,
+        cell: (info) => {
+          const row = info.row.original;
+          if (row.any_protocol) {
+            return (
+              <TableCell>
+                <span>{`Any protocol`}</span>
+              </TableCell>
+            );
+          }
+          const display = row.protocols.map((protocol) => AclProtocolName[protocol]);
+          return <TableValuesListCell values={display} />;
+        },
+      }),
+      columnHelper.display({
+        id: 'rules',
+        header: 'Used in rules',
+        minSize: 500,
+        cell: (info) => {
+          if (!rulesById) return null;
+          const row = info.row.original;
+          const display = row.rules.map((ruleId) => rulesById[ruleId]?.name ?? '');
+          return <TableValuesListCell values={display} />;
+        },
+      }),
+      columnHelper.display({
         id: 'edit',
+        header: '',
         size: tableEditColumnSize,
         enableResizing: false,
         cell: (info) => {
@@ -98,7 +164,7 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, deleteDestination],
+    [navigate, deleteDestination, rulesById],
   );
 
   const transformedData = useMemo(() => {

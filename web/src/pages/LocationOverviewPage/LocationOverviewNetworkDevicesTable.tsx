@@ -37,7 +37,7 @@ export const LocationOverviewNetworkDevicesTable = ({
       download: sumBy(device.stats, (s) => s.download),
     }));
     return res;
-  }, [data.map]);
+  }, [data]);
 
   const columns = useMemo(
     () => [

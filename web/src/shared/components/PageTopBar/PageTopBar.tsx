@@ -11,6 +11,7 @@ import {
 import { Avatar } from '../../defguard-ui/components/Avatar/Avatar';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import './style.scss';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
@@ -23,6 +24,7 @@ import { ThemeSpacing } from '../../defguard-ui/types';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { useApp } from '../../hooks/useApp';
 import { useAuth } from '../../hooks/useAuth';
+import { getUserMeQueryOptions } from '../../query';
 
 type Props = {
   title: string;
@@ -56,8 +58,8 @@ export const PageTopBar = ({ title, navOpen }: Props) => {
 };
 
 const ProfileMenu = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const resetAuth = useAuth((s) => s.reset);
   const user = useAuth((s) => s.user);
 
   const menuItems = useMemo(() => {
@@ -84,8 +86,13 @@ const ProfileMenu = () => {
             testId: 'logout',
             onClick: () => {
               api.auth.logout().then(() => {
-                resetAuth();
-                navigate({ to: '/auth/login', replace: true });
+                queryClient.invalidateQueries({
+                  queryKey: getUserMeQueryOptions.queryKey,
+                });
+                useAuth.getState().reset();
+                setTimeout(() => {
+                  navigate({ to: '/auth/login', replace: true });
+                }, 100);
               });
             },
           },
@@ -93,7 +100,7 @@ const ProfileMenu = () => {
       },
     ];
     return res;
-  }, [resetAuth, navigate, user?.username, user]);
+  }, [navigate, user, queryClient]);
 
   const [isOpen, setOpen] = useState(false);
 

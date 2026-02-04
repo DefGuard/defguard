@@ -387,7 +387,7 @@ const api = {
       deleteDestination: (destinationId: number | string) =>
         client.delete(`/acl/destination/${destinationId}`),
       applyDestinations: (destinations: number[]) =>
-        client.put(`/acl/destination/apply`, {
+        client.put(`/acl/alias/apply`, {
           aliases: destinations,
         }),
     },
@@ -405,7 +405,7 @@ const api = {
     },
     rule: {
       getRules: () => client.get<AclRule[]>(`/acl/rule`),
-      getRule: (ruleId: number | string) => client.get<AclRule[]>(`/acl/rule/${ruleId}`),
+      getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
       editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`),
       applyRules: (rules: number[]) =>
