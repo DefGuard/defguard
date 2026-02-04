@@ -4179,3 +4179,250 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
     assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
 }
+
+#[sqlx::test]
+async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    // Create test locations with IPv4 and IPv6 addresses
+    let location_ipv4 = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let location_ipv6 = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let location_ipv4_and_ipv6 = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+        ],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Setup some test users and their devices
+    let user_1: User<NoId> = rng.r#gen();
+    let user_1 = user_1.save(&pool).await.unwrap();
+    let user_2: User<NoId> = rng.r#gen();
+    let user_2 = user_2.save(&pool).await.unwrap();
+
+    for user in [&user_1, &user_2] {
+        // Create 2 devices per user
+        for device_num in 1..3 {
+            let device = Device {
+                id: NoId,
+                name: format!("device-{}-{device_num}", user.id),
+                user_id: user.id,
+                device_type: DeviceType::User,
+                description: None,
+                wireguard_pubkey: Default::default(),
+                created: Default::default(),
+                configured: true,
+            };
+            let device = device.save(&pool).await.unwrap();
+
+            // Add device to all locations' VPN networks
+            let network_device = WireguardNetworkDevice {
+                device_id: device.id,
+                wireguard_network_id: location_ipv4.id,
+                wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
+                    10,
+                    0,
+                    user.id as u8,
+                    device_num as u8,
+                ))],
+                preshared_key: None,
+                is_authorized: true,
+                authorized_at: None,
+            };
+            network_device.insert(&pool).await.unwrap();
+            let network_device = WireguardNetworkDevice {
+                device_id: device.id,
+                wireguard_network_id: location_ipv6.id,
+                wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
+                    0xff00,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    user.id as u16,
+                    device_num as u16,
+                ))],
+                preshared_key: None,
+                is_authorized: true,
+                authorized_at: None,
+            };
+            network_device.insert(&pool).await.unwrap();
+            let network_device = WireguardNetworkDevice {
+                device_id: device.id,
+                wireguard_network_id: location_ipv4_and_ipv6.id,
+                wireguard_ips: vec![
+                    IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    IpAddr::V6(Ipv6Addr::new(
+                        0xff00,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        user.id as u16,
+                        device_num as u16,
+                    )),
+                ],
+                preshared_key: None,
+                is_authorized: true,
+                authorized_at: None,
+            };
+            network_device.insert(&pool).await.unwrap();
+        }
+    }
+
+    // create ACL rule without manually configured destination and no aliases
+    let acl_rule = AclRule {
+        id: NoId,
+        name: "test rule".to_string(),
+        expires: None,
+        enabled: true,
+        state: RuleState::Applied,
+        destination: Vec::new(),
+        allow_all_users: true,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // assign rule to all locations
+    for location in [&location_ipv4, &location_ipv6, &location_ipv4_and_ipv6] {
+        let obj = AclRuleNetwork {
+            id: NoId,
+            rule_id: acl_rule.id,
+            network_id: location.id,
+        };
+        obj.save(&pool).await.unwrap();
+    }
+
+    let mut conn = pool.acquire().await.unwrap();
+
+    // check generated rules for IPv4 only location
+    let generated_firewall_rules_ipv4 = location_ipv4
+        .try_get_firewall_config(&mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules_ipv4.len(), 2);
+    let expected_source_addrs_ipv4 = vec![
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.1.1".to_string(),
+                end: "10.0.1.2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.2.1".to_string(),
+                end: "10.0.2.2".to_string(),
+            })),
+        },
+    ];
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4[1];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+
+    // check generated rules for IPv6 only location
+    let generated_firewall_rules_ipv6 = location_ipv6
+        .try_get_firewall_config(&mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules_ipv6.len(), 2);
+    let expected_source_addrs_ipv6 = vec![
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::1:1".to_string(),
+                end: "ff00::1:2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::2:1".to_string(),
+                end: "ff00::2:2".to_string(),
+            })),
+        },
+    ];
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv6[0];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv6[1];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+
+    // check generated rules for IPv4 and IPv6 location
+    let generated_firewall_rules_ipv4_and_ipv6 = location_ipv4_and_ipv6
+        .try_get_firewall_config(&mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules_ipv4_and_ipv6.len(), 4);
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[1];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[2];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[3];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+}

@@ -150,7 +150,8 @@ pub async fn generate_firewall_rules_from_acls(
         // at this point component aliases have been added to the manual config so they don't need to be handled separately
         let has_v4_destination = !dest_addrs_v4.is_empty();
         let has_v6_destination = !dest_addrs_v6.is_empty();
-        let has_no_manual_destination = !(has_v4_destination || has_v6_destination)
+        let has_no_manual_destination_address = !(has_v4_destination || has_v6_destination);
+        let has_no_manual_destination = has_no_manual_destination_address
             && destination_ports.is_empty()
             && protocols.is_empty();
         let has_destination_aliases = !destination_aliases.is_empty();
@@ -158,7 +159,9 @@ pub async fn generate_firewall_rules_from_acls(
 
         if !is_destination_alias_only_rule {
             let comment = format!("ACL {} - {}", acl.id, acl.name);
-            if location_has_ipv4_addresses && has_v4_destination {
+            if location_has_ipv4_addresses
+                && (has_v4_destination || has_no_manual_destination_address)
+            {
                 // create IPv4 rules
                 let ipv4_rules = create_rules(
                     acl.id,
@@ -175,7 +178,9 @@ pub async fn generate_firewall_rules_from_acls(
                 deny_rules.push(ipv4_rules.1);
             }
 
-            if location_has_ipv6_addresses && has_v6_destination {
+            if location_has_ipv6_addresses
+                && (has_v6_destination || has_no_manual_destination_address)
+            {
                 // create IPv6 rules
                 let ipv6_rules = create_rules(
                     acl.id,
