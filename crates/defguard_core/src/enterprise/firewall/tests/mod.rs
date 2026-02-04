@@ -13,7 +13,7 @@ use defguard_proto::enterprise::firewall::{
     ip_address::Address, port::Port as PortInner,
 };
 use ipnetwork::IpNetwork;
-use rand::{Rng, thread_rng};
+use rand::{Rng, rngs::ThreadRng, thread_rng};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -58,6 +58,71 @@ fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
     let mut device = device.with_id(id);
     device.device_type = DeviceType::Network;
     device
+}
+
+async fn create_test_users_and_devices(
+    rng: &mut ThreadRng,
+    pool: &PgPool,
+    test_locations: Vec<&WireguardNetwork<Id>>,
+) {
+    // create two users
+    let user_1: User<NoId> = rng.r#gen();
+    let user_1 = user_1.save(pool).await.unwrap();
+    let user_2: User<NoId> = rng.r#gen();
+    let user_2 = user_2.save(pool).await.unwrap();
+
+    // create two devices for each user and create network configurations for all test locations
+    for user in [&user_1, &user_2] {
+        // Create 2 devices per user
+        for device_num in 1..3 {
+            let device = Device {
+                id: NoId,
+                name: format!("device-{}-{}", user.id, device_num),
+                user_id: user.id,
+                device_type: DeviceType::User,
+                description: None,
+                wireguard_pubkey: Default::default(),
+                created: Default::default(),
+                configured: true,
+            };
+            let device = device.save(pool).await.unwrap();
+
+            // Add device to locations' VPN network
+            for location in test_locations.iter() {
+                let wireguard_ips = location
+                    .address
+                    .iter()
+                    .map(|subnet| match subnet {
+                        IpNetwork::V4(ipv4_network) => {
+                            let octets = ipv4_network.network().octets();
+                            IpAddr::V4(Ipv4Addr::new(
+                                octets[0],
+                                octets[1],
+                                user.id as u8,
+                                device_num,
+                            ))
+                        }
+                        IpNetwork::V6(ipv6_network) => {
+                            let mut octets = ipv6_network.network().octets();
+                            // Set the last two octets (bytes 14 and 15)
+                            octets[14] = user.id as u8;
+                            octets[15] = device_num;
+                            IpAddr::V6(Ipv6Addr::from(octets))
+                        }
+                    })
+                    .collect();
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ips,
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(pool).await.unwrap();
+            }
+        }
+    }
 }
 
 async fn create_acl_rule(

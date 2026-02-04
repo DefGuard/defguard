@@ -1,17 +1,13 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use defguard_common::db::{
-    NoId,
-    models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
-    setup_pool,
-};
+use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
 use ipnetwork::IpNetwork;
-use rand::{Rng, thread_rng};
+use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::enterprise::{
     db::models::acl::{AclRule, AclRuleNetwork, RuleState},
-    firewall::try_get_location_firewall_config,
+    firewall::{tests::create_test_users_and_devices, try_get_location_firewall_config},
 };
 
 #[sqlx::test]
@@ -34,58 +30,9 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         ..Default::default()
     };
     let location_2 = location_2.save(&pool).await.unwrap();
+
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.r#gen();
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.r#gen();
-    let user_2 = user_2.save(&pool).await.unwrap();
-
-    for user in [&user_1, &user_2] {
-        // Create 2 devices per user
-        for device_num in 1..3 {
-            let device = Device {
-                id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
-                user_id: user.id,
-                device_type: DeviceType::User,
-                description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
-                configured: true,
-            };
-            let device = device.save(&pool).await.unwrap();
-
-            // Add device to location's VPN network
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_1.id,
-                wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
-                    10,
-                    0,
-                    user.id as u8,
-                    device_num as u8,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_2.id,
-                wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
-                    10,
-                    10,
-                    user.id as u8,
-                    device_num as u8,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-        }
-    }
+    create_test_users_and_devices(&mut rng, &pool, vec![&location_1, &location_2]).await;
 
     // create ACL rules
     let acl_rule_1 = AclRule {
@@ -186,65 +133,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     let location_2 = location_2.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.r#gen();
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.r#gen();
-    let user_2 = user_2.save(&pool).await.unwrap();
-
-    for user in [&user_1, &user_2] {
-        // Create 2 devices per user
-        for device_num in 1..3 {
-            let device = Device {
-                id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
-                user_id: user.id,
-                device_type: DeviceType::User,
-                description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
-                configured: true,
-            };
-            let device = device.save(&pool).await.unwrap();
-
-            // Add device to location's VPN network
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_1.id,
-                wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
-                    0xff00,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    user.id as u16,
-                    device_num as u16,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_2.id,
-                wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
-                    0xff00,
-                    0,
-                    0,
-                    0,
-                    10,
-                    10,
-                    user.id as u16,
-                    device_num as u16,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-        }
-    }
+    create_test_users_and_devices(&mut rng, &pool, vec![&location_1, &location_2]).await;
 
     // create ACL rules
     let acl_rule_1 = AclRule {
@@ -346,72 +235,9 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         ..Default::default()
     };
     let location_2 = location_2.save(&pool).await.unwrap();
+
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.r#gen();
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.r#gen();
-    let user_2 = user_2.save(&pool).await.unwrap();
-
-    for user in [&user_1, &user_2] {
-        // Create 2 devices per user
-        for device_num in 1..3 {
-            let device = Device {
-                id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
-                user_id: user.id,
-                device_type: DeviceType::User,
-                description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
-                configured: true,
-            };
-            let device = device.save(&pool).await.unwrap();
-
-            // Add device to location's VPN network
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_1.id,
-                wireguard_ips: vec![
-                    IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
-                    IpAddr::V6(Ipv6Addr::new(
-                        0xff00,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        user.id as u16,
-                        device_num as u16,
-                    )),
-                ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_2.id,
-                wireguard_ips: vec![
-                    IpAddr::V4(Ipv4Addr::new(10, 10, user.id as u8, device_num as u8)),
-                    IpAddr::V6(Ipv6Addr::new(
-                        0xff00,
-                        0,
-                        0,
-                        0,
-                        10,
-                        10,
-                        user.id as u16,
-                        device_num as u16,
-                    )),
-                ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-        }
-    }
+    create_test_users_and_devices(&mut rng, &pool, vec![&location_1, &location_2]).await;
 
     // create ACL rules
     let acl_rule_1 = AclRule {

@@ -237,7 +237,7 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, Default, Eq, FromRow, Model, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Eq, FromRow, Model, PartialEq, ToSchema)]
 pub struct AclRule<I = NoId> {
     pub id: I,
     // if present points to the original rule before modification / deletion
@@ -264,6 +264,31 @@ pub struct AclRule<I = NoId> {
     pub any_port: bool,
     pub any_protocol: bool,
     pub manual_settings: bool,
+}
+
+impl Default for AclRule {
+    fn default() -> Self {
+        Self {
+            id: NoId,
+            parent_id: Default::default(),
+            state: RuleState::New,
+            name: "ACL rule".to_string(),
+            allow_all_users: false,
+            deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            enabled: true,
+            expires: None,
+            any_destination: true,
+            any_port: true,
+            any_protocol: true,
+            manual_settings: true,
+        }
+    }
 }
 
 impl AclRule {
