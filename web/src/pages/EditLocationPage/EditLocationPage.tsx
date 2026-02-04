@@ -360,6 +360,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   editText="Edit groups"
                   modalTitle="Select allowed groups"
                   toggleText="All groups have access"
+                  toggleValue={field.state.value.length === 0}
+                  onToggleChange={(value) => {
+                    if (value) {
+                      field.handleChange([]);
+                    }
+                  }}
                 />
               )}
             </form.AppField>
