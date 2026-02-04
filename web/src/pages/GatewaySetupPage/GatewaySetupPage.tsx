@@ -10,7 +10,7 @@ import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
-import { SetupGatewayAdoptionStep } from './steps/SetupGatewayAdoptionStep';
+import { SetupGatewayAdoptionStep } from './steps/SetupGatewayAdaptationStep';
 import { SetupGatewayComponentStep } from './steps/SetupGatewayComponentStep';
 import { GatewaySetupStep, type GatewaySetupStepValue } from './types';
 import { useGatewayWizardStore } from './useGatewayWizardStore';
