@@ -107,8 +107,6 @@ pub async fn generate_firewall_rules_from_acls(
                     protocols,
                 )
                 .await?;
-            println!("{manual_destination_allow_rules:#?}");
-            println!("{manual_destination_deny_rules:#?}");
 
             // append generated rules to output
             allow_rules.extend(manual_destination_allow_rules);
@@ -284,7 +282,6 @@ async fn get_manual_destination_rules(
     // remove duplicate protocol entries
     protocols.sort_unstable();
     protocols.dedup();
-    println!("source addrs: {source_addrs:#?}");
 
     let (ipv4_source_addrs, ipv6_source_addrs) = source_addrs;
     let has_ipv4_addresses = !ipv4_source_addrs.is_empty();

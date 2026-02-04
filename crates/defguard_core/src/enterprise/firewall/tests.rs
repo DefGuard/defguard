@@ -3437,12 +3437,13 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         id: NoId,
         expires: None,
         enabled: true,
+        allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: true,
         destination: vec![
             "192.168.1.0/24".parse().unwrap(),
             "fc00::0/112".parse().unwrap(),
         ],
-        manual_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -3454,7 +3455,13 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         expires: None,
         enabled: true,
         all_networks: true,
+        allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: true,
+        destination: vec![
+            "192.168.2.0/24".parse().unwrap(),
+            "fb00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -3468,6 +3475,11 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: true,
+        destination: vec![
+            "192.168.3.0/24".parse().unwrap(),
+            "fa00::0/112".parse().unwrap(),
+        ],
         ..Default::default()
     }
     .save(&pool)
@@ -3495,8 +3507,8 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         .unwrap()
         .rules;
 
-    // both rules were assigned to this location
-    assert_eq!(generated_firewall_rules.len(), 8);
+    // all rules were used to this location
+    assert_eq!(generated_firewall_rules.len(), 12);
 
     let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
@@ -3504,8 +3516,8 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         .unwrap()
         .rules;
 
-    // rule with `all_networks` enabled was used for this location
-    assert_eq!(generated_firewall_rules.len(), 6);
+    // rule with `all_networks` enabled was also used for this location
+    assert_eq!(generated_firewall_rules.len(), 8);
 }
 
 #[sqlx::test]
