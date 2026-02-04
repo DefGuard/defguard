@@ -8,9 +8,11 @@ import {
 import { AppLoaderPage } from '../pages/AppLoaderPage/AppLoaderPage';
 import { useSetupWizardStore } from '../pages/SetupPage/useSetupWizardStore';
 import { SnackbarManager } from '../shared/defguard-ui/providers/snackbar/SnackbarManager';
-import { useApp } from '../shared/hooks/useApp';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getUserMeQueryOptions } from '../shared/query';
+import {
+  getSettingsEssentialsQueryOptions,
+  getUserMeQueryOptions,
+} from '../shared/query';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -18,8 +20,18 @@ interface RouterContext {
 
 // Handles the initial wizard redirect.
 // All routes should redirect to the setup wizard if the initial setup is not completed.
-const handleWizardRedirect = async (location: ParsedLocation) => {
-  const settingsEssentials = useApp((s) => s.settingsEssentials);
+const handleWizardRedirect = async ({
+  location,
+  context,
+}: {
+  location: ParsedLocation;
+  context: RouterContext;
+}) => {
+  const settingsEssentials = (
+    await (
+      await context.queryClient.ensureQueryData(getSettingsEssentialsQueryOptions)
+    )()
+  ).data;
 
   // Tries to access any route but setup is not completed
   const setupNotCompletedAnyAccess =
@@ -42,7 +54,10 @@ const handleWizardRedirect = async (location: ParsedLocation) => {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   beforeLoad: async ({ location, context }) => {
-    await handleWizardRedirect(location);
+    await handleWizardRedirect({
+      location,
+      context,
+    });
 
     if (
       location.pathname.startsWith('/auth') ||
