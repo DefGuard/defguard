@@ -6,7 +6,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Button } from '../../defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../defguard-ui/components/ButtonMenu/MenuButton';
-import { EvenSplit } from '../../defguard-ui/components/EvenSplit/EvenSplit';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
@@ -103,7 +102,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   );
   return (
     <div className="modal-device-config-section">
-      <QRCodeCanvas size={160} value={qrConfig} />
+      <QRCodeCanvas size={200} value={qrConfig} />
       <div className="right">
         <Select
           label={m.modal_add_user_device_manual_download_location_label()}
@@ -113,7 +112,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
         />
         <SizedBox height={ThemeSpacing.Xl2} />
         <p>{m.modal_add_user_device_manual_download_explain()}</p>
-        <EvenSplit spacing={ThemeSpacing.Md} parts={2}>
+        <div className="actions">
           <ButtonMenu
             variant="outlined"
             iconLeft="download"
@@ -128,7 +127,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
               void writeToClipboard(clipboardConfig);
             }}
           />
-        </EvenSplit>
+        </div>
       </div>
     </div>
   );
