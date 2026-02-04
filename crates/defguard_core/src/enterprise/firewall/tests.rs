@@ -4332,7 +4332,7 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
         .rules;
 
     assert_eq!(generated_firewall_rules_ipv4.len(), 2);
-    let expected_source_addrs = vec![
+    let expected_source_addrs_ipv4 = vec![
         IpAddress {
             address: Some(Address::IpRange(IpRange {
                 start: "10.0.1.1".to_string(),
@@ -4346,6 +4346,17 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
             })),
         },
     ];
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4[1];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
 
     // check generated rules for IPv6 only location
     let generated_firewall_rules_ipv6 = location_ipv6
@@ -4356,6 +4367,31 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
         .rules;
 
     assert_eq!(generated_firewall_rules_ipv6.len(), 2);
+    let expected_source_addrs_ipv6 = vec![
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::1:1".to_string(),
+                end: "ff00::1:2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::2:1".to_string(),
+                end: "ff00::2:2".to_string(),
+            })),
+        },
+    ];
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv6[0];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv6[1];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
 
     // check generated rules for IPv4 and IPv6 location
     let generated_firewall_rules_ipv4_and_ipv6 = location_ipv4_and_ipv6
@@ -4366,77 +4402,27 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
         .rules;
 
     assert_eq!(generated_firewall_rules_ipv4_and_ipv6.len(), 4);
-    // let alias_allow_rule_1 = &generated_firewall_rules[0];
-    // assert_eq!(alias_allow_rule_1.verdict, i32::from(FirewallPolicy::Allow));
-    // assert_eq!(alias_allow_rule_1.source_addrs, expected_source_addrs);
-    // assert_eq!(
-    //     alias_allow_rule_1.destination_addrs,
-    //     vec![IpAddress {
-    //         address: Some(Address::Ip("10.0.2.3".to_string())),
-    //     },]
-    // );
-    // assert_eq!(
-    //     alias_allow_rule_1.destination_ports,
-    //     vec![Port {
-    //         port: Some(PortInner::SinglePort(5432))
-    //     }]
-    // );
-    // assert!(alias_allow_rule_1.protocols.is_empty());
-    // assert_eq!(
-    //     alias_allow_rule_1.comment,
-    //     Some("ACL 1 - test rule, ALIAS 1 - postgres ALLOW".to_string())
-    // );
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
 
-    // let alias_allow_rule_2 = &generated_firewall_rules[1];
-    // assert_eq!(alias_allow_rule_2.verdict, i32::from(FirewallPolicy::Allow));
-    // assert_eq!(alias_allow_rule_2.source_addrs, expected_source_addrs);
-    // assert_eq!(
-    //     alias_allow_rule_2.destination_addrs,
-    //     vec![IpAddress {
-    //         address: Some(Address::Ip("10.0.2.4".to_string())),
-    //     },]
-    // );
-    // assert_eq!(
-    //     alias_allow_rule_2.destination_ports,
-    //     vec![Port {
-    //         port: Some(PortInner::SinglePort(6379))
-    //     }]
-    // );
-    // assert!(alias_allow_rule_2.protocols.is_empty());
-    // assert_eq!(
-    //     alias_allow_rule_2.comment,
-    //     Some("ACL 1 - test rule, ALIAS 2 - redis ALLOW".to_string())
-    // );
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[1];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
 
-    // let alias_deny_rule_1 = &generated_firewall_rules[2];
-    // assert_eq!(alias_deny_rule_1.verdict, i32::from(FirewallPolicy::Deny));
-    // assert!(alias_deny_rule_1.source_addrs.is_empty());
-    // assert_eq!(
-    //     alias_deny_rule_1.destination_addrs,
-    //     vec![IpAddress {
-    //         address: Some(Address::Ip("10.0.2.3".to_string())),
-    //     },]
-    // );
-    // assert!(alias_deny_rule_1.destination_ports.is_empty());
-    // assert!(alias_deny_rule_1.protocols.is_empty());
-    // assert_eq!(
-    //     alias_deny_rule_1.comment,
-    //     Some("ACL 1 - test rule, ALIAS 1 - postgres DENY".to_string())
-    // );
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[2];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
 
-    // let alias_deny_rule_2 = &generated_firewall_rules[3];
-    // assert_eq!(alias_deny_rule_2.verdict, i32::from(FirewallPolicy::Deny));
-    // assert!(alias_deny_rule_2.source_addrs.is_empty());
-    // assert_eq!(
-    //     alias_deny_rule_2.destination_addrs,
-    //     vec![IpAddress {
-    //         address: Some(Address::Ip("10.0.2.4".to_string())),
-    //     },]
-    // );
-    // assert!(alias_deny_rule_2.destination_ports.is_empty());
-    // assert!(alias_deny_rule_2.protocols.is_empty());
-    // assert_eq!(
-    //     alias_deny_rule_2.comment,
-    //     Some("ACL 1 - test rule, ALIAS 2 - redis DENY".to_string())
-    // );
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[3];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
 }
