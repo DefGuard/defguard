@@ -62,9 +62,11 @@ const ModalContent = () => {
             locationType: 'service',
             service_location_mode: LocationServiceMode.Prelogon,
           });
-          navigate({
-            to: '/add-location',
-          });
+          setTimeout(() => {
+            navigate({
+              to: '/add-location',
+            });
+          }, 100);
         }}
       />
     </>

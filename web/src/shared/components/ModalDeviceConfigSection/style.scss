@@ -1,6 +1,6 @@
 .modal-device-config-section {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 200px 1fr;
   grid-template-rows: 1fr;
   column-gap: var(--spacing-4xl);
 
@@ -11,6 +11,12 @@
       font: var(--t-body-xs-500);
       color: var(--fg-muted);
       padding-bottom: var(--spacing-md);
+    }
+
+    .actions {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-md);
     }
   }
 }

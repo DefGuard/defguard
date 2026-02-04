@@ -23,6 +23,13 @@
       }
     }
   }
+
+  .controls {
+    .left > p {
+      font: var(--t-body-xs-500);
+      color: var(--fg-muted);
+    }
+  }
 }
 
 #add-device-client-step #setup-desktop {
@@ -98,7 +105,7 @@
 
   .bottom {
     display: grid;
-    grid-template-columns: 100px 1fr;
+    grid-template-columns: 200px 1fr;
     grid-template-rows: 1fr;
     align-items: center;
     column-gap: var(--spacing-4xl);
@@ -113,10 +120,15 @@
 
     .links {
       display: flex;
-      flex-flow: row;
+      flex-flow: column;
       align-items: center;
       justify-content: flex-start;
-      column-gap: var(--spacing-md);
+      row-gap: var(--spacing-md);
+
+      a,
+      .btn {
+        width: 100%;
+      }
     }
   }
 }

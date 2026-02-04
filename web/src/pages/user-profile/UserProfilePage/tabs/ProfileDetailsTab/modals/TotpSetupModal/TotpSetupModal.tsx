@@ -138,7 +138,7 @@ const ModalContent = () => {
         <SizedBox height={ThemeSpacing.Xl2} />
         {isPresent(qrData) && isPresent(totpInitResponse) && (
           <div className="qr">
-            <QRCodeCanvas value={qrData} size={130} />
+            <QRCodeCanvas value={qrData} size={200} />
             <SizedBox height={ThemeSpacing.Xl} />
             <p>{m.modal_mfa_enable_totp_qr_problem()}</p>
             <SizedBox height={ThemeSpacing.Sm} />

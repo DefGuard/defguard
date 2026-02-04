@@ -8,7 +8,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { AddLocationPageStep } from '../types';
+import { AddLocationPageStep, type AddLocationPageStepValue } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 const formSchema = z.object({
@@ -22,6 +22,8 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationNetworkStep = () => {
+  const locationType = useAddLocationStore((s) => s.locationType);
+
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
@@ -39,9 +41,15 @@ export const AddLocationNetworkStep = () => {
       onChange: formSchema,
     },
     onSubmit: ({ value }) => {
+      let targetStep: AddLocationPageStepValue;
+      if (locationType === 'regular') {
+        targetStep = AddLocationPageStep.Mfa;
+      } else {
+        targetStep = AddLocationPageStep.ServiceLocationSettings;
+      }
       useAddLocationStore.setState({
         ...value,
-        activeStep: AddLocationPageStep.Mfa,
+        activeStep: targetStep,
       });
     },
   });
