@@ -13,27 +13,27 @@ import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
 
-export const SetupEdgeAdaptationStep = () => {
+export const SetupEdgeAdoptionStep = () => {
   const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
   const edgeComponentWizardStore = useEdgeWizardStore((s) => s);
-  const edgeAdaptationState = useEdgeWizardStore((s) => s.edgeAdaptationState);
-  const setEdgeAdaptationState = useEdgeWizardStore((s) => s.setEdgeAdaptationState);
-  const resetEdgeAdaptationState = useEdgeWizardStore((s) => s.resetEdgeAdaptationState);
+  const edgeAdoptionState = useEdgeWizardStore((s) => s.edgeAdoptionState);
+  const setEdgeAdoptionState = useEdgeWizardStore((s) => s.setEdgeAdoptionState);
+  const resetEdgeAdoptionState = useEdgeWizardStore((s) => s.resetEdgeAdoptionState);
 
   const handleEvent = useCallback(
     (event: SetupEvent) => {
-      setEdgeAdaptationState({
+      setEdgeAdoptionState({
         currentStep: event.step,
         isComplete: event.step === 'Done',
         isProcessing: event.step !== 'Done' && !event.error,
         proxyVersion: event.version ?? null,
         errorMessage: event.error
-          ? event.message || m.edge_setup_adaptation_error_default()
+          ? event.message || m.edge_setup_adoption_error_default()
           : null,
         proxyLogs: event.logs && event.logs.length > 0 ? [...event.logs] : [],
       });
     },
-    [setEdgeAdaptationState],
+    [setEdgeAdoptionState],
   );
 
   const sse = useSSEController<SetupEvent>(
@@ -49,7 +49,7 @@ export const SetupEdgeAdaptationStep = () => {
   );
 
   const handleBack = () => {
-    useEdgeWizardStore.getState().resetEdgeAdaptationState();
+    useEdgeWizardStore.getState().resetEdgeAdoptionState();
     setActiveStep(EdgeSetupStep.EdgeComponent);
   };
 
@@ -61,75 +61,70 @@ export const SetupEdgeAdaptationStep = () => {
     () => [
       {
         id: 'CheckingConfiguration',
-        title: m.edge_setup_adaptation_checking_configuration(),
+        title: m.edge_setup_adoption_checking_configuration(),
       },
       {
         id: 'CheckingAvailability',
-        title: m.edge_setup_adaptation_checking_availability({
+        title: m.edge_setup_adoption_checking_availability({
           ip_or_domain: edgeComponentWizardStore.ip_or_domain,
           grpc_port: edgeComponentWizardStore.grpc_port.toString(),
         }),
       },
       {
         id: 'CheckingVersion',
-        title: edgeAdaptationState.proxyVersion
-          ? m.edge_setup_adaptation_checking_version_with_value({
-              proxyVersion: edgeAdaptationState.proxyVersion,
+        title: edgeAdoptionState.proxyVersion
+          ? m.edge_setup_adoption_checking_version_with_value({
+              proxyVersion: edgeAdoptionState.proxyVersion,
             })
-          : m.edge_setup_adaptation_checking_version(),
+          : m.edge_setup_adoption_checking_version(),
       },
       {
         id: 'ObtainingCsr',
-        title: m.edge_setup_adaptation_obtaining_csr(),
+        title: m.edge_setup_adoption_obtaining_csr(),
       },
       {
         id: 'SigningCertificate',
-        title: m.edge_setup_adaptation_signing_certificate(),
+        title: m.edge_setup_adoption_signing_certificate(),
       },
       {
         id: 'ConfiguringTls',
-        title: m.edge_setup_adaptation_configuring_tls(),
+        title: m.edge_setup_adoption_configuring_tls(),
       },
     ],
-    [edgeComponentWizardStore, edgeAdaptationState.proxyVersion],
+    [edgeComponentWizardStore, edgeAdoptionState.proxyVersion],
   );
 
   const stepDone = useCallback(
     (stepId: SetupStepId): boolean => {
       const stepIndex = steps.findIndex((step) => step.id === stepId);
-      const currentStepIndex = edgeAdaptationState.currentStep
-        ? steps.findIndex((step) => step.id === edgeAdaptationState.currentStep)
+      const currentStepIndex = edgeAdoptionState.currentStep
+        ? steps.findIndex((step) => step.id === edgeAdoptionState.currentStep)
         : -1;
-      return stepIndex < currentStepIndex || edgeAdaptationState.isComplete;
+      return stepIndex < currentStepIndex || edgeAdoptionState.isComplete;
     },
-    [edgeAdaptationState.isComplete, edgeAdaptationState.currentStep, steps],
+    [edgeAdoptionState.isComplete, edgeAdoptionState.currentStep, steps],
   );
 
   const stepLoading = useCallback(
     (stepId: SetupStepId): boolean => {
-      return (
-        edgeAdaptationState.isProcessing && edgeAdaptationState.currentStep === stepId
-      );
+      return edgeAdoptionState.isProcessing && edgeAdoptionState.currentStep === stepId;
     },
-    [edgeAdaptationState.isProcessing, edgeAdaptationState.currentStep],
+    [edgeAdoptionState.isProcessing, edgeAdoptionState.currentStep],
   );
 
   const stepError = useCallback(
     (stepId: SetupStepId): string | null => {
-      if (
-        edgeAdaptationState.errorMessage &&
-        edgeAdaptationState.currentStep === stepId
-      ) {
-        return edgeAdaptationState.errorMessage;
+      if (edgeAdoptionState.errorMessage && edgeAdoptionState.currentStep === stepId) {
+        return edgeAdoptionState.errorMessage;
       }
       return null;
     },
-    [edgeAdaptationState.errorMessage, edgeAdaptationState.currentStep],
+    [edgeAdoptionState.errorMessage, edgeAdoptionState.currentStep],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
   useEffect(() => {
-    resetEdgeAdaptationState();
+    resetEdgeAdoptionState();
     sse.start();
 
     return () => {
@@ -149,11 +144,11 @@ export const SetupEdgeAdaptationStep = () => {
             error={!!stepError(step.id)}
             errorMessage={stepError(step.id) || undefined}
           >
-            {edgeAdaptationState.proxyLogs.length > 0 ? (
+            {edgeAdoptionState.proxyLogs.length > 0 ? (
               <>
                 <CodeCard
-                  title={m.edge_setup_adaptation_error_log_title()}
-                  value={edgeAdaptationState.proxyLogs.join('\n')}
+                  title={m.edge_setup_adoption_error_log_title()}
+                  value={edgeAdoptionState.proxyLogs.join('\n')}
                 />
                 <SizedBox height={ThemeSpacing.Xl} />
               </>
@@ -162,12 +157,12 @@ export const SetupEdgeAdaptationStep = () => {
               <div className="left">
                 <Button
                   variant="primary"
-                  text={m.edge_setup_adaptation_controls_retry()}
+                  text={m.edge_setup_adoption_controls_retry()}
                   onClick={() => {
-                    resetEdgeAdaptationState();
+                    resetEdgeAdoptionState();
                     sse.restart();
                   }}
-                  disabled={edgeAdaptationState.isProcessing}
+                  disabled={edgeAdoptionState.isProcessing}
                 />
               </div>
             </Controls>
@@ -176,15 +171,15 @@ export const SetupEdgeAdaptationStep = () => {
       </div>
       <ModalControls
         cancelProps={{
-          text: m.edge_setup_adaptation_controls_back(),
+          text: m.edge_setup_adoption_controls_back(),
           onClick: handleBack,
-          disabled: edgeAdaptationState.isProcessing || edgeAdaptationState.isComplete,
+          disabled: edgeAdoptionState.isProcessing || edgeAdoptionState.isComplete,
           variant: 'outlined',
         }}
         submitProps={{
-          text: m.edge_setup_adaptation_controls_continue(),
+          text: m.edge_setup_adoption_controls_continue(),
           onClick: handleNext,
-          disabled: !edgeAdaptationState.isComplete || edgeAdaptationState.isProcessing,
+          disabled: !edgeAdoptionState.isComplete || edgeAdoptionState.isProcessing,
         }}
       />
     </WizardCard>

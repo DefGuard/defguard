@@ -10,7 +10,7 @@ import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
-import { SetupGatewayAdaptationStep } from './steps/SetupGatewayAdaptationStep';
+import { SetupGatewayAdoptionStep } from './steps/SetupGatewayAdoptionStep';
 import { SetupGatewayComponentStep } from './steps/SetupGatewayComponentStep';
 import { GatewaySetupStep, type GatewaySetupStepValue } from './types';
 import { useGatewayWizardStore } from './useGatewayWizardStore';
@@ -29,11 +29,11 @@ export const GatewaySetupPage = () => {
         label: m.gateway_setup_step_gateway_component_label(),
         description: m.gateway_setup_step_gateway_component_description(),
       },
-      gatewayAdaptation: {
-        id: GatewaySetupStep.GatewayAdaptation,
+      gatewayAdoption: {
+        id: GatewaySetupStep.GatewayAdoption,
         order: 2,
-        label: m.gateway_setup_step_gateway_adaptation_label(),
-        description: m.gateway_setup_step_gateway_adaptation_description(),
+        label: m.gateway_setup_step_gateway_adoption_label(),
+        description: m.gateway_setup_step_gateway_adoption_description(),
       },
       confirmation: {
         id: GatewaySetupStep.Confirmation,
@@ -48,7 +48,7 @@ export const GatewaySetupPage = () => {
   const stepsComponents = useMemo(
     (): Record<GatewaySetupStepValue, ReactNode> => ({
       gatewayComponent: <SetupGatewayComponentStep />,
-      gatewayAdaptation: <SetupGatewayAdaptationStep />,
+      gatewayAdoption: <SetupGatewayAdoptionStep />,
       confirmation: <SetupConfirmationStep />,
     }),
     [],

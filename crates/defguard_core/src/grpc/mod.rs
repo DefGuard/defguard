@@ -176,17 +176,16 @@ impl InstanceInfo {
         enterprise_settings: &EnterpriseSettings,
         openid_provider: Option<OpenIdProvider<Id>>,
     ) -> Result<Self, UrlParseError> {
-        let config = server_config();
         let openid_display_name = openid_provider
             .as_ref()
             .map(|provider| provider.display_name.clone())
             .unwrap_or_default();
         let url = Settings::url()?;
-        Ok(InstanceInfo {
+        Ok(Self {
             id: settings.uuid,
-            name: settings.instance_name,
-            url: url.clone(),
-            proxy_url: config.enrollment_url.clone(),
+            name: settings.instance_name.clone(),
+            url,
+            proxy_url: settings.proxy_public_url()?,
             username: username.into(),
             client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_business_license_active(),

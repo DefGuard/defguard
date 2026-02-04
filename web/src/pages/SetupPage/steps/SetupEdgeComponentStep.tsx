@@ -18,7 +18,6 @@ type StoreValues = {
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
-  public_domain: string;
 };
 
 export const SetupEdgeComponentStep = () => {
@@ -30,7 +29,6 @@ export const SetupEdgeComponentStep = () => {
         common_name: s.common_name,
         ip_or_domain: s.ip_or_domain,
         grpc_port: s.grpc_port,
-        public_domain: s.public_domain,
       }),
     ),
   );
@@ -53,9 +51,6 @@ export const SetupEdgeComponentStep = () => {
           .number()
           .min(1, m.edge_setup_component_error_grpc_port_required())
           .max(65535, m.edge_setup_component_error_grpc_port_max()),
-        public_domain: z
-          .string()
-          .min(1, m.edge_setup_component_error_public_domain_required()),
       }),
     [],
   );
@@ -71,7 +66,7 @@ export const SetupEdgeComponentStep = () => {
       useSetupWizardStore.setState({
         ...value,
       });
-      setActiveStep(SetupPageStep.EdgeAdaptation);
+      setActiveStep(SetupPageStep.EdgeAdoption);
     },
   });
 
@@ -111,16 +106,6 @@ export const SetupEdgeComponentStep = () => {
                 required
                 label={m.edge_setup_component_label_grpc_port()}
                 type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="public_domain">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.edge_setup_component_label_public_domain()}
-                type="text"
               />
             )}
           </form.AppField>

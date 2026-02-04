@@ -20,7 +20,7 @@ pub(crate) const CONTENT_SECURITY_POLICY_HEADER_NAME: HeaderName =
 pub(crate) const CONTENT_SECURITY_POLICY_HEADER_VALUE: HeaderValue =
     HeaderValue::from_static("frame-ancestors 'none';");
 
-pub(crate) static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
+pub static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");
     UserAgentParser::from_bytes(regexes).expect("Parser creation failed")
 });

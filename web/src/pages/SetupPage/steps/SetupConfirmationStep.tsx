@@ -1,14 +1,11 @@
-import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import location from '../assets/location.png';
 import { useSetupWizardStore } from '../useSetupWizardStore';
@@ -16,21 +13,16 @@ import { useSetupWizardStore } from '../useSetupWizardStore';
 export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
 
-  const { mutateAsync: finishSetup } = useMutation({
-    mutationKey: ['finish-setup'],
-    mutationFn: api.initial_setup.finishSetup,
-    onError: (error) => {
-      console.error('Failed to finish setup:', error);
-      Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
-    },
-    meta: {
-      invalidate: ['settings-essentials'],
-    },
-  });
-
   const handleFinish = async () => {
-    await finishSetup();
-    navigate({ to: '/auth/login', replace: true }).then(() => {
+    navigate({ to: '/add-location', replace: true }).then(() => {
+      setTimeout(() => {
+        useSetupWizardStore.getState().reset();
+      }, 100);
+    });
+  };
+
+  const handleExit = async () => {
+    navigate({ to: '/vpn-overview', replace: true }).then(() => {
       setTimeout(() => {
         useSetupWizardStore.getState().reset();
       }, 100);
@@ -60,15 +52,18 @@ export const SetupConfirmationStep = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <p className="subtitle">{m.initial_setup_confirmation_footer()}</p>
         </div>
+        <ModalControls
+          cancelProps={{
+            text: m.initial_setup_confirmation_cancel(),
+            onClick: handleExit,
+            variant: 'outlined',
+          }}
+          submitProps={{
+            text: m.initial_setup_confirmation_submit(),
+            onClick: handleFinish,
+          }}
+        />
       </div>
-      <ModalControls
-        // Temporarily disabled
-        // cancelProps={{ text: "I'll do this later", onClick: handleBack }}
-        submitProps={{
-          text: m.initial_setup_controls_finish(),
-          onClick: handleFinish,
-        }}
-      />
     </WizardCard>
   );
 };

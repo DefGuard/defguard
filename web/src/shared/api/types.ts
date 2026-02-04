@@ -39,6 +39,7 @@ export interface SetGeneralConfigRequest {
   default_admin_group_name: string;
   default_authentication: number;
   default_mfa_code_lifetime: number;
+  public_proxy_url: string;
   admin_username: string;
 }
 

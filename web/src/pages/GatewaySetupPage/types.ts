@@ -1,6 +1,6 @@
 export const GatewaySetupStep = {
   GatewayComponent: 'gatewayComponent',
-  GatewayAdaptation: 'gatewayAdaptation',
+  GatewayAdoption: 'gatewayAdoption',
   Confirmation: 'confirmation',
 } as const;
 

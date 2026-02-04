@@ -1,4 +1,7 @@
-use defguard_common::{config::server_config, db::models::User};
+use defguard_common::{
+    config::server_config,
+    db::models::{Settings, User},
+};
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::ldap::utils::ldap_change_password,
@@ -150,10 +153,17 @@ impl PasswordResetServer {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        let settings = Settings::get_current_settings();
+        let public_proxy_url = settings.proxy_public_url().map_err(|err| {
+            error!("Failed to get public proxy URL: {err}");
+            Status::internal("unexpected error")
+        })?;
+
         send_password_reset_email(
             &user,
             &self.mail_tx,
-            config.enrollment_url.clone(),
+            public_proxy_url,
             &enrollment.id,
             Some(&ip_address),
             Some(&device_info),

@@ -54,7 +54,7 @@ use crate::{
 
 /// Common functionality for `authenticate()` and `auth_callback()`.
 /// Returns either `AuthResponse` or `MFAInfo`.
-pub(crate) async fn create_session(
+pub async fn create_session(
     pool: &PgPool,
     mail_tx: &UnboundedSender<Mail>,
     ip_address: IpAddr,

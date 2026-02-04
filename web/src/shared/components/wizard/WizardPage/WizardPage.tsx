@@ -15,7 +15,7 @@ import { WizardWelcomePage } from '../WizardWelcomePage/WizardWelcomePage';
 type Props = HTMLProps<HTMLDivElement> &
   PropsWithChildren &
   WizardPageConfig & {
-    onClose: () => void;
+    onClose?: () => void;
   };
 
 export const WizardPage = ({
@@ -27,7 +27,7 @@ export const WizardPage = ({
   children,
   onClose,
   welcomePageConfig,
-  showWelcome,
+  showWelcome = false,
   ...containerProps
 }: Props) => {
   const activeStep = steps[activeStepId];

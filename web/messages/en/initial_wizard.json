@@ -16,8 +16,8 @@
 	"initial_setup_step_certificate_authority_summary_description": "Securing component communication",
 	"initial_setup_step_edge_component_label": "Edge Component",
 	"initial_setup_step_edge_component_description": "Set up your VPN proxy quickly and ensure secure, optimized traffic flow for your users.",
-	"initial_setup_step_edge_adaptation_label": "Edge Component Adaptation",
-	"initial_setup_step_edge_adaptation_description": "Review the system’s checks and see if any issues need attention before deployment.",
+	"initial_setup_step_edge_adoption_label": "Edge Component Adoption",
+	"initial_setup_step_edge_adoption_description": "Review the system’s checks and see if any issues need attention before deployment.",
 	"initial_setup_step_confirmation_label": "Confirmation",
 	"initial_setup_step_confirmation_description": "Your configuration was successful. You’re all set.",
 
@@ -55,7 +55,10 @@
 	"initial_setup_general_config_label_admin_group": "Default Admin Group Name",
 	"initial_setup_general_config_label_auth_period": "Default Authentication Period (days)",
 	"initial_setup_general_config_label_mfa_timeout": "Default MFA Code Timeout (seconds)",
+	"initial_setup_general_config_label_public_proxy_url": "Public Edge component URL",
 	"initial_setup_general_config_error_save_failed": "Failed to create admin user. Please try again.",
+	"initial_setup_general_config_error_public_proxy_url_invalid": "Public Proxy URL must be a valid URL",
+	"initial_setup_general_config_error_public_proxy_url_required": "Public Proxy URL is required",
 
 	"initial_setup_ca_validity_one_year": "1 year",
 	"initial_setup_ca_validity_years": "{years} years",
@@ -95,6 +98,8 @@
 	"initial_setup_confirmation_action_subtitle": "To organize users, manage access, track users activity and device monitoring.",
 	"initial_setup_confirmation_action_time": "Around 3 minutes",
 	"initial_setup_confirmation_footer": "Once you create your first location, the only step left will be to connect a gateway — and the system will be fully ready to use. This usually takes about n 10–15 minutes, depending on the complexity of your VPN configuration.",
+	"initial_setup_confirmation_cancel": "I'll do this later",
+	"initial_setup_confirmation_submit": "Create location now",
 
 	"initial_setup_controls_back": "Back",
 	"initial_setup_controls_continue": "Continue",

@@ -3,7 +3,7 @@ import { NavLogo } from '../../Navigation/assets/NavLogo';
 import './style.scss';
 
 type Props = {
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 export const WizardTop = ({ onClick }: Props) => {
@@ -11,7 +11,7 @@ export const WizardTop = ({ onClick }: Props) => {
     <div className="wizard-top">
       <div className="content-track">
         <NavLogo />
-        <IconButton icon="close" onClick={onClick} />
+        {onClick && <IconButton icon="close" onClick={onClick} />}
       </div>
     </div>
   );
