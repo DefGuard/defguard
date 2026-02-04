@@ -19,6 +19,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     let location_1 = WireguardNetwork {
         id: NoId,
         acl_enabled: true,
+        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
     };
     let location_1 = location_1.save(&pool).await.unwrap();
@@ -27,6 +28,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     let location_2 = WireguardNetwork {
         id: NoId,
         acl_enabled: true,
+        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
     };
     let location_2 = location_2.save(&pool).await.unwrap();
@@ -39,6 +41,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
+        allow_all_users: true,
         state: RuleState::Applied,
         destination: vec!["192.168.1.0/24".parse().unwrap()],
         manual_settings: true,
@@ -53,8 +56,10 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         expires: None,
         enabled: true,
         all_networks: true,
+        allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: false,
+        destination: vec!["192.168.2.0/24".parse().unwrap()],
+        manual_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -68,7 +73,8 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: false,
+        destination: vec!["192.168.3.0/24".parse().unwrap()],
+        manual_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -96,8 +102,8 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         .unwrap()
         .rules;
 
-    // both rules were assigned to this location
-    assert_eq!(generated_firewall_rules.len(), 4);
+    // all rules were assigned to this location
+    assert_eq!(generated_firewall_rules.len(), 6);
 
     let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
@@ -106,7 +112,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         .rules;
 
     // rule with `all_networks` enabled was used for this location
-    assert_eq!(generated_firewall_rules.len(), 3);
+    assert_eq!(generated_firewall_rules.len(), 4);
 }
 
 #[sqlx::test]
@@ -140,7 +146,9 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
+        allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: true,
         destination: vec!["fc00::0/112".parse().unwrap()],
         ..Default::default()
     }
@@ -152,8 +160,11 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
+        allow_all_users: true,
         all_networks: true,
         state: RuleState::Applied,
+        manual_settings: true,
+        destination: vec!["fb00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -167,6 +178,8 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         all_networks: true,
         allow_all_users: true,
         state: RuleState::Applied,
+        manual_settings: true,
+        destination: vec!["fa00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -195,7 +208,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         .rules;
 
     // both rules were assigned to this location
-    assert_eq!(generated_firewall_rules.len(), 4);
+    assert_eq!(generated_firewall_rules.len(), 6);
 
     let generated_firewall_rules = try_get_location_firewall_config(&location_2, &mut conn)
         .await
@@ -204,7 +217,7 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         .rules;
 
     // rule with `all_networks` enabled was used for this location
-    assert_eq!(generated_firewall_rules.len(), 3);
+    assert_eq!(generated_firewall_rules.len(), 4);
 }
 
 #[sqlx::test]
