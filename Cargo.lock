@@ -1396,6 +1396,8 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "axum-client-ip",
+ "axum-extra",
  "chrono",
  "defguard_certs",
  "defguard_common",

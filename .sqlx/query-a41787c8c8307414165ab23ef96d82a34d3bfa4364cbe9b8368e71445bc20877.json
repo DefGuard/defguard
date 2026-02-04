@@ -25,31 +25,26 @@
       },
       {
         "ordinal": 4,
-        "name": "public_address",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 5,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "has_certificate",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "version",
         "type_info": "Text"
       }
@@ -61,7 +56,6 @@
       ]
     },
     "nullable": [
-      false,
       false,
       false,
       false,

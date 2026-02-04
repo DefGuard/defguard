@@ -1,9 +1,10 @@
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { NavLogo } from '../../Navigation/assets/NavLogo';
 import './style.scss';
 
 type Props = {
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 export const WizardTop = ({ onClick }: Props) => {
@@ -11,7 +12,7 @@ export const WizardTop = ({ onClick }: Props) => {
     <div className="wizard-top">
       <div className="content-track">
         <NavLogo />
-        <IconButton icon="close" onClick={onClick} />
+        {isPresent(onClick) && <IconButton icon="close" onClick={onClick} />}
       </div>
     </div>
   );

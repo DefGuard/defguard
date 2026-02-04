@@ -1,10 +1,10 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { EdgeAdaptationState } from '../EdgeSetupPage/types';
+import type { EdgeAdoptionState } from '../EdgeSetupPage/types';
 import { type CAOptionType, SetupPageStep, type SetupPageStepValue } from './types';
 
-const edgeAdaptationStateDefaults: EdgeAdaptationState = {
+const edgeAdoptionStateDefaults: EdgeAdoptionState = {
   isProcessing: false,
   isComplete: false,
   currentStep: null,
@@ -27,6 +27,7 @@ type StoreValues = {
   default_admin_group_name: string;
   default_authentication_period_days: number;
   default_mfa_code_timeout_seconds: number;
+  public_proxy_url: string;
   // CA settings
   ca_common_name: string;
   ca_email: string;
@@ -37,17 +38,15 @@ type StoreValues = {
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
-  public_domain: string;
-  edgeAdaptationState: EdgeAdaptationState;
+  edgeAdoptionState: EdgeAdoptionState;
 };
 
 type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: SetupPageStepValue) => void;
-  updateValues: (values: Partial<StoreValues>) => void;
-  resetEdgeAdaptationState: () => void;
-  setEdgeAdaptationState: (state: Partial<EdgeAdaptationState>) => void;
+  resetEdgeAdoptionState: () => void;
+  setEdgeAdoptionState: (state: Partial<EdgeAdoptionState>) => void;
 };
 
 const defaults: StoreValues = {
@@ -64,6 +63,7 @@ const defaults: StoreValues = {
   default_admin_group_name: 'admin',
   default_authentication_period_days: 30,
   default_mfa_code_timeout_seconds: 300,
+  public_proxy_url: '',
   // CA settings
   ca_common_name: '',
   ca_email: '',
@@ -74,8 +74,7 @@ const defaults: StoreValues = {
   common_name: '',
   ip_or_domain: '',
   grpc_port: 50051,
-  public_domain: '',
-  edgeAdaptationState: edgeAdaptationStateDefaults,
+  edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 
 export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
@@ -95,14 +94,13 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
         });
       },
       setActiveStep: (step) => set({ activeStep: step }),
-      updateValues: (values) => set(values),
-      resetEdgeAdaptationState: () =>
+      resetEdgeAdoptionState: () =>
         set(() => ({
-          edgeAdaptationState: { ...edgeAdaptationStateDefaults },
+          edgeAdoptionState: { ...edgeAdoptionStateDefaults },
         })),
-      setEdgeAdaptationState: (state: Partial<EdgeAdaptationState>) =>
+      setEdgeAdoptionState: (state: Partial<EdgeAdoptionState>) =>
         set((s) => ({
-          edgeAdaptationState: { ...s.edgeAdaptationState, ...state },
+          edgeAdoptionState: { ...s.edgeAdoptionState, ...state },
         })),
     }),
     {
@@ -113,9 +111,8 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
           'reset',
           'start',
           'setActiveStep',
-          'updateValues',
-          'resetEdgeAdaptationState',
-          'setEdgeAdaptationState',
+          'resetEdgeAdoptionState',
+          'setEdgeAdoptionState',
         ]),
     },
   ),

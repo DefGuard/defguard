@@ -21,6 +21,7 @@ type StoreValues = {
   default_admin_group_name: string;
   default_authentication: number;
   default_mfa_code_lifetime: number;
+  public_proxy_url: string;
 };
 
 export const SetupGeneralConfigStep = () => {
@@ -32,6 +33,7 @@ export const SetupGeneralConfigStep = () => {
         default_admin_group_name: s.default_admin_group_name,
         default_authentication: s.default_authentication_period_days,
         default_mfa_code_lifetime: s.default_mfa_code_timeout_seconds,
+        public_proxy_url: s.public_proxy_url,
       }),
     ),
   );
@@ -51,6 +53,9 @@ export const SetupGeneralConfigStep = () => {
         default_mfa_code_lifetime: z
           .number()
           .min(60, m.initial_setup_general_config_error_mfa_timeout_min()),
+        public_proxy_url: z
+          .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
+          .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
       }),
     [],
   );
@@ -82,12 +87,14 @@ export const SetupGeneralConfigStep = () => {
         default_admin_group_name: value.default_admin_group_name,
         default_authentication_period_days: value.default_authentication,
         default_mfa_code_timeout_seconds: value.default_mfa_code_lifetime,
+        public_proxy_url: value.public_proxy_url,
       });
       mutate({
         defguard_url: value.defguard_url,
         default_admin_group_name: value.default_admin_group_name,
         default_authentication: value.default_authentication,
         default_mfa_code_lifetime: value.default_mfa_code_lifetime,
+        public_proxy_url: value.public_proxy_url,
         admin_username: useSetupWizardStore.getState().admin_username,
       });
     },
@@ -147,6 +154,15 @@ export const SetupGeneralConfigStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="public_proxy_url">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.initial_setup_general_config_label_public_proxy_url()}
+                type="text"
+              />
+            )}
+          </form.AppField>
         </form.AppForm>
       </form>
       <ModalControls

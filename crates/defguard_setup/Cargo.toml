@@ -23,3 +23,12 @@ tracing.workspace = true
 serde.workspace = true
 chrono.workspace = true
 defguard_version.workspace = true
+axum-extra.workspace = true
+axum-client-ip.workspace = true
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = [
+    "cookies",
+    "json",
+    "rustls-tls",
+], default-features = false }
