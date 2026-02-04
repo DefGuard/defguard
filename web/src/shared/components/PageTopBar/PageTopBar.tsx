@@ -100,7 +100,7 @@ const ProfileMenu = () => {
       },
     ];
     return res;
-  }, [navigate, user, queryClient.invalidateQueries]);
+  }, [navigate, user, queryClient]);
 
   const [isOpen, setOpen] = useState(false);
 

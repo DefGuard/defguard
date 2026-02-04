@@ -85,7 +85,7 @@ export const UsersTable = ({ users }: Props) => {
         id: g.name,
         label: g.name,
       })) ?? [],
-    [groups?.map],
+    [groups?.map, groups],
   );
 
   const { mutate: deleteUser } = useMutation({
@@ -134,7 +134,7 @@ export const UsersTable = ({ users }: Props) => {
       );
     }
     return data;
-  }, [users, search.length, search.toLowerCase]);
+  }, [users, search.length, search.toLowerCase, search]);
 
   const columns = useMemo(
     () => [
