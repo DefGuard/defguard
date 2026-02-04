@@ -47,7 +47,7 @@ const handleWizardRedirect = async ({
     useSetupWizardStore.getState().reset();
     throw redirect({ to: '/setup-wizard', replace: true });
   } else if (setupCompletedButAccessingWizard) {
-    throw redirect({ to: '/vpn-overview', replace: true });
+    throw redirect({ to: '/auth/login', replace: true });
   }
 };
 
