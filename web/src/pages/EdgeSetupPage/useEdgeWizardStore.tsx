@@ -17,7 +17,6 @@ type StoreMethods = {
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: EdgeSetupStepValue) => void;
   setShowWelcome: (show: boolean) => void;
-  updateValues: (values: Partial<StoreValues>) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: EdgeAdoptionState) => void;
 };
@@ -53,7 +52,6 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
       },
       setActiveStep: (step) => set({ activeStep: step }),
       setShowWelcome: (show) => set({ showWelcome: show }),
-      updateValues: (values) => set(values),
       resetEdgeAdoptionState: () =>
         set(() => ({
           edgeAdoptionState: { ...edgeAdoptionStateDefaults },
@@ -71,7 +69,6 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
           'reset',
           'start',
           'setActiveStep',
-          'updateValues',
           'setShowWelcome',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',

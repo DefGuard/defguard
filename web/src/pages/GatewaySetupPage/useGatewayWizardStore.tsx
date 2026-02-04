@@ -28,7 +28,6 @@ type StoreMethods = {
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: GatewaySetupStepValue) => void;
   setShowWelcome: (show: boolean) => void;
-  updateValues: (values: Partial<StoreValues>) => void;
   resetGatewayAdoptionState: () => void;
   setGatewayAdoptionState: (state: GatewayAdoptionState) => void;
 };
@@ -65,7 +64,6 @@ export const useGatewayWizardStore = create<StoreMethods & StoreValues>()(
       },
       setActiveStep: (step) => set({ activeStep: step }),
       setShowWelcome: (show) => set({ showWelcome: show }),
-      updateValues: (values) => set(values),
       resetGatewayAdoptionState: () =>
         set(() => ({
           gatewayAdoptionState: { ...gatewayAdoptionStateDefaults },
@@ -83,7 +81,6 @@ export const useGatewayWizardStore = create<StoreMethods & StoreValues>()(
           'reset',
           'start',
           'setActiveStep',
-          'updateValues',
           'setShowWelcome',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',
