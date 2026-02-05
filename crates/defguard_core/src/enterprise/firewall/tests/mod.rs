@@ -1824,6 +1824,8 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
         name: "destination alias".to_string(),
         kind: AliasKind::Destination,
         ports: vec![PortRange::new(100, 200).into()],
+        any_destination: true,
+        any_protocol: true,
         ..Default::default()
     }
     .save(&pool)
