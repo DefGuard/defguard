@@ -36,6 +36,17 @@ type RowData = Edge;
 
 const columnHelper = createColumnHelper<RowData>();
 
+const isConnected = (edge: Edge) => {
+  if (!isPresent(edge.connected_at)) return false;
+
+  if (!isPresent(edge.disconnected_at)) return true;
+
+  const connected = dayjs.utc(edge.connected_at);
+  const disconnected = dayjs.utc(edge.disconnected_at);
+
+  return connected > disconnected;
+};
+
 export const EdgesTable = ({ edges }: Props) => {
   const navigate = useNavigate();
 
@@ -65,17 +76,6 @@ export const EdgesTable = ({ edges }: Props) => {
 
     return data;
   }, [edges, search.length, search.toLowerCase, search]);
-
-  const isConnected = (edge: Edge) => {
-    if (!isPresent(edge.connected_at)) return false;
-
-    if (!isPresent(edge.disconnected_at)) return true;
-
-    const connected = dayjs.utc(edge.connected_at);
-    const disconnected = dayjs.utc(edge.disconnected_at);
-
-    return connected > disconnected;
-  };
 
   const columns = useMemo(
     () => [

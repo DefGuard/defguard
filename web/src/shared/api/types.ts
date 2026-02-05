@@ -963,10 +963,9 @@ export interface Edge {
   name: string;
   address: string | null;
   port: number | null;
-  public_address: string | null;
   version: string | null;
-  connected_at: string;
-  disconnected_at: string;
+  connected_at: string | null;
+  disconnected_at: string | null;
   modified_at: string;
   modified_by: number;
 }

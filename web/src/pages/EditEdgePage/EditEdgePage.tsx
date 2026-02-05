@@ -43,7 +43,11 @@ const formSchema = z.object({
   name: z.string(m.form_error_required()).min(1, m.form_error_required()),
   address: z.string().nullable(),
   port: z.number().nullable(),
-  public_address: z.string().nullable(),
+  connected_at: z.string().nullable(),
+  disconnected_at: z.string().nullable(),
+  modified_at: z.string(),
+  modified_by: z.number(),
+  version: z.string().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -120,9 +124,6 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
             {(field) => <field.FormInput disabled label={m.edge_edit_port()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="public_address">
-            {(field) => <field.FormInput disabled label={m.edge_edit_public_address()} />}
-          </form.AppField>
         </EditPageFormSection>
         <form.Subscribe
           selector={(form) => ({
