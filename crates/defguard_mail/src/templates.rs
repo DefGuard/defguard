@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use chrono::{Datelike, NaiveDateTime, Utc};
 use defguard_common::{
@@ -334,7 +334,7 @@ pub fn email_mfa_activation_mail(
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let settings = Settings::get_current_settings();
-    let timeout = humantime::format_duration(std::time::Duration::from_secs(
+    let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
     // zero-pad code to make sure it's always 6 digits long
@@ -353,7 +353,7 @@ pub fn email_mfa_code_mail(
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let settings = Settings::get_current_settings();
-    let timeout = humantime::format_duration(std::time::Duration::from_secs(
+    let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
     // zero-pad code to make sure it's always 6 digits long
@@ -472,7 +472,7 @@ mod test {
         let pool = setup_pool(options).await;
         init_config(&pool).await;
         assert_ok!(enrollment_welcome_mail(
-            "Hi there! Welcome to DefGuard.",
+            "Hi there! Welcome to Defguard.",
             None,
             None
         ));

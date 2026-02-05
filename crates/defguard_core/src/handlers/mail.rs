@@ -7,13 +7,12 @@ use axum::{
 use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
     Id,
-    models::{MFAMethod, User},
+    models::{MFAMethod, User, gateway::Gateway, proxy::Proxy},
 };
 use defguard_mail::{
     Attachment, Mail,
     templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
 };
-use lettre::message::header::ContentType;
 use reqwest::Url;
 use serde_json::json;
 use tokio::{
@@ -54,7 +53,7 @@ pub struct TestMail {
 }
 
 /// Handles logging the error and returns ApiResponse that contains it
-fn internal_error(to: &str, subject: &str, error: &impl Display) -> ApiResponse {
+fn internal_error(to: &str, subject: &str, error: impl Display) -> ApiResponse {
     error!("Error sending mail to {to}, subject: {subject}, error: {error}");
     ApiResponse::new(
         json!({"error": error.to_string()}),
@@ -74,31 +73,23 @@ pub async fn test_mail(
     );
 
     let (tx, mut rx) = unbounded_channel();
-    let mail = Mail {
-        to: data.to.clone(),
-        subject: TEST_MAIL_SUBJECT.to_string(),
-        content: templates::test_mail(Some(&session.session.into()))?,
-        attachments: Vec::new(),
-        result_tx: Some(tx),
-    };
-    let (to, subject) = (mail.to.clone(), mail.subject.clone());
+    let mail = Mail::new(
+        data.to.clone(),
+        TEST_MAIL_SUBJECT.to_string(),
+        templates::test_mail(Some(&session.session.into()))?,
+    )
+    .set_result_tx(tx);
+    let (to, subject) = (&data.to, TEST_MAIL_SUBJECT);
     match appstate.mail_tx.send(mail) {
         Ok(()) => match rx.recv().await {
             Some(Ok(_)) => {
-                info!(
-                    "User {} sent test mail to {}",
-                    session.user.username, data.to
-                );
+                info!("User {} sent test mail to {to}", session.user.username);
                 Ok(ApiResponse::with_status(StatusCode::OK))
             }
-            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-            None => Ok(internal_error(
-                &to,
-                &subject,
-                &String::from("None received"),
-            )),
+            Some(Err(err)) => Ok(internal_error(to, subject, &err)),
+            None => Ok(internal_error(to, subject, "None received")),
         },
-        Err(err) => Ok(internal_error(&to, &subject, &err)),
+        Err(err) => Ok(internal_error(to, subject, &err)),
     }
 }
 
@@ -126,8 +117,8 @@ pub async fn send_support_data(
         session.user.username
     );
 
-    let proxies = defguard_common::db::models::proxy::Proxy::all(&appstate.pool).await?;
-    let gateways = defguard_common::db::models::gateway::Gateway::all(&appstate.pool).await?;
+    let proxies = Proxy::all(&appstate.pool).await?;
+    let gateways = Gateway::all(&appstate.pool).await?;
 
     let components_info = json!({
         "proxies": proxies.iter().map(|p| json!({
@@ -151,37 +142,30 @@ pub async fn send_support_data(
     let components_json =
         serde_json::to_string(&components_info).unwrap_or("JSON formatting error".to_string());
 
-    let components = Attachment {
-        filename: format!("defguard-components-{}.json", Utc::now()),
-        content: components_json.into(),
-        content_type: ContentType::TEXT_PLAIN,
-    };
+    let components = Attachment::new(
+        format!("defguard-components-{}.json", Utc::now()),
+        components_json.into(),
+    );
 
     let config = dump_config(&appstate.pool).await;
     let config =
         serde_json::to_string_pretty(&config).unwrap_or("JSON formatting error".to_string());
 
-    let config = Attachment {
-        filename: format!("defguard-support-data-{}.json", Utc::now()),
-        content: config.into(),
-        content_type: ContentType::TEXT_PLAIN,
-    };
+    let config = Attachment::new(
+        format!("defguard-support-data-{}.json", Utc::now()),
+        config.into(),
+    );
     let logs = read_logs().await;
-    let logs = Attachment {
-        filename: format!("defguard-logs-{}.txt", Utc::now()),
-        content: logs.into(),
-        content_type: ContentType::TEXT_PLAIN,
-    };
+    let logs = Attachment::new(format!("defguard-logs-{}.txt", Utc::now()), logs.into());
     let (tx, mut rx) = unbounded_channel();
-    let mail = Mail {
-        to: SUPPORT_EMAIL_ADDRESS.to_string(),
-        subject: SUPPORT_EMAIL_SUBJECT.to_string(),
-        content: support_data_mail()?,
-        attachments: vec![components, config, logs],
-        result_tx: Some(tx),
-    };
-    let (to, subject) = (mail.to.clone(), mail.subject.clone());
-
+    let mail = Mail::new(
+        SUPPORT_EMAIL_ADDRESS.to_string(),
+        SUPPORT_EMAIL_SUBJECT.to_string(),
+        support_data_mail()?,
+    )
+    .set_attachments(vec![components, config, logs])
+    .set_result_tx(tx);
+    let (to, subject) = (SUPPORT_EMAIL_ADDRESS, SUPPORT_EMAIL_SUBJECT);
     match appstate.mail_tx.send(mail) {
         Ok(()) => match rx.recv().await {
             Some(Ok(_)) => {
@@ -191,14 +175,10 @@ pub async fn send_support_data(
                 );
                 Ok(ApiResponse::with_status(StatusCode::OK))
             }
-            Some(Err(err)) => Ok(internal_error(&to, &subject, &err)),
-            None => Ok(internal_error(
-                &to,
-                &subject,
-                &String::from("None received"),
-            )),
+            Some(Err(err)) => Ok(internal_error(to, subject, &err)),
+            None => Ok(internal_error(to, subject, "None received")),
         },
-        Err(err) => Ok(internal_error(&to, &subject, &err)),
+        Err(err) => Ok(internal_error(to, subject, &err)),
     }
 }
 
@@ -213,22 +193,18 @@ pub fn send_new_device_added_email(
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let mail = Mail {
-        to: user_email.to_string(),
-        subject: NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_added_mail(
+    let mail = Mail::new(
+        user_email.to_string(),
+        NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
+        templates::new_device_added_mail(
             device_name,
             public_key,
             template_locations,
             ip_address,
             device_info,
         )?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
-
-    let to = mail.to.clone();
-
+    );
+    let to = user_email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Sent new device notification to {to}");
@@ -252,19 +228,12 @@ pub async fn send_gateway_disconnected_email(
     let admin_users = User::find_admins(pool).await?;
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
-        let mail = Mail {
-            to: user.email,
-            subject: GATEWAY_DISCONNECTED.to_string(),
-            content: templates::gateway_disconnected_mail(
-                &gateway_name,
-                gateway_adress,
-                &network_name,
-            )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        let to = mail.to.clone();
-
+        let mail = Mail::new(
+            user.email.clone(),
+            GATEWAY_DISCONNECTED.to_string(),
+            templates::gateway_disconnected_mail(&gateway_name, gateway_adress, &network_name)?,
+        );
+        let to = user.email;
         match mail_tx.send(mail) {
             Ok(()) => {
                 info!("Sent gateway disconnected notification to {to}");
@@ -290,19 +259,12 @@ pub async fn send_gateway_reconnected_email(
     let admin_users = User::find_admins(pool).await?;
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
-        let mail = Mail {
-            to: user.email,
-            subject: GATEWAY_RECONNECTED.to_string(),
-            content: templates::gateway_reconnected_mail(
-                &gateway_name,
-                gateway_adress,
-                &network_name,
-            )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        let to = mail.to.clone();
-
+        let mail = Mail::new(
+            user.email.clone(),
+            GATEWAY_RECONNECTED.to_string(),
+            templates::gateway_reconnected_mail(&gateway_name, gateway_adress, &network_name)?,
+        );
+        let to = user.email;
         match mail_tx.send(mail) {
             Ok(()) => {
                 info!("Sent gateway reconnected notification to {to}");
@@ -325,16 +287,12 @@ pub async fn send_new_device_login_email(
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let mail = Mail {
-        to: user_email.to_string(),
-        subject: NEW_DEVICE_LOGIN_EMAIL_SUBJECT.to_string(),
-        content: templates::new_device_login_mail(session, created)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
-
-    let to = mail.to.clone();
-
+    let mail = Mail::new(
+        user_email.to_string(),
+        NEW_DEVICE_LOGIN_EMAIL_SUBJECT.to_string(),
+        templates::new_device_login_mail(session, created)?,
+    );
+    let to = user_email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Sent new device login notification to {to}");
@@ -355,17 +313,12 @@ pub async fn send_new_device_ocid_login_email(
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
 
-    let subject = format!("New login to {oauth2client_name} application with defguard");
-
-    let mail = Mail {
-        to: user_email.to_string(),
-        subject,
-        content: templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
-
-    let to = mail.to.clone();
+    let mail = Mail::new(
+        user_email.to_string(),
+        format!("New login to {oauth2client_name} application with Defguard"),
+        templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
+    );
+    let to = user_email;
 
     match mail_tx.send(mail) {
         Ok(()) => {
@@ -387,28 +340,22 @@ pub fn send_mfa_configured_email(
 ) -> Result<(), TemplateError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
-    let subject = format!("MFA method {mfa_method} has been activated on your account");
+    let mail = Mail::new(
+        user.email.clone(),
+        format!("MFA method {mfa_method} has been activated on your account"),
+        templates::mfa_configured_mail(session, mfa_method)?,
+    );
 
-    let mail = Mail {
-        to: user.email.clone(),
-        subject,
-        content: templates::mfa_configured_mail(session, mfa_method)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
-
-    let to = mail.to.clone();
-
+    let to = &user.email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("MFA configured mail sent to {to}");
-            Ok(())
         }
         Err(err) => {
             error!("Failed to send mfa configured mail to {to} with error:\n{err}");
-            Ok(())
         }
     }
+    Ok(())
 }
 
 pub fn send_email_mfa_activation_email(
@@ -424,26 +371,22 @@ pub fn send_email_mfa_activation_email(
         TemplateError::MfaError
     })?;
 
-    let mail = Mail {
-        to: user.email.clone(),
-        subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(&user.clone().into(), &code, session)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
+    let mail = Mail::new(
+        user.email.clone(),
+        EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
+        templates::email_mfa_activation_mail(&user.clone().into(), &code, session)?,
+    );
 
-    let to = mail.to.clone();
-
+    let to = &user.email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Email MFA activation mail sent to {to}");
-            Ok(())
         }
         Err(err) => {
             error!("Failed to send email MFA activation mail to {to} with error:\n{err}");
-            Ok(())
         }
     }
+    Ok(())
 }
 
 pub fn send_email_mfa_code_email(
@@ -459,16 +402,13 @@ pub fn send_email_mfa_code_email(
         TemplateError::MfaError
     })?;
 
-    let mail = Mail {
-        to: user.email.clone(),
-        subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(&user.clone().into(), &code, session)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
+    let mail = Mail::new(
+        user.email.clone(),
+        EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
+        templates::email_mfa_code_mail(&user.clone().into(), &code, session)?,
+    );
 
-    let to = mail.to.clone();
-
+    let to = &user.email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Email MFA code mail sent to {to}");
@@ -491,16 +431,13 @@ pub fn send_password_reset_email(
 ) -> Result<(), TokenError> {
     debug!("Sending password reset email to {}", user.email);
 
-    let mail = Mail {
-        to: user.email.clone(),
-        subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
-        content: templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
+    let mail = Mail::new(
+        user.email.clone(),
+        EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
+        templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
+    );
 
-    let to = mail.to.clone();
-
+    let to = &user.email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Password reset email sent to {to}");
@@ -521,16 +458,13 @@ pub fn send_password_reset_success_email(
 ) -> Result<(), TokenError> {
     debug!("Sending password reset success email to {}", user.email);
 
-    let mail = Mail {
-        to: user.email.clone(),
-        subject: EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT.into(),
-        content: templates::email_password_reset_success_mail(ip_address, device_info)?,
-        attachments: Vec::new(),
-        result_tx: None,
-    };
+    let mail = Mail::new(
+        user.email.clone(),
+        EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT.into(),
+        templates::email_password_reset_success_mail(ip_address, device_info)?,
+    );
 
-    let to = mail.to.clone();
-
+    let to = &user.email;
     match mail_tx.send(mail) {
         Ok(()) => {
             info!("Password reset email success sent to {to}");

@@ -1149,9 +1149,9 @@ mod test {
 
         // check email content
         let mail = mail_rx.recv().await.unwrap();
-        assert_eq!(mail.to, user.email);
+        assert_eq!(mail.to(), user.email);
         assert_eq!(
-            mail.subject,
+            mail.subject(),
             settings.enrollment_welcome_email_subject.unwrap()
         );
 
@@ -1174,7 +1174,7 @@ mod test {
 
         // check email content
         let mail = mail_rx.recv().await.unwrap();
-        assert_eq!(mail.to, user.email);
-        assert_eq!(mail.subject, WELCOME_EMAIL_SUBJECT);
+        assert_eq!(mail.to(), user.email);
+        assert_eq!(mail.subject(), WELCOME_EMAIL_SUBJECT);
     }
 }

@@ -28,16 +28,6 @@
 //!
 //! # Usage
 //!
-//! ## Basic Setup
-//!
-//! ```rust
-//! // Initialize tracing with version-aware formatting
-//! use semver::Version;
-//!
-//! let version = Version::parse("1.5.0").unwrap();
-//! defguard_version::tracing::init(version, "info");
-//! ```
-//!
 //! ## Creating Version-Aware Spans
 //!
 //! ```rust
@@ -421,7 +411,7 @@ impl tracing::field::Visit for FieldFilterVisitor<'_> {
 /// # Examples
 /// ```
 /// let subscriber = tracing_subscriber::registry();
-/// defguard_version::tracing::with_version_formatter(
+/// defguard_version::tracing::with_version_formatters(
 ///     &defguard_version::Version::new(1, 5, 0),
 ///     "info",
 ///     subscriber,

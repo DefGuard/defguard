@@ -1,19 +1,18 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
-    Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
-    address::AddressError,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Mailbox, MultiPart, SinglePart, header::ContentType},
     transport::smtp::{authentication::Credentials, response::Response},
 };
 use thiserror::Error;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tracing::{debug, error, info, instrument, warn};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tracing::{debug, error, info, warn};
 
 pub mod templates;
 
-const SMTP_TIMEOUT_SECONDS: u64 = 15;
+const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -75,20 +74,80 @@ impl SmtpSettings {
     }
 }
 
+type Confirmation = Result<Response, MailError>;
+
 #[derive(Debug)]
 pub struct Mail {
-    pub to: String,
-    pub subject: String,
-    pub content: String,
-    pub attachments: Vec<Attachment>,
-    pub result_tx: Option<UnboundedSender<Result<Response, MailError>>>,
+    to: String,
+    subject: String,
+    content: String,
+    attachments: Vec<Attachment>,
+    result_tx: Option<UnboundedSender<Confirmation>>,
+}
+
+impl Mail {
+    /// Create new [`Mail`].
+    #[must_use]
+    pub fn new(to: String, subject: String, content: String) -> Mail {
+        Self {
+            to,
+            subject,
+            content,
+            attachments: Vec::new(),
+            result_tx: None,
+        }
+    }
+
+    /// Getter for `to`.
+    #[must_use]
+    pub fn to(&self) -> &str {
+        &self.to
+    }
+
+    /// Getter for `subject`.
+    #[must_use]
+    pub fn subject(&self) -> &str {
+        &self.subject
+    }
+
+    /// Getter for `content`.
+    #[must_use]
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    /// Setter for `attachments`.
+    #[must_use]
+    pub fn set_attachments(mut self, attachments: Vec<Attachment>) -> Self {
+        self.attachments = attachments;
+        self
+    }
+
+    /// Setter for `result_tx`.
+    #[must_use]
+    pub fn set_result_tx(mut self, result_tx: UnboundedSender<Confirmation>) -> Self {
+        self.result_tx = Some(result_tx);
+        self
+    }
 }
 
 #[derive(Debug)]
 pub struct Attachment {
-    pub filename: String,
-    pub content: Vec<u8>,
-    pub content_type: ContentType,
+    filename: String,
+    content: Vec<u8>,
+    content_type: ContentType,
+}
+
+impl Attachment {
+    /// Create new [`Attachement`].
+    #[must_use]
+    pub fn new(filename: String, content: Vec<u8>) -> Self {
+        Self {
+            filename,
+            content,
+            content_type: ContentType::TEXT_PLAIN,
+        }
+    }
 }
 
 impl From<Attachment> for SinglePart {
@@ -102,9 +161,9 @@ impl Mail {
     /// Converts Mail to lettre Message
     fn into_message(self, from: &str) -> Result<Message, MailError> {
         let builder = Message::builder()
-            .from(Self::mailbox(from)?)
-            .to(Self::mailbox(&self.to)?)
-            .subject(self.subject.clone());
+            .from(Mailbox::from_str(from)?)
+            .to(Mailbox::from_str(&self.to)?)
+            .subject(self.subject);
         match self.attachments {
             attachments if attachments.is_empty() => Ok(builder
                 .header(ContentType::TEXT_HTML)
@@ -118,31 +177,34 @@ impl Mail {
             }
         }
     }
-
-    /// Builds Mailbox structure from string representing email address
-    fn mailbox(address: &str) -> Result<Mailbox, MailError> {
-        if let Some((user, domain)) = address.split_once('@') {
-            if !(user.is_empty() || domain.is_empty()) {
-                return Ok(Mailbox::new(None, Address::new(user, domain)?));
-            }
-        }
-        Err(AddressError::MissingParts)?
-    }
 }
 
-struct MailHandler {
+pub struct MailHandler {
+    tx: UnboundedSender<Mail>,
     rx: UnboundedReceiver<Mail>,
 }
 
+impl Default for MailHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MailHandler {
-    pub fn new(rx: UnboundedReceiver<Mail>) -> Self {
-        Self { rx }
+    /// Create new [`MailHandler`].
+    #[must_use]
+    pub fn new() -> Self {
+        let (tx, rx) = unbounded_channel();
+        Self { tx, rx }
     }
 
-    pub fn send_result(
-        tx: Option<UnboundedSender<Result<Response, MailError>>>,
-        result: Result<Response, MailError>,
-    ) {
+    /// Return sender's clone.
+    #[must_use]
+    pub fn tx(&self) -> UnboundedSender<Mail> {
+        self.tx.clone()
+    }
+
+    fn send_result(tx: Option<UnboundedSender<Confirmation>>, result: Confirmation) {
         if let Some(tx) = tx {
             if tx.send(result).is_ok() {
                 debug!("SMTP result sent back to caller");
@@ -152,7 +214,7 @@ impl MailHandler {
         }
     }
 
-    /// Listens on rx channel for messages and sends them via SMTP.
+    /// Listens on the receiver for messages and sends them via SMTP.
     pub async fn run(mut self) {
         while let Some(mail) = self.rx.recv().await {
             let (to, subject) = (mail.to.clone(), mail.subject.clone());
@@ -221,7 +283,7 @@ impl MailHandler {
             }
         }
         .port(settings.port)
-        .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
+        .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty
         let builder = if settings.user.is_empty() || settings.password.is_empty() {
@@ -233,11 +295,4 @@ impl MailHandler {
 
         Ok(builder.build())
     }
-}
-
-/// Builds MailHandler and runs it.
-#[instrument(skip_all)]
-pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>) {
-    info!("Starting mail sending service");
-    MailHandler::new(rx).run().await;
 }
