@@ -845,11 +845,11 @@ export interface AclDestination {
   id: number;
   name: string;
   state: AclDeploymentStateValue;
-  destination: string;
+  addresses: string;
   ports: string;
   protocols: AclProtocolValue[];
   rules: number[];
-  any_destination: boolean;
+  any_address: boolean;
   any_port: boolean;
   any_protocol: boolean;
 }
@@ -862,7 +862,7 @@ export interface AclAlias {
   id: number;
   name: string;
   state: AclDeploymentStateValue;
-  destination: string;
+  addresses: string;
   ports: string;
   protocols: AclProtocolValue[];
   rules: number[];
@@ -876,28 +876,30 @@ export interface AclRule {
   id: number;
   state: AclStatusValue;
   name: string;
-  all_networks: boolean;
+  all_locations: boolean;
   allow_all_users: boolean;
   deny_all_users: boolean;
+  allow_all_groups: boolean;
+  deny_all_groups: boolean;
   allow_all_network_devices: boolean;
   deny_all_network_devices: boolean;
-  networks: number[];
+  locations: number[];
   enabled: boolean;
   allowed_users: number[];
   denied_users: number[];
   allowed_groups: number[];
   denied_groups: number[];
-  allowed_devices: number[];
-  denied_devices: number[];
-  destination: string;
-  aliases: number[];
+  allowed_network_devices: number[];
+  denied_network_devices: number[];
+  addresses: string;
   ports: string;
   protocols: number[];
   expires: string | null;
   parent_id: number | null;
-  any_destination: boolean;
+  any_address: boolean;
   any_port: boolean;
   any_protocol: boolean;
+  aliases: number[];
 }
 
 export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;
