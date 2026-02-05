@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
-use crate::db::{Id, NoId};
+use crate::{db::{Id, NoId}, types::proxy::ProxyInfo};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
@@ -66,6 +66,16 @@ impl Proxy<Id> {
             port
         )
         .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<ProxyInfo>> {
+        sqlx::query_as!(
+            ProxyInfo,
+            "SELECT proxy.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname \
+            FROM proxy JOIN \"user\" u on proxy.modified_by = u.id",
+        )
+        .fetch_all(pool)
         .await
     }
 

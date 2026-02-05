@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
 };
 use chrono::Utc;
-use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
+use defguard_common::{db::models::proxy::Proxy, types::proxy::{ProxyControlMessage, ProxyInfo}};
 use reqwest::StatusCode;
 use serde_json::Value;
 use utoipa::ToSchema;
@@ -24,7 +24,7 @@ pub struct ProxyUpdateData {
     get,
     path = "/api/v1/proxy",
     responses(
-        (status = 200, description = "Edge list", body = [Proxy]),
+        (status = 200, description = "Edge list", body = [ProxyInfo]),
         (status = 401, description = "Unauthorized to get edge list.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to get edge list.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to get edge list.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
@@ -40,7 +40,7 @@ pub(crate) async fn proxy_list(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("User {} displaying proxy list", session.user.username);
-    let proxies = Proxy::all(&appstate.pool).await?;
+    let proxies = Proxy::list(&appstate.pool).await?;
     info!("User {} displayed proxy list", session.user.username);
 
     Ok(ApiResponse::json(proxies, StatusCode::OK))

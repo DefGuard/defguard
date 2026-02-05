@@ -12,7 +12,7 @@ import {
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
-import type { Edge } from '../../shared/api/types';
+import type { EdgeInfo } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -29,14 +29,14 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../shared/utils/displayDate';
 
 type Props = {
-  edges: Edge[];
+  edges: EdgeInfo[];
 };
 
-type RowData = Edge;
+type RowData = EdgeInfo;
 
 const columnHelper = createColumnHelper<RowData>();
 
-const isConnected = (edge: Edge) => {
+const isConnected = (edge: EdgeInfo) => {
   if (!isPresent(edge.connected_at)) return false;
 
   if (!isPresent(edge.disconnected_at)) return true;
@@ -46,6 +46,9 @@ const isConnected = (edge: Edge) => {
 
   return connected > disconnected;
 };
+
+const displayModifiedBy = (edge: EdgeInfo) =>
+  `${edge.modified_by_firstname} ${edge.modified_by_lastname}`;
 
 export const EdgesTable = ({ edges }: Props) => {
   const navigate = useNavigate();
@@ -133,14 +136,15 @@ export const EdgesTable = ({ edges }: Props) => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('modified_by', {
+      columnHelper.display({
+        id: 'modified_by',
         size: 175,
         minSize: 175,
         header: m.edges_col_modified_by(),
-        enableSorting: false,
+        enableSorting: true,
         cell: (info) => (
           <TableCell>
-            <span>{info.getValue()}</span>
+            <span>{displayModifiedBy(info.row.original)}</span>
           </TableCell>
         ),
       }),
