@@ -82,7 +82,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let mut proxy_updated: Proxy<Id> = response.json().await;
-	proxy_updated.modified_at = proxy_before_mods.modified_at;
+    proxy_updated.modified_at = proxy_before_mods.modified_at;
     assert_eq!(proxy_before_mods, proxy_updated);
 }
 
