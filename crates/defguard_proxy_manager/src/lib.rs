@@ -954,10 +954,12 @@ impl ProxyServer {
                                                 "Saved desktop configuration token. Responding to \
                                             proxy with the token."
                                             );
+                                            let settings = Settings::get_current_settings();
+                                            let public_proxy_url = settings.proxy_public_url()?;
 
                                             Some(core_response::Payload::AuthCallback(
                                                 AuthCallbackResponse {
-                                                    url: config.enrollment_url.clone().into(),
+                                                    url: public_proxy_url.into(),
                                                     token: desktop_configuration.id,
                                                 },
                                             ))

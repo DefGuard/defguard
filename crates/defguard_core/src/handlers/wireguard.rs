@@ -49,7 +49,6 @@ use crate::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
     },
-    server_config,
     wg_config::{ImportedDevice, parse_wireguard_config},
 };
 
@@ -1355,27 +1354,6 @@ pub(crate) async fn download_config(
             device.name, device.id
         )))
     }
-}
-
-pub(crate) async fn create_network_token(
-    _role: AdminRole,
-    State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
-) -> ApiResult {
-    debug!("Generating a new token for network ID {network_id}");
-    let network = find_network(network_id, &appstate.pool).await?;
-    let token = network.generate_gateway_token().map_err(|_| {
-        error!("Failed to create token for gateway {}", network.name);
-        WebError::Authorization(format!(
-            "Failed to create token for gateway {}",
-            network.name
-        ))
-    })?;
-    info!("Generated a new token for network ID {network_id}");
-    Ok(ApiResponse::new(
-        json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
-        StatusCode::OK,
-    ))
 }
 
 /// Returns appropriate aggregation level depending on the `from` date param

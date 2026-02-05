@@ -231,18 +231,21 @@ pub async fn build_device_config_response(
         user.username, user.id, device.name, device.id
     );
 
+    let instance_info = InstanceInfo::new(
+        settings,
+        &user.username,
+        &enterprise_settings,
+        openid_provider,
+    )
+    .map_err(|err| {
+        error!("Failed to build instance info: {err}");
+        Status::internal(format!("unexpected error: {err}"))
+    })?;
+
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
         configs,
-        instance: Some(
-            InstanceInfo::new(
-                settings,
-                &user.username,
-                &enterprise_settings,
-                openid_provider,
-            )
-            .into(),
-        ),
+        instance: Some(instance_info.into()),
         token,
     })
 }

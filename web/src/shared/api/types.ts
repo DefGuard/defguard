@@ -3,10 +3,52 @@ import type {
   ActivityLogModuleValue,
 } from './activity-log-types';
 
+export type Resource = object & { id: number };
+
+export type ResourceById<T extends object> = {
+  [id: number]: T | undefined;
+};
+
 export interface GatewayTokenResponse {
   grpc_url: string;
   token: string;
 }
+
+export interface CreateCARequest {
+  common_name: string;
+  email: string;
+  validity_period_years: number;
+}
+
+export interface GetCAResponse {
+  ca_cert_pem: string;
+  subject_common_name: string;
+  not_before: string;
+  not_after: string;
+  valid_for_days: number;
+}
+
+export interface UploadCARequest {
+  cert_file: string;
+}
+
+export interface CreateAdminRequest {
+  first_name: string;
+  last_name: string;
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface SetGeneralConfigRequest {
+  defguard_url: string;
+  default_admin_group_name: string;
+  default_authentication: number;
+  default_mfa_code_lifetime: number;
+  public_proxy_url: string;
+  admin_username: string;
+}
+
 export interface ValidateDeviceIpsRequest {
   ips: string[];
   locationId: number;
@@ -588,6 +630,10 @@ export interface SettingsEnterprise {
   only_client_activation: boolean;
 }
 
+export interface SettingsEssentials {
+  initial_setup_completed: boolean;
+}
+
 export const SmtpEncryption = {
   None: 'None',
   StartTls: 'StartTls',
@@ -849,6 +895,9 @@ export interface AclRule {
   protocols: number[];
   expires: string | null;
   parent_id: number | null;
+  any_destination: boolean;
+  any_port: boolean;
+  any_protocol: boolean;
 }
 
 export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;

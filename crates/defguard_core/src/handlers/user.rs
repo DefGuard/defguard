@@ -8,7 +8,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            BiometricAuth, OAuth2AuthorizedApp, User, WebAuthn, device::UserDevice,
+            BiometricAuth, OAuth2AuthorizedApp, Settings, User, WebAuthn, device::UserDevice,
             user::SecurityKey,
         },
     },
@@ -463,13 +463,16 @@ pub async fn start_enrollment(
         None => config.enrollment_token_timeout.as_secs(),
     };
 
+    let settings: Settings = Settings::get_current_settings();
+    let public_proxy_url = settings.proxy_public_url()?;
+
     let enrollment_token = start_user_enrollment(
         &mut user,
         &mut transaction,
         &session.user,
         data.email,
         token_expiration_time_seconds,
-        config.enrollment_url.clone(),
+        public_proxy_url.clone(),
         data.send_enrollment_notification,
         appstate.mail_tx.clone(),
     )
@@ -486,7 +489,7 @@ pub async fn start_enrollment(
     debug!(
         "Enrollment token {}, enrollment url {}",
         enrollment_token,
-        config.enrollment_url.to_string()
+        public_proxy_url.to_string()
     );
     appstate.emit_event(ApiEvent {
         context,
@@ -494,7 +497,7 @@ pub async fn start_enrollment(
     })?;
 
     Ok(ApiResponse::new(
-        json!({"enrollment_token": enrollment_token, "enrollment_url": config.enrollment_url.to_string()}),
+        json!({"enrollment_token": enrollment_token, "enrollment_url": public_proxy_url.to_string()}),
         StatusCode::CREATED,
     ))
 }
@@ -566,13 +569,15 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
     let config = server_config();
+    let settings = Settings::get_current_settings();
+    let public_proxy_url = settings.proxy_public_url()?;
     let desktop_configuration_token = start_desktop_configuration(
         &user,
         &mut transaction,
         &session.user,
         Some(email),
         config.enrollment_token_timeout.as_secs(),
-        config.enrollment_url.clone(),
+        public_proxy_url.clone(),
         data.send_enrollment_notification,
         appstate.mail_tx.clone(),
         None,
@@ -590,7 +595,7 @@ pub async fn start_remote_desktop_configuration(
     debug!(
         "Desktop configuration token {}, desktop configuration url {}",
         desktop_configuration_token,
-        config.enrollment_url.to_string()
+        public_proxy_url.to_string()
     );
     appstate.emit_event(ApiEvent {
         context,
@@ -598,7 +603,7 @@ pub async fn start_remote_desktop_configuration(
     })?;
 
     Ok(ApiResponse::new(
-        json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  public_proxy_url.to_string()}),
         StatusCode::CREATED,
     ))
 }
@@ -1098,12 +1103,14 @@ pub async fn reset_password(
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
+        let settings = Settings::get_current_settings();
+        let public_proxy_url = settings.proxy_public_url()?;
 
         let mail = Mail {
             to: user.email.clone(),
             subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
             content: templates::email_password_reset_mail(
-                config.enrollment_url.clone(),
+                public_proxy_url,
                 enrollment.id.clone().as_str(),
                 None,
                 None,

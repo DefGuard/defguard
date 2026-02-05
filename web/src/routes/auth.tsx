@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect } from 'react';
 import z from 'zod';
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/auth')({
 function RouteComponent() {
   const loginSubject = useAuth((s) => s.authSubject);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const navigateToAuthorized = useCallback(
     (user: User) => {
@@ -45,21 +47,25 @@ function RouteComponent() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: rxjs sub
   useEffect(() => {
     const sub = loginSubject.subscribe((state) => {
-      const authState = useAuth.getState();
       const basicResult = basicSchema.safeParse(state);
       const basicResponse = basicResult.data;
       if (isPresent(basicResponse) && basicResult.success) {
+        void queryClient.invalidateQueries({
+          queryKey: ['me'],
+        });
+        useAuth.getState().setUser(basicResponse.user);
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);
           return;
         }
-        authState.setUser(basicResponse.user);
-        if (isPresent(authState.consentData)) {
-          //@ts-expect-error
-          navigate({ to: '/consent', search: authState.consentData });
-        } else {
-          navigateToAuthorized(basicResponse.user);
-        }
+        setTimeout(() => {
+          if (isPresent(useAuth.getState().consentData)) {
+            //@ts-expect-error
+            navigate({ to: '/consent', search: useAuth.getState().consentData });
+          } else {
+            navigateToAuthorized(basicResponse.user);
+          }
+        }, 200);
       } else {
         const mfaSchemaResult = mfaSchema.safeParse(state);
         const mfaResponse = mfaSchemaResult.data;

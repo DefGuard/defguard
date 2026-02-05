@@ -1,90 +1,130 @@
-import './style.scss';
+import { useNavigate } from '@tanstack/react-router';
+import { type ReactNode, useEffect, useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
-import { NavLogo } from '../../shared/components/Navigation/assets/NavLogo';
-import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
+import type { WizardPageStep } from '../../shared/components/wizard/types';
+import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { ExternalLink } from '../../shared/defguard-ui/components/ExternalLink/ExternalLink';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
-import fileIcon from './assets/file_icon.png';
-import worldMap from './assets/world_map.mp4';
-import worldMapPoster from './assets/world_map_poster.png';
+import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { useApp } from '../../shared/hooks/useApp';
+import worldMap from './assets/world-map.png';
+import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
+import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
+import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAuthoritySummaryStep';
+import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
+import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
+import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
+import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
+import { SetupPageStep, type SetupPageStepValue } from './types';
+import { useSetupWizardStore } from './useSetupWizardStore';
 
 export const SetupPage = () => {
-  return (
-    <div id="setup-page">
-      <div className="content-limiter">
-        <div className="page-grid">
-          <header>
-            <NavLogo />
-          </header>
-          <div id="content-card">
-            <div className="main-track">
-              <h1>Welcome to Defguard initial configuration wizard.</h1>
-              <SizedBox height={ThemeSpacing.Lg} />
-              <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgFaded}>
-                {`We have detected your previous Defguard instance and here is what's going to happen`}
-              </AppText>
-              <SizedBox height={ThemeSpacing.Xl} />
-              <Controls>
-                <div className="left">
-                  <Button text={`Configure Defguard`} />
-                </div>
-              </Controls>
-              <SizedBox height={277} />
-              <div id="docs-card">
-                <div className="image-track">
-                  <img src={fileIcon} />
-                </div>
-                <div className="content">
-                  <p>{`Before installation, we recommend reading our documentation to understand the system architecture and core components.`}</p>
-                  <div>
-                    <ExternalLink href="https://docs.defguard.net/">
-                      {`Read documentation`}
-                    </ExternalLink>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="image">
-              <video
-                height={657}
-                width={443}
-                autoPlay
-                loop
-                muted
-                poster={worldMapPoster}
-                preload="metadata"
-              >
-                <source src={worldMap} type="video/mp4" />
-              </video>
-            </div>
-          </div>
-          <footer>
-            <div>
-              <p>
-                <span>
-                  Copyright ©2023-2025{' '}
-                  <a
-                    href="https://defguard.net"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Defguard
-                  </a>{' '}
-                  Sp. z o.o.
-                </span>
-              </p>
-            </div>
-            <div>
-              <p>
-                {`For help, contact our support team at `}
-                <a href="mailto:support@defguard.net">{`support@defguard.net`}</a>
-              </p>
-            </div>
-          </footer>
-        </div>
-      </div>
+  const activeStep = useSetupWizardStore((s) => s.activeStep);
+  const settingsEssentials = useApp((s) => s.settingsEssentials);
+  const showWelcome = useSetupWizardStore((s) => s.showWelcome);
+  const navigate = useNavigate();
+
+  const stepsConfig = useMemo(
+    (): Record<SetupPageStepValue, WizardPageStep> => ({
+      adminUser: {
+        id: SetupPageStep.AdminUser,
+        order: 1,
+        label: m.initial_setup_step_admin_user_label(),
+        description: m.initial_setup_step_admin_user_description(),
+      },
+      generalConfig: {
+        id: SetupPageStep.GeneralConfig,
+        order: 2,
+        label: m.initial_setup_step_general_config_label(),
+        description: m.initial_setup_step_general_config_description(),
+      },
+      certificateAuthority: {
+        id: SetupPageStep.CertificateAuthority,
+        order: 3,
+        label: m.initial_setup_step_certificate_authority_label(),
+        description: m.initial_setup_step_certificate_authority_description(),
+      },
+      certificateAuthoritySummary: {
+        id: SetupPageStep.CASummary,
+        order: 4,
+        label: m.initial_setup_step_certificate_authority_summary_label(),
+        description: m.initial_setup_step_certificate_authority_summary_description(),
+      },
+      edgeComponent: {
+        id: SetupPageStep.EdgeComponent,
+        order: 5,
+        label: m.initial_setup_step_edge_component_label(),
+        description: m.initial_setup_step_edge_component_description(),
+      },
+      edgeAdoption: {
+        id: SetupPageStep.EdgeAdoption,
+        order: 6,
+        label: m.initial_setup_step_edge_adoption_label(),
+        description: m.initial_setup_step_edge_adoption_description(),
+      },
+      confirmation: {
+        id: SetupPageStep.Confirmation,
+        order: 7,
+        label: m.initial_setup_step_confirmation_label(),
+        description: m.initial_setup_step_confirmation_description(),
+      },
+    }),
+    [],
+  );
+
+  const stepsComponents = useMemo(
+    (): Record<SetupPageStepValue, ReactNode> => ({
+      adminUser: <SetupAdminUserStep />,
+      generalConfig: <SetupGeneralConfigStep />,
+      certificateAuthority: <SetupCertificateAuthorityStep />,
+      certificateAuthoritySummary: <SetupCertificateAuthoritySummaryStep />,
+      edgeComponent: <SetupEdgeComponentStep />,
+      edgeAdoption: <SetupEdgeAdoptionStep />,
+      confirmation: <SetupConfirmationStep />,
+    }),
+    [],
+  );
+
+  const handleStartWizard = () => {
+    useSetupWizardStore.getState().setActiveStep(SetupPageStep.AdminUser);
+    useSetupWizardStore.setState({ showWelcome: false });
+  };
+
+  const WelcomePageContent = () => (
+    <div className="left">
+      <SizedBox height={ThemeSpacing.Xl} />
+      <Controls>
+        <Button
+          text={m.initial_setup_welcome_button_configure()}
+          onClick={handleStartWizard}
+        />
+      </Controls>
     </div>
+  );
+
+  useEffect(() => {
+    if (settingsEssentials.initial_setup_completed) {
+      navigate({ to: '/vpn-overview', replace: true });
+    }
+  }, [settingsEssentials.initial_setup_completed, navigate]);
+
+  return (
+    <WizardPage
+      activeStep={activeStep}
+      subtitle={m.initial_setup_wizard_subtitle()}
+      title={m.initial_setup_wizard_title()}
+      steps={stepsConfig}
+      id="setup-wizard"
+      showWelcome={showWelcome}
+      welcomePageConfig={{
+        title: m.initial_setup_welcome_title(),
+        subtitle: m.initial_setup_welcome_subtitle(),
+        content: <WelcomePageContent />,
+        media: <img src={worldMap} />,
+      }}
+    >
+      {stepsComponents[activeStep]}
+    </WizardPage>
   );
 };

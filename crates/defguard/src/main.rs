@@ -9,10 +9,7 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{
-            Settings, User,
-            settings::{initialize_current_settings, update_current_settings},
-        },
+        models::{Settings, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -40,6 +37,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_mail::{Mail, run_mail_handler};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
+use defguard_setup::setup::run_setup_web_server;
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -56,10 +54,7 @@ async fn main() -> Result<(), anyhow::Error> {
     if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
-    let config = DefGuardConfig::new();
-    SERVER_CONFIG
-        .set(config.clone())
-        .expect("Failed to initialize server config.");
+    let mut config = DefGuardConfig::new();
 
     let subscriber = tracing_subscriber::registry();
     defguard_version::tracing::with_version_formatters(
@@ -103,6 +98,28 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
+    // initialize default settings
+    Settings::init_defaults(&pool).await?;
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
+    let mut settings = Settings::get_current_settings();
+
+    if !settings.initial_setup_completed {
+        if let Err(err) =
+            run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
+        {
+            anyhow::bail!("Setup web server exited with error: {err}");
+        }
+
+        settings = Settings::get_current_settings();
+    }
+
+    config.initialize_post_settings();
+
+    SERVER_CONFIG
+        .set(config.clone())
+        .expect("Failed to initialize server config.");
+
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (bidi_event_tx, bidi_event_rx) = unbounded_channel::<BidiStreamEvent>();
@@ -125,28 +142,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
-    // initialize admin user
-    User::init_admin_user(&pool, config.default_admin_password.expose_secret()).await?;
-
-    // initialize default settings
-    Settings::init_defaults(&pool).await?;
-    // initialize global settings struct
-    initialize_current_settings(&pool).await?;
-
-    let mut settings = Settings::get_current_settings();
     if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        info!(
-            "No gRPC TLS certificate or key found in settings, generating self-signed certificate for gRPC server."
-        );
-
-        let ca = defguard_certs::CertificateAuthority::new("Defguard", "", 10)?;
-
-        let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
-
-        settings.ca_cert_der = Some(cert_der);
-        settings.ca_key_der = Some(key_der);
-
-        update_current_settings(&pool, settings).await?;
+        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
     }
 
     // read grpc TLS cert and key

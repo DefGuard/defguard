@@ -76,7 +76,7 @@ export const SetupGatewayComponentStep = () => {
       useGatewayWizardStore.setState({
         ...value,
       });
-      setActiveStep(GatewaySetupStep.GatewayAdaptation);
+      setActiveStep(GatewaySetupStep.GatewayAdoption);
     },
   });
 

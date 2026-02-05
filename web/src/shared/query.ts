@@ -49,7 +49,7 @@ export const getNetworkDevicesQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
-export const userMeQueryOptions = queryOptions({
+export const getUserMeQueryOptions = queryOptions({
   queryFn: () => api.user.getMe,
   queryKey: ['me'],
   staleTime: 60_000,
@@ -175,4 +175,15 @@ export const getActivityLogStreamsQueryOptions = queryOptions({
   queryFn: api.activityLogStream.getStreams,
   queryKey: ['activity_log_stream'],
   select: (resp) => resp.data,
+});
+
+export const getSettingsEssentialsQueryOptions = queryOptions({
+  queryFn: () => api.settings.getSettingsEssentials,
+  queryKey: ['settings-essentials'],
+  throwOnError: false,
+  retry: false,
+  refetchOnWindowFocus: false,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  staleTime: 60_000,
 });

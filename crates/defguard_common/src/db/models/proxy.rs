@@ -14,7 +14,6 @@ pub struct Proxy<I = NoId> {
     pub name: String,
     pub address: String,
     pub port: i32,
-    pub public_address: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
@@ -37,19 +36,12 @@ impl fmt::Display for Proxy<Id> {
 }
 
 impl Proxy {
-    pub fn new<S: Into<String>>(
-        name: S,
-        address: S,
-        port: i32,
-        public_address: S,
-        modified_by: Id,
-    ) -> Self {
+    pub fn new<S: Into<String>>(name: S, address: S, port: i32, modified_by: Id) -> Self {
         Self {
             id: NoId,
             name: name.into(),
             address: address.into(),
             port,
-            public_address: public_address.into(),
             connected_at: None,
             disconnected_at: None,
             has_certificate: false,

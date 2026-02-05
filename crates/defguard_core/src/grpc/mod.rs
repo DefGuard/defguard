@@ -5,16 +5,16 @@ use std::{
     time::{Duration, Instant},
 };
 
+use defguard_common::{
+    auth::claims::ClaimsType,
+    db::{Id, models::Settings},
+    types::UrlParseError,
+};
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-
-use defguard_common::{
-    auth::claims::ClaimsType,
-    db::{Id, models::Settings},
-};
 
 use self::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer};
 use crate::{
@@ -175,22 +175,22 @@ impl InstanceInfo {
         username: S,
         enterprise_settings: &EnterpriseSettings,
         openid_provider: Option<OpenIdProvider<Id>>,
-    ) -> Self {
-        let config = server_config();
+    ) -> Result<Self, UrlParseError> {
         let openid_display_name = openid_provider
             .as_ref()
             .map(|provider| provider.display_name.clone())
             .unwrap_or_default();
-        InstanceInfo {
+        let url = Settings::url()?;
+        Ok(Self {
             id: settings.uuid,
-            name: settings.instance_name,
-            url: config.url.clone(),
-            proxy_url: config.enrollment_url.clone(),
+            name: settings.instance_name.clone(),
+            url,
+            proxy_url: settings.proxy_public_url()?,
             username: username.into(),
             client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_business_license_active(),
             openid_display_name,
-        }
+        })
     }
 }
 

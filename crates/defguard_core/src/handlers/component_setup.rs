@@ -1,10 +1,11 @@
 use std::{convert::Infallible, time::Duration};
 
 use axum::{
-    extract::{Path, Query, State},
+    Extension,
+    extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
-use defguard_certs::{der_to_pem, get_certificate_expiry};
+use defguard_certs::{der_to_pem, parse_certificate_info};
 use defguard_common::{
     VERSION,
     auth::claims::Claims,
@@ -22,6 +23,8 @@ use defguard_version::{Version, client::ClientVersionInterceptor};
 use futures::Stream;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use tokio::sync::mpsc::Sender;
 use tokio_stream::StreamExt;
 use tonic::{
     Request, Status,
@@ -30,8 +33,7 @@ use tonic::{
 };
 
 use crate::{
-    AppState,
-    auth::{AdminRole, SessionInfo},
+    auth::{AdminOrSetupRole, SessionInfo},
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
@@ -176,10 +178,11 @@ impl SetupFlow {
 /// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
 // This is a get request, since HTML's EventSource only supports GET
 pub async fn setup_proxy_tls_stream(
-    _admin: AdminRole,
-    State(appstate): State<AppState>,
+    _admin: AdminOrSetupRole,
     Query(request): Query<ProxySetupRequest>,
     session: SessionInfo,
+    Extension(pool): Extension<PgPool>,
+    proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -191,7 +194,7 @@ pub async fn setup_proxy_tls_stream(
             flow.step(SetupStep::CheckingConfiguration)
         );
 
-        match Proxy::find_by_address_port(&appstate.pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
+        match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                yield Ok(flow.error(&format!("An edge Proxy with address {}:{} is already registered with name \"{}\".", request.ip_or_domain, request.grpc_port, proxy.name)));
                return;
@@ -511,7 +514,10 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Certificate successfully delivered to edge proxy");
 
-        let expiry = match get_certificate_expiry(cert.der()) {
+        let defguard_certs::CertificateInfo {
+            not_after: expiry,
+            ..
+        } = match parse_certificate_info(cert.der()) {
             Ok(dt) => {
             dt
             },
@@ -527,7 +533,6 @@ pub async fn setup_proxy_tls_stream(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
-            &request.ip_or_domain,
             session.user.id,
         );
 
@@ -535,7 +540,7 @@ pub async fn setup_proxy_tls_stream(
         proxy.certificate_expiry = Some(expiry);
 
 
-        let proxy = match proxy.save(&appstate.pool).await {
+        let proxy = match proxy.save(&pool).await {
             Ok(p) => p,
             Err(err) => {
             yield Ok(flow.error(&format!("Failed to save proxy to database: {err}")));
@@ -545,9 +550,13 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Edge proxy '{}' registered successfully with ID: {}", request.common_name, proxy.id);
         debug!("Establishing connection to newly configured edge proxy");
-        if let Err(err) = appstate.proxy_control_tx.send(ProxyControlMessage::StartConnection(proxy.id)).await {
-            yield Ok(flow.error(&format!("Failed send message to connect to proxy after setup: {err}")));
-            return;
+        if let Some(proxy_control_tx) = proxy_control_tx {
+            if let Err(err) = proxy_control_tx.send(ProxyControlMessage::StartConnection(proxy.id)).await {
+                yield Ok(flow.error(&format!("Failed send message to connect to proxy after setup: {err}")));
+                return;
+            }
+        } else {
+            debug!("Proxy control channel not available; skipping connection initiation");
         }
 
         debug!("Edge proxy setup completed successfully");
@@ -563,10 +572,10 @@ pub async fn setup_proxy_tls_stream(
 /// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
 // This is a get request, since HTML's EventSource only supports GET
 pub async fn setup_gateway_tls_stream(
-    _admin: AdminRole,
-    State(appstate): State<AppState>,
+    _admin: AdminOrSetupRole,
     Query(request): Query<GatewaySetupRequest>,
     Path(network_id): Path<Id>,
+    Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -581,7 +590,7 @@ pub async fn setup_gateway_tls_stream(
 
         let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
 
-        match Gateway::find_by_url(&appstate.pool, &url_str).await {
+        match Gateway::find_by_url(&pool, &url_str).await {
             Ok(Some(gateway)) => {
                yield Ok(flow.error(&format!("A Gateway with url {} is already registered with hostname \"{:?}\".", url_str, gateway.hostname)));
                return;
@@ -898,7 +907,10 @@ pub async fn setup_gateway_tls_stream(
 
         debug!("Certificate successfully delivered to Gateway");
 
-        let expiry = match get_certificate_expiry(cert.der()) {
+        let defguard_certs::CertificateInfo {
+            not_after: expiry,
+            ..
+        } = match parse_certificate_info(cert.der()) {
             Ok(dt) => {
             dt
             },
@@ -919,7 +931,7 @@ pub async fn setup_gateway_tls_stream(
         gateway.has_certificate = true;
         gateway.certificate_expiry = Some(expiry);
 
-        if let Err(err) = gateway.save(&appstate.pool).await {
+        if let Err(err) = gateway.save(&pool).await {
             yield Ok(flow.error(&format!("Failed to save Gateway to database: {err}")));
             return;
         }

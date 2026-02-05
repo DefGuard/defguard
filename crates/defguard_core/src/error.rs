@@ -1,7 +1,10 @@
 use axum::http::StatusCode;
-use defguard_common::db::models::{
-    DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
-    user::UserError,
+use defguard_common::{
+    db::models::{
+        DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
+        user::UserError,
+    },
+    types::UrlParseError,
 };
 use defguard_mail::templates::TemplateError;
 use thiserror::Error;
@@ -79,6 +82,9 @@ pub enum WebError {
     #[error(transparent)]
     #[schema(value_type=Object)]
     CertificateError(#[from] defguard_certs::CertificateError),
+    #[error(transparent)]
+    #[schema(value_type=Object)]
+    UrlParseError(#[from] UrlParseError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -149,6 +155,7 @@ impl From<TokenError> for WebError {
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
+            | TokenError::UrlParseError(_)
             | TokenError::TemplateErrorInternal(_) => {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }

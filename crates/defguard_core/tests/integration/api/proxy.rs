@@ -17,7 +17,7 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051, "public.net")
+    let proxy = Proxy::new("test", "localhost", 50051)
         .save(&pool)
         .await
         .unwrap();
@@ -46,7 +46,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let mut proxy = Proxy::new("test", "localhost", 50051, "public.net")
+    let mut proxy = Proxy::new("test", "localhost", 50051)
         .save(&pool)
         .await
         .unwrap();
@@ -72,7 +72,6 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     let proxy_before_mods = proxy.clone();
     proxy.address = "otherhost".to_string();
     proxy.port = 50052;
-    proxy.public_address = "otherpublichost.net".to_string();
     let response = client
         .put(format!("/api/v1/proxy/{}", proxy.id))
         .json(&proxy)
@@ -95,7 +94,7 @@ async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051, "public.net")
+    let proxy = Proxy::new("test", "localhost", 50051)
         .save(&pool)
         .await
         .unwrap();

@@ -18,7 +18,7 @@ use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
     models::{
-        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        AuthCode, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, Settings, User,
         oauth2client::OAuth2Client,
     },
 };
@@ -42,14 +42,15 @@ use serde::{
     ser::{Serialize, Serializer},
 };
 use sqlx::PgPool;
-use time::Duration;
 
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
     error::WebError,
-    handlers::{SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email},
+    handlers::{
+        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email,
+    },
     server_config,
 };
 
@@ -346,9 +347,13 @@ fn redirect_to<T: AsRef<str>>(
 fn login_redirect(
     data: &AuthenticationRequest,
     private_cookies: PrivateCookieJar,
-) -> (StatusCode, HeaderMap, PrivateCookieJar) {
+) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let config = server_config();
-    let base_url = config.url.join("api/v1/oauth/authorize").unwrap();
+    let url = Settings::url()?;
+    let base_url = url.join("/api/v1/oauth/authorize").map_err(|err| {
+        error!("Failed to prepare redirect URL: {err}");
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
     let cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
         format!(
@@ -366,8 +371,8 @@ fn login_redirect(
     .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
-    .max_age(Duration::minutes(10));
-    redirect_to("/login", private_cookies.add(cookie))
+    .max_age(SIGN_IN_COOKIE_MAX_AGE);
+    Ok(redirect_to("/login", private_cookies.add(cookie)))
 }
 
 /// Authorization Endpoint
@@ -418,7 +423,7 @@ pub async fn authorization(
                                         session.id, session.user_id
                                     );
                                     let _result = session.delete(&appstate.pool).await;
-                                    Ok(login_redirect(&data, private_cookies))
+                                    Ok(login_redirect(&data, private_cookies)?)
                                 } else {
                                     let mut user =
                                         User::find_by_id(&appstate.pool, session.user_id)
@@ -439,7 +444,7 @@ pub async fn authorization(
                                             "MFA not verified for user id {}, redirecting to login",
                                             session.user_id
                                         );
-                                        return Ok(login_redirect(&data, private_cookies));
+                                        return login_redirect(&data, private_cookies);
                                     }
 
                                     // If session is present check if app is in user authorized
@@ -489,12 +494,12 @@ pub async fn authorization(
                                     "Session {} not found, redirecting to login page",
                                     session_cookie.value()
                                 );
-                                Ok(login_redirect(&data, private_cookies))
+                                Ok(login_redirect(&data, private_cookies)?)
                             }
                         // If no session cookie provided redirect to login
                         } else {
                             info!("Session cookie not provided, redirecting to login page");
-                            Ok(login_redirect(&data, private_cookies))
+                            Ok(login_redirect(&data, private_cookies)?)
                         };
                     }
                 }
@@ -520,7 +525,7 @@ pub async fn authorization(
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
     } else {
         // Don't allow open redirects (DG25-17)
-        server_config().url.clone()
+        Settings::url()?
     };
     {
         let mut query_pairs = url.query_pairs_mut();
@@ -627,10 +632,10 @@ pub async fn secure_authorization(
     }
 
     let mut url = if is_redirect_allowed {
-        Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?
+        Url::parse(&data.redirect_uri)?
     } else {
         // Don't allow open redirects (DG25-17)
-        server_config().url.clone()
+        Settings::url()?
     };
     {
         let mut query_pairs = url.query_pairs_mut();
@@ -715,7 +720,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let timeout: std::time::Duration = server_config().session_timeout.into();
+                let settings = Settings::get_current_settings();
+                let timeout = settings.authentication_timeout();
                 let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
@@ -867,11 +873,13 @@ pub async fn token(
                                 };
                                 let config = server_config();
                                 let user_claims = UserClaims::from_user(&user, &client, &token);
+                                let base_url = Settings::url()?;
+
                                 match form.authorization_code_flow(
                                     &auth_code,
                                     &token,
                                     (&user_claims).into(),
-                                    &config.url,
+                                    &base_url,
                                     client.client_secret,
                                     config.openid_key(),
                                     group_claims,
@@ -1007,11 +1015,11 @@ pub async fn userinfo(State(appstate): State<AppState>, headers: HeaderMap) -> A
 
 // Must be served under /.well-known/openid-configuration
 pub async fn openid_configuration() -> ApiResult {
-    let config = server_config();
+    let url = Settings::url()?;
     let provider_metadata = CoreProviderMetadata::new(
-        IssuerUrl::from_url(config.url.clone()),
-        AuthUrl::from_url(config.url.join("api/v1/oauth/authorize").unwrap()),
-        JsonWebKeySetUrl::from_url(config.url.join("api/v1/oauth/discovery/keys").unwrap()),
+        IssuerUrl::from_url(url.clone()),
+        AuthUrl::from_url(url.join("api/v1/oauth/authorize")?),
+        JsonWebKeySetUrl::from_url(url.join("api/v1/oauth/discovery/keys")?),
         vec![ResponseTypes::new(vec![CoreResponseType::Code])],
         vec![CoreSubjectIdentifierType::Public],
         vec![
@@ -1020,9 +1028,7 @@ pub async fn openid_configuration() -> ApiResult {
         ],
         EmptyAdditionalProviderMetadata {},
     )
-    .set_token_endpoint(Some(TokenUrl::from_url(
-        config.url.join("api/v1/oauth/token").unwrap(),
-    )))
+    .set_token_endpoint(Some(TokenUrl::from_url(url.join("api/v1/oauth/token")?)))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".into()),
         Scope::new("profile".into()),
@@ -1048,7 +1054,7 @@ pub async fn openid_configuration() -> ApiResult {
         CoreGrantType::RefreshToken,
     ]))
     .set_userinfo_endpoint(Some(UserInfoUrl::from_url(
-        config.url.join("api/v1/oauth/userinfo").unwrap(),
+        url.join("api/v1/oauth/userinfo")?,
     )));
 
     Ok(ApiResponse::json(provider_metadata, StatusCode::OK))

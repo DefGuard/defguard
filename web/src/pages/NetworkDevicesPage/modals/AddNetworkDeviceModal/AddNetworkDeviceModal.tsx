@@ -327,7 +327,7 @@ const FormStep = ({
             }
           }
         }),
-    [reservedNames.includes],
+    [reservedNames],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -431,7 +431,7 @@ const FormStep = ({
         },
       );
     },
-    [form.setFieldValue],
+    [form],
   );
 
   return (

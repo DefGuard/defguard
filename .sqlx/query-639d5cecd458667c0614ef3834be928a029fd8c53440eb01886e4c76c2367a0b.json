@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled FROM settings WHERE id = 1",
+  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed FROM settings WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,11 @@
         "ordinal": 6,
         "name": "openid_enabled",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "initial_setup_completed",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -49,8 +54,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "00454ac37de808986d66b6abd808fb648b288f49586113cea21d889dca9655b9"
+  "hash": "639d5cecd458667c0614ef3834be928a029fd8c53440eb01886e4c76c2367a0b"
 }

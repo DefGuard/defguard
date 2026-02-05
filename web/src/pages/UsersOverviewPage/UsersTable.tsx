@@ -85,7 +85,7 @@ export const UsersTable = ({ users }: Props) => {
         id: g.name,
         label: g.name,
       })) ?? [],
-    [groups?.map],
+    [groups?.map, groups],
   );
 
   const { mutate: deleteUser } = useMutation({
@@ -134,7 +134,7 @@ export const UsersTable = ({ users }: Props) => {
       );
     }
     return data;
-  }, [users, search.length, search.toLowerCase]);
+  }, [users, search.length, search.toLowerCase, search]);
 
   const columns = useMemo(
     () => [
@@ -404,7 +404,8 @@ export const UsersTable = ({ users }: Props) => {
 
   const renderExpanded = useCallback(
     (row: Row<RowData>, isLast = false) =>
-      row.original.devices.map((device) => {
+      row.original.devices.map((device, deviceIndex) => {
+        const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
           (d) => d.last_connected_at,
@@ -420,7 +421,7 @@ export const UsersTable = ({ users }: Props) => {
           : neverConnected;
         return (
           <TableRowContainer
-            className={clsx({ last: isLast })}
+            className={clsx({ last: lastRow })}
             key={device.id}
             assignColumnSizing
           >

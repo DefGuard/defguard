@@ -21,6 +21,7 @@ tera.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+humantime.workspace = true
 
 [dev-dependencies]
 claims.workspace = true

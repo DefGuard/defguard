@@ -221,11 +221,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormInput required label="Keep alive interval (seconds)" />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="mtu">
             {(field) => (
               <field.FormInput label="Maximum Transmission Unit (MTU)" type="number" />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
             {(field) => <field.FormInput label="Firewall Mark (FwMark)" type="number" />}
           </form.AppField>
@@ -360,6 +362,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   editText="Edit groups"
                   modalTitle="Select allowed groups"
                   toggleText="All groups have access"
+                  toggleValue={field.state.value.length === 0}
+                  onToggleChange={(value) => {
+                    if (value) {
+                      field.handleChange([]);
+                    }
+                  }}
                 />
               )}
             </form.AppField>

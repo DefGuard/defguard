@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useSSEController } from '../../../hooks/useSSEController';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
@@ -9,35 +8,34 @@ import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCa
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useSSEController } from '../../../shared/hooks/useSSEController';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
 
-export const SetupGatewayAdaptationStep = () => {
+export const SetupGatewayAdoptionStep = () => {
   const setActiveStep = useGatewayWizardStore((s) => s.setActiveStep);
   const gatewayComponentWizardStore = useGatewayWizardStore((s) => s);
-  const gatewayAdaptationState = useGatewayWizardStore((s) => s.gatewayAdaptationState);
-  const setGatewayAdaptationState = useGatewayWizardStore(
-    (s) => s.setGatewayAdaptationState,
-  );
-  const resetGatewayAdaptationState = useGatewayWizardStore(
-    (s) => s.resetGatewayAdaptationState,
+  const gatewayAdoptionState = useGatewayWizardStore((s) => s.gatewayAdoptionState);
+  const setGatewayAdoptionState = useGatewayWizardStore((s) => s.setGatewayAdoptionState);
+  const resetGatewayAdoptionState = useGatewayWizardStore(
+    (s) => s.resetGatewayAdoptionState,
   );
 
   const handleEvent = useCallback(
     (event: SetupEvent) => {
-      setGatewayAdaptationState({
+      setGatewayAdoptionState({
         currentStep: event.step,
         isComplete: event.step === 'Done',
         isProcessing: event.step !== 'Done' && !event.error,
         gatewayVersion: event.version ?? null,
         errorMessage: event.error
-          ? event.message || m.edge_setup_adaptation_error_default()
+          ? event.message || m.edge_setup_adoption_error_default()
           : null,
         gatewayLogs: event.logs && event.logs.length > 0 ? [...event.logs] : [],
       });
     },
-    [setGatewayAdaptationState],
+    [setGatewayAdoptionState],
   );
 
   const sse = useSSEController<SetupEvent>(
@@ -54,7 +52,7 @@ export const SetupGatewayAdaptationStep = () => {
   );
 
   const handleBack = () => {
-    useGatewayWizardStore.getState().resetGatewayAdaptationState();
+    useGatewayWizardStore.getState().resetGatewayAdoptionState();
     setActiveStep(GatewaySetupStep.GatewayComponent);
   };
 
@@ -66,76 +64,75 @@ export const SetupGatewayAdaptationStep = () => {
     () => [
       {
         id: 'CheckingConfiguration',
-        title: m.gateway_setup_adaptation_checking_configuration(),
+        title: m.gateway_setup_adoption_checking_configuration(),
       },
       {
         id: 'CheckingAvailability',
-        title: m.gateway_setup_adaptation_checking_availability({
+        title: m.gateway_setup_adoption_checking_availability({
           ip_or_domain: gatewayComponentWizardStore.ip_or_domain,
           grpc_port: String(gatewayComponentWizardStore.grpc_port),
         }),
       },
       {
         id: 'CheckingVersion',
-        title: gatewayAdaptationState.gatewayVersion
-          ? m.gateway_setup_adaptation_checking_version_with_value({
-              gatewayVersion: gatewayAdaptationState.gatewayVersion,
+        title: gatewayAdoptionState.gatewayVersion
+          ? m.gateway_setup_adoption_checking_version_with_value({
+              gatewayVersion: gatewayAdoptionState.gatewayVersion,
             })
-          : m.gateway_setup_adaptation_checking_version(),
+          : m.gateway_setup_adoption_checking_version(),
       },
       {
         id: 'ObtainingCsr',
-        title: m.gateway_setup_adaptation_obtaining_csr(),
+        title: m.gateway_setup_adoption_obtaining_csr(),
       },
       {
         id: 'SigningCertificate',
-        title: m.gateway_setup_adaptation_signing_certificate(),
+        title: m.gateway_setup_adoption_signing_certificate(),
       },
       {
         id: 'ConfiguringTls',
-        title: m.gateway_setup_adaptation_configuring_tls(),
+        title: m.gateway_setup_adoption_configuring_tls(),
       },
     ],
-    [gatewayComponentWizardStore, gatewayAdaptationState.gatewayVersion],
+    [gatewayComponentWizardStore, gatewayAdoptionState.gatewayVersion],
   );
 
   const stepDone = useCallback(
     (stepId: SetupStepId): boolean => {
       const stepIndex = steps.findIndex((step) => step.id === stepId);
-      const currentStepIndex = gatewayAdaptationState.currentStep
-        ? steps.findIndex((step) => step.id === gatewayAdaptationState.currentStep)
+      const currentStepIndex = gatewayAdoptionState.currentStep
+        ? steps.findIndex((step) => step.id === gatewayAdoptionState.currentStep)
         : -1;
-      return stepIndex < currentStepIndex || gatewayAdaptationState.isComplete;
+      return stepIndex < currentStepIndex || gatewayAdoptionState.isComplete;
     },
-    [gatewayAdaptationState.isComplete, gatewayAdaptationState.currentStep, steps],
+    [gatewayAdoptionState.isComplete, gatewayAdoptionState.currentStep, steps],
   );
 
   const stepLoading = useCallback(
     (stepId: SetupStepId): boolean => {
       return (
-        gatewayAdaptationState.isProcessing &&
-        gatewayAdaptationState.currentStep === stepId
+        gatewayAdoptionState.isProcessing && gatewayAdoptionState.currentStep === stepId
       );
     },
-    [gatewayAdaptationState.isProcessing, gatewayAdaptationState.currentStep],
+    [gatewayAdoptionState.isProcessing, gatewayAdoptionState.currentStep],
   );
 
   const stepError = useCallback(
     (stepId: SetupStepId): string | null => {
       if (
-        gatewayAdaptationState.errorMessage &&
-        gatewayAdaptationState.currentStep === stepId
+        gatewayAdoptionState.errorMessage &&
+        gatewayAdoptionState.currentStep === stepId
       ) {
-        return gatewayAdaptationState.errorMessage;
+        return gatewayAdoptionState.errorMessage;
       }
       return null;
     },
-    [gatewayAdaptationState.errorMessage, gatewayAdaptationState.currentStep],
+    [gatewayAdoptionState.errorMessage, gatewayAdoptionState.currentStep],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
   useEffect(() => {
-    resetGatewayAdaptationState();
+    resetGatewayAdoptionState();
     sse.start();
 
     return () => {
@@ -146,20 +143,20 @@ export const SetupGatewayAdaptationStep = () => {
   return (
     <WizardCard>
       <div>
-        {steps.map((step, index) => (
+        {steps.map((step) => (
           <LoadingStep
-            key={index}
+            key={step.id}
             title={step.title}
             loading={stepLoading(step.id)}
             success={stepDone(step.id)}
             error={!!stepError(step.id)}
             errorMessage={stepError(step.id) || undefined}
           >
-            {gatewayAdaptationState.gatewayLogs.length > 0 ? (
+            {gatewayAdoptionState.gatewayLogs.length > 0 ? (
               <>
                 <CodeCard
-                  title={m.gateway_setup_adaptation_error_log_title()}
-                  value={gatewayAdaptationState.gatewayLogs.join('\n')}
+                  title={m.gateway_setup_adoption_error_log_title()}
+                  value={gatewayAdoptionState.gatewayLogs.join('\n')}
                 />
                 <SizedBox height={ThemeSpacing.Xl} />
               </>
@@ -168,12 +165,12 @@ export const SetupGatewayAdaptationStep = () => {
               <div className="left">
                 <Button
                   variant="primary"
-                  text={m.gateway_setup_adaptation_controls_retry()}
+                  text={m.gateway_setup_adoption_controls_retry()}
                   onClick={() => {
-                    resetGatewayAdaptationState();
+                    resetGatewayAdoptionState();
                     sse.restart();
                   }}
-                  disabled={gatewayAdaptationState.isProcessing}
+                  disabled={gatewayAdoptionState.isProcessing}
                 />
               </div>
             </Controls>
@@ -182,17 +179,15 @@ export const SetupGatewayAdaptationStep = () => {
       </div>
       <ModalControls
         cancelProps={{
-          text: m.gateway_setup_adaptation_controls_back(),
+          text: m.gateway_setup_adoption_controls_back(),
           onClick: handleBack,
-          disabled:
-            gatewayAdaptationState.isProcessing || gatewayAdaptationState.isComplete,
+          disabled: gatewayAdoptionState.isProcessing || gatewayAdoptionState.isComplete,
           variant: 'outlined',
         }}
         submitProps={{
-          text: m.gateway_setup_adaptation_controls_continue(),
+          text: m.gateway_setup_adoption_controls_continue(),
           onClick: handleNext,
-          disabled:
-            !gatewayAdaptationState.isComplete || gatewayAdaptationState.isProcessing,
+          disabled: !gatewayAdoptionState.isComplete || gatewayAdoptionState.isProcessing,
         }}
       />
     </WizardCard>

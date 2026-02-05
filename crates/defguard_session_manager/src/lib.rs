@@ -5,8 +5,9 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, User, WireguardNetwork, device::WireguardNetworkDevice,
-            vpn_client_session::VpnClientSession,
+            Device, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -193,7 +194,8 @@ impl SessionManager {
 
             // get all connected sessions which have become inactive
             let inactive_sessions =
-                VpnClientSession::get_inactive(&mut *transaction, &location).await?;
+                VpnClientSession::get_all_inactive_for_location(&mut *transaction, &location)
+                    .await?;
 
             debug!(
                 "Found {} inactive VPN sessions in location {location}",
@@ -250,8 +252,7 @@ impl SessionManager {
 
         // update session record in DB
         session.disconnected_at = Some(disconnect_timestamp);
-        session.state =
-            defguard_common::db::models::vpn_client_session::VpnClientSessionState::Disconnected;
+        session.state = VpnClientSessionState::Disconnected;
         session.save(&mut *transaction).await?;
 
         // fetch related objects necessary for event context
@@ -266,7 +267,7 @@ impl SessionManager {
 
         // remove peers from GW for MFA locations
         if location.mfa_enabled() {
-            // FIXME: remove one MFA-related data is no longer stored here
+            // FIXME: remove once MFA-related data is no longer stored here
             // update device network config
             if let Some(mut device_network_info) =
                 WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
