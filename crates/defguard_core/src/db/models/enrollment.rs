@@ -437,8 +437,8 @@ impl Token {
             admin.email.clone(),
             "[defguard] User enrollment completed".into(),
             templates::enrollment_admin_notification(
-                &user.clone().into(),
-                &admin.clone().into(),
+                &user.into(),
+                &admin.into(),
                 ip_address,
                 device_info,
             )?,

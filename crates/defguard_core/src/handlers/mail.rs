@@ -374,7 +374,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail::new(
         user.email.clone(),
         EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        templates::email_mfa_activation_mail(&user.clone().into(), &code, session)?,
+        templates::email_mfa_activation_mail(&user.into(), &code, session)?,
     );
 
     let to = &user.email;
@@ -405,7 +405,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail::new(
         user.email.clone(),
         EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        templates::email_mfa_code_mail(&user.clone().into(), &code, session)?,
+        templates::email_mfa_code_mail(&user.into(), &code, session)?,
     );
 
     let to = &user.email;

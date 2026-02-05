@@ -23,5 +23,7 @@ tokio.workspace = true
 tracing.workspace = true
 humantime.workspace = true
 
+mrml = "5.1"
+
 [dev-dependencies]
 claims.workspace = true

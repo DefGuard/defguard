@@ -21,7 +21,7 @@ use tracing::debug;
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
-static MAIL_TEST: &str = include_str!("../templates/mail_test.tera");
+static MAIL_TEST: &str = include_str!("../templates/mail_test.mjml");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tera");
 static MAIL_DESKTOP_START: &str = include_str!("../templates/mail_desktop_start.tera");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
@@ -53,6 +53,10 @@ pub enum TemplateError {
     TemplateError(#[from] tera::Error),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    MrmlParserError(#[from] mrml::prelude::parser::Error),
+    #[error(transparent)]
+    MrmlRenderError(#[from] mrml::prelude::render::Error),
 }
 
 struct NoOp(&'static str);
@@ -89,15 +93,15 @@ impl From<Session> for SessionContext {
 }
 
 pub struct UserContext {
-    pub last_name: String,
-    pub first_name: String,
+    last_name: String,
+    first_name: String,
 }
 
-impl From<User<Id>> for UserContext {
-    fn from(value: User<Id>) -> Self {
+impl From<&User<Id>> for UserContext {
+    fn from(user: &User<Id>) -> Self {
         Self {
-            last_name: value.last_name,
-            first_name: value.first_name,
+            last_name: user.last_name.clone(),
+            first_name: user.first_name.clone(),
         }
     }
 }
@@ -110,13 +114,12 @@ fn get_base_tera(
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = safe_tera();
     let mut context = external_context.unwrap_or_default();
-    tera.add_raw_template("base.tera", MAIL_BASE)?;
-    tera.add_raw_template("macros.tera", MAIL_MACROS)?;
+    tera.add_raw_template("base", MAIL_BASE)?;
+    tera.add_raw_template("macros", MAIL_MACROS)?;
     // supply context required by base
     context.insert("application_version", &VERSION);
     let now = Utc::now();
-    let current_year = format!("{:04}", now.year());
-    context.insert("current_year", &current_year);
+    context.insert("current_year", &now.year().to_string());
     context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
 
     if let Some(current_session) = session {
@@ -136,14 +139,21 @@ fn get_base_tera(
     Ok((tera, context))
 }
 
-// sends test message when requested during SMTP configuration process
+// Sends test message when requested during SMTP configuration process.
 pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateError> {
     let (mut tera, context) = get_base_tera(None, session, None, None)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
-    Ok(tera.render("mail_test", &context)?)
+
+    let processed = tera.render("mail_test", &context)?;
+
+    let parsed = mrml::parse(processed)?;
+    let opts = mrml::prelude::render::RenderOptions::default();
+    let html = parsed.element.render(&opts)?;
+
+    Ok(html)
 }
 
-// mail with link to enrollment service
+// Mail with link to enrollment service.
 pub fn enrollment_start_mail(
     context: Context,
     mut enrollment_service_url: Url,
@@ -166,9 +176,16 @@ pub fn enrollment_start_mail(
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
-    Ok(tera.render("mail_enrollment_start", &context)?)
+    let processed = tera.render("mail_enrollment_start", &context)?;
+
+    let parsed = mrml::parse(processed)?;
+    let opts = mrml::prelude::render::RenderOptions::default();
+    let html = parsed.element.render(&opts)?;
+
+    Ok(html)
 }
-// mail with link to enrollment service
+
+// Mail with link to enrollment service.
 pub fn desktop_start_mail(
     context: Context,
     enrollment_service_url: &Url,
@@ -185,8 +202,8 @@ pub fn desktop_start_mail(
     Ok(tera.render("mail_desktop_start", &context)?)
 }
 
-// welcome message sent when activating an account through enrollment
-// content is stored in markdown, so it's parsed into HTML
+// Welcome message sent when activating an account through enrollment
+// content is stored in markdown, so it's parsed into HTML.
 pub fn enrollment_welcome_mail(
     content: &str,
     ip_address: Option<&str>,
