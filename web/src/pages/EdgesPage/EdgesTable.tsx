@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
@@ -10,9 +9,11 @@ import {
   type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
+import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import type { Edge } from '../../shared/api/types';
+import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
@@ -25,7 +26,6 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
-import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { displayDate } from '../../shared/utils/displayDate';
 
 type Props = {
@@ -60,27 +60,22 @@ export const EdgesTable = ({ edges }: Props) => {
   const transformedData = useMemo(() => {
     let data = edges;
     if (search.length) {
-      data = data.filter(
-        (u) =>
-          u.name.toLowerCase().includes(search.toLowerCase()),
-      );
+      data = data.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
     }
 
     return data;
-  }, [edges, search.length, search.toLowerCase]);
+  }, [edges, search.length, search.toLowerCase, search]);
 
   const isConnected = (edge: Edge) => {
-    if (!isPresent(edge.connected_at))
-      return false;
+    if (!isPresent(edge.connected_at)) return false;
 
-    if (!isPresent(edge.disconnected_at))
-      return true;
+    if (!isPresent(edge.disconnected_at)) return true;
 
     const connected = dayjs.utc(edge.connected_at);
     const disconnected = dayjs.utc(edge.disconnected_at);
 
     return connected > disconnected;
-  }
+  };
 
   const columns = useMemo(
     () => [
@@ -158,8 +153,22 @@ export const EdgesTable = ({ edges }: Props) => {
         enableSorting: false,
         cell: (info) => (
           <TableCell>
-            {isConnected(info.row.original) && <Badge icon='check-filled' showIcon variant="success" text={m.edge_connected()} />}
-            {!isConnected(info.row.original) && <Badge icon='status-important' showIcon variant="critical" text={m.edge_disconnected()} />}
+            {isConnected(info.row.original) && (
+              <Badge
+                icon="check-filled"
+                showIcon
+                variant="success"
+                text={m.edge_connected()}
+              />
+            )}
+            {!isConnected(info.row.original) && (
+              <Badge
+                icon="status-important"
+                showIcon
+                variant="critical"
+                text={m.edge_disconnected()}
+              />
+            )}
           </TableCell>
         ),
       }),
