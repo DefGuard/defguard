@@ -172,6 +172,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   return (
@@ -186,6 +187,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
       )}
       {data.length === 0 && (
         <EmptyStateFlexible
+          icon="openid"
           title={m.openid_empty_title()}
           subtitle={m.openid_empty_subtitle()}
           primaryAction={addButtonProps}

@@ -631,6 +631,7 @@ export interface SettingsEnterprise {
 }
 
 export interface SettingsEssentials {
+  instance_name: string;
   initial_setup_completed: boolean;
 }
 

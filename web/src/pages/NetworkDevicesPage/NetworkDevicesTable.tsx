@@ -246,6 +246,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     <>
       {networkDevices.length === 0 && (
         <EmptyStateFlexible
+          icon="devices"
           title="You don't have any network devices."
           subtitle="To add one, click the button below."
           primaryAction={addButtonProps}
