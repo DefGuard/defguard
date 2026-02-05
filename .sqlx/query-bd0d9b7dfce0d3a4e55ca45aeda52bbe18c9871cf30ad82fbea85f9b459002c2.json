@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"aclalias\" SET \"parent_id\" = $2,\"name\" = $3,\"kind\" = $4,\"state\" = $5,\"destination\" = $6,\"ports\" = $7,\"protocols\" = $8,\"any_destination\" = $9,\"any_port\" = $10,\"any_protocol\" = $11 WHERE id = $1",
+  "query": "UPDATE \"aclalias\" SET \"parent_id\" = $2,\"name\" = $3,\"kind\" = $4,\"state\" = $5,\"addresses\" = $6,\"ports\" = $7,\"protocols\" = $8,\"any_address\" = $9,\"any_port\" = $10,\"any_protocol\" = $11 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -40,5 +40,5 @@
     },
     "nullable": []
   },
-  "hash": "2829f4f5fe69dcf6ea08a0346b91407a9ad71d5f76a7741882282fef0a2e928b"
+  "hash": "bd0d9b7dfce0d3a4e55ca45aeda52bbe18c9871cf30ad82fbea85f9b459002c2"
 }
