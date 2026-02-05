@@ -52,10 +52,14 @@ export const MethodStep = () => {
       networks,
       modalSessionID,
     ],
-    queryFn: () =>
+    queryFn: () => {
+      const nonMFAlocations = (networks as Network[]).filter(
+        (location) => location.location_mfa_mode === 'disabled',
+      );
       getAvailableIp({
-        locationId: (networks as Network[])[0].id,
-      }),
+        locationId: nonMFAlocations[0].id,
+      });
+    },
     enabled: networks !== undefined && Array.isArray(networks) && networks.length > 0,
     refetchOnMount: true,
     refetchOnReconnect: true,
