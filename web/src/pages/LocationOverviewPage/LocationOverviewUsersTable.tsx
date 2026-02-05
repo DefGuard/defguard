@@ -215,6 +215,7 @@ export const LocationOverviewUsersTable = ({ data }: Props) => {
     enableSorting: true,
     enableExpanding: true,
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   if (data.length === 0)

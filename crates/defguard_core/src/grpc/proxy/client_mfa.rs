@@ -661,6 +661,21 @@ impl ClientMfaServer {
             return Err(Status::internal("unexpected error"));
         };
 
+        // create new VPN client session
+        let vpn_client_session = self.create_new_mfa_session(
+        	&mut transaction,
+            &location,
+            &user,
+            &device,
+            method.into(),
+        )
+            .await
+            .map_err(|err| {
+                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
+                Status::internal("unexpected error")
+            })?;
+        debug!("Created new VPN client session: {vpn_client_session:?}");
+
         // generate PSK
         let key = WireguardNetwork::genkey();
         network_device.preshared_key = Some(key.public.clone());
@@ -702,21 +717,6 @@ impl ClientMfaServer {
                 },
             )),
         })?;
-
-        // create new VPN client session
-        let vpn_client_session = self.create_new_mfa_session(
-        	&mut transaction,
-            &location,
-            &user,
-            &device,
-            method.into(),
-        )
-            .await
-            .map_err(|err| {
-                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
-                Status::internal("unexpected error")
-            })?;
-        debug!("Created new VPN client session: {vpn_client_session:?}");
 
         let response = ClientMfaFinishResponse {
             preshared_key: key.public.clone(),
