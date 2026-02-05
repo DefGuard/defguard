@@ -1,4 +1,3 @@
-use chrono::Utc;
 use defguard_common::db::{Id, models::proxy::Proxy};
 use defguard_core::handlers::{Auth, proxy::ProxyUpdateData};
 use reqwest::StatusCode;
