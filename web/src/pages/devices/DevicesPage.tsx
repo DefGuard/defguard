@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { type PropsWithChildren, useEffect } from 'react';
+import { type PropsWithChildren, useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { ManagementPageLayout } from '../../shared/components/Layout/ManagementPageLayout/ManagementPageLayout';
@@ -10,6 +10,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/defguard-ui/components/Layout/Button/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
@@ -42,6 +43,21 @@ const PageContext = (props: PropsWithChildren) => {
 };
 
 const PageActions = () => {
+  const {
+    network: { getNetworks },
+  } = useApi();
+  const { data: networks } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORKS],
+    queryFn: getNetworks,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+  const nonMFALocations = useMemo(() => {
+    if (isPresent(networks)) {
+      return networks.filter((network) => network.location_mfa_mode === 'disabled');
+    }
+    return [];
+  }, [networks]);
   const { LL } = useI18nContext();
   const localLL = LL.devicesPage.bar.actions;
   const openStandaloneDeviceModal = useAddStandaloneDeviceModal((s) => s.open);
@@ -50,6 +66,7 @@ const PageActions = () => {
       size={ButtonSize.SMALL}
       styleVariant={ButtonStyleVariant.PRIMARY}
       text={localLL.addNewDevice()}
+      disabled={nonMFALocations.length === 0}
       icon={<AddDeviceIcon />}
       onClick={() => openStandaloneDeviceModal()}
     />
