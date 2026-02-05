@@ -39,6 +39,14 @@ impl fmt::Display for Proxy<Id> {
 }
 
 impl Proxy {
+    /// Creates a new `Proxy` instance with the given connection details.
+    ///
+    /// # Parameters
+    /// - `name`: Human-readable proxy name.
+    /// - `address`: Network address (IP or hostname) of the proxy for grpc connection.
+    /// - `port`: TCP port the proxy listens on.
+    /// - `modified_by`: Identifier of the user who created or last modified this proxy.
+    #[must_use]
     pub fn new<S: Into<String>>(name: S, address: S, port: i32, modified_by: Id) -> Self {
         Self {
             id: NoId,
