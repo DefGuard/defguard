@@ -1,14 +1,24 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{Extension, Json};
+use axum_client_ip::InsecureClientIp;
+use axum_extra::{
+    TypedHeader,
+    extract::{
+        CookieJar,
+        cookie::{Cookie, SameSite},
+    },
+    headers::UserAgent,
+};
 use defguard_certs::{der_to_pem, parse_certificate_info, parse_pem_certificate};
 use defguard_common::db::models::{
-    Settings, User, group::Group, settings::update_current_settings,
+    Session, SessionState, Settings, User, group::Group, settings::update_current_settings,
 };
 use defguard_core::{
     auth::AdminOrSetupRole,
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{ApiResponse, ApiResult, SESSION_COOKIE_NAME},
+    headers::get_device_info,
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -27,14 +37,17 @@ pub struct CreateAdmin {
 }
 
 pub async fn create_admin(
+    cookies: CookieJar,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     Extension(pool): Extension<PgPool>,
     Json(admin): Json<CreateAdmin>,
-) -> ApiResult {
+) -> Result<(CookieJar, ApiResponse), WebError> {
     info!(
         "Creating initial admin user {} ({})",
         admin.username, admin.email
     );
-    User::new(
+    let user = User::new(
         admin.username,
         Some(admin.password.as_str()),
         admin.last_name,
@@ -45,9 +58,26 @@ pub async fn create_admin(
     .save(&pool)
     .await?;
 
+    let device_info = get_device_info(user_agent.as_str());
+
+    Session::delete_expired(&pool).await?;
+    let session = Session::new(
+        user.id,
+        SessionState::PasswordVerified,
+        insecure_ip.to_string(),
+        Some(device_info),
+    );
+    session.save(&pool).await?;
+
+    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax);
+    let cookies = cookies.add(auth_cookie);
+
     info!("Initial admin user created");
 
-    Ok(ApiResponse::with_status(StatusCode::CREATED))
+    Ok((cookies, ApiResponse::with_status(StatusCode::CREATED)))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -56,6 +86,7 @@ pub struct GeneralConfig {
     default_admin_group_name: String,
     default_authentication: u32,
     default_mfa_code_lifetime: u32,
+    public_proxy_url: String,
     admin_username: String,
 }
 
@@ -86,6 +117,7 @@ pub async fn set_general_config(
         .default_mfa_code_lifetime
         .try_into()
         .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
+    settings.public_proxy_url = general_config.public_proxy_url;
     update_current_settings(&pool, settings).await?;
     debug!("Settings persisted");
 

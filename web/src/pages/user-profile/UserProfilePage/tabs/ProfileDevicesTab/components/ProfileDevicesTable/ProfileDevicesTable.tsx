@@ -24,6 +24,7 @@ import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/com
 import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableFlexCell } from '../../../../../../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../../../../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -212,12 +213,13 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const renderExpandedRow = useCallback(
     (row: Row<RowData>, isLast = false) => (
       <>
-        {row.original.networks.map((network) => (
+        {row.original.networks.map((network, index) => (
           <TableRowContainer
             className={clsx({
-              last: isLast,
+              last: isLast && index === row.original.networks.length - 1,
             })}
             key={network.network_id}
+            assignColumnSizing
           >
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
@@ -248,6 +250,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
               </span>
             </TableCell>
             <TableCell empty />
+            <TableFlexCell />
           </TableRowContainer>
         ))}
       </>

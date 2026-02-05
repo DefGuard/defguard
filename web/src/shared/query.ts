@@ -168,3 +168,14 @@ export const getActivityLogStreamsQueryOptions = queryOptions({
   queryKey: ['activity_log_stream'],
   select: (resp) => resp.data,
 });
+
+export const getSettingsEssentialsQueryOptions = queryOptions({
+  queryFn: () => api.settings.getSettingsEssentials,
+  queryKey: ['settings-essentials'],
+  throwOnError: false,
+  retry: false,
+  refetchOnWindowFocus: false,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  staleTime: 60_000,
+});

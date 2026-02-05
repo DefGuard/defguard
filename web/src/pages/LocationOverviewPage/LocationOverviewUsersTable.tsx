@@ -171,10 +171,10 @@ export const LocationOverviewUsersTable = ({ data }: Props) => {
 
   const renderExpansionRow = useCallback(
     (row: Row<RowData>, isLast = false) =>
-      row.original.devices.map((device) => (
+      row.original.devices.map((device, expandIndex) => (
         <TableRowContainer
           className={clsx({
-            last: isLast,
+            last: isLast && expandIndex === row.original.devices.length - 1,
           })}
           key={device.id}
         >

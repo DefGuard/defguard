@@ -29,7 +29,7 @@ use crate::{
 
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
-pub(crate) mod auth;
+pub mod auth;
 pub mod component_setup;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
@@ -49,7 +49,7 @@ pub mod wireguard;
 pub mod worker;
 pub(crate) mod yubikey;
 
-pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
+pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
 pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;

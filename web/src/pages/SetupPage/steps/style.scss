@@ -136,5 +136,11 @@
         }
       }
     }
+
+    .modal-controls {
+      & > .buttons:has(button:nth-child(2)) {
+        justify-content: flex-end;
+      }
+    }
   }
 }

@@ -2,11 +2,11 @@ import type { SetupStepId } from './steps/types';
 
 export const EdgeSetupStep = {
   EdgeComponent: 'edgeComponent',
-  EdgeAdaptation: 'edgeAdaptation',
+  EdgeAdoption: 'edgeAdoption',
   Confirmation: 'confirmation',
 } as const;
 
-export type EdgeAdaptationState = {
+export type EdgeAdoptionState = {
   isProcessing: boolean;
   isComplete: boolean;
   currentStep: SetupStepId | null;

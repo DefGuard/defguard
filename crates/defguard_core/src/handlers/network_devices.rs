@@ -13,7 +13,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceConfig, DeviceType, User, WireguardNetwork,
+            Device, DeviceConfig, DeviceType, Settings, User, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
             wireguard::NetworkAddressError,
         },
@@ -450,13 +450,14 @@ pub(crate) async fn start_network_device_setup(
         device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
     };
     let config = server_config();
+    let settings = Settings::get_current_settings();
     let configuration_token = start_desktop_configuration(
         &user,
         &mut transaction,
         &user,
         None,
         config.enrollment_token_timeout.as_secs(),
-        config.enrollment_url.clone(),
+        settings.proxy_public_url()?.clone(),
         false,
         appstate.mail_tx.clone(),
         Some(result.device.id),
@@ -473,7 +474,7 @@ pub(crate) async fn start_network_device_setup(
     transaction.commit().await?;
 
     Ok(ApiResponse::new(
-        json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json!({"enrollment_token": configuration_token, "enrollment_url":  settings.proxy_public_url()?.to_string()}),
         StatusCode::CREATED,
     ))
 }
@@ -516,13 +517,14 @@ pub(crate) async fn start_network_device_setup_for_device(
             ))
         })?;
     let config = server_config();
+    let settings = Settings::get_current_settings();
     let configuration_token = start_desktop_configuration(
         &user,
         &mut transaction,
         &user,
         None,
         config.enrollment_token_timeout.as_secs(),
-        config.enrollment_url.clone(),
+        settings.proxy_public_url()?,
         false,
         appstate.mail_tx.clone(),
         Some(device.id),
@@ -538,7 +540,7 @@ pub(crate) async fn start_network_device_setup_for_device(
     Ok(ApiResponse::new(
         json!({
             "enrollment_token": configuration_token,
-            "enrollment_url": config.enrollment_url.to_string()
+            "enrollment_url": settings.proxy_public_url()?.to_string()
         }),
         StatusCode::CREATED,
     ))

@@ -19,6 +19,7 @@ import type { MenuItemsGroup } from '../../../../../defguard-ui/components/Menu/
 import { clientArtifactsQueryOptions } from '../../../../../query';
 import { openClientLink } from '../../../../../utils/openVirtualLink';
 import { ContainerWithIcon } from '../../../../ContainerWithIcon/ContainerWithIcon';
+import { Controls } from '../../../../Controls/Controls';
 
 export const AddDeviceModalClientConfigStep = () => {
   const enrollment = useAddUserDeviceModal((s) => s.enrollment);
@@ -198,7 +199,7 @@ export const AddDeviceModalClientConfigStep = () => {
         </header>
         <div className="bottom">
           <div className="qr">
-            <QRCodeCanvas value={qrData} size={100} />
+            <QRCodeCanvas value={qrData} size={200} />
           </div>
           <div className="download">
             <p>{m.modal_add_user_device_client_mobile_get_mobile()}</p>
@@ -221,6 +222,19 @@ export const AddDeviceModalClientConfigStep = () => {
           </div>
         </div>
       </ContainerWithIcon>
+      <Controls>
+        <div className="left">
+          <p>{`Once your Defguard client is configured, you can close this window.`}</p>
+        </div>
+        <div className="right">
+          <Button
+            text={m.controls_close()}
+            onClick={() => {
+              useAddUserDeviceModal.getState().close();
+            }}
+          />
+        </div>
+      </Controls>
     </div>
   );
 };

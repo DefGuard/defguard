@@ -252,7 +252,7 @@ const Content = ({ rule: initialRule }: Props) => {
     return [];
   }, [networkDevices]);
 
-  const [restrictionsPresent, setRestrictionsPresent] = useState(false);
+  const [_restrictionsPresent, _setRestrictionsPresent] = useState(false);
   const [manualDestination, setManualDestination] = useState(false);
 
   const formSchema = useMemo(
@@ -270,6 +270,7 @@ const Content = ({ rule: initialRule }: Props) => {
           deny_all_network_devices: z.boolean(),
           allowed_users: z.number().array(),
           denied_users: z.number().array(),
+          allow_all_groups: z.boolean(),
           allowed_groups: z.number().array(),
           denied_groups: z.number().array(),
           allowed_devices: z.number().array(),
@@ -362,6 +363,7 @@ const Content = ({ rule: initialRule }: Props) => {
     if (isPresent(initialRule)) {
       return {
         ...omit(initialRule, ['id', 'state', 'expires', 'parent_id']),
+        allow_all_groups: true,
         aliases: new Set(initialRule.aliases),
         destinations: new Set(),
         protocols: new Set(initialRule.protocols),
@@ -383,9 +385,10 @@ const Content = ({ rule: initialRule }: Props) => {
       denied_users: [],
       networks: [],
       protocols: new Set(),
-      all_networks: false,
-      allow_all_users: false,
-      allow_all_network_devices: false,
+      all_networks: true,
+      allow_all_groups: true,
+      allow_all_users: true,
+      allow_all_network_devices: true,
       deny_all_users: false,
       deny_all_network_devices: false,
       enabled: true,
@@ -405,17 +408,12 @@ const Content = ({ rule: initialRule }: Props) => {
     },
     onSubmit: async ({ value }) => {
       const toSend = cloneDeep(value);
-      toSend.all_networks = !(toSend.networks.length > 0);
-      if (restrictionsPresent) {
-        toSend.deny_all_network_devices = toSend.denied_devices.length === 0;
-        toSend.deny_all_users = toSend.denied_users.length === 0;
-      } else {
-        toSend.deny_all_network_devices = false;
-        toSend.deny_all_users = false;
-        toSend.denied_devices = [];
-        toSend.denied_groups = [];
-        toSend.denied_users = [];
-      }
+      // FIXME: When restrictions section is reworked
+      toSend.deny_all_network_devices = false;
+      toSend.deny_all_users = false;
+      toSend.denied_devices = [];
+      toSend.denied_groups = [];
+      toSend.denied_users = [];
       if (toSend.any_destination) {
         toSend.destination = '';
       }
@@ -473,18 +471,26 @@ const Content = ({ rule: initialRule }: Props) => {
             <p>{`Specify which locations this rule applies to. You can select all available locations or choose specific ones based on your requirements.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="networks">
-            {(field) => (
-              <field.FormSelectMultiple
-                options={locationsOptions}
-                counterText={(counter) => `Locations ${counter}`}
-                editText="Edit locations"
-                modalTitle="Select locations"
-                toggleText="Include all locations"
-                selectionCustomItemRender={renderLocationSelectionItem}
-              />
+          <form.Subscribe selector={(s) => s.values.all_networks}>
+            {(allValue) => (
+              <form.AppField name="networks">
+                {(field) => (
+                  <field.FormSelectMultiple
+                    options={locationsOptions}
+                    counterText={(counter) => `Locations ${counter}`}
+                    editText="Edit locations"
+                    modalTitle="Select locations"
+                    toggleText="Include all locations"
+                    selectionCustomItemRender={renderLocationSelectionItem}
+                    toggleValue={allValue}
+                    onToggleChange={(value) => {
+                      form.setFieldValue('all_networks', value);
+                    }}
+                  />
+                )}
+              </form.AppField>
             )}
-          </form.AppField>
+          </form.Subscribe>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
@@ -727,48 +733,72 @@ const Content = ({ rule: initialRule }: Props) => {
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           {isPresent(usersOptions) && (
-            <form.AppField name="allowed_users">
-              {(field) => (
-                <field.FormSelectMultiple
-                  toggleText="All users have access"
-                  counterText={(counter) => `Users ${counter}`}
-                  editText={`Edit users`}
-                  modalTitle="Select allowed users"
-                  options={usersOptions}
-                />
+            <form.Subscribe selector={(s) => s.values.allow_all_users}>
+              {(allowAllValue) => (
+                <form.AppField name="allowed_users">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      toggleValue={allowAllValue}
+                      toggleText="All users have access"
+                      counterText={(counter) => `Users ${counter}`}
+                      editText={`Edit users`}
+                      modalTitle="Select allowed users"
+                      options={usersOptions}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_users', value);
+                      }}
+                    />
+                  )}
+                </form.AppField>
               )}
-            </form.AppField>
+            </form.Subscribe>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(groupsOptions) && (
-            <form.AppField name="allowed_groups">
-              {(field) => (
-                <field.FormSelectMultiple
-                  options={groupsOptions}
-                  counterText={(counter) => `Groups ${counter}`}
-                  editText="Edit groups"
-                  modalTitle="Select allowed groups"
-                  toggleText="All groups have access"
-                />
+            <form.Subscribe selector={(s) => s.values.allow_all_groups}>
+              {(allAllowedValue) => (
+                <form.AppField name="allowed_groups">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      toggleValue={allAllowedValue}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_groups', value);
+                      }}
+                      options={groupsOptions}
+                      counterText={(counter) => `Groups ${counter}`}
+                      editText="Edit groups"
+                      modalTitle="Select allowed groups"
+                      toggleText="All groups have access"
+                    />
+                  )}
+                </form.AppField>
               )}
-            </form.AppField>
+            </form.Subscribe>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(networkDevicesOptions) && (
-            <form.AppField name="allowed_devices">
-              {(field) => (
-                <field.FormSelectMultiple
-                  options={networkDevicesOptions}
-                  counterText={(counter) => `Devices ${counter}`}
-                  editText="Edit devices"
-                  modalTitle="Select allowed devices"
-                  toggleText="All network devices have access"
-                />
+            <form.Subscribe selector={(s) => s.values.allow_all_network_devices}>
+              {(allowAllValue) => (
+                <form.AppField name="allowed_devices">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      toggleValue={allowAllValue}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_network_devices', value);
+                      }}
+                      options={networkDevicesOptions}
+                      counterText={(counter) => `Devices ${counter}`}
+                      editText="Edit devices"
+                      modalTitle="Select allowed devices"
+                      toggleText="All network devices have access"
+                    />
+                  )}
+                </form.AppField>
               )}
-            </form.AppField>
+            </form.Subscribe>
           )}
         </MarkedSection>
-        <Divider spacing={ThemeSpacing.Xl2} />
+        {/* <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="lock-closed">
           <AppText font={TextStyle.TBodyPrimary600}>{`Restrictions`}</AppText>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -827,7 +857,7 @@ const Content = ({ rule: initialRule }: Props) => {
               </form.AppField>
             )}
           </Fold>
-        </MarkedSection>
+        </MarkedSection> */}
         <Divider spacing={ThemeSpacing.Xl2} />
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (

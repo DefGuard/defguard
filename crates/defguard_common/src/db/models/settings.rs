@@ -149,11 +149,13 @@ pub struct Settings {
     pub ca_key_der: Option<Vec<u8>>,
     pub ca_cert_der: Option<Vec<u8>>,
     pub ca_expiry: Option<NaiveDateTime>,
+    // Initial setup, general settings
     pub initial_setup_completed: bool,
     pub defguard_url: String,
     pub default_admin_group_name: String,
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
+    pub public_proxy_url: String,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -271,7 +273,8 @@ impl Settings {
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, \
-            defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds \
+            defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
+            public_proxy_url \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -356,7 +359,8 @@ impl Settings {
             defguard_url = $53, \
             default_admin_group_name = $54, \
             authentication_period_days = $55, \
-            mfa_code_timeout_seconds = $56 \
+            mfa_code_timeout_seconds = $56, \
+            public_proxy_url = $57 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -413,7 +417,8 @@ impl Settings {
             self.defguard_url,
             self.default_admin_group_name,
             self.authentication_period_days,
-            self.mfa_code_timeout_seconds
+            self.mfa_code_timeout_seconds,
+            self.public_proxy_url
         )
         .execute(executor)
         .await?;
@@ -492,6 +497,10 @@ impl Settings {
     #[must_use]
     pub fn authentication_timeout(&self) -> Duration {
         Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
+    }
+
+    pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
+        Url::parse(&self.public_proxy_url)
     }
 }
 

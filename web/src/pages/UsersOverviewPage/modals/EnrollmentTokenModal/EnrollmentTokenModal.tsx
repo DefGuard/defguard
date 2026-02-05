@@ -122,7 +122,7 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
     if (!form.state.isPristine) {
       form.validateAllFields('change');
     }
-  }, [form.state.isPristine, form.validateAllFields]);
+  }, [form.state.isPristine, form.validateAllFields, form]);
 
   return (
     <>

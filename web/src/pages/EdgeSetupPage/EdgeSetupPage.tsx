@@ -13,7 +13,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import deployImage from './assets/deploy.svg';
 import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
-import { SetupEdgeAdaptationStep } from './steps/SetupEdgeAdaptationStep';
+import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { EdgeSetupStep, type EdgeSetupStepValue } from './types';
 import { useEdgeWizardStore } from './useEdgeWizardStore';
@@ -32,11 +32,11 @@ export const EdgeSetupPage = () => {
         label: m.edge_setup_step_edge_component_label(),
         description: m.edge_setup_step_edge_component_description(),
       },
-      edgeAdaptation: {
-        id: EdgeSetupStep.EdgeAdaptation,
+      edgeAdoption: {
+        id: EdgeSetupStep.EdgeAdoption,
         order: 2,
-        label: m.edge_setup_step_edge_adaptation_label(),
-        description: m.edge_setup_step_edge_adaptation_description(),
+        label: m.edge_setup_step_edge_adoption_label(),
+        description: m.edge_setup_step_edge_adoption_description(),
       },
       confirmation: {
         id: EdgeSetupStep.Confirmation,
@@ -51,7 +51,7 @@ export const EdgeSetupPage = () => {
   const stepsComponents = useMemo(
     (): Record<EdgeSetupStepValue, ReactNode> => ({
       edgeComponent: <SetupEdgeComponentStep />,
-      edgeAdaptation: <SetupEdgeAdaptationStep />,
+      edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,
     }),
     [],

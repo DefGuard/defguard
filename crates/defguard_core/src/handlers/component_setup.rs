@@ -532,7 +532,6 @@ pub async fn setup_proxy_tls_stream(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
-            &request.ip_or_domain,
         );
 
         proxy.has_certificate = true;

@@ -534,7 +534,7 @@ const AddUserGroupsSelectionStep = () => {
         id: group,
         label: group,
       })),
-    [groups.map],
+    [groups],
   );
 
   return (

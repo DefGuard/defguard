@@ -13,7 +13,7 @@ import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
 import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
 import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAuthoritySummaryStep';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
-import { SetupEdgeAdaptationStep } from './steps/SetupEdgeAdaptationStep';
+import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
@@ -57,11 +57,11 @@ export const SetupPage = () => {
         label: m.initial_setup_step_edge_component_label(),
         description: m.initial_setup_step_edge_component_description(),
       },
-      edgeAdaptation: {
-        id: SetupPageStep.EdgeAdaptation,
+      edgeAdoption: {
+        id: SetupPageStep.EdgeAdoption,
         order: 6,
-        label: m.initial_setup_step_edge_adaptation_label(),
-        description: m.initial_setup_step_edge_adaptation_description(),
+        label: m.initial_setup_step_edge_adoption_label(),
+        description: m.initial_setup_step_edge_adoption_description(),
       },
       confirmation: {
         id: SetupPageStep.Confirmation,
@@ -80,7 +80,7 @@ export const SetupPage = () => {
       certificateAuthority: <SetupCertificateAuthorityStep />,
       certificateAuthoritySummary: <SetupCertificateAuthoritySummaryStep />,
       edgeComponent: <SetupEdgeComponentStep />,
-      edgeAdaptation: <SetupEdgeAdaptationStep />,
+      edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,
     }),
     [],
@@ -112,7 +112,6 @@ export const SetupPage = () => {
   return (
     <WizardPage
       activeStep={activeStep}
-      onClose={() => {}}
       subtitle={m.initial_setup_wizard_subtitle()}
       title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
