@@ -48,7 +48,7 @@ use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlo
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
-use sqlx::{PgPool, types::chrono::Utc};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     select,
@@ -381,7 +381,7 @@ impl ProxyServer {
             return Ok(());
         };
 
-		// Make sure we don't continuously update disconnected time in connection loop
+        // Make sure we don't continuously update disconnected time in connection loop
         let should_mark = match (proxy.connected_at, proxy.disconnected_at) {
             (Some(connected), Some(disconnected)) => disconnected < connected,
             (Some(_), None) => true,
@@ -462,7 +462,7 @@ impl ProxyServer {
                             );
                         }
                     }
-					self.mark_disconnected().await?;
+                    self.mark_disconnected().await?;
                     sleep(TEN_SECS).await;
                     continue;
                 }

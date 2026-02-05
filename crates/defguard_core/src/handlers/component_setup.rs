@@ -31,7 +31,7 @@ use tonic::{
 
 use crate::{
     AppState,
-    auth::AdminRole,
+    auth::{AdminRole, SessionInfo},
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
@@ -179,6 +179,7 @@ pub async fn setup_proxy_tls_stream(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Query(request): Query<ProxySetupRequest>,
+    session: SessionInfo,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -527,6 +528,7 @@ pub async fn setup_proxy_tls_stream(
             &request.ip_or_domain,
             i32::from(request.grpc_port),
             &request.ip_or_domain,
+            session.user.id,
         );
 
         proxy.has_certificate = true;

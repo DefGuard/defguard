@@ -20,6 +20,8 @@ pub struct Proxy<I = NoId> {
     pub version: Option<String>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: Id,
 }
 
 impl fmt::Display for Proxy<NoId> {
@@ -35,7 +37,13 @@ impl fmt::Display for Proxy<Id> {
 }
 
 impl Proxy {
-    pub fn new<S: Into<String>>(name: S, address: S, port: i32, public_address: S) -> Self {
+    pub fn new<S: Into<String>>(
+        name: S,
+        address: S,
+        port: i32,
+        public_address: S,
+        modified_by: Id,
+    ) -> Self {
         Self {
             id: NoId,
             name: name.into(),
@@ -47,6 +55,8 @@ impl Proxy {
             has_certificate: false,
             certificate_expiry: None,
             version: None,
+            modified_by,
+            modified_at: Utc::now().naive_utc(),
         }
     }
 }
@@ -67,25 +77,18 @@ impl Proxy<Id> {
         .await
     }
 
-    pub async fn mark_connected(
-		&mut self,
-        pool: &PgPool,
-        version: &str,
-    ) -> sqlx::Result<()> {
-		self.version = Some(version.to_string());
-		self.connected_at = Some(Utc::now().naive_utc());
-		self.save(pool).await?;
+    pub async fn mark_connected(&mut self, pool: &PgPool, version: &str) -> sqlx::Result<()> {
+        self.version = Some(version.to_string());
+        self.connected_at = Some(Utc::now().naive_utc());
+        self.save(pool).await?;
 
-		Ok(())
+        Ok(())
     }
 
-    pub async fn mark_disconnected(
-		&mut self,
-        pool: &PgPool,
-    ) -> sqlx::Result<()> {
-		self.disconnected_at = Some(Utc::now().naive_utc());
-		self.save(pool).await?;
+    pub async fn mark_disconnected(&mut self, pool: &PgPool) -> sqlx::Result<()> {
+        self.disconnected_at = Some(Utc::now().naive_utc());
+        self.save(pool).await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 }

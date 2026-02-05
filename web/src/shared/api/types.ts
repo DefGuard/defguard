@@ -918,6 +918,8 @@ export interface Edge {
   version: string | null;
   connected_at: string;
   disconnected_at: string;
+  modified_at: string;
+  modified_by: number;
 }
 
 export interface PaginationParams {

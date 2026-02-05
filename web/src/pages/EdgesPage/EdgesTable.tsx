@@ -26,6 +26,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
+import { displayDate } from '../../shared/utils/displayDate';
 
 type Props = {
   edges: Edge[];
@@ -127,25 +128,25 @@ export const EdgesTable = ({ edges }: Props) => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('port', {
+      columnHelper.accessor('modified_at', {
         size: 175,
         minSize: 175,
         header: m.edges_col_last_modified(),
         enableSorting: false,
-        cell: () => (
+        cell: (info) => (
           <TableCell>
-            <span>TODO</span>
+            <span>{displayDate(info.getValue())}</span>
           </TableCell>
         ),
       }),
-      columnHelper.accessor('port', {
+      columnHelper.accessor('modified_by', {
         size: 175,
         minSize: 175,
         header: m.edges_col_modified_by(),
         enableSorting: false,
-        cell: () => (
+        cell: (info) => (
           <TableCell>
-            <span>TODO</span>
+            <span>{info.getValue()}</span>
           </TableCell>
         ),
       }),

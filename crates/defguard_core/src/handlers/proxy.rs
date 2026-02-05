@@ -2,6 +2,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
+use chrono::Utc;
 use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use reqwest::StatusCode;
 use serde_json::Value;
@@ -117,6 +118,8 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
+    proxy.modified_by = session.user.id;
+    proxy.modified_at = Utc::now().naive_utc();
     proxy.save(&appstate.pool).await?;
 
     info!("User {} updated proxy {proxy_id}", session.user.username);
