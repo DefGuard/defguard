@@ -101,8 +101,9 @@ async fn read_logs() -> String {
     match read_to_string(path).await {
         Ok(logs) => logs,
         Err(err) => {
-            error!("Error dumping app logs: {err}");
-            format!("Error dumping app logs: {err}")
+            let msg = format!("Error dumping app logs: {err}");
+            error!(msg);
+            msg
         }
     }
 }

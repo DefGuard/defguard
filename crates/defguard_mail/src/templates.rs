@@ -79,8 +79,8 @@ pub fn safe_tera() -> Tera {
 }
 
 pub struct SessionContext {
-    pub ip_address: String,
-    pub device_info: Option<String>,
+    ip_address: String,
+    device_info: Option<String>,
 }
 
 impl From<Session> for SessionContext {
@@ -114,8 +114,8 @@ fn get_base_tera(
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = safe_tera();
     let mut context = external_context.unwrap_or_default();
-    tera.add_raw_template("base", MAIL_BASE)?;
-    tera.add_raw_template("macros", MAIL_MACROS)?;
+    tera.add_raw_template("base.tera", MAIL_BASE)?;
+    tera.add_raw_template("macros.tera", MAIL_MACROS)?;
     // supply context required by base
     context.insert("application_version", &VERSION);
     let now = Utc::now();
