@@ -347,6 +347,54 @@ impl ProxyServer {
         ))
     }
 
+    async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
+        let Some(proxy_id) = self.proxy_id else {
+            warn!(
+                "Skipping marking connection time for proxy without id: {}",
+                self.url
+            );
+            return Ok(());
+        };
+
+        if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
+            proxy
+                .mark_connected(&self.pool, &version.to_string())
+                .await?;
+        } else {
+            warn!("Couldn't find proxy by id, URL: {}", self.url);
+        }
+
+        Ok(())
+    }
+
+    async fn mark_disconnected(&self) -> Result<(), ProxyError> {
+        let Some(proxy_id) = self.proxy_id else {
+            warn!(
+                "Skipping marking connection time for proxy without id: {}",
+                self.url
+            );
+            return Ok(());
+        };
+
+        let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? else {
+            warn!("Couldn't find proxy by id, URL: {}", self.url);
+            return Ok(());
+        };
+
+		// Make sure we don't continuously update disconnected time in connection loop
+        let should_mark = match (proxy.connected_at, proxy.disconnected_at) {
+            (Some(connected), Some(disconnected)) => disconnected < connected,
+            (Some(_), None) => true,
+            _ => false,
+        };
+
+        if should_mark {
+            proxy.mark_disconnected(&self.pool).await?;
+        }
+
+        Ok(())
+    }
+
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
@@ -414,6 +462,7 @@ impl ProxyServer {
                             );
                         }
                     }
+					self.mark_disconnected().await?;
                     sleep(TEN_SECS).await;
                     continue;
                 }
@@ -423,19 +472,7 @@ impl ProxyServer {
             // Check proxy version and continue if it's not supported.
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
-
-            if let Some(proxy_id) = self.proxy_id {
-                if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
-					proxy.mark_connected(&self.pool, &version.to_string()).await?;
-                } else {
-                    warn!("Couldn't find proxy by id, URL: {} ", self.url);
-                }
-            } else {
-                warn!(
-                    "Couldn't obtain proxy id, check if proxy exists in database. URL: {}",
-                    self.url
-                );
-            }
+            self.mark_connected(&version).await?;
 
             let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
@@ -481,6 +518,7 @@ impl ProxyServer {
                         } else {
                             info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
                         }
+                        self.mark_disconnected().await?;
                         sleep(TEN_SECS).await;
                     }
                     res = shutdown_signal => {
@@ -489,6 +527,7 @@ impl ProxyServer {
                         } else {
                             info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
                         }
+                        self.mark_disconnected().await?;
                         break;
                     }
                 }
@@ -961,6 +1000,7 @@ impl ProxyServer {
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
                     debug!("waiting 10s to re-establish the connection");
+                    self.mark_disconnected().await?;
                     sleep(TEN_SECS).await;
                     break 'message;
                 }

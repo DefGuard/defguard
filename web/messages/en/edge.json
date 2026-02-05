@@ -23,5 +23,7 @@
   "edges_empty_subtitle": "Add edge components by clicking the button below.",
   "edges_search_placeholder": "Search",
   "edge_delete_success": "Edge component deleted",
-  "edge_delete_failed": "Failed to delete edge component"
+  "edge_delete_failed": "Failed to delete edge component",
+  "edge_connected": "Connected",
+  "edge_disconnected": "Disconnected"
 }

@@ -24,6 +24,8 @@ import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/c
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 
 type Props = {
   edges: Edge[];
@@ -66,19 +68,17 @@ export const EdgesTable = ({ edges }: Props) => {
     return data;
   }, [edges, search.length, search.toLowerCase]);
 
-  const connectionStatus = (edge: Edge) => {
+  const isConnected = (edge: Edge) => {
+    if (!isPresent(edge.connected_at))
+      return false;
+
+    if (!isPresent(edge.disconnected_at))
+      return true;
+
     const connected = dayjs.utc(edge.connected_at);
     const disconnected = dayjs.utc(edge.disconnected_at);
 
-    if (connected > disconnected) {
-      return (
-        <span>Connected</span>
-      );
-    } else {
-      return (
-        <span>Disconnected</span>
-      );
-    }
+    return connected > disconnected;
   }
 
   const columns = useMemo(
@@ -157,7 +157,8 @@ export const EdgesTable = ({ edges }: Props) => {
         enableSorting: false,
         cell: (info) => (
           <TableCell>
-            <span>{connectionStatus(info.row.original)}</span>
+            {isConnected(info.row.original) && <Badge icon='check-filled' showIcon variant="success" text={m.edge_connected()} />}
+            {!isConnected(info.row.original) && <Badge icon='status-important' showIcon variant="critical" text={m.edge_disconnected()} />}
           </TableCell>
         ),
       }),
