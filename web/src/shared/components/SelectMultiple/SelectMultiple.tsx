@@ -27,14 +27,20 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
     [options, selected],
   );
 
-  const handleSelectionInternal = useCallback(
-    (value: T[]) => {
-      if (value.length) {
-        onToggleChange(!toggleValue);
+  const handleSelectionCancel = useCallback(() => {
+    if (selected.size === 0) {
+      onToggleChange(true);
+    }
+  }, [onToggleChange, selected.size]);
+
+  const handleSelectionSubmit = useCallback(
+    (v: T[]) => {
+      if (!v.length) {
+        onToggleChange(true);
       }
-      onSelectionChange(value);
+      onSelectionChange(v);
     },
-    [onSelectionChange, onToggleChange, toggleValue],
+    [onToggleChange, onSelectionChange],
   );
 
   const handleEdit = () => {
@@ -45,7 +51,8 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
       //@ts-expect-error
       selected: selected,
       //@ts-expect-error
-      onSubmit: handleSelectionInternal,
+      onSubmit: handleSelectionSubmit,
+      onCancel: handleSelectionCancel,
     });
   };
 
@@ -56,15 +63,14 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
           label={toggleText}
           active={toggleValue}
           onClick={() => {
-            if (selected.size === 0) {
+            if (selected.size === 0 && toggleValue && options.length) {
               handleEdit();
-            } else {
-              onToggleChange(!toggleValue);
             }
+            onToggleChange(!toggleValue);
           }}
         />
       )}
-      <Fold open={!toggleValue}>
+      <Fold open={!toggleValue && selected.size > 0}>
         {isPresent(toggleText) && <SizedBox height={ThemeSpacing.Xl} />}
         <div className="selected">
           {selectedOptions.map((o) => (
