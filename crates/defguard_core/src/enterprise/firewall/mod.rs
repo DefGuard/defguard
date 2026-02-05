@@ -371,7 +371,7 @@ async fn get_predefined_destination_rules(
         let ipv4_rules = create_rules(
             destination.id,
             IpVersion::Ipv4,
-            &ipv4_source_addrs,
+            ipv4_source_addrs,
             &dest_addrs_v4,
             &destination_ports,
             &destination_protocols,
@@ -388,7 +388,7 @@ async fn get_predefined_destination_rules(
         let ipv6_rules = create_rules(
             destination.id,
             IpVersion::Ipv6,
-            &ipv6_source_addrs,
+            ipv6_source_addrs,
             &dest_addrs_v6,
             &destination_ports,
             &destination_protocols,
