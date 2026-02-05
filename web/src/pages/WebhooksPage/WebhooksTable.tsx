@@ -148,6 +148,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     data: webhooks,
     getCoreRowModel: getCoreRowModel(),
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
   return (
     <>

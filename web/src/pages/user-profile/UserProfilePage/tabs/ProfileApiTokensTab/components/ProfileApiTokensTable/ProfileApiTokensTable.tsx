@@ -120,6 +120,7 @@ export const ProfileApiTokensTable = () => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   return <TableBody table={table} />;

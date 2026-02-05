@@ -114,6 +114,7 @@ export const LocationOverviewNetworkDevicesTable = ({
     enableExpanding: false,
     enableSorting: true,
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   if (data.length === 0)

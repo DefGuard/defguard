@@ -3,15 +3,34 @@ import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayL
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
 import { UpgradePlanModalManager } from '../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { useAuth } from '../shared/hooks/useAuth';
-import { AppConfigProvider } from '../shared/providers/AppConfigProvider';
+import { AppInfoProvider } from '../shared/providers/AppInfoProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
+import { getUserMeQueryOptions } from '../shared/query';
 
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
-  beforeLoad: () => {
+  beforeLoad: async ({ context }) => {
     if (!useAuth.getState().user) {
-      console.error('No auth session in store.');
-      throw redirect({ to: '/auth', replace: true });
+      try {
+        const user = (
+          await (
+            await context.queryClient.ensureQueryData(getUserMeQueryOptions)
+          )()
+        ).data;
+
+        // Invalid user object
+        if (!user.id) {
+          useAuth.getState().reset();
+          throw redirect({ to: '/auth/login', replace: true });
+        }
+        useAuth.getState().setUser(user);
+      } catch (_) {
+        useAuth.getState().reset();
+        throw redirect({
+          to: '/auth/login',
+          replace: true,
+        });
+      }
     }
   },
 });
@@ -19,12 +38,12 @@ export const Route = createFileRoute('/_authorized')({
 function RouteComponent() {
   return (
     <AppUserProvider>
-      <AppConfigProvider>
+      <AppInfoProvider>
         <Outlet />
         <DisplayListModal />
         <SelectionModal />
         <UpgradePlanModalManager />
-      </AppConfigProvider>
+      </AppInfoProvider>
     </AppUserProvider>
   );
 }
