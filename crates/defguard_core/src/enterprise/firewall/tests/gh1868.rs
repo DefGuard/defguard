@@ -107,6 +107,7 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
+        any_destination: false,
         destination: vec!["192.168.1.0/24".parse().unwrap()],
         manual_settings: true,
         enabled: true,
@@ -122,6 +123,7 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
         .unwrap()
         .unwrap();
     let generated_firewall_rules = generated_firewall_config.rules;
+    println!("{generated_firewall_rules:#?}");
     assert_eq!(generated_firewall_rules.len(), 2);
 
     let allow_rule = &generated_firewall_rules[0];
@@ -161,13 +163,14 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     // setup user & device
     setup_user_and_device(&mut rng, &pool, &location).await;
 
-    // create a rule with only an IPv4 destination
+    // create a rule with only an IPv6 destination
     let acl_rule = AclRule {
         all_networks: true,
         allow_all_users: true,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
+        any_destination: false,
         destination: vec!["fc00::0/112".parse().unwrap()],
         enabled: true,
         state: RuleState::Applied,
@@ -175,7 +178,7 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     };
     acl_rule.save(&pool).await.unwrap();
 
-    // verify only IPv4 rules are created
+    // verify only IPv6 rules are created
     let mut conn = pool.acquire().await.unwrap();
     let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
         .await
@@ -191,4 +194,71 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
     assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+}
+
+#[sqlx::test]
+async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+            IpNetwork::new(
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+                64,
+            )
+            .unwrap(),
+        ],
+        ..Default::default()
+    };
+    let location = location.save(&pool).await.unwrap();
+
+    // setup user & device
+    setup_user_and_device(&mut rng, &pool, &location).await;
+
+    // create a rule with any destination enabled
+    let acl_rule = AclRule {
+        all_networks: true,
+        allow_all_users: true,
+        deny_all_users: false,
+        allow_all_network_devices: false,
+        deny_all_network_devices: false,
+        any_destination: true,
+        destination: vec!["fc00::0/112".parse().unwrap()],
+        enabled: true,
+        state: RuleState::Applied,
+        ..Default::default()
+    };
+    acl_rule.save(&pool).await.unwrap();
+
+    // verify only IPv4 rules are created
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap();
+    let generated_firewall_rules = generated_firewall_config.rules;
+    assert_eq!(generated_firewall_rules.len(), 4);
+
+    let allow_rule_ipv4 = &generated_firewall_rules[0];
+    assert_eq!(allow_rule_ipv4.verdict(), FirewallPolicy::Allow);
+    assert_eq!(allow_rule_ipv4.ip_version(), IpVersion::Ipv4);
+    let allow_rule_ipv6 = &generated_firewall_rules[1];
+    assert_eq!(allow_rule_ipv6.verdict(), FirewallPolicy::Allow);
+    assert_eq!(allow_rule_ipv6.ip_version(), IpVersion::Ipv6);
+
+    let deny_rule_ipv4 = &generated_firewall_rules[2];
+    assert_eq!(deny_rule_ipv4.verdict(), FirewallPolicy::Deny);
+    assert_eq!(allow_rule_ipv4.ip_version(), IpVersion::Ipv4);
+    let deny_rule_ipv6 = &generated_firewall_rules[3];
+    assert_eq!(deny_rule_ipv6.verdict(), FirewallPolicy::Deny);
+    assert_eq!(allow_rule_ipv6.ip_version(), IpVersion::Ipv6);
 }
