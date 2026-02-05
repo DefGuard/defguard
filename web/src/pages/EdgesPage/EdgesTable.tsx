@@ -54,7 +54,6 @@ export const EdgesTable = ({ edges }: Props) => {
     (): ButtonProps => ({
       variant: 'primary',
       text: 'Add Edge component',
-      // TODO(jck)
       iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
