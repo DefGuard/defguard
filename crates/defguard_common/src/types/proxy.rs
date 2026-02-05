@@ -1,9 +1,8 @@
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use sqlx::PgPool;
 use utoipa::ToSchema;
 
-use crate::db::{Id, models::proxy::Proxy};
+use crate::db::Id;
 
 // Used by the proxy manager to control proxies (start/shutdown).
 pub enum ProxyControlMessage {
@@ -26,10 +25,4 @@ pub struct ProxyInfo {
     pub modified_by: Id,
     pub modified_by_firstname: String,
     pub modified_by_lastname: String,
-}
-
-impl ProxyInfo {
-    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<Self>> {
-        Proxy::list(pool).await
-    }
 }
