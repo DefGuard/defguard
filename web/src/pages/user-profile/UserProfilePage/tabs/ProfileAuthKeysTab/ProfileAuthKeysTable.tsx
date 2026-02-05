@@ -220,6 +220,7 @@ export const ProfileAuthKeysTable = () => {
     getSortedRowModel: getSortedRowModel(),
     enableSorting: true,
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   return <TableBody table={table} />;

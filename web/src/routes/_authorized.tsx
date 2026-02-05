@@ -5,13 +5,32 @@ import { UpgradePlanModalManager } from '../shared/components/modals/UpgradePlan
 import { useAuth } from '../shared/hooks/useAuth';
 import { AppConfigProvider } from '../shared/providers/AppConfigProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
+import { getUserMeQueryOptions } from '../shared/query';
 
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
-  beforeLoad: () => {
+  beforeLoad: async ({ context }) => {
     if (!useAuth.getState().user) {
-      console.error('No auth session in store.');
-      throw redirect({ to: '/auth', replace: true });
+      try {
+        const user = (
+          await (
+            await context.queryClient.ensureQueryData(getUserMeQueryOptions)
+          )()
+        ).data;
+
+        // Invalid user object
+        if (!user.id) {
+          useAuth.getState().reset();
+          throw redirect({ to: '/auth/login', replace: true });
+        }
+        useAuth.getState().setUser(user);
+      } catch (_) {
+        useAuth.getState().reset();
+        throw redirect({
+          to: '/auth/login',
+          replace: true,
+        });
+      }
     }
   },
 });

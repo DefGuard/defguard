@@ -151,6 +151,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
     getSortedRowModel: getSortedRowModel(),
     enableSorting: true,
     enableRowSelection: false,
+    columnResizeMode: 'onChange',
   });
 
   return (

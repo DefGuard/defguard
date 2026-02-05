@@ -287,6 +287,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     enableExpanding: true,
     enableRowSelection: false,
     enableSorting: true,
+    columnResizeMode: 'onChange',
   });
 
   return (
