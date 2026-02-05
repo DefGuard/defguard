@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createFileRoute, type ParsedLocation, redirect } from '@tanstack/react-router';
 import { SetupPage } from '../../pages/SetupPage/SetupPage';
 import { useSetupWizardStore } from '../../pages/SetupPage/useSetupWizardStore';
+import { useApp } from '../../shared/hooks/useApp';
 import { getSettingsEssentialsQueryOptions } from '../../shared/query';
 
 const handleWizardRedirect = async ({
@@ -11,12 +12,11 @@ const handleWizardRedirect = async ({
   location: ParsedLocation;
   client: QueryClient;
 }) => {
-  const settingsEssentials = (
-    await (
-      await client.ensureQueryData(getSettingsEssentialsQueryOptions)
-    )()
-  ).data;
-
+  let settingsEssentials = useApp.getState().settingsEssentials;
+  if (!settingsEssentials) {
+    settingsEssentials = (await client.ensureQueryData(getSettingsEssentialsQueryOptions))
+      .data;
+  }
   // Tries to access any route but setup is not completed
   const setupNotCompletedAnyAccess =
     !settingsEssentials.initial_setup_completed &&
