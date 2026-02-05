@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM proxy WHERE address = $1 AND port = $2",
+  "query": "SELECT proxy.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname FROM proxy JOIN \"user\" u on proxy.modified_by = u.id",
   "describe": {
     "columns": [
       {
@@ -57,13 +57,20 @@
         "ordinal": 10,
         "name": "modified_by",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_by_firstname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "modified_by_lastname",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text",
-        "Int4"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -76,8 +83,10 @@
       true,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "a41787c8c8307414165ab23ef96d82a34d3bfa4364cbe9b8368e71445bc20877"
+  "hash": "1e48e6b87c058b8dbc54b86c704ee3ecbfdfbd69f3d44e16d9a6e9ef25069614"
 }

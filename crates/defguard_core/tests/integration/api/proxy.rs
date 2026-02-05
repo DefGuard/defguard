@@ -17,7 +17,7 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051)
+    let proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();
@@ -46,7 +46,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let mut proxy = Proxy::new("test", "localhost", 50051)
+    let mut proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();
@@ -94,7 +94,7 @@ async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051)
+    let proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();
