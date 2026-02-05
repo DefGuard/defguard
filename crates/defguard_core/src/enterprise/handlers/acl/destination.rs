@@ -179,7 +179,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
             state: info.state,
             protocols: info.protocols,
             rules: info.rules.iter().map(|v| v.id).collect(),
-            any_destination: info.any_destination,
+            any_destination: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
         }

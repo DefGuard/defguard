@@ -43,8 +43,8 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        destination: vec!["192.168.1.0/24".parse().unwrap()],
-        manual_settings: true,
+        addresses: vec!["192.168.1.0/24".parse().unwrap()],
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -55,11 +55,11 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        destination: vec!["192.168.2.0/24".parse().unwrap()],
-        manual_settings: true,
+        addresses: vec!["192.168.2.0/24".parse().unwrap()],
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -70,11 +70,11 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        destination: vec!["192.168.3.0/24".parse().unwrap()],
-        manual_settings: true,
+        addresses: vec!["192.168.3.0/24".parse().unwrap()],
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -148,8 +148,8 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec!["fc00::0/112".parse().unwrap()],
+        use_manual_destination_settings: true,
+        addresses: vec!["fc00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -161,10 +161,10 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         expires: None,
         enabled: true,
         allow_all_users: true,
-        all_networks: true,
+        all_locations: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec!["fb00::0/112".parse().unwrap()],
+        use_manual_destination_settings: true,
+        addresses: vec!["fb00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -175,11 +175,11 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
         id: NoId,
         expires: None,
         enabled: true,
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec!["fa00::0/112".parse().unwrap()],
+        use_manual_destination_settings: true,
+        addresses: vec!["fa00::0/112".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -259,8 +259,8 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         enabled: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec![
+        use_manual_destination_settings: true,
+        addresses: vec![
             "192.168.1.0/24".parse().unwrap(),
             "fc00::0/112".parse().unwrap(),
         ],
@@ -274,11 +274,11 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         id: NoId,
         expires: None,
         enabled: true,
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec![
+        use_manual_destination_settings: true,
+        addresses: vec![
             "192.168.2.0/24".parse().unwrap(),
             "fb00::0/112".parse().unwrap(),
         ],
@@ -292,11 +292,11 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
         id: NoId,
         expires: None,
         enabled: true,
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         state: RuleState::Applied,
-        manual_settings: true,
-        destination: vec![
+        use_manual_destination_settings: true,
+        addresses: vec![
             "192.168.3.0/24".parse().unwrap(),
             "fa00::0/112".parse().unwrap(),
         ],

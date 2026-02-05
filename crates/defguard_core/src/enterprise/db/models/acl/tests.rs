@@ -44,7 +44,7 @@ async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
     let retrieved = AclAlias::find_by_id(&pool, 1).await.unwrap().unwrap();
 
     assert_eq!(retrieved.id, 1);
-    assert_eq!(retrieved.destination, destination);
+    assert_eq!(retrieved.addresses, destination);
     assert_eq!(retrieved.ports, ports);
 }
 
@@ -55,23 +55,22 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
     // create the rule
     let rule = AclRule {
         id: NoId,
-        parent_id: Default::default(),
-        state: Default::default(),
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        all_networks: false,
-        destination: Vec::new(),
+        all_locations: false,
+        addresses: Vec::new(),
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
-        any_destination: true,
+        any_address: true,
         any_port: true,
         any_protocol: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     }
     .save(&pool)
     .await
@@ -129,23 +128,22 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     // create the rule
     let mut rule = AclRule {
         id: NoId,
-        parent_id: Default::default(),
-        state: Default::default(),
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        all_networks: false,
-        destination: Vec::new(),
+        all_locations: false,
+        addresses: Vec::new(),
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
-        any_destination: true,
+        any_address: true,
         any_port: true,
         any_protocol: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     }
     .save(&pool)
     .await
@@ -327,17 +325,17 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(info.denied_groups.len(), 1);
     assert_eq!(info.denied_groups[0], group2);
 
-    assert_eq!(info.allowed_devices.len(), 1);
-    assert_eq!(info.allowed_devices[0].id, device1.id); // db modifies datetime precision
+    assert_eq!(info.allowed_network_devices.len(), 1);
+    assert_eq!(info.allowed_network_devices[0].id, device1.id); // db modifies datetime precision
 
-    assert_eq!(info.denied_devices.len(), 1);
-    assert_eq!(info.denied_devices[0].id, device2.id); // db modifies datetime precision
+    assert_eq!(info.denied_network_devices.len(), 1);
+    assert_eq!(info.denied_network_devices[0].id, device2.id); // db modifies datetime precision
 
-    assert_eq!(info.networks.len(), 1);
-    assert_eq!(info.networks[0], network1);
+    assert_eq!(info.locations.len(), 1);
+    assert_eq!(info.locations[0], network1);
 
     // test all_networks flag
-    rule.all_networks = true;
+    rule.all_locations = true;
     rule.save(&pool).await.unwrap();
     assert_eq!(rule.get_networks(&pool).await.unwrap().len(), 2);
 
@@ -484,18 +482,19 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        all_networks: false,
-        destination: Vec::new(),
+        all_locations: false,
+        addresses: Vec::new(),
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: true,
+        any_address: true,
         any_port: true,
         any_protocol: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     }
     .save(&pool)
     .await
@@ -598,18 +597,19 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        all_networks: false,
-        destination: Vec::new(),
+        all_locations: false,
+        addresses: Vec::new(),
         ports: Vec::new(),
         protocols: Vec::new(),
         expires: None,
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: true,
+        any_address: true,
         any_port: true,
         any_protocol: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     }
     .save(&pool)
     .await

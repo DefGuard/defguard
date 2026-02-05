@@ -34,7 +34,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
         enabled: true,
         allow_all_users: true,
         state: RuleState::New,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -46,7 +46,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
         enabled: true,
         allow_all_users: true,
         state: RuleState::Modified,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -110,7 +110,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
         enabled: true,
         allow_all_users: true,
         state: RuleState::New,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -122,7 +122,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
         enabled: true,
         allow_all_users: true,
         state: RuleState::Modified,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -189,7 +189,7 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
         enabled: true,
         allow_all_users: true,
         state: RuleState::New,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -201,7 +201,7 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
         enabled: true,
         allow_all_users: true,
         state: RuleState::Modified,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)

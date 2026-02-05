@@ -390,13 +390,13 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let acl_rule_1 = AclRule {
         id: NoId,
         name: "Web Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: vec!["192.168.1.0/24".parse().unwrap()],
+        addresses: vec!["192.168.1.0/24".parse().unwrap()],
         ports: vec![
             PortRange::new(80, 80).into(),
             PortRange::new(443, 443).into(),
@@ -405,10 +405,11 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -439,22 +440,23 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let acl_rule_2 = AclRule {
         id: NoId,
         name: "DNS Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: true, // Allow all users
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        addresses: Vec::new(), // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();
@@ -820,13 +822,13 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let acl_rule_1 = AclRule {
         id: NoId,
         name: "Web Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: vec!["fc00::0/112".parse().unwrap()],
+        addresses: vec!["fc00::0/112".parse().unwrap()],
         ports: vec![
             PortRange::new(80, 80).into(),
             PortRange::new(443, 443).into(),
@@ -835,10 +837,11 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -869,22 +872,23 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let acl_rule_2 = AclRule {
         id: NoId,
         name: "DNS Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: true, // Allow all users
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        addresses: Vec::new(), // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();
@@ -1290,13 +1294,13 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let acl_rule_1 = AclRule {
         id: NoId,
         name: "Web Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: vec![
+        addresses: vec![
             "192.168.1.0/24".parse().unwrap(),
             "fc00::0/112".parse().unwrap(),
         ],
@@ -1308,10 +1312,11 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations = vec![location.id];
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -1342,22 +1347,23 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let acl_rule_2 = AclRule {
         id: NoId,
         name: "DNS Access".into(),
-        all_networks: false,
+        all_locations: false,
         expires: None,
         allow_all_users: true, // Allow all users
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        addresses: Vec::new(), // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
         parent_id: None,
         state: RuleState::Applied,
-        any_destination: false,
+        any_address: false,
         any_port: false,
         any_protocol: false,
-        manual_settings: true,
+        use_manual_destination_settings: true,
+        ..Default::default()
     };
     let locations_2 = vec![location.id];
     let allowed_users_2 = Vec::new();
@@ -1810,7 +1816,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
         expires: None,
         enabled: true,
         state: RuleState::Applied,
-        destination: vec!["192.168.1.0/24".parse().unwrap()],
+        addresses: vec!["192.168.1.0/24".parse().unwrap()],
         allow_all_users: true,
         ..Default::default()
     }
@@ -1824,7 +1830,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
         name: "destination alias".to_string(),
         kind: AliasKind::Destination,
         ports: vec![PortRange::new(100, 200).into()],
-        any_destination: true,
+        any_address: true,
         any_protocol: true,
         ..Default::default()
     }
@@ -1834,7 +1840,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     let component_alias = AclAlias {
         id: NoId,
         kind: AliasKind::Component,
-        destination: vec!["10.0.2.3".parse().unwrap()],
+        addresses: vec!["10.0.2.3".parse().unwrap()],
         ..Default::default()
     }
     .save(&pool)
@@ -1965,9 +1971,9 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
         expires: None,
         enabled: true,
         state: RuleState::Applied,
-        destination: Vec::new(),
+        addresses: Vec::new(),
         allow_all_users: true,
-        manual_settings: false,
+        use_manual_destination_settings: false,
         ..Default::default()
     }
     .save(&pool)
@@ -1979,7 +1985,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
         id: NoId,
         name: "postgres".to_string(),
         kind: AliasKind::Destination,
-        destination: vec!["10.0.2.3".parse().unwrap()],
+        addresses: vec!["10.0.2.3".parse().unwrap()],
         ports: vec![PortRange::new(5432, 5432).into()],
         ..Default::default()
     }
@@ -1990,7 +1996,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
         id: NoId,
         name: "redis".to_string(),
         kind: AliasKind::Destination,
-        destination: vec!["10.0.2.4".parse().unwrap()],
+        addresses: vec!["10.0.2.4".parse().unwrap()],
         ports: vec![PortRange::new(6379, 6379).into()],
         ..Default::default()
     }
@@ -2129,7 +2135,7 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
         enabled: true,
         state: RuleState::Applied,
         allow_all_users: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -2141,7 +2147,7 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
         enabled: true,
         state: RuleState::Applied,
         allow_all_users: true,
-        manual_settings: true,
+        use_manual_destination_settings: true,
         ..Default::default()
     }
     .save(&pool)
@@ -2293,7 +2299,7 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
         expires: None,
         enabled: true,
         state: RuleState::Applied,
-        destination: Vec::new(),
+        addresses: Vec::new(),
         allow_all_users: true,
         ..Default::default()
     }

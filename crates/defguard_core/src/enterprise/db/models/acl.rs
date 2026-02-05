@@ -163,43 +163,46 @@ pub struct AclRuleInfo<I = NoId> {
     pub parent_id: Option<Id>,
     pub state: RuleState,
     pub name: String,
-    pub all_networks: bool,
-    pub networks: Vec<WireguardNetwork<Id>>,
+    pub all_locations: bool,
+    pub locations: Vec<WireguardNetwork<Id>>,
     pub expires: Option<NaiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_groups: bool,
+    pub deny_all_groups: bool,
     pub allow_all_network_devices: bool,
     pub deny_all_network_devices: bool,
     pub allowed_users: Vec<User<Id>>,
     pub denied_users: Vec<User<Id>>,
     pub allowed_groups: Vec<Group<Id>>,
     pub denied_groups: Vec<Group<Id>>,
-    pub allowed_devices: Vec<Device<Id>>,
-    pub denied_devices: Vec<Device<Id>>,
+    pub allowed_network_devices: Vec<Device<Id>>,
+    pub denied_network_devices: Vec<Device<Id>>,
     // destination
-    pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
-    pub aliases: Vec<AclAlias<Id>>,
+    pub addresses: Vec<IpNetwork>,
+    pub address_ranges: Vec<AclRuleDestinationRange<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
-    pub manual_destination_settings: bool,
+    pub use_manual_destination_settings: bool,
+    // aliases
+    pub aliases: Vec<AclAlias<Id>>,
 }
 
 impl<I> AclRuleInfo<I> {
     /// Constructs a [`String`] of comma-separated addresses and address ranges.
     pub(crate) fn format_destination(&self) -> String {
         // process single addresses
-        let addrs = match &self.destination {
+        let addrs = match &self.addresses {
             d if d.is_empty() => String::new(),
             d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
         };
         // process address ranges
-        let ranges = match &self.destination_ranges {
+        let ranges = match &self.address_ranges {
             r if r.is_empty() => String::new(),
             r => r.iter().fold(String::new(), |acc, r| {
                 acc + &format!("{}-{}, ", r.start, r.end)
@@ -247,12 +250,14 @@ pub struct AclRule<I = NoId> {
     pub name: String,
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_groups: bool,
+    pub deny_all_groups: bool,
     pub allow_all_network_devices: bool,
     pub deny_all_network_devices: bool,
-    pub all_networks: bool,
+    pub all_locations: bool,
     #[model(ref)]
     #[schema(value_type = Vec<String>)]
-    pub destination: Vec<IpNetwork>,
+    pub addresses: Vec<IpNetwork>,
     #[model(ref)]
     #[schema(value_type = Vec<String>)]
     pub ports: Vec<PgRange<i32>>,
@@ -260,10 +265,10 @@ pub struct AclRule<I = NoId> {
     pub protocols: Vec<Protocol>,
     pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
-    pub manual_settings: bool,
+    pub use_manual_destination_settings: bool,
 }
 
 impl Default for AclRule {
@@ -275,18 +280,20 @@ impl Default for AclRule {
             name: "ACL rule".to_string(),
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_groups: false,
+            deny_all_groups: false,
             allow_all_network_devices: false,
             deny_all_network_devices: false,
-            all_networks: false,
-            destination: Vec::new(),
+            all_locations: false,
+            addresses: Vec::new(),
             ports: Vec::new(),
             protocols: Vec::new(),
             enabled: true,
             expires: None,
-            any_destination: true,
+            any_address: true,
             any_port: true,
             any_protocol: true,
-            manual_settings: true,
+            use_manual_destination_settings: true,
         }
     }
 }
@@ -634,7 +641,7 @@ impl AclRule<Id> {
         debug!("Creating related objects for ACL rule {api_rule:?}");
         // save related networks
         debug!("Creating related networks for ACL rule {rule_id}");
-        for network_id in &api_rule.networks {
+        for network_id in &api_rule.locations {
             AclRuleNetwork::new(rule_id, *network_id)
                 .save(&mut *transaction)
                 .await
@@ -706,7 +713,7 @@ impl AclRule<Id> {
 
         // allowed devices
         debug!("Creating related allowed devices for ACL rule {rule_id}");
-        for device_id in &api_rule.allowed_devices {
+        for device_id in &api_rule.allowed_network_devices {
             AclRuleDevice::new(rule_id, *device_id, true)
                 .save(&mut *transaction)
                 .await
@@ -715,7 +722,7 @@ impl AclRule<Id> {
 
         // denied devices
         debug!("Creating related denied devices for ACL rule {rule_id}");
-        for device_id in &api_rule.denied_devices {
+        for device_id in &api_rule.denied_network_devices {
             AclRuleDevice::new(rule_id, *device_id, false)
                 .save(&mut *transaction)
                 .await
@@ -723,7 +730,7 @@ impl AclRule<Id> {
         }
 
         // destination
-        let destination = parse_destination(&api_rule.destination)?;
+        let destination = parse_destination(&api_rule.addresses)?;
         debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
             if range.1 <= range.0 {
@@ -819,7 +826,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
 
     fn try_from(rule: EditAclRule) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&rule.destination)?.addrs,
+            addresses: parse_destination(&rule.addresses)?.addrs,
             ports: parse_ports(&rule.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -830,16 +837,18 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
+            allow_all_groups: rule.allow_all_groups,
+            deny_all_groups: rule.deny_all_groups,
             allow_all_network_devices: rule.allow_all_network_devices,
             deny_all_network_devices: rule.deny_all_network_devices,
-            all_networks: rule.all_networks,
+            all_locations: rule.all_locations,
             protocols: rule.protocols,
             enabled: rule.enabled,
             expires: rule.expires,
-            any_destination: rule.any_destination,
+            any_address: rule.any_address,
             any_port: rule.any_port,
             any_protocol: rule.any_protocol,
-            manual_settings: true,
+            use_manual_destination_settings: true,
         })
     }
 }
@@ -911,7 +920,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.all_networks {
+        if self.all_locations {
             WireguardNetwork::all(executor).await
         } else {
             query_as!(
@@ -942,7 +951,7 @@ impl AclRule<Id> {
         query_as!(
             AclAlias,
             "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", \
-            destination, ports, protocols, any_destination, any_port, any_protocol \
+            addresses, ports, protocols, any_address, any_port, any_protocol \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1100,7 +1109,7 @@ impl AclRule<Id> {
     }
 
     /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
-    pub(crate) async fn get_destination_ranges<'e, E>(
+    pub(crate) async fn get_destination_address_ranges<'e, E>(
         &self,
         executor: E,
     ) -> Result<Vec<AclRuleDestinationRange<Id>>, SqlxError>
@@ -1127,9 +1136,9 @@ impl AclRule<Id> {
         let denied_users = self.get_users(&mut *conn, false).await?;
         let allowed_groups = self.get_groups(&mut *conn, true).await?;
         let denied_groups = self.get_groups(&mut *conn, false).await?;
-        let allowed_devices = self.get_network_devices(&mut *conn, true).await?;
-        let denied_devices = self.get_network_devices(&mut *conn, false).await?;
-        let destination_ranges = self.get_destination_ranges(&mut *conn).await?;
+        let allowed_network_devices = self.get_network_devices(&mut *conn, true).await?;
+        let denied_network_devices = self.get_network_devices(&mut *conn, false).await?;
+        let address_ranges = self.get_destination_address_ranges(&mut *conn).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
         Ok(AclRuleInfo {
@@ -1139,27 +1148,29 @@ impl AclRule<Id> {
             name: self.name.clone(),
             allow_all_users: self.allow_all_users,
             deny_all_users: self.deny_all_users,
+            allow_all_groups: self.allow_all_groups,
+            deny_all_groups: self.deny_all_groups,
             allow_all_network_devices: self.allow_all_network_devices,
             deny_all_network_devices: self.deny_all_network_devices,
-            all_networks: self.all_networks,
-            destination: self.destination.clone(),
+            all_locations: self.all_locations,
+            addresses: self.addresses.clone(),
             protocols: self.protocols.clone(),
             enabled: self.enabled,
             expires: self.expires,
-            destination_ranges,
+            address_ranges,
             ports,
             aliases,
-            networks,
+            locations: networks,
             allowed_users,
             denied_users,
             allowed_groups,
             denied_groups,
-            allowed_devices,
-            denied_devices,
-            any_destination: self.any_destination,
+            allowed_network_devices,
+            denied_network_devices,
+            any_address: self.any_address,
             any_port: self.any_port,
             any_protocol: self.any_protocol,
-            manual_destination_settings: self.manual_settings,
+            use_manual_destination_settings: self.use_manual_destination_settings,
         })
     }
 }
@@ -1294,7 +1305,7 @@ impl AclRuleInfo<Id> {
             .await
         } else {
             // return explicitly configured allowed devices otherwise
-            Ok(self.allowed_devices.clone())
+            Ok(self.allowed_network_devices.clone())
         }
     }
 
@@ -1326,7 +1337,7 @@ impl AclRuleInfo<Id> {
             .await
         } else {
             // return explicitly configured denied devices otherwise
-            Ok(self.denied_devices.clone())
+            Ok(self.denied_network_devices.clone())
         }
     }
 }
@@ -1341,13 +1352,13 @@ pub(crate) struct AclAliasInfo {
     pub kind: AliasKind,
     pub state: AliasState,
     #[schema(value_type = Vec<String>)]
-    pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
+    pub addresses: Vec<IpNetwork>,
+    pub address_ranges: Vec<AclAliasDestinationRange<Id>>,
     #[schema(value_type = Vec<String>)]
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<AclRule<Id>>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
 }
@@ -1356,12 +1367,12 @@ impl AclAliasInfo {
     /// Constructs a [`String`] of comma-separated addresses and address ranges
     pub(crate) fn format_destination(&self) -> String {
         // process single addresses
-        let addrs = match &self.destination {
+        let addrs = match &self.addresses {
             d if d.is_empty() => String::new(),
             d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
         };
         // process address ranges
-        let ranges = match &self.destination_ranges {
+        let ranges = match &self.address_ranges {
             r if r.is_empty() => String::new(),
             r => r.iter().fold(String::new(), |acc, r| {
                 acc + &format!("{}-{}, ", r.start, r.end)
@@ -1433,12 +1444,12 @@ pub struct AclAlias<I = NoId> {
     #[model(enum)]
     pub state: AliasState,
     #[model(ref)]
-    pub destination: Vec<IpNetwork>,
+    pub addresses: Vec<IpNetwork>,
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
 }
@@ -1462,10 +1473,10 @@ impl AclAlias {
             name: name.into(),
             kind,
             state,
-            destination,
+            addresses: destination,
             ports,
             protocols,
-            any_destination,
+            any_address: any_destination,
             any_port,
             any_protocol,
         }
@@ -1598,7 +1609,7 @@ impl TryFrom<&EditAclAlias> for AclAlias {
 
     fn try_from(alias: &EditAclAlias) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&alias.destination)?.addrs,
+            addresses: parse_destination(&alias.destination)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -1609,7 +1620,7 @@ impl TryFrom<&EditAclAlias> for AclAlias {
             kind: AliasKind::Component,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
-            any_destination: true,
+            any_address: true,
             any_port: true,
             any_protocol: true,
         })
@@ -1628,7 +1639,7 @@ impl AclAlias<Id> {
         sqlx::query_as!(
             Self,
             "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", \
-            destination, ports, protocols, any_destination, any_port, any_protocol \
+            addresses, ports, protocols, any_address, any_port, any_protocol \
             FROM aclalias WHERE kind = $1",
             kind as AliasKind
         )
@@ -1647,7 +1658,7 @@ impl AclAlias<Id> {
         sqlx::query_as!(
             Self,
             "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", \
-            destination, ports, protocols, any_destination, any_port, any_protocol \
+            addresses, ports, protocols, any_address, any_port, any_protocol \
             FROM aclalias WHERE id = $1 AND kind = $2",
             id,
             kind as AliasKind
@@ -1662,7 +1673,7 @@ impl TryFrom<&EditAclDestination> for AclAlias {
 
     fn try_from(alias: &EditAclDestination) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&alias.destination)?.addrs,
+            addresses: parse_destination(&alias.destination)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -1673,7 +1684,7 @@ impl TryFrom<&EditAclDestination> for AclAlias {
             kind: AliasKind::Destination,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
-            any_destination: alias.any_destination,
+            any_address: alias.any_destination,
             any_port: alias.any_port,
             any_protocol: alias.any_protocol,
         })
@@ -1730,9 +1741,9 @@ impl AclAlias<Id> {
         query_as!(
             AclRule,
             "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-            deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
-            destination, ports, protocols, enabled, expires, any_destination, any_port, \
-            any_protocol, manual_settings \
+            deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
+            addresses, ports, protocols, enabled, expires, any_address, any_port, \
+            any_protocol, use_manual_destination_settings \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",
@@ -1754,12 +1765,12 @@ impl AclAlias<Id> {
             name: self.name.clone(),
             kind: self.kind.clone(),
             state: self.state.clone(),
-            destination: self.destination.clone(),
+            addresses: self.addresses.clone(),
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
-            destination_ranges,
+            address_ranges: destination_ranges,
             rules,
-            any_destination: self.any_destination,
+            any_address: self.any_address,
             any_port: self.any_port,
             any_protocol: self.any_protocol,
         })

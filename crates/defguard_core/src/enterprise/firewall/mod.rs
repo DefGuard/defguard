@@ -75,15 +75,15 @@ pub async fn generate_firewall_rules_from_acls(
         let AclRuleInfo {
             id,
             name: rule_name,
-            destination,
-            destination_ranges,
+            addresses: destination,
+            address_ranges: destination_ranges,
             ports,
             protocols,
             aliases,
-            any_destination,
+            any_address: any_destination,
             any_port,
             any_protocol,
-            manual_destination_settings,
+            use_manual_destination_settings: manual_destination_settings,
             ..
         } = acl;
 
@@ -238,7 +238,7 @@ async fn get_manual_destination_rules(
         alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
 
         // extend existing parameter lists
-        destination.extend(alias.destination);
+        destination.extend(alias.addresses);
         ports.extend(alias.ports.into_iter().map(Into::into).collect::<Vec<_>>());
         protocols.extend(alias.protocols);
     }
@@ -327,7 +327,7 @@ async fn get_predefined_destination_rules(
 
     // combine destination addrs
     let (dest_addrs_v4, dest_addrs_v6) =
-        process_alias_destination_addrs(&destination.destination, &alias_destination_ranges);
+        process_alias_destination_addrs(&destination.addresses, &alias_destination_ranges);
 
     // process alias ports
     let destination_ports = if destination.any_port {
@@ -356,9 +356,9 @@ async fn get_predefined_destination_rules(
     // only generate rules for a given IP version if there is a destination address of a given type
     // or any destination toggle is enabled and location uses addresses of a given type
     let has_ipv4_destination =
-        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && destination.any_destination);
+        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && destination.any_address);
     let has_ipv6_destination =
-        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && destination.any_destination);
+        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && destination.any_address);
 
     let comment = format!(
         "ACL {} - {}, ALIAS {} - {}",
@@ -1013,13 +1013,14 @@ pub(crate) async fn get_location_active_acl_rules(
 ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
     debug!("Fetching active ACL rules for location {location}");
     let rules: Vec<AclRule<Id>> = query_as(
-        "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
-        allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
-        expires, enabled, parent_id, state, any_destination, any_port, any_protocol,
-        manual_settings \
+        "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_locations, \
+        allow_all_groups, deny_all_groups, \
+        allow_all_network_devices, deny_all_network_devices, addresses, ports, protocols, \
+        expires, enabled, parent_id, state, any_address, any_port, any_protocol,
+        use_manual_destination_settings \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
-        WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
+        WHERE (an.network_id = $1 OR a.all_locations = true) AND enabled = true \
         AND state = 'applied'::aclrule_state \
         AND (expires IS NULL OR expires > NOW())",
     )

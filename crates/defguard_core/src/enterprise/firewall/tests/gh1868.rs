@@ -102,14 +102,14 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
 
     // create a rule with only an IPv4 destination
     let acl_rule = AclRule {
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        any_destination: false,
-        destination: vec!["192.168.1.0/24".parse().unwrap()],
-        manual_settings: true,
+        any_address: false,
+        addresses: vec!["192.168.1.0/24".parse().unwrap()],
+        use_manual_destination_settings: true,
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -165,13 +165,13 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
 
     // create a rule with only an IPv6 destination
     let acl_rule = AclRule {
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        any_destination: false,
-        destination: vec!["fc00::0/112".parse().unwrap()],
+        any_address: false,
+        addresses: vec!["fc00::0/112".parse().unwrap()],
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -226,13 +226,13 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
 
     // create a rule with any destination enabled
     let acl_rule = AclRule {
-        all_networks: true,
+        all_locations: true,
         allow_all_users: true,
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        any_destination: true,
-        destination: vec!["fc00::0/112".parse().unwrap()],
+        any_address: true,
+        addresses: vec!["fc00::0/112".parse().unwrap()],
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
