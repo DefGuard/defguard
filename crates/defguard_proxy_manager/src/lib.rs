@@ -161,13 +161,13 @@ impl ProxyManager {
         let sessions = Arc::default();
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
-        let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
+        let mut proxies: Vec<ProxyHandler> = Proxy::all(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
                 let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
                 shutdown_channels.insert(proxy.id, shutdown_tx);
-                ProxyServer::from_proxy(
+                ProxyHandler::from_proxy(
                     proxy,
                     self.pool.clone(),
                     &self.tx,
@@ -183,7 +183,7 @@ impl ProxyManager {
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy = ProxyServer::new(
+            let proxy = ProxyHandler::new(
                 self.pool.clone(),
                 url,
                 &self.tx,
@@ -223,7 +223,7 @@ impl ProxyManager {
                             if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
                                 let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
                                 shutdown_channels.insert(id, shutdown_tx);
-                                match ProxyServer::from_proxy(
+                                match ProxyHandler::from_proxy(
                                     &proxy_model,
                                     self.pool.clone(),
                                     &self.tx,
@@ -294,7 +294,7 @@ type ShutdownReceiver = tokio::sync::oneshot::Receiver<()>;
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
 /// `ProxyManager`.
-struct ProxyServer {
+struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
@@ -304,7 +304,7 @@ struct ProxyServer {
     proxy_id: Option<Id>,
 }
 
-impl ProxyServer {
+impl ProxyHandler {
     pub fn new(
         pool: PgPool,
         url: Url,
