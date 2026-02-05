@@ -15,6 +15,7 @@ interface StoreValues {
   itemGap: number;
   enableDividers: boolean;
   onSubmit?: (values: Array<SelectionKey>) => void;
+  onCancel?: () => void;
   orderItems?: SectionProps['orderItems'];
   renderItem?: SectionProps['renderItem'];
 }
@@ -29,6 +30,7 @@ const defaultValues: StoreValues = {
   onSubmit: undefined,
   orderItems: undefined,
   renderItem: undefined,
+  onCancel: undefined,
 };
 
 interface Store extends StoreValues {
