@@ -3,7 +3,10 @@ use axum::{
     extract::{Path, State},
 };
 use chrono::Utc;
-use defguard_common::{db::models::proxy::Proxy, types::proxy::{ProxyControlMessage, ProxyInfo}};
+use defguard_common::{
+    db::models::proxy::Proxy,
+    types::proxy::{ProxyControlMessage, ProxyInfo},
+};
 use reqwest::StatusCode;
 use serde_json::Value;
 use utoipa::ToSchema;

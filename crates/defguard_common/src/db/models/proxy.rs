@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
-use crate::{db::{Id, NoId}, types::proxy::ProxyInfo};
+use crate::{
+    db::{Id, NoId},
+    types::proxy::ProxyInfo,
+};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
