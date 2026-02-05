@@ -3,7 +3,7 @@ import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayL
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
 import { UpgradePlanModalManager } from '../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { useAuth } from '../shared/hooks/useAuth';
-import { AppConfigProvider } from '../shared/providers/AppConfigProvider';
+import { AppInfoProvider } from '../shared/providers/AppInfoProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
 import { getUserMeQueryOptions } from '../shared/query';
 
@@ -38,12 +38,12 @@ export const Route = createFileRoute('/_authorized')({
 function RouteComponent() {
   return (
     <AppUserProvider>
-      <AppConfigProvider>
+      <AppInfoProvider>
         <Outlet />
         <DisplayListModal />
         <SelectionModal />
         <UpgradePlanModalManager />
-      </AppConfigProvider>
+      </AppInfoProvider>
     </AppUserProvider>
   );
 }

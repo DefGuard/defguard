@@ -5,8 +5,9 @@ import { isPresent } from '../defguard-ui/utils/isPresent';
 import { useApp } from '../hooks/useApp';
 import { useAuth } from '../hooks/useAuth';
 
-export const AppConfigProvider = ({ children }: PropsWithChildren) => {
+export const AppInfoProvider = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useAuth((s) => isPresent(s.user));
+
   const { data: appInfoResponse } = useQuery({
     queryFn: api.app.info,
     queryKey: ['info'],
@@ -23,23 +24,6 @@ export const AppConfigProvider = ({ children }: PropsWithChildren) => {
       });
     }
   }, [appInfoResponse]);
-
-  const { data: settingsEssentials } = useQuery({
-    queryFn: api.settings.getSettingsEssentials,
-    queryKey: ['settings-essentials'],
-    enabled: isAuthenticated,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchOnMount: true,
-  });
-
-  useEffect(() => {
-    if (isPresent(settingsEssentials)) {
-      useApp.setState({
-        settingsEssentials: settingsEssentials.data,
-      });
-    }
-  }, [settingsEssentials]);
 
   return <>{children}</>;
 };
