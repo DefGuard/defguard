@@ -99,12 +99,17 @@ pub async fn generate_firewall_rules_from_acls(
                     &mut *conn,
                     id,
                     &name,
+                    has_ipv4_addresses,
+                    has_ipv6_addresses,
                     (&ipv4_source_addrs, &ipv6_source_addrs),
                     aliases,
                     destination,
                     destination_ranges,
                     ports,
                     protocols,
+                    any_destination,
+                    any_port,
+                    any_protocol,
                 )
                 .await?;
 
@@ -250,12 +255,17 @@ async fn get_manual_destination_rules(
     conn: &mut PgConnection,
     rule_id: Id,
     rule_name: &str,
+    location_has_ipv4_addresses: bool,
+    location_has_ipv6_addresses: bool,
     source_addrs: (&[IpAddress], &[IpAddress]),
     aliases: Vec<AclAlias<Id>>,
     mut destination: Vec<IpNetwork>,
     destination_ranges: Vec<AclRuleDestinationRange<i64>>,
     mut ports: Vec<PortRange>,
     mut protocols: Vec<i32>,
+    any_destination: bool,
+    any_port: bool,
+    any_protocol: bool,
 ) -> Result<(Vec<FirewallRule>, Vec<FirewallRule>), FirewallError> {
     debug!("Generating firewall rules for manually configured destination in ACL rule {rule_id}");
     // store alias ranges separately since they use a different struct
@@ -277,20 +287,33 @@ async fn get_manual_destination_rules(
         process_destination_addrs(&destination, &destination_ranges);
 
     // prepare destination ports
-    let destination_ports = merge_port_ranges(ports);
+    let destination_ports = if any_port {
+        Vec::new()
+    } else {
+        merge_port_ranges(ports)
+    };
 
     // remove duplicate protocol entries
-    protocols.sort_unstable();
-    protocols.dedup();
+    let destination_protocols = if any_protocol {
+        Vec::new()
+    } else {
+        protocols.sort_unstable();
+        protocols.dedup();
+        protocols
+    };
 
     let (ipv4_source_addrs, ipv6_source_addrs) = source_addrs;
-    let has_ipv4_addresses = !ipv4_source_addrs.is_empty();
-    let has_ipv6_addresses = !ipv6_source_addrs.is_empty();
+
+    // only generate rules for a given IP version if there is a destination address of a given type
+    let has_ipv4_destination =
+        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && any_destination);
+    let has_ipv6_destination =
+        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_destination);
 
     let comment = format!("ACL {} - {}", rule_id, rule_name);
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
-    if has_ipv4_addresses {
+    if has_ipv4_destination {
         // create IPv4 rules
         let ipv4_rules = create_rules(
             rule_id,
@@ -298,7 +321,7 @@ async fn get_manual_destination_rules(
             &ipv4_source_addrs,
             &dest_addrs_v4,
             &destination_ports,
-            &protocols,
+            &destination_protocols,
             &comment,
         );
         if let Some(rule) = ipv4_rules.0 {
@@ -307,7 +330,7 @@ async fn get_manual_destination_rules(
         deny_rules.push(ipv4_rules.1);
     }
 
-    if has_ipv6_addresses {
+    if has_ipv6_destination {
         // create IPv6 rules
         let ipv6_rules = create_rules(
             rule_id,
@@ -315,7 +338,7 @@ async fn get_manual_destination_rules(
             &ipv6_source_addrs,
             &dest_addrs_v6,
             &destination_ports,
-            &protocols,
+            &destination_protocols,
             &comment,
         );
         if let Some(rule) = ipv6_rules.0 {
