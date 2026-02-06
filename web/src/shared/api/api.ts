@@ -83,6 +83,7 @@ import type {
   User,
   UserChangePasswordRequest,
   UserDevice,
+  UserMfaMethodValue,
   UserProfileResponse,
   UsersListItem,
   ValidateDeviceIpsRequest,
@@ -189,6 +190,8 @@ const api = {
     deleteApiToken: ({ username, id }: DeleteApiTokenRequest) =>
       client.delete(`/user/${username}/api_token/${id}`),
     disableMfa: (username: string) => client.delete(`/user/${username}/mfa`),
+    disableSpecificMFA: (username: string, method: UserMfaMethodValue) =>
+      client.delete(`/user/${username}/${method}`),
     activeStateChange: async ({
       active,
       username,

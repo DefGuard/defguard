@@ -111,10 +111,10 @@ use crate::{
     handlers::{
         app_info::get_app_info,
         auth::{
-            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
-            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
-            totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
-            webauthn_start,
+            authenticate, disable_specific_user_mfa_method, email_mfa_code, email_mfa_disable,
+            email_mfa_enable, email_mfa_init, logout, mfa_disable, mfa_enable, recovery_code,
+            request_email_mfa_code, totp_code, totp_disable, totp_enable, totp_secret,
+            webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
         },
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
@@ -309,6 +309,10 @@ pub fn build_webapp(
                 delete(delete_authorized_app),
             )
             .route("/user/{username}/mfa", delete(disable_user_mfa))
+            .route(
+                "/user/{username}/{method}",
+                delete(disable_specific_user_mfa_method),
+            )
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group

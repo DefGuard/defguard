@@ -46,6 +46,7 @@ use crate::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
         },
+        user::delete_security_key,
         user_for_admin_or_self,
     },
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
@@ -400,6 +401,39 @@ pub async fn disable_user_mfa(
     })?;
     info!("Disabled MFA for user {username}");
     Ok(ApiResponse::default())
+}
+
+pub async fn disable_specific_user_mfa_method(
+    session_info: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+    Path((username, mfa_method)): Path<(String, MFAMethod)>,
+) -> ApiResult {
+    let mut user = user_for_admin_or_self(&appstate.pool, &session_info, &username).await?;
+
+    match mfa_method {
+        MFAMethod::OneTimePassword => {
+            user.disable_totp(&appstate.pool).await?;
+            info!("Disabled TOTP for user {username}");
+            return Ok(ApiResponse::default());
+        }
+        MFAMethod::Email => {
+            user.disable_email_mfa(&appstate.pool).await?;
+            info!("Disabled TOTP for user {username}");
+            return Ok(ApiResponse::default());
+        }
+        MFAMethod::Webauthn => {
+            let keys = WebAuthn::all_for_user(&appstate.pool, user.id).await?;
+            for key in keys {
+                key.delete(&appstate.pool).await?;
+            }
+            info!("Disabled TOTP for user {username}");
+            return Ok(ApiResponse::default());
+        }
+        MFAMethod::None => {
+            return Ok(ApiResponse::default());
+        }
+    }
 }
 
 /// Initialize WebAuthn registration

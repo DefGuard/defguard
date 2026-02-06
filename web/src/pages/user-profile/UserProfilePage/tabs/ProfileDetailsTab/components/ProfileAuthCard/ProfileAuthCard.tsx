@@ -68,7 +68,12 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: disableMfaMutation } = useMutation({
-    mutationFn: api.auth.mfa.disable,
+    mutationFn: () => {
+      if (user.username !== authUsername) {
+        return api.user.disableMfa(user.username);
+      }
+      return api.auth.mfa.disable();
+    },
     meta: invalidateAfterMfaChange,
   });
 
@@ -78,24 +83,39 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: mutateDisableEmailMfa } = useMutation({
-    mutationFn: api.auth.mfa.email.disable,
+    mutationFn: () => {
+      if (user.username !== authUsername) {
+        return api.user.disableSpecificMFA(user.username, UserMfaMethod.Email);
+      }
+      return api.auth.mfa.email.disable();
+    },
     meta: invalidateAfterMfaChange,
   });
 
   const { mutate: mutateDisableTotp } = useMutation({
-    mutationFn: api.auth.mfa.totp.disable,
+    mutationFn: () => {
+      if (user.username !== authUsername) {
+        return api.user.disableSpecificMFA(user.username, UserMfaMethod.OneTimePassword);
+      }
+      return api.auth.mfa.totp.disable();
+    },
     meta: invalidateAfterMfaChange,
   });
 
   const { mutate: mutateDisableWebauthn } = useMutation({
-    mutationFn: () => {
-      const res = securityKeys.map((key) =>
-        api.auth.mfa.webauthn.deleteKey({
-          username: user.username,
-          keyId: key.id,
-        }),
-      );
-      return Promise.all(res);
+    mutationFn: async (): Promise<void> => {
+      if (user.username !== authUsername) {
+        await api.user.disableSpecificMFA(user.username, UserMfaMethod.Webauthn);
+      } else {
+        await Promise.all(
+          securityKeys.map((key) =>
+            api.auth.mfa.webauthn.deleteKey({
+              username: user.username,
+              keyId: key.id,
+            }),
+          ),
+        );
+      }
     },
     meta: invalidateAfterMfaChange,
   });
