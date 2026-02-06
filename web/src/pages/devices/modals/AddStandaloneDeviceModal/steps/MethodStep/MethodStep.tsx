@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -13,10 +13,10 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import type { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import SvgIconOutsideLink from '../../../../../../shared/defguard-ui/components/svg/IconOutsideLink';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
-import type { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
@@ -42,6 +42,13 @@ export const MethodStep = () => {
     refetchOnMount: true,
   });
 
+  const nonMFALocations = useMemo(() => {
+    if (isPresent(networks)) {
+      return networks.filter((network) => network.location_mfa_mode === 'disabled');
+    }
+    return [];
+  }, [networks]);
+
   const {
     data: availableIpResponse,
     refetch: refetchAvailableIp,
@@ -49,14 +56,20 @@ export const MethodStep = () => {
   } = useQuery({
     queryKey: [
       'ADD_STANDALONE_DEVICE_MODAL_FETCH_INITIAL_AVAILABLE_IP',
-      networks,
+      nonMFALocations,
       modalSessionID,
     ],
-    queryFn: () =>
-      getAvailableIp({
-        locationId: (networks as Network[])[0].id,
-      }),
-    enabled: networks !== undefined && Array.isArray(networks) && networks.length > 0,
+    queryFn: () => {
+      const firstLocation = nonMFALocations.at(0);
+      if (!isPresent(firstLocation)) {
+        console.error("Couldn't find non-MFA locations");
+        return;
+      }
+      return getAvailableIp({
+        locationId: firstLocation.id,
+      });
+    },
+    enabled: nonMFALocations.length > 0,
     refetchOnMount: true,
     refetchOnReconnect: true,
     refetchOnWindowFocus: false,
