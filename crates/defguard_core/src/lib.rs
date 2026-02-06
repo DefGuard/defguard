@@ -666,7 +666,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.public_proxy_url = config.enrollment_url.to_string();
     update_current_settings(&pool, settings)
         .await
-        .expect("Failed to update settings with CA");
+        .expect("Failed to update settings");
 
     let mut transaction = pool
         .begin()
