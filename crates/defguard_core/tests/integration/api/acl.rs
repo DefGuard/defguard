@@ -50,27 +50,31 @@ async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
 fn make_rule() -> EditAclRule {
     EditAclRule {
         name: "rule".to_string(),
-        all_networks: false,
-        networks: Vec::new(),
+        all_locations: false,
+        locations: Vec::new(),
         expires: None,
         allow_all_users: false,
         deny_all_users: false,
+        allow_all_groups: false,
+        deny_all_groups: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
         allowed_users: vec![1],
         denied_users: Vec::new(),
         allowed_groups: Vec::new(),
         denied_groups: Vec::new(),
-        allowed_devices: Vec::new(),
-        denied_devices: Vec::new(),
-        destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        allowed_network_devices: Vec::new(),
+        denied_network_devices: Vec::new(),
+        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         aliases: Vec::new(),
+        destinations: Vec::new(),
         enabled: true,
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
-        any_destination: true,
-        any_port: true,
-        any_protocol: true,
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+        use_manual_destination_settings: true,
     }
 }
 
@@ -84,7 +88,7 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
 fn make_alias() -> EditAclAlias {
     EditAclAlias {
         name: "alias".to_string(),
-        destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
     }
@@ -101,27 +105,31 @@ fn edit_rule_data_into_api_response(
         parent_id,
         state,
         name: data.name.clone(),
-        all_networks: data.all_networks,
-        networks: data.networks.clone(),
+        all_locations: data.all_locations,
+        locations: data.locations.clone(),
         expires: data.expires,
         enabled: data.enabled,
         allow_all_users: data.allow_all_users,
         deny_all_users: data.deny_all_users,
+        allow_all_groups: data.allow_all_groups,
+        deny_all_groups: data.deny_all_groups,
         allow_all_network_devices: data.allow_all_network_devices,
         deny_all_network_devices: data.deny_all_network_devices,
         allowed_users: data.allowed_users.clone(),
         denied_users: data.denied_users.clone(),
         allowed_groups: data.allowed_groups.clone(),
         denied_groups: data.denied_groups.clone(),
-        allowed_devices: data.allowed_devices.clone(),
-        denied_devices: data.denied_devices.clone(),
-        destination: data.destination.clone(),
+        allowed_network_devices: data.allowed_network_devices.clone(),
+        denied_network_devices: data.denied_network_devices.clone(),
+        addresses: data.addresses.clone(),
         aliases: data.aliases.clone(),
+        destinations: data.destinations.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
-        any_destination: data.any_destination,
+        any_address: data.any_address,
         any_port: data.any_port,
         any_protocol: data.any_protocol,
+        use_manual_destination_settings: data.use_manual_destination_settings,
     }
 }
 
@@ -139,7 +147,7 @@ fn edit_alias_data_into_api_response(
         state,
         name: data.name,
         kind,
-        destination: data.destination,
+        addresses: data.addresses,
         ports: data.ports,
         protocols: data.protocols,
         rules,
@@ -344,7 +352,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
 
     // rule
     let mut rule = make_rule();
-    rule.destination = String::new();
+    rule.addresses = String::new();
     rule.ports = String::new();
 
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
@@ -360,7 +368,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
 
     // alias
     let mut alias = make_alias();
-    alias.destination = String::new();
+    alias.addresses = String::new();
     alias.ports = String::new();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -521,10 +529,10 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create an acl rule with related objects
     let mut rule = make_rule();
-    rule.networks = vec![1, 2];
+    rule.locations = vec![1, 2];
     rule.allowed_users = vec![1, 2];
     rule.allowed_groups = vec![1, 2];
-    rule.allowed_devices = vec![1, 2];
+    rule.allowed_network_devices = vec![1, 2];
     rule.aliases = vec![1, 2];
 
     // create
@@ -574,7 +582,7 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
 
     // networks
     let mut rule = make_rule();
-    rule.networks = vec![100];
+    rule.locations = vec![100];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
@@ -622,7 +630,7 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
 
     // allowed_devices
     let mut rule = make_rule();
-    rule.allowed_devices = vec![100];
+    rule.allowed_network_devices = vec![100];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
@@ -630,7 +638,7 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
 
     // denied_devices
     let mut rule = make_rule();
-    rule.denied_devices = vec![100];
+    rule.denied_network_devices = vec![100];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
@@ -690,11 +698,11 @@ async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
 
     // invalid ip range
     let mut rule = make_rule();
-    rule.destination = "10.10.10.20-10.10.10.10".into();
+    rule.addresses = "10.10.10.20-10.10.10.10".into();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-    rule.destination = "10.10.10.10-10.10.10.20".into();
+    rule.addresses = "10.10.10.10-10.10.10.20".into();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
@@ -804,7 +812,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
 
     // test APPLIED rule deletion
     let mut rule = make_rule();
-    rule.networks = vec![1];
+    rule.locations = vec![1];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
@@ -825,7 +833,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(rule_after_mods, rule_child);
 
     // related networks are returned correctly
-    assert_eq!(rule_child.networks, vec![1]);
+    assert_eq!(rule_child.locations, vec![1]);
 
     // cannot modify a DELETED rule
     let response = client

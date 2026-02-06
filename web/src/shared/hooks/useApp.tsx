@@ -32,7 +32,6 @@ const defaults: StoreValues = {
     version: '',
   },
   settingsEssentials: {
-    instance_name: '',
     initial_setup_completed: false,
   },
 };

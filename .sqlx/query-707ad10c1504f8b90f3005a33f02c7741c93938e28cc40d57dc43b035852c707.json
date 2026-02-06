@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\",\"manual_settings\" FROM \"aclrule\"",
+  "query": "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, addresses, ports, protocols, enabled, expires, any_address, any_port, any_protocol, use_manual_destination_settings FROM aclrulealias ara JOIN aclrule ar ON ar.id = ara.rule_id WHERE ara.alias_id = $1",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "state: _",
+        "name": "state: RuleState",
         "type_info": {
           "Custom": {
             "name": "aclrule_state",
@@ -48,71 +48,85 @@
       },
       {
         "ordinal": 6,
-        "name": "allow_all_network_devices",
+        "name": "allow_all_groups",
         "type_info": "Bool"
       },
       {
         "ordinal": 7,
-        "name": "deny_all_network_devices",
+        "name": "deny_all_groups",
         "type_info": "Bool"
       },
       {
         "ordinal": 8,
-        "name": "all_networks",
+        "name": "allow_all_network_devices",
         "type_info": "Bool"
       },
       {
         "ordinal": 9,
-        "name": "destination: _",
-        "type_info": "InetArray"
+        "name": "deny_all_network_devices",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "ports: _",
-        "type_info": "Int4RangeArray"
+        "name": "all_locations",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
-        "name": "protocols: _",
-        "type_info": "Int4Array"
+        "name": "addresses",
+        "type_info": "InetArray"
       },
       {
         "ordinal": 12,
+        "name": "ports",
+        "type_info": "Int4RangeArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "protocols",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 14,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 13,
+        "ordinal": 15,
         "name": "expires",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 14,
-        "name": "any_destination",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 15,
-        "name": "any_port",
-        "type_info": "Bool"
-      },
-      {
         "ordinal": 16,
-        "name": "any_protocol",
+        "name": "any_address",
         "type_info": "Bool"
       },
       {
         "ordinal": 17,
-        "name": "manual_settings",
+        "name": "any_port",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "any_protocol",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 19,
+        "name": "use_manual_destination_settings",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
       true,
+      false,
+      false,
       false,
       false,
       false,
@@ -131,5 +145,5 @@
       false
     ]
   },
-  "hash": "e886ab4f4c0ac47d41e96005d8c82eea1705b9849ec2afb19b998a91644bac25"
+  "hash": "707ad10c1504f8b90f3005a33f02c7741c93938e28cc40d57dc43b035852c707"
 }

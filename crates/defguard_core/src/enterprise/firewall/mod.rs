@@ -23,7 +23,7 @@ use super::{
     utils::merge_ranges,
 };
 use crate::enterprise::{
-    db::models::{acl::AliasKind, snat::UserSnatBinding},
+    db::models::{acl::AclAlias, snat::UserSnatBinding},
     is_business_license_active,
 };
 
@@ -40,6 +40,9 @@ pub enum FirewallError {
 /// Each ACL is translated into two rules:
 /// - ALLOW which determines which devices can access a destination
 /// - DENY which stops all other traffic to a given destination
+///
+/// Additionally a separate set of rules is created for each pre-defined `Destination` used
+/// as part of the rule.
 ///
 /// In the resulting list all ALLOW rules are placed first and then DENY rules are added to the
 /// end. This way we can avoid conflicts when some ACLs are overlapping.
@@ -61,205 +64,336 @@ pub async fn generate_firewall_rules_from_acls(
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
         debug!("Processing ACL rule: {acl:?}");
-        // fetch allowed users
-        let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
-
-        // fetch denied users
-        let denied_users = acl.get_all_denied_users(&mut *conn).await?;
-
-        // get relevant users for determining source IPs
-        let users = get_source_users(allowed_users, &denied_users);
-        // prepare a list of user IDs
-        let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
-
-        // get network IPs for devices belonging to those users
-        let user_device_ips = get_user_device_ips(&user_ids, location_id, &mut *conn).await?;
-        // separate IPv4 and IPv6 user-device addresses
-        let user_device_ips = user_device_ips
-            .iter()
-            .flatten()
-            .partition(|ip| ip.is_ipv4());
-
-        // fetch allowed network devices
-        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
-
-        // fetch denied network devices
-        let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
-
-        // get network device IPs for rule source
-        let network_devices =
-            get_source_network_devices(allowed_network_devices, &denied_network_devices);
-        let network_device_ips =
-            get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
-
-        // separate IPv4 and IPv6 network-device addresses
-        let network_device_ips = network_device_ips
-            .iter()
-            .flatten()
-            .partition(|ip| ip.is_ipv4());
-
-        // convert device IPs into source addresses for a firewall rule
-        let ipv4_source_addrs =
-            get_source_addrs(user_device_ips.0, network_device_ips.0, IpVersion::Ipv4);
-        let ipv6_source_addrs =
-            get_source_addrs(user_device_ips.1, network_device_ips.1, IpVersion::Ipv6);
+        // prepare source IPs
+        let (ipv4_source_addrs, ipv6_source_addrs) =
+            get_source_ips(&mut *conn, location_id, &acl).await?;
 
         // extract destination parameters from ACL rule
         let AclRuleInfo {
             id,
-            mut destination,
-            destination_ranges,
-            mut ports,
-            mut protocols,
+            name: rule_name,
+            addresses,
+            address_ranges,
+            ports,
+            protocols,
             aliases,
+            destinations,
+            any_address,
+            any_port,
+            any_protocol,
+            use_manual_destination_settings,
             ..
         } = acl;
 
-        // split aliases into types
-        let (destination_aliases, component_aliases): (Vec<_>, Vec<_>) = aliases
-            .into_iter()
-            .partition(|alias| alias.kind == AliasKind::Destination);
+        // check if we need to add rules for manually defined destination
+        if use_manual_destination_settings {
+            let (manual_destination_allow_rules, manual_destination_deny_rules) =
+                get_manual_destination_rules(
+                    &mut *conn,
+                    id,
+                    &rule_name,
+                    has_ipv4_addresses,
+                    has_ipv6_addresses,
+                    (&ipv4_source_addrs, &ipv6_source_addrs),
+                    aliases,
+                    addresses,
+                    address_ranges,
+                    ports,
+                    protocols,
+                    any_address,
+                    any_port,
+                    any_protocol,
+                )
+                .await?;
 
-        // store alias ranges separately since they use a different struct
-        let mut alias_destination_ranges = Vec::new();
-
-        // process component aliases by appending destination parameters from each of them to
-        // existing lists
-        for alias in component_aliases {
-            // fetch destination ranges for a given alias
-            alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
-
-            // extend existing parameter lists
-            destination.extend(alias.destination);
-            ports.extend(alias.ports.into_iter().map(Into::into).collect::<Vec<_>>());
-            protocols.extend(alias.protocols);
-        }
-
-        // prepare destination addresses
-        let (dest_addrs_v4, dest_addrs_v6) =
-            process_destination_addrs(&destination, &destination_ranges);
-
-        // prepare destination ports
-        let destination_ports = merge_port_ranges(ports);
-
-        // remove duplicate protocol entries
-        protocols.sort_unstable();
-        protocols.dedup();
-
-        // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
-        // at this point component aliases have been added to the manual config so they don't need to be handled separately
-        let has_no_manual_destination = dest_addrs_v4.is_empty()
-            && dest_addrs_v6.is_empty()
-            && destination_ports.is_empty()
-            && protocols.is_empty();
-        let has_destination_aliases = !destination_aliases.is_empty();
-        let is_destination_alias_only_rule = has_destination_aliases && has_no_manual_destination;
-
-        if !is_destination_alias_only_rule {
-            let comment = format!("ACL {} - {}", acl.id, acl.name);
-            if has_ipv4_addresses {
-                // create IPv4 rules
-                let ipv4_rules = create_rules(
-                    acl.id,
-                    IpVersion::Ipv4,
-                    &ipv4_source_addrs,
-                    &dest_addrs_v4,
-                    &destination_ports,
-                    &protocols,
-                    &comment,
-                );
-                if let Some(rule) = ipv4_rules.0 {
-                    allow_rules.push(rule);
-                }
-                deny_rules.push(ipv4_rules.1);
-            }
-
-            if has_ipv6_addresses {
-                // create IPv6 rules
-                let ipv6_rules = create_rules(
-                    acl.id,
-                    IpVersion::Ipv6,
-                    &ipv6_source_addrs,
-                    &dest_addrs_v6,
-                    &destination_ports,
-                    &protocols,
-                    &comment,
-                );
-                if let Some(rule) = ipv6_rules.0 {
-                    allow_rules.push(rule);
-                }
-                deny_rules.push(ipv6_rules.1);
-            }
-        }
+            // append generated rules to output
+            allow_rules.extend(manual_destination_allow_rules);
+            deny_rules.extend(manual_destination_deny_rules);
+        };
 
         // process destination aliases by creating a dedicated set of rules for each of them
-        if !destination_aliases.is_empty() {
+        if !destinations.is_empty() {
             debug!(
-                "Generating firewall rules for {} aliases used in ACL rule {id:?}",
-                destination_aliases.len()
+                "Generating firewall rules for {} pre-defined destinations used in ACL rule {id:?}",
+                destinations.len()
             );
         }
-        for alias in destination_aliases {
-            debug!("Processing ACL alias: {alias:?}");
+        for destination in destinations {
+            debug!("Processing ACL pre-defined destination: {destination:?}");
+            let (destination_allow_rules, destination_deny_rules) =
+                get_predefined_destination_rules(
+                    &mut *conn,
+                    destination,
+                    acl.id,
+                    &rule_name,
+                    has_ipv4_addresses,
+                    has_ipv6_addresses,
+                    (&ipv4_source_addrs, &ipv6_source_addrs),
+                )
+                .await?;
 
-            // fetch destination ranges for a given alias
-            let alias_destination_ranges = alias.get_destination_ranges(&mut *conn).await?;
-
-            // combine destination addrs
-            let (dest_addrs_v4, dest_addrs_v6) =
-                process_alias_destination_addrs(&alias.destination, &alias_destination_ranges);
-
-            // process alias ports
-            let alias_ports = alias.ports.into_iter().map(Into::into).collect::<Vec<_>>();
-            let destination_ports = merge_port_ranges(alias_ports);
-
-            // remove duplicate protocol entries
-            let mut protocols = alias.protocols;
-            protocols.sort_unstable();
-            protocols.dedup();
-
-            let comment = format!(
-                "ACL {} - {}, ALIAS {} - {}",
-                acl.id, acl.name, alias.id, alias.name
-            );
-            if has_ipv4_addresses {
-                // create IPv4 rules
-                let ipv4_rules = create_rules(
-                    alias.id,
-                    IpVersion::Ipv4,
-                    &ipv4_source_addrs,
-                    &dest_addrs_v4,
-                    &destination_ports,
-                    &protocols,
-                    &comment,
-                );
-                if let Some(rule) = ipv4_rules.0 {
-                    allow_rules.push(rule);
-                }
-                deny_rules.push(ipv4_rules.1);
-            }
-
-            if has_ipv6_addresses {
-                // create IPv6 rules
-                let ipv6_rules = create_rules(
-                    alias.id,
-                    IpVersion::Ipv6,
-                    &ipv6_source_addrs,
-                    &dest_addrs_v6,
-                    &destination_ports,
-                    &protocols,
-                    &comment,
-                );
-                if let Some(rule) = ipv6_rules.0 {
-                    allow_rules.push(rule);
-                }
-                deny_rules.push(ipv6_rules.1);
-            }
+            // append generated rules to output
+            allow_rules.extend(destination_allow_rules);
+            deny_rules.extend(destination_deny_rules);
         }
     }
 
     // combine both rule lists
     Ok(allow_rules.into_iter().chain(deny_rules).collect())
+}
+
+/// Prepare two lists of source IPs split between IPv4 and IPv6.
+///
+/// This is achieved on first determining allowed users and network devices
+/// and then getting assigned IP addresses of their devices.
+async fn get_source_ips(
+    conn: &mut PgConnection,
+    location_id: Id,
+    acl: &AclRuleInfo<Id>,
+) -> Result<(Vec<IpAddress>, Vec<IpAddress>), FirewallError> {
+    // fetch allowed users
+    let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
+
+    // fetch denied users
+    let denied_users = acl.get_all_denied_users(&mut *conn).await?;
+
+    // get relevant users for determining source IPs
+    let source_users = get_source_users(allowed_users, &denied_users);
+
+    // prepare a list of user IDs
+    let source_user_ids: Vec<Id> = source_users.iter().map(|user| user.id).collect();
+
+    // get network IPs for devices belonging to those users
+    let source_user_device_ips =
+        get_user_device_ips(&source_user_ids, location_id, &mut *conn).await?;
+    // separate IPv4 and IPv6 user-device addresses
+    let source_user_device_ips = source_user_device_ips
+        .iter()
+        .flatten()
+        .partition(|ip| ip.is_ipv4());
+
+    // fetch allowed network devices
+    let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
+
+    // fetch denied network devices
+    let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
+
+    // get network device IPs for rule source
+    let source_network_devices =
+        get_source_network_devices(allowed_network_devices, &denied_network_devices);
+    let source_network_device_ips =
+        get_network_device_ips(&source_network_devices, location_id, &mut *conn).await?;
+
+    // separate IPv4 and IPv6 network-device addresses
+    let source_network_device_ips = source_network_device_ips
+        .iter()
+        .flatten()
+        .partition(|ip| ip.is_ipv4());
+
+    // convert device IPs into source addresses for a firewall rule
+    let ipv4_source_addrs = get_source_addrs(
+        source_user_device_ips.0,
+        source_network_device_ips.0,
+        IpVersion::Ipv4,
+    );
+    let ipv6_source_addrs = get_source_addrs(
+        source_user_device_ips.1,
+        source_network_device_ips.1,
+        IpVersion::Ipv6,
+    );
+    Ok((ipv4_source_addrs, ipv6_source_addrs))
+}
+
+/// Generates firewall rules for destination manually specified in ACL rule.
+async fn get_manual_destination_rules(
+    conn: &mut PgConnection,
+    rule_id: Id,
+    rule_name: &str,
+    location_has_ipv4_addresses: bool,
+    location_has_ipv6_addresses: bool,
+    source_addrs: (&[IpAddress], &[IpAddress]),
+    aliases: Vec<AclAlias<Id>>,
+    mut addresses: Vec<IpNetwork>,
+    address_ranges: Vec<AclRuleDestinationRange<i64>>,
+    mut ports: Vec<PortRange>,
+    mut protocols: Vec<i32>,
+    any_address: bool,
+    any_port: bool,
+    any_protocol: bool,
+) -> Result<(Vec<FirewallRule>, Vec<FirewallRule>), FirewallError> {
+    debug!("Generating firewall rules for manually configured destination in ACL rule {rule_id}");
+    // store alias ranges separately since they use a different struct
+    let mut alias_destination_ranges = Vec::new();
+
+    // process aliases by appending destination parameters from each of them to
+    // existing lists
+    for alias in aliases {
+        // fetch destination ranges for a given alias
+        alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
+
+        // extend existing parameter lists
+        addresses.extend(alias.addresses);
+        ports.extend(alias.ports.into_iter().map(Into::into).collect::<Vec<_>>());
+        protocols.extend(alias.protocols);
+    }
+
+    // prepare destination addresses
+    let (dest_addrs_v4, dest_addrs_v6) = process_destination_addrs(&addresses, &address_ranges);
+
+    // prepare destination ports
+    let destination_ports = if any_port {
+        Vec::new()
+    } else {
+        merge_port_ranges(ports)
+    };
+
+    // remove duplicate protocol entries
+    let destination_protocols = if any_protocol {
+        Vec::new()
+    } else {
+        protocols.sort_unstable();
+        protocols.dedup();
+        protocols
+    };
+
+    let (ipv4_source_addrs, ipv6_source_addrs) = source_addrs;
+
+    // only generate rules for a given IP version if there is a destination address of a given type
+    // or any destination toggle is enabled and location uses addresses of a given type
+    let has_ipv4_destination =
+        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && any_address);
+    let has_ipv6_destination =
+        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_address);
+
+    let comment = format!("ACL {rule_id} - {rule_name}");
+    let mut allow_rules = Vec::new();
+    let mut deny_rules = Vec::new();
+    if has_ipv4_destination {
+        // create IPv4 rules
+        let ipv4_rules = create_rules(
+            rule_id,
+            IpVersion::Ipv4,
+            ipv4_source_addrs,
+            &dest_addrs_v4,
+            &destination_ports,
+            &destination_protocols,
+            &comment,
+        );
+        if let Some(rule) = ipv4_rules.0 {
+            allow_rules.push(rule);
+        }
+        deny_rules.push(ipv4_rules.1);
+    }
+
+    if has_ipv6_destination {
+        // create IPv6 rules
+        let ipv6_rules = create_rules(
+            rule_id,
+            IpVersion::Ipv6,
+            ipv6_source_addrs,
+            &dest_addrs_v6,
+            &destination_ports,
+            &destination_protocols,
+            &comment,
+        );
+        if let Some(rule) = ipv6_rules.0 {
+            allow_rules.push(rule);
+        }
+        deny_rules.push(ipv6_rules.1);
+    }
+
+    Ok((allow_rules, deny_rules))
+}
+
+/// Generates firewall rules for pre-defined destination used in ACL rule.
+async fn get_predefined_destination_rules(
+    conn: &mut PgConnection,
+    destination: AclAlias<Id>,
+    rule_id: Id,
+    rule_name: &str,
+    location_has_ipv4_addresses: bool,
+    location_has_ipv6_addresses: bool,
+    source_addrs: (&[IpAddress], &[IpAddress]),
+) -> Result<(Vec<FirewallRule>, Vec<FirewallRule>), FirewallError> {
+    // fetch destination ranges for a given destination
+    let alias_destination_ranges = destination.get_destination_ranges(&mut *conn).await?;
+
+    // combine destination addrs
+    let (dest_addrs_v4, dest_addrs_v6) =
+        process_alias_destination_addrs(&destination.addresses, &alias_destination_ranges);
+
+    // process alias ports
+    let destination_ports = if destination.any_port {
+        Vec::new()
+    } else {
+        let alias_ports = destination
+            .ports
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        merge_port_ranges(alias_ports)
+    };
+
+    // process destination protocols
+    let destination_protocols = if destination.any_protocol {
+        Vec::new()
+    } else {
+        let mut protocols = destination.protocols;
+        protocols.sort_unstable();
+        protocols.dedup();
+        protocols
+    };
+
+    let (ipv4_source_addrs, ipv6_source_addrs) = source_addrs;
+
+    // only generate rules for a given IP version if there is a destination address of a given type
+    // or any destination toggle is enabled and location uses addresses of a given type
+    let has_ipv4_destination =
+        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && destination.any_address);
+    let has_ipv6_destination =
+        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && destination.any_address);
+
+    let comment = format!(
+        "ACL {rule_id} - {rule_name}, ALIAS {} - {}",
+        destination.id, destination.name
+    );
+    let mut allow_rules = Vec::new();
+    let mut deny_rules = Vec::new();
+    if has_ipv4_destination {
+        // create IPv4 rules
+        let ipv4_rules = create_rules(
+            destination.id,
+            IpVersion::Ipv4,
+            ipv4_source_addrs,
+            &dest_addrs_v4,
+            &destination_ports,
+            &destination_protocols,
+            &comment,
+        );
+        if let Some(rule) = ipv4_rules.0 {
+            allow_rules.push(rule);
+        }
+        deny_rules.push(ipv4_rules.1);
+    }
+
+    if has_ipv6_destination {
+        // create IPv6 rules
+        let ipv6_rules = create_rules(
+            destination.id,
+            IpVersion::Ipv6,
+            ipv6_source_addrs,
+            &dest_addrs_v6,
+            &destination_ports,
+            &destination_protocols,
+            &comment,
+        );
+        if let Some(rule) = ipv6_rules.0 {
+            allow_rules.push(rule);
+        }
+        deny_rules.push(ipv6_rules.1);
+    }
+
+    Ok((allow_rules, deny_rules))
 }
 
 /// Creates ALLOW and DENY rules for given set of source, destination
@@ -872,13 +1006,14 @@ pub(crate) async fn get_location_active_acl_rules(
 ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
     debug!("Fetching active ACL rules for location {location}");
     let rules: Vec<AclRule<Id>> = query_as(
-        "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, \
-        allow_all_network_devices, deny_all_network_devices, destination, ports, protocols, \
-        expires, enabled, parent_id, state, any_destination, any_port, any_protocol,
-        manual_settings \
+        "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_locations, \
+        allow_all_groups, deny_all_groups, \
+        allow_all_network_devices, deny_all_network_devices, addresses, ports, protocols, \
+        expires, enabled, parent_id, state, any_address, any_port, any_protocol,
+        use_manual_destination_settings \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
-        WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
+        WHERE (an.network_id = $1 OR a.all_locations = true) AND enabled = true \
         AND state = 'applied'::aclrule_state \
         AND (expires IS NULL OR expires > NOW())",
     )

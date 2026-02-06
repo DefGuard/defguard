@@ -28,59 +28,68 @@ pub struct ApiAclRule {
     pub parent_id: Option<Id>,
     pub state: RuleState,
     pub name: String,
-    pub all_networks: bool,
-    pub networks: Vec<Id>,
+    pub all_locations: bool,
+    pub locations: Vec<Id>,
     pub expires: Option<NaiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_groups: bool,
+    pub deny_all_groups: bool,
     pub allow_all_network_devices: bool,
     pub deny_all_network_devices: bool,
     pub allowed_users: Vec<Id>,
     pub denied_users: Vec<Id>,
     pub allowed_groups: Vec<Id>,
     pub denied_groups: Vec<Id>,
-    pub allowed_devices: Vec<Id>,
-    pub denied_devices: Vec<Id>,
+    pub allowed_network_devices: Vec<Id>,
+    pub denied_network_devices: Vec<Id>,
     // destination
-    pub destination: String,
-    pub aliases: Vec<Id>,
+    pub use_manual_destination_settings: bool,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+    // aliases
+    pub aliases: Vec<Id>,
+    pub destinations: Vec<Id>,
 }
 
 impl From<AclRuleInfo<Id>> for ApiAclRule {
     fn from(info: AclRuleInfo<Id>) -> Self {
         Self {
-            destination: info.format_destination(),
+            addresses: info.format_destination(),
             ports: info.format_ports(),
             id: info.id,
             parent_id: info.parent_id,
             state: info.state,
             name: info.name,
-            all_networks: info.all_networks,
-            networks: info.networks.iter().map(|v| v.id).collect(),
+            all_locations: info.all_locations,
+            locations: info.locations.iter().map(|v| v.id).collect(),
             expires: info.expires,
             allow_all_users: info.allow_all_users,
             deny_all_users: info.deny_all_users,
+            allow_all_groups: info.allow_all_groups,
+            deny_all_groups: info.deny_all_groups,
             allow_all_network_devices: info.allow_all_network_devices,
             deny_all_network_devices: info.deny_all_network_devices,
             allowed_users: info.allowed_users.iter().map(|v| v.id).collect(),
             denied_users: info.denied_users.iter().map(|v| v.id).collect(),
             allowed_groups: info.allowed_groups.iter().map(|v| v.id).collect(),
             denied_groups: info.denied_groups.iter().map(|v| v.id).collect(),
-            allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
-            denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
+            allowed_network_devices: info.allowed_network_devices.iter().map(|v| v.id).collect(),
+            denied_network_devices: info.denied_network_devices.iter().map(|v| v.id).collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
+            destinations: info.destinations.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
             enabled: info.enabled,
-            any_destination: info.any_destination,
+            any_address: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
+            use_manual_destination_settings: info.use_manual_destination_settings,
         }
     }
 }
@@ -89,39 +98,46 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct EditAclRule {
     pub name: String,
-    pub all_networks: bool,
-    pub networks: Vec<Id>,
+    pub all_locations: bool,
+    pub locations: Vec<Id>,
     pub expires: Option<NaiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_groups: bool,
+    pub deny_all_groups: bool,
     pub allow_all_network_devices: bool,
     pub deny_all_network_devices: bool,
     pub allowed_users: Vec<Id>,
     pub denied_users: Vec<Id>,
     pub allowed_groups: Vec<Id>,
     pub denied_groups: Vec<Id>,
-    pub allowed_devices: Vec<Id>,
-    pub denied_devices: Vec<Id>,
+    pub allowed_network_devices: Vec<Id>,
+    pub denied_network_devices: Vec<Id>,
     // destination
-    pub destination: String,
-    pub aliases: Vec<Id>,
+    pub use_manual_destination_settings: bool,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+    // aliases & destinations
+    pub aliases: Vec<Id>,
+    pub destinations: Vec<Id>,
 }
 
 impl EditAclRule {
     pub fn validate(&self) -> Result<(), WebError> {
+        // FIXME: validate that destination is defined
         // check if some allowed users/group/devices are configured
-        if !(self.allow_all_users
-            || self.allow_all_network_devices
-            || !self.allowed_users.is_empty()
-            || !self.allowed_groups.is_empty()
-            || !self.allowed_devices.is_empty())
+        if !self.allow_all_users
+            && !self.allow_all_groups
+            && !self.allow_all_network_devices
+            && self.allowed_users.is_empty()
+            && self.allowed_groups.is_empty()
+            && self.allowed_network_devices.is_empty()
         {
             return Err(WebError::BadRequest(
                 "Must provide some allowed users, groups or devices".to_string(),
@@ -135,28 +151,32 @@ impl EditAclRule {
 impl From<AclRuleInfo<Id>> for EditAclRule {
     fn from(info: AclRuleInfo<Id>) -> Self {
         Self {
-            destination: info.format_destination(),
+            addresses: info.format_destination(),
             ports: info.format_ports(),
             name: info.name,
-            all_networks: info.all_networks,
-            networks: info.networks.iter().map(|v| v.id).collect(),
+            all_locations: info.all_locations,
+            locations: info.locations.iter().map(|v| v.id).collect(),
             expires: info.expires,
             allow_all_users: info.allow_all_users,
             deny_all_users: info.deny_all_users,
+            allow_all_groups: info.allow_all_groups,
+            deny_all_groups: info.deny_all_groups,
             allow_all_network_devices: info.allow_all_network_devices,
             deny_all_network_devices: info.deny_all_network_devices,
             allowed_users: info.allowed_users.iter().map(|v| v.id).collect(),
             denied_users: info.denied_users.iter().map(|v| v.id).collect(),
             allowed_groups: info.allowed_groups.iter().map(|v| v.id).collect(),
             denied_groups: info.denied_groups.iter().map(|v| v.id).collect(),
-            allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
-            denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
+            allowed_network_devices: info.allowed_network_devices.iter().map(|v| v.id).collect(),
+            denied_network_devices: info.denied_network_devices.iter().map(|v| v.id).collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
+            destinations: info.destinations.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
             enabled: info.enabled,
-            any_destination: info.any_destination,
+            any_address: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
+            use_manual_destination_settings: info.use_manual_destination_settings,
         }
     }
 }

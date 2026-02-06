@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"aclrule\" SET \"parent_id\" = $2,\"state\" = $3,\"name\" = $4,\"allow_all_users\" = $5,\"deny_all_users\" = $6,\"allow_all_network_devices\" = $7,\"deny_all_network_devices\" = $8,\"all_networks\" = $9,\"destination\" = $10,\"ports\" = $11,\"protocols\" = $12,\"enabled\" = $13,\"expires\" = $14,\"any_destination\" = $15,\"any_port\" = $16,\"any_protocol\" = $17,\"manual_settings\" = $18 WHERE id = $1",
+  "query": "UPDATE \"aclrule\" SET \"parent_id\" = $2,\"state\" = $3,\"name\" = $4,\"allow_all_users\" = $5,\"deny_all_users\" = $6,\"allow_all_groups\" = $7,\"deny_all_groups\" = $8,\"allow_all_network_devices\" = $9,\"deny_all_network_devices\" = $10,\"all_locations\" = $11,\"addresses\" = $12,\"ports\" = $13,\"protocols\" = $14,\"enabled\" = $15,\"expires\" = $16,\"any_address\" = $17,\"any_port\" = $18,\"any_protocol\" = $19,\"use_manual_destination_settings\" = $20 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -27,6 +27,8 @@
         "Bool",
         "Bool",
         "Bool",
+        "Bool",
+        "Bool",
         "InetArray",
         "Int4RangeArray",
         "Int4Array",
@@ -40,5 +42,5 @@
     },
     "nullable": []
   },
-  "hash": "6915bd0015a04c1caf439b1932ab4fd9100d098098f181d8ebef6f77b8cd7097"
+  "hash": "1f81c51b91ccc2e7c038122d1165157859aa5901d8bc74fa23c121a2a8c13c4d"
 }

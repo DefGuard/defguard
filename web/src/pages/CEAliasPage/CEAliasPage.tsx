@@ -74,7 +74,7 @@ export const CEAliasPage = ({ alias }: Props) => {
 const formSchema = z.object({
   name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   ports: aclPortsValidator,
-  destination: aclDestinationValidator,
+  addresses: aclDestinationValidator,
   protocols: z.set(z.enum(AclProtocol)),
 });
 
@@ -83,7 +83,7 @@ type FormFields = z.infer<typeof formSchema>;
 const anyComponentDefined = (fields: FormFields): boolean => {
   return (
     fields.ports.trim().length > 0 ||
-    fields.destination.trim().length > 0 ||
+    fields.addresses.trim().length > 0 ||
     fields.protocols.size > 0
   );
 };
@@ -95,14 +95,14 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
     if (isPresent(alias)) {
       return {
         name: alias.name,
-        destination: alias.destination,
+        addresses: alias.addresses,
         ports: alias.ports,
         protocols: new Set(alias.protocols),
       };
     }
     return {
       name: '',
-      destination: '',
+      addresses: '',
       ports: '',
       protocols: new Set(),
     };
@@ -165,7 +165,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
             <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="destination">
+          <form.AppField name="addresses">
             {(field) => (
               <field.FormInput
                 notNull
