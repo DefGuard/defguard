@@ -180,8 +180,6 @@ export const ProfileAuthCard = () => {
     user.totp_enabled,
     mutateEnableMfa,
     disableMfaMutation,
-    user.username,
-    authUsername,
   ]);
 
   const webauthnMenuItems = useMemo(() => {
