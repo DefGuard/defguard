@@ -83,7 +83,6 @@ import type {
   User,
   UserChangePasswordRequest,
   UserDevice,
-  UserMfaMethodValue,
   UserProfileResponse,
   UsersListItem,
   ValidateDeviceIpsRequest,
