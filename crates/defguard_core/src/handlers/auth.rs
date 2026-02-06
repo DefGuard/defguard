@@ -675,8 +675,9 @@ pub async fn totp_disable(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
+    username: Path<String>,
 ) -> ApiResult {
-    let mut user = session.user;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Disabling TOTP for user {}", user.username);
     user.disable_totp(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
@@ -840,8 +841,9 @@ pub async fn email_mfa_disable(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
+    username: Path<String>,
 ) -> ApiResult {
-    let mut user = session.user;
+    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Disabling email MFA for user {}", user.username);
     user.disable_email_mfa(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;

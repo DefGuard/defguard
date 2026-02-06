@@ -244,14 +244,12 @@ pub fn build_webapp(
             .route("/auth/webauthn/start", post(webauthn_start))
             .route("/auth/webauthn", post(webauthn_end))
             .route("/auth/totp/init", post(totp_secret))
-            .route("/auth/totp", post(totp_enable).delete(totp_disable))
+            .route("/auth/totp", post(totp_enable))
             .route("/auth/totp/verify", post(totp_code))
             .route("/auth/email/init", post(email_mfa_init))
             .route(
                 "/auth/email",
-                get(request_email_mfa_code)
-                    .post(email_mfa_enable)
-                    .delete(email_mfa_disable),
+                get(request_email_mfa_code).post(email_mfa_enable),
             )
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
@@ -269,6 +267,9 @@ pub fn build_webapp(
             .route("/user/change_password", put(change_self_password))
             .route("/user/{username}/password", put(change_password))
             .route("/user/{username}/reset_password", post(reset_password))
+            // disable mfa
+            .route("/user/{username}/email", delete(email_mfa_disable))
+            .route("/user/{username}/totp", delete(totp_disable))
             // auth keys
             .route(
                 "/user/{username}/auth_key",

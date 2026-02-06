@@ -78,12 +78,12 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: mutateDisableEmailMfa } = useMutation({
-    mutationFn: api.auth.mfa.email.disable,
+    mutationFn: api.user.mfa.email.disable,
     meta: invalidateAfterMfaChange,
   });
 
   const { mutate: mutateDisableTotp } = useMutation({
-    mutationFn: api.auth.mfa.totp.disable,
+    mutationFn: api.user.mfa.totp.disable,
     meta: invalidateAfterMfaChange,
   });
 
@@ -99,7 +99,6 @@ export const ProfileAuthCard = () => {
     },
     meta: invalidateAfterMfaChange,
   });
-
   const emailMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
     if (!user.email_mfa_enabled) {
@@ -121,7 +120,7 @@ export const ProfileAuthCard = () => {
       items.push({
         text: m.controls_disable(),
         icon: 'minus-circle',
-        onClick: () => mutateDisableEmailMfa(),
+        onClick: () => mutateDisableEmailMfa(user.username),
       });
     }
     const res: MenuItemsGroup = {
@@ -133,6 +132,7 @@ export const ProfileAuthCard = () => {
     mutateDisableEmailMfa,
     mutateSetDefaultMfa,
     user.mfa_method,
+    user.username,
   ]);
 
   const mfaMenuItems = useMemo(() => {
@@ -227,16 +227,20 @@ export const ProfileAuthCard = () => {
       items.push({
         icon: 'minus-circle',
         text: m.controls_disable(),
-        onClick: () => {
-          mutateDisableTotp();
-        },
+        onClick: () => mutateDisableTotp(user.username),
       });
     }
 
     return {
       items,
     };
-  }, [mutateDisableTotp, user.totp_enabled, mutateSetDefaultMfa, user.mfa_method]);
+  }, [
+    mutateDisableTotp,
+    user.totp_enabled,
+    mutateSetDefaultMfa,
+    user.mfa_method,
+    user.username,
+  ]);
 
   return (
     <ProfileCard id="profile-auth-card">
