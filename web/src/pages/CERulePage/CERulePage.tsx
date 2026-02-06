@@ -370,7 +370,7 @@ const Content = ({ rule: initialRule }: Props) => {
       return {
         ...omit(initialRule, ['id', 'state', 'expires', 'parent_id']),
         aliases: new Set(initialRule.aliases),
-        destinations: new Set(),
+        destinations: new Set(initialRule.destinations),
         protocols: new Set(initialRule.protocols),
         expires: null,
       };
