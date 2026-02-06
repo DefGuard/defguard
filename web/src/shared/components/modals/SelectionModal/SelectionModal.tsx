@@ -9,6 +9,7 @@ import { useSelectionModal } from './useSelectionModal';
 export const SelectionModal = () => {
   const title = useSelectionModal((s) => s.title);
   const isOpen = useSelectionModal((s) => s.isOpen);
+  const onCancel = useSelectionModal((s) => s.onCancel);
 
   useEffect(() => {
     return () => {
@@ -23,6 +24,7 @@ export const SelectionModal = () => {
       isOpen={isOpen}
       onClose={() => {
         useSelectionModal.setState({ isOpen: false });
+        onCancel?.();
       }}
       afterClose={() => {
         useSelectionModal.getState().reset();
@@ -60,6 +62,7 @@ const ModalContent = () => {
           text: m.controls_cancel(),
           onClick: () => {
             useSelectionModal.setState({ isOpen: false });
+            useSelectionModal.getState().onCancel?.();
           },
         }}
         submitProps={{

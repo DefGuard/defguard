@@ -26,6 +26,7 @@
   "cmp_nav_item_locations": "Locations",
   "cmp_nav_item_overview": "VPN Overview",
   "cmp_nav_item_settings": "Settings",
+  "cmp_nav_item_edges": "Edge Components",
   "cmp_nav_item_activity_log": "Activity log",
   "cmp_webhook_event_user_delete": "User deleted",
   "cmp_webhook_event_user_add": "New user created",

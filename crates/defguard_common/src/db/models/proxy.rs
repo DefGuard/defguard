@@ -1,12 +1,15 @@
 use std::fmt;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
-use crate::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    types::proxy::ProxyInfo,
+};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
@@ -19,6 +22,8 @@ pub struct Proxy<I = NoId> {
     pub version: Option<String>,
     pub has_certificate: bool,
     pub certificate_expiry: Option<NaiveDateTime>,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: Id,
 }
 
 impl fmt::Display for Proxy<NoId> {
@@ -34,7 +39,15 @@ impl fmt::Display for Proxy<Id> {
 }
 
 impl Proxy {
-    pub fn new<S: Into<String>>(name: S, address: S, port: i32) -> Self {
+    /// Creates a new `Proxy` instance with the given connection details.
+    ///
+    /// # Parameters
+    /// - `name`: Human-readable proxy name.
+    /// - `address`: Network address (IP or hostname) of the proxy for grpc connection.
+    /// - `port`: TCP port the proxy listens on.
+    /// - `modified_by`: Identifier of the user who created or last modified this proxy.
+    #[must_use]
+    pub fn new<S: Into<String>>(name: S, address: S, port: i32, modified_by: Id) -> Self {
         Self {
             id: NoId,
             name: name.into(),
@@ -45,6 +58,8 @@ impl Proxy {
             has_certificate: false,
             certificate_expiry: None,
             version: None,
+            modified_by,
+            modified_at: Utc::now().naive_utc(),
         }
     }
 }
@@ -63,5 +78,30 @@ impl Proxy<Id> {
         )
         .fetch_optional(pool)
         .await
+    }
+
+    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<ProxyInfo>> {
+        sqlx::query_as!(
+            ProxyInfo,
+            "SELECT proxy.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname \
+            FROM proxy JOIN \"user\" u on proxy.modified_by = u.id",
+        )
+        .fetch_all(pool)
+        .await
+    }
+
+    pub async fn mark_connected(&mut self, pool: &PgPool, version: &str) -> sqlx::Result<()> {
+        self.version = Some(version.to_string());
+        self.connected_at = Some(Utc::now().naive_utc());
+        self.save(pool).await?;
+
+        Ok(())
+    }
+
+    pub async fn mark_disconnected(&mut self, pool: &PgPool) -> sqlx::Result<()> {
+        self.disconnected_at = Some(Utc::now().naive_utc());
+        self.save(pool).await?;
+
+        Ok(())
     }
 }

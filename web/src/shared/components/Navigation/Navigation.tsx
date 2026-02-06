@@ -127,6 +127,12 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_settings(),
         link: '/settings',
       },
+      {
+        id: 'edges',
+        icon: 'globe',
+        label: m.cmp_nav_item_edges(),
+        link: '/edges',
+      },
     ],
   },
 ];

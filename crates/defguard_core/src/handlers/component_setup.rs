@@ -33,7 +33,7 @@ use tonic::{
 };
 
 use crate::{
-    auth::AdminOrSetupRole,
+    auth::{AdminOrSetupRole, SessionInfo},
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
@@ -180,6 +180,7 @@ impl SetupFlow {
 pub async fn setup_proxy_tls_stream(
     _admin: AdminOrSetupRole,
     Query(request): Query<ProxySetupRequest>,
+    session: SessionInfo,
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
@@ -532,6 +533,7 @@ pub async fn setup_proxy_tls_stream(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
+            session.user.id,
         );
 
         proxy.has_certificate = true;

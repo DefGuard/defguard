@@ -13,7 +13,11 @@ export type SelectMultipleProps<T extends SelectionKey, M = never> = {
   toggleText?: string;
   error?: string;
   counterText: (count: number) => string;
-  onSelectionChange: (value: Array<T>) => void;
+  onSelectionChange: (
+    value: Array<T>,
+    toggleValue?: boolean,
+    onToggleChange?: (v: boolean) => void,
+  ) => void;
   onToggleChange: (value: boolean) => void;
   selectionCustomItemRender?: SelectionSectionCustomRender<T, M>;
 };

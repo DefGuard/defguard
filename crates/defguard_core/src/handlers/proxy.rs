@@ -2,7 +2,11 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
+use chrono::Utc;
+use defguard_common::{
+    db::models::proxy::Proxy,
+    types::proxy::{ProxyControlMessage, ProxyInfo},
+};
 use reqwest::StatusCode;
 use serde_json::Value;
 use utoipa::ToSchema;
@@ -17,6 +21,32 @@ use crate::{
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ProxyUpdateData {
     pub name: String,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/proxy",
+    responses(
+        (status = 200, description = "Edge list", body = [ProxyInfo]),
+        (status = 401, description = "Unauthorized to get edge list.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get edge list.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to get edge list.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub(crate) async fn proxy_list(
+    _role: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!("User {} displaying proxy list", session.user.username);
+    let proxies = Proxy::list(&appstate.pool).await?;
+    info!("User {} displayed proxy list", session.user.username);
+
+    Ok(ApiResponse::json(proxies, StatusCode::OK))
 }
 
 #[utoipa::path(
@@ -91,6 +121,8 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
+    proxy.modified_by = session.user.id;
+    proxy.modified_at = Utc::now().naive_utc();
     proxy.save(&appstate.pool).await?;
 
     info!("User {} updated proxy {proxy_id}", session.user.username);
