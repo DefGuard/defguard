@@ -407,7 +407,7 @@ const api = {
       getRules: () => client.get<AclRule[]>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
-      editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`),
+      editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`, data),
       applyRules: (rules: number[]) =>
         client.put(`/acl/rule/apply`, {
           rules,

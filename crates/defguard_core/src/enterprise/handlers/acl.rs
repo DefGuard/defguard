@@ -46,6 +46,7 @@ pub struct ApiAclRule {
     pub allowed_network_devices: Vec<Id>,
     pub denied_network_devices: Vec<Id>,
     // destination
+    pub use_manual_destination_settings: bool,
     pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
@@ -86,6 +87,7 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
             any_address: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
+            use_manual_destination_settings: info.use_manual_destination_settings,
         }
     }
 }
@@ -112,6 +114,7 @@ pub struct EditAclRule {
     pub allowed_network_devices: Vec<Id>,
     pub denied_network_devices: Vec<Id>,
     // destination
+    pub use_manual_destination_settings: bool,
     pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
@@ -124,6 +127,7 @@ pub struct EditAclRule {
 
 impl EditAclRule {
     pub fn validate(&self) -> Result<(), WebError> {
+        // FIXME: validate that destination is defined
         // check if some allowed users/group/devices are configured
         if !self.allow_all_users
             && !self.allow_all_groups
@@ -168,6 +172,7 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
             any_address: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
+            use_manual_destination_settings: info.use_manual_destination_settings,
         }
     }
 }

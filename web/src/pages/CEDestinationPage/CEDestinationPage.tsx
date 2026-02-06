@@ -26,6 +26,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
+import { omit } from 'radashi';
 
 type Props = {
   destination?: AclDestination;
@@ -107,12 +108,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(destination)) {
       return {
-        name: destination.name,
-        any_address: true,
-        any_port: true,
-        any_protocol: true,
-        addresses: destination.addresses,
-        ports: destination.ports,
+        ...omit(destination, ['id', 'state', 'rules']),
         protocols: new Set(destination.protocols),
       };
     }

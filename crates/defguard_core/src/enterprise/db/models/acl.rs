@@ -559,7 +559,9 @@ pub(crate) struct ParsedDestination {
 /// Perses a destination string into singular ip addresses or networks and address
 /// ranges. We should be able to parse a string like this one:
 /// `10.0.0.1/24, 10.1.1.10-10.1.1.20, 192.168.1.10, 10.1.1.1-10.10.1.1`
-pub(crate) fn parse_destination(destination: &str) -> Result<ParsedDestination, AclError> {
+pub(crate) fn parse_destination_addresses(
+    destination: &str,
+) -> Result<ParsedDestination, AclError> {
     debug!("Parsing destination string: {destination}");
     let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
     let mut result = ParsedDestination::default();
@@ -730,7 +732,7 @@ impl AclRule<Id> {
         }
 
         // destination
-        let destination = parse_destination(&api_rule.addresses)?;
+        let destination = parse_destination_addresses(&api_rule.addresses)?;
         debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
             if range.1 <= range.0 {
@@ -826,7 +828,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
 
     fn try_from(rule: EditAclRule) -> Result<Self, Self::Error> {
         Ok(Self {
-            addresses: parse_destination(&rule.addresses)?.addrs,
+            addresses: parse_destination_addresses(&rule.addresses)?.addrs,
             ports: parse_ports(&rule.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -1609,7 +1611,7 @@ impl TryFrom<&EditAclAlias> for AclAlias {
 
     fn try_from(alias: &EditAclAlias) -> Result<Self, Self::Error> {
         Ok(Self {
-            addresses: parse_destination(&alias.destination)?.addrs,
+            addresses: parse_destination_addresses(&alias.addresses)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -1673,7 +1675,7 @@ impl TryFrom<&EditAclDestination> for AclAlias {
 
     fn try_from(alias: &EditAclDestination) -> Result<Self, Self::Error> {
         Ok(Self {
-            addresses: parse_destination(&alias.destination)?.addrs,
+            addresses: parse_destination_addresses(&alias.addresses)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -1684,7 +1686,7 @@ impl TryFrom<&EditAclDestination> for AclAlias {
             kind: AliasKind::Destination,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
-            any_address: alias.any_destination,
+            any_address: alias.any_address,
             any_port: alias.any_port,
             any_protocol: alias.any_protocol,
         })

@@ -30,7 +30,6 @@ import type {
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
-import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
@@ -253,7 +252,7 @@ const Content = ({ rule: initialRule }: Props) => {
   }, [networkDevices]);
 
   const [_restrictionsPresent, _setRestrictionsPresent] = useState(false);
-  const [manualDestination, setManualDestination] = useState(false);
+  // const [manualDestination, setManualDestination] = useState(false);
 
   const formSchema = useMemo(
     () =>
@@ -284,6 +283,7 @@ const Content = ({ rule: initialRule }: Props) => {
           any_protocol: z.boolean(),
           destinations: z.set(z.number()),
           aliases: z.set(z.number()),
+          use_manual_destination_settings: z.boolean(),
         })
         .superRefine((vals, ctx) => {
           // check for collisions
@@ -402,6 +402,7 @@ const Content = ({ rule: initialRule }: Props) => {
       any_address: true,
       any_port: true,
       any_protocol: true,
+      use_manual_destination_settings: false,
     };
   }, [initialRule]);
 
@@ -427,14 +428,12 @@ const Content = ({ rule: initialRule }: Props) => {
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
           id: initialRule.id,
-          use_manual_destination_settings: manualDestination,
         });
       } else {
         await addRule({
           ...toSend,
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
-          use_manual_destination_settings: manualDestination,
         });
       }
     },
@@ -563,160 +562,162 @@ const Content = ({ rule: initialRule }: Props) => {
             <p>{`Manually configure destinations parameters for this rule.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Checkbox
-            text="Add manual destination settings"
-            active={manualDestination}
-            onClick={() => {
-              setManualDestination((s) => !s);
-            }}
-          />
-          <Fold open={manualDestination}>
-            <SizedBox height={ThemeSpacing.Xl2} />
-            <Card>
-              {isPresent(aliasesOptions) && aliasesOptions.length === 0 && (
-                <div className="no-resource">
-                  <div className="icon-box">
-                    <img src={aliasesEmptyImage} height={40} />
-                  </div>
-                  <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
-                </div>
-              )}
-              {isPresent(aliasesOptions) && aliasesOptions.length > 0 && (
-                <>
-                  <DescriptionBlock title="Aliases">
-                    <p>{`Aliases can optionally define some or all of the manual destination settings. They are combined with the values you specify to form the final destination for firewall rule generation.`}</p>
-                  </DescriptionBlock>
-                  <SizedBox height={ThemeSpacing.Lg} />
-                  <form.AppField name="aliases">
-                    {(field) => (
-                      <>
-                        <ButtonsGroup>
-                          <Button
-                            variant="outlined"
-                            text="Apply aliases"
-                            disabled={aliasesOptions?.length === 0}
-                            onClick={() => {
-                              useSelectionModal.setState({
-                                isOpen: true,
-                                onSubmit: (selected) => {
-                                  field.handleChange(new Set(selected as number[]));
-                                },
-                                options: aliasesOptions,
-                                selected: new Set(field.state.value),
-                                title: 'Select Aliases',
-                              });
-                            }}
-                          />
-                        </ButtonsGroup>
-                        <SizedBox height={ThemeSpacing.Xl} />
-                        {isPresent(aliasesOptions) &&
-                          aliasesOptions
-                            .filter((alias) => field.state.value.has(alias.id))
-                            .map((option) => (
-                              <Chip
-                                size="sm"
-                                text={option.label}
-                                key={option.id}
-                                onDismiss={() => {
-                                  const newState = new Set(field.state.value);
-                                  newState.delete(option.id);
-                                  field.handleChange(newState);
+          <form.AppField name="use_manual_destination_settings">
+            {(field) => <field.FormCheckbox text="Add manual destination settings" />}
+          </form.AppField>
+          <form.Subscribe selector={(s) => s.values.use_manual_destination_settings}>
+            {(open) => (
+              <Fold open={open}>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <Card>
+                  {isPresent(aliasesOptions) && aliasesOptions.length === 0 && (
+                    <div className="no-resource">
+                      <div className="icon-box">
+                        <img src={aliasesEmptyImage} height={40} />
+                      </div>
+                      <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
+                    </div>
+                  )}
+                  {isPresent(aliasesOptions) && aliasesOptions.length > 0 && (
+                    <>
+                      <DescriptionBlock title="Aliases">
+                        <p>{`Aliases can optionally define some or all of the manual destination settings. They are combined with the values you specify to form the final destination for firewall rule generation.`}</p>
+                      </DescriptionBlock>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      <form.AppField name="aliases">
+                        {(field) => (
+                          <>
+                            <ButtonsGroup>
+                              <Button
+                                variant="outlined"
+                                text="Apply aliases"
+                                disabled={aliasesOptions?.length === 0}
+                                onClick={() => {
+                                  useSelectionModal.setState({
+                                    isOpen: true,
+                                    onSubmit: (selected) => {
+                                      field.handleChange(new Set(selected as number[]));
+                                    },
+                                    options: aliasesOptions,
+                                    selected: new Set(field.state.value),
+                                    title: 'Select Aliases',
+                                  });
                                 }}
                               />
-                            ))}
-                      </>
-                    )}
+                            </ButtonsGroup>
+                            <SizedBox height={ThemeSpacing.Xl} />
+                            {isPresent(aliasesOptions) &&
+                              aliasesOptions
+                                .filter((alias) => field.state.value.has(alias.id))
+                                .map((option) => (
+                                  <Chip
+                                    size="sm"
+                                    text={option.label}
+                                    key={option.id}
+                                    onDismiss={() => {
+                                      const newState = new Set(field.state.value);
+                                      newState.delete(option.id);
+                                      field.handleChange(newState);
+                                    }}
+                                  />
+                                ))}
+                          </>
+                        )}
+                      </form.AppField>
+                    </>
+                  )}
+                  <Divider spacing={ThemeSpacing.Xl} />
+                  <DescriptionBlock title="Addresses/Ranges">
+                    <p>
+                      {`Define the IP addresses or ranges that form the destination of this ACL rule.`}
+                    </p>
+                  </DescriptionBlock>
+                  <SizedBox height={ThemeSpacing.Xl} />
+                  <form.AppField name="any_address">
+                    {(field) => <field.FormToggle label="Any IP Address" />}
                   </form.AppField>
-                </>
-              )}
-              <Divider spacing={ThemeSpacing.Xl} />
-              <DescriptionBlock title="Addresses/Ranges">
-                <p>
-                  {`Define the IP addresses or ranges that form the destination of this ACL rule.`}
-                </p>
-              </DescriptionBlock>
-              <SizedBox height={ThemeSpacing.Xl} />
-              <form.AppField name="any_address">
-                {(field) => <field.FormToggle label="Any IP Address" />}
-              </form.AppField>
-              <form.Subscribe selector={(s) => !s.values.any_address}>
-                {(open) => (
-                  <Fold open={open}>
-                    <SizedBox height={ThemeSpacing.Xl} />
-                    <form.AppField name="addresses">
-                      {(field) => (
-                        <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
-                      )}
-                    </form.AppField>
-                    <AliasDataBlock
-                      values={flat(
-                        selectedAliases.map((alias) => alias.addresses.split(',')),
-                      )}
-                    />
-                  </Fold>
-                )}
-              </form.Subscribe>
-              <Divider spacing={ThemeSpacing.Xl} />
-              <DescriptionBlock title="Ports">
-                <p>
-                  {`You may specify the exact ports accessible to users in this location.`}
-                </p>
-              </DescriptionBlock>
-              <SizedBox height={ThemeSpacing.Xl} />
-              <form.AppField name="any_port">
-                {(field) => <field.FormToggle label="Any port" />}
-              </form.AppField>
-              <form.Subscribe selector={(s) => !s.values.any_port}>
-                {(open) => (
-                  <Fold open={open}>
-                    <SizedBox height={ThemeSpacing.Xl} />
-                    <form.AppField name="ports">
-                      {(field) => (
-                        <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
-                      )}
-                    </form.AppField>
-                    <AliasDataBlock
-                      values={flat(
-                        selectedAliases.map((alias) => alias.ports.split(',')),
-                      )}
-                    />
-                  </Fold>
-                )}
-              </form.Subscribe>
-              <Divider spacing={ThemeSpacing.Xl} />
-              <DescriptionBlock title="Protocols">
-                <p>
-                  {`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}
-                </p>
-              </DescriptionBlock>
-              <SizedBox height={ThemeSpacing.Xl} />
-              <form.AppField name="any_protocol">
-                {(field) => <field.FormToggle label="Any protocol" />}
-              </form.AppField>
-              <form.Subscribe selector={(s) => !s.values.any_protocol}>
-                {(open) => (
-                  <Fold open={open}>
-                    <SizedBox height={ThemeSpacing.Xl2} />
-                    <form.AppField name="protocols">
-                      {(field) => (
-                        <field.FormCheckboxGroup
-                          values={aclProtocolValues}
-                          getLabel={getProtocolName}
+                  <form.Subscribe selector={(s) => !s.values.any_address}>
+                    {(open) => (
+                      <Fold open={open}>
+                        <SizedBox height={ThemeSpacing.Xl} />
+                        <form.AppField name="addresses">
+                          {(field) => (
+                            <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
+                          )}
+                        </form.AppField>
+                        <AliasDataBlock
+                          values={flat(
+                            selectedAliases.map((alias) => alias.addresses.split(',')),
+                          )}
                         />
-                      )}
-                    </form.AppField>
-                    <AliasDataBlock
-                      values={flat(
-                        selectedAliases.map((alias) =>
-                          alias.protocols.map((protocol) => AclProtocolName[protocol]),
-                        ),
-                      )}
-                    />
-                  </Fold>
-                )}
-              </form.Subscribe>
-            </Card>
-          </Fold>
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                  <Divider spacing={ThemeSpacing.Xl} />
+                  <DescriptionBlock title="Ports">
+                    <p>
+                      {`You may specify the exact ports accessible to users in this location.`}
+                    </p>
+                  </DescriptionBlock>
+                  <SizedBox height={ThemeSpacing.Xl} />
+                  <form.AppField name="any_port">
+                    {(field) => <field.FormToggle label="Any port" />}
+                  </form.AppField>
+                  <form.Subscribe selector={(s) => !s.values.any_port}>
+                    {(open) => (
+                      <Fold open={open}>
+                        <SizedBox height={ThemeSpacing.Xl} />
+                        <form.AppField name="ports">
+                          {(field) => (
+                            <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
+                          )}
+                        </form.AppField>
+                        <AliasDataBlock
+                          values={flat(
+                            selectedAliases.map((alias) => alias.ports.split(',')),
+                          )}
+                        />
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                  <Divider spacing={ThemeSpacing.Xl} />
+                  <DescriptionBlock title="Protocols">
+                    <p>
+                      {`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}
+                    </p>
+                  </DescriptionBlock>
+                  <SizedBox height={ThemeSpacing.Xl} />
+                  <form.AppField name="any_protocol">
+                    {(field) => <field.FormToggle label="Any protocol" />}
+                  </form.AppField>
+                  <form.Subscribe selector={(s) => !s.values.any_protocol}>
+                    {(open) => (
+                      <Fold open={open}>
+                        <SizedBox height={ThemeSpacing.Xl2} />
+                        <form.AppField name="protocols">
+                          {(field) => (
+                            <field.FormCheckboxGroup
+                              values={aclProtocolValues}
+                              getLabel={getProtocolName}
+                            />
+                          )}
+                        </form.AppField>
+                        <AliasDataBlock
+                          values={flat(
+                            selectedAliases.map((alias) =>
+                              alias.protocols.map(
+                                (protocol) => AclProtocolName[protocol],
+                              ),
+                            ),
+                          )}
+                        />
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                </Card>
+              </Fold>
+            )}
+          </form.Subscribe>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="enrollment">

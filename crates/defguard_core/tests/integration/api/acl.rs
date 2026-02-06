@@ -73,6 +73,7 @@ fn make_rule() -> EditAclRule {
         any_address: false,
         any_port: false,
         any_protocol: false,
+        use_manual_destination_settings: true,
     }
 }
 
@@ -86,7 +87,7 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
 fn make_alias() -> EditAclAlias {
     EditAclAlias {
         name: "alias".to_string(),
-        destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
     }
@@ -126,6 +127,7 @@ fn edit_rule_data_into_api_response(
         any_address: data.any_address,
         any_port: data.any_port,
         any_protocol: data.any_protocol,
+        use_manual_destination_settings: data.use_manual_destination_settings,
     }
 }
 
@@ -143,7 +145,7 @@ fn edit_alias_data_into_api_response(
         state,
         name: data.name,
         kind,
-        destination: data.destination,
+        addresses: data.addresses,
         ports: data.ports,
         protocols: data.protocols,
         rules,
@@ -364,7 +366,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
 
     // alias
     let mut alias = make_alias();
-    alias.destination = String::new();
+    alias.addresses = String::new();
     alias.ports = String::new();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);

@@ -14,7 +14,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::acl::{
         AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState,
-        Protocol, acl_delete_related_objects, parse_destination,
+        Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
     handlers::{ApiResponse, ApiResult},
 };
@@ -23,10 +23,10 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub(crate) struct EditAclDestination {
     pub name: String,
-    pub destination: String,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
 }
@@ -40,7 +40,7 @@ impl EditAclDestination {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {self:?}");
         // save related destination ranges
-        let destination = parse_destination(&self.destination)?;
+        let destination = parse_destination_addresses(&self.addresses)?;
         for range in destination.ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
@@ -66,11 +66,11 @@ pub(crate) struct ApiAclDestination {
     pub name: String,
     pub kind: AliasKind,
     pub state: AliasState,
-    pub destination: String,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<Id>,
-    pub any_destination: bool,
+    pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
 }
@@ -170,7 +170,7 @@ impl ApiAclDestination {
 impl From<AclAliasInfo> for ApiAclDestination {
     fn from(info: AclAliasInfo) -> Self {
         Self {
-            destination: info.format_destination(),
+            addresses: info.format_destination(),
             ports: info.format_ports(),
             id: info.id,
             parent_id: info.parent_id,
@@ -179,7 +179,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
             state: info.state,
             protocols: info.protocols,
             rules: info.rules.iter().map(|v| v.id).collect(),
-            any_destination: info.any_address,
+            any_address: info.any_address,
             any_port: info.any_port,
             any_protocol: info.any_protocol,
         }
