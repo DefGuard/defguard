@@ -427,6 +427,7 @@ const Content = ({ rule: initialRule }: Props) => {
           ...toSend,
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
+          destinations: Array.from(toSend.destinations),
           id: initialRule.id,
         });
       } else {
@@ -434,6 +435,7 @@ const Content = ({ rule: initialRule }: Props) => {
           ...toSend,
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
+          destinations: Array.from(toSend.destinations),
         });
       }
     },

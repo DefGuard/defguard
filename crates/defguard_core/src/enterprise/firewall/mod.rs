@@ -23,10 +23,7 @@ use super::{
     utils::merge_ranges,
 };
 use crate::enterprise::{
-    db::models::{
-        acl::{AclAlias, AliasKind},
-        snat::UserSnatBinding,
-    },
+    db::models::{acl::AclAlias, snat::UserSnatBinding},
     is_business_license_active,
 };
 
@@ -75,25 +72,21 @@ pub async fn generate_firewall_rules_from_acls(
         let AclRuleInfo {
             id,
             name: rule_name,
-            addresses: destination,
-            address_ranges: destination_ranges,
+            addresses,
+            address_ranges,
             ports,
             protocols,
             aliases,
-            any_address: any_destination,
+            destinations,
+            any_address,
             any_port,
             any_protocol,
-            use_manual_destination_settings: manual_destination_settings,
+            use_manual_destination_settings,
             ..
         } = acl;
 
-        // split aliases into types
-        let (destinations, aliases): (Vec<_>, Vec<_>) = aliases
-            .into_iter()
-            .partition(|alias| alias.kind == AliasKind::Destination);
-
         // check if we need to add rules for manually defined destination
-        if manual_destination_settings {
+        if use_manual_destination_settings {
             let (manual_destination_allow_rules, manual_destination_deny_rules) =
                 get_manual_destination_rules(
                     &mut *conn,
@@ -103,11 +96,11 @@ pub async fn generate_firewall_rules_from_acls(
                     has_ipv6_addresses,
                     (&ipv4_source_addrs, &ipv6_source_addrs),
                     aliases,
-                    destination,
-                    destination_ranges,
+                    addresses,
+                    address_ranges,
                     ports,
                     protocols,
-                    any_destination,
+                    any_address,
                     any_port,
                     any_protocol,
                 )
@@ -220,32 +213,32 @@ async fn get_manual_destination_rules(
     location_has_ipv6_addresses: bool,
     source_addrs: (&[IpAddress], &[IpAddress]),
     aliases: Vec<AclAlias<Id>>,
-    mut destination: Vec<IpNetwork>,
-    destination_ranges: Vec<AclRuleDestinationRange<i64>>,
+    mut addresses: Vec<IpNetwork>,
+    address_ranges: Vec<AclRuleDestinationRange<i64>>,
     mut ports: Vec<PortRange>,
     mut protocols: Vec<i32>,
-    any_destination: bool,
+    any_address: bool,
     any_port: bool,
     any_protocol: bool,
 ) -> Result<(Vec<FirewallRule>, Vec<FirewallRule>), FirewallError> {
     debug!("Generating firewall rules for manually configured destination in ACL rule {rule_id}");
     // store alias ranges separately since they use a different struct
     let mut alias_destination_ranges = Vec::new();
-    // process component aliases by appending destination parameters from each of them to
+
+    // process aliases by appending destination parameters from each of them to
     // existing lists
     for alias in aliases {
         // fetch destination ranges for a given alias
         alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
 
         // extend existing parameter lists
-        destination.extend(alias.addresses);
+        addresses.extend(alias.addresses);
         ports.extend(alias.ports.into_iter().map(Into::into).collect::<Vec<_>>());
         protocols.extend(alias.protocols);
     }
 
     // prepare destination addresses
-    let (dest_addrs_v4, dest_addrs_v6) =
-        process_destination_addrs(&destination, &destination_ranges);
+    let (dest_addrs_v4, dest_addrs_v6) = process_destination_addrs(&addresses, &address_ranges);
 
     // prepare destination ports
     let destination_ports = if any_port {
@@ -268,9 +261,9 @@ async fn get_manual_destination_rules(
     // only generate rules for a given IP version if there is a destination address of a given type
     // or any destination toggle is enabled and location uses addresses of a given type
     let has_ipv4_destination =
-        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && any_destination);
+        !dest_addrs_v4.is_empty() || (location_has_ipv4_addresses && any_address);
     let has_ipv6_destination =
-        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_destination);
+        !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_address);
 
     let comment = format!("ACL {} - {}", rule_id, rule_name);
     let mut allow_rules = Vec::new();

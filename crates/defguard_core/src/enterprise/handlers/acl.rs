@@ -55,6 +55,7 @@ pub struct ApiAclRule {
     pub any_protocol: bool,
     // aliases
     pub aliases: Vec<Id>,
+    pub destinations: Vec<Id>,
 }
 
 impl From<AclRuleInfo<Id>> for ApiAclRule {
@@ -82,6 +83,7 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
             allowed_network_devices: info.allowed_network_devices.iter().map(|v| v.id).collect(),
             denied_network_devices: info.denied_network_devices.iter().map(|v| v.id).collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
+            destinations: info.destinations.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
             enabled: info.enabled,
             any_address: info.any_address,
@@ -121,8 +123,9 @@ pub struct EditAclRule {
     pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
-    // aliases
+    // aliases & destinations
     pub aliases: Vec<Id>,
+    pub destinations: Vec<Id>,
 }
 
 impl EditAclRule {
@@ -167,6 +170,7 @@ impl From<AclRuleInfo<Id>> for EditAclRule {
             allowed_network_devices: info.allowed_network_devices.iter().map(|v| v.id).collect(),
             denied_network_devices: info.denied_network_devices.iter().map(|v| v.id).collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
+            destinations: info.destinations.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
             enabled: info.enabled,
             any_address: info.any_address,

@@ -189,8 +189,9 @@ pub struct AclRuleInfo<I = NoId> {
     pub any_port: bool,
     pub any_protocol: bool,
     pub use_manual_destination_settings: bool,
-    // aliases
+    // aliases & destinations
     pub aliases: Vec<AclAlias<Id>>,
+    pub destinations: Vec<AclAlias<Id>>,
 }
 
 impl<I> AclRuleInfo<I> {
@@ -641,8 +642,9 @@ impl AclRule<Id> {
     ) -> Result<(), AclError> {
         let rule_id = self.id;
         debug!("Creating related objects for ACL rule {api_rule:?}");
-        // save related networks
-        debug!("Creating related networks for ACL rule {rule_id}");
+
+        // save related locations
+        debug!("Creating related locations for ACL rule {rule_id}");
         for network_id in &api_rule.locations {
             AclRuleNetwork::new(rule_id, *network_id)
                 .save(&mut *transaction)
@@ -686,14 +688,16 @@ impl AclRule<Id> {
                 .map_err(|err| map_relation_error(err, "Group", *group_id))?;
         }
 
-        // save related aliases
-        debug!("Creating related aliases for ACL rule {rule_id}");
+        // save related aliases and destinations
+        debug!("Creating related aliases and destinations for ACL rule {rule_id}");
         // verify if all aliases have a correct state
         // aliases used for tracking modifications (`AliasState::Modified`) cannot be used by ACL
         // rules
+        // FIXME: handle aliases and destinations separately
+        let all_aliases = [api_rule.aliases.clone(), api_rule.destinations.clone()].concat();
         let invalid_alias_ids: Vec<Id> = query_scalar!(
             "SELECT id FROM aclalias WHERE id = ANY($1) AND state != 'applied'::aclalias_state",
-            &api_rule.aliases
+            &all_aliases
         )
         .fetch_all(&mut *transaction)
         .await?;
@@ -706,7 +710,7 @@ impl AclRule<Id> {
                 invalid_alias_ids,
             ));
         }
-        for alias_id in &api_rule.aliases {
+        for alias_id in &all_aliases {
             AclRuleAlias::new(rule_id, *alias_id)
                 .save(&mut *transaction)
                 .await
@@ -1132,8 +1136,7 @@ impl AclRule<Id> {
     /// Retrieves all related objects from the db and converts [`AclRule`]
     /// instance to [`AclRuleInfo`].
     pub async fn to_info(&self, conn: &mut PgConnection) -> Result<AclRuleInfo<Id>, SqlxError> {
-        let aliases = self.get_aliases(&mut *conn).await?;
-        let networks = self.get_networks(&mut *conn).await?;
+        let locations = self.get_networks(&mut *conn).await?;
         let allowed_users = self.get_users(&mut *conn, true).await?;
         let denied_users = self.get_users(&mut *conn, false).await?;
         let allowed_groups = self.get_groups(&mut *conn, true).await?;
@@ -1142,6 +1145,12 @@ impl AclRule<Id> {
         let denied_network_devices = self.get_network_devices(&mut *conn, false).await?;
         let address_ranges = self.get_destination_address_ranges(&mut *conn).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
+
+        // FIXME: split into two separate structs to be less ambiguous
+        let aliases = self.get_aliases(&mut *conn).await?;
+        let (aliases, destinations) = aliases
+            .into_iter()
+            .partition(|alias| alias.kind == AliasKind::Component);
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -1162,7 +1171,8 @@ impl AclRule<Id> {
             address_ranges,
             ports,
             aliases,
-            locations: networks,
+            destinations,
+            locations,
             allowed_users,
             denied_users,
             allowed_groups,
@@ -1462,10 +1472,10 @@ impl AclAlias {
         name: S,
         state: AliasState,
         kind: AliasKind,
-        destination: Vec<IpNetwork>,
+        addresses: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         protocols: Vec<Protocol>,
-        any_destination: bool,
+        any_address: bool,
         any_port: bool,
         any_protocol: bool,
     ) -> Self {
@@ -1475,10 +1485,10 @@ impl AclAlias {
             name: name.into(),
             kind,
             state,
-            addresses: destination,
+            addresses,
             ports,
             protocols,
-            any_address: any_destination,
+            any_address,
             any_port,
             any_protocol,
         }

@@ -901,6 +901,7 @@ export interface AclRule {
   any_protocol: boolean;
   use_manual_destination_settings: boolean;
   aliases: number[];
+  destinations: number[];
 }
 
 export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;

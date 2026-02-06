@@ -310,8 +310,8 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     // convert to [`AclRuleInfo`] and verify results
     let info = rule.to_info(&mut conn).await.unwrap();
 
-    assert_eq!(info.aliases.len(), 1);
-    assert_eq!(info.aliases[0], alias1);
+    assert_eq!(info.destinations.len(), 1);
+    assert_eq!(info.destinations[0], alias1);
 
     assert_eq!(info.allowed_users.len(), 1);
     assert_eq!(info.allowed_users[0], user1);
