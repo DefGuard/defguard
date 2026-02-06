@@ -240,9 +240,9 @@ async fn expired_acl_rules_check(
         "UPDATE aclrule SET state = 'expired'::aclrule_state \
         WHERE state = 'applied'::aclrule_state AND expires < NOW() \
         RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-        deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, \
-        destination, ports, protocols, enabled, expires, any_destination, any_port, \
-        any_protocol, manual_settings"
+        deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
+        addresses, ports, protocols, enabled, expires, any_address, any_port, \
+        any_protocol, use_manual_destination_settings"
     )
     .fetch_all(pool)
     .await?;

@@ -17,7 +17,7 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051)
+    let proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();
@@ -29,8 +29,9 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Verify proxy is correct
-    let proxy_from_api: Proxy<Id> = response.json().await;
+    // Verify proxy is correct, skip modified_at
+    let mut proxy_from_api: Proxy<Id> = response.json().await;
+    proxy_from_api.modified_at = proxy.modified_at;
     assert_eq!(proxy, proxy_from_api);
 }
 
@@ -46,7 +47,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let mut proxy = Proxy::new("test", "localhost", 50051)
+    let mut proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();
@@ -63,9 +64,10 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Verify proxy is modified correctly
-    let proxy_updated: Proxy<Id> = response.json().await;
+    let mut proxy_updated: Proxy<Id> = response.json().await;
     assert_eq!(proxy_updated.name, "modified");
     proxy.name = "modified".to_string();
+    proxy_updated.modified_at = proxy.modified_at;
     assert_eq!(proxy, proxy_updated);
 
     // Try to modify other fields
@@ -78,7 +80,8 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let proxy_updated: Proxy<Id> = response.json().await;
+    let mut proxy_updated: Proxy<Id> = response.json().await;
+    proxy_updated.modified_at = proxy_before_mods.modified_at;
     assert_eq!(proxy_before_mods, proxy_updated);
 }
 
@@ -94,7 +97,7 @@ async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051)
+    let proxy = Proxy::new("test", "localhost", 50051, 1)
         .save(&pool)
         .await
         .unwrap();

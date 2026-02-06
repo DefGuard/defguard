@@ -147,7 +147,7 @@ export const RulesTable = ({
           const row = info.row.original;
           return (
             <TableCell>
-              <span>{row.destination}</span>
+              <span>{row.addresses}</span>
               {row.aliases.map((aliasId) => {
                 const alias = aliases[aliasId];
                 if (!alias) return null;
@@ -170,7 +170,7 @@ export const RulesTable = ({
             row.allow_all_network_devices,
             row.allowed_users,
             row.allowed_groups,
-            row.allowed_devices,
+            row.allowed_network_devices,
           );
         },
       }),
@@ -187,7 +187,7 @@ export const RulesTable = ({
             row.deny_all_network_devices,
             row.denied_users,
             row.denied_groups,
-            row.denied_devices,
+            row.denied_network_devices,
           );
         },
       }),
@@ -197,7 +197,7 @@ export const RulesTable = ({
         minSize: 220,
         cell: (info) => {
           const row = info.row.original;
-          if (row.all_networks) {
+          if (row.all_locations) {
             return (
               <TableCell>
                 <Badge
@@ -208,7 +208,7 @@ export const RulesTable = ({
               </TableCell>
             );
           }
-          const locationNames = row.networks
+          const locationNames = row.locations
             .map((locationId) => locations[locationId]?.name ?? '')
             .filter((name) => name.length);
 

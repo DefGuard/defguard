@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"enabled\",\"expires\",\"any_destination\",\"any_port\",\"any_protocol\",\"manual_settings\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
+  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_groups\",\"deny_all_groups\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_locations\",\"addresses\",\"ports\",\"protocols\",\"enabled\",\"expires\",\"any_address\",\"any_port\",\"any_protocol\",\"use_manual_destination_settings\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,8 @@
         "Bool",
         "Bool",
         "Bool",
+        "Bool",
+        "Bool",
         "InetArray",
         "Int4RangeArray",
         "Int4Array",
@@ -47,5 +49,5 @@
       false
     ]
   },
-  "hash": "f7c6882463818d70c1f092d440175269185fe6b6d021bed8623fe25b891e01d5"
+  "hash": "2adf5c7560026fa0c311aba80ae45aa5f93430b81d20e6e5b84d664590ba73d6"
 }

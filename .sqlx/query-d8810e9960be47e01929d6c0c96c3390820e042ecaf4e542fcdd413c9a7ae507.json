@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_destination\",\"any_port\",\"any_protocol\" FROM \"aclalias\" WHERE id = $1",
+  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_address\",\"any_port\",\"any_protocol\" FROM \"aclalias\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       },
       {
         "ordinal": 5,
-        "name": "destination: _",
+        "name": "addresses: _",
         "type_info": "InetArray"
       },
       {
@@ -65,7 +65,7 @@
       },
       {
         "ordinal": 8,
-        "name": "any_destination",
+        "name": "any_address",
         "type_info": "Bool"
       },
       {
@@ -98,5 +98,5 @@
       false
     ]
   },
-  "hash": "2f971e30e3e976848107845d8d69ae1bb0ac7ebe995b9aac9e3528f3bb84c264"
+  "hash": "d8810e9960be47e01929d6c0c96c3390820e042ecaf4e542fcdd413c9a7ae507"
 }

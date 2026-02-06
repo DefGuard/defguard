@@ -55,6 +55,8 @@
           playwright
           # release assets verification
           cosign
+          # vulnerability scanner
+          trivy
         ];
 
         # Specify the rust-src path (many editors rely on this)

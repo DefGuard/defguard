@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_destination\",\"any_port\",\"any_protocol\" FROM \"aclalias\"",
+  "query": "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", addresses, ports, protocols, any_address, any_port, any_protocol FROM aclalias WHERE kind = $1",
   "describe": {
     "columns": [
       {
@@ -50,22 +50,22 @@
       },
       {
         "ordinal": 5,
-        "name": "destination: _",
+        "name": "addresses",
         "type_info": "InetArray"
       },
       {
         "ordinal": 6,
-        "name": "ports: _",
+        "name": "ports",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 7,
-        "name": "protocols: _",
+        "name": "protocols",
         "type_info": "Int4Array"
       },
       {
         "ordinal": 8,
-        "name": "any_destination",
+        "name": "any_address",
         "type_info": "Bool"
       },
       {
@@ -80,7 +80,19 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        {
+          "Custom": {
+            "name": "aclalias_kind",
+            "kind": {
+              "Enum": [
+                "destination",
+                "component"
+              ]
+            }
+          }
+        }
+      ]
     },
     "nullable": [
       false,
@@ -96,5 +108,5 @@
       false
     ]
   },
-  "hash": "1faddb4c68980e6b922422c90b1ae4c971a4c8c8da454627dc7f2542a9796c3a"
+  "hash": "ef93737a937eed2cb1a192d71f52ed0eb93c05d42b6d864f354ffe0135d9d094"
 }

@@ -17,7 +17,7 @@ export const SetupConfirmationStep = () => {
   };
 
   const handleFinish = () => {
-    navigate({ to: '/vpn-overview', replace: true }).then(() => {
+    navigate({ to: '/edges', replace: true }).then(() => {
       setTimeout(() => {
         useEdgeWizardStore.getState().reset();
       }, 100);

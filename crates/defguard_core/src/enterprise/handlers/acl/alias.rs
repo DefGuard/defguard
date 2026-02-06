@@ -14,7 +14,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::acl::{
         AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState,
-        Protocol, acl_delete_related_objects, parse_destination,
+        Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
     handlers::{ApiResponse, ApiResult},
 };
@@ -23,7 +23,7 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
 pub struct EditAclAlias {
     pub name: String,
-    pub destination: String,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
 }
@@ -37,7 +37,7 @@ impl EditAclAlias {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {self:?}");
         // save related destination ranges
-        let destination = parse_destination(&self.destination)?;
+        let destination = parse_destination_addresses(&self.addresses)?;
         for range in destination.ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
@@ -63,7 +63,7 @@ pub struct ApiAclAlias {
     pub name: String,
     pub kind: AliasKind,
     pub state: AliasState,
-    pub destination: String,
+    pub addresses: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
     pub rules: Vec<Id>,
@@ -164,7 +164,7 @@ impl ApiAclAlias {
 impl From<AclAliasInfo> for ApiAclAlias {
     fn from(info: AclAliasInfo) -> Self {
         Self {
-            destination: info.format_destination(),
+            addresses: info.format_destination(),
             ports: info.format_ports(),
             id: info.id,
             parent_id: info.parent_id,

@@ -13,6 +13,7 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
+use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
@@ -20,8 +21,9 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            Device, DeviceType, User, WireguardNetwork,
+            Device, DeviceType, Settings, User, WireguardNetwork,
             oauth2client::OAuth2Client,
+            settings::{initialize_current_settings, update_current_settings},
             wireguard::{
                 DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
                 LocationMfaMode, ServiceLocationMode,
@@ -131,7 +133,7 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{delete_proxy, proxy_details, update_proxy},
+        proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -356,6 +358,7 @@ pub fn build_webapp(
             // activity log
             .route("/activity_log", get(get_activity_log_events))
             // Proxy routes
+            .route("/proxy", get(proxy_list))
             .route(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
@@ -631,6 +634,7 @@ pub async fn run_web_server(
 /// Test device keys:
 /// Public: gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=
 /// Private: wGS1qdJfYbWJsOUuP1IDgaJYpR+VaKZPVZvdmLjsH2Y=
+#[allow(deprecated)]
 pub async fn init_dev_env(config: &DefGuardConfig) {
     info!("Initializing dev environment");
     let pool = init_db(
@@ -646,6 +650,24 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     User::init_admin_user(&pool, config.default_admin_password.expose_secret())
         .await
         .expect("Failed to create admin user");
+
+    let ca = CertificateAuthority::new("Defguard Dev", "defguard-dev@defguard.net", 5000)
+        .expect("Failed to create CA");
+
+    initialize_current_settings(&pool)
+        .await
+        .expect("Could not initialize current settings in the database");
+    let mut settings = Settings::get_current_settings();
+    settings.ca_cert_der = Some(ca.cert_der().to_vec());
+    settings.ca_key_der = Some(ca.key_pair_der().to_vec());
+    settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
+    settings.initial_setup_completed = true;
+    // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
+    settings.public_proxy_url = config.enrollment_url.to_string();
+    settings.defguard_url = config.url.to_string();
+    update_current_settings(&pool, settings)
+        .await
+        .expect("Failed to update settings");
 
     let mut transaction = pool
         .begin()

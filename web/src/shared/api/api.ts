@@ -41,6 +41,7 @@ import type {
   DeleteGatewayRequest,
   Device,
   Edge,
+  EdgeInfo,
   EditAclAliasRequest,
   EditAclDestination,
   EditAclRuleRequest,
@@ -372,6 +373,7 @@ const api = {
     sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
   },
   edge: {
+    getEdges: () => client.get<EdgeInfo[]>('/proxy'),
     getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
     editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
@@ -407,7 +409,7 @@ const api = {
       getRules: () => client.get<AclRule[]>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
-      editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`),
+      editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`, data),
       applyRules: (rules: number[]) =>
         client.put(`/acl/rule/apply`, {
           rules,

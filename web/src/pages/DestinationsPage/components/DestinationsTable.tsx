@@ -69,14 +69,14 @@ export const DestinationsTable = ({
         minSize: 300,
         cell: (info) => {
           const row = info.row.original;
-          if (row.any_destination) {
+          if (row.any_address) {
             return (
               <TableCell>
                 <span>{`Any`}</span>
               </TableCell>
             );
           }
-          return <TableValuesListCell values={row.destination.split(',')} />;
+          return <TableValuesListCell values={row.addresses.split(',')} />;
         },
       }),
       columnHelper.display({
