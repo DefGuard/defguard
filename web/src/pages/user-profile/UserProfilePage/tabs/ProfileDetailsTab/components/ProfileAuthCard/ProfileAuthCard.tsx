@@ -68,7 +68,12 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: disableMfaMutation } = useMutation({
-    mutationFn: api.auth.mfa.disable,
+    mutationFn: () => {
+      if (user.username === authUsername) {
+        return api.auth.mfa.disable();
+      }
+      return api.user.disableMfa(user.username);
+    },
     meta: invalidateAfterMfaChange,
   });
 
@@ -101,7 +106,7 @@ export const ProfileAuthCard = () => {
   });
   const emailMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    if (!user.email_mfa_enabled) {
+    if (!user.email_mfa_enabled && user.username === authUsername) {
       items.push({
         testId: 'enable-email',
         text: m.controls_enable(),
@@ -126,13 +131,14 @@ export const ProfileAuthCard = () => {
     const res: MenuItemsGroup = {
       items,
     };
-    return res;
+    return items.length > 0 ? res : null;
   }, [
     user.email_mfa_enabled,
     mutateDisableEmailMfa,
     mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
+    authUsername,
   ]);
 
   const mfaMenuItems = useMemo(() => {
@@ -178,12 +184,14 @@ export const ProfileAuthCard = () => {
 
   const webauthnMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    items.push({
-      text: m.profile_auth_card_add_passkey(),
-      icon: 'plus-circle',
-      testId: 'add-passkey',
-      onClick: () => openModal(ModalName.WebauthnSetup),
-    });
+    if (user.username === authUsername) {
+      items.push({
+        text: m.profile_auth_card_add_passkey(),
+        icon: 'plus-circle',
+        testId: 'add-passkey',
+        onClick: () => openModal(ModalName.WebauthnSetup),
+      });
+    }
     if (securityKeys.length) {
       if (user.mfa_method !== UserMfaMethod.Webauthn) {
         items.push({
@@ -199,14 +207,19 @@ export const ProfileAuthCard = () => {
         onClick: () => mutateDisableWebauthn(),
       });
     }
-    return {
-      items,
-    };
-  }, [mutateDisableWebauthn, securityKeys.length, mutateSetDefaultMfa, user.mfa_method]);
+    return items.length > 0 ? { items } : null;
+  }, [
+    mutateDisableWebauthn,
+    securityKeys.length,
+    mutateSetDefaultMfa,
+    user.mfa_method,
+    user.username,
+    authUsername,
+  ]);
 
   const totpMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    if (!user.totp_enabled) {
+    if (!user.totp_enabled && user.username === authUsername) {
       items.push({
         icon: 'check-circle',
         testId: 'enable-totp',
@@ -231,15 +244,14 @@ export const ProfileAuthCard = () => {
       });
     }
 
-    return {
-      items,
-    };
+    return items.length > 0 ? { items } : null;
   }, [
     mutateDisableTotp,
     user.totp_enabled,
     mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
+    authUsername,
   ]);
 
   return (
@@ -393,7 +405,7 @@ interface FactorRowProps {
   enabled: boolean;
   isDefault: boolean;
   availability: 'sso' | 'both' | 'mfa';
-  menu?: MenuItemsGroup;
+  menu?: MenuItemsGroup | null;
   testId?: string;
 }
 
