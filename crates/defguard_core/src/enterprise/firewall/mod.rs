@@ -265,7 +265,7 @@ async fn get_manual_destination_rules(
     let has_ipv6_destination =
         !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_address);
 
-    let comment = format!("ACL {} - {}", rule_id, rule_name);
+    let comment = format!("ACL {rule_id} - {rule_name}");
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
     if has_ipv4_destination {
@@ -354,8 +354,8 @@ async fn get_predefined_destination_rules(
         !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && destination.any_address);
 
     let comment = format!(
-        "ACL {} - {}, ALIAS {} - {}",
-        rule_id, rule_name, destination.id, destination.name
+        "ACL {rule_id} - {rule_name}, ALIAS {} - {}",
+        destination.id, destination.name
     );
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
