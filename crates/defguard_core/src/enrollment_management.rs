@@ -80,8 +80,8 @@ pub async fn start_user_enrollment(
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
             let mail = Mail::new(
-                email.clone(),
-                ENROLLMENT_START_MAIL_SUBJECT.to_string(),
+                &email,
+                ENROLLMENT_START_MAIL_SUBJECT,
                 templates::enrollment_start_mail(
                     base_message_context,
                     enrollment_service_url,
@@ -186,8 +186,8 @@ pub async fn start_desktop_configuration(
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
             let mail = Mail::new(
-                email.clone(),
-                DESKTOP_START_MAIL_SUBJECT.to_string(),
+                &email,
+                DESKTOP_START_MAIL_SUBJECT,
                 templates::desktop_start_mail(
                     base_message_context,
                     &enrollment_service_url,

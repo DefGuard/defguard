@@ -26,9 +26,6 @@ pub enum MailError {
     #[error("SMTP not configured")]
     SmtpNotConfigured,
 
-    #[error("No settings record in database")]
-    EmptySettings,
-
     #[error("Invalid port: {0}")]
     InvalidPort(i32),
 }
@@ -45,10 +42,14 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new(to: String, subject: String, content: String) -> Mail {
+    pub fn new<T, S>(to: T, subject: S, content: String) -> Mail
+    where
+        T: Into<String>,
+        S: Into<String>,
+    {
         Self {
-            to,
-            subject,
+            to: to.into(),
+            subject: subject.into(),
             content,
             attachments: Vec::new(),
             result_tx: None,

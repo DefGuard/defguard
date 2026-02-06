@@ -437,7 +437,6 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
         mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    // assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
 
     // resend setup email
     let response = client.post("/api/v1/auth/email/init").send().await;
@@ -447,9 +446,9 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject(),
-        "Your Multi-Factor Authentication Activation"
+        "Defguard: Multi-Factor Authentication activation"
     );
-    let code = extract_email_code(&mail.content());
+    let code = extract_email_code(mail.content());
 
     // finish setup
     let code = AuthCode::new(code);
@@ -504,7 +503,7 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject(),
-        "Defguard: new device logged in to your account" // "Your Multi-Factor Authentication Code for Login"
+        "Defguard: new device logged in to your account"
     );
 
     // resend code
@@ -515,9 +514,9 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject(),
-        "Your Multi-Factor Authentication Code for Login"
+        "Defguard: Multi-Factor Authentication code for login"
     );
-    let code = extract_email_code(&mail.content());
+    let code = extract_email_code(mail.content());
 
     // login
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -579,9 +578,9 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
     assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject(),
-        "Your Multi-Factor Authentication Activation"
+        "Defguard: Multi-Factor Authentication activation"
     );
-    let code = extract_email_code(&mail.content());
+    let code = extract_email_code(mail.content());
 
     // finish setup
     let code = AuthCode::new(code);

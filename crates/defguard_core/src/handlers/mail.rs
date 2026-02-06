@@ -40,8 +40,8 @@ static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to you
 static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
 static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str =
-    "Defguard: Multi-Factor Authentication Activation";
-static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Defguard: Multi-Factor Authentication Code for Login";
+    "Defguard: Multi-Factor Authentication activation";
+static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Defguard: Multi-Factor Authentication code for login";
 
 static GATEWAY_DISCONNECTED_SUBJECT: &str = "Defguard: Gateway disconnected";
 static GATEWAY_RECONNECTED_SUBJECT: &str = "Defguard: Gateway reconnected";
@@ -76,8 +76,8 @@ pub async fn test_mail(
 
     let (tx, mut rx) = unbounded_channel();
     let mail = Mail::new(
-        data.to.clone(),
-        TEST_MAIL_SUBJECT.to_string(),
+        &data.to,
+        TEST_MAIL_SUBJECT,
         templates::test_mail(Some(&session.session.into()))?,
     )
     .set_result_tx(tx);
@@ -143,27 +143,22 @@ pub async fn send_support_data(
     });
 
     let components_json =
-        serde_json::to_string(&components_info).unwrap_or("JSON formatting error".to_string());
+        serde_json::to_vec(&components_info).unwrap_or(b"JSON formatting error".into());
 
     let components = Attachment::new(
         format!("defguard-components-{}.json", Utc::now()),
-        components_json.into(),
+        components_json,
     );
 
     let config = dump_config(&appstate.pool).await;
-    let config =
-        serde_json::to_string_pretty(&config).unwrap_or("JSON formatting error".to_string());
-
-    let config = Attachment::new(
-        format!("defguard-support-data-{}.json", Utc::now()),
-        config.into(),
-    );
+    let config = serde_json::to_vec_pretty(&config).unwrap_or(b"JSON formatting error".into());
+    let config = Attachment::new(format!("defguard-support-data-{}.json", Utc::now()), config);
     let logs = read_logs().await;
     let logs = Attachment::new(format!("defguard-logs-{}.txt", Utc::now()), logs.into());
     let (tx, mut rx) = unbounded_channel();
     let mail = Mail::new(
-        SUPPORT_EMAIL_ADDRESS.to_string(),
-        SUPPORT_EMAIL_SUBJECT.to_string(),
+        SUPPORT_EMAIL_ADDRESS,
+        SUPPORT_EMAIL_SUBJECT,
         support_data_mail()?,
     )
     .set_attachments(vec![components, config, logs])
@@ -197,8 +192,8 @@ pub fn send_new_device_added_email(
     debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
 
     let mail = Mail::new(
-        user_email.to_string(),
-        NEW_DEVICE_ADDED_EMAIL_SUBJECT.to_string(),
+        user_email,
+        NEW_DEVICE_ADDED_EMAIL_SUBJECT,
         templates::new_device_added_mail(
             device_name,
             public_key,
@@ -232,8 +227,8 @@ pub async fn send_gateway_disconnected_email(
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         let mail = Mail::new(
-            user.email.clone(),
-            GATEWAY_DISCONNECTED_SUBJECT.to_string(),
+            &user.email,
+            GATEWAY_DISCONNECTED_SUBJECT,
             templates::gateway_disconnected_mail(&gateway_name, gateway_adress, &network_name)?,
         );
         let to = user.email;
@@ -263,8 +258,8 @@ pub async fn send_gateway_reconnected_email(
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         let mail = Mail::new(
-            user.email.clone(),
-            GATEWAY_RECONNECTED_SUBJECT.to_string(),
+            &user.email,
+            GATEWAY_RECONNECTED_SUBJECT,
             templates::gateway_reconnected_mail(&gateway_name, gateway_adress, &network_name)?,
         );
         let to = user.email;
@@ -291,8 +286,8 @@ pub async fn send_new_device_login_email(
     debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
 
     let mail = Mail::new(
-        user_email.to_string(),
-        NEW_DEVICE_LOGIN_EMAIL_SUBJECT.to_string(),
+        user_email,
+        NEW_DEVICE_LOGIN_EMAIL_SUBJECT,
         templates::new_device_login_mail(session, created)?,
     );
     let to = user_email;
@@ -317,7 +312,7 @@ pub async fn send_new_device_ocid_login_email(
     debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
 
     let mail = Mail::new(
-        user_email.to_string(),
+        user_email,
         format!("New login to {oauth2client_name} application with Defguard"),
         templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
     );
@@ -344,7 +339,7 @@ pub fn send_mfa_configured_email(
     debug!("Sending MFA configured mail to {}", user.email);
 
     let mail = Mail::new(
-        user.email.clone(),
+        &user.email,
         format!("MFA method {mfa_method} has been activated on your account"),
         templates::mfa_configured_mail(session, mfa_method)?,
     );
@@ -375,8 +370,8 @@ pub fn send_email_mfa_activation_email(
     })?;
 
     let mail = Mail::new(
-        user.email.clone(),
-        EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
+        &user.email,
+        EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT,
         templates::email_mfa_activation_mail(&user.into(), &code, session)?,
     );
 
@@ -406,8 +401,8 @@ pub fn send_email_mfa_code_email(
     })?;
 
     let mail = Mail::new(
-        user.email.clone(),
-        EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
+        &user.email,
+        EMAIL_MFA_CODE_EMAIL_SUBJECT,
         templates::email_mfa_code_mail(&user.into(), &code, session)?,
     );
 
@@ -435,8 +430,8 @@ pub fn send_password_reset_email(
     debug!("Sending password reset email to {}", user.email);
 
     let mail = Mail::new(
-        user.email.clone(),
-        EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
+        &user.email,
+        EMAIL_PASSWORD_RESET_START_SUBJECT,
         templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
     );
 
@@ -462,8 +457,8 @@ pub fn send_password_reset_success_email(
     debug!("Sending password reset success email to {}", user.email);
 
     let mail = Mail::new(
-        user.email.clone(),
-        EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT.into(),
+        &user.email,
+        EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT,
         templates::email_password_reset_success_mail(ip_address, device_info)?,
     );
 

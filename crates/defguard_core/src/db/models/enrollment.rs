@@ -320,7 +320,7 @@ impl Token {
     /// - admin_last_name
     /// - admin_email
     /// - admin_phone
-    pub async fn get_welcome_message_context(
+    pub(crate) async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Context, TokenError> {
@@ -367,7 +367,7 @@ impl Token {
     }
 
     // Render welcome email content
-    pub async fn get_welcome_email_content(
+    pub(crate) async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
         ip_address: &str,
@@ -401,11 +401,11 @@ impl Token {
     ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
         let mail = Mail::new(
-            user.email.clone(),
+            &user.email,
             settings
                 .enrollment_welcome_email_subject
-                .clone()
-                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
+                .as_deref()
+                .unwrap_or(WELCOME_EMAIL_SUBJECT),
             self.get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
         );
@@ -434,8 +434,8 @@ impl Token {
             user.username, admin.username
         );
         let mail = Mail::new(
-            admin.email.clone(),
-            "[defguard] User enrollment completed".into(),
+            &admin.email,
+            "[defguard] User enrollment completed",
             templates::enrollment_admin_notification(
                 &user.into(),
                 &admin.into(),

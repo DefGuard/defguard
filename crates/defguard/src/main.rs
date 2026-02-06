@@ -34,7 +34,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_mail::MailHandler;
+use defguard_mail::mail_handler::MailHandler;
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::setup::run_setup_web_server;

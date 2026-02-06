@@ -107,13 +107,12 @@ impl From<&User<Id>> for UserContext {
 }
 
 fn get_base_tera(
-    external_context: Option<Context>,
+    mut context: Context,
     session: Option<&SessionContext>,
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = safe_tera();
-    let mut context = external_context.unwrap_or_default();
     tera.add_raw_template("base", MAIL_BASE)?;
     tera.add_raw_template("macros", MAIL_MACROS)?;
     // Supply context for the base template.
@@ -141,7 +140,7 @@ fn get_base_tera(
 
 // Sends test message when requested during SMTP configuration process.
 pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None, session, None, None)?;
+    let (mut tera, context) = get_base_tera(Context::new(), session, None, None)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
 
     let processed = tera.render("mail_test", &context)?;
@@ -160,7 +159,7 @@ pub fn enrollment_start_mail(
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
     debug!("Render an enrollment start mail template for the user.");
-    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+    let (mut tera, mut context) = get_base_tera(context, None, None, None)?;
 
     // add required context
     context.insert("enrollment_url", &enrollment_service_url);
@@ -178,11 +177,11 @@ pub fn enrollment_start_mail(
 
     let processed = tera.render("mail_enrollment_start", &context)?;
 
-    let parsed = mrml::parse(processed)?;
-    let opts = mrml::prelude::render::RenderOptions::default();
-    let html = parsed.element.render(&opts)?;
+    // let parsed = mrml::parse(processed)?;
+    // let opts = mrml::prelude::render::RenderOptions::default();
+    // let html = parsed.element.render(&opts)?;
 
-    Ok(html)
+    Ok(processed)
 }
 
 // Mail with link to enrollment service.
@@ -192,7 +191,7 @@ pub fn desktop_start_mail(
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
     debug!("Render a mail template for desktop activation.");
-    let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
+    let (mut tera, mut context) = get_base_tera(context, None, None, None)?;
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
 
@@ -210,7 +209,7 @@ pub fn enrollment_welcome_mail(
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     debug!("Render a welcome mail template for user enrollment.");
-    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
     // convert content to HTML
@@ -231,7 +230,8 @@ pub fn enrollment_admin_notification(
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     debug!("Render an admin notification mail template.");
-    let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
+    let (mut tera, mut context) =
+        get_base_tera(Context::new(), None, Some(ip_address), device_info)?;
 
     tera.add_raw_template(
         "mail_enrollment_admin_notification",
@@ -247,7 +247,7 @@ pub fn enrollment_admin_notification(
 
 // message with support data
 pub fn support_data_mail() -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None, None, None, None)?;
+    let (mut tera, context) = get_base_tera(Context::new(), None, None, None)?;
     tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
     Ok(tera.render("mail_support_data", &context)?)
 }
@@ -266,7 +266,7 @@ pub fn new_device_added_mail(
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
     debug!("Render a new device added mail template for the user.");
-    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
     context.insert("locations", template_locations);
@@ -279,7 +279,7 @@ pub fn mfa_configured_mail(
     session: Option<&SessionContext>,
     method: &MFAMethod,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
     context.insert("mfa_method", &method);
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
@@ -291,7 +291,7 @@ pub fn new_device_login_mail(
     session: &SessionContext,
     created: NaiveDateTime,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
     context.insert(
         "date_now",
@@ -306,7 +306,7 @@ pub fn new_device_ocid_login_mail(
     session: &SessionContext,
     oauth2client_name: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), Some(session), None, None)?;
     tera.add_raw_template("mail_base", MAIL_BASE)?;
 
     let url = format!("{}me", Settings::url()?);
@@ -323,7 +323,7 @@ pub fn gateway_disconnected_mail(
     gateway_ip: &str,
     network_name: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None, None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), None, None, None)?;
     context.insert("gateway_name", gateway_name);
     context.insert("gateway_ip", gateway_ip);
     context.insert("network_name", network_name);
@@ -336,7 +336,7 @@ pub fn gateway_reconnected_mail(
     gateway_ip: &str,
     network_name: &str,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None, None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), None, None, None)?;
     context.insert("gateway_name", gateway_name);
     context.insert("gateway_ip", gateway_ip);
     context.insert("network_name", network_name);
@@ -349,7 +349,7 @@ pub fn email_mfa_activation_mail(
     code: &str,
     session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
@@ -367,7 +367,7 @@ pub fn email_mfa_code_mail(
     code: &str,
     session: Option<&SessionContext>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
@@ -386,9 +386,9 @@ pub fn email_password_reset_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
+    let (mut tera, mut context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
 
-    context.insert("enrollment_url", &service_url.to_string());
+    context.insert("enrollment_url", &service_url);
     context.insert("defguard_url", &Settings::url()?);
     context.insert("token", password_reset_token);
 
@@ -397,7 +397,7 @@ pub fn email_password_reset_mail(
         .query_pairs_mut()
         .append_pair("token", password_reset_token);
 
-    context.insert("link_url", &service_url.to_string());
+    context.insert("link_url", &service_url);
 
     tera.add_raw_template("mail_passowrd_reset_start", MAIL_PASSWORD_RESET_START)?;
 
@@ -408,7 +408,7 @@ pub fn email_password_reset_success_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(None, None, ip_address, device_info)?;
+    let (mut tera, context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
 
     tera.add_raw_template("mail_passowrd_reset_success", MAIL_PASSWORD_RESET_SUCCESS)?;
 
@@ -457,13 +457,7 @@ mod test {
 
     #[test]
     fn test_base_mail_no_context() {
-        assert_ok!(get_base_tera(None, None, None, None));
-    }
-
-    #[test]
-    fn test_base_mail_external_context() {
-        let external_context: Context = Context::new();
-        assert_ok!(get_base_tera(Some(external_context), None, None, None));
+        assert_ok!(get_base_tera(Context::new(), None, None, None));
     }
 
     #[test]
@@ -525,6 +519,7 @@ mod test {
             None,
         ));
     }
+
     #[sqlx::test]
     async fn test_gateway_disconnected(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;

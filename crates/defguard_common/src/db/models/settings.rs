@@ -558,7 +558,7 @@ Your login to all systems is: {{ username }}
 
 Here are the most important company systems:
 
-- defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
+- Defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
 - our chat system: https://chat.example.com - join our default room #TownHall
 - knowledge base: https://example.com ...
 - our JIRA: https://example.atlassian.net...
@@ -579,7 +579,7 @@ email: {{ admin_email }}
 mobile: {{ admin_phone }}
 
 --
-Sent by defguard {{ defguard_version }}
+Sent by Defguard {{ defguard_version }}
 Star us on GitHub! https://github.com/defguard/defguard\
 ";
 

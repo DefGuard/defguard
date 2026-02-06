@@ -1,23 +1,15 @@
-use std::time::Duration;
-
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
-use lettre::{
-    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
-    transport::smtp::{authentication::Credentials, response::Response},
-};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-use tracing::{debug, error, info, warn};
+use lettre::transport::smtp::response::Response;
 
 use crate::mail::MailError;
 pub use crate::mail::{Attachment, Mail};
 
 pub mod mail;
+pub mod mail_handler;
 pub mod templates;
 
-const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
-
-/// Subset of Settings object representing SMTP configuration
-struct SmtpSettings {
+/// Subset of Settings representing SMTP configuration.
+pub(crate) struct SmtpSettings {
     server: String,
     port: u16,
     encryption: SmtpEncryption,
@@ -28,7 +20,7 @@ struct SmtpSettings {
 
 impl SmtpSettings {
     /// Constructs `SmtpSettings` from `Settings`. Returns error if `SmtpSettings` are incomplete.
-    pub fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
+    pub(crate) fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
         if let (Some(server), Some(port), encryption, Some(user), Some(password), Some(sender)) = (
             settings.smtp_server,
             settings.smtp_port,
@@ -52,122 +44,5 @@ impl SmtpSettings {
     }
 }
 
+/// Custom type used for MPSC channel.
 type Confirmation = Result<Response, MailError>;
-
-pub struct MailHandler {
-    tx: UnboundedSender<Mail>,
-    rx: UnboundedReceiver<Mail>,
-}
-
-impl Default for MailHandler {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl MailHandler {
-    /// Create new [`MailHandler`].
-    #[must_use]
-    pub fn new() -> Self {
-        let (tx, rx) = unbounded_channel();
-        Self { tx, rx }
-    }
-
-    /// Return sender's clone.
-    #[must_use]
-    pub fn tx(&self) -> UnboundedSender<Mail> {
-        self.tx.clone()
-    }
-
-    fn send_result(tx: Option<UnboundedSender<Confirmation>>, result: Confirmation) {
-        if let Some(tx) = tx {
-            if tx.send(result).is_ok() {
-                debug!("SMTP result sent back to caller");
-            } else {
-                error!("Error sending SMTP result back to caller");
-            }
-        }
-    }
-
-    /// Listens on the receiver for messages and sends them via SMTP.
-    pub async fn run(mut self) {
-        while let Some(mail) = self.rx.recv().await {
-            let (to, subject) = (mail.to.clone(), mail.subject.clone());
-            debug!("Sending mail to: {to}, subject: {subject}");
-
-            // fetch SMTP settings
-            let settings = Settings::get_current_settings();
-            let settings = match SmtpSettings::from_settings(settings) {
-                Ok(settings) => settings,
-                Err(MailError::SmtpNotConfigured) => {
-                    warn!("SMTP not configured, email sending skipped");
-                    continue;
-                }
-                Err(err) => {
-                    error!("Error retrieving SMTP settings: {err}");
-                    continue;
-                }
-            };
-
-            // Construct lettre Message
-            let result_tx = mail.result_tx.clone();
-            let message: Message = match mail.into_message(&settings.sender) {
-                Ok(message) => message,
-                Err(err) => {
-                    error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
-                    continue;
-                }
-            };
-            // Build mailer and send the message
-            match Self::mailer(settings) {
-                Ok(mailer) => match mailer.send(message).await {
-                    Ok(response) => {
-                        Self::send_result(result_tx, Ok(response.clone()));
-                        info!(
-                            "Mail sent successfully to: {to}, subject: {subject}, response: {response:?}"
-                        );
-                    }
-                    Err(err) => {
-                        error!("Mail sending failed to: {to}, subject: {subject}, error: {err}");
-                        Self::send_result(result_tx, Err(MailError::SmtpError(err)));
-                    }
-                },
-                Err(MailError::SmtpNotConfigured) => {
-                    warn!("SMTP not configured, onboarding email sending skipped");
-                    Self::send_result(result_tx, Err(MailError::SmtpNotConfigured));
-                }
-                Err(err) => {
-                    error!("Error building mailer: {err}");
-                    Self::send_result(result_tx, Err(err));
-                }
-            }
-        }
-    }
-
-    /// Builds mailer object with specified configuration
-    fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
-        let builder = match settings.encryption {
-            SmtpEncryption::None => {
-                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
-            }
-            SmtpEncryption::StartTls => {
-                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.server)?
-            }
-            SmtpEncryption::ImplicitTls => {
-                AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?
-            }
-        }
-        .port(settings.port)
-        .timeout(Some(SMTP_TIMEOUT));
-
-        // Skip credentials if any of them is empty
-        let builder = if settings.user.is_empty() || settings.password.is_empty() {
-            debug!("SMTP credentials were not provided, skipping username/password authentication");
-            builder
-        } else {
-            builder.credentials(Credentials::new(settings.user, settings.password))
-        };
-
-        Ok(builder.build())
-    }
-}

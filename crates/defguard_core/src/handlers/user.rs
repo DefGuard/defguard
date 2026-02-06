@@ -1108,7 +1108,7 @@ pub async fn reset_password(
 
         let mail = Mail::new(
             user.email.clone(),
-            EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
+            EMAIL_PASSWORD_RESET_START_SUBJECT,
             templates::email_password_reset_mail(
                 public_proxy_url,
                 enrollment.id.clone().as_str(),
