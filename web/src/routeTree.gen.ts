@@ -35,11 +35,11 @@ import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
+import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized/_default/edges'
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
 import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_authorized/_default/settings/index'
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
-import { Route as AuthorizedDefaultEdgeIndexRouteImport } from './routes/_authorized/_default/edge/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
 import { Route as AuthorizedDefaultSettingsSmtpRouteImport } from './routes/_authorized/_default/settings/smtp'
@@ -193,6 +193,11 @@ const AuthorizedDefaultGroupsRoute = AuthorizedDefaultGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultEdgesRoute = AuthorizedDefaultEdgesRouteImport.update({
+  id: '/edges',
+  path: '/edges',
+  getParentRoute: () => AuthorizedDefaultRoute,
+} as any)
 const AuthorizedDefaultActivityRoute =
   AuthorizedDefaultActivityRouteImport.update({
     id: '/activity',
@@ -215,12 +220,6 @@ const AuthorizedDefaultLocationsIndexRoute =
   AuthorizedDefaultLocationsIndexRouteImport.update({
     id: '/locations/',
     path: '/locations/',
-    getParentRoute: () => AuthorizedDefaultRoute,
-  } as any)
-const AuthorizedDefaultEdgeIndexRoute =
-  AuthorizedDefaultEdgeIndexRouteImport.update({
-    id: '/edge/',
-    path: '/edge/',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultVpnOverviewLocationIdRoute =
@@ -346,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/edges': typeof AuthorizedDefaultEdgesRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
@@ -375,7 +375,6 @@ export interface FileRoutesByFullPath {
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/edge/': typeof AuthorizedDefaultEdgeIndexRoute
   '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
@@ -395,6 +394,7 @@ export interface FileRoutesByTo {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/edges': typeof AuthorizedDefaultEdgesRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
@@ -424,7 +424,6 @@ export interface FileRoutesByTo {
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/edge': typeof AuthorizedDefaultEdgeIndexRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
   '/settings': typeof AuthorizedDefaultSettingsIndexRoute
   '/vpn-overview': typeof AuthorizedDefaultVpnOverviewIndexRoute
@@ -447,6 +446,7 @@ export interface FileRoutesById {
   '/auth/mfa': typeof AuthMfaRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
+  '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
   '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
@@ -476,7 +476,6 @@ export interface FileRoutesById {
   '/_authorized/_default/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  '/_authorized/_default/edge/': typeof AuthorizedDefaultEdgeIndexRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
   '/_authorized/_default/settings/': typeof AuthorizedDefaultSettingsIndexRoute
   '/_authorized/_default/vpn-overview/': typeof AuthorizedDefaultVpnOverviewIndexRoute
@@ -499,6 +498,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth/'
     | '/activity'
+    | '/edges'
     | '/groups'
     | '/network-devices'
     | '/openid'
@@ -528,7 +528,6 @@ export interface FileRouteTypes {
     | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
-    | '/edge/'
     | '/locations/'
     | '/settings/'
     | '/vpn-overview/'
@@ -548,6 +547,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth'
     | '/activity'
+    | '/edges'
     | '/groups'
     | '/network-devices'
     | '/openid'
@@ -577,7 +577,6 @@ export interface FileRouteTypes {
     | '/settings/smtp'
     | '/user/$username'
     | '/vpn-overview/$locationId'
-    | '/edge'
     | '/locations'
     | '/settings'
     | '/vpn-overview'
@@ -599,6 +598,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth/'
     | '/_authorized/_default/activity'
+    | '/_authorized/_default/edges'
     | '/_authorized/_default/groups'
     | '/_authorized/_default/network-devices'
     | '/_authorized/_default/openid'
@@ -628,7 +628,6 @@ export interface FileRouteTypes {
     | '/_authorized/_default/settings/smtp'
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
-    | '/_authorized/_default/edge/'
     | '/_authorized/_default/locations/'
     | '/_authorized/_default/settings/'
     | '/_authorized/_default/vpn-overview/'
@@ -830,6 +829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultGroupsRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/edges': {
+      id: '/_authorized/_default/edges'
+      path: '/edges'
+      fullPath: '/edges'
+      preLoaderRoute: typeof AuthorizedDefaultEdgesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/activity': {
       id: '/_authorized/_default/activity'
       path: '/activity'
@@ -856,13 +862,6 @@ declare module '@tanstack/react-router' {
       path: '/locations'
       fullPath: '/locations/'
       preLoaderRoute: typeof AuthorizedDefaultLocationsIndexRouteImport
-      parentRoute: typeof AuthorizedDefaultRoute
-    }
-    '/_authorized/_default/edge/': {
-      id: '/_authorized/_default/edge/'
-      path: '/edge'
-      fullPath: '/edge/'
-      preLoaderRoute: typeof AuthorizedDefaultEdgeIndexRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/vpn-overview/$locationId': {
@@ -996,6 +995,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
+  AuthorizedDefaultEdgesRoute: typeof AuthorizedDefaultEdgesRoute
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
   AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
@@ -1017,7 +1017,6 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultSettingsSmtpRoute: typeof AuthorizedDefaultSettingsSmtpRoute
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
-  AuthorizedDefaultEdgeIndexRoute: typeof AuthorizedDefaultEdgeIndexRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
   AuthorizedDefaultSettingsIndexRoute: typeof AuthorizedDefaultSettingsIndexRoute
   AuthorizedDefaultVpnOverviewIndexRoute: typeof AuthorizedDefaultVpnOverviewIndexRoute
@@ -1027,6 +1026,7 @@ interface AuthorizedDefaultRouteChildren {
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultActivityRoute: AuthorizedDefaultActivityRoute,
+  AuthorizedDefaultEdgesRoute: AuthorizedDefaultEdgesRoute,
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
   AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
@@ -1054,7 +1054,6 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultUserUsernameRoute: AuthorizedDefaultUserUsernameRoute,
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
-  AuthorizedDefaultEdgeIndexRoute: AuthorizedDefaultEdgeIndexRoute,
   AuthorizedDefaultLocationsIndexRoute: AuthorizedDefaultLocationsIndexRoute,
   AuthorizedDefaultSettingsIndexRoute: AuthorizedDefaultSettingsIndexRoute,
   AuthorizedDefaultVpnOverviewIndexRoute:

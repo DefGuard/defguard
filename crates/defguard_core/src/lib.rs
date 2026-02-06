@@ -131,7 +131,7 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{delete_proxy, proxy_details, update_proxy},
+        proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -356,6 +356,7 @@ pub fn build_webapp(
             // activity log
             .route("/activity_log", get(get_activity_log_events))
             // Proxy routes
+            .route("/proxy", get(proxy_list))
             .route(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),

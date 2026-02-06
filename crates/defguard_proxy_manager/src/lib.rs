@@ -48,7 +48,7 @@ use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlo
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
-use sqlx::{PgPool, types::chrono::Utc};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     select,
@@ -161,13 +161,13 @@ impl ProxyManager {
         let sessions = Arc::default();
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
-        let mut proxies: Vec<ProxyServer> = Proxy::all(&self.pool)
+        let mut proxies = Proxy::all(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
                 let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
                 shutdown_channels.insert(proxy.id, shutdown_tx);
-                ProxyServer::from_proxy(
+                ProxyHandler::from_proxy(
                     proxy,
                     self.pool.clone(),
                     &self.tx,
@@ -176,14 +176,14 @@ impl ProxyManager {
                     Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
 
         // For backwards compatibility add the proxy specified in cli arg as well.
         if let Some(ref url) = server_config().proxy_url {
             debug!("Adding proxy from cli arg: {url}");
             let url = Url::from_str(url)?;
-            let proxy = ProxyServer::new(
+            let proxy = ProxyHandler::new(
                 self.pool.clone(),
                 url,
                 &self.tx,
@@ -223,7 +223,7 @@ impl ProxyManager {
                             if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
                                 let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
                                 shutdown_channels.insert(id, shutdown_tx);
-                                match ProxyServer::from_proxy(
+                                match ProxyHandler::from_proxy(
                                     &proxy_model,
                                     self.pool.clone(),
                                     &self.tx,
@@ -294,7 +294,7 @@ type ShutdownReceiver = tokio::sync::oneshot::Receiver<()>;
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
 /// `ProxyManager`.
-struct ProxyServer {
+struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
@@ -304,7 +304,7 @@ struct ProxyServer {
     proxy_id: Option<Id>,
 }
 
-impl ProxyServer {
+impl ProxyHandler {
     pub fn new(
         pool: PgPool,
         url: Url,
@@ -345,6 +345,54 @@ impl ProxyServer {
             shutdown_signal,
             Some(proxy_id),
         ))
+    }
+
+    async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
+        let Some(proxy_id) = self.proxy_id else {
+            warn!(
+                "Skipping marking connection time for proxy without id: {}",
+                self.url
+            );
+            return Ok(());
+        };
+
+        if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
+            proxy
+                .mark_connected(&self.pool, &version.to_string())
+                .await?;
+        } else {
+            warn!("Couldn't find proxy by id, URL: {}", self.url);
+        }
+
+        Ok(())
+    }
+
+    async fn mark_disconnected(&self) -> Result<(), ProxyError> {
+        let Some(proxy_id) = self.proxy_id else {
+            warn!(
+                "Skipping marking connection time for proxy without id: {}",
+                self.url
+            );
+            return Ok(());
+        };
+
+        let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? else {
+            warn!("Couldn't find proxy by id, URL: {}", self.url);
+            return Ok(());
+        };
+
+        // Make sure we don't continuously update disconnected time in connection loop
+        let should_mark = match (proxy.connected_at, proxy.disconnected_at) {
+            (Some(connected), Some(disconnected)) => disconnected < connected,
+            (Some(_), None) => true,
+            _ => false,
+        };
+
+        if should_mark {
+            proxy.mark_disconnected(&self.pool).await?;
+        }
+
+        Ok(())
     }
 
     fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
@@ -414,6 +462,7 @@ impl ProxyServer {
                             );
                         }
                     }
+                    self.mark_disconnected().await?;
                     sleep(TEN_SECS).await;
                     continue;
                 }
@@ -423,21 +472,7 @@ impl ProxyServer {
             // Check proxy version and continue if it's not supported.
             let (version, info) = get_tracing_variables(&maybe_info);
             let proxy_is_supported = is_proxy_version_supported(Some(&version));
-
-            if let Some(proxy_id) = self.proxy_id {
-                if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
-                    proxy.version = Some(version.to_string());
-                    proxy.connected_at = Some(Utc::now().naive_utc());
-                    proxy.save(&self.pool).await?;
-                } else {
-                    warn!("Couldn't find proxy by id, URL: {} ", self.url);
-                }
-            } else {
-                warn!(
-                    "Couldn't obtain proxy id, check if proxy exists in database. URL: {}",
-                    self.url
-                );
-            }
+            self.mark_connected(&version).await?;
 
             let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
             version = version.to_string(), info);
@@ -483,6 +518,7 @@ impl ProxyServer {
                         } else {
                             info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
                         }
+                        self.mark_disconnected().await?;
                         sleep(TEN_SECS).await;
                     }
                     res = shutdown_signal => {
@@ -491,6 +527,7 @@ impl ProxyServer {
                         } else {
                             info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
                         }
+                        self.mark_disconnected().await?;
                         break;
                     }
                 }
@@ -965,6 +1002,7 @@ impl ProxyServer {
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
                     debug!("waiting 10s to re-establish the connection");
+                    self.mark_disconnected().await?;
                     sleep(TEN_SECS).await;
                     break 'message;
                 }
