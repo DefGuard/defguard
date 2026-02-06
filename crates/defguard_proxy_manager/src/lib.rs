@@ -161,7 +161,7 @@ impl ProxyManager {
         let sessions = Arc::default();
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
-        let mut proxies: Vec<ProxyHandler> = Proxy::all(&self.pool)
+        let mut proxies = Proxy::all(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
@@ -176,7 +176,7 @@ impl ProxyManager {
                     Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
 
         // For backwards compatibility add the proxy specified in cli arg as well.
