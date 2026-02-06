@@ -602,7 +602,7 @@ impl User<Id> {
         )
         .fetch_all(pool)
         .await?;
-        let res: Vec<UserDiagnostic> = users
+        let res = users
             .iter()
             .map(|u| UserDiagnostic {
                 mfa_method: u.mfa_method.clone(),
@@ -613,7 +613,7 @@ impl User<Id> {
                 is_active: u.is_active,
                 enrolled: u.password_hash.is_some() || u.openid_sub.is_some() || u.from_ldap,
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         Ok(res)
     }
@@ -678,7 +678,7 @@ impl User<Id> {
         false
     }
 
-    /// Generate MFA code for email verification.
+    /// Generate MFA code for email verification. The code is zero-padded.
     ///
     /// NOTE: This code will be valid for two time frames. See comment for verify_email_mfa_code().
     pub fn generate_email_mfa_code(&self) -> Result<String, UserError> {

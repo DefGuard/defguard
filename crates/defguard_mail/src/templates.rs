@@ -45,7 +45,7 @@ static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum TemplateError {
     #[error("Failed to generate email MFA code")]
     MfaError,
@@ -114,9 +114,9 @@ fn get_base_tera(
 ) -> Result<(Tera, Context), TemplateError> {
     let mut tera = safe_tera();
     let mut context = external_context.unwrap_or_default();
-    tera.add_raw_template("base.tera", MAIL_BASE)?;
-    tera.add_raw_template("macros.tera", MAIL_MACROS)?;
-    // supply context required by base
+    tera.add_raw_template("base", MAIL_BASE)?;
+    tera.add_raw_template("macros", MAIL_MACROS)?;
+    // Supply context for the base template.
     context.insert("application_version", &VERSION);
     let now = Utc::now();
     context.insert("current_year", &now.year().to_string());
@@ -163,7 +163,7 @@ pub fn enrollment_start_mail(
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     // add required context
-    context.insert("enrollment_url", &enrollment_service_url.to_string());
+    context.insert("enrollment_url", &enrollment_service_url);
     context.insert("defguard_url", &Settings::url()?);
     context.insert("token", enrollment_token);
 
@@ -172,7 +172,7 @@ pub fn enrollment_start_mail(
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
 
-    context.insert("link_url", &enrollment_service_url.to_string());
+    context.insert("link_url", &enrollment_service_url);
 
     tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
 
@@ -196,7 +196,7 @@ pub fn desktop_start_mail(
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
 
-    context.insert("url", &enrollment_service_url.to_string());
+    context.insert("url", &enrollment_service_url);
     context.insert("token", enrollment_token);
 
     Ok(tera.render("mail_desktop_start", &context)?)
@@ -223,7 +223,7 @@ pub fn enrollment_welcome_mail(
     Ok(tera.render("mail_enrollment_welcome", &context)?)
 }
 
-// notification sent to admin after user completes enrollment
+// Notification for admin after user completes an enrollment.
 pub fn enrollment_admin_notification(
     user: &UserContext,
     admin: &UserContext,
@@ -354,8 +354,7 @@ pub fn email_mfa_activation_mail(
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
-    // zero-pad code to make sure it's always 6 digits long
-    context.insert("code", &format!("{code:0>6}"));
+    context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
@@ -373,8 +372,7 @@ pub fn email_mfa_code_mail(
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
-    // zero-pad code to make sure it's always 6 digits long
-    context.insert("code", &format!("{code:0>6}"));
+    context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;

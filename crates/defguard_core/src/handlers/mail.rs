@@ -33,19 +33,21 @@ use crate::{
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
-static SUPPORT_EMAIL_SUBJECT: &str = "Defguard support data";
+
+static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
 
 static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
 static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
-static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Activation";
-static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
+static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str =
+    "Defguard: Multi-Factor Authentication Activation";
+static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Defguard: Multi-Factor Authentication Code for Login";
 
-static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
-static GATEWAY_RECONNECTED: &str = "Defguard: Gateway reconnected";
+static GATEWAY_DISCONNECTED_SUBJECT: &str = "Defguard: Gateway disconnected";
+static GATEWAY_RECONNECTED_SUBJECT: &str = "Defguard: Gateway reconnected";
 
-pub static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
-pub static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
+pub(crate) static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
+pub(crate) static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -231,7 +233,7 @@ pub async fn send_gateway_disconnected_email(
     for user in admin_users {
         let mail = Mail::new(
             user.email.clone(),
-            GATEWAY_DISCONNECTED.to_string(),
+            GATEWAY_DISCONNECTED_SUBJECT.to_string(),
             templates::gateway_disconnected_mail(&gateway_name, gateway_adress, &network_name)?,
         );
         let to = user.email;
@@ -262,7 +264,7 @@ pub async fn send_gateway_reconnected_email(
     for user in admin_users {
         let mail = Mail::new(
             user.email.clone(),
-            GATEWAY_RECONNECTED.to_string(),
+            GATEWAY_RECONNECTED_SUBJECT.to_string(),
             templates::gateway_reconnected_mail(&gateway_name, gateway_adress, &network_name)?,
         );
         let to = user.email;

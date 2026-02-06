@@ -6,8 +6,8 @@ name -> location name,
 assigned_ip -> ip of device in location
 }[]
 #}
-{% extends "base.tera" %}
-{% import "macros.tera" as macros %}
+{% extends "base" %}
+{% import "macros" as macros %}
 
 {# mail content #}
 {% block mail_content %}

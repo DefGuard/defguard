@@ -44,6 +44,7 @@ pub struct VpnClientSession<I = NoId> {
 }
 
 impl VpnClientSession {
+    #[must_use]
     pub fn new(
         location_id: Id,
         user_id: Id,
