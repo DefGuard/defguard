@@ -103,23 +103,17 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: mutateDisableWebauthn } = useMutation({
-    mutationFn: async (): Promise<void> => {
-      if (user.username !== authUsername) {
-        await api.user.disableSpecificMFA(user.username, UserMfaMethod.Webauthn);
-      } else {
-        await Promise.all(
-          securityKeys.map((key) =>
-            api.auth.mfa.webauthn.deleteKey({
-              username: user.username,
-              keyId: key.id,
-            }),
-          ),
-        );
-      }
+    mutationFn: () => {
+      const res = securityKeys.map((key) =>
+        api.auth.mfa.webauthn.deleteKey({
+          username: user.username,
+          keyId: key.id,
+        }),
+      );
+      return Promise.all(res);
     },
     meta: invalidateAfterMfaChange,
   });
-
   const emailMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
     if (!user.email_mfa_enabled) {
