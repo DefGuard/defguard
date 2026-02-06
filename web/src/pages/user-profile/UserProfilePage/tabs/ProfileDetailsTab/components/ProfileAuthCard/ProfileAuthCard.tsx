@@ -83,7 +83,7 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: mutateDisableTotp } = useMutation({
-    mutationFn: api.user.mfa.email.disable,
+    mutationFn: api.user.mfa.totp.disable,
     meta: invalidateAfterMfaChange,
   });
 
