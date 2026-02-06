@@ -227,9 +227,7 @@ export const ProfileAuthCard = () => {
       items.push({
         icon: 'minus-circle',
         text: m.controls_disable(),
-        onClick: () => {
-          mutateDisableTotp(user.username);
-        },
+        onClick: () => mutateDisableTotp(user.username),
       });
     }
 
