@@ -71,7 +71,7 @@ const renderDestinationSelectionItem: SelectionSectionCustomRender<
     {isPresent(option.meta) && (
       <DestinationLabel
         name={option.meta.name}
-        ips={option.meta.destination}
+        ips={option.meta.addresses}
         ports={option.meta.ports}
         protocols={option.meta.protocols
           .map((protocol) => AclProtocolName[protocol])
@@ -260,32 +260,34 @@ const Content = ({ rule: initialRule }: Props) => {
       z
         .object({
           name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-          networks: z.number().array(),
+          locations: z.number().array(),
           expires: z.string().nullable(),
           enabled: z.boolean(),
-          all_networks: z.boolean(),
+          all_locations: z.boolean(),
           allow_all_users: z.boolean(),
           deny_all_users: z.boolean(),
+          allow_all_groups: z.boolean(),
+          deny_all_groups: z.boolean(),
           allow_all_network_devices: z.boolean(),
           deny_all_network_devices: z.boolean(),
           allowed_users: z.number().array(),
           denied_users: z.number().array(),
-          allow_all_groups: z.boolean(),
           allowed_groups: z.number().array(),
           denied_groups: z.number().array(),
-          allowed_devices: z.number().array(),
-          denied_devices: z.number().array(),
+          allowed_network_devices: z.number().array(),
+          denied_network_devices: z.number().array(),
+          addresses: aclDestinationValidator,
+          ports: aclPortsValidator,
+          protocols: z.set(z.number()),
+          any_address: z.boolean(),
+          any_port: z.boolean(),
+          any_protocol: z.boolean(),
           destinations: z.set(z.number()),
           aliases: z.set(z.number()),
-          protocols: z.set(z.number()),
-          any_protocol: z.boolean(),
-          any_port: z.boolean(),
-          any_destination: z.boolean(),
-          destination: aclDestinationValidator,
-          ports: aclPortsValidator,
         })
         .superRefine((vals, ctx) => {
           // check for collisions
+          // FIXME: add handling for all_groups toggles
           const message = 'Allow Deny conflict error placeholder.';
           if (!vals.allow_all_users && !vals.deny_all_users) {
             if (intersection(vals.allowed_users, vals.denied_users).length) {
@@ -314,7 +316,10 @@ const Content = ({ rule: initialRule }: Props) => {
             }
           }
           if (!vals.allow_all_network_devices && !vals.deny_all_network_devices) {
-            if (intersection(vals.allowed_devices, vals.denied_devices).length) {
+            if (
+              intersection(vals.allowed_network_devices, vals.denied_network_devices)
+                .length
+            ) {
               ctx.addIssue({
                 path: ['allowed_devices'],
                 code: 'custom',
@@ -331,10 +336,11 @@ const Content = ({ rule: initialRule }: Props) => {
           // check if one of allowed users/groups/devices fields is set
           const isAllowConfigured =
             vals.allow_all_users ||
+            vals.allow_all_groups ||
             vals.allow_all_network_devices ||
             vals.allowed_users.length !== 0 ||
             vals.allowed_groups.length !== 0 ||
-            vals.allowed_devices.length !== 0;
+            vals.allowed_network_devices.length !== 0;
           if (!isAllowConfigured) {
             const message = 'Must configure some allowed users, groups or devices';
             ctx.addIssue({
@@ -363,7 +369,6 @@ const Content = ({ rule: initialRule }: Props) => {
     if (isPresent(initialRule)) {
       return {
         ...omit(initialRule, ['id', 'state', 'expires', 'parent_id']),
-        allow_all_groups: true,
         aliases: new Set(initialRule.aliases),
         destinations: new Set(),
         protocols: new Set(initialRule.protocols),
@@ -373,27 +378,28 @@ const Content = ({ rule: initialRule }: Props) => {
 
     return {
       name: '',
-      destination: '',
+      addresses: '',
       ports: '',
       aliases: new Set(),
       destinations: new Set(),
-      allowed_devices: [],
+      allowed_network_devices: [],
       allowed_groups: [],
       allowed_users: [],
-      denied_devices: [],
+      denied_network_devices: [],
       denied_groups: [],
       denied_users: [],
-      networks: [],
+      locations: [],
       protocols: new Set(),
-      all_networks: true,
-      allow_all_groups: true,
+      all_locations: true,
       allow_all_users: true,
+      allow_all_groups: true,
       allow_all_network_devices: true,
       deny_all_users: false,
+      deny_all_groups: false,
       deny_all_network_devices: false,
       enabled: true,
       expires: null,
-      any_destination: true,
+      any_address: true,
       any_port: true,
       any_protocol: true,
     };
@@ -411,36 +417,24 @@ const Content = ({ rule: initialRule }: Props) => {
       // FIXME: When restrictions section is reworked
       toSend.deny_all_network_devices = false;
       toSend.deny_all_users = false;
-      toSend.denied_devices = [];
+      toSend.deny_all_groups = false;
+      toSend.denied_network_devices = [];
       toSend.denied_groups = [];
       toSend.denied_users = [];
-      if (toSend.any_destination) {
-        toSend.destination = '';
-      }
-      if (toSend.any_port) {
-        toSend.ports = '';
-      }
-      if (toSend.any_protocol) {
-        toSend.protocols = new Set();
-      }
       if (isPresent(initialRule)) {
         await editRule({
           ...toSend,
-          any_destination: true,
-          any_port: true,
-          any_protocol: true,
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
           id: initialRule.id,
+          use_manual_destination_settings: manualDestination,
         });
       } else {
         await addRule({
           ...toSend,
-          any_destination: true,
-          any_port: true,
-          any_protocol: true,
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
+          use_manual_destination_settings: manualDestination,
         });
       }
     },
@@ -471,9 +465,9 @@ const Content = ({ rule: initialRule }: Props) => {
             <p>{`Specify which locations this rule applies to. You can select all available locations or choose specific ones based on your requirements.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.Subscribe selector={(s) => s.values.all_networks}>
+          <form.Subscribe selector={(s) => s.values.all_locations}>
             {(allValue) => (
-              <form.AppField name="networks">
+              <form.AppField name="locations">
                 {(field) => (
                   <field.FormSelectMultiple
                     options={locationsOptions}
@@ -484,7 +478,7 @@ const Content = ({ rule: initialRule }: Props) => {
                     selectionCustomItemRender={renderLocationSelectionItem}
                     toggleValue={allValue}
                     onToggleChange={(value) => {
-                      form.setFieldValue('all_networks', value);
+                      form.setFieldValue('all_locations', value);
                     }}
                   />
                 )}
@@ -544,7 +538,7 @@ const Content = ({ rule: initialRule }: Props) => {
                             <DestinationDismissibleBox
                               key={destination.id}
                               name={destination.name}
-                              ips={destination.destination}
+                              ips={destination.addresses}
                               ports={destination.ports}
                               protocols={destination.protocols
                                 .map((p) => AclProtocolName[p])
@@ -642,21 +636,21 @@ const Content = ({ rule: initialRule }: Props) => {
                 </p>
               </DescriptionBlock>
               <SizedBox height={ThemeSpacing.Xl} />
-              <form.AppField name="any_destination">
+              <form.AppField name="any_address">
                 {(field) => <field.FormToggle label="Any IP Address" />}
               </form.AppField>
-              <form.Subscribe selector={(s) => !s.values.any_destination}>
+              <form.Subscribe selector={(s) => !s.values.any_address}>
                 {(open) => (
                   <Fold open={open}>
                     <SizedBox height={ThemeSpacing.Xl} />
-                    <form.AppField name="destination">
+                    <form.AppField name="addresses">
                       {(field) => (
                         <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
                       )}
                     </form.AppField>
                     <AliasDataBlock
                       values={flat(
-                        selectedAliases.map((alias) => alias.destination.split(',')),
+                        selectedAliases.map((alias) => alias.addresses.split(',')),
                       )}
                     />
                   </Fold>
@@ -670,7 +664,7 @@ const Content = ({ rule: initialRule }: Props) => {
               </DescriptionBlock>
               <SizedBox height={ThemeSpacing.Xl} />
               <form.AppField name="any_port">
-                {(field) => <field.FormToggle label="All ports" />}
+                {(field) => <field.FormToggle label="Any port" />}
               </form.AppField>
               <form.Subscribe selector={(s) => !s.values.any_port}>
                 {(open) => (
@@ -697,7 +691,7 @@ const Content = ({ rule: initialRule }: Props) => {
               </DescriptionBlock>
               <SizedBox height={ThemeSpacing.Xl} />
               <form.AppField name="any_protocol">
-                {(field) => <field.FormToggle label="All protocols" />}
+                {(field) => <field.FormToggle label="Any protocol" />}
               </form.AppField>
               <form.Subscribe selector={(s) => !s.values.any_protocol}>
                 {(open) => (
@@ -779,7 +773,7 @@ const Content = ({ rule: initialRule }: Props) => {
           {isPresent(networkDevicesOptions) && (
             <form.Subscribe selector={(s) => s.values.allow_all_network_devices}>
               {(allowAllValue) => (
-                <form.AppField name="allowed_devices">
+                <form.AppField name="allowed_network_devices">
                   {(field) => (
                     <field.FormSelectMultiple
                       toggleValue={allowAllValue}

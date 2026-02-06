@@ -64,7 +64,7 @@ export const AliasTable = ({ data: rowData }: Props) => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('destination', {
+      columnHelper.accessor('addresses', {
         header: 'IP4/6 CIDR range address',
         enableSorting: false,
         size: 430,

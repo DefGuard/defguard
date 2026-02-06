@@ -631,7 +631,6 @@ export interface SettingsEnterprise {
 }
 
 export interface SettingsEssentials {
-  instance_name: string;
   initial_setup_completed: boolean;
 }
 
@@ -900,6 +899,7 @@ export interface AclRule {
   any_address: boolean;
   any_port: boolean;
   any_protocol: boolean;
+  use_manual_destination_settings: boolean;
   aliases: number[];
 }
 

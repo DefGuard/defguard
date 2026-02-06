@@ -34,19 +34,19 @@ type Props = {
 const formSchema = z
   .object({
     name: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+    addresses: aclDestinationValidator,
     ports: aclPortsValidator,
-    destination: aclDestinationValidator,
     protocols: z.set(z.enum(AclProtocol)),
-    any_destination: z.boolean(),
+    any_address: z.boolean(),
     any_port: z.boolean(),
     any_protocol: z.boolean(),
   })
   .superRefine((values, ctx) => {
-    if (!values.any_destination && values.destination.trim().length === 0) {
+    if (!values.any_address && values.addresses.trim().length === 0) {
       ctx.addIssue({
         code: 'custom',
         continue: true,
-        path: ['destination'],
+        path: ['addresses'],
         message: m.form_error_required(),
       });
     }
@@ -108,10 +108,10 @@ export const CEDestinationPage = ({ destination }: Props) => {
     if (isPresent(destination)) {
       return {
         name: destination.name,
-        any_destination: true,
+        any_address: true,
         any_port: true,
         any_protocol: true,
-        destination: destination.destination,
+        addresses: destination.addresses,
         ports: destination.ports,
         protocols: new Set(destination.protocols),
       };
@@ -120,10 +120,10 @@ export const CEDestinationPage = ({ destination }: Props) => {
     return {
       name: '',
       ports: '',
-      any_destination: true,
+      any_address: true,
       any_port: true,
       any_protocol: true,
-      destination: '',
+      addresses: '',
       protocols: new Set(),
     };
   }, [destination]);
@@ -191,14 +191,14 @@ export const CEDestinationPage = ({ destination }: Props) => {
               <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="any_destination">
+            <form.AppField name="any_address">
               {(field) => <field.FormToggle label="All IP addresses" />}
             </form.AppField>
-            <form.Subscribe selector={(s) => !s.values.any_destination}>
+            <form.Subscribe selector={(s) => !s.values.any_address}>
               {(open) => (
                 <Fold open={open}>
                   <SizedBox height={ThemeSpacing.Lg} />
-                  <form.AppField name="destination">
+                  <form.AppField name="addresses">
                     {(field) => (
                       <field.FormTextarea
                         required
