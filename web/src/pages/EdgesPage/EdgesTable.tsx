@@ -1,12 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import {
-  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
-  type RowSelectionState,
   useReactTable,
 } from '@tanstack/react-table';
 import dayjs from 'dayjs';
@@ -67,8 +63,6 @@ export const EdgesTable = ({ edges }: Props) => {
   );
 
   const [search, setSearch] = useState('');
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [selected, setSelected] = useState<RowSelectionState>({});
 
   const transformedData = useMemo(() => {
     let data = edges;
@@ -106,7 +100,6 @@ export const EdgesTable = ({ edges }: Props) => {
         header: m.edges_col_port(),
         size: 170,
         minSize: 100,
-        enableSorting: true,
         sortingFn: 'text',
         cell: (info) => (
           <TableCell>
@@ -118,7 +111,7 @@ export const EdgesTable = ({ edges }: Props) => {
         size: 175,
         minSize: 175,
         header: m.edges_col_version(),
-        enableSorting: false,
+        enableSorting: true,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -129,7 +122,7 @@ export const EdgesTable = ({ edges }: Props) => {
         size: 175,
         minSize: 175,
         header: m.edges_col_last_modified(),
-        enableSorting: false,
+        enableSorting: true,
         cell: (info) => (
           <TableCell>
             <span>{displayDate(info.getValue())}</span>
@@ -221,21 +214,12 @@ export const EdgesTable = ({ edges }: Props) => {
         },
       ],
     },
-    state: {
-      rowSelection: selected,
-      columnFilters: columnFilters,
-    },
     columns,
     data: transformedData,
-    enableRowSelection: true,
-    enableExpanding: true,
+    enableRowSelection: false,
     columnResizeMode: 'onChange',
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    onRowSelectionChange: setSelected,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
   });
 
   if (edges.length === 0)
