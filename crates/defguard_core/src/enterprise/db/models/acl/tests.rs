@@ -523,7 +523,7 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(rule_info.allowed_groups.len(), 1);
 
     // Get all allowed users
-    let allowed_users = rule_info.get_all_allowed_users(&pool).await.unwrap();
+    let allowed_users = rule_info.get_all_allowed_users(&mut conn).await.unwrap();
 
     // Should contain user1 (explicit) and user3 (from group2), but not inactive user_4
     assert_eq!(allowed_users.len(), 2);
@@ -647,7 +647,7 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(rule_info.denied_groups.len(), 1);
 
     // Get all denied users
-    let denied_users = rule_info.get_all_denied_users(&pool).await.unwrap();
+    let denied_users = rule_info.get_all_denied_users(&mut conn).await.unwrap();
 
     // Should contain user_1 (explicit), user_2 and user_3 (from group_1), but not inactive user_4
     assert_eq!(denied_users.len(), 3);

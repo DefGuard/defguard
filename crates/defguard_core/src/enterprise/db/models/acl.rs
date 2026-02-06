@@ -1190,9 +1190,9 @@ impl AclRule<Id> {
 impl AclRuleInfo<Id> {
     /// Wrapper function which combines explicitly specified allowed users with members of allowed
     /// groups to generate a list of all unique allowed users for a given ACL.
-    pub(crate) async fn get_all_allowed_users<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_allowed_users(
         &self,
-        executor: E,
+        conn: &mut PgConnection,
     ) -> Result<Vec<User<Id>>, SqlxError> {
         debug!(
             "Preparing list of all allowed users for ACL rule {}",
@@ -1204,18 +1204,22 @@ impl AclRuleInfo<Id> {
                 "allow_all_users flag is enabled for ACL rule {}. Fetching all active users",
                 self.id
             );
-            return User::<Id>::all_active(executor).await;
+            return User::<Id>::all_active(&mut *conn).await;
         }
 
         // get explicitly allowed users
         let mut allowed_users = self.allowed_users.clone();
 
         // get allowed groups IDs
-        let allowed_group_ids = self
-            .allowed_groups
-            .iter()
-            .map(|group| group.id)
-            .collect::<Vec<_>>();
+        let allowed_group_ids = if self.allow_all_groups {
+            let all_groups = Group::all(&mut *conn).await?;
+            all_groups.iter().map(|group| group.id).collect()
+        } else {
+            self.allowed_groups
+                .iter()
+                .map(|group| group.id)
+                .collect::<Vec<_>>()
+        };
 
         // fetch all active members of allowed groups
         let allowed_groups_users = query_as!(
@@ -1229,7 +1233,7 @@ impl AclRuleInfo<Id> {
             WHERE u.is_active=true AND gu.group_id=ANY($1)",
             &allowed_group_ids
         )
-        .fetch_all(executor)
+        .fetch_all(conn)
         .await?;
 
         // get unique users from both lists
@@ -1242,9 +1246,9 @@ impl AclRuleInfo<Id> {
 
     /// Wrapper function which combines explicitly specified denied users with members of denied
     /// groups to generate a list of all unique denied users for a given ACL.
-    pub(crate) async fn get_all_denied_users<'e, E: sqlx::PgExecutor<'e>>(
+    pub(crate) async fn get_all_denied_users(
         &self,
-        executor: E,
+        conn: &mut PgConnection,
     ) -> Result<Vec<User<Id>>, SqlxError> {
         debug!(
             "Preparing list of all denied users for ACL rule {}",
@@ -1256,14 +1260,22 @@ impl AclRuleInfo<Id> {
                 "deny_all_users flag is enabled for ACL rule {}. Fetching all active users",
                 self.id
             );
-            return User::<Id>::all_active(executor).await;
+            return User::<Id>::all_active(&mut *conn).await;
         }
 
         // get explicitly denied users
         let mut denied_users = self.denied_users.clone();
 
         // get denied groups IDs
-        let denied_group_ids: Vec<Id> = self.denied_groups.iter().map(|group| group.id).collect();
+        let denied_group_ids = if self.deny_all_groups {
+            let all_groups = Group::all(&mut *conn).await?;
+            all_groups.iter().map(|group| group.id).collect()
+        } else {
+            self.denied_groups
+                .iter()
+                .map(|group| group.id)
+                .collect::<Vec<_>>()
+        };
 
         // fetch all active members of denied groups
         let denied_groups_users = query_as!(
@@ -1278,7 +1290,7 @@ impl AclRuleInfo<Id> {
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
             &denied_group_ids
         )
-        .fetch_all(executor)
+        .fetch_all(conn)
         .await?;
 
         // get unique users from both lists
